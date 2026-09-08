@@ -7,6 +7,22 @@
 
 ---
 
+## (2026-09-08) — every Figma TEXT component-property name is lowercase (#1333)
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.66.0 → **0.67.0**. **CONTRACT stands at 10.0.0** — a component-property name is component-API surface, not a token name (`token-contract.ts --check` confirms 577 guaranteed paths unchanged; `--accept` refreshed only the informational `engineVersion` stamp).
+
+**The defect (owner-settled decision, implemented not re-decided).** The TEXT-property namer in `anatomy-figma.ts` uses the `figmaProperties.texts` KEY verbatim as the Figma property name. Four defs capitalized it — `button`'s `Label`, `field-label`'s `Label`, `field-message`'s `Message`, `select`'s `Value` — while every INSTANCE_SWAP and VARIANT name was already lowercase, and three defs (`checkbox`/`radio`/`switch`) already spelled their TEXT prop `label`. The owner settled #1333 on: make ALL Figma TEXT property names lowercase. So `Label`→`label`, `Message`→`message`, `Value`→`value`; already-lowercase ones untouched. This makes #1309's display-name split (decouple Figma display name from code prop) unnecessary for now — deliberately NOT built.
+
+**Where the single source is, and why the rename touches `props` too.** The casing is not in the namer — it reads the def key verbatim. `component-schema.ts`'s `figmaPropertyErrors` validates each `texts` key against a `props[].name` (line 1314/1321: `propNames.has(prop)`), so the two are COUPLED. Lowercasing only the `texts` key would fail validation ("is not a declared prop"); decoupling them is #1309. So the correct single source is the def, and the rename lands on BOTH the `props[].name` and the `texts` key in each of the four defs — code-side prop and Figma panel name move together, both lowercase.
+
+**Versioning (#1252 decision).** ENGINE and not CONTRACT: the property name reaches the plan (`FigmaNodePlan.propertyRef.prop` and the set-level `FigmaPropertyPlan.name`), so `planStamp` — which hashes the whole plan — moves for every def whose TEXT name was capitalized: `button` / `button-destructive` / `button-neutral` / `field-label` / `field-message` / `select`, **six surfaces at the SAME member count, different digest**, re-`--accept`ed into `schema/component-surface.json`. `checkbox`/`radio`/`switch` were already lowercase, so their digests are byte-identical and were NOT re-accepted. `lint-paint.ts`'s census is UNCHANGED and NOT re-accepted — it hashes paint binding NAMES and PLACEMENTS, and a TEXT-property rename touches neither (verified: `✓ paint is where the defs say it is`). `regen --check` moves each committed token artifact only by this file's own generator stamp (0.66.0 → 0.67.0); `lint-emission-version` is green (version moved with no emission-value change). No rename registry entry is owed: a component-property rename is neither a token-PATH move (`DEPRECATIONS`) nor a Figma-COLLECTION rename (`MATERIALIZATION_RENAMES`).
+
+**Mutation (docs/34).** Reverting one name back to capitalized in its def — coherently (prop + `texts` key together, so the def stays valid and the projector does not throw) — moves that def's `planStamp` and fails `lint-component-surface.ts` arm A **BY NAME**, verbatim: `surface/field-message: plan digest 83eb047aa7a1…, baseline 641de7d7a6d3… — the same member COUNT, projecting different plans`, while the member count holds at 4. `test.ts`'s hand-written property-name assertions — FieldLabel `label`, FieldMessage `message`, Button `label:TEXT` — also fail by name on such a revert; they are literals compared against the projected name, never derived from the def (docs/34 shape 8). Restored, then re-`--accept`ed at the forward bump. (The mutation was run by manual edit-and-restore, not `git checkout --`, so no uncommitted work was at risk — the CLAUDE.md trap.)
+
+**Verify:** `npm run verify` → full suite, all-PASS (0 FAIL). The per-gate table is in the PR body.
+
+---
+
 ## (2026-09-08) — the inverse PRIMARY filled fill holds constant so the brand ink stops losing contrast per state (#1351 part 2)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.65.0 → **0.66.0**. **CONTRACT stands at 10.0.0** — this moves token VALUES, not names (`token-contract.ts --check` confirms 577 guaranteed paths unchanged).

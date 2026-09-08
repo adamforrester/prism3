@@ -70,10 +70,10 @@ export const select: ComponentDef = {
 
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'The visible, persistent label, rendered as the nested FieldLabel. Required — a select always carries a programmatic name. Never the placeholder.' },
-    // #1242 — the Figma TEXT property is `Value`, a designer-facing name, not a React-ism. It is the
+    // #1242 — the Figma TEXT property is `value`, a designer-facing name, not a React-ism. It is the
     // displayed text: the selected option's label, or the placeholder when nothing is chosen. The
-    // controlled selection is wired in code via `onChange` and the option set.
-    { name: 'Value', type: 'string', required: false, description: 'The displayed text — the selected option\'s label, or the placeholder when nothing is chosen. Controlled: pair with onChange. The `empty` state re-points the ink to the muted placeholder role; every other state shows the full-contrast value ink — the same empty-vs-value polarity text-field uses.' },
+    // controlled selection is wired in code via `onChange` and the option set. LOWERCASE per #1333.
+    { name: 'value', type: 'string', required: false, description: 'The displayed text — the selected option\'s label, or the placeholder when nothing is chosen. Controlled: pair with onChange. The `empty` state re-points the ink to the muted placeholder role; every other state shows the full-contrast value ink — the same empty-vs-value polarity text-field uses.' },
     { name: 'placeholder', type: 'string', required: false, description: 'The prompt shown before a choice is made ("Select an option"). Muted, and never load-bearing — it is not the label and it vanishes once a value is chosen.' },
     { name: 'options', type: 'array', required: false, description: 'The bounded set of choices. Past roughly 7-10 options a filtering Combobox scans better; below a handful an always-visible Radio group may read better.' },
     { name: 'onChange', type: 'function', required: false, description: 'Fires with the newly chosen value (also onBlur / onFocus). A controlled Value with no onChange is read-only by accident.' },
@@ -308,9 +308,9 @@ export const select: ComponentDef = {
     slotAxes: [{ name: 'leading', part: 'leadingVisual' }],
     // `state` across the columns — the axis a designer reads a control's skin across, and the widest here.
     gridAxis: 'state',
-    // The displayed text. `Value`, a designer-facing name (#1242) — the placeholder is the copy every
-    // member ships, and a chosen-value string is what a designer types over it.
-    texts: { Value: { part: 'text', default: 'Placeholder' } },
+    // The displayed text. `value`, a designer-facing name (#1242), lowercase per #1333 — the
+    // placeholder is the copy every member ships, and a chosen-value string is what a designer types over it.
+    texts: { value: { part: 'text', default: 'Placeholder' } },
     // The leading glyph's CONTENT — orthogonal to its presence axis above.
     swaps: { leadingIcon: 'leadingVisual' },
     // Considered, none survive: `required` is aria/behavioral, `disabled` folds into the state axis,

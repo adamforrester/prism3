@@ -1796,7 +1796,7 @@ ok(labelInstr.progress.every((p) => p.done <= p.total) && labelInstr.progress.so
 // combine so no handle ever detaches. A `componentPropertyReferences` write to a detached node does not
 // merely discard: it THROWS "Could not create a new component property reference", and a throw never lands
 // in `wiredRefs`, so the read-back repairs cannot reach it. `field-label` — the corpus's only member with
-// TWO TEXT parts — lost BOTH its `Label` and `indicator` references on the affected variants and the text
+// TWO TEXT parts — lost BOTH its `label` and `indicator` references on the affected variants and the text
 // disappeared from them (#1337, filed off a live aurora build; its miss lines are byte-for-byte the ones
 // this run produces without the fix).
 //

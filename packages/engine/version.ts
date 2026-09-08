@@ -1704,6 +1704,39 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  *
+ * 0.67.0: every Figma TEXT component-property name is now LOWERCASE (#1333, owner-settled). The
+ * TEXT-property namer used the `figmaProperties.texts` KEY verbatim as the Figma property name, and four
+ * defs capitalized it — `button`'s `Label`, `field-label`'s `Label`, `field-message`'s `Message`,
+ * `select`'s `Value` — while every INSTANCE_SWAP and VARIANT name was already lowercase and three defs
+ * (`checkbox`/`radio`/`switch`) already spelled their TEXT prop `label`. Normalized to `label` / `message`
+ * / `value`. The rename lands on the SINGLE SOURCE the schema couples: `figmaPropertyErrors` validates
+ * each `texts` key against a `props[].name`, so the code-side prop and the Figma panel name move together
+ * — both lowercased — which keeps #1309's display-name split unnecessary and unbuilt for now.
+ *
+ * ENGINE and not CONTRACT, on #1252's decision. A component-property name is component-API surface, which
+ * `docs/30` puts deliberately outside the guaranteed TOKEN-NAME surface — no token path is added, removed
+ * or retyped, so `CONTRACT_VERSION` STANDS at 10.0.0 and `token-contract.ts --check` confirms it; `--accept`
+ * refreshes only the baseline's informational `engineVersion` stamp. The bump is demanded from the
+ * projected-surface side (#1252's case): the property name reaches the plan (`propertyRef.prop` and the
+ * set-level `FigmaPropertyPlan.name`), so `planStamp` moves for every def whose TEXT name was capitalized —
+ * `button` / `button-destructive` / `button-neutral` / `field-label` / `field-message` / `select`, six
+ * surfaces at the SAME member count, different digest, re-`--accept`ed into `schema/component-surface.json`.
+ * `checkbox`/`radio`/`switch` were already lowercase, so their digests are BYTE-IDENTICAL and are not
+ * re-accepted. `lint-paint.ts`'s census is UNCHANGED and NOT re-accepted — it hashes paint binding NAMES
+ * and PLACEMENTS, and a TEXT-property rename touches neither. `regen --check` moves each committed token
+ * artifact only by this file's own generator stamp (0.66.0 → 0.67.0); `lint-emission-version` is green
+ * (the version moved with no emission-value change). No rename registry entry is owed: a component-property
+ * rename is neither a token-PATH move (`DEPRECATIONS`) nor a Figma-COLLECTION rename
+ * (`MATERIALIZATION_RENAMES`).
+ *
+ * MUTATION (docs/34, on the surface gate protecting the renamed surface): reverting any one name back to
+ * capitalized in its def (e.g. `field-message`'s `texts` key `message` → `Message`) moves that def's
+ * `planStamp` and fails `lint-component-surface.ts` arm A BY NAME — *"surface/field-message: plan digest
+ * … , baseline … — the same member COUNT, projecting different plans"* — while the member count holds.
+ * `test.ts`'s hand-written property-name assertions (FieldLabel `label`, FieldMessage `message`, Button
+ * `label:TEXT`) also fail by name; they are literals, never derived from the def. Restored, then
+ * re-`--accept`ed at the forward bump.
+ *
  * 0.66.0: the inverse PRIMARY filled fill now HOLDS CONSTANT across states (#1351 part 2), closing the
  * second real WCAG AA failure #1351 recorded. On `surface=inverse` the primary filled button is a
  * near-white surface carrying a BRAND `on-fill` ink (#1244/#1255); that ink is a single value gated
@@ -1820,7 +1853,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.66.0';
+export const ENGINE_VERSION = '0.67.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

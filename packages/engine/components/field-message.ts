@@ -65,11 +65,11 @@ export const fieldMessage: ComponentDef = {
 
   props: [
     { name: 'tone', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'default = helper guidance (neutral); error / warning / success = a validation result. The tone re-points both the caption ink and the icon at the matching semantic role.' },
-    // #1242 — `Message`, not `children`. The prop name is the Figma property name a designer reads
+    // #1242 — `message`, not `children`. The prop name is the Figma property name a designer reads
     // (`figmaProperties.texts` keys against `props`), and this component's text is a MESSAGE, not a
     // label — so the sweep off the React-ism lands here on the meaningful name this def's own comment
-    // below always wanted (see `figmaProperties.texts`), not on Button's `Label`.
-    { name: 'Message', type: 'string | node', required: true, description: 'The message text. For error tone, say what is wrong AND how to fix it (SC 3.3.3) — "Enter a valid email, e.g. name@example.com", not "Invalid input".' },
+    // below always wanted (see `figmaProperties.texts`), not on Button's `label`. LOWERCASE per #1333.
+    { name: 'message', type: 'string | node', required: true, description: 'The message text. For error tone, say what is wrong AND how to fix it (SC 3.3.3) — "Enter a valid email, e.g. name@example.com", not "Invalid input".' },
     { name: 'icon', type: 'slot', required: false, description: 'Overrides the leading status glyph, aria-hidden (the text carries the meaning). Rarely needed: each validation tone already picks its own mark — an exclamation in a triangle for error, in a circle for warning, a circled check for success — so this is for a host with a domain-specific status mark, not for supplying the one the tone implies. On the default tone there is no glyph unless one is supplied here, which is what makes it the only tone where this prop adds a node rather than replacing one.' },
     { name: 'id', type: 'string', required: false, description: 'Set by the host so it can reference this node from the field\'s aria-describedby chain. Auto-generated with useId when composed inside TextField.' },
   ],
@@ -284,7 +284,8 @@ export const fieldMessage: ComponentDef = {
     // the other three members its own copy (from the staged `helper-message.json` spec); a coordinate not
     // named here still falls back to `default`. Keyed on `tone`, this def's only variant axis.
     texts: {
-      Message: {
+      // `message` lowercase per #1333 — validated against `props` above, so it renames with the prop.
+      message: {
         part: 'text',
         default: 'Use 8+ characters',
         byVariant: {

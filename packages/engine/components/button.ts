@@ -127,12 +127,13 @@ const makeButton = (id: string, name: string, description: string, family: Inten
   description,
 
   props: [
-    // #1242 — `Label`, not `children`. The property NAME is what a designer reads in Figma's
+    // #1242 — `label`, not `children`. The property NAME is what a designer reads in Figma's
     // properties panel (`figmaProperties.texts` keys against `props` by name, so the two move
     // together — see `component-schema.ts` `figmaPropertyErrors`), and `children` is a React-ism
-    // that means nothing to a designer. Owner-recommended `Label`. The React `children` idiom is a
-    // code-side wrapper concern; the def's declared API names the slot for what it IS — the label.
-    { name: 'Label', type: 'node (label)', required: true, description: 'Visible label; verb-first, sentence case, ≤3 words. (Not required for the icon-only case — that is a distinct icon-button.)' },
+    // that means nothing to a designer. The React `children` idiom is a code-side wrapper concern;
+    // the def's declared API names the slot for what it IS — the label. LOWERCASE per #1333: every
+    // Figma TEXT property name is lowercase, matching the already-lowercase swap and variant names.
+    { name: 'label', type: 'node (label)', required: true, description: 'Visible label; verb-first, sentence case, ≤3 words. (Not required for the icon-only case — that is a distinct icon-button.)' },
     { name: 'onClick', type: 'function', required: false, description: 'Action handler. Suppressed while isPending or isInactive.' },
     // #1223 — no `intent` prop. Intent is now the COMPONENT (Button = primary; Destructive Button;
     // Neutral Button), not a prop on one component. EMPHASIS IS STILL THE APPEARANCE AXIS: a form with
@@ -482,7 +483,7 @@ const makeButton = (id: string, name: string, description: string, family: Inten
     // KEYED `Label`, not `children` (#1242). This key IS the Figma component-property name a designer
     // sees, and it is validated to be a declared `prop` name (`figmaPropertyErrors`), so it moves in
     // lockstep with the `Label` prop above — the coupling is why the rename touches both.
-    texts: { Label: { part: 'label', default: 'Button' } },
+    texts: { label: { part: 'label', default: 'Button' } },
     // Empty, and stated rather than omitted. `fullWidth` is layout; `isPending`/`isInactive`/
     // `disabled` collapse into the state axis; `onClick`/`type`/`href` are behavioral. A Figma
     // BOOLEAN drives one node's `visible` and nothing else, and none of those are that.
