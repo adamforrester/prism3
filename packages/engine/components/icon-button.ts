@@ -157,10 +157,13 @@ const makeIconButton = (id: string, name: string, description: string, family: I
     'size.small.side': 'size.sm.height',
     'size.medium.side': 'size.md.height',
     'size.large.side': 'size.lg.height',
-    // the GLYPH artboard, on the same 1:1 ladder Button uses (#324) — small→sm, so a medium
-    // IconButton's icon is the same size as a medium Button's leading visual. The control side and the
-    // glyph inside it are two separate rungs and both are needed: `side` is the square's outer box,
-    // this is what sits in it.
+    // the GLYPH artboard, on the 1:1 ladder (#324) — small→sm, so an IconButton's glyph matches a
+    // STANDALONE `<Icon>` at the same size. Icon-button is UNCHANGED by #1350: it keeps the 1:1 identity
+    // precisely because an icon-only control has no label to lean on. The text-bearing Button family, by
+    // contrast, now binds its icon ONE RUNG SMALLER (owner-decided, #1350 — see `button.ts`), so a medium
+    // IconButton's glyph (24) is one rung LARGER than a medium Button's leading visual (20). The control
+    // side and the glyph inside it are two separate rungs and both are needed: `side` is the square's
+    // outer box, this is what sits in it.
     'size.small.icon': 'icon.size.sm',
     'size.medium.icon': 'icon.size.md',
     'size.large.icon': 'icon.size.lg',
@@ -240,7 +243,7 @@ const makeIconButton = (id: string, name: string, description: string, family: I
         kind: 'slot',
         size: 'size.{size}.icon',
         nesting: { kind: 'swap' },
-        note: 'The single icon, and the entire content. Rendered aria-hidden — the IconButton owns the accessible name, so the glyph is decorative even though it is the only thing visible. Bound to the SAME `icon.size.*` rung Button\'s visuals use (#324\'s 1:1 ladder), so a medium IconButton\'s glyph matches a medium Button\'s.',
+        note: 'The single icon, and the entire content. Rendered aria-hidden — the IconButton owns the accessible name, so the glyph is decorative even though it is the only thing visible. Bound to the `icon.size.*` ladder (#324\'s 1:1 rule), so an IconButton\'s glyph matches a standalone `<Icon>` at the same size — the identity the text-bearing Button family deliberately gives up one rung of (owner-decided, #1350): a medium IconButton\'s glyph is 24 where a medium Button\'s leading visual is 20.',
       },
       focusRing: {
         kind: 'absolute',

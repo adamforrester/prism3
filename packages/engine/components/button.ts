@@ -248,28 +248,42 @@ const makeButton = (id: string, name: string, description: string, family: Inten
 
     // per-size geometry + label type. `padding-x` is the LABEL side and `padding-x-visual` the
     // slot side (#326) — the split is why a leading icon doesn't read loose; `gap` (#325) is the
-    // label↔visual space; `icon` pairs the control rung to its glyph artboard (#324, the 1:1
-    // ladder, so small→sm rather than a reconciliation between two differently-shaped scales).
+    // label↔visual space.
+    //
+    // `icon` — THE ONE-RUNG OFFSET (#1350, OWNER-DECIDED 2026-09-08). The control rung binds a glyph
+    // artboard ONE RUNG BELOW its own rung: small→xs (16), medium→sm (20), large→md (24). This is
+    // deliberately NOT #324's 1:1 identity any more, and the reversal is scoped to the TEXT-BEARING
+    // button family (button / -destructive / -neutral) alone. #324/#756 built the identity so that a
+    // control's icon matched a standalone `<Icon>` at the same size — a medium button's icon and a
+    // standalone medium icon both 24. The owner has SANCTIONED breaking that here: a label already
+    // carries the button, so its flanking glyph reads better one rung smaller, and 32px at `large`
+    // (the old `lg`) was simply too big. `icon-button` is UNCHANGED — an icon-only control has no
+    // label to lean on, so its glyph stays on the 1:1 ladder and still matches a standalone icon.
+    // So the composition identity now holds for icon-button and is deliberately offset for buttons.
+    // `lint-rung-names.ts` arm 3 and `test.ts`'s icon-button↔button parity assertion both record this
+    // as a one-rung offset rather than an equality, and still FAIL BY NAME if the button icon drifts
+    // to any rung other than exactly one below `md` (docs/34 — the invariant changed shape, it did not
+    // disappear).
     'size.small.padding-x': 'size.sm.padding-x',
     'size.small.padding-x-visual': 'size.sm.padding-x-visual',
     'size.small.padding-y': 'size.sm.padding-y',
     'size.small.gap': 'size.sm.gap',
     'size.small.height': 'size.sm.height',
-    'size.small.icon': 'icon.size.sm',
+    'size.small.icon': 'icon.size.xs',
     'size.small.type': 'type.label.sm.emphasis',
     'size.medium.padding-x': 'size.md.padding-x',
     'size.medium.padding-x-visual': 'size.md.padding-x-visual',
     'size.medium.padding-y': 'size.md.padding-y',
     'size.medium.gap': 'size.md.gap',
     'size.medium.height': 'size.md.height',
-    'size.medium.icon': 'icon.size.md',
+    'size.medium.icon': 'icon.size.sm',
     'size.medium.type': 'type.label.md.emphasis',
     'size.large.padding-x': 'size.lg.padding-x',
     'size.large.padding-x-visual': 'size.lg.padding-x-visual',
     'size.large.padding-y': 'size.lg.padding-y',
     'size.large.gap': 'size.lg.gap',
     'size.large.height': 'size.lg.height',
-    'size.large.icon': 'icon.size.lg',
+    'size.large.icon': 'icon.size.md',
     // FILED as #1260, and #1248 is what measured it: there is no `type.label.lg` rung, so `large`
     // reuses `md` and a large button's label is typographically identical to a medium one while every
     // other dimension moves. This was a bare "FINDING (still open)" trailing comment for three

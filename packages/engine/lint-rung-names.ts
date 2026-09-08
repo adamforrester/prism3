@@ -77,12 +77,36 @@
  * VALUE change reached by a NAMING argument, and #756 is right that it wants a stated rule rather than
  * a per-def judgment. The rule, and it was found in the corpus rather than invented:
  *
- *   **A def's default size resolves to the tier's `md` rung.**
+ *   **A def's default size resolves to the tier's `md` rung — PER TIER FAMILY, with one sanctioned
+ *   exception.**
  *
- * It holds 5/5 across every def with a size axis today — `icon` defaults `md`, and `button`,
- * `icon-button`, `field-label` and `text-field` all default `medium`, whose bindings reach `size.md.*`
- * / `icon.size.md` / `type.label.md.*` and nothing else. So it is a property of the corpus, not a
- * description of one def, which is what makes it assertable for defs that do not exist yet.
+ * It holds across every def with a size axis today: `icon` defaults `md`, and `button`, `icon-button`,
+ * `field-label` and `text-field` all default `medium`, whose GEOMETRY and TYPE bindings reach `size.md.*`
+ * / `type.label.md.*`. So it is a property of the corpus, not a description of one def, which is what
+ * makes it assertable for defs that do not exist yet. The check is now PER TIER FAMILY rather than over
+ * a def's flattened rung set, because that is what the exception below requires — and because it is
+ * strictly sharper anyway (a def defaulting `md` on geometry and `lg` on type would have passed the old
+ * flattened `some(r => r !== md)` only if no family was `md`, which is not the property intended).
+ *
+ * ── THE #1350 EXCEPTION (owner-decided 2026-09-08): buttons offset their icon one rung down ──────────
+ *
+ * This REVERSES #756's composition-identity position, for the TEXT-BEARING button family alone. #756's
+ * third Do bullet reasoned that a standalone `<Icon>` and the same glyph inside a default-size control
+ * must render the same size — `button` and `icon-button` both defaulting `medium` and both binding
+ * `icon.size.md` = 24 — and preserving that identity is why `icon`'s own default is `md` not `sm`. The
+ * owner has now SANCTIONED breaking it for buttons: a label already carries a text button, so its
+ * flanking glyph reads better one rung smaller, and the old `large` = 32 was too big. So the button
+ * family (`button`/`button-destructive`/`button-neutral`) binds its icon family one rung BELOW its
+ * control rung — medium → `icon.size.sm` = 20 — while `icon-button` is UNCHANGED (an icon-only control
+ * has no label to lean on, so its glyph stays on the 1:1 ladder and still matches a standalone icon).
+ *
+ * The identity therefore now holds for icon-button and is deliberately offset for buttons, and this
+ * gate records that as `ICON_OFFSET_DEFS`: those defs' `icon.size.*` family is expected at exactly
+ * `OFFSET_DEFAULT_RUNG` (one rung below `md`), every other family on them at `md`. The invariant is not
+ * softened — it changed shape (docs/34). It still FAILS BY NAME if the button icon drifts to any rung
+ * other than the sanctioned offset: a revert to `md` (24) and a slip to `xs` (16) each fail arm 3. The
+ * expected rung is derived from the RULE (`RUNG_ORDER` minus one from `md`), never from the button's own
+ * binding, so the two sides of the comparison stay independent.
  *
  * And it is the rule that DISSOLVES the value-change objection instead of arguing with it. The choice
  * on `icon` looked like "preserve the brief's VALUE (20, so default `sm`) or preserve the brief's
@@ -160,6 +184,37 @@ const RUNG_ORDER = ['xs', 'sm', 'md', 'lg', 'xl'];
  * A constant, not "the middle rung" computed from tier length — see the header for why.
  */
 const DEFAULT_RUNG = 'md';
+
+/**
+ * THE OWNER-SANCTIONED ONE-RUNG ICON OFFSET (#1350, decided 2026-09-08) — see the ARM 3 header
+ * section. Keyed by def id → the tier FAMILY (a ref with its rung blanked to `*`) the offset applies
+ * to. A def listed here binds the named family exactly ONE RUNG BELOW `md` at its default, by owner
+ * decision, so a medium button's glyph is `sm` where a standalone `<Icon>` and an icon-button glyph
+ * stay `md`. EVERY OTHER family on these defs (geometry, label type) still defaults to `md` like
+ * everyone else, and every def NOT listed here defaults `md` on every family.
+ *
+ * This does not soften the rule — it re-points it. Arm 3 checks each family INDEPENDENTLY against its
+ * expected rung, so the sanctioned family must be EXACTLY `sm` and the same def's geometry/type
+ * families must still be `md`. A revert (icon back to `md`) and a wrong offset (icon to `xs`) both
+ * fail BY NAME. The admission is also checked BOTH directions below: a listed def that does not exist,
+ * or that stops binding the named family at its default, fails as stale (docs/34).
+ */
+const ICON_OFFSET_DEFS: Record<string, string> = {
+  button: 'icon.size.*',
+  'button-destructive': 'icon.size.*',
+  'button-neutral': 'icon.size.*',
+};
+
+/**
+ * The rung a sanctioned-offset family resolves to: exactly one rung below `md` on the tier's own
+ * ladder. Derived from `RUNG_ORDER` + `DEFAULT_RUNG` — the RULE ("md minus one"), never the button's
+ * own binding — so the gate stays independent of the subject it checks (docs/34). Today this is `sm`.
+ */
+const OFFSET_DEFAULT_RUNG = RUNG_ORDER[RUNG_ORDER.indexOf(DEFAULT_RUNG) - 1];
+
+/** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
+const expectedDefaultRung = (defId: string, family: string): string =>
+  ICON_OFFSET_DEFS[defId] === family ? OFFSET_DEFAULT_RUNG : DEFAULT_RUNG;
 
 /**
  * DEFS WITH NO SIZE AXIS, admitted by name with the reason. Checked in BOTH directions: a def here
@@ -271,6 +326,8 @@ const bindingsOf = (def: ComponentDef): { parsed: Binding[]; rungless: string[] 
 const failures: string[] = [];
 const notes: string[] = [];
 const covered = new Set<string>();
+/** Per def: the tier families its DEFAULT size binding reaches — for the #1350 stale-admission check. */
+const defaultFamiliesByDef = new Map<string, Set<string>>();
 let arm1Checks = 0;
 let arm2Families = 0;
 
@@ -365,12 +422,31 @@ for (const def of componentDefs) {
   } else if (!values.includes(dflt)) {
     failures.push(`${def.id}: size defaults to '${dflt}', which is not in its own enum [${values.join(', ')}].`);
   } else {
-    const reached = [...new Set(parsed.filter((b) => b.value === dflt).map((b) => b.rung))].sort();
-    if (!reached.length)
+    // PER-FAMILY (#1350). Each tier family the default reaches must resolve to `md` — EXCEPT a family
+    // in ICON_OFFSET_DEFS, which the owner sanctioned exactly ONE RUNG BELOW `md`. Checking per family,
+    // rather than over the flattened rung set the old arm used, is what makes the sanctioned offset a
+    // REAL invariant instead of dissolving the rule: the button family's icon must be EXACTLY `sm`, and
+    // the SAME def's geometry/type families must still be `md`. So a revert (icon → `md`) and a wrong
+    // offset (icon → `xs` or lower) BOTH fail BY NAME. The invariant changed shape; it did not disappear.
+    const defaultFamilies = new Map<string, Set<string>>();
+    for (const b of parsed) {
+      if (b.value !== dflt) continue;
+      if (!defaultFamilies.has(b.family)) defaultFamilies.set(b.family, new Set());
+      defaultFamilies.get(b.family)!.add(b.rung);
+    }
+    defaultFamiliesByDef.set(def.id, new Set(defaultFamilies.keys()));
+    if (!defaultFamilies.size)
       failures.push(`${def.id}: size defaults to '${dflt}' and no binding reaches it, so the default rung cannot be checked.`);
-    else if (reached.some((r) => r !== DEFAULT_RUNG))
-      failures.push(`${def.id}: size defaults to '${dflt}', which reaches tier rung(s) ${reached.map((r) => `'${r}'`).join(', ')} — the rule (#756, docs/28 §5.2) is that a default resolves to '${DEFAULT_RUNG}'. A default one rung off is the #756 offset itself: it resolves, it typechecks, and the same icon renders one size standalone and another inside a default-size control.`);
-    notes.push(`${def.id}: [${values.join(', ')}] default '${dflt}' → rung ${reached.map((r) => `'${r}'`).join(', ')}; ${families.size} tier family(ies): ${[...families.keys()].join(', ')}`);
+    for (const [family, rungs] of defaultFamilies) {
+      const want = expectedDefaultRung(def.id, family);
+      const wrong = [...rungs].filter((r) => r !== want);
+      if (!wrong.length) continue;
+      const sanctioned = ICON_OFFSET_DEFS[def.id] === family;
+      failures.push(sanctioned
+        ? `${def.id}: size defaults to '${dflt}', whose OWNER-SANCTIONED icon family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the #1350 offset is that the button family's icon resolves to '${want}', exactly one rung below '${DEFAULT_RUNG}'. A revert to '${DEFAULT_RUNG}' or any other rung breaks the offset invariant: it resolves and typechecks, so only this gate sees it.`
+        : `${def.id}: size defaults to '${dflt}', whose family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the rule (#756, docs/28 §5.2) is that a default resolves to '${DEFAULT_RUNG}'. A default one rung off is the #756 offset itself: it resolves, it typechecks, and the same icon renders one size standalone and another inside a default-size control.`);
+    }
+    notes.push(`${def.id}: [${values.join(', ')}] default '${dflt}' → ${[...defaultFamilies].map(([f, rs]) => `${f}:${[...rs].sort().join('/')}`).join(', ')}; ${families.size} tier family(ies): ${[...families.keys()].join(', ')}`);
   }
 }
 
@@ -385,6 +461,20 @@ for (const id of Object.keys(NO_SIZE_AXIS))
 for (const id of Object.keys(LADDER_STATED_ONCE))
   if (!componentDefs.some((d) => d.id === id))
     failures.push(`STALE ADMISSION: LADDER_STATED_ONCE names '${id}', which is not a def any more. Remove it — same reason as above.`);
+
+// The #1350 offset admission, checked BOTH directions so it cannot go stale (docs/34): a listed def
+// must exist AND must actually reach the named family at its default, or the sanction has nothing to
+// apply to and would silently license an untested branch.
+for (const [id, family] of Object.entries(ICON_OFFSET_DEFS)) {
+  const def = componentDefs.find((d) => d.id === id);
+  if (!def) {
+    failures.push(`STALE ADMISSION: ICON_OFFSET_DEFS names '${id}', which is not a def any more. Remove it — the #1350 offset is recorded for a def that does not exist.`);
+    continue;
+  }
+  const seen = defaultFamiliesByDef.get(id);
+  if (!seen || !seen.has(family))
+    failures.push(`STALE ADMISSION: ICON_OFFSET_DEFS sanctions '${id}' offsetting family '${family}' at its default, but that family is not bound at the default size '${enumOf(def).default}'. The #1350 offset has nothing to apply to — remove the admission or restore the binding.`);
+}
 
 console.log(`Rung names — ${covered.size} def(s) with a size axis, ${arm1Checks} enum→path check(s) across ${brands.length} brand(s) (${brands.join(', ')}), ${arm2Families} tier family(ies) ordered.`);
 for (const n of notes) console.log(`    ${n}`);

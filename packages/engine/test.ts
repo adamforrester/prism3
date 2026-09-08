@@ -10968,10 +10968,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const perSizeIb = iconButton.variants.size.map((s) => planBoundVars(ibPlan(s).root).join('|'));
       ok(new Set(perSizeIb).size === iconButton.variants.size.length,
         `anatomy/icon-button: each size binds a distinct variable set (${new Set(perSizeIb).size}/${iconButton.variants.size.length})`);
-      // The glyph is on the SAME `icon.size.*` ladder Button's visuals use (#324's 1:1 rule), so a medium
-      // IconButton's icon matches a medium Button's leading visual. Compared against BUTTON's projection
-      // rather than against `icon.size.md` spelled out here, which is the version that can actually fail:
-      // a literal would keep passing after Button's ladder moved.
+      // THE #1350 ONE-RUNG OFFSET (owner-decided 2026-09-08). This USED to assert that a medium
+      // IconButton's glyph and a medium Button's leading visual were the SAME rung (#324's 1:1 identity).
+      // The owner has re-pointed the composition identity for the TEXT-BEARING button family alone: a
+      // medium Button's icon is now `icon.size.sm` = 20 where the IconButton's glyph stays `icon.size.md`
+      // = 24 — the button icon is exactly ONE RUNG SMALLER, because a label already carries the button
+      // while an icon-only control does not (see `button.ts`'s `size.*.icon` note and `lint-rung-names.ts`
+      // arm 3). So icon-button still matches a standalone icon; buttons deliberately do not.
+      //
+      // The assertion is still compared against BUTTON's projection (not a literal `icon.size.sm` that
+      // would keep passing after either ladder moved), and it still BITES: the two must DIVERGE (equality
+      // would mean the offset was reverted) AND the button's rung must be exactly one below the
+      // IconButton's on the `ICON_SIZES` ladder (a two-rung slip, e.g. to `xs`, fails here too). The
+      // ladder ORDER is the independent oracle — read from `scale.ts`, never from either def's binding.
       // THE ICON IS PRESENT WITHOUT BEING ASKED FOR, and this assertion comes first because it is the
       // def's entire reason for existing (§10) and because every check below it would otherwise CRASH
       // rather than fail. `figmaAnatomyPlan` materializes an optional slot only when the caller fills it,
@@ -10983,8 +10992,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(!!ibIconNode, 'anatomy/icon-button: the icon materializes with NO caller filling it — it is required, and an optional one would project an empty square (the "button, unlabelled" failure with the visual half missing too)');
       const ibIcon = ibIconNode;
       const btnIcon = figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon' }).root.children.find((c) => c.name === 'leadingVisual')!;
-      ok(!!ibIcon && ibIcon.bound.width === btnIcon.bound.width && ibIcon.bound.height === btnIcon.bound.height,
-        `anatomy/icon-button: the glyph artboard is the same rung Button's visual binds at the same size (${ibIcon?.bound.width} vs ${btnIcon.bound.width})`);
+      // The rung is the last segment of the bound-variable NAME (`icon/size/md` → `md`), placed on the
+      // `ICON_SIZES` ladder. The offset is asserted on the NAME, not resolved pixels, for the same reason
+      // lint-rung-names does it: the defect this guards is a wrong-NAME-that-resolves, and 20-vs-24 could
+      // be mistaken for a legitimate value tweak while `sm`-vs-`md` cannot.
+      const rungOf = (v: string | undefined): number => ICON_SIZES.findIndex((s) => s.name === String(v).split('/').pop());
+      const ibRung = rungOf(ibIcon?.bound.width);
+      const btnRung = rungOf(btnIcon.bound.width);
+      ok(ibRung >= 0 && btnRung >= 0, `anatomy/icon-button: both glyph bindings name a real icon rung (ib '${ibIcon?.bound.width}' → ${ibRung}, btn '${btnIcon.bound.width}' → ${btnRung})`);
+      ok(!!ibIcon && ibIcon.bound.width !== btnIcon.bound.width,
+        `anatomy/icon-button: #1350 — the button's icon is NOT the same rung as the icon-button's glyph; equality would mean the sanctioned offset was reverted (ib ${ibIcon?.bound.width} vs btn ${btnIcon.bound.width})`);
+      ok(!!ibIcon && btnRung === ibRung - 1,
+        `anatomy/icon-button: #1350 — the button's leading visual is EXACTLY ONE ICON RUNG BELOW the icon-button's glyph (btn ${btnIcon.bound.width} @${btnRung}, ib ${ibIcon?.bound.width} @${ibRung}); the icon-only control still matches a standalone icon, the labelled button is offset one smaller`);
+      ok(!!ibIcon && btnIcon.bound.width === btnIcon.bound.height,
+        `anatomy/icon-button: the button's leading visual is square too — one key, both axes (${btnIcon.bound.width} / ${btnIcon.bound.height})`);
       // The glyph is square too, and by the same mechanism — one key, both axes.
       ok(!!ibIcon && ibIcon.bound.width === ibIcon.bound.height, `anatomy/icon-button: the glyph artboard is square (${ibIcon?.bound.width})`);
 
