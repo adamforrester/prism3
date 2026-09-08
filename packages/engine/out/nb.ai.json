@@ -1186,8 +1186,8 @@
       "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.550}",
-        "dark": "{nbds.core.palette.red.450}",
+        "light": "{nbds.core.palette.red.600}",
+        "dark": "{nbds.core.palette.red.400}",
         "hc-light": "{nbds.core.palette.red.650}",
         "hc-dark": "{nbds.core.palette.red.350}"
       },
@@ -1196,9 +1196,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 5.62
+          "ratio": 4.98
         }
       ]
     },
@@ -1209,8 +1209,8 @@
       "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.650}",
-        "dark": "{nbds.core.palette.red.350}",
+        "light": "{nbds.core.palette.red.700}",
+        "dark": "{nbds.core.palette.red.300}",
         "hc-light": "{nbds.core.palette.red.750}",
         "hc-dark": "{nbds.core.palette.red.250}"
       },
@@ -1219,9 +1219,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 8.29
+          "ratio": 7.29
         }
       ]
     },
@@ -1232,8 +1232,8 @@
       "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.750}",
-        "dark": "{nbds.core.palette.red.250}",
+        "light": "{nbds.core.palette.red.800}",
+        "dark": "{nbds.core.palette.red.200}",
         "hc-light": "{nbds.core.palette.red.850}",
         "hc-dark": "{nbds.core.palette.red.150}"
       },
@@ -1242,9 +1242,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 12.08
+          "ratio": 10.3
         }
       ]
     },
@@ -1255,8 +1255,8 @@
       "avoid_when": "Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.550}",
-        "dark": "{nbds.core.palette.red.450}",
+        "light": "{nbds.core.palette.red.600}",
+        "dark": "{nbds.core.palette.red.400}",
         "hc-light": "{nbds.core.palette.red.650}",
         "hc-dark": "{nbds.core.palette.red.350}"
       },
@@ -1266,9 +1266,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 5.62
+          "ratio": 4.98
         }
       ]
     },
@@ -1279,8 +1279,8 @@
       "avoid_when": "Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.650}",
-        "dark": "{nbds.core.palette.red.350}",
+        "light": "{nbds.core.palette.red.700}",
+        "dark": "{nbds.core.palette.red.300}",
         "hc-light": "{nbds.core.palette.red.750}",
         "hc-dark": "{nbds.core.palette.red.250}"
       },
@@ -1290,9 +1290,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 8.29
+          "ratio": 7.29
         }
       ]
     },
@@ -1303,8 +1303,8 @@
       "avoid_when": "Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.750}",
-        "dark": "{nbds.core.palette.red.250}",
+        "light": "{nbds.core.palette.red.800}",
+        "dark": "{nbds.core.palette.red.200}",
         "hc-light": "{nbds.core.palette.red.850}",
         "hc-dark": "{nbds.core.palette.red.150}"
       },
@@ -1314,9 +1314,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 12.08
+          "ratio": 10.3
         }
       ]
     },
@@ -1850,8 +1850,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.rest`. Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.450}",
-        "dark": "{nbds.core.palette.red.550}",
+        "light": "{nbds.core.palette.red.400}",
+        "dark": "{nbds.core.palette.red.600}",
         "hc-light": "{nbds.core.palette.red.350}",
         "hc-dark": "{nbds.core.palette.red.650}"
       },
@@ -1860,9 +1860,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "4.5:1",
-          "ratio": 5.05
+          "ratio": 4.92
         }
       ]
     },
@@ -1873,8 +1873,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.hover`. Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.350}",
-        "dark": "{nbds.core.palette.red.650}",
+        "light": "{nbds.core.palette.red.300}",
+        "dark": "{nbds.core.palette.red.700}",
         "hc-light": "{nbds.core.palette.red.250}",
         "hc-dark": "{nbds.core.palette.red.750}"
       },
@@ -1883,9 +1883,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "4.5:1",
-          "ratio": 6.97
+          "ratio": 6.68
         }
       ]
     },
@@ -1896,8 +1896,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.pressed`. Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.250}",
-        "dark": "{nbds.core.palette.red.750}",
+        "light": "{nbds.core.palette.red.200}",
+        "dark": "{nbds.core.palette.red.800}",
         "hc-light": "{nbds.core.palette.red.150}",
         "hc-dark": "{nbds.core.palette.red.850}"
       },
@@ -1906,9 +1906,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "4.5:1",
-          "ratio": 9.42
+          "ratio": 8.91
         }
       ]
     },
@@ -2057,8 +2057,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.rest`. Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.450}",
-        "dark": "{nbds.core.palette.red.550}",
+        "light": "{nbds.core.palette.red.400}",
+        "dark": "{nbds.core.palette.red.600}",
         "hc-light": "{nbds.core.palette.red.350}",
         "hc-dark": "{nbds.core.palette.red.650}"
       },
@@ -2068,9 +2068,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "3:1",
-          "ratio": 5.05
+          "ratio": 4.92
         }
       ]
     },
@@ -2081,8 +2081,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.hover`. Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.350}",
-        "dark": "{nbds.core.palette.red.650}",
+        "light": "{nbds.core.palette.red.300}",
+        "dark": "{nbds.core.palette.red.700}",
         "hc-light": "{nbds.core.palette.red.250}",
         "hc-dark": "{nbds.core.palette.red.750}"
       },
@@ -2092,9 +2092,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "3:1",
-          "ratio": 6.97
+          "ratio": 6.68
         }
       ]
     },
@@ -2105,8 +2105,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.pressed`. Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.250}",
-        "dark": "{nbds.core.palette.red.750}",
+        "light": "{nbds.core.palette.red.200}",
+        "dark": "{nbds.core.palette.red.800}",
         "hc-light": "{nbds.core.palette.red.150}",
         "hc-dark": "{nbds.core.palette.red.850}"
       },
@@ -2116,9 +2116,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "3:1",
-          "ratio": 9.42
+          "ratio": 8.91
         }
       ]
     },
@@ -5974,10 +5974,14 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.icon.link.visited",
+        "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.text.pressed",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.text.pressed",
         "color.text.link.visited"
       ]
     },
@@ -5989,18 +5993,14 @@
       "aliased_by": [
         "color.icon.link.hover",
         "color.interactive.destructive.border.hover",
-        "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.text.hover",
-        "color.interactive.destructive.text.pressed",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.pressed",
         "color.inverse.icon.link.visited",
         "color.inverse.interactive.destructive.border.hover",
-        "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.text.hover",
-        "color.inverse.interactive.destructive.text.pressed",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.text.hover",
@@ -6022,11 +6022,15 @@
         "color.icon.danger",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.text.hover",
         "color.interactive.primary.fill.rest",
         "color.inverse.icon.brand",
         "color.inverse.icon.danger",
         "color.inverse.icon.link.hover",
+        "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.text.hover",
         "color.inverse.text.brand",
         "color.inverse.text.danger",
         "color.inverse.text.link.hover",
@@ -6045,11 +6049,9 @@
         "color.icon.brand-subtle",
         "color.icon.danger-subtle",
         "color.icon.link.visited",
-        "color.interactive.destructive.border.hover",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.selected",
-        "color.interactive.destructive.text.hover",
         "color.interactive.destructive.text.rest",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.rest",
@@ -6063,9 +6065,7 @@
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
         "color.inverse.icon.link.visited",
-        "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.border.rest",
-        "color.inverse.interactive.destructive.text.hover",
         "color.inverse.interactive.destructive.text.rest",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
@@ -6086,7 +6086,11 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.icon.link.hover",
+        "color.interactive.destructive.border.rest",
+        "color.interactive.destructive.text.rest",
         "color.inverse.icon.link.hover",
+        "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.text.rest",
         "color.inverse.interactive.primary.on-fill",
         "color.inverse.text.link.hover",
         "color.text.link.hover"
@@ -6105,10 +6109,8 @@
         "color.icon.danger-subtle",
         "color.icon.link.default",
         "color.icon.link.focused",
-        "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
-        "color.interactive.destructive.text.rest",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
@@ -6118,8 +6120,6 @@
         "color.inverse.icon.danger",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
-        "color.inverse.interactive.destructive.border.rest",
-        "color.inverse.interactive.destructive.text.rest",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand",
@@ -6165,9 +6165,7 @@
         "color.foreground.danger",
         "color.icon.link.default",
         "color.icon.link.focused",
-        "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.rest",
-        "color.interactive.destructive.text.rest",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.text.rest",
@@ -6178,8 +6176,6 @@
         "color.inverse.icon.danger-subtle",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
-        "color.inverse.interactive.destructive.border.rest",
-        "color.inverse.interactive.destructive.text.rest",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.rest",
@@ -6200,9 +6196,13 @@
         "color.icon.brand",
         "color.icon.danger",
         "color.icon.link.hover",
+        "color.interactive.destructive.border.rest",
+        "color.interactive.destructive.text.rest",
         "color.inverse.icon.brand",
         "color.inverse.icon.danger",
         "color.inverse.icon.link.hover",
+        "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.text.rest",
         "color.inverse.text.brand",
         "color.inverse.text.danger",
         "color.inverse.text.link.hover",
@@ -6218,11 +6218,9 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.icon.link.visited",
-        "color.interactive.destructive.border.hover",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
-        "color.interactive.destructive.text.hover",
         "color.interactive.destructive.text.rest",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.rest",
@@ -6238,9 +6236,7 @@
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
         "color.inverse.icon.link.visited",
-        "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.border.rest",
-        "color.inverse.interactive.destructive.text.hover",
         "color.inverse.interactive.destructive.text.rest",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
@@ -6267,11 +6263,15 @@
         "color.icon.danger",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.text.hover",
         "color.interactive.primary.fill.rest",
         "color.inverse.icon.brand",
         "color.inverse.icon.danger",
         "color.inverse.icon.link.hover",
+        "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.text.hover",
         "color.inverse.text.brand",
         "color.inverse.text.danger",
         "color.inverse.text.link.hover",
@@ -6289,11 +6289,9 @@
       "aliased_by": [
         "color.icon.link.hover",
         "color.interactive.destructive.border.hover",
-        "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.text.hover",
-        "color.interactive.destructive.text.pressed",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.pressed",
@@ -6302,9 +6300,7 @@
         "color.interactive.primary.text.pressed",
         "color.inverse.icon.link.visited",
         "color.inverse.interactive.destructive.border.hover",
-        "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.text.hover",
-        "color.inverse.interactive.destructive.text.pressed",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.text.hover",
@@ -6320,10 +6316,14 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.icon.link.visited",
+        "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.text.pressed",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.text.pressed",
         "color.text.link.visited"
       ]
     },

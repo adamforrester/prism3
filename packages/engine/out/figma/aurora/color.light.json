@@ -1558,14 +1558,14 @@
       ],
       "description": "destructive interactive ink — rest (outline / text appearance)",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.6313725709915161,
+        "g": 0.21568627655506134,
+        "b": 0.1921568661928177,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/500"
+        "name": "ads/core/palette/danger/600"
       }
     },
     {
@@ -1576,14 +1576,14 @@
       ],
       "description": "destructive interactive ink — hover (outline / text appearance)",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0.21568627655506134,
-        "b": 0.1921568661928177,
+        "r": 0.48235294222831726,
+        "g": 0.13725490868091583,
+        "b": 0.12156862765550613,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/600"
+        "name": "ads/core/palette/danger/700"
       }
     },
     {
@@ -1594,14 +1594,14 @@
       ],
       "description": "destructive interactive ink — pressed (outline / text appearance)",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.34117648005485535,
+        "g": 0.05882352963089943,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/700"
+        "name": "ads/core/palette/danger/800"
       }
     },
     {
@@ -1611,24 +1611,6 @@
         "STROKE_COLOR"
       ],
       "description": "destructive interactive border — rest (the outline edge; follows the ink)",
-      "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/500"
-      }
-    },
-    {
-      "name": "ads/color/interactive/destructive/border/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "destructive interactive border — hover (the outline edge; follows the ink)",
       "value": {
         "r": 0.6313725709915161,
         "g": 0.21568627655506134,
@@ -1641,12 +1623,12 @@
       }
     },
     {
-      "name": "ads/color/interactive/destructive/border/pressed",
+      "name": "ads/color/interactive/destructive/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "destructive interactive border — pressed (the outline edge; follows the ink)",
+      "description": "destructive interactive border — hover (the outline edge; follows the ink)",
       "value": {
         "r": 0.48235294222831726,
         "g": 0.13725490868091583,
@@ -1656,6 +1638,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/core/palette/danger/700"
+      }
+    },
+    {
+      "name": "ads/color/interactive/destructive/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive border — pressed (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.34117648005485535,
+        "g": 0.05882352963089943,
+        "b": 0.05098039284348488,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/800"
       }
     },
     {
@@ -3063,14 +3063,14 @@
       ],
       "description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
       "value": {
-        "r": 0.8509804010391235,
-        "g": 0.3333333432674408,
-        "b": 0.2980392277240753,
+        "r": 0.8784313797950745,
+        "g": 0.4117647111415863,
+        "b": 0.3686274588108063,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/450"
+        "name": "ads/core/palette/danger/400"
       }
     },
     {
@@ -3081,14 +3081,14 @@
       ],
       "description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
       "value": {
-        "r": 0.8901960849761963,
-        "g": 0.4901960790157318,
-        "b": 0.4470588266849518,
+        "r": 0.9019607901573181,
+        "g": 0.5647059082984924,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/350"
+        "name": "ads/core/palette/danger/300"
       }
     },
     {
@@ -3099,14 +3099,14 @@
       ],
       "description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.6352941393852234,
-        "b": 0.6000000238418579,
+        "r": 0.9254902005195618,
+        "g": 0.7058823704719543,
+        "b": 0.6745098233222961,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/250"
+        "name": "ads/core/palette/danger/200"
       }
     },
     {
@@ -3232,14 +3232,14 @@
       ],
       "description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.8509804010391235,
-        "g": 0.3333333432674408,
-        "b": 0.2980392277240753,
+        "r": 0.8784313797950745,
+        "g": 0.4117647111415863,
+        "b": 0.3686274588108063,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/450"
+        "name": "ads/core/palette/danger/400"
       }
     },
     {
@@ -3250,14 +3250,14 @@
       ],
       "description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.8901960849761963,
-        "g": 0.4901960790157318,
-        "b": 0.4470588266849518,
+        "r": 0.9019607901573181,
+        "g": 0.5647059082984924,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/350"
+        "name": "ads/core/palette/danger/300"
       }
     },
     {
@@ -3268,14 +3268,14 @@
       ],
       "description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.6352941393852234,
-        "b": 0.6000000238418579,
+        "r": 0.9254902005195618,
+        "g": 0.7058823704719543,
+        "b": 0.6745098233222961,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/250"
+        "name": "ads/core/palette/danger/200"
       }
     },
     {

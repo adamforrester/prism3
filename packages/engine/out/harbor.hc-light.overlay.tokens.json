@@ -1482,154 +1482,6 @@
                 }
               }
             }
-          },
-          "text": {
-            "rest": {
-              "$type": "color",
-              "$value": "{hds.core.palette.danger.650}",
-              "$description": "destructive interactive ink — rest (outline / text appearance)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "hds.core.palette.danger.650",
-                  "contrast": 8.25,
-                  "against": "background.primary",
-                  "min": 7
-                }
-              }
-            },
-            "hover": {
-              "$type": "color",
-              "$value": "{hds.core.palette.danger.750}",
-              "$description": "destructive interactive ink — hover (outline / text appearance)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "hds.core.palette.danger.750",
-                  "contrast": 12.06,
-                  "against": "background.primary",
-                  "min": 7
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
-              "$value": "{hds.core.palette.danger.850}",
-              "$description": "destructive interactive ink — pressed (outline / text appearance)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "hds.core.palette.danger.850",
-                  "contrast": 16.33,
-                  "against": "background.primary",
-                  "min": 7
-                }
-              }
-            }
-          },
-          "border": {
-            "rest": {
-              "$type": "color",
-              "$value": "{hds.core.palette.danger.650}",
-              "$description": "destructive interactive border — rest (the outline edge; follows the ink)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "hds.core.palette.danger.650",
-                  "contrast": 8.25,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              }
-            },
-            "hover": {
-              "$type": "color",
-              "$value": "{hds.core.palette.danger.750}",
-              "$description": "destructive interactive border — hover (the outline edge; follows the ink)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "hds.core.palette.danger.750",
-                  "contrast": 12.06,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
-              "$value": "{hds.core.palette.danger.850}",
-              "$description": "destructive interactive border — pressed (the outline edge; follows the ink)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "hds.core.palette.danger.850",
-                  "contrast": 16.33,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              }
-            }
           }
         },
         "neutral": {
@@ -2559,7 +2411,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.350",
                     "contrast": 7.46,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -2583,7 +2435,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.250",
                     "contrast": 10.12,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -2607,7 +2459,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.150",
                     "contrast": 13.34,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -2657,7 +2509,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.350",
                     "contrast": 7.46,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }
@@ -2681,7 +2533,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.250",
                     "contrast": 10.12,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }
@@ -2705,7 +2557,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.150",
                     "contrast": 13.34,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }

@@ -1986,7 +1986,7 @@
                   },
                   "aliasOf": "hds.core.palette.danger.350",
                   "contrast": 7.46,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 7
                 }
               }
@@ -2010,7 +2010,7 @@
                   },
                   "aliasOf": "hds.core.palette.danger.250",
                   "contrast": 10.12,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 7
                 }
               }
@@ -2034,7 +2034,7 @@
                   },
                   "aliasOf": "hds.core.palette.danger.150",
                   "contrast": 13.34,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 7
                 }
               }
@@ -2060,7 +2060,7 @@
                   },
                   "aliasOf": "hds.core.palette.danger.350",
                   "contrast": 7.46,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
@@ -2084,7 +2084,7 @@
                   },
                   "aliasOf": "hds.core.palette.danger.250",
                   "contrast": 10.12,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
@@ -2108,7 +2108,7 @@
                   },
                   "aliasOf": "hds.core.palette.danger.150",
                   "contrast": 13.34,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
@@ -3682,7 +3682,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.650",
                     "contrast": 8.25,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -3706,7 +3706,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.750",
                     "contrast": 12.06,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -3730,7 +3730,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.850",
                     "contrast": 16.33,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -3902,7 +3902,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.650",
                     "contrast": 8.25,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }
@@ -3926,7 +3926,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.750",
                     "contrast": 12.06,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }
@@ -3950,7 +3950,7 @@
                     },
                     "aliasOf": "hds.core.palette.danger.850",
                     "contrast": 16.33,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }

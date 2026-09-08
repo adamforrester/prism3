@@ -1186,8 +1186,8 @@
       "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.550}",
-        "dark": "{hds.core.palette.danger.450}",
+        "light": "{hds.core.palette.danger.650}",
+        "dark": "{hds.core.palette.danger.400}",
         "hc-light": "{hds.core.palette.danger.650}",
         "hc-dark": "{hds.core.palette.danger.350}"
       },
@@ -1196,9 +1196,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 4.6
+          "ratio": 5.25
         }
       ]
     },
@@ -1209,8 +1209,8 @@
       "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.650}",
-        "dark": "{hds.core.palette.danger.350}",
+        "light": "{hds.core.palette.danger.750}",
+        "dark": "{hds.core.palette.danger.300}",
         "hc-light": "{hds.core.palette.danger.750}",
         "hc-dark": "{hds.core.palette.danger.250}"
       },
@@ -1219,9 +1219,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 6.79
+          "ratio": 7.67
         }
       ]
     },
@@ -1232,8 +1232,8 @@
       "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.750}",
-        "dark": "{hds.core.palette.danger.250}",
+        "light": "{hds.core.palette.danger.850}",
+        "dark": "{hds.core.palette.danger.200}",
         "hc-light": "{hds.core.palette.danger.850}",
         "hc-dark": "{hds.core.palette.danger.150}"
       },
@@ -1242,9 +1242,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "4.5:1",
-          "ratio": 9.92
+          "ratio": 10.39
         }
       ]
     },
@@ -1255,8 +1255,8 @@
       "avoid_when": "Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.550}",
-        "dark": "{hds.core.palette.danger.450}",
+        "light": "{hds.core.palette.danger.650}",
+        "dark": "{hds.core.palette.danger.400}",
         "hc-light": "{hds.core.palette.danger.650}",
         "hc-dark": "{hds.core.palette.danger.350}"
       },
@@ -1266,9 +1266,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 4.6
+          "ratio": 5.25
         }
       ]
     },
@@ -1279,8 +1279,8 @@
       "avoid_when": "Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.650}",
-        "dark": "{hds.core.palette.danger.350}",
+        "light": "{hds.core.palette.danger.750}",
+        "dark": "{hds.core.palette.danger.300}",
         "hc-light": "{hds.core.palette.danger.750}",
         "hc-dark": "{hds.core.palette.danger.250}"
       },
@@ -1290,9 +1290,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 6.79
+          "ratio": 7.67
         }
       ]
     },
@@ -1303,8 +1303,8 @@
       "avoid_when": "Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.750}",
-        "dark": "{hds.core.palette.danger.250}",
+        "light": "{hds.core.palette.danger.850}",
+        "dark": "{hds.core.palette.danger.200}",
         "hc-light": "{hds.core.palette.danger.850}",
         "hc-dark": "{hds.core.palette.danger.150}"
       },
@@ -1314,9 +1314,9 @@
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.tertiary",
           "min": "3:1",
-          "ratio": 9.92
+          "ratio": 10.39
         }
       ]
     },
@@ -1850,8 +1850,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.rest`. Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.450}",
-        "dark": "{hds.core.palette.danger.550}",
+        "light": "{hds.core.palette.danger.400}",
+        "dark": "{hds.core.palette.danger.600}",
         "hc-light": "{hds.core.palette.danger.350}",
         "hc-dark": "{hds.core.palette.danger.650}"
       },
@@ -1860,9 +1860,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "4.5:1",
-          "ratio": 4.94
+          "ratio": 4.82
         }
       ]
     },
@@ -1873,8 +1873,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.hover`. Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.350}",
-        "dark": "{hds.core.palette.danger.650}",
+        "light": "{hds.core.palette.danger.300}",
+        "dark": "{hds.core.palette.danger.700}",
         "hc-light": "{hds.core.palette.danger.250}",
         "hc-dark": "{hds.core.palette.danger.750}"
       },
@@ -1883,9 +1883,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "4.5:1",
-          "ratio": 6.9
+          "ratio": 6.62
         }
       ]
     },
@@ -1896,8 +1896,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.pressed`. Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.250}",
-        "dark": "{hds.core.palette.danger.750}",
+        "light": "{hds.core.palette.danger.200}",
+        "dark": "{hds.core.palette.danger.800}",
         "hc-light": "{hds.core.palette.danger.150}",
         "hc-dark": "{hds.core.palette.danger.850}"
       },
@@ -1906,9 +1906,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "4.5:1",
-          "ratio": 9.36
+          "ratio": 8.91
         }
       ]
     },
@@ -2057,8 +2057,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.rest`. Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.450}",
-        "dark": "{hds.core.palette.danger.550}",
+        "light": "{hds.core.palette.danger.400}",
+        "dark": "{hds.core.palette.danger.600}",
         "hc-light": "{hds.core.palette.danger.350}",
         "hc-dark": "{hds.core.palette.danger.650}"
       },
@@ -2068,9 +2068,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "3:1",
-          "ratio": 4.94
+          "ratio": 4.82
         }
       ]
     },
@@ -2081,8 +2081,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.hover`. Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.350}",
-        "dark": "{hds.core.palette.danger.650}",
+        "light": "{hds.core.palette.danger.300}",
+        "dark": "{hds.core.palette.danger.700}",
         "hc-light": "{hds.core.palette.danger.250}",
         "hc-dark": "{hds.core.palette.danger.750}"
       },
@@ -2092,9 +2092,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "3:1",
-          "ratio": 6.9
+          "ratio": 6.62
         }
       ]
     },
@@ -2105,8 +2105,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.pressed`. Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.danger.250}",
-        "dark": "{hds.core.palette.danger.750}",
+        "light": "{hds.core.palette.danger.200}",
+        "dark": "{hds.core.palette.danger.800}",
         "hc-light": "{hds.core.palette.danger.150}",
         "hc-dark": "{hds.core.palette.danger.850}"
       },
@@ -2116,9 +2116,9 @@
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.tertiary",
           "min": "3:1",
-          "ratio": 9.36
+          "ratio": 8.91
         }
       ]
     },
@@ -7218,8 +7218,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.focused",
-        "color.interactive.destructive.fill.hover"
+        "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.text.pressed",
+        "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.text.pressed"
       ]
     },
     "core.palette.danger.250": {
@@ -7229,13 +7233,9 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.interactive.destructive.border.hover",
-        "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.text.hover",
-        "color.interactive.destructive.text.pressed",
         "color.inverse.interactive.destructive.border.hover",
-        "color.inverse.interactive.destructive.border.pressed",
-        "color.inverse.interactive.destructive.text.hover",
-        "color.inverse.interactive.destructive.text.pressed"
+        "color.inverse.interactive.destructive.text.hover"
       ]
     },
     "core.palette.danger.300": {
@@ -7246,10 +7246,14 @@
       "aliased_by": [
         "color.foreground.danger",
         "color.icon.danger",
+        "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.fill.selected",
+        "color.interactive.destructive.text.hover",
         "color.inverse.icon.danger",
+        "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.text.hover",
         "color.inverse.text.danger",
         "color.text.danger"
       ]
@@ -7261,14 +7265,10 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.icon.danger-subtle",
-        "color.interactive.destructive.border.hover",
         "color.interactive.destructive.border.rest",
-        "color.interactive.destructive.text.hover",
         "color.interactive.destructive.text.rest",
         "color.inverse.foreground.danger",
-        "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.border.rest",
-        "color.inverse.interactive.destructive.text.hover",
         "color.inverse.interactive.destructive.text.rest",
         "color.text.danger-subtle"
       ]
@@ -7279,8 +7279,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",
-        "color.interactive.destructive.fill.hover"
+        "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.text.rest",
+        "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.text.rest"
       ]
     },
     "core.palette.danger.450": {
@@ -7291,11 +7295,7 @@
       "aliased_by": [
         "color.icon.danger",
         "color.icon.danger-subtle",
-        "color.interactive.destructive.border.rest",
-        "color.interactive.destructive.text.rest",
         "color.inverse.icon.danger",
-        "color.inverse.interactive.destructive.border.rest",
-        "color.inverse.interactive.destructive.text.rest",
         "color.inverse.text.danger",
         "color.text.danger",
         "color.text.danger-subtle"
@@ -7324,11 +7324,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.interactive.destructive.border.rest",
-        "color.interactive.destructive.text.rest",
         "color.inverse.icon.danger-subtle",
-        "color.inverse.interactive.destructive.border.rest",
-        "color.inverse.interactive.destructive.text.rest",
         "color.inverse.text.danger-subtle"
       ]
     },
@@ -7342,6 +7338,8 @@
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
         "color.inverse.icon.danger",
+        "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.text.rest",
         "color.inverse.text.danger",
         "color.text.danger"
       ]
@@ -7352,15 +7350,11 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.interactive.destructive.border.hover",
         "color.interactive.destructive.border.rest",
-        "color.interactive.destructive.text.hover",
         "color.interactive.destructive.text.rest",
         "color.inverse.foreground.danger",
         "color.inverse.icon.danger-subtle",
-        "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.border.rest",
-        "color.inverse.interactive.destructive.text.hover",
         "color.inverse.interactive.destructive.text.rest",
         "color.inverse.text.danger-subtle"
       ]
@@ -7377,6 +7371,8 @@
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.fill.selected",
         "color.inverse.icon.danger",
+        "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.text.hover",
         "color.inverse.text.danger",
         "color.text.danger"
       ]
@@ -7388,13 +7384,9 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.interactive.destructive.border.hover",
-        "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.text.hover",
-        "color.interactive.destructive.text.pressed",
         "color.inverse.interactive.destructive.border.hover",
-        "color.inverse.interactive.destructive.border.pressed",
-        "color.inverse.interactive.destructive.text.hover",
-        "color.inverse.interactive.destructive.text.pressed"
+        "color.inverse.interactive.destructive.text.hover"
       ]
     },
     "core.palette.danger.800": {
@@ -7404,7 +7396,9 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.interactive.destructive.fill.focused",
-        "color.interactive.destructive.fill.hover"
+        "color.interactive.destructive.fill.hover",
+        "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.text.pressed"
       ]
     },
     "core.palette.danger.850": {

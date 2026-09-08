@@ -1456,7 +1456,7 @@
                   },
                   "aliasOf": "ads.core.palette.danger.650",
                   "contrast": 8.22,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 7
                 }
               }
@@ -1480,7 +1480,7 @@
                   },
                   "aliasOf": "ads.core.palette.danger.750",
                   "contrast": 11.99,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 7
                 }
               }
@@ -1504,7 +1504,7 @@
                   },
                   "aliasOf": "ads.core.palette.danger.850",
                   "contrast": 16.35,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 7
                 }
               }
@@ -1530,7 +1530,7 @@
                   },
                   "aliasOf": "ads.core.palette.danger.650",
                   "contrast": 8.22,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
@@ -1554,7 +1554,7 @@
                   },
                   "aliasOf": "ads.core.palette.danger.750",
                   "contrast": 11.99,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
@@ -1578,7 +1578,7 @@
                   },
                   "aliasOf": "ads.core.palette.danger.850",
                   "contrast": 16.35,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
@@ -2512,7 +2512,7 @@
                     },
                     "aliasOf": "ads.core.palette.danger.350",
                     "contrast": 7.44,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -2536,7 +2536,7 @@
                     },
                     "aliasOf": "ads.core.palette.danger.250",
                     "contrast": 10.09,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -2560,7 +2560,7 @@
                     },
                     "aliasOf": "ads.core.palette.danger.150",
                     "contrast": 13.37,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -2610,7 +2610,7 @@
                     },
                     "aliasOf": "ads.core.palette.danger.350",
                     "contrast": 7.44,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }
@@ -2634,7 +2634,7 @@
                     },
                     "aliasOf": "ads.core.palette.danger.250",
                     "contrast": 10.09,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }
@@ -2658,7 +2658,7 @@
                     },
                     "aliasOf": "ads.core.palette.danger.150",
                     "contrast": 13.37,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }

@@ -1899,7 +1899,11 @@ for (const b of brands) {
     for (const c of ['primary', 'neutral', 'destructive']) {
       const r = m.roles[`inverse.interactive.${c}.text.rest`];
       if (!r) { invFails.push(`${m.mode}:${c}:absent`); continue; }
-      if (r.against !== 'inverse.background.primary') invFails.push(`${m.mode}:${c}:against=${r.against}`);
+      // Gated on AN inverse surface — `destructive` is gated on the worst-case inverse tier
+      // (`inverse.background.tertiary`, #1352) rather than the primary band, so the pin is the
+      // `inverse.background.` prefix (catches a regression to the page ground) and the real
+      // guarantee is the ratio check + `lint-ratio-truth`'s independent recompute against that ground.
+      if (!r.against.startsWith('inverse.background.')) invFails.push(`${m.mode}:${c}:against=${r.against}`);
       if (r.min > 0 && r.ratio < r.min) invFails.push(`${m.mode}:${c}:${r.ratio.toFixed(2)}<${r.min}`);
     }
   ok(invFails.length === 0, 'inverse: inverse.interactive.<color>.text.rest gated on the inverse surface in every mode' + (invFails.length ? ` — ${invFails.slice(0, 3).join(',')}` : ''));
@@ -2327,7 +2331,10 @@ for (const b of brands) {
       for (const st of ['rest', 'hover', 'pressed']) {
         const r = m.roles[`inverse.interactive.${c}.border.${st}`];
         if (!r) { invBdFails.push(`${m.mode}:${c}:${st}:absent`); continue; }
-        if (r.against !== 'inverse.background.primary') invBdFails.push(`${m.mode}:${c}:${st}:against=${r.against}`);
+        // The border follows its ink, so `destructive` sits on the same worst-case inverse tier
+        // (`inverse.background.tertiary`, #1352); assert the inverse-ground prefix rather than the
+        // primary band. A page-ground regression still fails (no `inverse.background.` prefix).
+        if (!r.against.startsWith('inverse.background.')) invBdFails.push(`${m.mode}:${c}:${st}:against=${r.against}`);
         if (r.min > 0 && r.ratio < r.min) invBdFails.push(`${m.mode}:${c}:${st}:${r.ratio.toFixed(2)}<${r.min}`);
       }
   ok(invBdFails.length === 0, 'inverse: inverse.interactive.<color>.border.{rest,hover,pressed} each gated on the inverse surface in every mode' + (invBdFails.length ? ` — ${invBdFails.slice(0, 3).join(',')}` : ''));
