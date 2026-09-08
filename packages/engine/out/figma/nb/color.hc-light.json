@@ -2857,14 +2857,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.8078431487083435,
-        "b": 0.8196078538894653,
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/150"
+        "name": "nbds/core/palette/neutral/050"
       }
     },
     {
@@ -2876,14 +2876,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.6941176652908325,
-        "g": 0.7058823704719543,
-        "b": 0.7215686440467834,
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/250"
+        "name": "nbds/core/palette/neutral/050"
       }
     },
     {
@@ -2895,14 +2895,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.8078431487083435,
-        "b": 0.8196078538894653,
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/150"
+        "name": "nbds/core/palette/neutral/050"
       }
     },
     {
@@ -2914,14 +2914,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.6941176652908325,
-        "g": 0.7058823704719543,
-        "b": 0.7215686440467834,
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/250"
+        "name": "nbds/core/palette/neutral/050"
       }
     },
     {
