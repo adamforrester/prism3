@@ -5104,7 +5104,7 @@
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.550}",
-        "dark": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.450}",
         "hc-light": "{nbds.core.palette.red.700}",
         "hc-dark": "{nbds.core.palette.red.300}"
       },
@@ -5265,10 +5265,10 @@
       "avoid_when": "Do not use on the page ground; that is `border.focus`. Do not use as a decorative divider (use border.primary), or on an inverse surface (use inverse.border.focus).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.550}",
+        "light": "{nbds.core.palette.red.450}",
         "dark": "{nbds.core.palette.red.550}",
-        "hc-light": "{nbds.core.palette.red.500}",
-        "hc-dark": "{nbds.core.palette.red.550}"
+        "hc-light": "{nbds.core.palette.red.350}",
+        "hc-dark": "{nbds.core.palette.red.650}"
       },
       "paired_with": [
         "inverse.background.primary"
@@ -5277,7 +5277,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 3.46
+          "ratio": 5.05
         }
       ]
     }
@@ -6057,6 +6057,7 @@
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
         "color.inverse.foreground.brand",
         "color.inverse.foreground.danger",
         "color.inverse.icon.link.default",
@@ -6097,6 +6098,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "color.border.focus",
         "color.icon.brand",
         "color.icon.brand-subtle",
         "color.icon.danger",
@@ -6111,6 +6113,7 @@
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
         "color.inverse.icon.brand",
         "color.inverse.icon.danger",
         "color.inverse.icon.link.default",
@@ -6143,7 +6146,6 @@
         "color.icon.danger-subtle",
         "color.inverse.border.brand",
         "color.inverse.border.danger",
-        "color.inverse.border.focus",
         "color.inverse.icon.brand-subtle",
         "color.inverse.icon.danger-subtle",
         "color.inverse.text.brand-subtle",
@@ -6228,6 +6230,7 @@
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
         "color.inverse.foreground.brand",
         "color.inverse.foreground.danger",
         "color.inverse.icon.brand-subtle",

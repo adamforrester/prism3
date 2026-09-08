@@ -5104,7 +5104,7 @@
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{wds.core.palette.primary.500}",
-        "dark": "{wds.core.palette.primary.500}",
+        "dark": "{wds.core.palette.primary.400}",
         "hc-light": "{wds.core.palette.primary.650}",
         "hc-dark": "{wds.core.palette.primary.250}"
       },
@@ -5265,10 +5265,10 @@
       "avoid_when": "Do not use on the page ground; that is `border.focus`. Do not use as a decorative divider (use border.primary), or on an inverse surface (use inverse.border.focus).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.400}",
         "dark": "{wds.core.palette.primary.500}",
-        "hc-light": "{wds.core.palette.primary.400}",
-        "hc-dark": "{wds.core.palette.primary.500}"
+        "hc-light": "{wds.core.palette.primary.300}",
+        "hc-dark": "{wds.core.palette.primary.600}"
       },
       "paired_with": [
         "inverse.background.primary"
@@ -5277,7 +5277,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 3.3
+          "ratio": 4.94
         }
       ]
     }
@@ -6015,6 +6015,7 @@
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
         "color.inverse.foreground.brand",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
@@ -6051,6 +6052,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.border.brand",
+        "color.border.focus",
         "color.icon.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
@@ -6144,6 +6146,7 @@
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
         "color.inverse.foreground.brand",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",

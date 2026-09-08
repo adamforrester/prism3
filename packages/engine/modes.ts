@@ -955,6 +955,27 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     ? chromatic(r2p.action, paAnchor, floorRgb, fillFloorMin, true)
     : paletteRole('action', floorRgb, fillFloorMin);
 
+  // THE FOCUS RING, DERIVED AGAINST ITS OWN GROUND (#1336). The keyboard-focus ring is the action
+  // colour, but unlike a fill it is DRAWN on a ground whose lightness flips per mode (the page in the
+  // default set, the inverse band in the inverse set), and it has to COME FORWARD on THAT ground — a
+  // focus indicator that merely scrapes the 3:1 floor is not doing its job. `focusRing` resolves the
+  // action ramp against the ACTUAL ground at the ACTION bar (`actionMin`: 4.5), anchored on the brand's
+  // action step: `chromatic`/`pickBrand` keeps that anchor where it clears the bar (so a light-mode page
+  // ring stays the brand action colour, unchanged) and otherwise takes the nearest step that does —
+  // which on a DARK ground is a LIGHTER step and on a LIGHT ground a DARKER one, because those are the
+  // steps that clear a raised bar there. So the ring adapts by construction: light on a dark ground, dark
+  // on a light ground, on either the page or the inverse band. The bar is `actionMin`, not `nonTextMin`
+  // (3:1): the old inverse ring already resolved through `chromatic` against the band but at that low bar
+  // the authored anchor cleared in EVERY mode, so it stayed frozen to one brand step across grounds of
+  // opposite lightness — the audited symptom (2026-09-08 host-truth audit). `actionMin` is high enough
+  // that the anchor cannot satisfy it on the wrong-lightness ground, which is what makes the ring move.
+  // The pick is NOT applied `exact` (#331/#573): an authored pin states the brand action colour on the
+  // page and cannot answer a ground of the opposite lightness. The declared contract stays `nonTextMin`
+  // at the `put` sites (the pick exceeds it), and the reported `ratio` is measured against the ground the
+  // role's `against` names, so `lint-ratio-truth` verifies each ring on the surface it is painted on.
+  const focusAnchor = paAnchor ?? theme.roleAnchorStep.action;
+  const focusRing = (ground: RGB): Rated => chromatic(r2p.action, focusAnchor, ground, cfg.actionMin);
+
   // ------------------------------------------------------- interactive family
   // The coherent, generated, contrast-gated interactive colour family (docs/20) — the ONE
   // home for every interactive element's colour: `interactive.<color>.<slot>`. Colours:
@@ -1672,7 +1693,17 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   put('border.tertiary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2 * 2.2), 'Strongest border / divider — the third rung of the neutral edge ladder', 'background.primary', 0);
   for (const r of SEMANTICS)
     put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin), baseRgb), `${r} border — ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.primary', cfg.nonTextMin);
-  put('border.focus', rated(actionRest, baseRgb), 'Focus ring color (keyboard focus)', 'background.primary', cfg.nonTextMin);
+  // The default ring adapts against the page in the STANDARD modes; in HC it keeps `actionRest` (#1336).
+  // HC already made the default ring respond — `actionRest` is gated at the escalated HC fill bar
+  // (`actionMin` 7:1) and so already resolves a dark ring on the white HC page and a light one on the
+  // black HC page, reproducing real-NB's own hand-authored HC focus EXACTLY (no `NB_KNOWN_DIVERGENCES`
+  // row for the HC modes). What was broken was only the standard modes, where `actionRest` is gated at
+  // the 3:1 fill floor the anchor cleared on both the light and the dark page, so it stayed pinned. So
+  // the fix is scoped to exactly what was inert: `focusRing` re-derives the standard-mode ring against
+  // the page at `actionMin`, leaving the HC ring — already correct, already at max contrast, already
+  // NB-faithful — untouched. (The inverse ring below has no such NB-authored HC pick to preserve and
+  // was frozen in HC too, so it takes `focusRing` in every mode.)
+  put('border.focus', hc ? rated(actionRest, baseRgb) : focusRing(baseRgb), 'Focus ring color (keyboard focus)', 'background.primary', cfg.nonTextMin);
 
   // The inverse edge set. Same rules, inverse ground: the neutrals keep their decorative targets, the
   // semantics keep the SC 1.4.11 floor (#892 step 5).
@@ -1703,14 +1734,20 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // second, so it keeps the accessibility floor its non-inverse sibling has; copying the neighbouring
   // inverse border wholesale would silently pick the weaker gate. (#573)
   //
-  // An authored action pin (#331) is honoured as the ANCHOR but not applied `exact` here: a pin is a
-  // statement about the brand's action colour on the page, and reproducing it verbatim on a different
-  // ground is precisely the fixed-value-cannot-answer-a-different-ground failure above. The gate is
-  // free to walk it, so the ring clears 3:1 on the inverse surface in every mode.
+  // DERIVED THROUGH `focusRing` AGAINST THE INVERSE BAND, IN EVERY MODE (#1336). The band inverts with
+  // the mode (near-black in light, near-white in dark, pure extremes in HC), and the ring now inverts
+  // with it: DARK on the light band (dark mode / hc-dark), light on the dark band (light mode / hc-light).
+  // Before this it ran through `chromatic` against the band but at `nonTextMin` (3:1), a bar the authored
+  // anchor cleared in every mode — so it stayed frozen to the brand action step, HC included (the audited
+  // "HC non-response"). `focusRing` raises that bar to `actionMin`, which is what forces the pick to move
+  // per band. Unlike the default ring above, the inverse ring takes `focusRing` in HC too: it has no
+  // real-NB-authored HC value to preserve (the NB fixture carries no inverse focus), and its HC response
+  // was exactly what the issue asked to fix. The pick is still anchored but not `exact` (#331/#573): a pin
+  // describing the brand action colour on the page cannot answer a band of the opposite lightness.
   //
-  // THIS IS THE ONE INVERSE ROLE A COMPONENT DEF BINDS BY NAME (`focus-ring`, via
-  // `UNALIASED_DEF_BINDINGS`), so it is the path a rename has to land cleanly on more than any other.
-  put('inverse.border.focus', rated(chromatic(r2p.action, paAnchor ?? theme.roleAnchorStep.action, invRgb, cfg.nonTextMin), invRgb),
+  // THIS IS THE ONE INVERSE ROLE A COMPONENT DEF BINDS BY NAME (`focus-ring`, via the `surface=inverse`
+  // rewrite — docs/20 §9.11), so it is the path a rename has to land cleanly on more than any other.
+  put('inverse.border.focus', focusRing(invRgb),
       'Focus ring color on inverse surfaces (keyboard focus)', 'inverse.background.primary', cfg.nonTextMin);
 
   // ---- per-mode colour override layer (Phase A1) ----

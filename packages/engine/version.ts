@@ -1704,6 +1704,28 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  *
+ * 0.68.0: the focus ring now ADAPTS PER MODE to sit on its own ground (#1336, owner-settled). `focusRing`
+ * resolves the action ramp against the ground the ring is painted on at the action bar (`actionMin`, 4.5),
+ * anchored on the brand action step — keeping the anchor where it clears (light-mode page ring UNCHANGED)
+ * and otherwise taking the nearest step that does: lighter on a dark ground, darker on a light one. The
+ * default ring (`border.focus`) takes this in the STANDARD modes and keeps `actionRest` in HC, which
+ * already adapted at the escalated 7:1 HC bar and reproduces real-NB's hand-authored HC focus exactly —
+ * so the change is scoped to the standard modes that were inert. The inverse ring (`inverse.border.focus`)
+ * takes `focusRing` in EVERY mode: it had no NB-authored HC value to preserve and its HC non-response was
+ * the audited defect. Before this the default standard ring was `actionRest` (gated against the mode FLOOR
+ * at the 3:1 fill floor the anchor cleared on both the light and dark page) and the inverse ring resolved
+ * at the 3:1 `nonTextMin` bar the anchor cleared in every mode, so both froze to one brand step across
+ * grounds of opposite lightness — aurora's default stayed #007cbb light→dark, its inverse #007cbb in all
+ * four modes. Now the default lightens in dark (aurora #007cbb → #0088be) and the inverse darkens on the
+ * light band it sits on in dark (aurora #007cbb → #006e99), each clearing ≥4.5:1 on its real surface; nb's
+ * standard dark default lands on red/450, real-NB's own hand-authored dark focus, closing a divergence
+ * rather than recording one. VALUE-ONLY: no token path is added, removed, or retyped — the
+ * `color.border.focus` / `color.inverse.border.focus` names and the `focus-ring` def's bindings are
+ * untouched — so `CONTRACT_VERSION` STANDS at 10.0.0 (`token-contract.ts --check` confirms it) and no
+ * projected surface moves (`lint-component-surface` / `lint-paint` green: paint PLACEMENT is unchanged,
+ * only the resolved colours). `regen --check` moves the affected `out/**` focus-ring values, which is the
+ * mutation-by-name gate: reverting the derivation without regenerating fails `regen --check` by name.
+ *
  * 0.67.0: every Figma TEXT component-property name is now LOWERCASE (#1333, owner-settled). The
  * TEXT-property namer used the `figmaProperties.texts` KEY verbatim as the Figma property name, and four
  * defs capitalized it — `button`'s `Label`, `field-label`'s `Label`, `field-message`'s `Message`,
@@ -1853,7 +1875,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.67.0';
+export const ENGINE_VERSION = '0.68.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

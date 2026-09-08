@@ -10655,9 +10655,9 @@
               "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{wds.core.palette.primary.500}",
-                  "aliasOf": "wds.core.palette.primary.500",
-                  "contrast": 3.3,
+                  "$value": "{wds.core.palette.primary.400}",
+                  "aliasOf": "wds.core.palette.primary.400",
+                  "contrast": 4.94,
                   "against": "background.primary",
                   "min": 3
                 },
@@ -16509,13 +16509,13 @@
           },
           "focus": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.500}",
+            "$value": "{wds.core.palette.primary.400}",
             "$description": "Focus ring color on inverse surfaces (keyboard focus)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.500",
-                "contrast": 3.3,
+                "aliasOf": "wds.core.palette.primary.400",
+                "contrast": 4.94,
                 "against": "inverse.background.primary",
                 "min": 3,
                 "modes": {
@@ -16527,16 +16527,16 @@
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{wds.core.palette.primary.400}",
-                    "aliasOf": "wds.core.palette.primary.400",
-                    "contrast": 5.34,
+                    "$value": "{wds.core.palette.primary.300}",
+                    "aliasOf": "wds.core.palette.primary.300",
+                    "contrast": 7.72,
                     "against": "inverse.background.primary",
                     "min": 4.5
                   },
                   "hc-dark": {
-                    "$value": "{wds.core.palette.primary.500}",
-                    "aliasOf": "wds.core.palette.primary.500",
-                    "contrast": 5.88,
+                    "$value": "{wds.core.palette.primary.600}",
+                    "aliasOf": "wds.core.palette.primary.600",
+                    "contrast": 8.28,
                     "against": "inverse.background.primary",
                     "min": 4.5
                   }
@@ -20721,7 +20721,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.67.0",
+      "version": "0.68.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

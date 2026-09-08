@@ -5358,6 +5358,30 @@
                 "against": "inverse.background.primary"
               }
             }
+          },
+          "focus": {
+            "$type": "color",
+            "$value": "{ads.core.palette.accent.650}",
+            "$description": "Focus ring color on inverse surfaces (keyboard focus)",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                },
+                "aliasOf": "ads.core.palette.accent.650",
+                "contrast": 8.3,
+                "against": "inverse.background.primary",
+                "min": 4.5
+              }
+            }
           }
         }
       }

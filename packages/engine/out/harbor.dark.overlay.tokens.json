@@ -2543,7 +2543,7 @@
         },
         "focus": {
           "$type": "color",
-          "$value": "{hds.core.palette.primary.550}",
+          "$value": "{hds.core.palette.primary.450}",
           "$description": "Focus ring color (keyboard focus)",
           "$extensions": {
             "prism3": {
@@ -2558,8 +2558,8 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "hds.core.palette.primary.550",
-              "contrast": 3.46,
+              "aliasOf": "hds.core.palette.primary.450",
+              "contrast": 5,
               "against": "background.primary",
               "min": 3
             }
