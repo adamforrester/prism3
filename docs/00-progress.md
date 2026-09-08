@@ -7,6 +7,65 @@
 
 ---
 
+## (2026-09-08) — `field-label` dropped its `Label`/`indicator` text references on some variants: a refused property reference is now recovered, not lost (#1337)
+
+**The symptom, off a live aurora build.** Building the `field-label` set reported, on a subset of
+variants (the QA saw `tone=secondary, weight=bold`), `set_componentPropertyReferences: Could not create
+a new component property reference` for BOTH `text.characters -> Label` and `indicator.characters ->
+indicator`. The two text fields then had no property to override and the text disappeared from those
+members. `field-label` is the corpus's only member with TWO TEXT parts, which is why it is the def that
+surfaced this.
+
+**The diagnosis, and why it is not a def defect.** The projection is provably correct: `figmaAnatomySet`
+emits 24 well-formed members, `planSetProperties` derives exactly `Label:TEXT` + `indicator:TEXT`, and
+every one of the 48 references wires cleanly through `applyComponentPlan` against the default #874 shim —
+0 misses. Nothing in the plan is unique to the failing coordinate (both `textStyle=body/*/strong` and
+`fills=color/text/secondary` are shared with other members), so the cause is not plan content; it is the
+live combine.
+
+The wire loop writes each reference on the #701 FAST-PATH handle (`builtFor.get(part)`), captured BEFORE
+`combineAsVariants`. The combine can leave that handle a DETACHED pre-combine node while the live member
+holds an id-rewritten twin — the exact divergence #866 (`refsRepaired`) and #1279 (`boundRepaired`) built
+their READ-BACK repairs against, and which both entries recorded as UNCONFIRMED live because the default
+shim keeps one node object across combine, so no handle ever detaches offline. #1337 is that divergence
+confirmed, in its harsher form: a `componentPropertyReferences` write to a detached node does not merely
+discard (which the read-back repairs), it THROWS — a detached node is not a component sublayer. A throw
+never lands in `wiredRefs`, so the read-back repairs cannot reach it, and the reference stayed a permanent
+miss. This is the "reference targeting a node that doesn't exist at that variant" shape.
+
+**The fix — the THROW sibling of #866, in the executor.** In the wire loop's catch, re-find the live node
+by name and wire the reference there before reporting a miss — exactly as the read-back re-wires on an id
+divergence. On success it lands in `wiredRefs` (so the read-back re-verifies it) and `refsRepaired` counts
+it. Cause-independent and inert when it cannot help: it fires only after a throw, only re-tries a node that
+is NOT the one that threw, and if the live node refuses it too the ORIGINAL cause is still reported. The
+projection (`field-label.ts`, `anatomy-figma.ts`) is untouched, so the emitted surface, `component-surface`
+and `paint-census` are byte-identical and neither ENGINE nor CONTRACT moves. The single-shot payload path
+(`PAYLOAD_WIRE_REFS`) already writes on the live `findOne` node, so it never had this failure and needs no
+change — which is itself evidence the fast-path handle is the culprit.
+
+**The gate that was missing, and the mutation that proves it (docs/34).** No offline gate caught this
+class: the shims only ever threw "Could not FIND a component property" (unknown name), never modelled
+Figma REFUSING a valid reference, and `test-roundtrip`/`test-write-components` were green on `field-label`
+throughout. So `component-shim.ts` gains an opt-in `detachPartsOnCombine` mode that models the one host
+behaviour the shim otherwise cannot reach — the combine detaching the pre-combine handles and handing the
+live members fresh twins — which also makes #866/#1279's own repairs reproducible for the first time. The
+new `#1337` block in `test-write-components.ts` drives `field-label` through it and asserts (a) 0 "could
+not create" misses, (b) every reference still reaches every member, and (c) `refsRepaired === 48` as the
+reachability floor, so the arms cannot pass vacuously on an un-detached run. Mutation-by-name: deleting the
+wire-loop recovery turns all three arms red and reproduces the issue's miss lines byte-for-byte
+(`... /text.characters -> Label (in set_componentPropertyReferences: Could not create a new component
+property reference)`).
+
+**Standing caveat, flagged for the owner.** The offline model reproduces the executor mechanics but not a
+real Figma file; the exact live divergence is inferred from #866/#1279's lineage and the issue's miss
+format, not observed here. If a real-host build shows the LIVE node ALSO refuses the reference (a
+fundamental Figma limit on the two-TEXT-property structure at those coordinates rather than a stale
+handle), then the residual is a `field-label` design-structure question — that is the owner's call, not a
+mechanical fix, and this change still stands as correct hardening (a refused reference that CAN be placed
+on the live node now is, and one that genuinely cannot is still reported rather than silently dropped).
+
+---
+
 ## (2026-09-08) — `text`-appearance button ink steps with state on the inverse band (#1351 part 1)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.64.0 → **0.65.0**. **CONTRACT stands at 10.0.0** — the fix binds token names that already ship, so no guaranteed path moves (`token-contract.ts --check` confirms 577 unchanged).
@@ -914,7 +973,6 @@ failure:**
 **Deferred, filed as #1296 rather than left in this entry:** authoring the canonical default
 theme at `pds3` — flipping the fallback, retiring `prism` as a resolved value, and deciding whether the
 ~235 fixtures move with it. Nothing roots at `pds3` today; it is held, not occupied.
-
 
 ## (2026-09-04) — the paste path's swap misses get the same diagnosis, and the two executors stop disagreeing (#1288)
 
@@ -3016,7 +3074,6 @@ name **nothing in this repo emits**, so the instance-swap never resolves and deg
 button needs no fill change — its existing `on-fill` push lands the moment any real icon component with a
 vector is in the slot, which is what this ticket makes possible.
 
-
 ## (2026-09-02) — field-ref read-back re-wires onto the live node when a fast-path handle went stale (#866)
 
 **STATUS: shipped as CAUSE-INDEPENDENT HARDENING.** Plugin-only (`apps/plugin/src/write-components.ts`,
@@ -4588,7 +4645,6 @@ on the rebase, because each of the five is a list of NAMES and the two gates' en
 NUMERALS did not, which is why they are the thing this note exists to catch. Third time in this sweep
 that a count line had to be re-measured after a rebase rather than carried.
 
-
 ## (2026-08-30) — gate scope is per-file, text is not (#1117, the sweep's last item)
 
 **STATUS: shipped.** Two instances of one shape, handled differently on purpose, plus a re-derivable
@@ -4986,7 +5042,6 @@ So the suite is 46 and the pre-rebase entry's 45 was stale — this file's own s
 was re-run rather than assumed: 0 artifacts moved, `ENGINE_VERSION` 0.30.0 unchanged, so the version
 this branch edits is a source-only edit the gate correctly declines to bill.
 
-
 ## (2026-08-29) — `lint-decisions-index` admitted one issue per decision, and a two-issue heading was invisible (gate 2)
 
 **STATUS: shipped.** The heading parse, the baseline's issue field, one doc heading, and the row that
@@ -5198,7 +5253,6 @@ collapse) before review. Every figure above was re-measured on the new base rath
 artifact count is **108**, `ENGINE_VERSION` is **0.30.0**, and M5 was re-run end to end. Carrying the
 old numbers would have been this file's own shape 21 — a measured entry with one unmeasured line.
 
-
 ## (2026-08-29) — Button ships its inverse variant, and `surface` becomes the one inverse axis (#1134, decision §9.11)
 
 `button` gets its inverse treatment — the first component in the bounded inverse set (docs/20 §9.8) — and
@@ -5276,7 +5330,6 @@ It was the "live 2-cycle" #1153's PR body flagged, tripping on the first PR afte
 Button's** — filed as #1157, fixed by **#1159** (deleting the stale entry plus a steady-state guard; its own
 entry is directly below), and this branch was rebased onto `main` past that fix, which is why it now reads
 45/45. This entry keeps the account because it is the diagnosis that took the work from red to explained.
-
 
 ## (2026-08-29) — `main` was red: a stale accounting entry reactivated when #1153 reused a collection name (gate 0)
 
@@ -5359,7 +5412,6 @@ failed mutation, not a quiet pass (#986).
 
 Re-run with the table row added so nothing crashed first, and the guard fired. **The evidence above is
 from the second run; the first proved only that the file stopped early.**
-
 
 ## (2026-08-29) — ONE `color` collection, and the roles are written in reading order (#1148, #1150)
 
@@ -6082,7 +6134,6 @@ are old.
 
 *A number in prose is a site whether or not anyone calls it one, and it drifts exactly as far as the
 nearest remedy that fails to mention it.*
-
 
 ## (2026-08-27) — Three findings, one family, three shapes: `docs/34` gains 19, 20 and 21 (#1049, #1093, #1103)
 
@@ -11094,7 +11145,6 @@ this entry, against CLAUDE.md's explicit rule that it rides in the feature PR. F
 by a gate — `lint-doc-gates` checks that the gate LIST is consistent, not that a PR carried its
 reasoning. Corrected here by writing one entry for all three steps.
 
-
 ---
 
 ## (2026-08-21) — `switch`: the track leaves the field family, and #900 gets its constraining instance
@@ -11385,9 +11435,7 @@ case by name, and dropping `glyphViewBox` from the projected plan fails arm A fo
 **Gates:** `npm run verify` → **38/38 gates reached a verdict in 87s — 38 PASS · 0 FAIL · 0 SKIP · 0
 ADVISORY** (37 before this one).
 
-
 ---
-
 
 ## (2026-08-21) — The paint grammar goes axis-led, and the exemption becomes a declaration (#910 review)
 
@@ -15026,7 +15074,6 @@ hand-named in `lint-us-english.ts` and `lint-voice.ts` — exactly the line `lin
 comment predicts would be needed. Verified by mutation rather than assumed: a planted `colour` in a shape
 title fails that gate by name (schema surface 6 → 7 files).
 
-
 ---
 
 ## (2026-08-13) — Render granularity: the workspace REGION is the update unit, and #485's scroll workaround is gone (#771)
@@ -15315,7 +15362,6 @@ Worth naming the shape, because it is this repo's favourite one wearing new clot
 of them was checked. Same structure as a gate built from its subject (`docs/34`), and the same tell: the only
 independent oracle is the issue tracker, and nothing consults it.
 
-
 ---
 
 ## (2026-08-13) — The smoke suite gets a non-empty floor, and the number that would catch a blank page is not the one that survives (#779 defect 1)
@@ -15490,7 +15536,6 @@ named before "hidden" is allowed to mean anything.
 **NOT DONE HERE, on purpose.** No `packages/engine/` change was needed. Scoped styles (#770) runs
 alone and last; `docs/34` shape numbering, the smoke-suite floor and the Node 24 runner bump (#784)
 are filed separately.
-
 
 ---
 
@@ -15680,7 +15725,6 @@ control (a slot that *is* dispatched must not fire) and both stale directions of
 
 **NEXT.** Arc 2 step 3's actual deliverable — the `anatomy` blocks for `field-label` and `field-message`,
 both now paintable — ending in a live Figma run.
-
 
 ---
 
@@ -18411,7 +18455,6 @@ If you touch the mode-entry shape again, `test.ts` and `regen --check` are what 
 
 ---
 
-
 ## (2026-08-10) — #680 the variable writer loads its fonts, and the face it needs is a cross product
 
 **STATUS: shipped (PR TBD). Not yet verified live** — the decisive test #680 names is a real Figma run,
@@ -18802,7 +18845,6 @@ other 23 are real, and they all live in `code.ts` + `scanner.ts` where #703 put 
 is unchanged**: it rested on the *types* (124 references across 13 files — measured again here at 138 with a wider
 type list, same 13 files), never on the runtime calls. "Rewrite, not refactor" stands exactly as #703 argued it.
 What the correction does buy is the reason W5 needs only a four-method stub.
-
 
 ## (2026-08-10) — TokenPress ported in as `apps/tokenpress/`, and the separability question answered against real code
 
@@ -27724,7 +27766,6 @@ Per-style/weight validation (which would retire the hardcoded weight map — now
 measurement that proves a fixed table cannot work), the web-side `queryLocalFonts()` arm of #113, and the
 per-mode family override selects. #113 stays **open** — this is its Figma arm only.
 
-
 ---
 
 ## (2026-08-04) — Deploys skip when a commit cannot change the site, and the skip list is gated
@@ -29391,7 +29432,6 @@ per-mode columns, and a page that shows sections in a derived mode would otherwi
 Verified: `Editing · Light` on the two per-mode sections of Size & radius and `Shared · All modes` on
 the other two; the same sections track to `Editing · Dark`; badge value **15.97:1** and label
 **4.63:1**, both AA; no page errors.
-
 
 ## (2026-08-04) — The mode chip stops shouting, and says who can be edited (#439)
 

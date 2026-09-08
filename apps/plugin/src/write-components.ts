@@ -1737,6 +1737,10 @@ const writeComponentSet = async (
   let refsRetained = 0;
   let refsKnownAbsent = 0;
   let refsSearched = 0;
+  // DECLARED HERE, before the wire loop, because #1337's recovery increments it INSIDE that loop (below)
+  // and #866's read-back increments it after — the same counter for the same divergence, caught at two
+  // points. It was declared just above the read-back until #1337 gave the wire loop a reason to touch it.
+  let refsRepaired = 0;
   mark = phaseStart = Date.now();
   const toWire = readable ? members : [];
   for (let i = 0; i < toWire.length; i++) {
@@ -1797,7 +1801,35 @@ const writeComponentSet = async (
       // Names the property/field ACTUALLY attempted (the per-member `own?.prop ?? r.prop`), not the
       // deduped `r.prop` — on a spinner member wiring `leadingVisual` the deduped name would misreport
       // `trailingVisual`, the exact scenario the swap-wiring can fail (#1203; the #1204-review nit).
-      } catch (err) { misses.push(`ref ${member.name}/${r.part}.${field} -> ${own?.prop ?? r.prop} (${(err as Error).message})`); }
+      } catch (err) {
+        // #1337: THE THROW SIBLING OF #866's read-back repair. The write above targets the #701 fast-path
+        // handle (`builtFor.get(r.part)`), captured BEFORE `combineAsVariants`. When the combine leaves that
+        // handle a DETACHED pre-combine node rather than an id-rewritten-but-attached twin, Figma refuses the
+        // reference outright — "Could not create a new component property reference", because a detached node
+        // is not a component sublayer — and that is a THROW, not the accepted-and-discarded case the read-back
+        // below repairs. The read-back cannot reach it: only refs that WROTE land in `wiredRefs`, and a throw
+        // never does, so a dropped reference on `field-label` (its two TEXT parts, the corpus's only member
+        // with two) stayed a permanent miss and the text disappeared from those variants. So re-find the LIVE
+        // node by name and wire the reference there, exactly as the read-back re-wires on an id divergence; on
+        // success it lands in `wiredRefs` (the read-back then re-verifies it) and `refsRepaired` counts it —
+        // the same divergence, caught one loop earlier. Cause-independent and inert when it cannot help: it
+        // fires only after a throw, only re-tries a node that is NOT the one that threw, and offline the #874
+        // shim keeps one node object across combine (`makeShim({ detachPartsOnCombine })` is the one mode that
+        // detaches, added for #1337's gate) so on every other run no handle detaches and this path is dead.
+        const live = member.findOne?.((x) => x.name === r.part) as CompNode | null | undefined;
+        let recovered = false;
+        if (live && live !== node) {
+          try {
+            wr(live).componentPropertyReferences = Object.assign({}, (live.componentPropertyReferences ?? {}) as object, { [field]: id });
+            wiredRefs.push([String(member.name), r.part, field, id, live]);
+            refsRepaired++;
+            recovered = true;
+          } catch { /* the live node refused it too — report the ORIGINAL cause below */ }
+        }
+        // Names the property/field ACTUALLY attempted, and reports the ORIGINAL throw (the live-node retry's
+        // own failure, if any, is swallowed above — the first cause is the one a reader needs).
+        if (!recovered) misses.push(`ref ${member.name}/${r.part}.${field} -> ${own?.prop ?? r.prop} (${(err as Error).message})`);
+      }
     }
     if ((i + 1) % chunkSize === 0 || i + 1 === toWire.length) await breathe('wire', i + 1, toWire.length);
   }
@@ -1812,7 +1844,7 @@ const writeComponentSet = async (
   // path rests on (that `createComponentFromNode` keeps the child nodes) turning out to be false. If that
   // assumption ever breaks, it surfaces here as a loud `DISCARDED` miss per reference rather than as a set
   // that looks built and is inert. docs/34: the check must not share its subject with the thing it checks.
-  let refsRepaired = 0;
+  // `refsRepaired` is declared before the wire loop (#1337 increments it there too — see the wire catch).
   for (const [mName, part, field, id, written] of wiredRefs) {
     const member = members.find((c) => c.name === mName);
     const node = member?.findOne?.((x) => x.name === part) as CompNode | null | undefined;
