@@ -1704,6 +1704,45 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  *
+ * 0.66.0: the inverse PRIMARY filled fill now HOLDS CONSTANT across states (#1351 part 2), closing the
+ * second real WCAG AA failure #1351 recorded. On `surface=inverse` the primary filled button is a
+ * near-white surface carrying a BRAND `on-fill` ink (#1244/#1255); that ink is a single value gated
+ * against `fill.rest`, so while the fill WALKED darker per state (rest neutral.050 → hover .150 →
+ * pressed .250 in light) the ink's RENDERED contrast collapsed on hover/pressed — 4.69 → 3.62 → 2.75
+ * over the corpus on the real inverse backdrop, two AA fails. The owner's settled fix is #1351's
+ * option (a) — cap the darkening, all the way to constant: `modes.ts`'s `invColumn` now holds the
+ * primary inverse fill at its rest value for every `FILL_STATES` step, so the brand ink sits on the
+ * SAME near-white ground in every state and its rest contrast (≥4.5) holds through hover/pressed/
+ * focused/selected. Per-state feedback lives in the outline/text ink (which steps, #1358 part 1); the
+ * filled fill steps nowhere, which is the settled inverse model. PRIMARY ONLY — destructive/neutral
+ * keep the neutral walk (their near-black `on-fill` survives it) pending #1253/#1254.
+ *
+ * ENGINE and not CONTRACT. This moves VALUES, not names: `inverse.interactive.primary.fill.{hover,
+ * pressed,focused,selected}` now alias neutral.050 (light) / .850 (dark) instead of the walked steps,
+ * across all four modes and every corpus brand. No token path is added, removed or retyped, so
+ * `CONTRACT_VERSION` STANDS at 10.0.0 and `token-contract.ts --check` confirms it; `--accept` refreshes
+ * only the baseline's informational `engineVersion` stamp to 0.66.0. Unlike part 1 this is a pure
+ * EMISSION change, not a projected-surface change: no button binding moves, so `lint-component-surface`
+ * and `lint-paint`'s census are BYTE-IDENTICAL and are NOT re-`--accept`ed (the census hashes binding
+ * NAMES, not resolved values). `regen --check` moves each brand's committed `out/` artifacts (the fill
+ * values and their recomputed ratios) and `lint-emission-version` requires the bump — the emission
+ * changed, so the version must.
+ *
+ * THE GATE BLIND SPOT #1357 STILL STANDS (filed by part 1, not closed here). The token contract gates
+ * `on-fill` against `fill.rest` only — the rest pairing, which always passed — so no token-tier gate
+ * ever composited the constant ink over the WALKED hover/pressed fill, the rendered pairing that
+ * failed. Holding the fill constant makes fill.hover/pressed EQUAL fill.rest, so the rest gate now
+ * covers every state by construction; but a component-level gate that composites the appearance's own
+ * ink over its own per-state fill (the #1357 arm) is still what would have caught the original defect,
+ * and it remains #1357's PR (docs/34 — folding it in here would be half-doing it).
+ *
+ * MUTATION (docs/34): reverting the `holdInverseFill` guard so the primary inverse fill walks again
+ * re-emits the darker hover/pressed/focused/selected values, which `regen --check` reports BY NAME as
+ * drift against the committed artifacts (`inverse.interactive.primary.fill.*` in every brand's `out/`
+ * token + figma + overlay files). Restored, then re-`--accept`ed at the forward bump. `lint-ratio-truth`
+ * recomputes every affected ratio from the final colours and stays green (near-white on the dark band
+ * clears `nonTextMin` more easily held than walked), which is the point — the fix cannot lower a floor.
+ *
  * 0.65.0: the `text` appearance's label/icon ink now STEPS with state on the inverse band (#1351 part 1),
  * closing a real WCAG AA failure. `button.ts`'s `intentTokens` gains four keys — `text.{label,icon}.{hover,
  * pressed}` → `color.interactive.<family>.text.{hover,pressed}` — so the `text` appearance resolves its ink
@@ -1781,7 +1820,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.65.0';
+export const ENGINE_VERSION = '0.66.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

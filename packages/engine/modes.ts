@@ -1152,9 +1152,26 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // legitimately differs on an inverse ground. This comment used to RESTATE the rule instead
     // ("hover/focused one step, pressed/selected two"), which is how a copy stays in step right up
     // until the day it does not.
+    // #1351 part 2 — the inverse PRIMARY filled fill HOLDS CONSTANT across states (owner decision).
+    // On the dark band a primary filled button is a near-white surface (`fillRest`, neutral 50 in
+    // light / 850 in dark) carrying a BRAND `on-fill` ink (#1244/#1255 — `brandOnFill` below). That
+    // ink is a single value gated against `fill.rest`, so when the fill WALKED darker per state
+    // (rest → hover → pressed rode the neutral ramp toward mid) the ink's RENDERED contrast collapsed
+    // on hover/pressed — measured over the corpus on the real inverse backdrop, 4.69 → 3.62 → 2.75,
+    // two AA fails (#1351 defect 2). Holding the fill at its rest value removes that entirely: the
+    // brand ink sits on the SAME near-white ground in every state, so its rest contrast (≥4.5) holds
+    // through hover, pressed, focused and selected. The per-state feedback the inverse primary button
+    // gives lives in the outline/text INK, which steps (part 1, #1358); the FILLED fill "steps"
+    // nowhere, so the ink is the only thing that moves — the settled model for the inverse band.
+    //
+    // PRIMARY ONLY (scope of #1351 part 2). `destructive`/`neutral` keep the neutral walk — their
+    // `on-fill` is near-black (#0D0D0E), which survives the darkening — until their own decisions land
+    // (#1253/#1254, two genuinely different questions). Extra `interactivePalettes` columns are
+    // likewise out of scope and keep walking; only the built-in `primary` column holds.
+    const holdInverseFill = name === 'primary';
     for (const st of FILL_STATES) {
       const stKey = st === 'default' ? 'rest' : st;
-      const c: Cand = st === 'default' ? fillRest
+      const c: Cand = st === 'default' || holdInverseFill ? fillRest
         : walk(r2p.neutral, fillRest.num, stateRungs(st), -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
       put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb),
         `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'inverse.background.primary', cfg.nonTextMin);
