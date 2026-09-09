@@ -135,14 +135,14 @@
     },
     "checkbox": {
       "set": {
-        "members": 54,
-        "assignments": 54,
-        "sha256": "49030fce402e5e7e4ba2eb847d8f8aa9fceb38c5694fbc013c4a69adaee9df06"
+        "members": 3,
+        "assignments": 3,
+        "sha256": "e2ccaf9c277316221e700c9a025ac415b50f46221e3d7f6945d6947408ee2541"
       },
       "grid": {
-        "members": 63,
-        "assignments": 63,
-        "sha256": "9d626f0b45d46e3ab838274179f2b716fd754381d7f54a46deb06357232c5d60"
+        "members": 21,
+        "assignments": 21,
+        "sha256": "df79a42491e54e3dfc00a6c7e7ed0756a123362ab8c90a8fd626cbeaf46c02d2"
       }
     },
     "radio": {

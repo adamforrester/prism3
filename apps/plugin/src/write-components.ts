@@ -139,6 +139,10 @@ export interface CompNode {
   layoutPositioning?: unknown;
   constraints?: unknown;
   componentPropertyReferences?: unknown;
+  /** #1330 — a `nest-exposed` part marks its nested instance exposed, so the nested component's
+   *  properties surface at the parent's level. Writeable only on a primary instance inside a
+   *  component/set (Figma's own constraint), which is what a member's nested instance is. */
+  isExposedInstance?: boolean;
   /** THE #865 SURFACE — properties this executor writes only to state Figma's default EXPLICITLY, so
    *  that nothing a built node carries is a default nobody decided. None of these existed on the port
    *  before, and their absence is why the defect was invisible from inside the type: a port that cannot
@@ -1088,10 +1092,10 @@ const writeComponentSet = async (
         // lets the message name what is actually there. `nestMissAdvice` is shared with the paste path so
         // the two cannot drift in wording.
         //
-        // STILL REACHED FOR A SET, and that is the case above's complement rather than a leftover: a set
-        // reaches here when the def named NO coordinate for it (`nest-exposed`, whose coordinate is the
-        // consumer's), and the `COMPONENT_SET` sentence now says exactly that. A `nest-fixed` part with a
-        // resolvable set never arrives here at all.
+        // STILL REACHED FOR A SET only when the plan carried NO coordinate at all (no `nestVariant`). Since
+        // #1330 a `nest-exposed` part projects a DEFAULT coordinate too, so a real def never arrives here
+        // with a set — this is the defensive path for a coordinate-free plan, which the `COMPONENT_SET`
+        // advice names. A `nest-fixed` or `nest-exposed` part with a resolvable set never reaches it.
         const other = n.nestTarget ? api.root.findAll((x) => x.name === n.nestTarget)[0] : undefined;
         const found = !other ? 'ABSENT'
           : other.type === 'COMPONENT_SET' ? 'COMPONENT_SET'
@@ -1102,6 +1106,12 @@ const writeComponentSet = async (
       } else {
         node = wr(nested.createInstance());
       }
+      // EXPOSE (#1330). A `nest-exposed` node carries `nestExpose`; mark the instance exposed so the nested
+      // component's properties surface at the parent's level. The twin of the payload executor's write, so
+      // the two paths agree. Guarded on `nestExpose`, so a `nest-fixed` instance is never marked — which is
+      // what keeps every existing plan's build byte-identical. `isExposedInstance` is writeable on a primary
+      // instance inside a component/set, which a member's nested instance becomes after combine.
+      if (node && n.nestExpose && n.nestExpose.length) node.isExposedInstance = true;
     } else if (n.type === 'GLYPH') {
       // THE GLYPH (#864). The only node here whose content is geometry rather than a box, a binding or a
       // nomination — so it is also the only one that can be built successfully and contain nothing, which

@@ -123,8 +123,12 @@ export type PaddingDef = {
  *  · `nest-fixed`  — the nested component HAS variants, the parent picks one, and the consumer never
  *                    changes it (a focus ring: which ring a normal surface gets is a design decision).
  *                    The variant is REQUIRED here — see below for why it cannot be inherited.
- *  · `nest-exposed`— the nested component has variants the consumer controls FROM the parent (a
- *                    helper/validation message, a form label's sizes, a block header's title sizes).
+ *  · `nest-exposed`— the nested component has variants the consumer controls FROM the parent — a
+ *                    checkbox ROW exposing its `checkbox-control`'s `selection` and `state`, a helper/
+ *                    validation message, a form label's sizes. The parent NESTS one instance and surfaces
+ *                    the named child axes as Figma exposed nested-instance properties (and as React props,
+ *                    `.ai.json` options, Storybook controls), so the consumer drives them from the parent
+ *                    instead of the parent re-enumerating them into its OWN variant matrix. See below.
  *
  * WHY `nest-fixed` MUST NAME ITS VARIANT rather than taking the nested set's default: Figma's default
  * is its FIRST CHILD, an artifact of creation order, and that is #656 exactly one layer out. #656's
@@ -147,11 +151,35 @@ export type PaddingDef = {
  * the host coordinate does not carry that axis (a structure-only plan). The axis is shared by NAME, which
  * is why the bounded inverse set standardises on `surface` for both host and nested (docs/20 §9.11) — a
  * host spelling it `surface` and a ring spelling it `color` could not pass one through the other.
+ *
+ * ── `nest-exposed`, THE #1330 REVERSAL OF #761 (owner-approved) ─────────────────────────────────────
+ *
+ * `nest-exposed` carries the SAME `variant` + `follow` as `nest-fixed` AND one more field, `expose`:
+ *
+ *   · `variant`  — the DEFAULT coordinate the nested instance starts at. An instance is always an
+ *                  instance of ONE member, so exposure still needs a concrete starting member; `variant`
+ *                  names it (with `follow` filling the host-driven axes per member), exactly as on
+ *                  `nest-fixed`. It must identify ONE child member together with `follow`.
+ *   · `follow`   — host axes whose value flows into the nested coordinate per member (the checkbox Row's
+ *                  `size` → the control's `size`). Same mechanism, same reachability rule, as above.
+ *   · `expose`   — the CHILD axes the consumer drives from the parent. These are surfaced as Figma
+ *                  exposed nested-instance properties and as the component's public props on every other
+ *                  surface; the parent does NOT re-enumerate them into its own variant matrix. An exposed
+ *                  axis is the consumer's, so it is DISJOINT from `follow` (an axis cannot be both the
+ *                  host's to drive per-member and the consumer's to set) — the validator enforces that.
+ *
+ * WHY NAME THE AXES rather than a bare `{ kind }` or an all-or-nothing flag. The measurement in
+ * `tools/nest-exposed-cost/measure.ts` found the two candidate shapes — a bare `nestExposed: true`
+ * (expose whatever the child has) and a named list — cost the same (they differ by ~35 B at the one cliff
+ * that exists), so the choice is SEMANTIC, not a byte budget. Naming the axes is what lets a parent expose
+ * `selection` + `state` while `follow`ing `size`: the Row keeps `size` as its OWN axis (it scales the
+ * label ramp, the gap and the row height — not just the control), and only the axes that are purely the
+ * control's become the consumer's. A wholesale flag could not draw that line.
  */
 export type NestingRelation =
   | { kind: 'swap' }
   | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[] }
-  | { kind: 'nest-exposed' };
+  | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[] };
 
 export type PartDef = {
   kind: PartKind;
@@ -2726,14 +2754,14 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'strokeWidth' — only a 'box' projects a bound strokeWeight, so this would resolve, validate, and reach no node`);
     if (p.kind !== 'absolute' && p.kind !== 'nest' && p.nests !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'nests' — only an 'absolute' (out-of-flow) or a 'nest' (in-flow) part materializes as an instance of another component`);
-    // A `nest` (#1226 PR-A) is the in-flow twin of `absolute`: it MUST name what it nests and MUST be
-    // `nest-fixed`. Without `nests` it points at nothing (an in-flow instance of what?); `nest-exposed`
-    // stays refused (#761) and `swap` is a slot's relation, so a `nest` that is neither is a def author
-    // reaching for a mechanism this PR did not ship.
+    // A `nest` (#1226 PR-A) is the in-flow twin of `absolute`: it MUST name what it nests, and its
+    // relation is `nest-fixed` (the def names the coordinate) or `nest-exposed` (#1330 — the consumer
+    // drives the named child axes). Without `nests` it points at nothing (an in-flow instance of what?);
+    // `swap` is a slot's relation, so a `nest` that is `swap` is a def author reaching for the wrong one.
     if (p.kind === 'nest' && p.nests === undefined)
       e.push(`anatomy part '${n}' is kind 'nest' but declares no 'nests' — an in-flow nested instance must name the component it instantiates (like an 'absolute' focus ring does)`);
-    if (p.kind === 'nest' && p.nesting && p.nesting.kind !== 'nest-fixed')
-      e.push(`anatomy part '${n}' is kind 'nest' but declares nesting '${p.nesting.kind}' — an in-flow nest is 'nest-fixed' only (the def names the coordinate, with 'follow'); 'nest-exposed' is not built (#761) and 'swap' is a slot's relation`);
+    if (p.kind === 'nest' && p.nesting && p.nesting.kind === 'swap')
+      e.push(`anatomy part '${n}' is kind 'nest' but declares nesting 'swap' — an in-flow nest materializes as an instance, so its relation is 'nest-fixed' (the def names the coordinate) or 'nest-exposed' (the consumer drives the named axes); 'swap' is for a slot whose target the caller nominates per file`);
     // A `nest` materializes as an INSTANCE, whose descendants are the nested component's own — so it
     // builds no children of its own. A `children` list here would be built UNDER the instance, which is
     // not what nesting means.
@@ -2761,6 +2789,22 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // one would reasonably believe it took effect.
     if (p.nesting?.kind === 'nest-fixed' && !Object.keys(p.nesting.variant).length)
       e.push(`anatomy part '${n}' declares nesting 'nest-fixed' with an empty variant — the whole point of 'fixed' is that the def picks the coordinate rather than inheriting the nested set's first child (#656)`);
+    // `nest-exposed` (#1330) carries the SAME `variant` contract as `nest-fixed` — an instance is always
+    // of ONE member, so exposure needs a concrete DEFAULT coordinate, and an empty one re-inherits the
+    // nested set's first child (#656 again). The defaults fill the axes the consumer has not yet touched.
+    if (p.nesting?.kind === 'nest-exposed' && !Object.keys(p.nesting.variant).length)
+      e.push(`anatomy part '${n}' declares nesting 'nest-exposed' with an empty variant — an exposed nest still nests ONE default member (the coordinate the instance starts at, with the consumer driving the exposed axes from there), so it names a variant for the same #656 reason 'nest-fixed' does`);
+    // And it MUST name the axes it exposes — a `nest-exposed` with nothing to expose is a `nest-fixed`
+    // misspelled. Each exposed axis is the consumer's, so it cannot also be `follow`ed (the host's to drive
+    // per-member): the two lists are disjoint, checked here because an axis in both would project an
+    // exposed property whose value the host also pins, and nothing downstream would say which won.
+    if (p.nesting?.kind === 'nest-exposed') {
+      if (!p.nesting.expose.length)
+        e.push(`anatomy part '${n}' declares nesting 'nest-exposed' but exposes no axes — 'expose' names the child axes the consumer drives from the parent, and an empty list is a 'nest-fixed' with extra words`);
+      const both = p.nesting.expose.filter((a) => (p.nesting as { follow?: readonly string[] }).follow?.includes(a));
+      if (both.length)
+        e.push(`anatomy part '${n}' declares nesting 'nest-exposed' with [${both.join(', ')}] in BOTH 'expose' and 'follow' — an exposed axis is the consumer's to set and a followed axis is the host's to drive per member; one axis cannot be both, and nothing downstream would resolve the conflict`);
+    }
     // `follow` names a HOST axis whose value the nested coordinate takes per member (#1134). Each entry
     // must be an axis that REACHES the projected coordinate — a followed axis the host does not carry
     // there has no value to pass through, so it silently falls back to `variant` at every coordinate and
@@ -2785,7 +2829,12 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // naming it anything else is already refused by the axis-parity gate, which compares `figmaAxisNames`
     // (which DOES read `stateAxis.name`) against the emitted member names — so this is the reachable
     // spelling, not a shortcut around a second one.
-    if (p.nesting?.kind === 'nest-fixed' && p.nesting.follow) {
+    // Both relations that carry `follow` — `nest-fixed` and `nest-exposed` (#1330) — get the same
+    // reachability check: a followed axis must be one this HOST def projects, or it silently falls back to
+    // the fixed `variant` at every coordinate (#1298). The exposed axes are the CHILD's and are NOT checked
+    // here (the host does not project them — that is the whole point); their correctness against the child
+    // is a projection/round-trip question (`nestVariantMatch`, `test-roundtrip.ts`), not a schema one.
+    if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.follow) {
       const projected = [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? ['state'] : [])];
       for (const axis of p.nesting.follow)
         if (!projected.includes(axis))

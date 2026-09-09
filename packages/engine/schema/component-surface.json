@@ -48,8 +48,8 @@
       "sha256": "1a5a7abd356f0b3b7d567138cfbdb017e6a8b783d57a2b4530adf83d4412db49"
     },
     "checkbox": {
-      "members": 54,
-      "sha256": "d250d92d2dbe26ce22bdd69ed262fb919b0eb8dfb69eeb7bc17c5cff78f6ba7b"
+      "members": 3,
+      "sha256": "8289636c8171a964798f4f314b0713427ffdf45076e8f13c05d825a073c6c330"
     },
     "radio": {
       "members": 36,

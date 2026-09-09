@@ -1315,12 +1315,12 @@ ok(Number.isInteger(CHUNK) && CHUNK > 1 && CHUNK < 200, `CHUNK is a plausible ch
 // through these plans: `button`'s ring part names `surface=default`, so a file holding a set gets RESOLVED
 // (or gets the fifth miss) and never the "found a COMPONENT_SET" sentence.
 //
-// The row is still reachable, and still worth gating, for the case that is now its only one: a def that
-// named NO coordinate — `nest-exposed`, whose coordinate is the consumer's to drive per instance and which
-// needs an exposed nested property this write does not create yet. So the table below is driven by plans
-// with the coordinate STRIPPED, and the resolution cases get their own block after it. Two blocks rather
-// than one widened one, because they are two different questions: what the message says when the def chose
-// nothing, and what gets built when it chose.
+// The row is still reachable, and still worth gating, for the case that is now its only one: a plan that
+// carried NO coordinate at all. Since #1330 even a `nest-exposed` part projects a default coordinate (plus
+// `nestExpose`), so this is the DEFENSIVE miss path for a coordinate-free plan, not what any real def
+// emits. So the table below is driven by plans with the coordinate STRIPPED, and the resolution cases get
+// their own block after it. Two blocks rather than one widened one, because they are two different
+// questions: what the message says when the plan chose nothing, and what gets built when it chose.
 //
 // WHAT DID NOT CHANGE: nothing is nested by guess. The fifth miss drops the ring exactly as these four do.
 
@@ -1328,13 +1328,13 @@ const NEST = 'focus-ring';
 const withoutRing = full().comps!.filter((c) => c !== NEST);
 
 /**
- * The same plans with every `nestVariant` REMOVED — a `nest-exposed` part's projection.
+ * The same plans with every `nestVariant` REMOVED — a coordinate-free plan (the defensive miss path).
  *
  * Derived from the real plans rather than hand-built for the reason `full()` derives its variables: a
  * hand-built tree stops resembling the def the moment a part changes, and this block would keep passing
- * against a shape the engine no longer emits. Stripping models the one difference that matters here —
- * `figmaAnatomyPlan` omits `nestVariant` for anything that is not `nest-fixed`, so this is that omission
- * applied to a tree whose every other field is exactly what the engine produced.
+ * against a shape the engine no longer emits. Stripping models the one difference that matters here — a
+ * plan that names no nested coordinate at all. (Since #1330 both `nest-fixed` and `nest-exposed` DO carry
+ * a `nestVariant`, so no real def produces this; it is the defensive path a malformed plan would hit.)
  */
 const withoutCoordinate = (plans: AnatomyPlan[]): AnatomyPlan[] => {
   const strip = (n: Record<string, unknown>): Record<string, unknown> => {
@@ -1383,7 +1383,7 @@ const coordCount = (plans: AnatomyPlan[]): number => {
   return plans.reduce((a, p) => a + walk(p.root as unknown as Record<string, unknown>), 0);
 };
 ok(coordCount(grid) > 0, `#681 reachable: the real plans DO project a nestVariant coordinate (${coordCount(grid)} parts)`);
-ok(coordCount(gridNoCoord) === 0, `#681 reachable: the stripped plans project NONE — the four-way table below is really driven by a nest-exposed shape (${coordCount(gridNoCoord)})`);
+ok(coordCount(gridNoCoord) === 0, `#681 reachable: the stripped plans project NONE — the four-way table below is really driven by a coordinate-free plan, the defensive miss path (${coordCount(gridNoCoord)})`);
 
 // ---- the four runs, and the miss each one reports ---------------------------------------------
 const nestMiss = (misses: string[]): string | undefined => misses.find((m) => m.indexOf(`nestTarget -> ${NEST}`) >= 0);
