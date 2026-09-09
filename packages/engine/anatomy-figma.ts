@@ -2152,6 +2152,7 @@ ${PAYLOAD_BUILD}
 const root=await build(PLAN);
 figma.currentPage.appendChild(root);
 const comp=figma.createComponentFromNode(root);
+__exposeNow(${JSON.stringify(planComponentName(plan))});
 comp.name=${JSON.stringify(planComponentName(plan))};
 // The NODE ID, not the name. Two runs of the same plan produce two identically-named components, so
 // a caller verifying by name reads whichever one document order hands it — which is how #482's stale
@@ -2261,7 +2262,22 @@ for(const [t,names] of seenTail) if(names.length>1) misses.push('AMBIGUOUS varia
  * binding, the four API shapes, and the two read-backs — which is the other half of why this is one
  * string: those are the lines a divergent copy would silently lose.
  */
-const PAYLOAD_BUILD = `const build=async(n)=>{
+const PAYLOAD_BUILD = `const __expose=[];
+// #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
+// else. That call is what puts the nested instances inside a component, which is Figma's precondition for
+// \`isExposedInstance\`; the conversion is in place, so the handles collected during the build are still the
+// same nodes. Cleared on the way out, so one member's queue never reaches the next member's marking pass —
+// the payload's \`build\` threads no per-member collector, so the drain point is what keeps them separate.
+// Per node and read back, matching the plugin executor: a refusal must cost one exposure, not the set.
+const __exposeNow=(member)=>{
+  for(const inst of __expose){
+    try{inst.isExposedInstance=true;}
+    catch(e){misses.push(member+'.nestExpose -> REFUSED ('+(e&&e.message?e.message:String(e))+')');continue;}
+    if(inst.isExposedInstance!==true)misses.push(member+'.nestExpose -> DISCARDED (set true, reads '+String(inst.isExposedInstance)+'; the nested instance\\'s properties will not surface on the parent)');
+  }
+  __expose.length=0;
+};
+const build=async(n)=>{
   let node;
   if(n.type==='TEXT'){node=figma.createText();}
   else if(n.type==='INSTANCE_SWAP'){
@@ -2315,12 +2331,20 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
       misses.push(n.name+'.nestTarget -> '+n.nestTarget+' ('+found+')');return null;
     }
     else{node=nested.createInstance();}
-    // EXPOSE (#1330). A \`nest-exposed\` node carries \`nestExpose\`; mark the instance exposed so the
-    // nested component's properties surface at the parent's level (Figma exposes them wholesale — the
-    // named axes are the engine's public-surface intent, resolved per surface). Guarded on \`nestExpose\`,
-    // so a \`nest-fixed\` instance is never marked. \`isExposedInstance\` is writeable only on a primary
-    // instance inside a component/set, which is exactly what a member's nested instance is after combine.
-    if(node&&n.nestExpose&&n.nestExpose.length)node.isExposedInstance=true;
+    // EXPOSE (#1330), DEFERRED (#1378). A \`nest-exposed\` node carries \`nestExpose\`; the instance must be
+    // marked exposed so the nested component's properties surface at the parent's level (Figma exposes them
+    // wholesale — the named axes are the engine's public-surface intent, resolved per surface). Guarded on
+    // \`nestExpose\`, so a \`nest-fixed\` instance is never marked.
+    //
+    // The write itself is NOT here, and the comment this replaces is why: it asserted \`isExposedInstance\` is
+    // writeable "on a primary instance inside a component/set, which is exactly what a member's nested
+    // instance is after combine" — true, and then wrote it during the build, when \`build\` has assembled a
+    // detached subtree whose root is still a plain frame. Figma refuses with
+    // "Instance must be contained within a component or component set to be exposed." and the whole set dies.
+    // So: collected, and written by \`__exposeNow()\` after \`createComponentFromNode\`. Twin of the plugin
+    // executor's collector, and the twin is the point — this half was never gated (#1377), so the plugin's
+    // round-trip caught the identical defect here only by reading.
+    if(node&&n.nestExpose&&n.nestExpose.length)__expose.push(node);
   }
   else if(n.type==='GLYPH'){
     // THE GLYPH (#864). The only node here whose content is GEOMETRY rather than a box, a binding or a
@@ -2904,6 +2928,7 @@ for(const spec of PLANS){
   const root=await build(spec.root);
   figma.currentPage.appendChild(root);
   const comp=figma.createComponentFromNode(root);
+  __exposeNow(spec.name);
   comp.name=spec.name;
   built.push(comp);
 }
@@ -3009,6 +3034,7 @@ for(const spec of PLANS){
   const root=await build(spec.root);
   figma.currentPage.appendChild(root);
   const comp=figma.createComponentFromNode(root);
+  __exposeNow(spec.name);
   comp.name=spec.name;
   fresh.push(comp);
 }

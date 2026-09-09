@@ -143,7 +143,13 @@ const boundIdOf = (n: HostNode, prop: string): string | null => {
 type FieldCheck = {
   /** Why this field is not compared, when it is not. Presence of `reason` means unchecked. */
   reason?: string;
-  check?: (planned: unknown, node: HostNode, ports: ReadPorts) => string | null;
+  /** `isRoot` says this node is the MEMBER ROOT rather than a descendant. Only `type` reads it, and only
+   *  because the root is the one node whose host type the plan does not decide: `createComponentFromNode`
+   *  converts it, so a member root planned as a FRAME is a COMPONENT in the file. Threaded rather than
+   *  folded into `HOST_TYPE` because widening FRAME to accept COMPONENT everywhere would also stop this
+   *  predicate noticing a DESCENDANT that came back converted — and a stray component inside a member is
+   *  a real defect shape, not a bookkeeping difference. */
+  check?: (planned: unknown, node: HostNode, ports: ReadPorts, isRoot?: boolean) => string | null;
   /** How the plan's value reads in a failure message. */
   show?: (planned: unknown) => string;
 };
@@ -155,9 +161,16 @@ export const FIELDS: Record<string, FieldCheck> = {
 
   // ── direct equality ──────────────────────────────────────────────────────────────────────────
   type: {
-    check: (p, n) => {
+    check: (p, n, _ports, isRoot) => {
       const want = HOST_TYPE[p as FigmaNodePlan['type']] ?? [String(p)];
       const got = String(n.type ?? '');
+      // THE MEMBER ROOT IS A COMPONENT (#1378). The executor builds a member as a FRAME and hands it to
+      // `createComponentFromNode`, which converts it — so the plan says FRAME and a live file says COMPONENT
+      // at this one node, correctly, on every member of every set. That divergence was invisible until the
+      // shim started converting too: with `createComponentFromNode` as an identity function the root read
+      // back FRAME, this predicate agreed, and 1,694 members' worth of agreement rested on the shim not
+      // modelling the conversion. Accepted only at the root, and only for a planned FRAME.
+      if (isRoot && got === 'COMPONENT' && want.includes('FRAME')) return null;
       return want.includes(got) ? null : got || '∅';
     },
   },
@@ -341,13 +354,13 @@ const childrenOf = (n: HostNode): HostNode[] => (Array.isArray(n.children) ? (n.
 
 /** One node, plan against host. Children matched BY NAME — never by index — with extras and absences
  *  reported symmetrically. */
-const diffNode = (plan: FigmaNodePlan, node: HostNode, member: string, path: string, ports: ReadPorts, out: Divergence[], exercised?: Record<string, number>): void => {
+const diffNode = (plan: FigmaNodePlan, node: HostNode, member: string, path: string, ports: ReadPorts, out: Divergence[], exercised?: Record<string, number>, isRoot?: boolean): void => {
   for (const [field, planned] of Object.entries(plan)) {
     if (planned === undefined) continue;
     const f = FIELDS[field];
     if (!f?.check) continue;
     if (exercised) exercised[field] = (exercised[field] ?? 0) + 1;
-    const actual = f.check(planned, node, ports);
+    const actual = f.check(planned, node, ports, isRoot);
     if (actual !== null) {
       out.push({ member, path, field, expected: f.show ? f.show(planned) : str(planned), actual });
     }
@@ -404,7 +417,9 @@ export const diffAnatomy = (
     const name = nameOf(plan);
     const node = byName.get(name);
     if (!node) continue; // already reported as an absent member
-    diffNode(plan.root, node, name, plan.root.name, ports, out, exercised);
+    // `true` — and ONLY here. The recursive call below omits the flag, so exactly one node per member is
+    // allowed to read back as a COMPONENT.
+    diffNode(plan.root, node, name, plan.root.name, ports, out, exercised, true);
   }
   return out;
 };
