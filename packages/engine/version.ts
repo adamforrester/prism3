@@ -60,6 +60,31 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.75.0: the icon-property canon + the #1309 Figma display-name mechanism (#1380, owner-decided from a
+ * live Prism2 reference). A component's Figma property NAME was the code prop/axis name verbatim
+ * (`planSetProperties` used the `texts`/`swaps` KEY; the presence-axis panel name was the slot-axis
+ * `name`), so a designer-facing label like `↳ swap leading icon` could not exist without becoming a React
+ * prop. #1309 adds an OPTIONAL `figmaName` decoupling — on `texts`, `swaps` (now a `string | {part,
+ * figmaName}` union) AND the presence axes (`slotAxes[].figmaName`) — so the code prop/axis stays
+ * idiomatic (`leadingVisual`, `label`, `leading`/`trailing`) while the PROJECTED name changes. The canon,
+ * applied to button + select: `label` (text) first, then `leading icon` / `trailing icon` true/false
+ * variant SWITCHES each immediately followed by `↳ swap leading icon` / `↳ swap trailing icon` (the `↳ `
+ * = U+21B3 + space renders nested beneath its switch). icon-button (owner-decided 2026-09-09): its
+ * required icon stays required — no presence switch — and its swap gets `swap icon`, lowercase, NO `↳`
+ * (nothing to nest under). The presence-axis display name flows through the member-name coordinate (the
+ * segment Figma derives the variant property from), so `figmaAxisNames`, the cohort key and the payload
+ * `cellOf`'s `SLOT_KEYS` all carry it in step. `planSetProperties` now orders text → swap → boolean, the
+ * "label at the top" half of the canon. ENGINE and not CONTRACT on #1252's decision: Figma display names
+ * and the projected member NAMES move (the component surface), so `schema/component-surface.json` and
+ * `schema/paint-census.json` are re-`--accept`ed for button, select and icon-button ONLY; every other def
+ * stays byte-identical and `regen --check` moves only each artifact's generator stamp (0.74.0 → 0.75.0).
+ * No token NAME moves and no React prop moves (a Figma display name is neither), so `CONTRACT_VERSION`
+ * STANDS at 10.0.0 and `token-contract.ts --check` confirms the guaranteed 577 unchanged. Mutation
+ * (docs/34): a mutated `figmaName` moves the plan digest and fails `lint-component-surface` BY NAME (and
+ * the `test.ts` display-name literals + the roundtrip host-truth block); a reordered `planSetProperties`
+ * fails the roundtrip's "panel order (#1380)" host-truth assertion BY NAME. Closes #1309; #1331 (select
+ * count) and #1379 (button count) stay open — this renames/reorders, it does not cut counts.
+ *
  * 0.74.0: `nest-exposed` is BUILT and the checkbox Row collapses 54 → 3 (#1330, owner-approved;
  * reverses #761). A composed component nested its child and RE-ENUMERATED the child's variant axes into
  * its own matrix (checkbox Row = 3 selections × 3 sizes × 6 states = 54 members that only mirrored
@@ -2081,7 +2106,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.74.0';
+export const ENGINE_VERSION = '0.75.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

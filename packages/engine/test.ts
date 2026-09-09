@@ -8892,9 +8892,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // derives axes from these names, so `key=value, key=value` is a wire format between one paste and
     // the component set the next step builds, not cosmetics. (The format changed under this PR and no
     // existing test noticed until it was given these.)
-    ok(planComponentName(skin('filled', 'hover')) === 'appearance=filled, size=medium, state=hover, leading=true, trailing=false',
+    // The slot-axis segments carry the FIGMA display name (`leading icon`/`trailing icon`, #1380), not
+    // the code axis name — the member name IS the variant property Figma derives, so the switch label
+    // lives here. A hand-written literal, so reverting a def's `slotAxes[].figmaName` fails HERE by name.
+    ok(planComponentName(skin('filled', 'hover')) === 'appearance=filled, size=medium, state=hover, leading icon=true, trailing icon=false',
       `anatomy/paint: the component name is a Figma variant coordinate (${planComponentName(skin('filled', 'hover'))})`);
-    ok(planComponentName(lead) === 'size=medium, leading=true, trailing=false', `anatomy/paint: a structure-only plan names only the axes it has (${planComponentName(lead)})`);
+    ok(planComponentName(lead) === 'size=medium, leading icon=true, trailing icon=false', `anatomy/paint: a structure-only plan names only the axes it has (${planComponentName(lead)})`);
     // NO `button/` PREFIX, measured live rather than assumed: Figma does not strip a slash prefix
     // before parsing axes — it folds it into the FIRST AXIS KEY, so a set built from
     // `button/intent=primary, …` comes back with a property literally named `button/intent`. The
@@ -9019,8 +9022,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(new Set(cells.map((c) => c.row)).size === 3 && new Set(cells.map((c) => c.col)).size === 7,
       'anatomy/set: the grid is appearance-down by state-across — the same table the color layer was verified against');
     // Only VARYING axes get a dimension: `size` has one value here, so it is not a row of one.
-    ok(cells.every((c) => c.group === 'size=medium, leading=true, trailing=false'),
-      'anatomy/set: all 21 share one FOOTPRINT COHORT — state and appearance must not change the measured box, only size and slot fill may');
+    ok(cells.every((c) => c.group === 'size=medium, leading icon=true, trailing icon=false'),
+      'anatomy/set: all 21 share one FOOTPRINT COHORT — state and appearance must not change the measured box, only size and slot fill may (cohort key carries the slot axes\' Figma names, #1380)');
 
     // The three LIVE read-backs. Each closes a failure that every other check in the payload is blind
     // to, and each was written because the live paste hit it.
@@ -10238,16 +10241,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // def declares `swaps` for BOTH visuals, and this grid is uniformly `leading=true, trailing=false`,
       // so a def-driven list would declare a `trailingVisual` property no node in the set references.
       // Figma accepts that, shows it in the panel, and it does nothing when a designer changes it.
-      ok(JSON.stringify(names) === JSON.stringify(['label', 'leadingVisual']),
-        `set properties: derived from the nodes BUILT, so an unbuilt slot declares nothing — got [${names.join(', ')}], and trailingVisual is correctly absent from a leading-only grid`);
+      // The swap's panel name is its `figmaName` (#1380), `↳ swap leading icon`, decoupled from the code
+      // prop `leadingVisual` — so this literal doubles as the display-name gate (revert the def's figmaName
+      // and it fails here by name). Sorted, `↳` (U+21B3) sorts after `label`.
+      ok(JSON.stringify(names) === JSON.stringify(['label', '↳ swap leading icon']),
+        `set properties: derived from the nodes BUILT, so an unbuilt slot declares nothing — got [${names.join(', ')}], and the trailing swap is correctly absent from a leading-only grid`);
       // The TEXT property is named `label` (lowercase, #1333), not `children` (#1242): the panel name a
       // designer reads is the def's prop name, and `children` was a React-ism. Compared against a
       // hand-written literal, so mutating the def's `texts` key (back to `Label` or `children`) fails HERE
       // by name (docs/34).
       ok(props.some((p) => p.type === 'TEXT' && p.name === 'label' && p.default === 'Button'),
         'set properties: the TEXT placeholder comes from the def (`Button`), not the payload — the def is the layer a second brand overrides');
-      ok(props.some((p) => p.type === 'INSTANCE_SWAP' && p.name === 'leadingVisual' && p.swapTarget === 'FPO-default-icon'),
-        'set properties: the swap carries the target NAME — Figma demands a node id, which only the live file can supply');
+      ok(props.some((p) => p.type === 'INSTANCE_SWAP' && p.name === '↳ swap leading icon' && p.swapTarget === 'FPO-default-icon'),
+        'set properties: the swap carries the target NAME under its canon panel label `↳ swap leading icon` (#1380) — Figma demands a node id, which only the live file can supply');
       // Nothing to declare is a legitimate answer, not an empty-list bug: a def with no property maps
       // at all must produce zero properties rather than a set of undriven ones.
       const bareDef: ComponentDef = { ...button, figmaProperties: undefined };
@@ -10287,8 +10293,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(setRun.misses.length === 0, `set properties: the set payload runs CLEAN end to end${setRun.misses.length ? ` — ${JSON.stringify(setRun.misses)}` : ''}`);
       // Sorted, because the order `componentPropertyDefinitions` returns is Figma's to choose and
       // asserting it would gate a promise the API does not make.
-      ok(JSON.stringify([...(setRun.properties ?? [])].sort()) === JSON.stringify(['label:TEXT', 'leadingVisual:INSTANCE_SWAP']),
-        `set properties: the set comes back carrying both properties — got ${JSON.stringify(setRun.properties)}`);
+      ok(JSON.stringify([...(setRun.properties ?? [])].sort()) === JSON.stringify(['label:TEXT', '↳ swap leading icon:INSTANCE_SWAP']),
+        `set properties: the set comes back carrying both properties, the swap under its canon panel label (#1380) — got ${JSON.stringify(setRun.properties)}`);
       // 21 members × 2 refs, asserted as SPREAD and not just volume. `refs` alone is a push-count, so a
       // loop that wired member 0 twenty-one times would satisfy `refs === 42` with twenty members left
       // inert — the exact scenario this assertion's own message describes, since references do NOT
@@ -10365,8 +10371,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // A swap target that does not resolve. `''` and a component key are both REFUSED by Figma, so this
       // is not a property with a blank default — it is a property that cannot be created.
       const noIcon = await runPayload(planSetToPluginJs(grid), { ...fullSet, comps: [] });
-      ok(noIcon.misses.some((m) => /property leadingVisual -> swap target FPO-default-icon/.test(m)),
-        `set properties: an unresolvable swap target is reported and the property is NOT created — Figma refuses '' and the component key alike (${JSON.stringify(noIcon.misses.filter((m) => m.includes('leadingVisual')))})`);
+      ok(noIcon.misses.some((m) => /property ↳ swap leading icon -> swap target FPO-default-icon/.test(m)),
+        `set properties: an unresolvable swap target is reported and the property is NOT created — Figma refuses '' and the component key alike (${JSON.stringify(noIcon.misses.filter((m) => m.includes('swap leading icon')))})`);
 
       // ---- #1288: THE SWAP MISS NAMES WHAT IT FOUND, on the PASTE path too ------------------------
       // The sibling of the nest path's four-way table (see `ringFound` above), owed to the swap path ever
@@ -10464,8 +10470,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // from being the only thing standing between a bare message and a green suite.
       ok(swapRows.every((r) => r.lead === `leadingVisual.swapTarget -> ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_PLACEHOLDER})`),
         `#1288 the paste path's node-level miss is composed from the SHARED advice, byte for byte (${swapRows.find((r) => r.lead !== `leadingVisual.swapTarget -> ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_PLACEHOLDER})`)?.lead ?? 'all four match'})`);
-      ok(swapRows.every((r) => r.prop === `property leadingVisual -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`),
-        `#1288 ...and so is the property-level one (${swapRows.find((r) => r.prop !== `property leadingVisual -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`)?.prop ?? 'all four match'})`);
+      ok(swapRows.every((r) => r.prop === `property ↳ swap leading icon -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`),
+        `#1288 ...and so is the property-level one, under the canon panel label (#1380) (${swapRows.find((r) => r.prop !== `property ↳ swap leading icon -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`)?.prop ?? 'all four match'})`);
 
       // ---- the BOOLEAN path through the PAYLOAD, not just the plan (#513's stated ceiling) --------
       // #513 said "the `booleans` path is unit-tested through a synthetic def but not yet exercised
@@ -10489,8 +10495,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       };
       const boolRun = await runPayload(planSetToPluginJs(boolGrid), boolOpts);
       ok(boolRun.misses.length === 0, `set properties: a set carrying a BOOLEAN runs CLEAN end to end${boolRun.misses.length ? ` — ${JSON.stringify(boolRun.misses)}` : ''}`);
-      ok(JSON.stringify([...(boolRun.properties ?? [])].sort()) === JSON.stringify(['fullWidth:BOOLEAN', 'label:TEXT', 'leadingVisual:INSTANCE_SWAP']),
-        `set properties: the BOOLEAN comes back alongside the other two — got ${JSON.stringify(boolRun.properties)}`);
+      ok(JSON.stringify([...(boolRun.properties ?? [])].sort()) === JSON.stringify(['fullWidth:BOOLEAN', 'label:TEXT', '↳ swap leading icon:INSTANCE_SWAP']),
+        `set properties: the BOOLEAN comes back alongside the other two, the swap under its canon panel label (#1380) — got ${JSON.stringify(boolRun.properties)}`);
       // SPREAD, for the same reason as the 21-member assertion: a `visible` reference does not propagate
       // to siblings any more than `characters` does, so a set wired once shows the toggle working on
       // whichever variant a designer opens first and doing nothing on the rest.
@@ -10586,15 +10592,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // this is the assertion that `appendChild` re-derives rather than being ignored — measured live
         // (`state:rest|hover` + `state=pressed` → three options) and the premise the whole append design
         // rests on.
-        ok(JSON.stringify(runs[runs.length - 1].axes?.slice().sort()) === JSON.stringify(['appearance:3', 'leading:1', 'size:3', 'state:4', 'trailing:1'].sort()),
-          `chunked: appending EXTENDS the axes — the finished set derives every value from every chunk (${JSON.stringify(runs[runs.length - 1].axes)})`);
+        ok(JSON.stringify(runs[runs.length - 1].axes?.slice().sort()) === JSON.stringify(['appearance:3', 'leading icon:1', 'size:3', 'state:4', 'trailing icon:1'].sort()),
+          `chunked: appending EXTENDS the axes — the finished set derives every value from every chunk; the slot axes carry their Figma names (#1380) (${JSON.stringify(runs[runs.length - 1].axes)})`);
         // PROPERTIES ONLY ON THE LAST CHUNK, and wired across every member of the finished set — not
         // just the 18 that chunk arrived with. `combineAsVariants` rewrites property ids, so this is
         // both why they are declared last and why declaring them early would be undetectable offline.
         ok(runs.slice(0, -1).every((r) => (r.properties ?? []).length === 0),
           `chunked: no chunk but the last declares a property — combineAsVariants rewrites ids, so an early declaration holds ids the combine has invalidated (${JSON.stringify(runs.map((r) => r.properties?.length))})`);
-        ok(JSON.stringify([...(runs[runs.length - 1].properties ?? [])].sort()) === JSON.stringify(['label:TEXT', 'leadingVisual:INSTANCE_SWAP']),
-          `chunked: the finished set carries both properties — got ${JSON.stringify(runs[runs.length - 1].properties)}`);
+        ok(JSON.stringify([...(runs[runs.length - 1].properties ?? [])].sort()) === JSON.stringify(['label:TEXT', '↳ swap leading icon:INSTANCE_SWAP']),
+          `chunked: the finished set carries both properties, the swap under its canon panel label (#1380) — got ${JSON.stringify(runs[runs.length - 1].properties)}`);
         ok(runs[runs.length - 1].wiredMembers === 36 && runs[runs.length - 1].refs === 72,
           `chunked: every one of the 36 members is wired, not just the last chunk's slice — ${runs[runs.length - 1].wiredMembers} members across ${runs[runs.length - 1].refs} writes`);
         // THE SET'S BOX. Appending does NOT grow it (measured: a member at x=208 appended to a 184-wide
@@ -10622,7 +10628,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // and every read-back in the payload would still report a clean paste. Hence declaration skips by
         // name too, reusing the existing id — which is the id the refs want anyway.
         const replayLast = await runPayload(chunks[chunks.length - 1].js, { ...bigOpts, page });
-        ok(JSON.stringify([...(replayLast.properties ?? [])].sort()) === JSON.stringify(['label:TEXT', 'leadingVisual:INSTANCE_SWAP']),
+        ok(JSON.stringify([...(replayLast.properties ?? [])].sort()) === JSON.stringify(['label:TEXT', '↳ swap leading icon:INSTANCE_SWAP']),
           `chunked: re-pasting the LAST chunk leaves exactly two properties — not four, and none named 'label2' (${JSON.stringify(replayLast.properties)})`);
         ok(!replayLast.misses.some((m) => /ORPHAN/.test(m)) && replayLast.wiredMembers === 36,
           `chunked: and the refs still point at the original properties — no orphans, ${replayLast.wiredMembers} members wired${replayLast.misses.some((m) => /ORPHAN/.test(m)) ? ` — got ${JSON.stringify(replayLast.misses.filter((m) => /ORPHAN/.test(m)).slice(0, 3))}` : ''}`);
@@ -10798,9 +10804,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // FLOOR: the grid must genuinely wire the spinner to BOTH properties, or the dedup never collapses
         // and this compares two lists that could not have diverged (docs/34: a check that cannot see the
         // defect passes over it). One direction of #848's rule, exercised rather than assumed.
+        // The wired property key is the swap's Figma NAME (#1380) — `↳ swap leading icon` / `↳ swap
+        // trailing icon` — not the code prop, since `propertyRef.prop` is the panel identity.
         const spinnerRows = plugWiring.filter((s) => s.indexOf('/spinner.') >= 0);
-        ok(spinnerRows.some((s) => s.endsWith('=leadingVisual')) && spinnerRows.some((s) => s.endsWith('=trailingVisual')),
-          `#1203 reachable: the mixed grid wires the pending spinner to BOTH leadingVisual and trailingVisual, so the by-part dedup genuinely collapses (${spinnerRows.join('; ')})`);
+        ok(spinnerRows.some((s) => s.endsWith('=↳ swap leading icon')) && spinnerRows.some((s) => s.endsWith('=↳ swap trailing icon')),
+          `#1203 reachable: the mixed grid wires the pending spinner to BOTH swap slots, so the by-part dedup genuinely collapses (${spinnerRows.join('; ')})`);
         ok(JSON.stringify(plugWiring) === JSON.stringify(pasteWiring),
           `#1203 parity: both executors wire every member's swap slot to the SAME property, spinner included — plugin vs paste disagree on: ${JSON.stringify([...plugWiring.filter((s) => !pasteWiring.includes(s)), ...pasteWiring.filter((s) => !plugWiring.includes(s))].slice(0, 6))}`);
         // THE GEOMETRY, read off the two pages rather than off `size`. `size` is deliberately NOT the
@@ -10997,10 +11005,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // the tied pair, which is `state`. Restore `varying[varying.length - 1]` and this table
         // transposes. The literal below is the axis the old rule would have picked, spelled out so the
         // regression is named in the source rather than implied.
-        const OLD_RULE_WOULD_PICK = 'trailing';
+        // `trailing icon` is the slot axis's FIGMA name (#1380) — the member coordinate carries it, so the
+        // parsed axis the layout ties over is spelled that way, not the code `trailing`.
+        const OLD_RULE_WOULD_PICK = 'trailing icon';
         const tied = ['rest', 'hover'].flatMap((st) => [false, true].map((t) =>
           figmaAnatomyPlan(button, 'medium', { leading: false, trailing: t, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: st })));
-        check(`a cardinality TIE goes to the declared axis, not to the last-declared one (${OLD_RULE_WOULD_PICK})`, tied, ['state', 'trailing'], {
+        check(`a cardinality TIE goes to the declared axis, not to the last-declared one (${OLD_RULE_WOULD_PICK})`, tied, ['state', 'trailing icon'], {
           'rest/false': 'r0c0', 'hover/false': 'r0c1',
           'rest/true': 'r1c0', 'hover/true': 'r1c1',
         });
@@ -11022,8 +11032,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // which is only correct while the column axis is the last element — the exact assumption that
         // stops holding the moment the axis is chosen. A `state` still present in `rowKeys` would put
         // every member of a row in one cell.
-        ok(JSON.stringify(fullLayout.rowKeys) === JSON.stringify(['appearance', 'surface', 'size', 'leading', 'trailing']),
-          `#656: the rows combine every varying axis EXCEPT the column one — got ${JSON.stringify(fullLayout.rowKeys)}`);
+        ok(JSON.stringify(fullLayout.rowKeys) === JSON.stringify(['appearance', 'surface', 'size', 'leading icon', 'trailing icon']),
+          `#656: the rows combine every varying axis EXCEPT the column one — the two slot axes carry their Figma names (#1380) — got ${JSON.stringify(fullLayout.rowKeys)}`);
 
         // ON CANVAS, because a cell index is not a coordinate. Run table 1's set through the real
         // payload and read the geometry off the page: members the hand table puts in one row must share
@@ -11073,7 +11083,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // And the slot axes ARE eligible. Nothing about the fix says the columns must be the state axis;
         // it says the choice must be made. A def whose most readable table really is slot presence must
         // be able to say so.
-        ok(figmaPropertyErrors(withAxis('trailing')).length === 0,
+        // Named by its FIGMA display name (#1380) — `gridAxis` validates against the projected Figma axis
+        // names, and a slot axis projects under its `figmaName` (`trailing icon`), not the code `trailing`.
+        ok(figmaPropertyErrors(withAxis('trailing icon')).length === 0,
           '#656: a slot-presence axis is a legitimate column axis — the fix is that the axis is CHOSEN, not that it is `state`');
       }
     }
@@ -11220,12 +11232,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // type", which understated it by a category: not cosmetic, a phantom API. The axis-parity assertion
       // above is what surfaced it, which is that gate doing exactly its job in the mirror direction
       // (#487 §5 caught an emitter carrying UNDECLARED axes; this caught it adding two).
-      ok(ibSet.every((p) => !/leading=|trailing=/.test(planComponentName(p))),
+      // The regex admits the #1380 display-name form too (`leading icon=`), so a def that grew a slot axis
+      // with a decoupled name would still be caught — icon-button has neither the code nor the Figma spelling.
+      ok(ibSet.every((p) => !/leading( icon)?=|trailing( icon)?=/.test(planComponentName(p))),
         `anatomy/icon-button: and NEITHER is written into the member name — a component with no slot axes must not project two phantom single-valued properties (${planComponentName(ibSet[0])})`);
       // The mirror, on Button, so the fix is not "stop emitting slot coordinates": where the slots ARE
       // declared axes they must still reach the name, because #326 makes presence two genuinely different
-      // boxes and that is the whole reason they are variants rather than booleans.
-      ok(/leading=true, trailing=false$/.test(planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon' }))),
+      // boxes and that is the whole reason they are variants rather than booleans. The member carries the
+      // FIGMA names (`leading icon`/`trailing icon`, #1380), which is the switch label a designer reads.
+      ok(/leading icon=true, trailing icon=false$/.test(planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon' }))),
         'anatomy/icon-button: Button still names both — the rule is "a coordinate iff the def declares the axis", not "no slot coordinates"');
 
       // The GRID: 9 rows × 6 columns, `state` across. Hand-derived — 3 × 3 rows against 6 states —
@@ -11245,8 +11260,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // ONE property, where Button has four ref parts. Derived from the nodes the plans BUILD, so this is
       // also the assertion that the required icon still materializes a swap: a slot that stopped producing
       // a node would leave the set with no properties at all and every other check here would pass.
-      ok(ibLayout.props.length === 1 && ibLayout.props[0].name === 'icon' && ibLayout.props[0].type === 'INSTANCE_SWAP',
-        `anatomy/icon-button: exactly one component property — the icon swap (${JSON.stringify(ibLayout.props)})`);
+      // The panel label is the canon `swap icon` (#1380, owner-decided): icon-button applies the
+      // display-name mechanism but WITHOUT the `↳ ` prefix button/select use — its icon is required, so
+      // there is no presence switch to nest under. Reverting the def's `figmaName` fails HERE by name.
+      ok(ibLayout.props.length === 1 && ibLayout.props[0].name === 'swap icon' && ibLayout.props[0].type === 'INSTANCE_SWAP',
+        `anatomy/icon-button: exactly one component property — the icon swap under its canon label \`swap icon\` (${JSON.stringify(ibLayout.props)})`);
       ok(ibLayout.refs.length === 1 && ibLayout.refs[0].part === 'icon',
         `anatomy/icon-button: one part is wired to it (${JSON.stringify(ibLayout.refs)})`);
 
@@ -12930,8 +12948,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const names = grid.map(planComponentName);
   ok(new Set(names).size === 12, `#536 item 6: all 12 member names are distinct (${new Set(names).size})`);
   const axisVals = (k: string) => new Set(names.map((n) => n.split(', ').find((p) => p.startsWith(`${k}=`))));
-  ok(axisVals('size').size === 3 && axisVals('leading').size === 2 && axisVals('trailing').size === 2,
-    `#536 item 6: the grid spans size:3 x leading:2 x trailing:2 (live: size was the first three-value axis pasted)`);
+  // The slot axes appear under their Figma names in the coordinate (#1380): `leading icon`/`trailing icon`.
+  ok(axisVals('size').size === 3 && axisVals('leading icon').size === 2 && axisVals('trailing icon').size === 2,
+    `#536 item 6: the grid spans size:3 x leading icon:2 x trailing icon:2 (live: size was the first three-value axis pasted)`);
 
   // `size` must differentiate BEYOND the label. Two of the three sizes share a text style
   // (`md.emphasis` at medium and large) — which is the def's intent, not a collapse — so a check
@@ -14077,8 +14096,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const ringLayout = planSetLayout(ringSet, 'test');
   ok(ringLayout.cells.every((c) => c.group === ''),
     `focus-ring: the engine's cohort key is EMPTY — no size axis and no slot axes, so nothing legitimately changes this def's footprint and all members share one cohort. Not 'size=undefined, leading=false, trailing=false' (got '${ringLayout.cells[0]?.group}')`);
-  ok(planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group === 'size=small, leading=true, trailing=true',
-    `field: a def that DOES declare all three still writes all three — the omission rule must not have emptied the key for the def the cohort was designed for (got '${planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group}')`);
+  ok(planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group === 'size=small, leading icon=true, trailing icon=true',
+    `field: a def that DOES declare all three still writes all three — the omission rule must not have emptied the key for the def the cohort was designed for; the slot segments carry the Figma names (#1380) (got '${planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group}')`);
   // The payload side, evaluated rather than grepped. `cellOf` is a string inside the generated JS, so it
   // is extracted and run — a regex over the payload text would assert that the ternary is spelled a
   // certain way, which is the "gate tests the words" shape this file has hit three times.
@@ -14101,15 +14120,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // `new Function` parameter would supply what the payload is supposed to ship, so a chunk that never
   // declared it would satisfy every arm here and throw `ReferenceError` on the first paste into Figma.
   // Extracted with the same guard-before-compile ordering, for the reason stated above.
+  // `SLOT_KEYS` is TAKEN OUT OF THE PAYLOAD alongside `FOOTPRINT_VARIES` (#1380), for the identical reason:
+  // `cellOf` now `seg()`s the slot axes' Figma display names off this const, so a chunk that never declared
+  // it would throw `ReferenceError` on the first paste. Extracted (not injected) with the same
+  // guard-before-compile ordering, and both decls are prepended to the compiled body.
+  const declLine = (js: string, name: string) => { const at = js.indexOf(`const ${name}=`); return at < 0 ? '' : js.slice(at, js.indexOf('\n', at) + 1); };
   const payloadCellOfFor = (js: string, layout: { rowKeys: string[]; rowLabels: string[]; colKey: string; colVals: string[] }) => {
-    const at = js.indexOf('const FOOTPRINT_VARIES=');
-    const decl = at < 0 ? '' : js.slice(at, js.indexOf('\n', at) + 1);
+    const decl = declLine(js, 'FOOTPRINT_VARIES');
+    const slotDecl = declLine(js, 'SLOT_KEYS');
     const src = js.slice(js.indexOf('const cellOf='), js.indexOf('const cells=members.map'));
-    const extracted = src.includes('group:') && src.length > 200 && decl.includes('FOOTPRINT_VARIES=[');
+    const extracted = src.includes('group:') && src.length > 200 && decl.includes('FOOTPRINT_VARIES=[') && slotDecl.includes('SLOT_KEYS=[');
     return {
-      extracted, chars: src.length, decl: decl.trim(),
+      extracted, chars: src.length, decl: decl.trim(), slotDecl: slotDecl.trim(),
       fn: extracted
-        ? (new Function('ROW_KEYS', 'ROW_LABELS', 'COL_KEY', 'COL_VALS', `${decl}${src}return cellOf;`)(
+        ? (new Function('ROW_KEYS', 'ROW_LABELS', 'COL_KEY', 'COL_VALS', `${decl}${slotDecl}${src}return cellOf;`)(
           layout.rowKeys, layout.rowLabels, layout.colKey, layout.colVals,
         ) as (name: string) => { row: number; col: number; group: string })
         : null,

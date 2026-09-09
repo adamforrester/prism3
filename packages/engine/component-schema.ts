@@ -703,8 +703,16 @@ export type FigmaProperties = {
    *  This axis existed in the EMITTER before it existed here: `planComponentName` has always appended
    *  `leading=`/`trailing=`, so the declared surface computed 189 variants while the emitter produced
    *  756 — and the count gate asserted the 189, which read as agreement. `figmaAxisNames` is the fix
-   *  for the class, not just the instance. */
-  slotAxes?: { name: string; part: string }[];
+   *  for the class, not just the instance.
+   *
+   *  `figmaName` is the #1309 DISPLAY-NAME decoupling reaching the presence axes (#1380). A slot
+   *  presence axis is a VARIANT axis, so its Figma property name is the member-name segment key
+   *  `planComponentName` writes — which was `name` verbatim. When `figmaName` is present the projector
+   *  writes THAT into the coordinate instead, so a designer reads `leading icon` in the properties
+   *  panel while the code axis stays the idiomatic `leading`. Absent means the code name is used, so
+   *  every def without one is byte-identical. It is a Figma-facing LABEL, not a `variants` axis, so it
+   *  is deliberately not validated against `variants` — only against the panel's own uniqueness. */
+  slotAxes?: { name: string; part: string; figmaName?: string }[];
   /** Which axis lays out ACROSS the set's columns — the one grid decision a def gets to make (#656).
    *
    *  Declared rather than inferred for the same reason `slotAxes` exists: `planSetLayout` used to take
@@ -777,9 +785,20 @@ export type FigmaProperties = {
    *  REQUIRED (an empty one is still #510's blank component). `figmaPropertyErrors` rejects a `byVariant`
    *  key naming an axis that is not a projected variant axis, or a value that axis does not have — a typo'd
    *  status must fail loudly, not resolve to nothing and silently fall back. */
-  texts?: Record<string, { part: string; default: string; byVariant?: Record<string, Record<string, string>> }>;
-  /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT. */
-  swaps?: Record<string, string>;
+  /** `figmaName` is #1309's display-name decoupling (#1380). The KEY stays the idiomatic code prop name
+   *  and is still validated against `props[].name`; `figmaName`, when present, is the Figma
+   *  component-property NAME a designer reads in the panel — so panel `label` can sit over code prop
+   *  `label`, or a swap can read `↳ swap leading icon` over prop `leadingVisual`. Absent means the KEY is
+   *  the panel name, byte-identical to before. It is a Figma-facing label and needs NOT be a declared prop
+   *  (`figmaPropertyErrors` checks the KEY against `props`, never `figmaName`). */
+  texts?: Record<string, { part: string; default: string; figmaName?: string; byVariant?: Record<string, Record<string, string>> }>;
+  /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT.
+   *
+   *  The bare-string form is `prop → part`, the byte-identical original. The object form
+   *  `{ part, figmaName? }` carries #1309's display name (#1380): the KEY is still the idiomatic code prop
+   *  (validated against `props[].name`) and `figmaName` is the Figma panel name — e.g. prop `leadingVisual`
+   *  read as `↳ swap leading icon`. Every def that does not need a distinct panel name keeps the string. */
+  swaps?: Record<string, string | { part: string; figmaName?: string }>;
   /**
    * WHY THIS DEF'S PROJECTION CANNOT STAND ALONE ON A CANVAS — prose, and absent means it can (#869).
    *
@@ -1177,9 +1196,25 @@ export const figmaAxisNames = (def: ComponentDef): string[] => {
   return [
     ...(fp.variantAxes ?? []),
     ...(fp.stateAxis?.name ? [fp.stateAxis.name] : []),
-    ...(fp.slotAxes ?? []).map((s) => s.name),
+    // The slot axis's Figma NAME, which is `figmaName` when the def decouples it (#1309/#1380) and the
+    // code `name` otherwise. `planComponentName` writes this into the member coordinate, so the parity
+    // gate that compares these names against a real member's parsed keys must read the same decoupled
+    // name — otherwise the gate that exists to catch declaration/emitter drift would itself drift.
+    ...(fp.slotAxes ?? []).map((s) => slotAxisFigmaName(s)),
   ];
 };
+
+/** A slot axis's Figma panel name — its `figmaName` decoupling (#1309/#1380) or its code `name`. One
+ *  reader for the one rule, so `figmaAxisNames`, the projector and the validator cannot disagree. */
+export const slotAxisFigmaName = (s: { name: string; figmaName?: string }): string => s.figmaName ?? s.name;
+
+/** The `kind: 'slot'` part a `swaps` entry drives — bare string or `{ part }` object (#1380). */
+export const swapPart = (v: string | { part: string; figmaName?: string }): string => (typeof v === 'string' ? v : v.part);
+/** A `swaps` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
+export const swapFigmaName = (prop: string, v: string | { part: string; figmaName?: string }): string =>
+  typeof v === 'string' ? prop : v.figmaName ?? prop;
+/** A `texts` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
+export const textFigmaName = (prop: string, t: { figmaName?: string }): string => t.figmaName ?? prop;
 
 /**
  * Which axis belongs across the COLUMNS (#656) — the declared preference, else the widest axis.
@@ -1361,8 +1396,39 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     }
   };
   checkMap('texts', Object.fromEntries(Object.entries(fp.texts ?? {}).map(([p, t]) => [p, t.part])), 'text');
-  checkMap('swaps', fp.swaps, 'slot');
+  // `swaps` may carry the #1380 object form `{ part, figmaName }`; normalized to `prop → part` here so
+  // the relational checks (prop is a declared prop, part exists and is a slot, one property kind per part)
+  // are identical for the string and object forms — the display name is a Figma label, checked below.
+  checkMap('swaps', Object.fromEntries(Object.entries(fp.swaps ?? {}).map(([p, v]) => [p, swapPart(v)])), 'slot');
   checkMap('booleans', fp.booleans, undefined, true);
+
+  // ZERO-WIDTH characters are stripped before the "does it render" test, not just whitespace — see the
+  // fuller note on the placeholder loop below, where this same predicate gates an empty TEXT default.
+  // Hoisted above the display-name block so both callers share the one definition (#1309/#1380).
+  // Written as \u escapes deliberately: the literal characters are INVISIBLE in source.
+  const renders = (str: string) => str.replace(/[\u200B-\u200F\u2028-\u202E\u2060-\u2064\uFEFF]/g, '').trim();
+
+  // ---- Figma DISPLAY NAMES (#1309/#1380) -------------------------------------------------------
+  // The KEY of a texts/swaps entry and the `name` of a slot axis stay the CODE identifier; an optional
+  // `figmaName` is the panel LABEL a designer reads, decoupled from it. Two rules, and no more: a label
+  // must RENDER (the same `renders` test an empty placeholder fails), and the panel's names must be
+  // UNIQUE — two properties Figma shows under one name is the #510-class defect (a control the designer
+  // cannot tell apart) one tier out. Deliberately NOT validated against `props` or `variants`: the whole
+  // point of #1309 is that the panel name need not be either (the issue's own note — "the display name
+  // must NOT have to be a declared prop").
+  const panelNames = new Map<string, string>();
+  const claimPanel = (name: string, source: string): void => {
+    if (!renders(name)) { e.push(`figmaProperties.${source}: Figma display name '${name}' is empty/unrenderable — a panel label a designer cannot read is the empty-default defect one tier out`); return; }
+    const prior = panelNames.get(name);
+    if (prior) e.push(`figmaProperties: Figma display name '${name}' is claimed by both ${prior} and ${source} — two properties under one panel name is a control a designer cannot tell apart`);
+    else panelNames.set(name, source);
+  };
+  // Variant + state axis names are panel names too, so a display name colliding with one is caught.
+  for (const a of fp.variantAxes ?? []) panelNames.set(a, `variantAxes.${a}`);
+  if (fp.stateAxis?.name) panelNames.set(fp.stateAxis.name, 'stateAxis');
+  for (const s of fp.slotAxes ?? []) claimPanel(slotAxisFigmaName(s), `slotAxes.${s.name}`);
+  for (const [prop, t] of Object.entries(fp.texts ?? {})) claimPanel(textFigmaName(prop, t), `texts.${prop}`);
+  for (const [prop, v] of Object.entries(fp.swaps ?? {})) claimPanel(swapFigmaName(prop, v), `swaps.${prop}`);
 
   // The placeholder is REQUIRED to say something. An empty default is exactly what Figma accepts and
   // what #510 shipped — 21 variants with nothing readable in them — so a def that declares a TEXT
@@ -1377,7 +1443,6 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // member of the same class to be found the same way.
   // Written as \u escapes deliberately: the literal characters are INVISIBLE in source, so a reader
   // cannot see what the class contains and a diff cannot show one being added or dropped.
-  const renders = (s: string) => s.replace(/[\u200B-\u200F\u2028-\u202E\u2060-\u2064\uFEFF]/g, '').trim();
   for (const [prop, t] of Object.entries(fp.texts ?? {})) {
     if (!t.default || !renders(t.default)) e.push(`figmaProperties.texts.${prop}.default is empty — a TEXT property with no placeholder builds a component with an unreadable label, which is what the field exists to prevent`);
     // #1018: a per-member override must key on an axis this set actually enumerates, and on a value that

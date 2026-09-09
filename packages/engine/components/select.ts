@@ -307,14 +307,21 @@ export const select: ComponentDef = {
   figmaProperties: {
     variantAxes: ['status'],
     stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'disabled', 'empty'] },
-    slotAxes: [{ name: 'leading', part: 'leadingVisual' }],
+    // The presence axis renders as a `leading icon` switch (#1380 canon): the code axis stays `leading`
+    // (what the slot machinery keys on) and `figmaName` gives the panel its true/false switch label —
+    // identical to button's, so the panel + `↳`-nesting read the same across the two. Select has no
+    // trailing slot (its glyph sits inside `content`, not against the box edge — the #1331/#1379 split).
+    slotAxes: [{ name: 'leading', part: 'leadingVisual', figmaName: 'leading icon' }],
     // `state` across the columns — the axis a designer reads a control's skin across, and the widest here.
     gridAxis: 'state',
     // The displayed text. `value`, a designer-facing name (#1242), lowercase per #1333 — the
     // placeholder is the copy every member ships, and a chosen-value string is what a designer types over it.
+    // Projects FIRST in the panel (text → swap order, #1380) — the "text property at the top" of the canon.
     texts: { value: { part: 'text', default: 'Placeholder' } },
-    // The leading glyph's CONTENT — orthogonal to its presence axis above.
-    swaps: { leadingIcon: 'leadingVisual' },
+    // The leading glyph's CONTENT — orthogonal to its presence axis above. `figmaName` gives it the canon
+    // panel label `↳ swap leading icon` (#1380), nested beneath the `leading icon` switch; the code prop
+    // stays `leadingIcon`.
+    swaps: { leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' } },
     // Considered, none survive: `required` is aria/behavioral, `disabled` folds into the state axis,
     // `validation` is the status axis, the leading glyph is a presence axis + swap.
     booleans: {},

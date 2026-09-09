@@ -484,19 +484,31 @@ const makeButton = (id: string, name: string, description: string, family: Inten
     // the state axis. `test.ts` asserts that dropping `pending` from that axis fails *even though*
     // codeOnly mentions it — an assertion written about the deleted `modifiers` entry, and the reason
     // this mention had to land somewhere that cannot be mistaken for an admission.
+    //
+    // `figmaName` is the icon-property canon (#1380), the #1309 display-name decoupling reaching the
+    // presence axes: the code axis stays the idiomatic `leading`/`trailing` (what `planSetLayout` and the
+    // slot machinery key on), while the SWITCH a designer reads in the panel is `leading icon` /
+    // `trailing icon`. A true/false variant axis renders as a switch in Figma; the label is what this sets.
     slotAxes: [
-      { name: 'leading', part: 'leadingVisual' },
-      { name: 'trailing', part: 'trailingVisual' },
+      { name: 'leading', part: 'leadingVisual', figmaName: 'leading icon' },
+      { name: 'trailing', part: 'trailingVisual', figmaName: 'trailing icon' },
     ],
-    // Slot CONTENT, so a designer can pick the icon — orthogonal to presence above.
-    swaps: { leadingVisual: 'leadingVisual', trailingVisual: 'trailingVisual' },
+    // Slot CONTENT, so a designer can pick the icon — orthogonal to presence above. `figmaName` gives each
+    // swap the canon panel label `↳ swap leading icon` / `↳ swap trailing icon` (#1380): the `↳ ` prefix
+    // (U+21B3 + space) makes Figma render it nested beneath its `leading icon` / `trailing icon` switch,
+    // while the code prop stays the idiomatic `leadingVisual` / `trailingVisual` (validated against `props`).
+    swaps: {
+      leadingVisual: { part: 'leadingVisual', figmaName: '↳ swap leading icon' },
+      trailingVisual: { part: 'trailingVisual', figmaName: '↳ swap trailing icon' },
+    },
     // "Button" is the placeholder, and it lives here rather than in the payload: the def is the layer
     // a second brand overrides. Figma accepts an empty TEXT default, which is what #510's set shipped —
     // 21 structurally perfect variants with nothing readable in any of them.
     //
-    // KEYED `Label`, not `children` (#1242). This key IS the Figma component-property name a designer
-    // sees, and it is validated to be a declared `prop` name (`figmaPropertyErrors`), so it moves in
-    // lockstep with the `Label` prop above — the coupling is why the rename touches both.
+    // KEYED `label` (#1242/#1333) — the idiomatic lowercase prop, validated as a declared `prop` name.
+    // No `figmaName` needed: the canon panel label IS `label` (#1380), so the KEY doubles as the display
+    // name. It projects FIRST in the panel (text → swap → boolean order in `planSetProperties`), which is
+    // the "label at the top" half of the icon-property canon.
     texts: { label: { part: 'label', default: 'Button' } },
     // Empty, and stated rather than omitted. `fullWidth` is layout; `isPending`/`isInactive`/
     // `disabled` collapse into the state axis; `onClick`/`type`/`href` are behavioral. A Figma

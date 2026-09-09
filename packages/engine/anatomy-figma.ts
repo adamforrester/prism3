@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf } from './component-schema';
+import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName } from './component-schema';
 import type { ControlShape } from './scale';
 // The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
@@ -431,6 +431,16 @@ export type AnatomyPlan = {
    *  not, here the declaration was right and the emitter added two. Same gate, both directions,
    *  because it compares a declaration against a parsed name rather than against another count. */
   slotAxes: string[];
+  /** The Figma DISPLAY name for each slot axis that DECOUPLES it (#1309/#1380), keyed by the CODE axis
+   *  name in `slotAxes` — so `planComponentName` and `planSetLayout`'s cohort key write the panel label
+   *  (`leading icon`) into the member coordinate while the code axis stays `leading`. Carried on the plan
+   *  for the same reason `slotAxes` is — the writers receive plans, never the def.
+   *
+   *  PRESENT ONLY when at least one slot axis sets a `figmaName` that differs from its code name, and then
+   *  carrying ONLY those entries — OMITTED entirely otherwise. That omission is load-bearing: `planStamp`
+   *  (lint-component-surface, #1252) hashes the whole plan, so a field present-but-empty on every def would
+   *  move EVERY digest. A reader defaults an absent entry to the code name. */
+  slotFigmaNames?: Record<string, string>;
   /** Where in the variant grid this plan sits — `{}` for a structure-only plan. Carried so the
    *  payload can name the component after its own coordinate, and so a gate can tell a plan that
    *  legitimately has no paints from one that dropped them. */
@@ -1088,12 +1098,16 @@ export const figmaAnatomyPlan = (
   // #1018: the canonical (fallback) default per text part, for the SET-LEVEL property — constant across
   // members, unlike `placeholder` which is this member's own copy.
   const textDefaults = new Map<string, string>();
+  // `propertyRef.prop` is the FIGMA PROPERTY NAME (#1309/#1380), not the code prop KEY: it flows to
+  // `planSetProperties` → `addComponentProperty(name)` and is read back off `componentPropertyReferences`,
+  // so it is the panel identity. The KEY stays the idiomatic code prop (validated in `figmaPropertyErrors`);
+  // `textFigmaName`/`swapFigmaName` resolve the decoupled display name, falling back to the KEY.
   for (const [prop, t] of Object.entries(fp?.texts ?? {})) {
-    drivenBy.set(t.part, { field: 'characters', prop });
+    drivenBy.set(t.part, { field: 'characters', prop: textFigmaName(prop, t) });
     placeholder.set(t.part, textDefaultOf(t));
     textDefaults.set(t.part, t.default);
   }
-  for (const [prop, part] of Object.entries(fp?.swaps ?? {})) drivenBy.set(part, { field: 'mainComponent', prop });
+  for (const [prop, v] of Object.entries(fp?.swaps ?? {})) drivenBy.set(swapPart(v), { field: 'mainComponent', prop: swapFigmaName(prop, v) });
   for (const [prop, part] of Object.entries(fp?.booleans ?? {})) drivenBy.set(part, { field: 'visible', prop });
 
   const node = (name: string, p: PartDef): FigmaNodePlan => {
@@ -1390,6 +1404,15 @@ export const figmaAnatomyPlan = (
     // Read off the DEF, which is the only thing that knows the difference between a slot that is
     // absent on this member and a slot the component does not have. See `AnatomyPlan.slotAxes`.
     slotAxes: (def.figmaProperties?.slotAxes ?? []).map((s) => s.name),
+    // The decoupled Figma display names (#1309/#1380) — ONLY the slot axes whose `figmaName` differs from
+    // their code name, and the whole field OMITTED when none do, so a def without display names keeps a
+    // byte-identical plan and its `planStamp` does not move (the field's own note explains why).
+    ...(() => {
+      const decoupled = Object.fromEntries(
+        (def.figmaProperties?.slotAxes ?? []).filter((s) => slotAxisFigmaName(s) !== s.name).map((s) => [s.name, slotAxisFigmaName(s)]),
+      );
+      return Object.keys(decoupled).length ? { slotFigmaNames: decoupled } : {};
+    })(),
     coord,
     // Declaration order, `size` removed — it has its own fixed position in the name. See the field's note.
     gridAxisOrder: (def.figmaProperties?.variantAxes ?? []).filter((a) => a !== 'size'),
@@ -1666,7 +1689,17 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
       byName.set(prop.name, prop);
     }
   }
-  return [...byName.values()];
+  // ORDERED text → swap → boolean (#1380), which is the property CREATION order the executor applies and
+  // therefore the order Figma shows the component (non-variant) properties in. The icon-property canon
+  // puts `label` at the TOP, above the per-slot swaps — a TEXT before the INSTANCE_SWAPs — and the swaps
+  // keep their by-part insertion order (leading before trailing). Variant switches (`leading icon`) come
+  // from the member NAMES and are a separate panel group Figma renders from the coordinate, not from this
+  // list — the panel INTERLEAVE of the two groups is host-rendered (see `version.ts`'s note that panel
+  // order is "the owner's Figma check, not ours"); what this controls, and what the round-trip gates, is
+  // that `label` is created before any swap. A stable sort by kind rank preserves insertion order within a
+  // kind, so no def with a single property kind moves.
+  const KIND_RANK: Record<FigmaPropertyPlan['type'], number> = { TEXT: 0, INSTANCE_SWAP: 1, BOOLEAN: 2 };
+  return [...byName.values()].map((p, i) => ({ p, i })).sort((a, b) => KIND_RANK[a.p.type] - KIND_RANK[b.p.type] || a.i - b.i).map((x) => x.p);
 };
 
 /** Every Figma text style a plan applies. */
@@ -1745,8 +1778,14 @@ export const planComponentName = (plan: AnatomyPlan): string =>
     // between Button's `{color:'default'}` resolving against a projected ring and matching nothing.
     ...(plan.size === undefined ? [] : [`size=${plan.size}`]),
     ...(plan.coord.state ? [`state=${plan.coord.state}`] : []),
-    ...(plan.slotAxes.includes('leading') ? [`leading=${plan.slots.leading}`] : []),
-    ...(plan.slotAxes.includes('trailing') ? [`trailing=${plan.slots.trailing}`] : []),
+    // THE SLOT AXIS'S FIGMA NAME (#1309/#1380). The member-name segment key IS the variant property
+    // name Figma derives, so a decoupled `figmaName` (`leading icon`) is written HERE while the code axis
+    // stays `leading`. `slotFigmaNames` defaults each to its code name, so a def with no display name is
+    // byte-identical. Everything downstream that parses this name (`planSetLayout`'s axes, the payload's
+    // `cellOf`) therefore sees the panel name — which is what keeps the switch, the cohort key and the
+    // parity gate on one string.
+    ...(plan.slotAxes.includes('leading') ? [`${plan.slotFigmaNames?.leading ?? 'leading'}=${plan.slots.leading}`] : []),
+    ...(plan.slotAxes.includes('trailing') ? [`${plan.slotFigmaNames?.trailing ?? 'trailing'}=${plan.slots.trailing}`] : []),
   ].join(', ');
 
 /**
@@ -2794,8 +2833,11 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
     // the list is declared instead of derived from `presentWhen`.
     group: [
       ...(p.size === undefined ? [] : [`size=${p.size}`]),
-      ...(p.slotAxes.includes('leading') ? [`leading=${p.slots.leading}`] : []),
-      ...(p.slotAxes.includes('trailing') ? [`trailing=${p.slots.trailing}`] : []),
+      // THE SLOT AXIS'S FIGMA NAME (#1309/#1380), matching `planComponentName` and the payload's `cellOf`
+      // parse — the member name carries the panel label, so the cohort key must too or the two derivations
+      // that #1010's gate compares would disagree. Defaults to the code name for a def with no display name.
+      ...(p.slotAxes.includes('leading') ? [`${p.slotFigmaNames?.leading ?? 'leading'}=${p.slots.leading}`] : []),
+      ...(p.slotAxes.includes('trailing') ? [`${p.slotFigmaNames?.trailing ?? 'trailing'}=${p.slots.trailing}`] : []),
       ...p.footprintVaries.flatMap((k) => (vals[i][k] === undefined ? [] : [`${k}=${vals[i][k]}`])),
     ].join(', '),
   }));
@@ -2838,7 +2880,14 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // `footprintVaries` rides out for the CHUNKED path only — the single-shot payload reads the `group`
   // this function already computed off each cell, while a chunk re-derives it from the member name and so
   // needs the def's list. Off `plans[0]` for `gridAxis`'s reason: every plan in a set comes from one def.
-  return { cells, props, refs: [...refs.values()], refOverrides, axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: plans[0].footprintVaries };
+  //
+  // `slotKeys` rides out for the same reason (#1309/#1380): the cohort `group` above now writes each slot
+  // axis's Figma DISPLAY name (`leading icon`), so the chunk's `cellOf` — which parses the member name —
+  // must `seg()` those same display keys, not the old hardcoded `leading`/`trailing`. In the fixed
+  // leading-then-trailing order the `group` uses, resolved through `slotFigmaNames`. Empty for a def with
+  // no slot axes, so its payload is byte-identical.
+  const slotKeys = ['leading', 'trailing'].filter((k) => plans[0].slotAxes.includes(k)).map((k) => plans[0].slotFigmaNames?.[k] ?? k);
+  return { cells, props, refs: [...refs.values()], refOverrides, axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: plans[0].footprintVaries, slotKeys };
 };
 
 export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
@@ -2988,10 +3037,11 @@ const cellOf=(name)=>{
   // the two disagreed for every def but Button. Must produce the byte-identical string that side does or
   // the cohorts do not line up, and a per-member cohort compares nothing and reports nothing.
   const seg=(k)=>v[k]===undefined?[]:[k+'='+v[k]];
-  // \`FOOTPRINT_VARIES\` LAST, matching that side's append (#1010). Shipped as a list rather than folded
-  // into the three literal segments because it is the one part of this key that is per-DEF: the def
-  // declares which axes move its box, and a payload that hardcoded them would answer for Button only.
-  return {row,col,group:seg('size').concat(seg('leading'),seg('trailing'),...FOOTPRINT_VARIES.map(seg)).join(', ')};
+  // \`SLOT_KEYS\` and \`FOOTPRINT_VARIES\` are both per-DEF lists (#1309/#1380, #1010), shipped rather than
+  // hardcoded so a payload does not answer for Button only. \`SLOT_KEYS\` carries the slot axes' FIGMA
+  // display names in leading-then-trailing order — the member name now spells \`leading icon\`, so
+  // \`seg('leading')\` would find nothing and drop the cohort segment this side of the comparison.
+  return {row,col,group:seg('size').concat(...SLOT_KEYS.map(seg),...FOOTPRINT_VARIES.map(seg)).join(', ')};
 };
 const cells=members.map(c=>cellOf(c.name));
 const colW=[],rowH=[];
@@ -3154,7 +3204,7 @@ export const planSetChunks = (
   // `setLayout` per slice instead would compute `rowLabels`/`colVals` from a fifth of the members, so a
   // later chunk's `col` indices would restart at 0 and it would land on top of the first — #510's
   // stacking bug, reintroduced one chunk at a time.
-  const { cells, props, refs, refOverrides, axes, component, rowKeys, colKey, rowLabels, colVals, footprintVaries } = planSetLayout(plans, 'planSetChunks');
+  const { cells, props, refs, refOverrides, axes, component, rowKeys, colKey, rowLabels, colVals, footprintVaries, slotKeys } = planSetLayout(plans, 'planSetChunks');
 
   // `name` + `root` only. `row`/`col`/`group` are all derivable from the name inside the payload, and
   // the payload's bytes are the budget this whole function exists to respect.
@@ -3176,6 +3226,10 @@ const ROW_LABELS=${JSON.stringify(rowLabels)};
 const COL_KEY=${JSON.stringify(colKey)};
 const COL_VALS=${JSON.stringify(colVals)};
 const FOOTPRINT_VARIES=${JSON.stringify(footprintVaries)};
+// The slot axes FIGMA display names (#1309/#1380), in the fixed leading-then-trailing order the cohort
+// group writes. cellOf seg()s these so the chunk cohort key matches the member name Figma carries
+// (leading icon), not the old hardcoded leading. Empty for a def with no slot axes.
+const SLOT_KEYS=${JSON.stringify(slotKeys)};
 // Empty until the FINAL chunk: \`combineAsVariants\` rewrites property ids, so anything declared before
 // the last member joins holds ids the combine has already invalidated.
 const PROPS_ALL=${JSON.stringify(last ? props : [])};
