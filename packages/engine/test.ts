@@ -22,7 +22,7 @@ import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { isInverseRole } from './inverse-roles';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
-import { parseStandardDesignMd, standardToBrandInput, applyXPrism3 } from './standard-design-md';
+import { parseStandardDesignMd, standardToBrandInput, applyXPrism3, isStandardDesignMd } from './standard-design-md';
 import { classifyColors } from './classify-colors';
 import { SLIDER_STOPS, TRAITS, resolveVocabulary } from './vocabulary';
 import { leverManifest, leverGroups, buildLeverManifest, identityFields } from './levers';
@@ -191,6 +191,53 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
       ?? /^[ \t]+root:[ \t]*([a-z][a-z0-9-]*)[ \t]*$/m.exec(raw))?.[1];
     ok(declared !== undefined && declared === emittedRoot(id),
       `#1283 \`${id}\` DECLARES its root in the brief and it is what it emits (declared: ${declared ?? 'NOTHING — it is inheriting the fallback'}, emitted: ${emittedRoot(id)})`);
+  }
+}
+
+// ── EVERY committed example brief COMPILES (nb-redesign seed, #1362-adjacent) ─────────
+// The corpus briefs aurora/harbor (engine-native) and wendys (standard) already have
+// byte-exact coverage through regen: emit-dtcg + cli WRITE their artifacts and
+// `regen.ts --check` reads them back. A HELD seed brief like nb-redesign emits NO
+// committed artifact on purpose (the owner finishes NB by hand, then updates the file),
+// so nothing else in the suite runs it. This block is its regression, and it is written
+// to catch ANY committed brief that stops compiling — glob every examples/*.design.md,
+// route each by dialect exactly as cli.ts does, and drive it through the real pipeline
+// (validate → brandTheme → buildTree) asserting every alias resolves and every mode
+// contrast contract holds. Independence (docs/34): the oracle is the engine's own build,
+// not a recorded number, so a brief that breaks fails here by NAME. Represented, not
+// counted — the nb-redesign arm names the file, and the floor arm rejects an empty glob,
+// so coverage silently shrinking (a deleted brief, a mis-globbed dir) is a red, not a
+// quiet green over zero files.
+{
+  const briefs = readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort();
+  ok(briefs.includes('nb-redesign.design.md'),
+    `every-example-compiles: the nb-redesign seed brief is present (found: ${briefs.join(', ') || 'NONE'})`);
+  ok(briefs.length >= 4,
+    `every-example-compiles: examples/ holds the committed briefs, not an empty glob (found ${briefs.length})`);
+  for (const file of briefs) {
+    const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
+    // Dialect route mirrors cli.ts: a standard-spec brief carries a flat top-level `colors:`
+    // map (classified into anchors); an engine-native brief is read straight to BrandInput.
+    let input: BrandInput;
+    try {
+      const std = parseStandardDesignMd(text);
+      input = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+    } catch (e) {
+      ok(false, `every-example-compiles: ${file} parses — ${(e as Error).message}`);
+      continue;
+    }
+    const errs = validateBrandInput(input);
+    ok(errs.length === 0, `every-example-compiles: ${file} conforms to theme-schema.json (${errs.slice(0, 3).join('; ') || 'clean'})`);
+    // brandTheme also validates at resolve time (it throws on an enum/range the schema check
+    // and it disagree on) and buildTree can surface a broken alias, so wrap both: a broken brief
+    // must fail HERE, by name, not crash the whole suite with a stack trace before the summary.
+    try {
+      const stats = buildTree(brandTheme(input)).stats;
+      ok(stats.broken.length === 0, `every-example-compiles: ${file} — every alias resolves (${stats.resolved}/${stats.aliases}; broken: ${stats.broken.map((b) => b.path).slice(0, 3).join(', ') || 'none'})`);
+      ok(stats.modePass === stats.modeChecks, `every-example-compiles: ${file} — every mode contrast contract holds (${stats.modePass}/${stats.modeChecks})`);
+    } catch (e) {
+      ok(false, `every-example-compiles: ${file} builds cleanly — ${(e as Error).message}`);
+    }
   }
 }
 
