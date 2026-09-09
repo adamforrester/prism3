@@ -161,9 +161,11 @@ export type FigmaNodePlan = {
    *  SET rather than a plain component (#681). Figma's `InstanceNode.setProperties` shape exactly —
    *  `{ axis: value }` — which is why `PartDef.nesting`'s `variant` is a `Record` and not a string.
    *
-   *  ABSENT when the def declares `nest-exposed`, and that absence is meaningful rather than a gap: an
-   *  exposed nest is one whose coordinate the CONSUMER drives from the parent, so the def has no variant
-   *  to name and this projection must not invent one. Present means `nest-fixed`, i.e. the def chose.
+   *  PRESENT for BOTH `nest-fixed` and `nest-exposed` (#1330). An instance is always an instance of ONE
+   *  member, so even an exposed nest starts at a concrete DEFAULT coordinate; `nestExpose` (below) then
+   *  names which of the child's axes the consumer drives FROM that default. The two fields travel together
+   *  on an exposed nest and `nestExpose` alone distinguishes it from a fixed one. (Before #1330 this field
+   *  was absent for `nest-exposed` because the relation was refused — the exposed shape was unbuilt, #761.)
    *
    *  A RECORD RATHER THAN A MEMBER NAME, even though the executors resolve it to one, because the name
    *  is not the def's to write: a set's members are named by their full coordinate in FIGMA'S chosen
@@ -181,6 +183,22 @@ export type FigmaNodePlan = {
    *  same argument `textStyle`, `effectStyle` and `absoluteInset` each got their own field for — one
    *  field per API shape, so the plan cannot imply a call that does not exist. */
   nestVariant?: Record<string, string>;
+  /** For a `NESTED_INSTANCE` declared `nest-exposed` (#1330): the CHILD axes whose values the consumer
+   *  drives from the parent, surfaced as Figma EXPOSED nested-instance properties. Present ONLY for an
+   *  exposed nest, which is what distinguishes it from a `nest-fixed` one (both carry `nestVariant`, the
+   *  default coordinate). Absent otherwise, so every existing plan is byte-identical.
+   *
+   *  A LIST OF AXIS NAMES, not a `{axis:value}` record: exposure is about which properties SURFACE, not
+   *  which value they take — the value is the consumer's, and the starting value is `nestVariant`'s. The
+   *  executors read this to mark the nested instance exposed (`isExposedInstance`) on the host and to
+   *  record which of its properties the parent surfaces; `test-roundtrip.ts` reads the marking back.
+   *
+   *  WHY A NODE FIELD and not a set-level property (the `tools/nest-exposed-cost/measure.ts` finding): the
+   *  exposed property belongs to the NESTED INSTANCE, which lives in every member, so the field has to ride
+   *  on the node — it cannot sit in the once-per-set `PROPS` the way a parent's own property does. The cost
+   *  of that was measured (≈19–35 B on the indivisible unit, far from any ceiling), which is why naming the
+   *  axes is affordable rather than a budget the payload has to fight. */
+  nestExpose?: readonly string[];
   /** For a `NESTED_INSTANCE`: taken out of the auto-layout flow, sized to its parent's bounds grown by
    *  the `inset` variable's value on every side.
    *
@@ -1317,11 +1335,14 @@ export const figmaAnatomyPlan = (
       // both executors read `n.clipsContent ?? false`, which is the literal `false` they hardcoded before.
       ...(p.kind === 'box' && p.clipsContent ? { clipsContent: true as const } : {}),
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nests ? { nestTarget: p.nests } : {}),
-      // The def's chosen coordinate, projected only for `nest-fixed` (#681). `nest-exposed` is the
-      // consumer's to drive and `swap` has no variants at all, so neither writes a coordinate here —
-      // and the executors read the field's ABSENCE as "do not select", which is the only reading that
-      // keeps an exposed nest from being silently pinned by its own projection.
-      ...((p.kind === 'absolute' || p.kind === 'nest') && p.nesting?.kind === 'nest-fixed' ? { nestVariant: nestVariantOf(p.nesting) } : {}),
+      // The def's chosen coordinate — the member the instance starts at. Projected for BOTH `nest-fixed`
+      // (the def's final choice) and `nest-exposed` (the DEFAULT, from which the consumer drives the
+      // exposed axes — #1330). `swap` has no variants at all and writes no coordinate here. An exposed
+      // nest ADDS `nestExpose` below; a fixed one does not, which is the field that tells them apart.
+      ...((p.kind === 'absolute' || p.kind === 'nest') && (p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') ? { nestVariant: nestVariantOf(p.nesting) } : {}),
+      // The exposed child axes (#1330), ONLY for `nest-exposed`, so every fixed-nest plan is byte-identical.
+      // These surface as Figma exposed nested-instance properties; the executors mark the instance exposed.
+      ...((p.kind === 'absolute' || p.kind === 'nest') && p.nesting?.kind === 'nest-exposed' ? { nestExpose: p.nesting.expose } : {}),
       ...(p.kind === 'absolute' && p.inset ? { absoluteInset: varOf(p.inset) } : {}),
       // The stroke to compensate for (#801), projected only alongside an inset — on its own it has
       // nothing to correct, and the schema rejects that shape before the projection sees it.
@@ -2247,13 +2268,20 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     else if(!nested){
       // DIAGNOSE before reporting (#681): a second search, by name across every node type, so the miss
       // can say what is actually in the file. Only on the failure path — the happy path pays nothing.
-      // A SET still reaches here when the def named no coordinate for it (\`nest-exposed\`), which is what
-      // the COMPONENT_SET sentence now says.
+      // A SET still reaches here only when the plan carried NO coordinate at all (no \`nestVariant\`): since
+      // #1330 even a \`nest-exposed\` part projects a default coordinate, so a real def never lands here with
+      // a set — this is the defensive path for a coordinate-free plan, which the COMPONENT_SET advice names.
       const other=figma.root.findAll(x=>x.name===n.nestTarget)[0];
       const found=(!other?${JSON.stringify(nestMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(nestMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(nestMissAdvice('INSTANCE'))}:${JSON.stringify(nestMissAdvice('OTHER'))}).split(${JSON.stringify(NEST_TARGET_SLOT)}).join(n.nestTarget);
       misses.push(n.name+'.nestTarget -> '+n.nestTarget+' ('+found+')');return null;
     }
     else{node=nested.createInstance();}
+    // EXPOSE (#1330). A \`nest-exposed\` node carries \`nestExpose\`; mark the instance exposed so the
+    // nested component's properties surface at the parent's level (Figma exposes them wholesale — the
+    // named axes are the engine's public-surface intent, resolved per surface). Guarded on \`nestExpose\`,
+    // so a \`nest-fixed\` instance is never marked. \`isExposedInstance\` is writeable only on a primary
+    // instance inside a component/set, which is exactly what a member's nested instance is after combine.
+    if(node&&n.nestExpose&&n.nestExpose.length)node.isExposedInstance=true;
   }
   else if(n.type==='GLYPH'){
     // THE GLYPH (#864). The only node here whose content is GEOMETRY rather than a box, a binding or a

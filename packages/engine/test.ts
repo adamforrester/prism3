@@ -9735,13 +9735,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // DRIVEN BY A COORDINATE-FREE PAYLOAD (#681's consumer side). Since the plan now projects
       // `nestVariant` for a `nest-fixed` part and both executors RESOLVE it, a file holding a set no longer
       // reaches the four-way table's COMPONENT_SET row through button's real plan — it resolves, or it
-      // reports the fifth miss. That row's only remaining case is a def that named NO coordinate
-      // (`nest-exposed`), so this table is built from a payload emitted with the coordinate stripped, and
-      // the resolution cases get their own block below. Two questions, two fixtures.
+      // reports the fifth miss. That row's only remaining case is a plan that carried NO coordinate at all
+      // (since #1330 even `nest-exposed` projects a default coordinate, so this is the DEFENSIVE miss path,
+      // not what any real def emits), so this table is built from a payload emitted with the coordinate
+      // stripped, and the resolution cases get their own block below. Two questions, two fixtures.
       //
       // Stripped from the PLAN before emitting, not string-edited out of the payload: `planToPluginJs`
-      // serializes the plan tree into the payload, so removing the field upstream produces exactly the
-      // payload a `nest-exposed` part would emit, rather than a payload with a hole cut in it.
+      // serializes the plan tree into the payload, so removing the field upstream produces exactly a
+      // coordinate-free payload, rather than a payload with a hole cut in it.
       const stripCoord = (n: Record<string, unknown>): Record<string, unknown> => {
         const { nestVariant: _dropped, ...rest } = n as { nestVariant?: unknown };
         return { ...rest, children: ((n.children ?? []) as Record<string, unknown>[]).map(stripCoord) };
@@ -9760,7 +9761,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(planLine(ringJs).indexOf('nestVariant') >= 0,
         'anatomy/ring #681 reachable: the real plan projects a nestVariant coordinate into the payload');
       ok(planLine(ringNoCoordJs).indexOf('nestVariant') < 0 && planLine(ringNoCoordJs).length > 0,
-        `anatomy/ring #681 reachable: the stripped plan projects none — the four-way table below is really driven by a nest-exposed shape (${planLine(ringNoCoordJs).length} B plan line)`);
+        `anatomy/ring #681 reachable: the stripped plan projects none — the four-way table below is really driven by a coordinate-free plan, the defensive miss path (${planLine(ringNoCoordJs).length} B plan line)`);
 
       const ringFound = async (node: StubFileNode | undefined): Promise<string> => {
         const r = await runPayload(ringNoCoordJs, { ...ringOpts, comps: ['FPO-default-icon'], fileNodes: node ? [node] : [] });
@@ -11360,15 +11361,33 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // what the INSTANCE_SWAP property does), so it cannot claim its content is fixed.
       ibBroke('an `absolute` claiming `swap` fails', /kind 'absolute' but declares nesting 'swap'/, patched(iconButton, 'focusRing', { nesting: { kind: 'swap' } }));
       ibBroke('a `slot` claiming `nest-fixed` fails', /kind 'slot' but declares nesting 'nest-fixed'/, patched(iconButton, 'icon', { nesting: { kind: 'nest-fixed', variant: { color: 'default' } } }));
-      ibBroke('a `slot` claiming `nest-exposed` fails too — the same contradiction from the other side', /kind 'slot' but declares nesting 'nest-exposed'/, patched(iconButton, 'icon', { nesting: { kind: 'nest-exposed' } }));
+      ibBroke('a `slot` claiming `nest-exposed` fails too — the same contradiction from the other side', /kind 'slot' but declares nesting 'nest-exposed'/, patched(iconButton, 'icon', { nesting: { kind: 'nest-exposed', variant: { color: 'default' }, expose: ['color'] } }));
 
       // ---- #1226 PR-A: the IN-FLOW `nest` kind ----
-      // A `nest` is the in-flow twin of `absolute`. It MUST name what it nests and be `nest-fixed`; it has
-      // no children of its own; and a NON-nest/absolute kind still cannot carry `nests`. Each mutation is
-      // confirmed to fail on the nest rule BY NAME, not merely to leave the suite red on another gate.
+      // A `nest` is the in-flow twin of `absolute`. It MUST name what it nests and be `nest-fixed` or
+      // `nest-exposed` (#1330); it has no children of its own; and a NON-nest/absolute kind still cannot
+      // carry `nests`. Each mutation is confirmed to fail on the nest rule BY NAME, not merely to leave the
+      // suite red on another gate.
       ibBroke('a `nest` with no `nests` fails', /kind 'nest' but declares no 'nests'/, patched(iconButton, 'focusRing', { kind: 'nest', nests: undefined, inset: undefined, strokeInset: undefined }));
       ibBroke('a `nest` claiming `swap` fails', /kind 'nest' but declares nesting 'swap'/, patched(iconButton, 'focusRing', { kind: 'nest', nesting: { kind: 'swap' }, inset: undefined, strokeInset: undefined }));
-      ibBroke('a `nest` claiming `nest-exposed` fails — not built (#761)', /kind 'nest' but declares nesting 'nest-exposed'/, patched(iconButton, 'focusRing', { kind: 'nest', nesting: { kind: 'nest-exposed' }, inset: undefined, strokeInset: undefined }));
+      // #1330 REVERSES #761: a `nest` declaring `nest-exposed` now VALIDATES (it used to fail "not built").
+      // The shape is nest-fixed's variant + a non-empty `expose`; the negative cases (empty variant, empty
+      // expose, expose∩follow) are mutation-proven in the #1330 block further down.
+      {
+        const exposed = patched(iconButton, 'focusRing', { kind: 'nest', inset: undefined, strokeInset: undefined, when: undefined, nesting: { kind: 'nest-exposed', variant: { surface: 'default' }, expose: ['surface'] } });
+        const errs = validateComponentDef(exposed, nbTree, nbT.root).errors;
+        ok(errs.length === 0, `#1330 a \`nest\` declaring \`nest-exposed\` now validates — the #761 reversal, no longer "not built"${errs.length ? ' — ' + errs.join('; ') : ''}`);
+      }
+      // #1330 the four shape rules, each mutated by name. A nest-exposed carries nest-fixed's `variant`
+      // (the default member the instance starts at) PLUS a non-empty `expose`, disjoint from `follow`.
+      ibBroke('`nest-exposed` with an empty variant fails — still needs a default member (#656)', /declares nesting 'nest-exposed' with an empty variant/, patched(iconButton, 'focusRing', { kind: 'nest', inset: undefined, strokeInset: undefined, when: undefined, nesting: { kind: 'nest-exposed', variant: {}, expose: ['surface'] } }));
+      ibBroke('`nest-exposed` exposing no axes fails — it is a `nest-fixed` misspelled', /declares nesting 'nest-exposed' but exposes no axes/, patched(iconButton, 'focusRing', { kind: 'nest', inset: undefined, strokeInset: undefined, when: undefined, nesting: { kind: 'nest-exposed', variant: { surface: 'default' }, expose: [] } }));
+      // `button` projects `surface`, so `follow: ['surface']` is reachable and ONLY the expose∩follow rule
+      // fires — an axis cannot be both the consumer's to set and the host's to drive per member.
+      ibBroke('`nest-exposed` with an axis in BOTH expose and follow fails', /in BOTH 'expose' and 'follow'/, patched(button, 'focusRing', { kind: 'nest', inset: undefined, strokeInset: undefined, when: undefined, nesting: { kind: 'nest-exposed', variant: { surface: 'default' }, expose: ['surface'], follow: ['surface'] } }));
+      // And the follow-reachability rule covers nest-exposed too (not just nest-fixed): a followed axis the
+      // host does not project falls back silently (#1298). `tone` is not a button axis.
+      ibBroke('`nest-exposed` following an axis the host does not project fails (#1298)', /declares nesting 'follow' on 'tone', which is not an axis this def PROJECTS/, patched(button, 'focusRing', { kind: 'nest', inset: undefined, strokeInset: undefined, when: undefined, nesting: { kind: 'nest-exposed', variant: { surface: 'default' }, expose: ['surface'], follow: ['tone'] } }));
       ibBroke('a `nest` with children fails — an instance carries the nested component\'s own descendants', /kind 'nest' but declares 'children'/, patched(iconButton, 'focusRing', { kind: 'nest', children: ['icon'], inset: undefined, strokeInset: undefined }));
       ibBroke('a `box` declaring `nests` still fails — only absolute/nest materialize an instance', /kind 'box' but declares 'nests'/, patched(iconButton, 'container', { nests: 'focus-ring' }));
 

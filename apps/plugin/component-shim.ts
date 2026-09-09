@@ -259,6 +259,14 @@ export const makeShim = (opts: ShimOpts = {}) => {
           }),
       characters: '',
       opacity: 1,
+      // #1330 — EXPOSED NESTED INSTANCE. Figma's `isExposedInstance` surfaces a nested instance's
+      // properties at the parent's level; a `nest-exposed` part sets it, a `nest-fixed` one does not.
+      // Starts FALSE (Figma's default for a primary instance), not undefined, so a never-marked instance
+      // reads back a definite `false` — which is what makes the executor's write load-bearing: drop the
+      // `node.isExposedInstance = true` and the round-trip reads `false` and fails, rather than reading a
+      // helpfully-defaulted `true`. A plain settable field: modelled because an absent one would let a
+      // forgotten exposure pass as absent-is-absent, the permissive-stub failure this file exists to deny.
+      isExposedInstance: false,
       componentPropertyReferences: null as Record<string, string> | null,
       constraints: null as unknown,
       parent: null as Node | null,
@@ -611,6 +619,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
           // keeping this mode about REFERENCES; #1279's binding drop is a separate behavior not modelled here.
           (t as Record<string, unknown>).boundVariables = n.boundVariables;
           t.fills = n.fills; t.strokes = n.strokes;
+          // #1330 — carry the exposure marking across the combine, same reason as the fields above: a twin
+          // that lost it would make a detach-mode round-trip report a correctly-exposed instance as not.
+          t.isExposedInstance = n.isExposedInstance;
           if (n.layoutMode !== undefined) (t as Record<string, unknown>).layoutMode = n.layoutMode;
           for (const kid of (n.children as Node[]) ?? []) (t.appendChild as (c: Node) => void)(twinOf(kid));
           // DETACH the original: its ref setter now throws Figma's own message, the #1337 symptom.

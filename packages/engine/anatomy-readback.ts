@@ -282,6 +282,16 @@ export const FIELDS: Record<string, FieldCheck> = {
     check: (_p, n) => (String(n.type ?? '') === 'INSTANCE' ? null : `${str(n.type)} — not an instance`),
   },
   nestVariant: { reason: 'which VARIANT the nested instance resolved to is an id on the host; the executor resolves it by name at write time and reports a miss, and this reader has no independent name for it' },
+  // #1330 — HOST-TRUTH for exposure. The plan's `nestExpose` names the child axes the consumer drives;
+  // Figma exposes them by marking the nested instance `isExposedInstance`. This reads that marking back off
+  // the built node, so an executor that projected the exposed plan but never WROTE the exposure fails here
+  // by name — the #874 class (a field the executor forgets to write reads back absent) applied to #1330.
+  // The marking is all-or-nothing in Figma, so this checks the boolean, not the per-axis list; WHICH axes
+  // are exposed is the plan's to state and `lint-component-surface.ts` pins it (the digest carries the list).
+  nestExpose: {
+    show: (p) => `an EXPOSED nested instance (surfacing [${(p as readonly string[]).join(', ')}])`,
+    check: (_p, n) => (n.isExposedInstance === true ? null : `isExposedInstance=${str(n.isExposedInstance)} — the nested instance was not marked exposed, so its properties do not surface on the parent`),
+  },
 
   // ── paints ───────────────────────────────────────────────────────────────────────────────────
   paints: {

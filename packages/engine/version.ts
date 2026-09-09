@@ -60,6 +60,21 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.74.0: `nest-exposed` is BUILT and the checkbox Row collapses 54 → 3 (#1330, owner-approved;
+ * reverses #761). A composed component nested its child and RE-ENUMERATED the child's variant axes into
+ * its own matrix (checkbox Row = 3 selections × 3 sizes × 6 states = 54 members that only mirrored
+ * `checkbox-control`). `nest-exposed` — the `NestingRelation` kind deferred since #761 — instead NESTS the
+ * child and EXPOSES the named child axes (Figma exposed nested-instance properties), so the consumer drives
+ * them from the parent. The Row now `expose`s the control's `selection` + `state`, `follow`s its own
+ * `size`, and projects a SIZE-ONLY 3-member set. A new `FigmaNodePlan.nestExpose` carries the exposed axes;
+ * both executors mark the nested instance `isExposedInstance`; `test-roundtrip.ts` reads the marking back.
+ * ENGINE and not CONTRACT on #1252's decision: the projected component SURFACE moves (checkbox Row member
+ * count 54 → 3, and its nest node gains `nestExpose`), so `schema/component-surface.json` and
+ * `schema/paint-census.json` are re-`--accept`ed for the Row only; every other def stays byte-identical and
+ * `regen --check` moves only each artifact's generator stamp (0.73.0 → 0.74.0). No token NAME moves (a
+ * Figma variant/axis collapse is component-API surface, not a token name — the #1327/#1333 reading), so
+ * `CONTRACT_VERSION` STANDS at 10.0.0 and `token-contract.ts --check` confirms the guaranteed 577 unchanged.
+ *
  * 0.73.0: the overloaded `tone` variant axis is SPLIT (#1334, owner-approved 2026-09-08). `tone` had
  * carried three concepts: `icon`'s semantic INK role, `field-message`/`select`'s validation OUTCOME
  * (`[default, error, warning, success]`), and `field-label`'s label EMPHASIS (`[primary, secondary]`).
@@ -324,8 +339,8 @@
  * tone(4) x state(5) x leading(2) = 40 members.
  *
  * THE VALIDATION AXIS IS SPELLED `tone`, ALIGNED TO field-message's OWN `tone` — the point of the whole
- * shape. `nest-exposed` is refused in this engine (#761), so the nested message is `nest-fixed` with
- * `follow: ['tone']`, which passes the axis through BY NAME. So select's validation axis is named `tone`
+ * shape. `nest-exposed` was refused in this engine at the time (#761; built later in 0.74.0, #1330), so the
+ * nested message is `nest-fixed` with `follow: ['tone']`, which passes the axis through BY NAME. So select's validation axis is named `tone`
  * (values `[default, error, warning, success]`, identical to `field-message`), and the follow is a
  * same-name same-value passthrough rather than a value mapping. The consumer prop / UI still reads
  * "Validation". `lint-axis-values`'s overlapping `tone` entry gains `select` and records the alignment.
@@ -2066,7 +2081,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.73.0';
+export const ENGINE_VERSION = '0.74.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

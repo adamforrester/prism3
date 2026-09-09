@@ -249,14 +249,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unchecked', 'checked', 'indeterminate'],
-    defs: ['checkbox-control', 'checkbox'],
+    defs: ['checkbox-control'],
     relation: 'canonical',
     reason:
       'The canonical set because it is the widest and it is ARIA\'s own vocabulary: `aria-checked` covers '
       + 'checkbox, radio AND `role="switch"`, and its third value `mixed` is this set\'s `indeterminate`. '
       + '`unchecked` leads because the first value is the rest coordinate (see `values` above). The axis '
       + 'NAME was settled for the whole family in `VARIANT_AXES` and the values deliberately left open; '
-      + 'this register is where that open half is finally accounted for.',
+      + 'this register is where that open half is finally accounted for. The checkbox ROW dropped this axis '
+      + 'in #1330 — it EXPOSES `checkbox-control`\'s selection rather than declaring its own — so only the '
+      + 'atom names it now; the Row is gone from this entry because it no longer carries a `selection` axis.',
   },
   {
     axis: 'selection',

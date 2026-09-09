@@ -35,15 +35,23 @@
  * checkbox's label sits inline-end, accepts rich content, and IS the hit target. That is three
  * differences on one prop, so `label` is restated below rather than inherited.
  *
- * ── THE `selection` AXIS: WHY IT IS A VARIANT AND NOT TWO MORE `STATES` ─────────────────────────
+ * ── THE `selection` AND `state` AXES ARE EXPOSED, NOT ENUMERATED (#1330, reversing #761) ────────
  *
- * `VARIANT_AXES` gains one name for this def, and its header carries the argument in full. The short
- * form, because it is the decision most likely to be revisited: `checked` as a *state* would make
- * `checked` × `hover` inexpressible — `{state}` holds one value per coordinate — and it would not fail,
- * it would FALL BACK. A hovered checked box would resolve `hover`, find the unchecked hover border and
- * paint it. #708's shape exactly: a wrong value that resolves.
+ * The Row projects a SIZE-ONLY Figma set (3 members). `selection` (unchecked/checked/indeterminate) and
+ * `state` live on the nested `checkbox-control` and are EXPOSED from it — surfaced as the consumer's
+ * properties on the Row (Figma exposed nested-instance properties; React props; `.ai.json` options) — so
+ * the consumer drives them from the parent instead of the Row re-enumerating them into its OWN variant
+ * matrix. Before #1330 the Row declared `variantAxes: ['selection', 'size']` + a 6-value `stateAxis` and
+ * nested the control `nest-fixed` with `follow: ['selection','size','state']`: 3 × 3 × 6 = 54 members
+ * that MIRRORED the atom it nests. QA measured that mirror and the owner approved reversing it; the
+ * mechanism is `nest-exposed` (see `component-schema.ts`'s `NestingRelation`). The collapse is 54 → 3.
  *
- * Two things follow that a reader should not have to reconstruct:
+ * WHY `selection` IS STILL AN AXIS (on the atom) AND NOT TWO `STATES`, because the argument did not change
+ * — it moved. `checked` as a *state* would make `checked` × `hover` inexpressible (`{state}` holds one
+ * value per coordinate) and it would FALL BACK, not fail: a hovered checked box would resolve `hover`,
+ * find the unchecked hover border and paint it — #708's shape, a wrong value that resolves. That argument
+ * now lives on `checkbox-control`, which carries the `selection` axis; the Row exposes it. Two things a
+ * reader should not have to reconstruct:
  *
  *  1. **The axis name is settled for the FAMILY, not for this def.** Radio and switch meet the same
  *     question, and three defs answering it separately is #756's failure mode. See `VARIANT_AXES`.
@@ -59,18 +67,19 @@
  * The axis-led grammar this def used to carry — `['{selection}.{slot}.{state}', '{selection}.{slot}',
  * '{slot}']` — went to `checkbox-control` with the painted box it describes, and so did every color
  * binding it resolved and `lint-paint.ts`'s `selection` exemption (`NON_FAMILY_AXES`). What the Row
- * paints now is one ink, the label, so its `paintKeys` are just `['{slot}']`. The Row keeps the
- * `selection` AXIS — the nest follows it, and a designer must be able to show a checked row — but
- * nothing on the Row is keyed on it. The full grammar argument (why axis-led, why the exemption, the
- * slot-led error that first shipped) lives in `checkbox-control.ts` now, where the box does.
+ * paints now is one ink, the label, so its `paintKeys` are just `['{slot}']`. Since #1330 the Row no
+ * longer even declares the `selection` axis — it exposes the control's — so nothing on the Row is keyed
+ * on it. The full grammar argument (why axis-led, why the exemption, the slot-led error that first
+ * shipped) lives in `checkbox-control.ts` now, where the box does.
  *
  * ── #871: NO SURFACE / INVERSE AXIS, AND ITS ABSENCE IS THE DECISION ────────────────────────────
  *
- * This def declares `size` and `selection` and nothing else. It does **not** declare a surface or
- * inverse axis, and the token tier's `color.interactive.primary.on-inverse.*` family is deliberately
- * unbound. Surface context is published by a CASCADE, not by a component variant — a control does not
- * ask which ground it is standing on. Stated here because checkbox, radio and switch each meet the
- * question independently and the same three-answers-to-one-question failure applies.
+ * This def declares `size` and nothing else (since #1330; `selection` is now exposed, not declared). It
+ * does **not** declare a surface or inverse axis, and the token tier's
+ * `color.interactive.primary.on-inverse.*` family is deliberately unbound. Surface context is published by
+ * a CASCADE, not by a component variant — a control does not ask which ground it is standing on. Stated
+ * here because checkbox, radio and switch each meet the question independently and the same
+ * three-answers-to-one-question failure applies.
  *
  * ── THE RUNG OFFSET, WHERE I MET IT (#756, `docs/28` §5.2, `docs/40` §7 step 2) ─────────────────
  *
@@ -125,19 +134,22 @@ export const checkbox: ComponentDef = {
   // `focus-visible` also binds no per-slot key: the indicator is the nested ring, as on `button`.
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only', 'error'],
 
-  // `size` and `selection`. No tone/emphasis axis — brief §4: "a checkbox is neutral". No surface or
-  // inverse axis (#871, see the header). `alignment` and the group's `orientation`/`density` are in
-  // brief §15's variants block and are NOT axes here — `notes.contested` carries both, with reasons.
+  // `size` ONLY since #1330 (the #761 reversal). `selection` LEFT the Row's variant matrix — it is now
+  // EXPOSED from the nested `checkbox-control` (the consumer drives it from the parent), not re-enumerated
+  // here. `size` STAYS the Row's own axis: it scales the label's type ramp, the box↔label gap and the
+  // row's min-height — things the nested control does not touch — so it is not merely the control's axis.
+  // No tone/emphasis axis (brief §4: "a checkbox is neutral"); no surface/inverse axis (#871). `alignment`
+  // and the group's `orientation`/`density` are in brief §15's variants block and are NOT axes here —
+  // `notes.contested` carries both, with reasons.
   variants: {
     size: ['small', 'medium', 'large'],
-    selection: ['unchecked', 'checked', 'indeterminate'],
   },
 
   // ONE KEY since #1226 step 2: the painted box moved to `checkbox-control`, so the Row's whole color
   // surface is the label ink (`label`, `disabled.label` — the bare slot). The `{selection}`-led
   // templates went with the box; keeping them here with nothing selection-dependent left to resolve
-  // would be unreachable keys `lint-paint.ts` arm 2 flags. The `selection` axis stays for the nest to
-  // follow — an axis with no paint key is fine; a paint key with no binding is not.
+  // would be unreachable keys `lint-paint.ts` arm 2 flags. Since #1330 the Row does not even declare the
+  // `selection` axis — it EXPOSES the control's — so the bare slot is the only key it needs.
   paintKeys: ['{slot}'],
 
   tokens: {
@@ -146,9 +158,9 @@ export const checkbox: ComponentDef = {
     // box's disabled skin, the corner and the 2px border — MOVED to `checkbox-control` with the box
     // itself. What paints on the Row is the label text beside the nested control, so the grammar sheds
     // its `{selection}`-led templates: `paintKeys` is `['{slot}']` and the two keys below are its whole
-    // color surface. The `selection` axis stays (the nest follows it, and a designer shows a checked
-    // row), but nothing on the Row is keyed on it any more — which is why the Row no longer exercises
-    // `lint-paint.ts`'s `selection` exemption and `checkbox-control` does.
+    // color surface. Since #1330 the Row does not declare `selection` at all (it exposes the control's),
+    // so nothing on the Row is keyed on it — which is why the Row no longer exercises `lint-paint.ts`'s
+    // `selection` exemption and `checkbox-control` does.
     //
     // THE LABEL — one ink at every coordinate, so it is the bare slot. It is page text sitting BESIDE
     // the control rather than value text inside a fill, which is why its disabled ink is `disabled.text`
@@ -245,16 +257,19 @@ export const checkbox: ComponentDef = {
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
         children: ['control'],
       },
-      // THE NESTED CONTROL (#1226 step 2). Where the painted box, the two glyphs and the focus ring
+      // THE NESTED CONTROL (#1226 step 2, #1330). Where the painted box, the two glyphs and the focus ring
       // used to be authored in place, the Row now nests ONE instance of `checkbox-control` — an in-flow
       // `kind: 'nest'`, the twin of the `absolute` focus ring but taking a cell. A fix to the box
       // (its corner, its border weight, its fill grammar) reaches here without being copied.
       //
-      // IT FOLLOWS all three axes the atom carries — `selection`, `size` and `state` — so a checked,
-      // large, hovered Row nests the checked/large/hover Control member. `#1298` is what makes `size` and
-      // `state` followable (they resolve from `paintCoord`, not the caller's argument map); before it,
-      // `follow: ['size']` was accepted and dropped and a small Row nested a MEDIUM control. The fixed
-      // `variant` is the non-empty fallback the schema requires; `follow` overrides it at every member.
+      // IT IS `nest-exposed` (#1330, reversing #761). The control's `selection` and `state` are EXPOSED —
+      // surfaced as the consumer's properties on the Row rather than re-enumerated into the Row's OWN
+      // variant matrix — so the Row projects SIZE-ONLY (3 members) instead of the old 3 selections × 3
+      // sizes × 6 states = 54 that merely mirrored the atom. `follow: ['size']` passes the Row's own size
+      // rung into the nested control (so a `large` Row nests the `large` control); `#1298` is what makes
+      // `size` followable (it resolves from `paintCoord`). `variant` is the DEFAULT the instance starts at
+      // — `selection=unchecked, state=rest` — the member the exposed properties drive FROM, and the
+      // non-empty coordinate the schema requires; `follow` fills `size` per Row member on top of it.
       //
       // IT PINS ITS OWN SQUARE and does NOT stretch. `size: 'size.{size}.control'` (→ `control.size.*.height`,
       // 16/20/24 on nb) binds the instance to the control square, which is SHORTER than the `control-box`
@@ -267,8 +282,8 @@ export const checkbox: ComponentDef = {
         kind: 'nest',
         nests: 'checkbox-control',
         size: 'size.{size}.control',
-        nesting: { kind: 'nest-fixed', variant: { selection: 'unchecked' }, follow: ['selection', 'size', 'state'] },
-        note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It follows the Row\'s selection/size/state, and binds its own square so it is centred within the taller wrapper rather than stretched to fill it.',
+        nesting: { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest' }, expose: ['selection', 'state'], follow: ['size'] },
+        note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size, and binds its own square so it is centred within the taller wrapper rather than stretched to fill it.',
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
       // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the fill and not
@@ -282,7 +297,8 @@ export const checkbox: ComponentDef = {
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word, so a
       // passing mention inside an entry about something else does not count (#563).
-      'read-only — the one state in `states` the Figma set does not carry, admitted here rather than dropped, exactly as `button` admits `inactive`. It binds NOTHING by design (see `states`): the brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to project. Nine variants byte-identical to `rest` would read as coverage of a state nobody has designed.',
+      'read-only — a `states` value the Figma set does not carry. Since #1330 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `checkbox-control` and the consumer drives it from the Row, so no state — read-only least of all — is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code (see `states`): the brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to project at either level.',
+      'states — the Row\'s per-state LABEL treatment (`disabled.label` dimming the text when the field is disabled) is the CODE projection\'s, not Figma\'s. Since #1330 the Figma set is size-only and `state` is exposed from the nested control, so a disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label. `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code; it is the Figma SET that cannot show it, because the Row no longer multiplies state. The documented cost of collapsing 54 members to 3 (the #761 reversal).',
       'min-height — `size.*.min-height` is the row\'s FLOOR (48 at medium on nb) and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it here would state the wrong quantity and clip a wrapping consent label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection, where `min-height` is the property they name.',
       'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch; the row reaches that at `medium` and not at `small`, and the padding that would expand it is a per-consumer decision about the surrounding layout rather than a property of this component. `row` is the node it lands on — that is what this block newly makes expressible — but the value is not the def\'s to pick.',
       'The label\'s RICH CONTENT. `label` is typed `node` and its commonest real value is a consent line with a link in it; a Figma text node holds characters, so the projected placeholder is flat text and the link exists only in code.',
@@ -291,22 +307,27 @@ export const checkbox: ComponentDef = {
   },
 
   figmaProperties: {
-    // BOTH axes, and `selection` is not optional here: the `control` nest FOLLOWS `selection`, `size` and
-    // `state`, and the schema refuses a `follow` on an axis the host does not project — so an unprojected
-    // `selection` would break the nest's coordinate rather than merely dropping paint. 3 selections x 3
-    // sizes x 6 states = 54 members, matching the atom it nests.
-    variantAxes: ['selection', 'size'],
-    // Six of the seven states — `read-only` is admitted in `codeOnly` above, on `button`'s precedent for
-    // `inactive`. 3 selections x 3 sizes x 6 states = 54 members.
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'error'] },
+    // SIZE ONLY since #1330 (the #761 reversal). `selection` and `state` are EXPOSED from the nested
+    // `checkbox-control` (see the `control` part), so the Row no longer enumerates them — it projects 3
+    // size members where it used to project 3 selections × 3 sizes × 6 states = 54 that only mirrored the
+    // atom. The `control` nest `follow`s `size` (the one axis this def still projects) and exposes the
+    // other two; `#1298`'s reachability check confirms `size` is projectable, and the exposed axes are the
+    // child's — checked against the atom at projection (`nestVariantMatch`) and round-trip, not here.
+    variantAxes: ['size'],
+    // NO `stateAxis` (#1330). The control's `state` is exposed, not multiplied into the Row's set — the
+    // Row's own `states` list (above) still drives the CODE projection (a disabled Row dims its label),
+    // and `lint-paint` arm 2 reads `def.states` for reachability so `disabled.label` stays reachable; it
+    // is the FIGMA set that collapses. `read-only` stays admitted in `codeOnly`. That the Row's label no
+    // longer carries a per-state Figma treatment is the documented cost of the collapse (see `codeOnly`).
     texts: {
       // A CONSENT LINE as the placeholder, not "Label". #798's finding is that a text part with no TEXT
       // property projects a blank node; the corollary is that the default is the only copy anyone
       // reviewing the set will see, so it should be the shape the component is hardest at.
       label: { part: 'label', default: 'I agree to the Terms of Service' },
     },
-    // No `swaps` — the Row nests a FIXED `checkbox-control` (the def picks the control, not the
-    // designer), and the two glyphs that were gated by `presentWhen` live in that atom now. No `slotAxes`.
+    // No `swaps` — the Row nests `checkbox-control` and exposes its selection/state (the def picks the
+    // control, the consumer drives its properties), and the two glyphs that were gated by `presentWhen`
+    // live in that atom now. No `slotAxes`.
     booleans: {},
   },
 
@@ -375,7 +396,7 @@ export const checkbox: ComponentDef = {
   notes: {
     contested: [
       'THE PAINT GRAMMAR IS AXIS-LED and the exemption is declared per-AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`) rather than per-key. RESOLVED, not open — kept here because the rejected alternative is the instructive part. This def first shipped SLOT-led (`fill.checked`), which skips arm 1 by construction, since that rule only examines a key whose literal lead is an axis value: the same net coverage, none of the visibility, and exactly the shape the house rule forbids — a false positive is fixed by adding to the exemption list, never by narrowing a scan. The other alternative, axis-led with a `PROVENANCE_EXCEPTIONS` entry per binding, was costed at roughly four times `field-message`\'s whole list for this one def; the axis-level entry replaces all twenty with one declaration that `radio` and `switch` inherit. What stays genuinely open is only the underlying fact, and it is a TOKEN-TIER claim anyone can check: the tier emits no `color.checked.*` family and should not grow one. If that stops being true, arm 1 should cover this axis and the exemption fails as no-longer-exercised, which is the direction it is checked in.',
-      '`checked`/`indeterminate` as a variant AXIS rather than as two `STATES` entries. The alternative is real and cheaper: both would be admissible on the letter of that list\'s bar, since six of its ten members are already not interactions. It was rejected because `{state}` holds one value per coordinate, so `checked` x `hover` would not fail — it would fall back and paint the unchecked hover border. The trigger named here was a projection, and the projection has now happened: the set is 3 selections x 3 sizes x 6 states = 54 members, and `selection` earns its axis in the shape a flat state property could not — the mark and the dash are two PARTS gated on it (`presentWhen`), not two paint treatments, so collapsing it into `state` would put a tick and a dash at one coordinate. Read as settled by evidence rather than still pending.',
+      '`checked`/`indeterminate` as a variant AXIS rather than as two `STATES` entries — and, since #1330, EXPOSED from the nested control rather than enumerated on the Row. The alternative (two states) is real and cheaper but wrong: `{state}` holds one value per coordinate, so `checked` x `hover` would not fail — it would fall back and paint the unchecked hover border. `selection` earns its axis in the shape a flat state property could not — the mark and the dash are two PARTS gated on it (`presentWhen`), not two paint treatments, so collapsing it into `state` would put a tick and a dash at one coordinate. What #1330 changed is WHERE the axis lives, not whether it is one: the atom (`checkbox-control`) carries the 3 selections x 3 sizes x 6 states = 54-member set, and the Row EXPOSES `selection` + `state` from it (projecting a size-only 3-member set) instead of re-enumerating the 54 it used to. The #761 reversal, owner-approved, QA-measured. Settled by evidence.',
       '`alignment` (top/baseline vs center) is in brief §15\'s variants block and is NOT an axis here. The brief calls top/baseline "the non-negotiable default, not center", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centred — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlBox` exactly one label line-box tall and centres WITHIN that box, so a single-line label reads centred and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.',
       'The group\'s `orientation` and `density` are in brief §15\'s variants block and are not here because they are `CheckboxGroup`\'s axes, not this component\'s. The alternative is folding the group into this def, which is the monolithic decomposition the brief evaluates and rejects (§2).',
       'THE BOX\'S CORNER — CLOSED by #1015, and the answer was engine surface after all. This entry ran for three revisions saying `radius.sm` was correct and needed no def change, and each revision was right about the fact it measured and wrong about the question. What it kept measuring: 2px is what four of five brands resolve, and aurora\'s 4px is its own `radiusScale: 2` lever working as designed. What it never asked: whether ONE corner value can be right for THREE box sizes. It cannot. `radius.sm` is a rung on the CARD ramp, and a card scales with the page while this box scales with the type — so the same 4px token is a fourteenth of aurora\'s card corner and a THIRD of its 12px `small` square. The proportion is the defect, not the value, which is why "2px is correct" and "the binding is wrong" were both true and the entry could not see it. Now `control.size.<rung>.radius` = `min(radius.sm, snap2(edge ÷ 8))`, a sibling of the `height` it is derived from, bound per rung. Prism 2\'s own controls sit at ~1/8 of their edge, which is where the ratio comes from; `min` is what makes the change non-destructive, because a bare ratio would round nb\'s 24px `large` corner UP from 2 to 4 and move four brands to fix one. Aurora moves 4 → 2 at all three rungs and nothing else moves at all. The alternative this entry named — a dedicated control-radius RUNG on the radius ramp — was the shape rejected: a rung cannot see the box EDGE, so it would be a fourth name that still could not scale with the thing it corners. What is genuinely NOT fixed: the ratio and the 2px radius sub-grid cannot both hold on a 12px edge, so aurora\'s `small` lands at 0.167 rather than the 0.125 the ratio targets, and the sub-grid wins on purpose (a 1.5px corner is not a corner). The binding reaches the built NODE, pinned by a per-rung read-back in `apps/plugin/test-write-components.ts` that recomputes the clamp from the brand\'s own `radius.sm` and box edge rather than trusting the emitter — `radius/round` for radio stays asserted beside it, so "checkbox only" is enforced rather than intended.',
