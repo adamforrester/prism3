@@ -33,7 +33,7 @@ export const fieldLabel: ComponentDef = {
     { name: 'htmlFor', type: 'string', required: true, description: 'The id of the field it names — a native <label for>. Set by the host when composed inside TextField (useId).' },
     { name: 'indicator', type: "enum: 'none' | 'required' | 'optional'", values: ['none', 'required', 'optional'], default: 'none', required: false, description: 'The required/optional marker. Mark the MINORITY consistently within a form (§7): "(optional)" when most are required, a required marker when most are optional. Never the sole signal — the field also carries required/aria-required.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Pairs with the field size. THREE steps as of #872, converging with `text-field` and `textarea`, which have declared small/medium/large since tranche 1 — #872 deferred the third rung to the substrate ("they must agree, and field-label cannot answer alone") and the substrate has since answered. Scales the TYPE (`type.body.{sm,md,lg}` = 14/16/18px), not padding alone.' },
-    { name: 'tone', type: "enum: 'primary' | 'secondary'", values: ['primary', 'secondary'], default: 'primary', required: false, description: 'The label\'s ink (#872 — Prism 2 calls this control "color"). `secondary` is the de-emphasized label a dense form or a read-only field wants, which #872 named as the sharpest of its three gaps: the ink was hard-bound with no way to express it. Semantic ROLES, never shades — `color.text.{primary,secondary}` — so a brand changing its text palette carries this without the def moving.' },
+    { name: 'emphasis', type: "enum: 'primary' | 'secondary'", values: ['primary', 'secondary'], default: 'primary', required: false, description: 'The label\'s ink (#872 — Prism 2 calls this control "color"; renamed from `tone` to `emphasis` in #1334, splitting the overloaded axis name). `secondary` is the de-emphasized label a dense form or a read-only field wants, which #872 named as the sharpest of its three gaps: the ink was hard-bound with no way to express it. Semantic ROLES, never shades — `color.text.{primary,secondary}` — so a brand changing its text palette carries this without the def moving.' },
     { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads (#1248 — Prism 2\'s third form-label control, and the last of its three to land here). `bold` resolves the `strong` type role (weight 700, Inter\'s Bold) at whichever size rung is chosen; `regular` resolves `default` (400). Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Dims the label when its field is disabled (a visual echo — the field\'s native disabled is the source of truth).' },
   ],
@@ -42,7 +42,7 @@ export const fieldLabel: ComponentDef = {
   states: ['rest', 'disabled'],
   variants: {
     size: ['small', 'medium', 'large'],
-    tone: ['primary', 'secondary'],
+    emphasis: ['primary', 'secondary'],
     // PRISM 2'S THIRD CONTROL, and the last of the three (#1248, completing #872). Its enum is
     // `["Regular", "Bold"]` with `Regular` the default, and these are those two values in this repo's
     // casing. It crosses `size` in full over there — `{size: Medium, weight: Bold}` and
@@ -52,14 +52,14 @@ export const fieldLabel: ComponentDef = {
     indicator: ['none', 'required', 'optional'],
   },
 
-  // Ink follows the `tone` axis — both text parts together — and TYPE follows `size` across three rungs
+  // Ink follows the `emphasis` axis — both text parts together — and TYPE follows `size` across three rungs
   // (#872). Disabled still dims to the shared disabled ink, the one treatment no axis moves. This
   // paragraph read "the indicator is muted (secondary)" and "two sizes bind type.label.{sm,md}.emphasis"
   // until #872; both halves are now false, and the reasons sit at the bindings themselves.
 
   // THE PAINT GRAMMAR (#758, widened by #872). It was a BARE slot, and "this def's ink does not vary by
   // any of its axes" was true while `size` and `indicator` were the only axes: one changes the type
-  // step, the other changes which text is present, and neither changes a color. `tone` is the first
+  // step, the other changes which text is present, and neither changes a color. `emphasis` is the first
   // axis here that does, so the grammar gained its placeholder — the same shape `field-message` has
   // carried since #795. The #758 point this illustrated survives and is worth keeping: a bare `{slot}`
   // was a shape the hardcoded `{intent}.{appearance}.{slot}` could not express, which is why this def
@@ -82,26 +82,27 @@ export const fieldLabel: ComponentDef = {
   // reached at NO coordinate — the de-emphasized "(optional)" suffix would have shipped in
   // full-strength primary ink. A rename that produced a dead key, inside #784's own fix.
   //
-  // So the indicator part declares `paintSlot: 'indicator'` and the key is `<tone>.indicator`, a slot the
-  // projector dispatches. It stays a SEPARATE SLOT even though #872 made both parts resolve to the same
-  // role at both tones — the justification here used to be "Figma renders two text nodes in two colors
-  // trivially, so a shared ink would be a real design loss", and that expired when the marker began
+  // So the indicator part declares `paintSlot: 'indicator'` and the key is `<emphasis>.indicator`, a slot
+  // the projector dispatches. It stays a SEPARATE SLOT even though #872 made both parts resolve to the same
+  // role at both emphasis values — the justification here used to be "Figma renders two text nodes in two
+  // colors trivially, so a shared ink would be a real design loss", and that expired when the marker began
   // following the label. What keeps the slot is different and still live: the DISABLED branch builds
   // `disabled.<slot>` from the slot it was asked for, so folding `indicator` into `label` would leave a
-  // disabled marker undimmed. A slot carrying the same ink at every tone is not redundant; it is one
-  // axis away from carrying a different one.
+  // disabled marker undimmed. A slot carrying the same ink at every emphasis value is not redundant; it is
+  // one axis away from carrying a different one.
   //
   // `disabled.label` needs no new mechanism — it resolves via the cross-cutting `disabled.*` branch,
   // same as Button's, and the branch builds `disabled.<slot>` from the slot it was ASKED for, so the
   // indicator's disabled ink is `disabled.indicator`. Bound below for that reason: without it a
   // disabled label dims and its indicator does not.
-  // `{tone}.{slot}` as of #872 — `field-message`'s shape one def over. The ink varies by tone now, so a
-  // slot alone no longer identifies a key; the `{slot}` half is unchanged and still carries #784's fix.
-  paintKeys: ['{tone}.{slot}'],
+  // `{emphasis}.{slot}` as of #872 (the placeholder renamed from `{tone}` in #1334) — `field-message`'s
+  // shape one def over. The ink varies by emphasis now, so a slot alone no longer identifies a key; the
+  // `{slot}` half is unchanged and still carries #784's fix.
+  paintKeys: ['{emphasis}.{slot}'],
 
   tokens: {
     'gap': 'space.050',
-    // INK, PER TONE (#872), and THE MARKER FOLLOWS THE LABEL — a reversal of what shipped, so the reason
+    // INK, PER EMPHASIS (#872), and THE MARKER FOLLOWS THE LABEL — a reversal of what shipped, so the reason
     // is here. The marker used to be pinned one role down (`indicator` -> `color.text.secondary`) so
     // "(optional)" read de-emphasized beside a primary label.
     //
@@ -112,8 +113,8 @@ export const fieldLabel: ComponentDef = {
     //
     // A SECOND REASON STOOD HERE AND WAS FALSE, which is worth recording because it is the shape this
     // repo keeps finding: a constraint invented to make a preference look forced. It claimed the muted
-    // marker was "not expressible anyway" once ink is tone-keyed. It is expressible —
-    // `paintKeys: ['{tone}.{slot}', '{slot}']` with a bare un-led `indicator: 'color.text.secondary'`
+    // marker was "not expressible anyway" once ink is emphasis-keyed. It is expressible —
+    // `paintKeys: ['{emphasis}.{slot}', '{slot}']` with a bare un-led `indicator: 'color.text.secondary'`
     // resolves cleanly, and the counterexample was built and run rather than argued: provenance ok,
     // `reach/field-label 5/5`, five bindings against this file's six. The provenance arm does refuse
     // `primary.indicator -> color.text.secondary` — that part was measured and is true — but refusing
@@ -121,7 +122,7 @@ export const fieldLabel: ComponentDef = {
     // a design choice acquires a fake justification.
     //
     // SO THE CAPABILITY IS REMOVED, NOT RELOCATED, and the distinction matters to anyone reading this
-    // for what the def can still do. `tone='secondary'` mutes the WHOLE component, label and marker
+    // for what the def can still do. `emphasis='secondary'` mutes the WHOLE component, label and marker
     // together. The muted-marker-RELATIVE-TO-LABEL treatment — a primary label beside a quieter
     // "(optional)" — is now unreachable at every coordinate. That is a deliberate tradeoff taken to
     // match Prism 2, not a feature that moved somewhere else, and re-introducing it means re-arguing it
@@ -198,7 +199,7 @@ export const fieldLabel: ComponentDef = {
         kind: 'text',
         // THE MARKER FOLLOWS THE WEIGHT, and this is measured off Prism 2 rather than inferred from
         // the label's binding: every one of its three Bold variants sets `fontStyle: "Bold"` on the
-        // `required` element as well as on `label`. Same shape as the tone decision above — the two
+        // `required` element as well as on `label`. Same shape as the emphasis decision above — the two
         // text nodes move together — but arrived at from the reference spec independently, since a
         // marker that stayed Regular beside a Bold label is a perfectly coherent design that Prism 2
         // simply does not have.
@@ -263,14 +264,14 @@ export const fieldLabel: ComponentDef = {
   // and because a one-glyph placeholder in a de-emphasized ink is exactly the projection a designer
   // mistakes for an empty node — the thing this fix is for.
   figmaProperties: {
-    // `tone` PROJECTS as of #872 and `weight` as of #1248; `indicator` still does not, for the reason
-    // in `codeOnly` below — its most important value is ABSENCE, which no coordinate here can express.
-    // The set carries 3 sizes x 2 tones x 2 weights x 2 states = 24 members, against the 12 that
-    // shipped before the weight axis. Prism 2's own `_Form label` set is 3 x 2 x 2 over
-    // size x color x weight, so the three CONTROLS now match one-for-one.
+    // `emphasis` PROJECTS as of #872 (renamed from `tone` in #1334) and `weight` as of #1248; `indicator`
+    // still does not, for the reason in `codeOnly` below — its most important value is ABSENCE, which no
+    // coordinate here can express. The set carries 3 sizes x 2 emphasis x 2 weights x 2 states = 24
+    // members, against the 12 that shipped before the weight axis. Prism 2's own `_Form label` set is
+    // 3 x 2 x 2 over size x color x weight, so the three CONTROLS now match one-for-one.
     //
     // DO NOT READ THAT AS "the same set". What remains is DEFAULTS, and they are a real divergence
-    // rather than a rounding error: this def defaults to `tone: primary`, `size: medium` and
+    // rather than a rounding error: this def defaults to `emphasis: primary`, `size: medium` and
     // `weight: regular` where Prism 2 defaults to Secondary, Small and Regular. Two of the three
     // disagree, so a consumer who chooses nothing lands in a different cell in each system. The
     // vocabularies agree — the size ladder is 14/16/18 in both, the colors match role-for-role, and
@@ -280,10 +281,10 @@ export const fieldLabel: ComponentDef = {
     // THE FOURTH AXIS IS NOT THE SAME AXIS, and the matching member counts hide that rather than show
     // it. Both sets are 24, and they get there differently: Prism 2 is size x weight x color x
     // `required` (a BOOLEAN prop, default `true`) and has no disabled treatment at all, while this is
-    // size x tone x weight x `state` (rest/disabled) with `required` living on the unprojected
+    // size x emphasis x weight x `state` (rest/disabled) with `required` living on the unprojected
     // `indicator` axis. So the two 24s are not comparable cell-for-cell, and reading them as agreement
     // is the kind of arithmetic coincidence this file has been wrong about before.
-    variantAxes: ['size', 'tone', 'weight'],
+    variantAxes: ['size', 'emphasis', 'weight'],
     stateAxis: { name: 'state', values: ['rest', 'disabled'] },
     texts: {
       // `label` not `children` (#1242) — this key is the designer-facing Figma property name and is

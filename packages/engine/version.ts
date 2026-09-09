@@ -60,6 +60,58 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.73.0: the overloaded `tone` variant axis is SPLIT (#1334, owner-approved 2026-09-08). `tone` had
+ * carried three concepts: `icon`'s semantic INK role, `field-message`/`select`'s validation OUTCOME
+ * (`[default, error, warning, success]`), and `field-label`'s label EMPHASIS (`[primary, secondary]`).
+ * `lint-axis-values.ts`'s register recorded the strain — the validation set stood `overlapping` with
+ * icon's ink set and the emphasis set a `subset` of it. The owner's split retires the overloaded name:
+ * the validation axis → `status` (on `field-message` and `select`, which the plugin studio UI already
+ * calls "status"), `field-label`'s emphasis axis → `emphasis`. `tone` STAYS on `icon` alone (the ink
+ * axis, which was never the overload — the issue enumerated only the two overloaded uses, and renaming
+ * icon's axis would be a separate owner decision), so `VARIANT_AXES` keeps `tone` and gains `status` and
+ * `emphasis` (16th and 17th names). The rename lands on the `variants` key, the paint-key placeholder
+ * (`{tone}` → `{status}`/`{emphasis}`), `presentWhen`/`footprintVaries`/`byVariant` coordinates,
+ * `select`'s nested `follow: ['status']` and its `field-label` nest's `emphasis` coordinate, and the
+ * mirrored consumer props (`field-message.tone` → `status`, `field-label.tone` → `emphasis`; `select`'s
+ * prop stays `validation`).
+ *
+ * TOKEN KEYS DO NOT MOVE, WHICH IS WHY CONTRACT HOLDS. Paint keys resolve the placeholder to the axis
+ * VALUE (`{status}` → `error`), so a def's `tokens` keys (`error.label`, `error.border.rest`, …) are the
+ * value plus slot and are byte-identical after the rename — no token name is added, removed or retyped.
+ * A component axis name is component-API surface, not a token name (docs/30; the #1327/#1333 reading), so
+ * `CONTRACT_VERSION` STANDS at 10.0.0 and `token-contract.ts --check` confirms it rather than this comment
+ * asserting it; `--accept` refreshes only the baseline's informational `engineVersion` stamp to 0.73.0.
+ * No `DEPRECATIONS` or `MATERIALIZATION_RENAMES` entry is owed — an axis rename is neither a token-PATH
+ * move nor a Figma-COLLECTION rename (the #1327 reading); both gates pass with 0 claims.
+ *
+ * ENGINE and not CONTRACT, on #1252's decision. The token layer does not move — `regen --check` is
+ * byte-identical but each artifact's own generator stamp — so this is an ENGINE bump the `out/` diff
+ * cannot see, demanded from the PROJECTED-SURFACE side: the member NAMES carry the axis (`status=error`
+ * replacing `tone=error`; `emphasis=…` replacing `tone=…`), so each affected member's `planStamp` moves
+ * and `schema/component-surface.json` is re-`--accept`ed for `field-message` (4), `select` (40) and
+ * `field-label` (24) at unchanged member COUNTS. `lint-emission-version` is blind to it — component
+ * payloads are not committed under `out/` — which is exactly the gap `lint-component-surface` covers.
+ * `paint-census.json` DOES move for all three defs — and unlike #1333's TEXT-property rename, which left
+ * it alone. The census hashes a `(coordinate, node path, slot, variable)` row, and the coordinate carries
+ * the axis NAME (`status=error` replacing `tone=error`; `emphasis=…` replacing `tone=…`), so the hash
+ * moves even though the resolved paint KEYS (`error.label`, `error.border.rest`) and the assignment COUNTS
+ * are unchanged. Re-`--accept`ed for `field-label`, `field-message` and `select`; every other def's census
+ * is byte-identical.
+ *
+ * NO STUDIO/PLUGIN UI TEXT MOVED. The axis name is the projection (the Figma variant property name); the
+ * studio/plugin surfaces do not display the component axis name to the user, and the studio's own
+ * "emphasis"/"status" strings are unrelated concepts (button/neutral emphasis, weight roles, the
+ * `status.*` colour levers). The consumer-facing "Validation" label on select is unchanged.
+ *
+ * MUTATION-BY-NAME (docs/34). Reverting ONE axis rename in a def moves that def's members' `planStamp` at
+ * the same member count and fails `lint-component-surface.ts` BY NAME (the #1252 gap). The rename is also
+ * caught by `lint-axis-values.ts` (ARM A finds the reverted set undeclared, ARM B finds the new register
+ * entry stale) and by hand-written `test.ts` literals: `fieldMessage.variants.status`, the projected
+ * member names `status=default | status=error | …`, `field-label.variants.emphasis`, and the plugin
+ * `test-write-components.ts` member-name join — none derived from the def. The `field-message`/`select`
+ * alignment is load-bearing: `select`'s `follow: ['status']` passes the axis through by name, so if only
+ * one of the two were reverted the nest would mismatch as well.
+ *
  * 0.72.0: two OPT-IN caption FINE-PRINT rungs (#1360 + #1363, owner decision, 2026-09-09), both off by
  * default so no corpus brand moves. The size ladder floors at 10px and `fontSizeLadder()` was
  * brand-invariant, so a 10px caption (#1360) and a sub-10px 8px rung (#1363) were unreachable by any
@@ -2014,7 +2066,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.72.0';
+export const ENGINE_VERSION = '0.73.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

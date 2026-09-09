@@ -17,37 +17,39 @@
  * separate popover surface). There is no `expanded` state and no option-list anatomy here; a designer
  * building the open menu reaches for a menu/listbox component, not a variant of this one.
  *
- * ── VALIDATION IS THE `tone` AXIS, ALIGNED TO field-message's OWN `tone` (the whole point) ────────
+ * ── VALIDATION IS THE `status` AXIS, ALIGNED TO field-message's OWN `status` (the whole point) ────
  *
  * The validation axis carries `[default, error, warning, success]` — the SAME four values, spelled the
- * same way, as `field-message`'s `tone`. That alignment is deliberate and load-bearing: the nested
- * message's tone is driven from this axis by a `nest-fixed` `follow`, and `follow` passes an axis
- * THROUGH BY NAME (`component-schema.ts`, `NestingRelation`). So the axis here is named `tone`, not
- * `validation`, precisely so `follow: ['tone']` can drive the child — a same-name, same-value
+ * same way, as `field-message`'s `status`. That alignment is deliberate and load-bearing: the nested
+ * message's status is driven from this axis by a `nest-fixed` `follow`, and `follow` passes an axis
+ * THROUGH BY NAME (`component-schema.ts`, `NestingRelation`). So the axis here is named `status`, not
+ * `validation`, precisely so `follow: ['status']` can drive the child — a same-name, same-value
  * passthrough rather than a value-mapping problem. The consumer-facing prop and UI still read
- * "Validation"; the Figma variant axis is `tone` so the wire matches the child it drives.
+ * "Validation"; the Figma variant axis is `status` so the wire matches the child it drives. (The axis
+ * was named `tone` until #1334, which split the overloaded `tone` name — this validation axis to
+ * `status`, `field-label`'s emphasis axis to `emphasis` — and moved the `follow` with it.)
  *
  * ── VALIDATION → BORDER: A BORDER-ONLY SWAP FOR error, FOLLOWING text-field EXACTLY ───────────────
  *
  * `text-field`'s validation is a BORDER swap for `error` (→ `border.danger`) and nothing else — warning
- * and success are MESSAGE-only, carried by the nested field-message's tone, with the border left
+ * and success are MESSAGE-only, carried by the nested field-message's status, with the border left
  * neutral. Select follows this. There is deliberately NO `border.warning` / `border.success` role: the
- * token tier does not emit them and text-field does not color the border for those tones. The border's
+ * token tier does not emit them and text-field does not color the border for those statuses. The border's
  * whole vocabulary is:
  *
  *   rest          → `field.border.rest`      (the bare `border` key — the rest fallback)
  *   hover         → `field.border.hover`     (`border.hover`)
  *   focus-visible → `border.focus`           (`border.focus-visible`)
- *   error         → `border.danger`          (`error.border.{state}` — a tone-led, border-ONLY swap)
+ *   error         → `border.danger`          (`error.border.{state}` — a status-led, border-ONLY swap)
  *   disabled      → the cross-cutting disabled border
  *
- * The PRECEDENCE, where the two axes meet (state × tone can co-occur here, unlike text-field where
+ * The PRECEDENCE, where the two axes meet (state × status can co-occur here, unlike text-field where
  * `error` is folded into one state axis): `disabled` > `error` > the interactive state progression. The
- * tone-led-and-state-qualified template leads the paint keys, so an errored field shows the danger
+ * status-led-and-state-qualified template leads the paint keys, so an errored field shows the danger
  * boundary at rest, hover AND focus — the error condition persists while the pointer moves — and the
  * separate focus RING (an absolute sibling) carries the focus signal on top. `default` / `warning` /
- * `success` bind no tone-led border and fall through to the neutral state border, letting the nested
- * message carry the tone. This is the same "error is a border-only swap; warning/success are
+ * `success` bind no status-led border and fall through to the neutral state border, letting the nested
+ * message carry the status. This is the same "error is a border-only swap; warning/success are
  * message-only" contract text-field ships.
  *
  * ── ROLES REUSED, VERSION ────────────────────────────────────────────────────────────────────────
@@ -77,10 +79,10 @@ export const select: ComponentDef = {
     { name: 'placeholder', type: 'string', required: false, description: 'The prompt shown before a choice is made ("Select an option"). Muted, and never load-bearing — it is not the label and it vanishes once a value is chosen.' },
     { name: 'options', type: 'array', required: false, description: 'The bounded set of choices. Past roughly 7-10 options a filtering Combobox scans better; below a handful an always-visible Radio group may read better.' },
     { name: 'onChange', type: 'function', required: false, description: 'Fires with the newly chosen value (also onBlur / onFocus). A controlled Value with no onChange is read-only by accident.' },
-    { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance, rendered as the nested FieldMessage in its default tone; wired via aria-describedby. Show the constraint before failure.' },
-    // The UI reads "Validation"; the Figma variant axis is `tone` so it drives the nested message's own
-    // `tone` by name (see the header). Values match field-message's tone values exactly.
-    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. `error` swaps the control border to the danger boundary (border-only) and sets the nested message to its error tone; `warning` / `success` are message-only (the border stays neutral, the message carries the tone); `default` is neutral. The values align with FieldMessage\'s tone, so this drives the nested message directly.' },
+    { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure.' },
+    // The UI reads "Validation"; the Figma variant axis is `status` so it drives the nested message's own
+    // `status` by name (see the header). Values match field-message's status values exactly.
+    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. `error` swaps the control border to the danger boundary (border-only) and sets the nested message to its error status; `warning` / `success` are message-only (the border stays neutral, the message carries the status); `default` is neutral. The values align with FieldMessage\'s status axis, so this drives the nested message directly.' },
     { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success. For error, say what is wrong AND how to fix it (SC 3.3.3), never "Invalid".' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value (a category or status mark), aria-hidden. Hidden by default; the file nominates the swap target. Signals the field\'s purpose; validation never mutates it.' },
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required; the FieldLabel marks the minority consistently within a form.' },
@@ -92,32 +94,32 @@ export const select: ComponentDef = {
   // The CLOSED control's states. `empty` is the coordinate at which the displayed text is the
   // placeholder rather than a chosen value, which re-points the value ink to the muted placeholder role —
   // text-field's exact model (rest shows the value, `empty` the placeholder). `error` is NOT a state —
-  // validation is the `tone` axis (see the header), so the border's error swap is a tone-led paint key,
+  // validation is the `status` axis (see the header), so the border's error swap is a status-led paint key,
   // not a state. No `filled` (not in the engine's states vocabulary) and no `expanded` (the open menu is
   // the platform's, not modeled here).
   states: ['rest', 'hover', 'focus-visible', 'disabled', 'empty'],
 
-  // ONE axis, `tone`, and it IS `field-message`'s tone axis by name and value — the alignment that lets
+  // ONE axis, `status`, and it IS `field-message`'s status axis by name and value — the alignment that lets
   // the nested message follow it (see the header). Single-size: Prism2's select is single-size, so no
   // `size` axis is invented.
   variants: {
-    tone: ['default', 'error', 'warning', 'success'],
+    status: ['default', 'error', 'warning', 'success'],
   },
 
-  // THE PAINT GRAMMAR. Tone-led-and-state-qualified first (so the `error` border swap WINS over the
+  // THE PAINT GRAMMAR. Status-led-and-state-qualified first (so the `error` border swap WINS over the
   // interactive state progression at every coordinate — see the header's precedence note), then
   // slot-and-state, then the bare slot as the rest value.
   //
-  // WHY THE TONE TEMPLATE IS 3-SEGMENT and not the 2-segment `{tone}.{slot}` the concept wants: two
+  // WHY THE STATUS TEMPLATE IS 3-SEGMENT and not the 2-segment `{status}.{slot}` the concept wants: two
   // 2-placeholder templates cannot coexist — `paintKeyErrors` checks every 2-segment key against BOTH,
-  // so a state-led `label.empty` fails the `{tone}.{slot}` reading (`{tone}='label'`) and a tone-led
-  // `error.border` fails the `{slot}.{state}` reading. Making the tone template 3-segment keeps the two
+  // so a state-led `label.empty` fails the `{status}.{slot}` reading (`{status}='label'`) and a status-led
+  // `error.border` fails the `{slot}.{state}` reading. Making the status template 3-segment keeps the two
   // vocabularies at different lengths. So `error` binds its danger border once PER non-disabled state
   // (rest / hover / focus-visible / empty), which is what makes the swap persist through hover and focus
   // rather than yielding to the neutral interactive border — the error condition does not blink off when
-  // the pointer moves. `default` / `warning` / `success` bind no tone-led border and fall through to the
+  // the pointer moves. `default` / `warning` / `success` bind no status-led border and fall through to the
   // neutral state border, which is text-field's exact "error-only border swap" model.
-  paintKeys: ['{tone}.{slot}.{state}', '{slot}.{state}', '{slot}'],
+  paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
 
   tokens: {
     // ── GEOMETRY ─────────────────────────────────────────────────────────────────────────────────
@@ -144,20 +146,20 @@ export const select: ComponentDef = {
     // The value ink's type — running body text, one line.
     'type': 'type.body.md.default',
 
-    // ── FILL — the field chrome, constant across state and tone ────────────────────────────────────
+    // ── FILL — the field chrome, constant across state and status ───────────────────────────────────
     'fill': 'color.field.fill',
 
     // ── BORDER — stateful, with the error swap (border-ONLY). See the header for the vocabulary and the
     // precedence. `border` (bare) is the rest value; `border.hover` / `border.focus-visible` are the
-    // interactive states; `error.border` is the tone-led danger swap that leads the templates so it wins
-    // over hover and focus. `default` / `warning` / `success` bind no tone-led border and stay neutral.
+    // interactive states; `error.border` is the status-led danger swap that leads the templates so it wins
+    // over hover and focus. `default` / `warning` / `success` bind no status-led border and stay neutral.
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
     // The error swap, bound per non-disabled state so it wins over the neutral progression above and
     // persists through hover and focus (the focus RING, a separate part, still carries the focus signal).
     // At `disabled` the cross-cutting `disabled.border` takes over. All four resolve to the one danger
-    // boundary — the tone value `error` maps to the `danger` role, a `lint-paint` provenance exception.
+    // boundary — the status value `error` maps to the `danger` role, a `lint-paint` provenance exception.
     'error.border.rest': 'color.border.danger',
     'error.border.hover': 'color.border.danger',
     'error.border.focus-visible': 'color.border.danger',
@@ -199,16 +201,16 @@ export const select: ComponentDef = {
         children: ['label', 'control', 'message'],
       },
       // THE NESTED LABEL (nest-fixed). An in-flow instance of `field-label`, fixed to Prism2's select
-      // label configuration — small, secondary, regular, rest. Its four projected axes (size, tone,
+      // label configuration — small, secondary, regular, rest. Its four projected axes (size, emphasis,
       // weight, state) are all named in the coordinate, because `nestVariantMatch` requires the
-      // coordinate to account for EVERY axis the member name carries. NOT followed: field-label's `tone`
+      // coordinate to account for EVERY axis the member name carries. NOT followed: field-label's `emphasis`
       // (primary/secondary) and `state` (rest/disabled) are a different vocabulary from select's, so
       // there is no value to pass through — the label reads at one fixed configuration in Figma, and the
       // consumer's disabled dimming is a code concern (see codeOnly).
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-fixed', variant: { size: 'small', tone: 'secondary', weight: 'regular', state: 'rest' } },
+        nesting: { kind: 'nest-fixed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' } },
         note: 'The accessible name, composed rather than re-declared. Fixed to the select label configuration (small / secondary / regular); a fix to FieldLabel reaches here without a copy.',
       },
       // THE CONTROL — the bordered, interactive box. The single target: it owns the hit area, the focus
@@ -278,16 +280,16 @@ export const select: ComponentDef = {
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
         note: 'An absolutely-positioned sibling nesting the shared `focus-ring`. Rings the control, takes no cell, and has its own stroke — so the focus signal never contends with the control\'s own border.',
       },
-      // THE NESTED MESSAGE (nest-fixed, FOLLOWING tone). An in-flow instance of `field-message` whose
-      // single projected axis, `tone`, is DRIVEN by select's `tone` axis via `follow` — a same-name,
-      // same-value passthrough (the alignment the header is about). `variant: { tone: 'default' }` is the
-      // fallback for a structure-only plan; `follow` overrides it at every real member, so a `tone=error`
-      // select nests the `tone=error` message.
+      // THE NESTED MESSAGE (nest-fixed, FOLLOWING status). An in-flow instance of `field-message` whose
+      // single projected axis, `status`, is DRIVEN by select's `status` axis via `follow` — a same-name,
+      // same-value passthrough (the alignment the header is about). `variant: { status: 'default' }` is the
+      // fallback for a structure-only plan; `follow` overrides it at every real member, so a `status=error`
+      // select nests the `status=error` message.
       message: {
         kind: 'nest',
         nests: 'field-message',
-        nesting: { kind: 'nest-fixed', variant: { tone: 'default' }, follow: ['tone'] },
-        note: 'Helper or validation text, composed rather than re-declared. Its tone follows select\'s validation by name, so error / warning / success reach the message without a value mapping.',
+        nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
+        note: 'Helper or validation text, composed rather than re-declared. Its status follows select\'s validation by name, so error / warning / success reach the message without a value mapping.',
       },
     },
     codeOnly: [
@@ -299,11 +301,11 @@ export const select: ComponentDef = {
     ],
   },
 
-  // How this projects into Figma. `tone` is the one variant axis; `state` projects as the state axis;
-  // `leading` is the slot-presence axis for the optional glyph. tone(4) × state(5) × leading(2) = 40
+  // How this projects into Figma. `status` is the one variant axis; `state` projects as the state axis;
+  // `leading` is the slot-presence axis for the optional glyph. status(4) × state(5) × leading(2) = 40
   // members.
   figmaProperties: {
-    variantAxes: ['tone'],
+    variantAxes: ['status'],
     stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'disabled', 'empty'] },
     slotAxes: [{ name: 'leading', part: 'leadingVisual' }],
     // `state` across the columns — the axis a designer reads a control's skin across, and the widest here.
@@ -314,7 +316,7 @@ export const select: ComponentDef = {
     // The leading glyph's CONTENT — orthogonal to its presence axis above.
     swaps: { leadingIcon: 'leadingVisual' },
     // Considered, none survive: `required` is aria/behavioral, `disabled` folds into the state axis,
-    // `validation` is the tone axis, the leading glyph is a presence axis + swap.
+    // `validation` is the status axis, the leading glyph is a presence axis + swap.
     booleans: {},
   },
 
@@ -337,11 +339,11 @@ export const select: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s tone from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. Past roughly 7-10 options a filtering Combobox scans better; below a handful an always-visible Radio group may read better.',
+    usage: 'Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. Past roughly 7-10 options a filtering Combobox scans better; below a handful an always-visible Radio group may read better.',
     do: [
       'Render a visible, associated label (FieldLabel) above the control',
       'Show a muted placeholder as a prompt, never as the label or a real option',
-      'Drive validation through the tone axis so the border and the nested message agree',
+      'Drive validation through the status axis so the border and the nested message agree',
       'Prefer the native control where its OS menu is acceptable — the listbox contract is correct for free',
     ],
     dont: [
@@ -374,7 +376,7 @@ export const select: ComponentDef = {
   notes: {
     contested: [
       'Native <select> vs a custom listbox — this def models the closed control both share and leaves the open menu to the platform (native-first). A fully custom, styleable menu is a separate listbox/popover surface, chosen when the native menu\'s look is unacceptable and the extra ARIA cost is accepted.',
-      'error as a border swap vs a full validation border set — settled as text-field settles it: error is the ONLY tone that colors the border, warning and success are message-only. A brand wanting colored warning/success borders would be adding border roles the tier does not emit, which is a token-tier decision, not this def\'s.',
+      'error as a border swap vs a full validation border set — settled as text-field settles it: error is the ONLY status that colors the border, warning and success are message-only. A brand wanting colored warning/success borders would be adding border roles the tier does not emit, which is a token-tier decision, not this def\'s.',
     ],
     unverified: [
       'The nested field parts hug rather than fill in Figma (a `nest` cannot bind sizing, #1299 gives it only a height), so the projected label and message sit at their natural width. A consumer setting them to fill is a code-side layout concern; check a built member before assuming the stack reads full-width.',

@@ -1840,7 +1840,7 @@ const fmPlans = figmaAnatomySet(fieldMessage, { swapTarget: SWAP });
 const fmPage: Page = { children: [] };
 const fmRun = await run(fmPlans, { ...fullFor(fmPlans), page: fmPage });
 ok(fmRun.set === 'field-message' && fmRun.variants === 4 && fmRun.added === 4,
-  `#1010 the four tone members assemble under one set (set=${fmRun.set}, variants=${fmRun.variants}, added=${fmRun.added})`);
+  `#1010 the four status members assemble under one set (set=${fmRun.set}, variants=${fmRun.variants}, added=${fmRun.added})`);
 ok(fmRun.misses.length === 0, `#1010 ...with no misses (${fmRun.misses.join('; ') || 'none'})`);
 
 const fmMembers = fmPage.children[0].children as Node[];
@@ -1853,19 +1853,19 @@ const fmVecs = (n: Node): Node[] => (n.findAll as (p: (x: Node) => boolean) => N
 const fmInk = (n: Node): string =>
   String((n.fills as { boundVariables?: { color?: { id?: string } } }[])[0]?.boundVariables?.color?.id ?? 'none').replace(/^V:/, '');
 
-ok(fmMembers.length === 4 && fmMembers.map((m) => m.name).join(' | ') === 'tone=default | tone=error | tone=warning | tone=success',
-  `#1010 the members are named for the tone axis, in order (${fmMembers.map((m) => m.name).join(' | ')})`);
+ok(fmMembers.length === 4 && fmMembers.map((m) => m.name).join(' | ') === 'status=default | status=error | status=warning | status=success',
+  `#1010 the members are named for the status axis (renamed from tone in #1334), in order (${fmMembers.map((m) => m.name).join(' | ')})`);
 
 // (#1018) EACH MEMBER RENDERS ITS OWN CAPTION COPY, read at the NODE. A component set carries ONE text
 // default, so before this every member's caption read "Use 8+ characters" — the error member shipping the
-// helper string, the opposite of the errorPattern the def exists to enforce. `byVariant.tone` now gives each
-// tone its own placeholder. Read back off the built TEXT node, NOT the plan: a plan-level check sees
+// helper string, the opposite of the errorPattern the def exists to enforce. `byVariant.status` now gives each
+// status its own placeholder. Read back off the built TEXT node, NOT the plan: a plan-level check sees
 // `placeholder` resolve for every member (that is how this shipped), so only the node distinguishes a
 // per-member default from a set-wide one.
 const fmCaption = (m: Node): string => String(fmKids(m).find((c) => c.type === 'TEXT')?.characters ?? '<none>');
 const fmCaptions = fmMembers.map(fmCaption);
 ok(fmCaptions.join(' | ') === 'Use 8+ characters | This is an error message. | This is a warning message. | This is a success message.',
-  `#1018 each tone member renders its OWN caption copy at the node — the error member no longer ships the tone=default helper string (${fmCaptions.join(' | ')})`);
+  `#1018 each status member renders its OWN caption copy at the node — the error member no longer ships the status=default helper string (${fmCaptions.join(' | ')})`);
 ok(new Set(fmCaptions).size === 4,
   `#1018 ...and the four captions are pairwise distinct, so no single set-wide default leaks onto the wrong member (${new Set(fmCaptions).size} distinct)`);
 
@@ -1912,7 +1912,7 @@ ok(fmSizes.every((s) => s === 'icon/size/xs+icon/size/xs'),
 // square behind the glyph, which is what an instance-swapped placeholder looked like.
 const fmVecInk = fmDrawn.map((vs) => fmInk(vs[0])).join(' | ');
 ok(fmVecInk === 'color/icon/danger | color/icon/warning | color/icon/success',
-  `#1010 each outline carries its tone's semantic ink (${fmVecInk})`);
+  `#1010 each outline carries its status's semantic ink (${fmVecInk})`);
 ok(fmMembers.slice(1).every((m) => (fmArt(m)[0].fills as unknown[]).length === 0),
   `#1010 ...and the artboard itself is unpainted, so the glyph is ink rather than a coloured square (${fmMembers.slice(1).map((m) => (fmArt(m)[0].fills as unknown[]).length).join(',')})`);
 

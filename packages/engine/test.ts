@@ -8178,7 +8178,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // `paintOf` calls that. What the claim is actually about is not re-declaring the PARTS — their type
   // ramps and the message's per-tone inks — so it now reads the thing it means.
   ok(!Object.values(textField.tokens).some((v) => /^type\.(label|caption)\./.test(String(v))), 'component: TextField binds input chrome only — no label/caption TYPE ramps (those live in the part defs)');
-  ok(!Object.keys(textField.tokens).some((k) => /^(error|warning|success)\./.test(k)), 'component: TextField declares no per-tone message inks (field-message owns the tone axis)');
+  ok(!Object.keys(textField.tokens).some((k) => /^(error|warning|success)\./.test(k)), 'component: TextField declares no per-status message inks (field-message owns the status axis)');
   ok(textField.tokens['border.rest'] === 'color.field.border.rest' && textField.tokens['border.hover'] === 'color.field.border.hover', 'component: TextField binds the stateful field border (rest + hover)');
   // read-only ≠ disabled — the live edge: read-only keeps full-contrast text.primary, not a dimmed disabled ink.
   ok(textField.tokens['label'] === 'color.text.primary' && textField.tokens['border.read-only'] === 'color.border.secondary', 'component: TextField read-only stays full-contrast (text.primary + border.secondary), not disabled.*');
@@ -8188,12 +8188,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(Object.keys(textField.tokens).filter((k) => k.startsWith('border.') && k !== 'border.rest')
     .every((k) => textField.states.includes(k.slice('border.'.length))), 'component: TextField every state-qualified border key names a DECLARED state (#784)');
   ok(textField.tokens['border.error'] === 'color.border.danger', 'component: TextField error is a border-only swap (border.danger)');
-  // FieldMessage: every validation tone re-points BOTH ink + icon at the matching semantic role.
-  // `${tone}.label`, not `${tone}.text`, since #784 — the SLOT segment has to be the word the projector
+  // FieldMessage: every validation status re-points BOTH ink + icon at the matching semantic role.
+  // `${status}.label`, not `${status}.text`, since #784 — the SLOT segment has to be the word the projector
   // dispatches for a text node. The ROLE it points at is still `color.text.<role>`; those are two
   // different vocabularies and the old key conflated them, which is why four of eight never painted.
-  ok(([['error', 'danger'], ['warning', 'warning'], ['success', 'success']] as const).every(([tone, role]) => fieldMessage.tokens[`${tone}.label`] === `color.text.${role}` && fieldMessage.tokens[`${tone}.icon`] === `color.icon.${role}`), 'component: FieldMessage tones bind text.<role> + icon.<role> (icon + text, never colour-only)');
-  ok(fieldMessage.states.length === 0 && JSON.stringify(fieldMessage.variants.tone) === JSON.stringify(['default', 'error', 'warning', 'success']), 'component: FieldMessage is presentational with a tone axis');
+  // (The axis was named `tone` until #1334; the resolved token keys — `error.label` etc. — are the status
+  // VALUE plus slot and are unchanged by the rename, which is why this assertion reads the same literals.)
+  ok(([['error', 'danger'], ['warning', 'warning'], ['success', 'success']] as const).every(([status, role]) => fieldMessage.tokens[`${status}.label`] === `color.text.${role}` && fieldMessage.tokens[`${status}.icon`] === `color.icon.${role}`), 'component: FieldMessage statuses bind text.<role> + icon.<role> (icon + text, never colour-only)');
+  ok(fieldMessage.states.length === 0 && JSON.stringify(fieldMessage.variants.status) === JSON.stringify(['default', 'error', 'warning', 'success']), 'component: FieldMessage is presentational with a status axis (renamed from `tone` in #1334)');
   // #1242/#1333 — the text property is `message` (lowercase), not `children`. Checked BOTH as the declared
   // prop and as the PROJECTED Figma property name (built from the set, compared against a hand-written
   // literal), so the sweep off the React-ism is caught here by name on this def too — not only on Button
@@ -8205,15 +8207,25 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(planSetProperties(figmaAnatomySet(fieldMessage, { swapTarget: 'FPO-default-icon' }))
     .some((p) => p.type === 'TEXT' && p.name === 'message'),
     'component: FieldMessage projects its TEXT property as `message` (#1242/#1333) — mutating the def `texts` key (e.g. back to `Message` or `children`) fails here by name');
-  // #872: ink is TONE-QUALIFIED now (`{tone}.{slot}`, FieldMessage's shape one def over), so the bare
-  // `label` key is gone. BOTH tones are pinned rather than just the default — `secondary` is the
-  // de-emphasized label #872 called the sharpest of its three gaps, and a check reading only `primary`
-  // would pass a def that shipped the axis with one working cell.
+  // #872: ink is EMPHASIS-QUALIFIED now (`{emphasis}.{slot}`, the placeholder renamed from `{tone}` in
+  // #1334; FieldMessage's shape one def over), so the bare `label` key is gone. BOTH emphasis values are
+  // pinned rather than just the default — `secondary` is the de-emphasized label #872 called the sharpest
+  // of its three gaps, and a check reading only `primary` would pass a def that shipped the axis with one
+  // working cell. The resolved keys (`primary.label` / `secondary.label`) are the emphasis VALUE plus slot,
+  // so the rename does not move them.
   ok(!!fieldLabel.props.find((p) => p.name === 'label')?.required
     && fieldLabel.tokens['primary.label'] === 'color.text.primary'
     && fieldLabel.tokens['secondary.label'] === 'color.text.secondary'
     && fieldLabel.tokens['label'] === undefined,
-    'component: FieldLabel requires text + binds a semantic text ROLE per tone (and no bare `label` key survives)');
+    'component: FieldLabel requires text + binds a semantic text ROLE per emphasis (and no bare `label` key survives)');
+  // #1334: field-label's prominence axis is `emphasis` (renamed from `tone`), and its ink-emphasis prop is
+  // `emphasis` too. Hand-written literals, not derived — reverting the def's axis rename fails this by name
+  // (alongside lint-component-surface's planStamp and lint-axis-values' register).
+  ok(JSON.stringify(fieldLabel.variants.emphasis) === JSON.stringify(['primary', 'secondary'])
+    && fieldLabel.variants.tone === undefined
+    && !!fieldLabel.props.find((p) => p.name === 'emphasis')
+    && !fieldLabel.props.some((p) => p.name === 'tone'),
+    'component: FieldLabel emphasis axis is [primary, secondary] and `tone` is retired (#1334)');
   // …and TYPE follows size across three rungs, on `type.body.*` — the tier #862 predicted and the one
   // that matches Prism 2's 14/16/18 ladder. `type.label.*` is 12/14 with no `lg`, so naming the tier is
   // part of the claim rather than decoration.
@@ -13671,8 +13683,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // `lint-paint.ts`'s `UNREACHED_EXPLAINED` is where that is registered, and it fails if it becomes
   // reachable, so the two files cover the two directions between them.
   const fmSet = figmaAnatomySet(fieldMessage, { swapTarget: 'FPO' });
-  ok(fmSet.length === 4 && fmSet.map(planComponentName).join(' | ') === 'tone=default | tone=error | tone=warning | tone=success',
-    `field-message: projects FOUR members, one per tone, named for the only axis it declares (got '${fmSet.map(planComponentName).join(' | ')}')`);
+  ok(fmSet.length === 4 && fmSet.map(planComponentName).join(' | ') === 'status=default | status=error | status=warning | status=success',
+    `field-message: projects FOUR members, one per status, named for the only axis it declares (got '${fmSet.map(planComponentName).join(' | ')}')`);
   const fmPaints = fmSet.map((p) => planPaintVars(p.root).length).join(',');
   ok(fmPaints === '1,2,2,2',
     `field-message: the default member paints ONE colour (its caption) and each validation member TWO (caption + glyph) — 7 bindings reaching nodes, in that distribution. A total alone would pass a set that lost one glyph and gained a paint elsewhere (got ${fmPaints})`);
@@ -14099,10 +14111,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // own sake: it is the only place the new segment exists to disagree about.
   const fmLayout = planSetLayout(figmaAnatomySet(fieldMessage, { swapTarget: 'FPO-default-icon' }), 'test');
   const fmGroups = fmLayout.cells.map((c) => c.group).join(' | ');
-  ok(fmGroups === 'tone=default | tone=error | tone=warning | tone=success',
-    `field-message: the declared exemption reaches the engine's cohort key — every tone is its own cohort, which is what "this def's box moves on tone" means and is exactly what it costs (got '${fmGroups}')`);
+  ok(fmGroups === 'status=default | status=error | status=warning | status=success',
+    `field-message: the declared exemption reaches the engine's cohort key — every status is its own cohort, which is what "this def's box moves on status" means and is exactly what it costs (got '${fmGroups}')`);
   const fmPayload = payloadCellOfFor(planSetChunks(figmaAnatomySet(fieldMessage, { swapTarget: 'FPO-default-icon' }))[0].js, fmLayout);
-  ok(fmPayload.extracted && fmPayload.decl === 'const FOOTPRINT_VARIES=["tone"];',
+  ok(fmPayload.extracted && fmPayload.decl === 'const FOOTPRINT_VARIES=["status"];',
     `field-message: the chunk SHIPS the def's exemption list, so the payload's own derivation has something to append (got '${fmPayload.decl}')`);
   ok(fmPayload.fn !== null && fmLayout.cells.every((c) => fmPayload.fn!(c.name).group === c.group),
     'field-message: ...and reaches the byte-identical key from the member name — the exemption is honored on the chunked path too, where a disagreement would put every member in a cohort of one and silence the footprint read-back rather than redden it');

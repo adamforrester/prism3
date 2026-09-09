@@ -35,11 +35,11 @@
     },
     "field-label": {
       "members": 24,
-      "sha256": "fd29dd5ad5740fae75f64673e1433ec5715f6d75f30b5d240bdfa1e4b044b0cd"
+      "sha256": "12c849081b462da846b116c08cbb798f43c9695174299e5348c2c3ff40cebd17"
     },
     "field-message": {
       "members": 4,
-      "sha256": "641de7d7a6d34c2c8171963ac2bc2d66d83da19120eb8eb5754898029bf7827e"
+      "sha256": "9c3c40f9b5104a8f452e1916e79ebeffd20db800c74d58c4145ccbc48c4eece7"
     },
     "text-field": null,
     "textarea": null,
@@ -61,7 +61,7 @@
     },
     "select": {
       "members": 40,
-      "sha256": "33c0e7f17a9735adf19ecd4c06b3a8027b00cc54b5c0dd6219208381be479774"
+      "sha256": "d442f622330ecf95aec5fa909e6c5391f9a0a6f04def952d44a5f69d609413ea"
     },
     "veil": {
       "members": 6,
