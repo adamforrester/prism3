@@ -920,8 +920,14 @@ const WEIGHT_ROLE_DEFAULT: Record<WeightRoleName, number> = { subtle: 300, defau
 
 // Curated rem ladder: text [10–18] in 1–2px steps; ¼rem (4px) 20→40; ½rem (8px)
 // 48→80; 1rem (16px) 96→160. 22 steps, all clean rem values (matches Prism2).
-const fontSizeLadder = (): number[] => {
-  const px = [10, 11, 12, 14, 16, 18];
+//
+// `floor` is the OPT-IN sub-10px escape hatch (#1363, typography.sizeFloor). The floor is a hard 10px
+// for every default brand — 8px sits below the size range the system's contrast ratios were reasoned
+// about, so it is reachable ONLY by explicitly opting in, never off the default ladder. `8` PREPENDS a
+// single 8px rung (an eighth of a rem, on the ½rem sub-grid) and changes nothing else; the rest of the
+// ladder is byte-identical, so no existing rung moves.
+const fontSizeLadder = (floor: 8 | 10 = 10): number[] => {
+  const px = floor === 8 ? [8, 10, 11, 12, 14, 16, 18] : [10, 11, 12, 14, 16, 18];
   for (let p = 20; p <= 40; p += 4) px.push(p);
   for (let p = 48; p <= 80; p += 8) px.push(p);
   for (let p = 96; p <= 160; p += 16) px.push(p);
@@ -974,6 +980,20 @@ export type TypographyInput = {
    *  operation into the monotonic dedupe and silently deleted a rung — `compact`
    *  lost `title.sm` (floor 18) or `title.xs` (floor 16), leaving a GAP mid-ramp. */
   titleFloor?: 16 | 18;
+  /** Whether the caption tier includes `caption.sm` — a 10px fine-print rung (#1360). `10` adds it;
+   *  `11` (default) omits it, flooring caption at `md` (11px). 10 is ALREADY on the size ladder, so
+   *  this is pure SET MEMBERSHIP on an existing ladder step (the same split as `titleFloor`): it
+   *  decides whether the rung exists, and never resizes another rung. OFF by default so no corpus
+   *  brand moves — opt in for dense legal / footer / product-attribute fine print. */
+  captionFloor?: 10 | 11;
+  /** OPT-IN sub-10px escape hatch (#1363). `8` pushes the size-ladder floor to 8px (see
+   *  `fontSizeLadder`) and adds a single `caption.xs` = 8px rung; `10` (default) is the hard floor and
+   *  adds nothing. Modelled on `titleFloor` — an enumerated opt-in that enables one extra small rung on
+   *  one group and touches nothing else — but 8px sits BELOW the size range the system's contrast
+   *  ratios were reasoned about, so the engine FLAGS it in `notes` as a deliberate escape hatch (the way
+   *  `actionPalette` flags a decoupled action colour), never a rung a brand reaches by accident. OFF by
+   *  default so no corpus brand moves. */
+  sizeFloor?: 8 | 10;
   /** Per-size overrides for the heading groups, keyed group → rung → px. The BASELINE counterpart of
    *  `modeLevers.<mode>.typeSizes`, and it exists because the asymmetry ran the wrong way: a size could
    *  be pinned per mode but not at the brand level, so a single-mode brand — the common case — could
@@ -1173,6 +1193,10 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
   const shift = TYPE_SCALE_SHIFT[t.typeScale ?? 'default'];
   const ceilingIdx = DISPLAY_VARIANTS.indexOf(t.displayCeiling ?? '3xl');
   const titleFloor = t.titleFloor ?? 18;
+  // Opt-in fine-print rungs on the caption tier (#1360 caption.sm=10, #1363 caption.xs=8). Both OFF by
+  // default (11 / 10), so absent them the caption set is exactly [md, lg] and no corpus brand moves.
+  const captionFloor = t.captionFloor ?? 11;
+  const sizeFloor = t.sizeFloor ?? 10;
   const shiftPx = (px: number): number => {
     const i = ladder.indexOf(px);
     if (i < 0) return px;
@@ -1258,6 +1282,16 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
       const px = brandSizes.title?.['2xs'] ?? 16;
       if (brandSizes.title?.['2xs'] !== undefined) consumedSizes.add('title.2xs');
       push('title', '2xs', px); prev = px;
+    }
+    // Opt-in caption fine-print rungs, PINNED to their ladder step and pushed smallest-first so the
+    // ramp check below sees the whole caption set in order (xs 8 < sm 10 < md 11 < lg 12). Both are
+    // pure SET MEMBERSHIP on steps already ON the ladder — `sizeFloor:8` also puts 8 on the ladder via
+    // `fontSizeLadder` — and both are OFF by default, so absent them caption is exactly [md, lg] and no
+    // corpus brand moves. Caption is reading/UI text, so it is exempt from the typeScale shift (like the
+    // TYPE_VARIANTS caption rungs) and from `sizes` overrides (heading-only, rejected above).
+    if (group === 'caption') {
+      if (sizeFloor === 8) { push('caption', 'xs', 8); prev = 8; }
+      if (captionFloor === 10) { push('caption', 'sm', 10); prev = 10; }
     }
     for (const [i, [variant, base]] of TYPE_VARIANTS[group].entries()) {
       // displayCeiling trims the top by RUNG POSITION, before any size is computed — set
@@ -1443,7 +1477,7 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
   return {
     families,
     typefaces: deriveTypefaces(t.typefaceLibrary, families),
-    sizesPx: fontSizeLadder(),
+    sizesPx: fontSizeLadder(t.sizeFloor ?? 10),
     // Minted from need, not the full 100–900 axis (#328): emit only the numerics some
     // weight ROLE actually points at. Every `weight-role.<role>` aliases `font.weight.<n>`,
     // so the role values ARE the complete set of referenced numerics — anything else was a
@@ -1454,7 +1488,7 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
     lineHeights: brandLineHeights(t),
     letterSpacings: brandLetterSpacings(t),
     typeScale: t.typeScale ?? 'default',
-    composites: buildComposites(fontSizeLadder(), t, fluid, families),
+    composites: buildComposites(fontSizeLadder(t.sizeFloor ?? 10), t, fluid, families),
     fluid,
     minViewport: t.responsive?.minViewport ?? 375,
     maxViewport: t.responsive?.maxViewport ?? 1280,
@@ -1944,6 +1978,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'typography.typeScale', value: input.typography?.typeScale, options: ['compact', 'default', 'expressive'] },
     { path: 'typography.displayCeiling', value: input.typography?.displayCeiling, options: DISPLAY_VARIANTS },
     { path: 'typography.titleFloor', value: input.typography?.titleFloor, options: [16, 18] },
+    { path: 'typography.captionFloor', value: input.typography?.captionFloor, options: [10, 11] },
+    { path: 'typography.sizeFloor', value: input.typography?.sizeFloor, options: [8, 10] },
     { path: 'motionPersonality.tempo', value: input.motionPersonality?.tempo, options: MOTION_TEMPO_VALUES },
     { path: 'iconContrast', value: input.iconContrast, options: ['text', '3:1'] },
     { path: 'disabledStrategy', value: input.disabledStrategy, options: ['full', 'reduced', 'accessible', 'conventional'] },
@@ -2448,7 +2484,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     ? ` — NOTE: display tier fully trimmed; composite count is below the 15–25 norm`
     : '';
   const varFams = typography.families.filter((f) => f.variable).map((f) => f.group);
-  notes.push(`typography: curated rem size ladder (${typography.sizesPx.length} steps, ${typography.sizesPx[0]}–${typography.sizesPx[typography.sizesPx.length - 1]}px — NOT ratio-derived; covers all bases, clean values); weight roles ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group}=${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; typeScale '${typography.typeScale}'. ${typography.composites.length} semantic composites (title/display sizes shifted by typeScale; display capped at rung '${reqCeiling}' (${effCap}px); title tier ${(input.typography?.titleFloor ?? 18) === 16 ? 'includes' : 'omits'} title.2xs)${capNote}. ${typography.fluid ? `responsive: ${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() ${typography.minViewport}–${typography.maxViewport}px + Figma desktop/mobile modes)` : 'responsive: OFF (all sizes static)'}. Line-height unitless multiplier in \$value; px-from-ratio materialization for Figma in \$extensions.`);
+  notes.push(`typography: curated rem size ladder (${typography.sizesPx.length} steps, ${typography.sizesPx[0]}–${typography.sizesPx[typography.sizesPx.length - 1]}px — NOT ratio-derived; covers all bases, clean values); weight roles ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group}=${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; typeScale '${typography.typeScale}'. ${typography.composites.length} semantic composites (title/display sizes shifted by typeScale; display capped at rung '${reqCeiling}' (${effCap}px); title tier ${(input.typography?.titleFloor ?? 18) === 16 ? 'includes' : 'omits'} title.2xs${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `; caption tier adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' + ')}` : ''})${capNote}. ${typography.fluid ? `responsive: ${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() ${typography.minViewport}–${typography.maxViewport}px + Figma desktop/mobile modes)` : 'responsive: OFF (all sizes static)'}. Line-height unitless multiplier in \$value; px-from-ratio materialization for Figma in \$extensions.`);
+  // ESCAPE HATCH FLAG (#1363). 8px is below every practical legibility floor and below the size range
+  // this system's contrast ratios were reasoned about, so an opted-in sub-10px rung is FLAGGED here the
+  // way `actionPalette` flags a decoupled action colour — a deliberate, recorded exception rather than a
+  // rung reachable by accident. Off by default, so absent it this note never appears.
+  if ((input.typography?.sizeFloor ?? 10) === 8)
+    notes.push(`typography: ESCAPE HATCH — typography.sizeFloor:8 pushes the size ladder to an 8px floor and ships caption.xs = 8px. 8px sits BELOW the size range this system's contrast ratios were reasoned about and below every practical legibility floor; it is a deliberately opted-in exception (off by default), not a rung a brand reaches by accident. Ship it only for genuine fine print (legal, footnotes, dense product attributes) that has an accessible alternative.`);
   const dStrat = normalizeDisabledStrategy(input.disabledStrategy);
   const dMin = normalizeDisabledMin(input.disabledStrategy, input.disabledMin);
   notes.push(dStrat === 'full'

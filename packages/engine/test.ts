@@ -3621,6 +3621,8 @@ const typeCases: [string, any][] = [
   ['default+floor16', { titleFloor: 16 }],
   ['ceiling-xl', { displayCeiling: 'xl' }],
   ['ceiling-sm', { displayCeiling: 'sm' }],
+  ['caption-sm10', { captionFloor: 10 }],                       // #1360 opt-in — through the full battery
+  ['caption-xs8', { sizeFloor: 8, captionFloor: 10 }],          // #1363 opt-in (both stacked)
   ['singleface', { families: { display: 'Foo', title: 'Foo', body: 'Foo', label: 'Foo', caption: 'Foo', eyebrow: 'Foo' } }],
 ];
 for (const [label, ty] of typeCases) {
@@ -3704,6 +3706,48 @@ for (const scale of ['default', 'expressive'] as const) {
   const threwC1 = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
   ok(threwC1(() => tBrand('tf16-compact', { titleFloor: 16, typeScale: 'compact' })),
     '[#328] compact + titleFloor 16 throws (compact already puts a title at 16px; 2xs would duplicate it)');
+}
+// C1d (#1360 / #1363): the caption FINE-PRINT opt-ins. Modelled on titleFloor (pure set membership on
+// an existing ladder step) and radiusHairline L-03b (off by default → corpus byte-identical). Two
+// INDEPENDENT levers: `captionFloor:10` adds caption.sm=10; `sizeFloor:8` adds caption.xs=8 AND floors
+// the ladder at 8. This block REPRESENTS the new rungs so the docs/34 mutation lands BY NAME — remove
+// the caption.sm push, the caption.xs push, the 8px ladder prepend, or the escape-hatch note, and a
+// named assertion here fails. Nothing else in this suite gates the type SIZE ladder for these rungs
+// (lint-ramp-*/lint-axis-values gate studio radius ramps and component VARIANT_AXES, not this ladder).
+{
+  const capVars = (ty: any) => [...new Set(tBrand('capf-' + JSON.stringify(ty), ty).typography.composites
+    .filter((c) => c.group === 'caption').map((c) => `${c.variant}=${c.sizePx}`))].sort().join(',');
+  // (a) DEFAULT — caption is exactly md=11/lg=12; NEITHER sub-rung ships. The corpus-byte-identical
+  //     guard: this fails the moment either push fires unconditionally.
+  ok(capVars({}) === 'lg=12,md=11', `[#1360/#1363] default caption tier is md=11/lg=12 only — no caption.sm, no caption.xs (got ${capVars({})})`);
+  // (b) captionFloor:10 → caption.sm=10 is ADDED (10 is already a ladder step), md/lg untouched.
+  ok(capVars({ captionFloor: 10 }) === 'lg=12,md=11,sm=10', `[#1360] captionFloor:10 adds caption.sm=10px, md/lg untouched (got ${capVars({ captionFloor: 10 })})`);
+  // (c) sizeFloor:8 → caption.xs=8 is ADDED and the size LADDER itself floors at 8 (fontSizeLadder
+  //     prepends it). Both halves are asserted so removing either the rung push or the ladder prepend
+  //     fails BY NAME.
+  ok(capVars({ sizeFloor: 8 }) === 'lg=12,md=11,xs=8', `[#1363] sizeFloor:8 adds caption.xs=8px (got ${capVars({ sizeFloor: 8 })})`);
+  ok(tBrand('sf8', { sizeFloor: 8 }).typography.sizesPx[0] === 8, `[#1363] sizeFloor:8 pushes the size-ladder floor to 8px (got ${tBrand('sf8', { sizeFloor: 8 }).typography.sizesPx[0]})`);
+  ok(tBrand('sf-d', {}).typography.sizesPx[0] === 10, `[#1363] default ladder floors at 10px — 8px is unreachable without the opt-in (got ${tBrand('sf-d', {}).typography.sizesPx[0]})`);
+  // (d) the two levers are ORTHOGONAL and stack, strictly increasing xs<sm<md<lg.
+  ok(capVars({ captionFloor: 10, sizeFloor: 8 }) === 'lg=12,md=11,sm=10,xs=8', `[#1360/#1363] both opt-ins stack: caption xs=8/sm=10/md=11/lg=12 (got ${capVars({ captionFloor: 10, sizeFloor: 8 })})`);
+  // (e) opting in touches ONLY caption — every non-caption composite is byte-identical (radiusHairline
+  //     (e) shape). The sub-rungs APPEND; they never perturb another tier or the ladder above the floor.
+  const nonCap = (ty: any) => JSON.stringify(tBrand('nc-' + JSON.stringify(ty), ty).typography.composites.filter((c) => c.group !== 'caption'));
+  ok(nonCap({ captionFloor: 10, sizeFloor: 8 }) === nonCap({}), '[#1360/#1363] the caption opt-ins APPEND caption rungs only — every non-caption composite is byte-identical');
+  // (f) ESCAPE HATCH (#1363, docs/34): 8px sits below the sizes the contrast ratios were reasoned about,
+  //     so sizeFloor:8 MUST be flagged in the decisions log; off by default → no such note. Removing the
+  //     `notes.push` for the escape hatch fails this BY NAME.
+  ok(tBrand('sf8n', { sizeFloor: 8 }).notes.some((n) => /ESCAPE HATCH/.test(n) && /sizeFloor:8/.test(n) && /contrast ratios were reasoned about/.test(n)),
+    '[#1363] sizeFloor:8 is FLAGGED as an escape hatch in notes (8px is below the contrast-reasoned range)');
+  ok(!tBrand('sf-dn', {}).notes.some((n) => /ESCAPE HATCH/.test(n)),
+    '[#1363] a brand that does not opt into sizeFloor:8 emits NO escape-hatch note (default off → corpus byte-identical)');
+  // (g) validateBrandInput enforces the enums (parity with titleFloor CR-04).
+  {
+    const inp = { id: 'v', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } } as any;
+    ok(validateBrandInput({ ...inp, typography: { captionFloor: 9 } }).length > 0, '[#1360] captionFloor:9 rejected (enum [10,11])');
+    ok(validateBrandInput({ ...inp, typography: { sizeFloor: 9 } }).length > 0, '[#1363] sizeFloor:9 rejected (enum [8,10])');
+    ok(validateBrandInput({ ...inp, typography: { captionFloor: 10, sizeFloor: 8 } }).length === 0, '[#1360/#1363] captionFloor:10 + sizeFloor:8 accepted (both in enum)');
+  }
 }
 // C2 (#328): the ceiling names a RUNG, so the surviving rung COUNT is invariant under typeScale.
 // The old px ceiling was compared against already-shifted sizes, so `96` kept 4 rungs under
