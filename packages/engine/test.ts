@@ -9181,6 +9181,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `name` is ROOTED, everything else keyed root-relative — see `STUB_ROOT`. The id stays
       // root-relative because it is the stub's own handle, not something Figma's naming applies to.
       const mkVar = (name: string) => ({ id: `V:${name}`, name: `${STUB_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolved(name) }) });
+      // Is `n` inside a component or component set — the precondition Figma puts on `isExposedInstance`
+      // (#1378), mirroring `component-shim.ts`'s `inComponent` so the parity gate compares two executors
+      // against one Figma model. Walks ANCESTORS and includes the node itself (a converted root is a
+      // component in its own right), stopping at whatever has no `parent` — which for a member's nested
+      // instance is the root the payload just handed `createComponentFromNode`. Before that conversion the
+      // chain terminates in a parentless FRAME with no container in it, which is exactly the refusal the
+      // #1377 gate below needs modelled: mark the instance during `build` and it fails, mark it after
+      // `createComponentFromNode` (as `__exposeNow` does) and it holds.
+      const inComponent = (n: Record<string, unknown>): boolean => {
+        for (let p: Record<string, unknown> | null = n; p; p = (p.parent as Record<string, unknown> | null) ?? null)
+          if (p.type === 'COMPONENT' || p.type === 'COMPONENT_SET') return true;
+        return false;
+      };
       // Records the binding the way real Figma does — into `boundVariables` — so the read-back sees
       // what it would see live. A node that is NOT bound stays absent from it, which is the state the
       // read-back is meant to report.
@@ -9290,6 +9303,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // Modeled as a plain settable field, so a payload that never writes it leaves `''` — which is
           // the empty-label set #510 shipped, and the state the read-back has to be able to report.
           characters: '',
+          // #1330 / #1378 — EXPOSED NESTED INSTANCE, mirroring the plugin shim so the two offline models
+          // stay in lockstep (the parity gate drives both executors against this one host). Starts a
+          // definite `false` (Figma's default for a primary instance), not undefined, so a never-marked
+          // instance reads back a definite `false` — which is what makes the payload's `__exposeNow` write
+          // load-bearing: drop the `__expose.push(node)` in `PAYLOAD_BUILD` and the exposure gate below
+          // reads `false` and fails, rather than reading a helpfully-defaulted `true`. And the setter
+          // REFUSES out of containment (#1378), Figma's own message verbatim: `isExposedInstance` is
+          // writeable only on an instance inside a component or component set, which is the whole reason the
+          // payload defers the write past `createComponentFromNode`. A field that accepted every write could
+          // not witness that ordering — so the #1377 gate's model needs the refusal as much as the default.
+          // Only the `true` write is gated: Figma has no complaint about a node being unexposed.
+          _exposed: false,
+          get isExposedInstance(): boolean { return node._exposed as boolean; },
+          set isExposedInstance(v: boolean) {
+            if (v && !inComponent(node))
+              throw new Error('in set_isExposedInstance: Instance must be contained within a component or component set to be exposed.');
+            node._exposed = v;
+          },
           componentPropertyReferences: null as Record<string, string> | null,
           // The VALUE is recorded alongside the id, because a bound dimension is what SIZES the node live
           // — `width` above reads it. Without this the binding is a bookkeeping entry and every node
@@ -9594,7 +9625,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           page?.children.push(set);
           return set;
         },
-        createComponentFromNode: (n: unknown) => n,
+        // CONVERTS IN PLACE (#1378), mirroring the plugin shim. Was `(n) => n` — the same object, still
+        // reporting `type: 'FRAME'` — which was harmless until the exposure model arrived: `isExposedInstance`'s
+        // precondition is stated in terms of containment, and a root that never becomes a component could only
+        // ever refuse the deferred write. Returning the same object is right (Figma converts in place); the
+        // type change is what lets `__exposeNow` succeed the moment it runs after this call.
+        createComponentFromNode: (n: unknown) => { (n as Record<string, unknown>).type = 'COMPONENT'; return n; },
         // A page a payload can SEARCH, not just append to. The chunked path finds its set here by name
         // and type, so `findOne` has to be real; a stub returning `null` would send every chunk down the
         // combine branch and build N separate sets while every assertion below still passed.
@@ -10718,6 +10754,60 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         await mutateChunks('footprint drift is caught even when the cohort is split across chunks',
           "if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;", '',
           /footprint -> .*appearance=outline.* measures \d+x\d+ but .*appearance=filled.* measures \d+x\d+/);
+      }
+
+      // ---- #1377: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, read back off the built member ---------
+      // `nest-exposed` (#1330) has TWO executors that write `isExposedInstance = true` after
+      // `createComponentFromNode`: the plugin's `applyComponentPlan` (gated host-truth by
+      // `apps/plugin/test-roundtrip.ts`), and THIS one — `PAYLOAD_BUILD`'s `__expose[]` queue, filled by
+      // `__expose.push(node)` in the NESTED_INSTANCE branch and drained by `__exposeNow(member)`. #1386's
+      // independent review found the payload half UNGATED: on `main`, deleting `__expose.push(node)` from
+      // the payload path leaves `test.ts`, `regen --check` and `mcp-test` all GREEN, because
+      // `test:roundtrip` drives only the plugin executor and every other assertion in this block reads the
+      // payload as TEXT — a substring probe over a string that documents itself (docs/34 shape 12). So this
+      // gate RUNS the payload for the one `nest-exposed` def (`checkbox`, whose Row nests `checkbox-control`
+      // and exposes its `selection`/`state`) against the stub, which models `isExposedInstance` and its
+      // containment refusal in lockstep with the plugin shim, and READS THE MARKING BACK off the built
+      // member. It is the payload string's OWN read-back, not a second copy of the plugin's round-trip.
+      {
+        const cbPlans = figmaAnatomySet(checkbox);
+        const cbOpts: StubOpts = {
+          vars: [...new Set(cbPlans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+          styles: [...new Set(cbPlans.flatMap((p) => planTextStyles(p.root)))],
+          // The nested target, resolved as a plain COMPONENT exactly as the round-trip's `planComps` hands
+          // the plugin shim (`test-roundtrip.ts`) — one instance of it takes the control cell in each member.
+          comps: ['checkbox-control'],
+        };
+        // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so it
+        // is read off the PAGE the payload appended the combined set to. Returns every nested `control`
+        // instance across the set's members.
+        const exposedControls = (page: StubPage): Record<string, unknown>[] => {
+          const set = page.children.find((c) => (c as { type?: string }).type === 'COMPONENT_SET') as { children?: Record<string, unknown>[] } | undefined;
+          const out: Record<string, unknown>[] = [];
+          const dive = (n: Record<string, unknown>): void => {
+            if (n.type === 'INSTANCE' && n.name === 'control') out.push(n);
+            for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c);
+          };
+          for (const m of set?.children ?? []) dive(m);
+          return out;
+        };
+        const cbPage: StubPage = { children: [] };
+        const cbRun = await runPayload(planSetToPluginJs(cbPlans), { ...cbOpts, page: cbPage });
+        ok(cbRun.misses.length === 0,
+          `#1377 the checkbox set runs CLEAN through the paste payload${cbRun.misses.length ? ` — ${JSON.stringify(cbRun.misses)}` : ''}`);
+        // FLOOR / reachability, both halves of docs/34's "the fixture DOES carry it": the payload built the
+        // nested control in every member, so the read-back below has subjects. A run that resolved no
+        // `control` instance would make every exposure assertion vacuously true — the empty-set silence.
+        const controls = exposedControls(cbPage);
+        ok(controls.length === cbPlans.length && cbPlans.length === 3,
+          `#1377 reachable: the payload built the nested control in all ${cbPlans.length} checkbox members (found ${controls.length})`);
+        // THE READ-BACK THE GAP IS ABOUT. Every nested control comes back `isExposedInstance === true`.
+        // Delete `__expose.push(node)` from `PAYLOAD_BUILD` and `__exposeNow` marks nothing, so each control
+        // reads the stub's default `false` and this FAILS BY NAME. `=== true`, not truthiness: the default is
+        // a definite `false` and the payload's write is the only thing that moves it (docs/34 shape 5).
+        const unexposed = controls.filter((n) => n.isExposedInstance !== true);
+        ok(unexposed.length === 0,
+          `#1377 the paste payload marks every nested control isExposedInstance=true — the payload executor's exposure write, UNGATED until now per #1386's review (${controls.length - unexposed.length}/${controls.length} exposed)`);
       }
 
       // ---- AXIS PARITY between the two write paths (#487 step 5) --------------------------------
