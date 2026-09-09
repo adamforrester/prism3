@@ -7,6 +7,28 @@
 
 ---
 
+## (2026-09-09) — New Balance redesign SEED brief (`examples/nb-redesign.design.md`)
+
+**STATUS: PR open, HELD — do NOT merge.** This is a **brand-facing artifact** (a New Balance brief), so it is held for the owner's review, not auto-merged. **No ENGINE / CONTRACT bump** — this adds one authored example file and one `test.ts` coverage block; it changes no emitter, no committed `out/**` artifact, and no guaranteed token name (`lint-emission-version`, `drift`, `token-contract` all green).
+
+**What this is (frame it right).** `examples/nb-redesign.design.md` is an engine-native `design.md` (YAML frontmatter compiling 1:1 to `BrandInput` via `parseDesignMd`) capturing the New Balance redesign as a **STARTING POINT**, not the authoritative final theme. The owner imports it into the plugin, **finishes NB by hand** (condensed display face, 1px hairline corners, manual tuning), then this committed file is updated to the finished version. The header prose and trailing "Owner finishing checklist" label it as a seed throughout. It roots at NB's own `nbds.*` namespace and ships `light` only.
+
+**The BrandInput it encodes** (every value carries a provenance comment, wendys/aurora style): primary red PANTONE 186 C `#CF0A2C` → OKLCH `{l:0.5418,c:0.2151,h:23.0}`; neutral pinned verbatim to NB's near-black `#151415` via `neutral.anchor {l:0.1928,c:0.0025,h:325.7}`; **actions are black, not red** — `actionPalette: neutral` + `actionAnchorStep: 900` pins the button fill to `#151415`, with `neutralEmphasis: strong`; **brand red carries danger** via `roleColors: { danger: primary }`; sharp corners (`radiusScale: 0`, `controlShape: rounded`); ITC Garamond Std (display/title) + Suisse Int'l (body/label/caption/eyebrow); pinned sizes `title.xl 36` / `display.md 56`; light display/title weights (`[subtle]`), NB's Medium remapped (`weightRoles: { emphasis: 500 }`); fluid headings clamped 402–1440.
+
+**Reconstructed value — #1 for the owner to confirm.** The owner's pasted source TRUNCATED the `lineHeights` line mid-token (it read `snug: 1.2, com…`). It is RECONSTRUCTED as a uniform ~120% leading for headings: display/title resolve their leading through the `tight`/`snug`/`compact` rungs, so pinning all three to 1.2 makes every heading rung 120% regardless of size. The exact reconstructed line: **`lineHeights: { tight: 1.2, snug: 1.2, compact: 1.2 }`**. Flagged inline in the brief and in the PR body.
+
+**Condensed face — best-effort, noted, not blocking.** NB's condensed display cut is `ITCGaramondStd-LtCond`. The engine emits numeric weights, not width variants (#1368), so the seed uses `ITC Garamond Std` for the family and comments that condensed headings are set manually in the plugin; engine width-axis support is tracked in #1368. Likewise `radiusHairline` (the opt-in 1px lever, #1362) is mentioned as the path to NB's 1px corners but deliberately left OFF — a manual-pass decision, flagged for the owner.
+
+**Compile check (real CLI).** `npx tsx packages/engine/cli.ts examples/nb-redesign.design.md` (`parseDesignMd` → `validateBrandInput` → `brandTheme` → emit) generates cleanly: **590/590 aliases resolve, 202/202 mode contrast contracts pass** (202, not 488 — `light`-only).
+
+**Gate — lightweight, no new gate file.** aurora/harbor (engine-native) and wendys (standard) already have byte-exact coverage through `regen` (their artifacts are written and `regen.ts --check` reads them back). A HELD seed emits no committed artifact, so nothing else runs it. Rather than over-build a new standalone gate (a 5-file `verify.ts`/`ci.yml`/docs edit), coverage is added to the existing `engine-test` gate: a new `test.ts` block globs **every** `examples/*.design.md`, routes each by dialect exactly as `cli.ts` does, and drives it through the real pipeline (`validateBrandInput` → `brandTheme` → `buildTree`) asserting every alias resolves and every contrast contract holds. Globbing (not a hardcoded list) means any future brief is covered by existing coverage; the block NAMES `nb-redesign.design.md` (represented, not counted) and rejects an empty glob, so a deleted or mis-globbed brief is a red, not a quiet green over zero files.
+
+**Mutation (docs/34), by manual edit-and-restore over a backup copy** (the seed is untracked, so `git checkout --` can't restore it — a copy was taken first). Setting `neutralEmphasis: bogus` fails **`every-example-compiles: nb-redesign.design.md conforms to theme-schema.json` AND `… builds cleanly` BY NAME** (the schema arm and the wrapped build arm both bite; the build path is wrapped in try/catch so a broken brief reports by name instead of crashing the suite with a stack trace). Restored. (A near-white-primary mutation stayed green — the engine's contrast-role-targeted ramp placement re-picks a darker step, correct robustness, not a gate gap.)
+
+**Verify:** `npm run verify` → **56/56 gates PASS** (0 FAIL / 0 SKIP). Per-gate table in the PR body.
+
+---
+
 ## (2026-09-09) — two opt-in caption fine-print rungs: `caption.sm` = 10px (#1360) and an 8px escape hatch (#1363)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.71.0 → **0.72.0**. **CONTRACT stands at 10.0.0** — both rungs are emitted ONLY for a brand that opts in, so no corpus brand emits them and the guaranteed token-name surface is unchanged (`token-contract.ts --check` confirms 577 guaranteed unchanged; `--accept` refreshed only the informational `engineVersion` stamp).
