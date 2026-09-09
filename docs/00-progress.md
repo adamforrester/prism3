@@ -7,6 +7,28 @@
 
 ---
 
+## (2026-09-09) — the PAYLOAD executor's `nest-exposed` write, now gated by its own read-back (#1377)
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges).** **No ENGINE bump, no CONTRACT bump** — this is a gate/test-only change (`packages/engine/test.ts` and the payload stub it carries). Every emitted artifact is byte-identical (`regen --check`: 108 artifacts, no stamp movement), `lint-emission-version` agrees, `token-contract --check` unchanged at 10.0.0/577 — the #1386/#1390 precedent. Nothing under `out/**` or in `version.ts` moved.
+
+**THE GAP, from #1386's independent review** (this file's #1386 entry, "THE PAYLOAD HALF IS STILL UNGATED in the sense #1377 meant"). `nest-exposed` (#1330) has TWO production executors that write `isExposedInstance = true` after `createComponentFromNode`: the plugin's `applyComponentPlan` (`write-components.ts`), gated host-truth by `test-roundtrip.ts` — and the PAYLOAD / MCP-build executor, the `PAYLOAD_BUILD` string's `__expose[]` queue (filled by `__expose.push(node)` near `anatomy-figma.ts:2347`, drained by `__exposeNow(member)` at each `createComponentFromNode` site). On `main`, deleting `__expose.push(node)` from the payload path left `test.ts`, `regen --check` and `mcp-test` all GREEN: `test:roundtrip` drives only the plugin executor, and every other payload assertion in `test.ts` reads the emitted string as TEXT — a substring probe over a string that documents itself (docs/34 shape 12).
+
+**THE GATE — run the payload, read the marking back off the built member.** A focused block in `test.ts`'s anatomy suite (beside the #487 parity gate, one stub two drivers) projects the one `nest-exposed` def — `checkbox`, whose Row nests `checkbox-control` and exposes its `selection`/`state` — to a set payload, runs it through the existing `runPayload`/`makeFigmaStub` harness, reads the combined set back off the page, and asserts every nested `control` instance comes back `isExposedInstance === true`. It is the payload string's OWN read-back, not a second copy of the plugin's round-trip.
+
+**WHY THE STUB HAD TO GROW A MODEL (docs/34).** `test.ts`'s payload stub modelled no `isExposedInstance` at all and `createComponentFromNode` was `(n) => n` — so the payload's exposure write landed on nothing and the read-back would have been vacuous. Both are now modelled in lockstep with `component-shim.ts` (the parity gate drives both executors against this one host): `isExposedInstance` starts a definite `false` (Figma's default) with a setter that REFUSES out of containment (Figma's message verbatim), and `createComponentFromNode` converts the root's type to `COMPONENT` in place — the two halves that make the deferred write meaningful. `=== true`, not truthiness (docs/34 shape 5): the default is a definite `false` and the payload's write is the only thing that moves it.
+
+**MUTATION-BY-NAME (docs/34).** Deleting `__expose.push(node)` from `PAYLOAD_BUILD` fires exactly the new assertion, alone (1 failed of 3131), verbatim:
+
+```
+❌ #1377 the paste payload marks every nested control isExposedInstance=true — the payload executor's exposure write, UNGATED until now per #1386's review (0/3 exposed)
+```
+
+Restored: `3131 passed, 0 failed`. The gate is not vacuous by construction — a reachability floor asserts the payload built the control in all 3 members before the exposure read-back runs, so an empty set cannot pass as clean; and moving the write back into `build` (the pre-fix #1378 ordering) trips the containment refusal and fails the "runs CLEAN" assertion.
+
+**Verify:** `npm run verify` → **56/56 gates PASS** (0 FAIL · 0 SKIP · 0 ADVISORY). The per-gate table is in the PR body. **Re-scoped-closes #1377** — the payload executor's exposure write now has a gate that fails by name.
+
+---
+
 ## (2026-09-09) — the read-back stops calling a per-side-bound `strokeWeight` DISCARDED (#1332)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** **No ENGINE bump, no CONTRACT bump** — this is a diagnostic/read-back fix, not an emission change. `regen --check` is clean (108 artifacts byte-match, no stamp movement), `lint-emission-version` agrees, and no guaranteed token name moved — the same shape as #1386. Every emitted artifact is identical; only the READ-BACK's acceptance criterion changed.
