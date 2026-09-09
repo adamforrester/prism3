@@ -7,6 +7,32 @@
 
 ---
 
+## (2026-09-09) — two opt-in caption fine-print rungs: `caption.sm` = 10px (#1360) and an 8px escape hatch (#1363)
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.71.0 → **0.72.0**. **CONTRACT stands at 10.0.0** — both rungs are emitted ONLY for a brand that opts in, so no corpus brand emits them and the guaranteed token-name surface is unchanged (`token-contract.ts --check` confirms 577 guaranteed unchanged; `--accept` refreshed only the informational `engineVersion` stamp).
+
+**The problem (owner decision, settled 2026-09-09; implement both as OPT-IN levers, off by default).** Two fine-print sizes measured on the New Balance redesign have no engine representation. `caption` ships `md` (11px) and `lg` (12px); there is no 10px rung, even though 10 is the ladder floor — and 10px is NB's single highest-volume text size (1,073 nodes) (#1360). And 8px (`Body Copy/8`, 144 nodes at a literal 1:1 scale) is below the ladder floor entirely: `fontSizeLadder()` was a brand-invariant `[10, 11, 12, …]`, so 8px was unreachable by any brand input (#1363). Both were filed rather than fixed because adding a rung is a public-contract change; the owner has now decided to ship both, off by default so no corpus brand moves.
+
+**The change — two enumerated opt-in levers modelled on `titleFloor`** (set membership on one group, touching nothing else):
+- **`typography.captionFloor: 11 | 10`** (default 11). `10` adds `caption.sm` = 10px. 10 is already a ladder step, so this is pure set membership — the rung is pushed in `buildComposites` ahead of `caption.md`, through the same strictly-increasing ramp guard.
+- **`typography.sizeFloor: 10 | 8`** (default 10). `8` PREPENDS an 8px step to `fontSizeLadder` (which gains a `floor` arg; the rest of the ladder is byte-identical) and adds `caption.xs` = 8px. Threaded through both `fontSizeLadder` call sites in `buildTypography` (`sizesPx` and `buildComposites`), so the `modeLevers.typeSizes` ladder check and the fluid `mobileEndpoint` — both of which read `typography.sizesPx` — stay consistent for free. Caption is reading text (static, never fluid), so the "8px has nowhere to shrink on mobile" concern is moot.
+
+The two levers are **orthogonal** — either, both, or neither. Both registered in `levers.ts` (regenerating `schema/lever-manifest.json`, 39 → 41 levers) and `schema/theme-schema.json` (so the input is accepted and the manifest→schema parity gate passes), and enforced by `validateBrandInput` (enum `[10,11]` / `[8,10]`).
+
+**8px is an escape hatch, and the engine says so.** 8px sits below every practical legibility floor and below the size range this system's contrast ratios were reasoned about. So `sizeFloor:8` pushes a FLAGGED note into the decisions log (`$extensions.prism3.decisions`) the way `actionPalette` flags a decoupled action colour — a deliberate, recorded exception, never a rung reached by accident. `captionFloor:10` (ordinary fine print, already on the default ladder) is not flagged.
+
+**Default-off, so the corpus is byte-identical.** No corpus brand (aurora/harbor/wendys/nb/minimal/minimal-levers) sets either lever, so every emitted `out/**` byte is unchanged except each artifact's generator stamp (0.71.0 → 0.72.0). Both note additions — the caption clause in the main typography note AND the escape-hatch note — are gated on the opt-in, so a default brand's decisions log does not move (the first draft appended the caption clause unconditionally and moved all 8 artifacts; caught by `test.ts`'s byte-identical arm and made conditional). `regen --check` confirms it.
+
+**The docs/34 gate, extended here rather than filed.** Nothing gated the type SIZE ladder for these opt-in rungs before this: `lint-ramp-*` gate the studio radius/space ramp previews and `lint-axis-values` gates component `VARIANT_AXES` — neither the type-size ladder, which is gated in `test.ts`. A new `test.ts` **C1d** block REPRESENTS both rungs and the flag: the default caption tier is md/lg only; `captionFloor:10` adds caption.sm=10; `sizeFloor:8` adds caption.xs=8 AND floors the ladder at 8; opting in APPENDS caption rungs only (every non-caption composite byte-identical); and `sizeFloor:8` is FLAGGED as an escape hatch in notes. The oracle is the fixed ladder step (10/8) and the flag string, independent of the composite arithmetic. Both opt-ins also run through the full `typeCases` composite-invariant battery.
+
+**Mutation (docs/34), by manual edit-and-restore over the committed tree** (never `git checkout --` on uncommitted work — the CLAUDE.md trap; a `wip:` commit was made first). Removing the `caption.sm` push fails **C1d `[#1360] captionFloor:10 adds caption.sm=10px` BY NAME**; removing the `caption.xs` push fails **`[#1363] sizeFloor:8 adds caption.xs=8px` BY NAME**; removing the 8px `fontSizeLadder` prepend fails **`[#1363] sizeFloor:8 pushes the size-ladder floor to 8px` BY NAME**; removing the escape-hatch `notes.push` fails **`[#1363] sizeFloor:8 is FLAGGED as an escape hatch in notes` BY NAME**. All restored.
+
+**Studio + plugin exposure is automatic.** Both are proper levers in `levers.ts`, so the studio and plugin auto-expose them via the lever manifest — no separate UI work, which is the required UI path. `skills/prism3-theme/SKILL.md` documents both (lint-skills gates it).
+
+**Verify:** `npm run verify` → full suite, all-PASS (0 FAIL). The per-gate table is in the PR body.
+
+---
+
 ## (2026-09-09) — an opt-in 1px `radius.hairline` sentinel (#1362)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.70.0 → **0.71.0**. **CONTRACT stands at 10.0.0** — `radius.hairline` is emitted ONLY for a brand that opts in, so no corpus brand emits it and the guaranteed token-name surface is unchanged (`token-contract.ts --check` confirms 577 guaranteed unchanged; `--accept` refreshed only the informational `engineVersion` stamp).

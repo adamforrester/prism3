@@ -60,6 +60,48 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.72.0: two OPT-IN caption FINE-PRINT rungs (#1360 + #1363, owner decision, 2026-09-09), both off by
+ * default so no corpus brand moves. The size ladder floors at 10px and `fontSizeLadder()` was
+ * brand-invariant, so a 10px caption (#1360) and a sub-10px 8px rung (#1363) were unreachable by any
+ * brand input; both land as enumerated opt-in levers modelled on `titleFloor` — set membership on one
+ * group, touching nothing else. `typography.captionFloor: 11 | 10` (default 11); `10` adds
+ * `caption.sm` = 10px, a step already on the ladder. `typography.sizeFloor: 10 | 8` (default 10); `8`
+ * PREPENDS an 8px step to `fontSizeLadder` and adds `caption.xs` = 8px. Both were measured on the New
+ * Balance redesign — 10px is its single highest-volume text size (1,073 nodes) and 8px is real fine
+ * print (144 nodes) at a literal 1:1 scale.
+ *
+ * 8px IS AN ESCAPE HATCH, AND THE ENGINE SAYS SO. 8px sits below every practical legibility floor and
+ * below the size range this system's contrast ratios were reasoned about, so `sizeFloor:8` pushes a
+ * FLAGGED note into the decisions log the way `actionPalette` flags a decoupled action colour — a
+ * deliberate, recorded exception, never a rung a brand reaches by accident. `captionFloor:10` (10px is
+ * ordinary fine print, on the default ladder) is not flagged.
+ *
+ * DEFAULT-OFF, SO THE CORPUS IS BYTE-IDENTICAL. No corpus brand (aurora/harbor/wendys/nb/minimal/
+ * minimal-levers) sets either lever, so every emitted `out/**` byte is unchanged except each artifact's
+ * own generator stamp — the caption note clause and the escape-hatch note are BOTH gated on the opt-in,
+ * so a default brand's `$extensions.prism3.decisions` does not move. `regen --check` confirms it. The
+ * levers are threaded theme.ts (`fontSizeLadder` gains a `floor` arg; `buildComposites` pushes the two
+ * caption rungs smallest-first through the existing ramp guard; `validateBrandInput` enforces both
+ * enums), registered in `levers.ts` (regenerating `schema/lever-manifest.json`, 39 → 41 levers) and
+ * `schema/theme-schema.json` (so the input is accepted and the manifest→schema parity gate in `test.ts`
+ * passes).
+ *
+ * ENGINE and not CONTRACT. `caption.sm` / `caption.xs` are emitted ONLY for a brand that opts in, so
+ * neither is a GUARANTEED path (no corpus brand emits it) and neither is even brand-DEPENDENT in the
+ * baseline (the contract corpus does not opt in) — the token-name surface every corpus brand emits is
+ * unchanged, so `CONTRACT_VERSION` STANDS at 10.0.0 and `token-contract.ts --check` confirms the
+ * guaranteed set holds; `--accept` refreshes only the baseline's informational `engineVersion` stamp to
+ * 0.72.0.
+ *
+ * MUTATION-BY-NAME (docs/34). Nothing gated the type SIZE ladder for these opt-in rungs before this —
+ * `lint-ramp-*` gate studio radius/space ramp previews and `lint-axis-values` gates component
+ * `VARIANT_AXES`, neither the type ladder. So `test.ts` block C1d is the gate, and it REPRESENTS both
+ * rungs and the flag: it asserts the default caption tier is md/lg only, that `captionFloor:10` adds
+ * caption.sm=10, that `sizeFloor:8` adds caption.xs=8 AND floors the ladder at 8, that opting in
+ * APPENDS caption rungs only (every non-caption composite byte-identical), and that `sizeFloor:8` is
+ * FLAGGED as an escape hatch in notes. Removing the caption.sm push, the caption.xs push, the 8px
+ * `fontSizeLadder` prepend, or the escape-hatch `notes.push` each fails a NAMED assertion in C1d.
+ *
  * 0.71.0: an OPT-IN 1px `radius.hairline` sentinel (#1362, owner Option A, 2026-09-08). The radius ramp
  * rides an even 2px sub-grid (`snap2` → `Math.round(v / 2) * 2`), so 1px / 3px / 5px are unreachable from
  * ANY `radiusScale` / `baseMd` — every non-`none` rung is even by construction. New Balance's redesign
@@ -1972,7 +2014,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.71.0';
+export const ENGINE_VERSION = '0.72.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

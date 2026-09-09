@@ -340,6 +340,18 @@
           "default": 18,
           "description": "Whether the title tier includes title.2xs — a 16px brand-font heading that deliberately overlaps body.md. Set 16 to include it, 18 (default) to omit it. Incompatible with typeScale 'compact', which already places a title at 16px."
         },
+        "captionFloor": {
+          "type": "number",
+          "enum": [10, 11],
+          "default": 11,
+          "description": "Whether the caption tier includes caption.sm — a 10px fine-print rung (10 is already a step on the size ladder). Set 10 to include it, 11 (default) to floor caption at md. Pure set membership on an existing ladder step, like titleFloor. Off by default, so no existing brand moves."
+        },
+        "sizeFloor": {
+          "type": "number",
+          "enum": [8, 10],
+          "default": 10,
+          "description": "Opt-in sub-10px escape hatch. Set 8 to push the size ladder to an 8px floor and add caption.xs = 8px; 10 (default) is the hard floor and adds nothing. 8px sits below the size range the system's contrast ratios were reasoned about, so the engine flags it in notes as a deliberate escape hatch — ship it only for genuine fine print (legal, footnotes) that has an accessible alternative. Off by default, so no existing brand moves."
+        },
         "sizes": {
           "type": "object",
           "additionalProperties": false,
