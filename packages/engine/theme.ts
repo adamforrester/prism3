@@ -523,6 +523,11 @@ export type BrandInput = {
   radiusScale?: number;              // 0=sharp … 1=default … 2=soft, default 1
   baseMd?: number;                   // radius.md anchor (px) at scale 1, default 4
   controlShape?: ControlShape;       // 'rounded' (default) | 'pill' — corner shape for pill-able controls
+  /** OPT-IN 1px hairline radius (#1362). The scaled ramp rides an even 2px sub-grid (`snap2`), so 1px is
+   *  unreachable from `radiusScale` / `baseMd`; `true` adds a fixed, unscaled `radius.hairline` = 1px
+   *  sentinel alongside the pills for near-sharp brands (New Balance uses 1px as its dominant corner).
+   *  Off by default — omitting it leaves every rung byte-identical. */
+  radiusHairline?: boolean;
 };
 
 /**
@@ -560,7 +565,7 @@ export type BrandInputAuthored =
  *  px is already fed in by the space extras at base 4, 6 and 8, so deleting either of those lines
  *  changes no committed output. A guard nothing can exercise is a guard nothing can notice the loss of,
  *  which is `docs/34`'s shape 14 — so the seam is opened here rather than the guard left unfalsifiable. */
-export const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = []): Dims => {
+export const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = [], hairline = false): Dims => {
   // Space is `mult × spaceBase`; the dimension grid is `baseUnit`-stepped. At a non-default spaceBase the
   // half-steps (1.5×/0.25×/0.75×) land OFF the grid (e.g. spaceBase 12 → space.150 = 18px, absent from the
   // baseUnit-4 grid), so `space.<k> → {dimension.<px>}` would dangle (#274). Feed every space px into the
@@ -604,7 +609,7 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
     grid: dimensionGrid(baseUnit, 128, [...extras, ...space.map((s) => s.px), ...iconSizes().map((i) => i.px),
       ...controls.flatMap((c) => [c.height, c.width, c.dot, c.inset])]),
     space,
-    radius: radiusScale(rScale, baseMd, 128),
+    radius: radiusScale(rScale, baseMd, 128, 999, hairline),
     sizes: componentSizes(density, spaceBase),
     icons: iconSizes(),
     controls,
@@ -2175,15 +2180,19 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const density = input.density ?? 'comfortable';
   const rScale = input.radiusScale ?? 1;
   const baseMd = input.baseMd ?? 4;
+  // OPT-IN 1px hairline sentinel (#1362) — off by default, so absent it changes nothing.
+  const radiusHairline = input.radiusHairline ?? false;
   // Per-mode radius levers (Phase D): a customizable mode overriding `radius` re-derives its radius
   // ramp via the SAME radiusScale(value, baseMd, 128) buildDims uses (same baseMd). Only a mode whose
   // re-derived ramp DIFFERS from the global baseline gets an entry (no-diff suppression — mirrors the
   // tempo lever below); an override that equals the global scale stays byte-identical.
   const modeLevers = input.modeLevers ?? {};
   const radiusByMode: Record<string, RadiusStep[]> = {};
-  const baseRadiusJson = JSON.stringify(radiusScale(rScale, baseMd, 128));   // == dims.radius, the baseline every mode inherits
+  const baseRadiusJson = JSON.stringify(radiusScale(rScale, baseMd, 128, 999, radiusHairline));   // == dims.radius, the baseline every mode inherits
   for (const [m, lev] of Object.entries(modeLevers)) {
-    if (lev?.radius !== undefined) diffAssign(radiusByMode, m, radiusScale(lev.radius, baseMd, 128), baseRadiusJson);
+    // The hairline sentinel is brand-level and unscaled, so it rides every mode's ramp identically —
+    // pass it here too, and a per-mode `radius` override still no-diffs on it (1px is mode-invariant).
+    if (lev?.radius !== undefined) diffAssign(radiusByMode, m, radiusScale(lev.radius, baseMd, 128, 999, radiusHairline), baseRadiusJson);
   }
   // Per-mode DENSITY levers (Phase D): a customizable mode overriding `density` re-derives its component
   // -size tier via the SAME componentSizes(density, spaceBase) buildDims uses. Only a mode whose density
@@ -2200,6 +2209,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     }
   }
   notes.push(`dimension axis: ${baseUnit}px grid, ${spaceBase}px space rhythm, density '${density}' (drives component sizes), radius scale ${rScale} (baseMd ${baseMd}px)`);
+  if (radiusHairline) notes.push('radius: hairline sentinel ON — a fixed, unscaled radius.hairline = 1px alongside the pills (#1362, opt-in), reachable where the even 2px sub-grid cannot go; the scaled ramp is unchanged.');
   notes.push(`motion: tempo '${input.motionPersonality?.tempo ?? 'standard'}' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)`);
   // Per-mode MOTION TEMPO (Phase D): a customizable mode overriding `tempo` re-derives its duration ramp
   // (+ reduce-motion + stagger) via the SAME buildMotion the baseline uses, just at the mode's tempo.
@@ -2512,7 +2522,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
     neutralEmphasis, interactivePalettes,
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
-    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
+    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, [], radiusHairline), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
     motion,
     typography,
     shadow,

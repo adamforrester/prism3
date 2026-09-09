@@ -3513,6 +3513,55 @@ for (const b of brands) {
   ok(radiusScale(1000).filter((r) => !r.pill).every((r, i, a) => i === 0 || r.px >= a[i - 1].px), 'L-03: monotonicity holds even at an absurd scale (gate never false-trips a valid ladder)');
 }
 
+// L-03b: the RADIUS SENTINELS (#1362) — round / capsule / hairline — are PRESENT, FIXED and UNSCALED,
+// and hairline is OPT-IN. Before #1362 nothing gated the pills for PRESENCE: L-03 above filters `!r.pill`
+// and never looks at the pills themselves, so deleting a `ramp.push(...)` in `radiusScale` would have gone
+// silently green. That is the docs/34 finding this closes. The oracle is the FIXED contract of a sentinel
+// — its px does NOT move with `scale`, and 1px is UNREACHABLE from the even 2px scaled ladder — so it is
+// independent of the scaled-rung arithmetic (which these assertions deliberately do not recompute).
+{
+  const root = 'prism';
+  const opt = (h: boolean, s = 1) => radiusScale(s, 4, 128, 999, h);
+  const find = (steps: ReturnType<typeof radiusScale>, name: string) => steps.find((r) => r.name === name);
+
+  // (a) round + capsule are ALWAYS present, marked pill, and FIXED across the whole scale range — a pill
+  //     is height ÷ 2 regardless of corner softness. Removing either push fails these BY NAME.
+  for (const s of [0, 0.5, 1, 2]) {
+    const r = radiusScale(s);
+    ok(find(r, 'round')?.px === 128 && find(r, 'round')?.pill === true,
+      `L-03b: radius.round sentinel present, pill, fixed at 128px (scale=${s}, got ${find(r, 'round')?.px})`);
+    ok(find(r, 'capsule')?.px === 999 && find(r, 'capsule')?.pill === true,
+      `L-03b: radius.capsule sentinel present, pill, fixed at 999px (scale=${s}, got ${find(r, 'capsule')?.px})`);
+  }
+
+  // (b) hairline is ABSENT by default (opt-in) — this is what keeps the corpus byte-identical.
+  ok(radiusScale(1).every((r) => r.name !== 'hairline'), 'L-03b: radius.hairline is ABSENT unless opted in (default off → corpus byte-identical)');
+
+  // (c) opted in, hairline is a FIXED 1px rung, NOT a pill, and UNSCALED — and 1px is unreachable from the
+  //     even 2px sub-grid at ANY scale, which is the whole reason the sentinel exists. Removing the hairline
+  //     push in scale.ts fails every one of these BY NAME.
+  for (const s of [0, 0.25, 0.5, 1, 2]) {
+    const hr = find(opt(true, s), 'hairline');
+    ok(hr?.px === 1 && !hr.pill, `L-03b: radius.hairline = 1px, unscaled and non-pill (scale=${s}, got ${hr?.px}, pill=${hr?.pill})`);
+    ok(opt(true, s).filter((r) => !r.pill && r.name !== 'hairline' && r.name !== 'none').every((r) => r.px % 2 === 0),
+      `L-03b: the scaled ladder stays EVEN at scale=${s} — 1px is reachable ONLY via the hairline sentinel, never the ramp`);
+  }
+
+  // (d) opting in perturbs NOTHING but the one appended rung — the scaled ladder + pills are byte-identical
+  //     to the non-opted ramp, because the sentinel is pushed PAST the ladder exactly as the pills are.
+  ok(JSON.stringify(opt(false)) === JSON.stringify(opt(true).filter((r) => r.name !== 'hairline')),
+    'L-03b: opting into hairline leaves every other rung byte-identical (the sentinel only appends)');
+
+  // (e) end to end — a brand that opts in EMITS radius.hairline aliasing {…dimension.1} (1 is on the grid,
+  //     so it aliases like a real rung, not a literal); one that does not emits no such rung. Reads the
+  //     built tree, so this is the emitted contract rather than the in-memory ramp.
+  const optedTree = buildTree(brandTheme({ id: 'hair', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, radiusHairline: true } as unknown as BrandInput)).tree[root].radius;
+  const plainTree = buildTree(brandTheme({ id: 'plain', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as unknown as BrandInput)).tree[root].radius;
+  ok(optedTree.hairline?.$extensions?.prism3?.px === 1 && optedTree.hairline?.$value === `{${root}.core.dimension.1}`,
+    `L-03b: an opted-in brand emits radius.hairline = 1px aliasing dimension.1 (got ${optedTree.hairline?.$value}, px ${optedTree.hairline?.$extensions?.prism3?.px})`);
+  ok(plainTree.hairline === undefined, 'L-03b: a brand that does not opt in emits NO radius.hairline (corpus byte-identical)');
+}
+
 // L-05: pxOf is rem-aware (a rem leaf scales by 16, not truncated as px), and deref reports
 // a runaway/cyclic alias chain as missing (undefined) rather than a mid-chain node.
 {

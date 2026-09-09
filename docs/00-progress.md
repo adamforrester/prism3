@@ -7,6 +7,26 @@
 
 ---
 
+## (2026-09-09) — an opt-in 1px `radius.hairline` sentinel (#1362)
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.70.0 → **0.71.0**. **CONTRACT stands at 10.0.0** — `radius.hairline` is emitted ONLY for a brand that opts in, so no corpus brand emits it and the guaranteed token-name surface is unchanged (`token-contract.ts --check` confirms 577 guaranteed unchanged; `--accept` refreshed only the informational `engineVersion` stamp).
+
+**The problem (owner Option A, settled 2026-09-08; implemented not re-decided).** The radius ramp rides an even 2px sub-grid — `radiusScale()` snaps every non-`none` rung with `snap2 = (v) => Math.round(v / 2) * 2` — so 1px / 3px / 5px are unreachable from ANY `radiusScale` (∈[0,2]) / `baseMd` (∈[2,12]) input. New Balance's redesign uses **1px** as its dominant corner (68 nodes, a deliberate near-sharp look), which the closest faithful input (`radiusScale: 1`) renders at 2px and `radiusScale: 0` flattens to sharp. The constraint is the sub-grid itself.
+
+**The change.** Rather than change the `snap2` math (which would move the scaled ramp for every brand), a FIXED, UNSCALED `hairline` = 1px rung is added the **same way the `round`/`capsule` pills are** — pushed onto the ramp AFTER the scaled-ladder computation and its monotonicity guard, so it perturbs neither — but gated on a new opt-in `radiusHairline` brand-input lever (a `form` toggle, **off by default**). Unlike the pills it is not a pill (no clamp semantics, no `pill` flag) and it is ON the 4px dimension grid (`dimensionGrid` seeds 0/1/2), so `tree.ts` aliases it (`radius.hairline → {…dimension.1}`) rather than minting a literal. Threaded `scale.ts` (`radiusScale` gains a `hairline` param) → `theme.ts` (`buildDims`, plus both the baseline and per-mode `radiusScale` calls so a `modeLevers.radius` ramp carries the sentinel too and still no-diffs on it — 1px is mode-invariant), registered in `levers.ts` (regenerating `schema/lever-manifest.json`) and `schema/theme-schema.json` (so `validateBrandInput` accepts it and the manifest→schema parity gate in `test.ts` passes).
+
+**Default-off, so the corpus is byte-identical.** No corpus brand (aurora/harbor/wendys/nb) sets `radiusHairline`, so every emitted radius is unchanged to the byte — the only `out/**` diff is each artifact's own generator stamp (0.70.0 → 0.71.0). This is an opt-in ADD, not a default change. **NB is deliberately NOT switched on in this PR** — that is a separate brand-input change; this PR only makes 1px reachable.
+
+**The docs/34 finding, fixed here rather than filed.** The radius SENTINELS were not gated for presence at all before this: the `round`/`capsule` pills are pushed unconditionally and nothing asserted they exist — `test.ts` L-03 filters `!r.pill` and never looks at the pills themselves, so a deleted `ramp.push(...)` would have gone silently green. A new `test.ts` **L-03b** block now asserts each sentinel is PRESENT and UNSCALED across scales (round=128/capsule=999 pill, hairline=1 non-pill, all fixed at scale 0…2), that hairline is ABSENT unless opted in, that opting in leaves the scaled ladder byte-identical (the sentinel only appends), that the scaled ladder stays EVEN at every scale (1px reachable ONLY via the sentinel), and that an opted-in brand EMITS `radius.hairline` aliasing `{…dimension.1}` while a plain brand emits none. Independent of the scaled-rung arithmetic — the oracle is the FIXED contract of a sentinel (px does not move with scale; 1px is unreachable from the even ladder), not a recomputation of the ramp.
+
+**Mutation (docs/34), by manual edit-and-restore over the committed tree (never `git checkout --` on uncommitted work — the CLAUDE.md trap; a `wip:` commit was made first).** (a) Removing the `hairline` push in `scale.ts` fails **6 L-03b assertions BY NAME** (`radius.hairline = 1px, unscaled and non-pill (scale=…)` and the emitted-tree arm). (b) Altering the `round` push (px 128 → 129) fails **4 L-03b assertions BY NAME** (`radius.round sentinel present, pill, fixed at 128px`), proving the pill-presence arm bites too. Both restored.
+
+**Studio exposure.** The toggle is added to the "Corner radius" section beside `baseMd` and `radiusScale` (`renderSizeRadiusPage`), rendered by the studio's generic `toggle` control — the same explicit-key pattern `baseMd` uses. So it is usable end-to-end (studio + `BrandInput`/`design.md`), not just plumbed.
+
+**Verify:** `npm run verify` → full suite, all-PASS (0 FAIL). The per-gate table is in the PR body.
+
+---
+
 ## (2026-09-08) — the text-bearing button family sizes its icon one rung smaller than its control (#1350)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.69.0 → **0.70.0**. **CONTRACT stands at 10.0.0** — a component binding is a reference to a token name, never a token name; every rung it now points at already ships (`token-contract.ts --check` confirms 577 guaranteed paths unchanged; `--accept` refreshed only the informational `engineVersion` stamp).

@@ -69,6 +69,7 @@ minimal — read both, they are the reference):
 | `density` | `comfortable` \| `compact` \| `spacious` | a dense tool vs a roomy reading product |
 | `radiusScale` | number, or a named stop: `sharp` \| `modest` \| `standard` \| `soft` \| `round` | corner softness |
 | `controlShape` | `rounded` \| `pill` | pill-able controls (buttons) read as full **pills** (height ÷ 2) rather than rounded — a brand-identity choice, orthogonal to softness |
+| `radiusHairline` | `true` \| `false` | opt-in (off by default) — adds a fixed **1px** hairline radius rung for a near-sharp brand. The scaled ramp only lands on even values, so this is the way to a 1px corner; the scaled rungs are untouched |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed }` | brand energy → motion pace |
 | `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, responsive: { fluid, minViewport, maxViewport } }` | custom faces / weight remap / fluid type; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **an omitted category takes the engine default (Inter, or JetBrains Mono for `code`), with a system fallback stack appended** |

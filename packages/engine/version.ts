@@ -60,6 +60,40 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.71.0: an OPT-IN 1px `radius.hairline` sentinel (#1362, owner Option A, 2026-09-08). The radius ramp
+ * rides an even 2px sub-grid (`snap2` → `Math.round(v / 2) * 2`), so 1px / 3px / 5px are unreachable from
+ * ANY `radiusScale` / `baseMd` — every non-`none` rung is even by construction. New Balance's redesign
+ * uses 1px as its dominant corner (68 nodes, a deliberate near-sharp look), which the closest faithful
+ * input (`radiusScale: 1`) renders at 2px. Rather than change the `snap2` math (which would move the
+ * whole scaled ramp for every brand), a FIXED, UNSCALED `hairline` = 1px rung is added the same way the
+ * `round`/`capsule` pills are — pushed AFTER the scaled-ladder computation and its monotonicity guard, so
+ * it perturbs neither — but gated on a new `radiusHairline` brand-input lever (a `form` toggle, off by
+ * default). Unlike the pills it is not a pill (no clamp) and is ON the 4px dimension grid, so `tree.ts`
+ * aliases it (`radius.hairline → {…dimension.1}`) rather than minting a literal.
+ *
+ * DEFAULT-OFF, SO THE CORPUS IS BYTE-IDENTICAL. No corpus brand (aurora/harbor/wendys/nb) sets
+ * `radiusHairline`, so their emitted radii are unchanged to the byte — `regen --check` moves only each
+ * artifact's own generator stamp. The lever is threaded scale.ts → theme.ts (`buildDims`, and both the
+ * baseline and per-mode `radiusScale` calls so a `modeLevers.radius` ramp carries the sentinel too and
+ * still no-diffs on it, 1px being mode-invariant), registered in `levers.ts` (regenerating
+ * `schema/lever-manifest.json`) and `schema/theme-schema.json` (so `validateBrandInput` accepts it and
+ * the manifest→schema parity gate in `test.ts` passes).
+ *
+ * ENGINE and not CONTRACT. `radius.hairline` is emitted ONLY for a brand that opts in, so it is not a
+ * GUARANTEED path (no corpus brand emits it) and not even brand-DEPENDENT in the baseline (the contract
+ * corpus does not opt in) — the token-name surface every corpus brand emits is unchanged, so
+ * `CONTRACT_VERSION` STANDS at 10.0.0 and `token-contract.ts --check` confirms the guaranteed set holds;
+ * `--accept` refreshes only the baseline's informational `engineVersion` stamp to 0.71.0.
+ *
+ * MUTATION-BY-NAME (docs/34). The radius SENTINELS were not gated for presence at all before this — the
+ * `round`/`capsule` pills are pushed unconditionally and nothing asserted they exist (`test.ts` L-03
+ * filters `!r.pill` and never checks the pills themselves). That is the docs/34 finding, and it is fixed
+ * here rather than filed: a new `test.ts` block asserts each sentinel is PRESENT and UNSCALED across
+ * scales (round=128/capsule=999 pill, hairline=1 non-pill, all fixed at scale 0…2), that `hairline` is
+ * ABSENT unless opted in, that opting in leaves the scaled ladder byte-identical, and that a brand opting
+ * in emits `radius.hairline` aliasing `{…dimension.1}`. Removing the `hairline` push in `scale.ts`, or
+ * the `round`/`capsule` push, fails these assertions BY NAME.
+ *
  * 0.70.0: the TEXT-BEARING button family sizes its icon ONE RUNG SMALLER than its control (#1350, owner
  * Option A, 2026-09-08). `button` / `button-destructive` / `button-neutral` rebind their leading/trailing
  * icon slots from `icon.size.{sm,md,lg}` = 20/24/32 down to `icon.size.{xs,sm,md}` = 16/20/24 at
@@ -1938,7 +1972,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.70.0';
+export const ENGINE_VERSION = '0.71.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
