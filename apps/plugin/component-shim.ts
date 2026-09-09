@@ -390,6 +390,16 @@ export const makeShim = (opts: ShimOpts = {}) => {
         if (node._aspectLocked && (prop === 'width' || prop === 'height')) {
           delete bv[prop === 'width' ? 'height' : 'width'];
         }
+        // HOST TRUTH (#1332): binding `strokeWeight` splits across the four PER-SIDE keys on the real
+        // host and leaves the scalar unbound — the 2026-09-09 host-truth Figma-console audit confirmed
+        // this on every bordered set. Modelled here so the read-backs are exercised against what Figma
+        // actually holds; a shim that recorded the scalar agreed with the very assumption that produced
+        // the false `strokeWeight … DISCARDED`, so the corpus round-trip could not have witnessed the fix.
+        if (prop === 'strokeWeight') {
+          for (const side of ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'])
+            bv[side] = { id: v.id, value: v.value };
+          return;
+        }
         bv[prop] = { id: v.id, value: v.value };
       },
       // APPLYING A STYLE RE-RESOLVES THE TEXT, so Figma demands the style's font be loaded FIRST — and

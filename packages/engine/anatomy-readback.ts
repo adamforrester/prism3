@@ -126,10 +126,23 @@ const hasVectorContent = (n: HostNode): boolean => {
   return kids.some(hasVectorContent);
 };
 
+/** The four PER-SIDE stroke-weight keys the real host binds a `strokeWeight` variable onto (#1332). */
+const STROKE_WEIGHT_SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'] as const;
+
 const boundIdOf = (n: HostNode, prop: string): string | null => {
   const bv = n.boundVariables as Record<string, { id?: unknown }> | undefined;
   const id = bv?.[prop]?.id;
-  return typeof id === 'string' ? id : null;
+  if (typeof id === 'string') return id;
+  // HOST TRUTH (#1332) — a stroke WEIGHT variable does not bind onto the scalar `strokeWeight` key on
+  // the real host. The 2026-09-09 host-truth Figma-console audit established that `setBoundVariable`
+  // splits it across the four PER-SIDE keys (`strokeTopWeight`/…/`strokeLeftWeight`) and leaves the
+  // scalar unbound, on every bordered set. A reader that asks only for the scalar reports a FALSE
+  // `strokeWeight→UNBOUND` on a weight that is in fact bound. So accept the COMPLETE per-side binding
+  // (all four present) as satisfying the check, resolving through any one side — they name one variable.
+  // A partial per-side binding is NOT accepted: that is a genuine miss the reader must still report.
+  if (prop === 'strokeWeight' && STROKE_WEIGHT_SIDES.every((k) => typeof bv?.[k]?.id === 'string'))
+    return bv![STROKE_WEIGHT_SIDES[0]].id as string;
+  return null;
 };
 
 /**

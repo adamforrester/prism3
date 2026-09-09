@@ -2474,9 +2474,13 @@ const build=async(n)=>{
   // READ BACK. The name resolved and the setter did not throw, which is not the same as the binding
   // being there — see the header note. This closes \`misses[]\`'s blind spot generically, so the next
   // silently-discarded write is reported by the paste instead of being found by probing months later.
+  // HOST TRUTH (#1332): a bound \`strokeWeight\` reads back on the four PER-SIDE keys, never the scalar
+  // (the 2026-09-09 host-truth audit) — so a weight counts as held when EITHER the scalar OR all four
+  // per-side keys are present, and a genuinely unbound weight is still reported.
   const got=node.boundVariables||{};
+  const held=(prop)=>!!got[prop]||(prop==='strokeWeight'&&['strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].every(k=>!!got[k]));
   for(const prop of wrote)
-    if(!got[prop])misses.push(n.name+'.'+prop+' -> DISCARDED (resolved, set, not retained)');
+    if(!held(prop))misses.push(n.name+'.'+prop+' -> DISCARDED (resolved, set, not retained)');
   // Paints read back too, and from the ARRAY rather than the node — a paint binding lives on the
   // paint object, so \`boundVariables.fills\` is not where it is.
   const boundPaint=(arr)=>!!(arr&&arr[0]&&arr[0].boundVariables&&arr[0].boundVariables.color);

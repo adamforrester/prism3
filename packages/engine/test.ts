@@ -9262,7 +9262,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
             // the footprint drift below vanished — the arm reporting `[]`, which reads as "no drift" and
             // is really "cannot see the stroke". Bound-or-literal is what Figma does and what the padding
             // and size terms beside this already do.
-            const weight = (bv.strokeWeight?.value ?? (node.strokeWeight as number)) || 0;
+            const weight = (bv.strokeWeight?.value ?? bv.strokeTopWeight?.value ?? (node.strokeWeight as number)) || 0;   // #1332: the weight binds per-side
             if (bv.width) return bv.width.value ?? 0;
             if (node.type === 'TEXT') return ((node.characters as string) || '').length * 6;
             const pad = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0);
@@ -9280,7 +9280,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           get height() {
             const bv = node.boundVariables as Record<string, { value?: number }>;
             const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
-            const weight = (bv.strokeWeight?.value ?? (node.strokeWeight as number)) || 0;   // bound-or-literal, #1278 — see the width getter
+            const weight = (bv.strokeWeight?.value ?? bv.strokeTopWeight?.value ?? (node.strokeWeight as number)) || 0;   // bound-or-literal, #1278; per-side, #1332 — see the width getter
             if (bv.height) return bv.height.value ?? 0;
             const pad = (bv.paddingTop?.value ?? 0) + (bv.paddingBottom?.value ?? 0);
             const flow = ((node.children as Record<string, unknown>[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE');
@@ -9312,6 +9312,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           setBoundVariable(prop: string, v: { id: string; value?: number }) {
             const bv = node.boundVariables as Record<string, unknown>;
             if (node._aspectLocked && (prop === 'width' || prop === 'height')) delete bv[prop === 'width' ? 'height' : 'width'];
+            // HOST TRUTH (#1332): binding `strokeWeight` splits across the four PER-SIDE keys on the real
+            // host and leaves the scalar unbound (the 2026-09-09 host-truth Figma-console audit). Modelled
+            // here so the paste executor's read-back is exercised against what Figma holds — mirrors the
+            // plugin shim, so the parity gate still compares two executors against one Figma model.
+            if (prop === 'strokeWeight') {
+              for (const side of ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'])
+                bv[side] = { id: v.id, value: v.value };
+              return;
+            }
             bv[prop] = { id: v.id, value: v.value };
           },
           setTextStyleIdAsync: async () => {}, setEffectStyleIdAsync: async () => {},
@@ -9972,7 +9981,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         const ownPage: StubPage = { children: [] };
         const own = await runPayload(planToPluginJs(rp), { vars: [...planBoundVars(rp.root), ...planPaintVars(rp.root)], page: ownPage });
         const ringNode = ownPage.children[0] as Record<string, unknown> | undefined;
-        const weight = ((ringNode?.boundVariables as Record<string, { id?: string }> | undefined) ?? {}).strokeWeight?.id;
+        const rbv = ((ringNode?.boundVariables as Record<string, { id?: string }> | undefined) ?? {});
+        const weight = rbv.strokeWeight?.id ?? rbv.strokeTopWeight?.id;   // #1332: the weight binds per-side on the host
         const at = planComponentName(rp);
         // PIN THE PASTE before reading it: a payload that reported a miss, or built nothing at all, would
         // leave both claims below reading `undefined` against `undefined` on some future refactor.
@@ -10049,7 +10059,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `anatomy/${def.id} #1228 reachable: the payload pastes clean at ${at} and its \`${part}\` was found (${JSON.stringify(r.misses)})`);
         // The NAME, not the number — a `=== 2` would pass on the executor's own literal, since the literal
         // this replaces was 1 and the token is 2 only because Prism 2 measured 2.
-        const weight = ((box?.boundVariables as Record<string, { id?: string }> | undefined) ?? {}).strokeWeight?.id;
+        const bbv = ((box?.boundVariables as Record<string, { id?: string }> | undefined) ?? {});
+        const weight = bbv.strokeWeight?.id ?? bbv.strokeTopWeight?.id;   // #1332: the weight binds per-side on the host
         ok(weight === want,
           `anatomy/${def.id} #1228/#1278: the pasted \`${part}\` binds \`${want.replace('V:', '').replace(/\//g, '.')}\` as its stroke weight at ${at} (${weight ?? "UNBOUND — the payload's 1px fallback, which is what shipped"})`);
         // And no literal was written over it. The stub starts a FRAME at 0, so a fallback that ran is
