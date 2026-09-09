@@ -771,8 +771,8 @@ export const figmaAnatomyPlan = (
   // in. Supplying some of a template's axes but not all makes every template needing the missing one
   // unfillable, so the plan comes back structurally perfect and unpainted — the #500 shape again, and
   // the caller's own typo'd argument name is enough to cause it. Asked per template, because "all the
-  // axes" is not a property of the def: `field-message` keys `{tone}.{slot}` and nothing else, so
-  // `tone` alone is a COMPLETE coordinate there and an incomplete one in Button's grammar.
+  // axes" is not a property of the def: `field-message` keys `{status}.{slot}` and nothing else, so
+  // `status` alone is a COMPLETE coordinate there and an incomplete one in Button's grammar.
   for (const template of def.paintKeys ?? []) {
     const axes = paintKeyPlaceholders(template).filter((p) => p !== 'slot' && p !== 'state' && p in (def.variants ?? {}));
     const missing = axes.filter((a) => axisValue(a) === undefined);
@@ -1026,8 +1026,8 @@ export const figmaAnatomyPlan = (
   };
 
   // THE TEXT PLACEHOLDER FOR THIS MEMBER (#1018). `default` is one string for the whole set, so a def whose
-  // axis changes what the text should SAY (a validation message's `tone`) rendered the same copy on every
-  // member — `field-message`'s error member shipping the `tone=default` helper string. `byVariant` names,
+  // axis changes what the text should SAY (a validation message's `status`) rendered the same copy on every
+  // member — `field-message`'s error member shipping the `status=default` helper string. `byVariant` names,
   // per axis, the copy a member at that coordinate renders; resolved here against `axisValue`, first matching
   // axis wins (the exact shape `positionOf` uses one field up), and any coordinate it does not name falls
   // back to `default`. A structure-only plan supplies no axis values, so it reads `default` — byte-identical

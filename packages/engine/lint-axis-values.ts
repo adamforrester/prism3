@@ -37,9 +37,11 @@
  *      `indeterminate`, which `radio.ts` argues for in its own header (a mutually-exclusive choice has
  *      no partial state). Correct, and a third distinct set.
  *
- *   2. **The divergence is not confined to `selection`.** THREE of the eleven axes carry more than one
- *      set: `selection` (3), `size` (2), `tone` (2). A gate scoped to `selection` — which is what the
- *      issue title asks for — would have gone green over the other two.
+ *   2. **The divergence is not confined to `selection`.** At #934 THREE of the axes carried more than
+ *      one set: `selection` (3), `size` (2), `tone` (2). A gate scoped to `selection` — which is what the
+ *      issue title asks for — would have gone green over the other two. (The `tone` divergence was later
+ *      RESOLVED at its source by #1334 — see the OVERLAPPING section below — so the live count the gate
+ *      prints is smaller now; the point that a scoped gate misses the axes it was not scoped to stands.)
  *
  * And the binding property is not "how many spellings". It is **COMPARABILITY**: whether two defs'
  * sets for one axis can be lined up at all. Three relations exist in the corpus and they are not
@@ -53,25 +55,31 @@
  *     and it is the one #934 did not know was there.** Partial agreement reads as alignment, so the
  *     one place the sets disagree looks like a real distinction rather than a synonym.
  *
- * ── THE OVERLAPPING CASE, WHICH IS #756's FAILURE MODE LIVE IN A DIFFERENT AXIS ──────────────────
+ * ── THE OVERLAPPING CASE, WHICH WAS #756's FAILURE MODE LIVE IN A DIFFERENT AXIS (RESOLVED #1334) ──
  *
- * `tone` has `field-message`'s `[default, error, warning, success]` against `icon`'s nine-value ink
- * vocabulary. They agree on `success` and `warning` — and then one spells the failure ink **`error`**
- * and the other **`danger`**. The proof they are one concept is in the binding itself:
+ * At #934 the `tone` axis carried `field-message`'s `[default, error, warning, success]` against
+ * `icon`'s nine-value ink vocabulary. They agreed on `success` and `warning` — and then one spelled the
+ * failure ink **`error`** and the other **`danger`**. The proof they were one concept was in the binding
+ * itself:
  *
  *     'error.label': 'color.text.danger'
  *     'error.icon':  'color.icon.danger'
  *
- * The def spells the value `error` and resolves it to `danger` on the very next token. That is #756's
+ * The def spelled the value `error` and resolved it to `danger` on the very next token. That was #756's
  * finding — *"four spellings of one axis, every one individually defensible"* — one level down, in an
  * axis nobody was watching, and both spellings ARE individually defensible: `error` is a member of the
  * closed `STATES` vocabulary, which is what a validation outcome should mirror; `danger` is the
  * semantic-ink token vocabulary, which is what the binding resolves to.
  *
- * **This gate DECLARES that divergence rather than fixing it, deliberately.** #934's own bar is that
- * the gate must not prejudge a decision two spellings might legitimately survive, and unifying them is
- * a component-API change that belongs to whoever owns the tone axis, not to the census that found it.
- * The register entry states both grounds so the decision is weighable; it is filed as a finding.
+ * **This gate DECLARED that divergence rather than fixing it, deliberately** — #934's own bar is that
+ * the gate must not prejudge a decision two spellings might legitimately survive, and unifying them was
+ * a component-API change that belonged to whoever owns the axis, not to the census that found it. **The
+ * owner took that decision in #1334**, splitting the overloaded `tone`: the validation outcome became
+ * its own `status` axis (`field-message`, `select`) and the label-emphasis axis became `emphasis`
+ * (`field-label`), leaving `tone` on `icon` alone — its one honest, non-overlapping use. So this section
+ * is now the RECORD of a divergence a gate surfaced and an owner resolved, not a live one; the register's
+ * `status`, `emphasis` and `tone` entries all stand `sole`. The `error → danger` ink mapping survives as
+ * a named provenance exception in `lint-paint.ts`, which is where a value/role difference belongs.
  *
  * ── THE TRAP, NAMED IN #934 AND WORTH RE-STATING AT THE CALL SITE ────────────────────────────────
  *
@@ -178,17 +186,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'passed; the shared set IS the relationship.',
   },
   {
-    axis: 'tone',
+    axis: 'emphasis',
     values: ['primary', 'secondary'],
     defs: ['field-label'],
-    relation: 'subset',
+    relation: 'sole',
     reason:
-      'The de-emphasized label (#872; Prism 2 calls the control "color"). A SUBSET of `icon`\'s tone '
-      + 'vocabulary — `[inherit, primary, secondary, tertiary, brand, success, warning, danger, info]` — '
-      + 'and the two shared names mean the same two semantic text roles there, which is what makes this a '
-      + 'subset rather than a second spelling of the axis. Two values and not more: a label below '
-      + '`secondary` stops reading as a field\'s name, and a status-colored one would be the validation '
-      + 'signal `field-message` already owns.',
+      'The de-emphasized label (#872; Prism 2 calls the control "color"). RENAMED from `tone` to '
+      + '`emphasis` in #1334, which split the overloaded `tone` name — this was recorded here as a SUBSET '
+      + 'of `icon`\'s `tone` ink vocabulary, and the owner\'s split makes label prominence its own axis '
+      + 'rather than a shortened spelling of icon\'s ink. `sole` now: `field-label` is the only def with an '
+      + '`emphasis` axis. Two values and not more: a label below `secondary` stops reading as a field\'s '
+      + 'name, and a status-colored one would be the validation signal `field-message` already owns via '
+      + 'its `status` axis.',
   },
   {
     axis: 'indicator',
@@ -329,31 +338,31 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info',
     ],
     defs: ['icon'],
-    relation: 'canonical',
+    relation: 'sole',
     reason:
-      'The semantic-ink vocabulary, and canonical because its values ARE the token names they resolve to '
-      + '(`danger` → `color.icon.danger`), so it is the set the other has to be described against rather '
-      + 'than the reverse. `inherit` leads and binds NOTHING — `currentColor` is the absence of a pinned '
+      'The semantic-ink vocabulary — `icon`\'s only axis, and the ONLY use of `tone` in the corpus since '
+      + '#1334 split the overloaded name (field-message/select\'s validation set → `status`, field-label\'s '
+      + '→ `emphasis`). Its values ARE the token names they resolve to (`danger` → `color.icon.danger`), '
+      + 'so this was the `canonical` set the two now-renamed axes were described against; with those gone '
+      + 'it stands `sole`. `inherit` leads and binds NOTHING — `currentColor` is the absence of a pinned '
       + 'ink, and it is the default, which is why this axis is not projected to Figma at all.',
   },
   {
-    axis: 'tone',
+    axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
     defs: ['field-message', 'select'],
-    relation: 'overlapping',
+    relation: 'sole',
     reason:
-      'THE ONE ENTRY IN THIS REGISTER THAT RECORDS A DEFECT RATHER THAN A DECISION, and it is declared '
-      + 'rather than fixed because unifying it is a component-API change that belongs to whoever owns the '
-      + 'axis, not to the census that found it (#934). It agrees with canonical on `success` and `warning` '
-      + 'and then spells the failure ink `error` where canonical spells it `danger` — and resolves it to '
-      + '`color.text.danger` on the very next line, which is the proof they are one concept. Both spellings '
-      + 'are individually defensible, which is #756\'s failure mode exactly: `error` is a member of the '
-      + 'closed `STATES` vocabulary, which a validation outcome should mirror; `danger` is the ink '
-      + 'vocabulary the binding resolves to. `default` is a fourth value canonical has no counterpart for. '
-      + 'Overlapping is the EXPENSIVE divergence precisely because it reads as alignment. `select` shares '
-      + 'this exact set BY DESIGN, not by coincidence: its validation axis is spelled `tone` so the nested '
-      + '`field-message` follows it by name (`nest-fixed` `follow`), a same-name same-value passthrough — '
-      + 'so `select` and `field-message` must carry identical values, and this is the entry that records it.',
+      'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '
+      + 'the overloaded `tone`): this set was recorded here as `overlapping` with `icon`\'s ink vocabulary '
+      + '— it agrees on `success`/`warning` and spells the failure ink `error` where the ink axis spells it '
+      + '`danger` — and that overlap-that-read-as-alignment was #934\'s finding and #756\'s failure mode. '
+      + 'The split resolves it: a validation outcome is not an ink role, so it is its own axis. `sole` now, '
+      + 'and shared by two defs BY DESIGN, not by coincidence — `select`\'s validation axis is spelled '
+      + '`status` so the nested `field-message` follows it by name (`nest-fixed` `follow`), a same-name '
+      + 'same-value passthrough, so the two must carry identical values and this one entry records both. '
+      + '`error` (not `danger`) mirrors the closed `STATES` vocabulary a validation outcome tracks; the '
+      + '`error → danger` ink mapping lives in `lint-paint.ts` as a named provenance exception.',
   },
   {
     axis: 'width',

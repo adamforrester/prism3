@@ -741,14 +741,14 @@ export type FigmaProperties = {
    *  overrides, and a placeholder hard-coded in the payload is one no def can change. */
   /** `byVariant` — a PER-MEMBER text default (#1018). A component set carries `default` as ONE placeholder
    *  for the whole set, so a def whose variant axis changes what the text should SAY renders the wrong copy
-   *  on every member but one: `field-message`'s error / warning / success members shipped the `tone=default`
+   *  on every member but one: `field-message`'s error / warning / success members shipped the `status=default`
    *  helper string ("Use 8+ characters"), the opposite of the errorPattern the def exists to make
    *  unavoidable. `byVariant` names, per axis, the string a member at that coordinate renders — the
    *  projector resolves it against the member's coordinate (`anatomy-figma.ts`, mirroring `positionOf`),
    *  first matching axis wins, and any coordinate it does not name falls back to `default`. `default` stays
    *  REQUIRED (an empty one is still #510's blank component). `figmaPropertyErrors` rejects a `byVariant`
    *  key naming an axis that is not a projected variant axis, or a value that axis does not have — a typo'd
-   *  tone must fail loudly, not resolve to nothing and silently fall back. */
+   *  status must fail loudly, not resolve to nothing and silently fall back. */
   texts?: Record<string, { part: string; default: string; byVariant?: Record<string, Record<string, string>> }>;
   /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT. */
   swaps?: Record<string, string>;
@@ -1877,7 +1877,8 @@ export type State = (typeof STATES)[number];
  * `value` (`dark | light`) is the wash's own LIGHTNESS POLARITY — a dark wash under light text, a light
  * wash under dark text — in the color-theory sense of value (lightness, held apart from hue). The two
  * nearest are `tone` and `surface`, and it is neither: `tone` is WHICH semantic ink role (icon's nine
- * inks, field-message's four states), `surface` is which GROUND a control sits on (default | inverse),
+ * inks; field-message's four validation states became the `status` axis in #1334), `surface` is which
+ * GROUND a control sits on (default | inverse),
  * and this is the polarity of the wash ITSELF. Naming it `tone` would put a two-value lightness choice
  * into an axis whose values are semantic roles; naming it `surface` would claim the veil reads its
  * ground, which it does not — the designer picks the polarity from the image, not from a cascade.
@@ -1908,11 +1909,47 @@ export type State = (typeof STATES)[number];
  * a positive `W:H`, because the lock is DERIVED from the value (`16:9` → 16/9) rather than mapped by a
  * second per-variant table. That is the elegance the owner approved (Option A): the axis value IS the
  * ratio. `lint-axis-values.ts` carries `['1:1', '4:3', '16:9']` as a `sole` set with this reason.
+ *
+ * ── `status` AND `emphasis`: THE SIXTEENTH AND SEVENTEENTH NAMES, SPLITTING THE OVERLOADED `tone` (#1334) ──
+ *
+ * `tone` had carried three concepts across the corpus: icon's semantic INK role (`inherit`/`primary`/…/
+ * `info`), field-message and select's VALIDATION outcome (`default`/`error`/`warning`/`success`), and
+ * field-label's label EMPHASIS (`primary`/`secondary`). `lint-axis-values.ts`'s register recorded the
+ * strain directly — the validation set was `overlapping` with icon's ink set (it shares `success`/
+ * `warning` and diverges on `error`↔`danger`), and the emphasis set was a `subset` of it. Two axes
+ * reading as one is exactly the #756 failure this list exists to prevent, arriving from the inside: the
+ * names agreed while the concepts did not. #1334 is the owner's split — a component's variant API is a
+ * design call — and its mechanical fallout is these two names. `tone` STAYS on `icon` alone (the semantic
+ * ink axis, which was never the overload); it is not removed from this list.
+ *
+ * `status` (`default | error | warning | success`) is a form field's VALIDATION OUTCOME — the state a
+ * `field-message` reports and a `select` drives its nested message from, re-pointing both caption ink and
+ * status glyph. The two nearest are `tone` and `appearance`, and it is neither: `tone` is WHICH semantic
+ * ink role a glyph paints (a content choice), `appearance` is a control's emphasis/render ladder
+ * (filled/outline/text). A validation outcome is a field's correctness state, which no existing name
+ * expresses — and the plugin studio UI already calls these palettes "status", so the name matches what a
+ * designer already reads. `field-message` and `select` carry it identically (a `nest-fixed` `follow`
+ * passes it through by name), which `lint-axis-values.ts` records as a single `sole` set.
+ *
+ * `emphasis` (`primary | secondary`) is a field label's relative PROMINENCE — full-strength vs
+ * de-emphasized, expressed as a choice between two semantic text ROLES (`color.text.{primary,secondary}`).
+ * The two nearest are `tone` and `weight`, and it is neither: `tone` is which ink role in the general
+ * sense (the reading that made this a `subset` before the split), and `weight` is how HEAVY the type is
+ * (`field-label` carries that separately). Emphasis is how prominent the label reads relative to the
+ * field it names — a de-emphasized label for a dense or read-only form — which is a distinct question
+ * from either. `lint-axis-values.ts` carries `['primary', 'secondary']` as a `sole` set on `field-label`.
+ *
+ * WHAT THIS REOPENING COST, once more. #756 closed the list; #1248, #1030 and #1316 reopened it holding
+ * the bar. This reopening is unusual in that it also RETIRES a name's overloaded uses rather than only
+ * adding: two precise names replace one overloaded one on three defs, `tone` narrows to its one honest
+ * use, and the bar is unchanged. `emitAsComponents` still needs exactly one `variantAxes` entry, so a
+ * def cannot smuggle two of these onto one Figma set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
+  'status', 'emphasis',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

@@ -2,7 +2,9 @@
  * FieldMessage — the small icon + caption that sits BELOW a field and carries helper
  * guidance or a validation result (KB text-field brief §2 "Helper / description text" +
  * "Error / validation message", §6, §7). This is the Prism3 successor to Prism2's reused
- * "Helper message" sub-component: one part, a `tone` axis, shared across the whole form
+ * "Helper message" sub-component: one part, a `status` axis (renamed from `tone` in #1334, when the
+ * overloaded name was split — this validation axis to `status`, `field-label`'s emphasis axis to
+ * `emphasis`), shared across the whole form
  * family (TextField now; Select / Checkbox-group / NumberField later) rather than
  * re-declared per host.
  *
@@ -64,7 +66,7 @@ export const fieldMessage: ComponentDef = {
     'The small icon + caption below a form field. In its default tone it is persistent helper guidance (the format shown BEFORE failure); its error / warning / success tones carry a validation result. A shared field part — the same component under every field control, not re-authored per host. Icon + text together, never color alone.',
 
   props: [
-    { name: 'tone', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'default = helper guidance (neutral); error / warning / success = a validation result. The tone re-points both the caption ink and the icon at the matching semantic role.' },
+    { name: 'status', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'default = helper guidance (neutral); error / warning / success = a validation result. The status re-points both the caption ink and the icon at the matching semantic role.' },
     // #1242 — `message`, not `children`. The prop name is the Figma property name a designer reads
     // (`figmaProperties.texts` keys against `props`), and this component's text is a MESSAGE, not a
     // label — so the sweep off the React-ism lands here on the meaningful name this def's own comment
@@ -74,11 +76,11 @@ export const fieldMessage: ComponentDef = {
     { name: 'id', type: 'string', required: false, description: 'Set by the host so it can reference this node from the field\'s aria-describedby chain. Auto-generated with useId when composed inside TextField.' },
   ],
 
-  // Presentational: no interaction states. `tone` is the only axis, and it is what drives
+  // Presentational: no interaction states. `status` is the only axis, and it is what drives
   // the token re-pointing below — the state-as-variant that a helper/validation caption has.
   states: [],
   variants: {
-    tone: ['default', 'error', 'warning', 'success'],
+    status: ['default', 'error', 'warning', 'success'],
   },
 
   // Tone → (caption ink, status icon). default is a muted neutral; each validation tone lands
@@ -87,10 +89,10 @@ export const fieldMessage: ComponentDef = {
   // new brand re-derives the whole set without a manual pass. The caption is caption-scale type.
 
   // THE PAINT GRAMMAR (#758) — axis VALUE first, slot second, which is the opposite order to `icon`'s
-  // over an axis of the same name. Both ship, both are right for their component, and neither can be
+  // over its `tone` axis. Both ship, both are right for their component, and neither can be
   // rekeyed to the other's shape without a lie: `icon`'s tone values are content roles (nine of them,
-  // defaulting to `inherit`), these four are validation states. That collision is the reason the field
-  // is a template list and not `paintAxes: ['tone']`.
+  // defaulting to `inherit`), these four `status` values are validation states. That difference is the
+  // reason the field is a template list and not `paintAxes: ['status']`.
   //
   // THE SLOT VOCABULARY (#784). `{slot}` is filled with the name the PROJECTOR asks — `label` for a text
   // node, `icon` for a glyph — so these were spelled `{tone}.text` until #784 and four of eight color
@@ -101,7 +103,7 @@ export const fieldMessage: ComponentDef = {
   // bindings, leaving only the stranded `.text` ones, produced NO error — the check tested template
   // SHAPE (`^[^.]+\.[^.]+$`, which `default.text` matches perfectly) and never asked whether the value
   // filling `{slot}` was a slot the projector asks for. An expectee authored rather than read.
-  paintKeys: ['{tone}.{slot}'],
+  paintKeys: ['{status}.{slot}'],
 
   tokens: {
     'type': 'type.caption.md.default',
@@ -210,21 +212,21 @@ export const fieldMessage: ComponentDef = {
         kind: 'vector',
         glyph: 'warning-triangle',
         size: 'glyph-size',
-        presentWhen: { tone: ['error'] },
+        presentWhen: { status: ['error'] },
         note: 'The error glyph, aria-hidden — the caption carries the meaning. An exclamation in a TRIANGLE, per the Prism2 reference, and the only tone whose enclosure is not a circle: shape is the channel that survives when the ink cannot be told from `warning`\'s. Its ink is `error.icon`, applied as `descendantFills` (never a fill on the artboard — #864), so the icon+text pairing that satisfies SC 1.4.1 is one token decision rather than two.',
       },
       iconWarning: {
         kind: 'vector',
         glyph: 'error-circle',
         size: 'glyph-size',
-        presentWhen: { tone: ['warning'] },
+        presentWhen: { status: ['warning'] },
         note: 'The warning glyph, aria-hidden. An exclamation in a CIRCLE — the same mark as `error`\'s in a different enclosure, which is what the reference asks for. Its ink is `warning.icon`.',
       },
       iconSuccess: {
         kind: 'vector',
         glyph: 'check-circle',
         size: 'glyph-size',
-        presentWhen: { tone: ['success'] },
+        presentWhen: { status: ['success'] },
         note: 'The success glyph, aria-hidden — a circled check. Its ink is `success.icon`.',
       },
       text: {
@@ -244,17 +246,17 @@ export const fieldMessage: ComponentDef = {
     ],
   },
 
-  // IT PROJECTS AS OF #795, over `tone` and no size axis at all.
+  // IT PROJECTS AS OF #795, over `status` and no size axis at all.
   //
-  // `variantAxes: ['tone']` is now the whole declaration, and both halves of it are load-bearing. `tone`
-  // is listed because this def's four tones ARE its Figma grid; `size` is not listed because a caption
-  // has ONE scale (`type.caption.md`), and since #795 an unlisted `size` means `planComponentName` writes
-  // no `size=` segment rather than the projector demanding one. That is what the absence used to be
+  // `variantAxes: ['status']` is now the whole declaration, and both halves of it are load-bearing.
+  // `status` is listed because this def's four statuses ARE its Figma grid; `size` is not listed because a
+  // caption has ONE scale (`type.caption.md`), and since #795 an unlisted `size` means `planComponentName`
+  // writes no `size=` segment rather than the projector demanding one. That is what the absence used to be
   // recording — see the header for why it was filed rather than worked around with a fabricated axis.
   //
   // No `gridAxis`: one varying axis has nothing to choose, and the fallback (highest-cardinality varying
-  // axis) reaches `tone` anyway. Stating that here rather than declaring it is the honest version — a
-  // `gridAxis: 'tone'` would read as a decision where there is only one option.
+  // axis) reaches `status` anyway. Stating that here rather than declaring it is the honest version — a
+  // `gridAxis: 'status'` would read as a decision where there is only one option.
   // The property KEYS are PROP names — `figmaPropertyErrors` checks each against `props`, so a key IS a
   // Figma-facing property name only insofar as the PROP is named for the designer. That was the whole
   // #1242 finding: `children` was a React-ism the props carried straight onto the panel. The prop is now
@@ -265,31 +267,31 @@ export const fieldMessage: ComponentDef = {
   // the default tone carries the format up front, and a placeholder demonstrating the rule is worth more
   // than one describing the slot. An empty default is what #510 shipped and what the schema now rejects.
   figmaProperties: {
-    variantAxes: ['tone'],
-    // THE BOX MOVES ON `tone`, AND THAT IS INTENDED (#1010). Three tones carry a 16px glyph in the row's
-    // flow and the default carries none, so the members measure 102 and 126 wide — the footprint cohort
-    // compares members within one `size`/slot coordinate and reported that as three misses on a build that
-    // is right. This def is the first to need the exemption: `checkbox` and `radio` gate a mark inside a
-    // size-bound control, so their box holds still and the comparison is one they should keep. What the
-    // exemption costs is stated rather than assumed — `tone` is this def's ONLY axis, so exempting it
-    // leaves each member in its own cohort and the footprint rule checks nothing here at all. The box is
-    // covered instead by the two arms that measure it directly: the glyph's artboard is bound to
+    variantAxes: ['status'],
+    // THE BOX MOVES ON `status`, AND THAT IS INTENDED (#1010). Three statuses carry a 16px glyph in the
+    // row's flow and the default carries none, so the members measure 102 and 126 wide — the footprint
+    // cohort compares members within one `size`/slot coordinate and reported that as three misses on a
+    // build that is right. This def is the first to need the exemption: `checkbox` and `radio` gate a mark
+    // inside a size-bound control, so their box holds still and the comparison is one they should keep.
+    // What the exemption costs is stated rather than assumed — `status` is this def's ONLY axis, so
+    // exempting it leaves each member in its own cohort and the footprint rule checks nothing here at all.
+    // The box is covered instead by the two arms that measure it directly: the glyph's artboard is bound to
     // `icon.size.xs` on both axes (`apps/plugin/test-write-components.ts`) and that ref resolves to 16px in
     // all five corpus brands (`test.ts`). See `FigmaProperties.footprintVaries`.
-    footprintVaries: ['tone'],
+    footprintVaries: ['status'],
     // PER-MEMBER copy (#1018). `default` stays `content.labelPattern`'s own example ("Use 8+ characters"),
-    // correct for `tone=default` — the format shown before failure. Before this, that string was ALSO what
-    // the error / warning / success members rendered, because a set carried one text default: a red alert
-    // triangle beside helper copy, the opposite of `content.errorPattern`. `byVariant.tone` gives each of
-    // the other three members its own copy (from the staged `helper-message.json` spec); a coordinate not
-    // named here still falls back to `default`. Keyed on `tone`, this def's only variant axis.
+    // correct for `status=default` — the format shown before failure. Before this, that string was ALSO
+    // what the error / warning / success members rendered, because a set carried one text default: a red
+    // alert triangle beside helper copy, the opposite of `content.errorPattern`. `byVariant.status` gives
+    // each of the other three members its own copy (from the staged `helper-message.json` spec); a
+    // coordinate not named here still falls back to `default`. Keyed on `status`, this def's only variant axis.
     texts: {
       // `message` lowercase per #1333 — validated against `props` above, so it renames with the prop.
       message: {
         part: 'text',
         default: 'Use 8+ characters',
         byVariant: {
-          tone: {
+          status: {
             error: 'This is an error message.',
             warning: 'This is a warning message.',
             success: 'This is a success message.',
@@ -299,7 +301,7 @@ export const fieldMessage: ComponentDef = {
     },
     // NO `swaps`, as of #1010, and the absence is the fix rather than a gap. This read
     // `swaps: { icon: 'icon' }` against a slot part with no glyph, which is what made the projection
-    // build a placeholder frame. The glyph is now chosen by `tone` in the anatomy, so there is no slot
+    // build a placeholder frame. The glyph is now chosen by `status` in the anatomy, so there is no slot
     // for an INSTANCE_SWAP property to point at — and a designer cannot put a check mark on the error
     // member. `props.icon` keeps its code-side meaning; see `anatomy.codeOnly`.
     swaps: {},
@@ -352,7 +354,7 @@ export const fieldMessage: ComponentDef = {
   notes: {
     contested: [
       'Whether warning is a distinct tone — many systems fold it into helper/error; kept here as an optional soft caution (brief §4).',
-      'THREE PARTS WHERE ONE TEMPLATE WOULD DO, and whether the grammar should gain a value→glyph map (#1010). `PartDef.glyph` is templatable on a variant axis today, but `resolveGlyph` substitutes the axis VALUE verbatim — so `glyph: \'{tone}\'` asks for glyphs literally named `error` / `warning` / `success` and throws. A map (`glyphByValue: { tone: { error: \'warning-triangle\', … } }`) would collapse these three near-identical parts to one and would generalize: any def whose axis selects a glyph hits this, and `checkbox`\'s `mark`/`dash` pair is the same shape from before the glyph set existed. What it would COST is the reason it is contested rather than proposed: the map is a second place a glyph name can be written, so `lint-glyph-geometry.ts` (which ranges over parts) and the nearest-name error (which fires at resolve time) would both need to learn it, and a def could then name a glyph for an axis value that no longer exists with nothing failing. Three explicit parts are verbose and each one is independently checkable by the gates that already exist. Revisit when a THIRD def needs it — two is not yet a pattern.',
+      'THREE PARTS WHERE ONE TEMPLATE WOULD DO, and whether the grammar should gain a value→glyph map (#1010). `PartDef.glyph` is templatable on a variant axis today, but `resolveGlyph` substitutes the axis VALUE verbatim — so `glyph: \'{status}\'` asks for glyphs literally named `error` / `warning` / `success` and throws. A map (`glyphByValue: { status: { error: \'warning-triangle\', … } }`) would collapse these three near-identical parts to one and would generalize: any def whose axis selects a glyph hits this, and `checkbox`\'s `mark`/`dash` pair is the same shape from before the glyph set existed. What it would COST is the reason it is contested rather than proposed: the map is a second place a glyph name can be written, so `lint-glyph-geometry.ts` (which ranges over parts) and the nearest-name error (which fires at resolve time) would both need to learn it, and a def could then name a glyph for an axis value that no longer exists with nothing failing. Three explicit parts are verbose and each one is independently checkable by the gates that already exist. Revisit when a THIRD def needs it — two is not yet a pattern.',
     ],
     unverified: [
       'The 16px glyph beside an 11px caption, optically. `icon.size.xs` is the only 16px rung and is 16 in every brand (it aliases `dimension.16` on the fixed grid), while `type.caption.md` resolves `font.size.11` — so the ARTBOARD is 45% larger than the caption\'s type size. That is expected rather than wrong (an icon artboard is ink plus its surrounding air, and this set\'s ink fills roughly 58-71% of it), and the reference asks for a glyph "at the same optical weight as the text", which is a judgement no gate here makes. Check it in Figma against a real caption before treating the size as settled.',

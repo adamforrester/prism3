@@ -152,8 +152,9 @@
  *
  * Each mutation was committed first, applied, measured, then restored with `git checkout -- <file>`:
  *
- *   M1  A def's projected surface moves with no bump — `field-label`'s `tone` axis loses a value, 12
- *       members → 8. This is #1224's shape. ARM A fails BY NAME, naming the def and both numbers.
+ *   M1  A def's projected surface moves with no bump — `field-label`'s `emphasis` axis (named `tone` when
+ *       this was measured, renamed in #1334) loses a value. This is #1224's shape. ARM A fails BY NAME,
+ *       naming the def and both member counts.
  *   M2  `ENGINE_VERSION` bumped with no surface change. PASSES — a discretionary bump is legal, the
  *       same asymmetry `lint-emission-version.ts` states ("the version moved with no emission change,
  *       which is legal").

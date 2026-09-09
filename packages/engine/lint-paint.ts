@@ -43,8 +43,8 @@
  * This is deliberately NOT built from `paintOf`'s lookup: a check that asked the projector to resolve
  * the key and compared the answer to itself would agree in every case, including the mutated one.
  *
- * THE EXCEPTIONS ARE NAMED AND REASONED, not a tolerance. `field-message` maps four tone values onto
- * semantic roles whose names differ from the tone (`default` → `secondary`, `error` → `danger`), and
+ * THE EXCEPTIONS ARE NAMED AND REASONED, not a tolerance. `field-message` maps four `status` values onto
+ * semantic roles whose names differ from the status value (`default` → `secondary`, `error` → `danger`), and
  * that is correct: its axis values are validation states, and the ink roles they land on are the
  * token tier's own vocabulary. A count-based allowance ("up to 4 violations") would let a real
  * regression hide inside the budget, so each exception is listed by key and its absence is a failure
@@ -251,29 +251,29 @@ const CENSUS_PATH = join(repo, 'packages/engine/schema/paint-census.json');
  */
 const PROVENANCE_EXCEPTIONS: Record<string, string> = {
   'field-message|default.label':
-    "tone `default` maps to the MUTED body role, not to a role named 'default' — the token tier has no `text.default`, and `secondary` is what a non-status message's ink is",
+    "status `default` maps to the MUTED body role, not to a role named 'default' — the token tier has no `text.default`, and `secondary` is what a non-status message's ink is",
   'field-message|default.icon':
     'same mapping as `default.label`, for the glyph beside it',
   'field-message|error.label':
-    "tone `error` maps to the `danger` ink role — the def's axis value is the validation state a consumer names, `danger` is the token tier's name for that colour; the two vocabularies are deliberately not merged",
+    "status `error` maps to the `danger` ink role — the def's axis value is the validation state a consumer names, `danger` is the token tier's name for that colour; the two vocabularies are deliberately not merged",
   'field-message|error.icon':
     'same mapping as `error.label`, for the status glyph',
-  // `select`'s validation axis is spelled `tone` to align with `field-message` (its values are the
-  // validation states a consumer names), and `danger` is the token tier's name for that boundary colour
-  // — the same mapping `field-message|error.*` records, one slot over: the axis value and the resolved
-  // role are two vocabularies deliberately not merged. The error border is bound PER non-disabled state
-  // (rest / hover / focus-visible / empty) so the swap persists rather than yielding to the neutral
-  // interactive border, which is why there are four keys and not one — the tone template is 3-segment to
-  // avoid colliding with the 2-segment state keys (see `select.ts`). `default`/`warning`/`success` bind
-  // no tone-led border, so these four are the only select keys arm 1 examines.
+  // `select`'s validation axis is spelled `status` to align with `field-message` (its values are the
+  // validation states a consumer names; both renamed from `tone` in #1334), and `danger` is the token
+  // tier's name for that boundary colour — the same mapping `field-message|error.*` records, one slot
+  // over: the axis value and the resolved role are two vocabularies deliberately not merged. The error
+  // border is bound PER non-disabled state (rest / hover / focus-visible / empty) so the swap persists
+  // rather than yielding to the neutral interactive border, which is why there are four keys and not one
+  // — the status template is 3-segment to avoid colliding with the 2-segment state keys (see `select.ts`).
+  // `default`/`warning`/`success` bind no status-led border, so these four are the only select keys arm 1 examines.
   'select|error.border.rest':
-    "tone `error` maps to the `danger` border role — the rest coordinate of select's border-only error swap",
+    "status `error` maps to the `danger` border role — the rest coordinate of select's border-only error swap",
   'select|error.border.hover':
-    'tone `error` maps to the `danger` border role — the hover coordinate, bound so the error border persists through hover',
+    'status `error` maps to the `danger` border role — the hover coordinate, bound so the error border persists through hover',
   'select|error.border.focus-visible':
-    'tone `error` maps to the `danger` border role — the focus-visible coordinate, bound so the error border persists through focus (the ring carries the focus signal on top)',
+    'status `error` maps to the `danger` border role — the focus-visible coordinate, bound so the error border persists through focus (the ring carries the focus signal on top)',
   'select|error.border.empty':
-    'tone `error` maps to the `danger` border role — the empty coordinate, the common "required field left unchosen" error',
+    'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left unchosen" error',
 };
 
 /**
@@ -535,7 +535,7 @@ const UNREACHED_EXPLAINED: Record<string, string> = {
   'switch|focus-ring':
     'the fifth instance, and it arrived exactly as the fourth predicted: a nomination for the ring nested inside the TRACK, not a paint on any node switch owns. The shape is now confirmed rather than suspected — five defs, one reason, one open issue (#740). The reason this stays a per-def entry rather than becoming a rule keyed off `nests`: the rule would then be derived from the same field the projection reads, so a def that nested a ring and legitimately DID paint one would be exempted by the mechanism instead of caught by it.',
   'field-message|default.icon':
-    'CATEGORY (b), and the first entry here that is not a ring nomination — see the header for why the two are kept apart. This key paints the status glyph on the DEFAULT tone, and that tone deliberately projects no glyph: the Prism2 reference row its grey ink matches is `standard` (no icon), so the three validation tones carry gated `vector` parts and the default member is caption-only (#1010). Unreachable for a reason the five above do not share: nothing is missing from the projector. Every node the default member has IS asked for its paint, and the node this colour is for does not exist there — `props.icon` may supply one in code, per instance, which is a distinction Figma has no member for (see the def\'s `anatomy.codeOnly`). So there is no engine field to add and no issue to close, and the fix if this entry ever goes red is to DELETE it, not to widen anything: it goes red exactly when the default tone gains a glyph, which is a def decision. The three validation-tone glyph inks are reached normally and are not listed.',
+    'CATEGORY (b), and the first entry here that is not a ring nomination — see the header for why the two are kept apart. This key paints the status glyph on the DEFAULT status, and that status deliberately projects no glyph: the Prism2 reference row its grey ink matches is `standard` (no icon), so the three validation statuses carry gated `vector` parts and the default member is caption-only (#1010). Unreachable for a reason the five above do not share: nothing is missing from the projector. Every node the default member has IS asked for its paint, and the node this colour is for does not exist there — `props.icon` may supply one in code, per instance, which is a distinction Figma has no member for (see the def\'s `anatomy.codeOnly`). So there is no engine field to add and no issue to close, and the fix if this entry ever goes red is to DELETE it, not to widen anything: it goes red exactly when the default status gains a glyph, which is a def decision. The three validation-status glyph inks are reached normally and are not listed.',
 };
 
 /**
