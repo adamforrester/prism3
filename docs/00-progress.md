@@ -21,6 +21,8 @@
 
 **Mutation (docs/34), by manual edit-and-restore over the committed tree (a `wip:` commit was made first — the `git checkout --` trap).** (a) Changing button's leading swap `figmaName` (`↳ swap leading icon` → `↳ swap LEADING GLYPH`) fails **`lint-component-surface` BY NAME** (`surface/button … DRIFTED`, ×3) AND the roundtrip **`panel order (#1380): button`** host-truth (host holds the mutated label). (b) Removing `planSetProperties`'s text→swap sort fails the roundtrip **`panel order (#1380): button`** AND **`select`** by name (host holds `↳ swap leading icon` before `label`). Both restored; suites green after. The display-name validator's two rules (renders, uniqueness) are exercised by direct negative probes.
 
+**Skill doc (folded in by the orchestrator at merge, in this PR).** `skills/prism3-build-component/SKILL.md` §6 ("Naming canon") now documents the `figmaName` display-name field and the icon-property canon — `label` first, `leading icon`/`trailing icon` true/false switches with `↳ swap leading icon`/`↳ swap trailing icon` nested beneath, and the required-single-icon `swap icon` case — so a future component author follows it. `lint-skills` gates that prose against the shipped mechanism. It also leaves §3's stale `nest-exposed` "REFUSED (#761)" line untouched (that predates #1330 and is filed separately — one concern per PR).
+
 **Verify:** `npm run verify` → every gate PASS. The per-gate table is in the PR body. Scope note: `#1331` (select 40→20 count) and `#1379` (button count) stay OPEN — this renames and reorders, it does not cut counts.
 
 ---
