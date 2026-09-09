@@ -7,6 +7,25 @@
 
 ---
 
+## (2026-09-09) — the read-back stops calling a per-side-bound `strokeWeight` DISCARDED (#1332)
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges).** **No ENGINE bump, no CONTRACT bump** — this is a diagnostic/read-back fix, not an emission change. `regen --check` is clean (108 artifacts byte-match, no stamp movement), `lint-emission-version` agrees, and no guaranteed token name moved — the same shape as #1386. Every emitted artifact is identical; only the READ-BACK's acceptance criterion changed.
+
+**THE DIAGNOSIS, from the 2026-09-09 host-truth Figma-console audit.** The build telemetry / read-back reported `strokeWeight → DISCARDED` for bordered components even though the weight WAS bound. On the real host, `setBoundVariable('strokeWeight', v)` does not bind the scalar `strokeWeight` key — it splits the binding across the **four per-side keys** `strokeTopWeight` / `strokeRightWeight` / `strokeBottomWeight` / `strokeLeftWeight` and leaves the scalar unbound. Confirmed bound on every bordered set: focus-ring (→`focus/ring/width`); checkbox-control / radio / switch / select / button (→`border-width/*`). The read-back asked `boundVariables.strokeWeight`, found nothing, and reported a false miss on a weight that is in fact bound.
+
+**THE FIX — accept EITHER the scalar OR the COMPLETE per-side binding, in all four read-backs.** A weight now counts as held when `strokeWeight` is present OR all four per-side keys are. It is **not** weakened into always-passing: a partial per-side binding (three of four) or nothing at all is still a genuine miss the read-back reports. The four sites, one per surface:
+- `anatomy-readback.ts` `boundIdOf` (the #874 round-trip reader) — resolves through any one per-side key (all four name one variable).
+- `write-components.ts` — the per-node build read-back (#1266) and the post-combine set read-back (#1279), via a shared `weightHeld(bv, field)`.
+- `anatomy-figma.ts` — the paste executor's per-node read-back (the code-read twin), inline in the payload string.
+
+**WHY THE SHIMS HAD TO MODEL THE PER-SIDE SPLIT, which is the durable part (docs/34).** The offline shims recorded the SCALAR — so they agreed with the very assumption that produced the false `DISCARDED`, and the whole bordered corpus round-tripped green either way: a harness modelling the wrong host truth cannot witness the fix. Both shims (`component-shim.ts` and `test.ts`'s payload stub, kept in lockstep for the parity gate) now split `strokeWeight` into the four per-side keys on `setBoundVariable`, exactly as the audit found Figma does. With that, the whole bordered corpus exercises the per-side path, and the read reads it back off a side (measurement getters and the `#1266`/`#1228`/`#1278` weight assertions updated to match). `lint-unclaimed-defaults`'s shim stays scalar deliberately — it reads the prop NAME passed to `setBoundVariable`, not the split, and the read-back accepts a scalar too.
+
+**MUTATION (docs/34), two ways.** (a) A new focused block in `test-roundtrip.ts` pins host truth and both directions BY NAME: the built ring binds the four per-side keys with the scalar unbound; a per-side-bound weight reads BOUND (no false `DISCARDED`); a GENUINELY unbound weight (a raw number, no keys) is reported `strokeWeight→UNBOUND`; and an INCOMPLETE per-side binding (three of four) is still reported, not accepted. (b) The corpus-wide check: reverting `boundIdOf`'s per-side branch fails **`every def round-trips` BY NAME** on all eleven bordered defs (`focus-ring, button×3, icon-button×3, checkbox-control, radio, switch, select — host: strokeWeight→UNBOUND`) AND the new positive assertion, then green again on restore.
+
+**Verify:** `npm run verify` → **56/56 gates PASS** (0 FAIL · 0 SKIP · 0 ADVISORY). The per-gate table is in the PR body.
+
+---
+
 ## (2026-09-09) — the `nest-exposed` marking moves past `createComponentFromNode` (#1378, closes #1377)
 
 **STATUS: PR open, owner merges.** **No ENGINE bump, no CONTRACT bump** — and that is a claim worth defending rather than assuming. Every emitted artifact is byte-identical (`regen --check` clean, no stamp movement), `component-surface.json` and `paint-census.json` are unchanged, and the projected `checkbox` plan is the same plan it was before. The defect was never in what the engine PLANNED; it was that a correct plan could not be BUILT. `lint-emission-version` agrees without argument.

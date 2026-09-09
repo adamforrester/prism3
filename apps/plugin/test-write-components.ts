@@ -2168,8 +2168,10 @@ const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: Bo
       // THE BORDER'S THICKNESS, carried since #1228 — both the bound variable's NAME and the LITERAL the
       // node ended up with. Two fields because they fail on different regressions: the name goes wrong when
       // the def rebinds, the literal goes non-zero when an executor writes over the binding (which live is
-      // an unbind, so the name alone cannot see it).
-      weight: bv.strokeWeight?.id ? bv.strokeWeight.id.replace(/^V:/, '') : null,
+      // an unbind, so the name alone cannot see it). #1332 — the weight binds PER-SIDE on the host (the
+      // shim models this), so the name is read off `strokeTopWeight`; `??` keeps a scalar binding readable too.
+      weight: (bv.strokeWeight?.id ?? bv.strokeTopWeight?.id)
+        ? (bv.strokeWeight?.id ?? bv.strokeTopWeight!.id)!.replace(/^V:/, '') : null,
       weightPx: box.strokeWeight,
     });
   }
@@ -2333,7 +2335,11 @@ ok(ringPlans.length === 2 && builtRings.length === 2,
 ok(ringRun.misses.length === 0,
   `#1266 ...with no misses, so the weight variable RESOLVED rather than being reported absent (${ringRun.misses.join('; ') || 'none'})`);
 const weightOf = (n: Node): string | null => {
-  const id = ((n.boundVariables as Record<string, { id?: string }> | undefined) ?? {}).strokeWeight?.id;
+  // #1332 — the weight binds per-side on the host (the shim models this), so read the binding off any
+  // one side; the scalar `strokeWeight` key is left unbound. `??` keeps this reading a scalar binding too,
+  // so it stays honest if a caller ever hands it a node bound the old way.
+  const bv = (n.boundVariables as Record<string, { id?: string }> | undefined) ?? {};
+  const id = bv.strokeWeight?.id ?? bv.strokeTopWeight?.id;
   return id ? id.replace(/^V:/, '') : null;
 };
 ok(builtRings.every((r) => weightOf(r.node) === 'focus/ring/width'),

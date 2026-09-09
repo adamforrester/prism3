@@ -93,6 +93,24 @@ export interface CompRef { id: string; name: string; createInstance(): CompNode 
  *  order. A port that cannot name it cannot accidentally fall back to it. */
 export interface CompSetRef { id: string; name: string; children?: readonly { name?: string }[] }
 
+/** The four PER-SIDE stroke-weight keys the real host binds a `strokeWeight` variable onto (#1332). */
+const STROKE_WEIGHT_SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
+
+/**
+ * Does the host hold a binding for `field`? (#1332)
+ *
+ * HOST TRUTH — a stroke WEIGHT variable does not read back on the scalar `strokeWeight` key. The
+ * 2026-09-09 host-truth Figma-console audit established that `setBoundVariable('strokeWeight', v)`
+ * splits the binding across the four PER-SIDE keys (`strokeTopWeight`/…/`strokeLeftWeight`) and leaves
+ * the scalar unbound, on every bordered set (focus-ring, checkbox-control/radio/switch/select/button).
+ * A read-back that checks only `boundVariables.strokeWeight` therefore reports a FALSE `DISCARDED` on a
+ * weight that IS bound. So a weight counts as held when EITHER the scalar OR the COMPLETE per-side
+ * binding (all four keys) is present — never a bare fallback that always passes: a partial per-side
+ * binding, or nothing at all, is a genuine miss the read-back must still report.
+ */
+const weightHeld = (bv: Record<string, unknown>, field: string): boolean =>
+  !!bv[field] || (field === 'strokeWeight' && STROKE_WEIGHT_SIDES.every((k) => !!bv[k]));
+
 /**
  * The node surface the executor writes.
  *
@@ -1303,7 +1321,7 @@ const writeComponentSet = async (
     // being there — a Figma setter that accepts a call is not a Figma setter that honoured it.
     const got = (node.boundVariables ?? {}) as Record<string, unknown>;
     for (const prop of wrote)
-      if (!got[prop]) misses.push(`${n.name}.${prop} -> DISCARDED (resolved, set, not retained)`);
+      if (!weightHeld(got, prop)) misses.push(`${n.name}.${prop} -> DISCARDED (resolved, set, not retained)`);
     if (paintedFills && !boundPaint(node.fills)) misses.push(`${n.name}.fills -> DISCARDED (paint set, not retained)`);
     if (paintedStrokes && !boundPaint(node.strokes)) misses.push(`${n.name}.strokes -> DISCARDED (paint set, not retained)`);
 
@@ -1969,14 +1987,14 @@ const writeComponentSet = async (
       if (!live) continue;
       const got = (live.boundVariables ?? {}) as Record<string, unknown>;
       for (const [field, varName] of Object.entries(bound)) {
-        if (got[field]) continue;   // retained — the common case, nothing to do
+        if (weightHeld(got, field)) continue;   // retained — the common case, nothing to do (#1332: a weight reads back per-side)
         const v = byName.get(varName);
         if (!v) continue;   // the name never resolved; `build` already reported that as its own miss
         if (written && written.id != null && live.id != null && live.id !== written.id) {
           try { live.setBoundVariable?.(field, v); } catch { /* the re-bind itself threw — fall through */ }
           boundSearched++;
           const reNode = member.findOne?.((x) => x.name === part) as CompNode | null | undefined;
-          if ((reNode?.boundVariables as Record<string, unknown> | undefined)?.[field]) { boundRepaired++; continue; }
+          if (weightHeld((reNode?.boundVariables as Record<string, unknown> | undefined) ?? {}, field)) { boundRepaired++; continue; }
         }
         misses.push(`bound ${mName}/${part}.${field} -> DISCARDED (set ${varName}, not retained on the live node)`);
       }

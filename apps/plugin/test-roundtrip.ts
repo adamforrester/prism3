@@ -291,5 +291,60 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── STROKE-WEIGHT PER-SIDE READ-BACK (#1332) — HOST-TRUTH ──────────────────────────────────────
+//
+// The 2026-09-09 host-truth Figma-console audit established that `setBoundVariable('strokeWeight', v)`
+// binds the weight onto the four PER-SIDE keys (`strokeTopWeight`/…/`strokeLeftWeight`) and leaves the
+// scalar `strokeWeight` unbound, on every bordered set. The read-backs checked the scalar and reported a
+// FALSE `strokeWeight→UNBOUND`/`DISCARDED` on a weight that IS bound (#1332). The shim now models that
+// split (see `component-shim.ts`), so the whole bordered corpus above already exercises the per-side
+// path — revert `boundIdOf`'s per-side branch and every bordered def diverges `bound`/`strokeWeight` by
+// name. This block pins the two directions EXPLICITLY, with an oracle authored HERE (docs/34): the
+// per-side-bound weight must read BOUND, and a GENUINELY unbound one (a raw number, no keys) must still
+// be reported — the check accepts the complete per-side binding, it is not weakened into always-passing.
+{
+  const def = componentDefs.find((d) => d.id === 'focus-ring');
+  ok(!!def, '#1332 reachable: the focus-ring def is registered and projects');
+  if (def) {
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
+    const varById = new Map(vars.map((v) => [v.id, v.name] as const));
+    const ports: ReadPorts = { varName: (id) => varById.get(id) ?? null, styleName: () => null };
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const ring = members[0] as unknown as { boundVariables: Record<string, { id?: string }>; strokeWeight?: unknown };
+    const SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
+
+    // HOST TRUTH, pinned: the built ring binds the weight on all four per-side keys and NOT the scalar.
+    ok(members.length > 0 && SIDES.every((k) => typeof ring.boundVariables[k]?.id === 'string') && ring.boundVariables.strokeWeight === undefined,
+      `#1332 the built ring binds its weight on the four per-side keys with the scalar left unbound (${SIDES.map((k) => `${k}=${ring.boundVariables[k]?.id ? 'bound' : '—'}`).join(', ')}, strokeWeight=${ring.boundVariables.strokeWeight ? 'bound' : 'unbound'})`);
+
+    // POSITIVE — the reader accepts the per-side binding: no false `strokeWeight` divergence.
+    const clean = diffAnatomy(plans, members, planComponentName, ports, {});
+    ok(!clean.some((d) => d.field === 'bound' && /strokeWeight/.test(d.actual ?? '')),
+      `#1332 a per-side-bound weight reads back BOUND — no false strokeWeight DISCARDED (${clean.filter((d) => /strokeWeight/.test(d.actual ?? '')).map((d) => `${d.member}: ${d.actual}`).join('; ') || 'none'})`);
+
+    // NEGATIVE (mutation-by-name) — a GENUINELY unbound weight (a raw number, no per-side keys) is still
+    // reported `strokeWeight→UNBOUND`, so the fix did not weaken the check into always-passing.
+    for (const k of SIDES) delete ring.boundVariables[k];
+    ring.strokeWeight = 1;   // the host holds a raw literal — the #1332 "genuinely unbound" case
+    const unbound = diffAnatomy(plans, members, planComponentName, ports, {});
+    ok(unbound.some((d) => d.field === 'bound' && /strokeWeight→UNBOUND/.test(d.actual ?? '')),
+      `#1332 mutation: a weight bound to nothing (a raw number) is reported \`strokeWeight→UNBOUND\` by name (${unbound.filter((d) => d.field === 'bound').map((d) => `${d.member}: ${d.actual}`).join('; ') || 'NOT REPORTED — the check went silent'})`);
+
+    // AND A PARTIAL per-side binding is NOT accepted: three sides is a real miss, not "close enough".
+    const v0 = vars.find((x) => /focus\/ring\/width$/.test(x.name));
+    for (const k of SIDES) ring.boundVariables[k] = { id: v0?.id };
+    delete ring.boundVariables.strokeLeftWeight;
+    delete (ring as { strokeWeight?: unknown }).strokeWeight;
+    const partial = diffAnatomy(plans, members, planComponentName, ports, {});
+    ok(partial.some((d) => d.field === 'bound' && /strokeWeight→UNBOUND/.test(d.actual ?? '')),
+      `#1332 an INCOMPLETE per-side binding (three of four sides) is reported, not accepted — the check requires the complete set (${partial.filter((d) => d.field === 'bound').map((d) => d.actual).join('; ') || 'NOT REPORTED'})`);
+  }
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);
