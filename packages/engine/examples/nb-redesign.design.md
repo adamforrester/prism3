@@ -10,8 +10,8 @@
 # final brand. It is HELD for the owner's review, never auto-merged.
 #
 # Every value below carries a short comment saying where it came from (measured anchor,
-# brand spec, or engine default left in place). The one RECONSTRUCTED value — the
-# `lineHeights` ramp — is flagged inline and is the #1 thing for the owner to confirm.
+# brand spec, or engine default left in place). Line heights use the engine's prism defaults
+# per the owner's decision — no NB-specific override in this seed.
 id: nb-redesign
 
 # ROOT NAMESPACE (#1283) — this is a redesign OF New Balance, so it emits under NB's own
@@ -79,13 +79,10 @@ typography:
   weights: { display: [subtle], title: [subtle], body: [default, emphasis], caption: [default, emphasis] }
   # NB's Medium is 500, not the engine's default 600 — remap the `emphasis` weight-role numeric.
   weightRoles: { emphasis: 500 }
-  # RECONSTRUCTED VALUE — CONFIRM FIRST (#1 for the owner). The owner's pasted source TRUNCATED
-  # this line mid-token (it read `snug: 1.2, com…`, evidently a "compact/comfortable ≈ 1.2 for
-  # the uniform 120% headings" clause). Reconstructed as a UNIFORM ~120% leading for headings:
-  # display and title resolve their leading through `tight`/`snug`/`compact`, so pinning all
-  # three to 1.2 makes every heading rung 120% regardless of size. Body/caption leading is
-  # untouched (keeps the curated defaults). ← Owner: confirm the intended heading leading.
-  lineHeights: { tight: 1.2, snug: 1.2, compact: 1.2 }
+  # Line heights: PRISM DEFAULTS (owner decision 2026-09-09 — "stay with prism line heights").
+  # The pasted source truncated this line; rather than reconstruct an NB-specific ramp, this seed
+  # OMITS `lineHeights` entirely so the engine's curated default leading applies. Adjust in the
+  # plugin during the manual pass if the finished NB needs a bespoke heading leading.
   # Fluid heading sizes on, clamped between NB's mobile (402) and desktop (1440) viewports.
   responsive: { fluid: true, minViewport: 402, maxViewport: 1440 }
 ---
@@ -100,14 +97,13 @@ committed file to the finished version.
 
 New Balance reads as confident and editorial: the red is the flame, used as accent and for
 danger/error, while the working UI runs on near-black — buttons are black, not red. Corners
-are sharp. Headlines are set in a light, condensed Garamond at a uniform ~120% leading; the
-running UI is a clean Suisse grotesque.
+are sharp. Headlines are set in a light, condensed Garamond; the running UI is a clean Suisse
+grotesque.
 
 ## Owner finishing checklist (what this seed deliberately leaves for the manual pass)
 
-1. **Heading leading (CONFIRM FIRST).** The `lineHeights` ramp is RECONSTRUCTED from a
-   truncated source line (`snug: 1.2, com…`). It is set to a uniform ~120% for headings
-   (`tight`/`snug`/`compact` all 1.2). Confirm this is the intended heading leading.
+1. **Heading leading.** Uses the engine's default (prism) line heights — owner decision, no
+   NB-specific override. Set a bespoke heading leading in the plugin if the finished NB wants one.
 2. **1px hairline corners.** NB uses 1px corners in places. The engine reaches 1px only via
    the opt-in `radiusHairline: true` lever (#1362), left OFF here on purpose. Flip it on if
    the finished NB wants the 1px rung engine-side.
