@@ -161,8 +161,8 @@ the keyed-`label` text lands first), then each presence as a true/false VARIANT 
 `figmaName` `leading icon` / `trailing icon`, each immediately followed by its swap whose
 `figmaName` is `↳ swap leading icon` / `↳ swap trailing icon`. A true/false variant renders as a
 switch in Figma; presence stays a variant (not a Figma boolean) because on button it drives the
-#326 asymmetric inset a boolean cannot reach, and select and icon-button follow the same
-mechanism so the panel reads identically. The `↳ ` prefix (U+21B3 + space) makes Figma nest the
+#326 asymmetric inset a boolean cannot reach, and select's optional leading icon follows the same
+mechanism, so button and select read identically. The `↳ ` prefix (U+21B3 + space) makes Figma nest the
 swap beneath its switch; a REQUIRED single icon has no switch, so its swap takes
 `figmaName: 'swap icon'` — no `↳`, nothing to nest under (icon-button). All lowercase.
 
