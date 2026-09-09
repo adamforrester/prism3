@@ -215,6 +215,20 @@ export const makeShim = (opts: ShimOpts = {}) => {
    */
   const mkVar = (name: string) => ({ id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }) });
 
+  /** Is `n` inside a component or component set — the precondition Figma puts on `isExposedInstance` (#1378).
+   *
+   *  Walks ANCESTORS and includes the node itself, because Figma's rule is about the instance being contained
+   *  and a converted root is a component in its own right. Stops at whatever has no `parent`, which for a
+   *  member under construction is the staging frame: `build` assembles a member's whole subtree DETACHED and
+   *  only then hands the root to `createComponentFromNode`, so a nested instance marked during the build has
+   *  a chain that terminates in a parentless FRAME and no container anywhere in it. That is the shape of the
+   *  refusal this models — not a hypothetical, the message came back off a live file. */
+  const inComponent = (n: Node): boolean => {
+    for (let p: Node | null = n; p; p = (p.parent as Node | null) ?? null)
+      if (p.type === 'COMPONENT' || p.type === 'COMPONENT_SET') return true;
+    return false;
+  };
+
   const mkNode = (type: string): Node => {
     const node: Node = {
       type, name: '', boundVariables: {} as Record<string, unknown>,
@@ -264,9 +278,25 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // Starts FALSE (Figma's default for a primary instance), not undefined, so a never-marked instance
       // reads back a definite `false` — which is what makes the executor's write load-bearing: drop the
       // `node.isExposedInstance = true` and the round-trip reads `false` and fails, rather than reading a
-      // helpfully-defaulted `true`. A plain settable field: modelled because an absent one would let a
-      // forgotten exposure pass as absent-is-absent, the permissive-stub failure this file exists to deny.
-      isExposedInstance: false,
+      // helpfully-defaulted `true`. Modelled because an absent one would let a forgotten exposure pass as
+      // absent-is-absent, the permissive-stub failure this file exists to deny.
+      //
+      // AND IT REFUSES OUT OF CONTAINMENT (#1378). Was a plain settable field, which is the reason a write
+      // the real host rejects outright shipped green: `isExposedInstance` is writeable only on an instance
+      // that is INSIDE a component or component set, and a field that accepts every write cannot witness
+      // that. Same argument as `textAlignVertical` above, and the same sentence — a shim that cannot refuse
+      // cannot witness a refusal — except this one was worth 15 lines of comment asserting the precondition
+      // while modelling none of it. Figma's own message, verbatim from the failing build.
+      //
+      // Only the `true` write is gated: Figma has no complaint about a node being unexposed, and the twin
+      // in `combineAsVariants` copies `false` across freely.
+      _exposed: false,
+      get isExposedInstance(): boolean { return node._exposed as boolean; },
+      set isExposedInstance(v: boolean) {
+        if (v && !inComponent(node))
+          throw new Error('in set_isExposedInstance: Instance must be contained within a component or component set to be exposed.');
+        node._exposed = v;
+      },
       componentPropertyReferences: null as Record<string, string> | null,
       constraints: null as unknown,
       parent: null as Node | null,
@@ -590,7 +620,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
       (frame.appendChild as (c: Node) => void)(vec);
       return frame;
     },
-    createComponentFromNode: (n: Node) => n,
+    // CONVERTS IN PLACE, and the type change is the point (#1378). Was `(n) => n` — the same object, still
+    // reporting `type: 'FRAME'`. Returning the same object is right (Figma converts in place, which is what
+    // the executor's own delete-then-add trail bookkeeping rests on), but leaving the TYPE alone made the
+    // shim model a host where a converted frame is never a component — and `isExposedInstance`'s precondition
+    // is stated in exactly those terms. So the one gap hid the other: a containment rule modelled against a
+    // node that never becomes a container could only ever refuse.
+    createComponentFromNode: (n: Node) => { n.type = 'COMPONENT'; return n; },
     combineAsVariants: (members: Node[]) => {
       // Between the build loop's last boundary and the wire loop's first — the window the wire re-stamp
       // excludes. Charged here rather than in `resize` or `addComponentProperty` because this is the
@@ -621,7 +657,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
           t.fills = n.fills; t.strokes = n.strokes;
           // #1330 — carry the exposure marking across the combine, same reason as the fields above: a twin
           // that lost it would make a detach-mode round-trip report a correctly-exposed instance as not.
-          t.isExposedInstance = n.isExposedInstance;
+          //
+          // THROUGH THE BACKING FIELD, not the setter (#1378). The setter now enforces Figma's containment
+          // rule, and a twin is built bottom-up — detached, before the set adopts it — so routing this copy
+          // through the setter would make the shim refuse its OWN bookkeeping and turn detach mode into a
+          // guaranteed failure. This is the host relocating a node it already accepted the write for, which
+          // is not a plugin-API write and is not what the rule governs.
+          (t as Record<string, unknown>)._exposed = (n as Record<string, unknown>)._exposed;
           if (n.layoutMode !== undefined) (t as Record<string, unknown>).layoutMode = n.layoutMode;
           for (const kid of (n.children as Node[]) ?? []) (t.appendChild as (c: Node) => void)(twinOf(kid));
           // DETACH the original: its ref setter now throws Figma's own message, the #1337 symptom.

@@ -7,6 +7,50 @@
 
 ---
 
+## (2026-09-09) — the `nest-exposed` marking moves past `createComponentFromNode` (#1378, closes #1377)
+
+**STATUS: PR open, owner merges.** **No ENGINE bump, no CONTRACT bump** — and that is a claim worth defending rather than assuming. Every emitted artifact is byte-identical (`regen --check` clean, no stamp movement), `component-surface.json` and `paint-census.json` are unchanged, and the projected `checkbox` plan is the same plan it was before. The defect was never in what the engine PLANNED; it was that a correct plan could not be BUILT. `lint-emission-version` agrees without argument.
+
+**FOUND IN THE FIELD, on a live apply into a QA file**, not by a gate:
+
+```
+component build failed: in set_isExposedInstance: Instance must be contained
+within a component or component set to be exposed. — 2 nodes had already
+reached the file; they are parked in the frame '⚠ Prism3 partial build —
+checkbox (2 nodes; undo to remove)'
+```
+
+**THE DIAGNOSIS, AND THE CODE HAD ALREADY WRITTEN IT DOWN.** Both executors carried the same comment above the same write:
+
+> ``isExposedInstance` is writeable on a primary instance inside a component/set, which a member's nested instance becomes **after combine**.`
+
+Correct, and then contradicted one line later: the write sat inside `build`, which assembles a member's whole subtree DETACHED and hands the root to `createComponentFromNode` only afterwards. At write time the chain above the nested instance terminates in a parentless FRAME. Figma refuses, and because the refusal lands mid-build the whole 3-member set dies with 2 nodes already in the file — `checkbox-control` (which nests nothing, so it is never marked) built fine, which is what made this read as "one component is broken" rather than "the ordering is wrong". #1330's author had already filed the doubt as **#1378** ("Verify on real Figma: `isExposedInstance` is settable at nest-exposed write time"). It is not. The answer is now in the title.
+
+**THE FIX** — collect during the build, write after the conversion, in both executors. The plugin threads a per-member `expose: Wr[]` alongside the existing `parts` map (same reason, same shape: one array shared across a set would carry members' handles into each other's marking pass). The payload executor has no per-member collector to thread, so it uses a module-level queue drained by `__exposeNow(member)` at each of its three `createComponentFromNode` sites, cleared on the way out. Both write per node and read back, so a refusal costs one exposure instead of the set — the failure mode that stranded 2 nodes in a live file.
+
+**WHY NO GATE CAUGHT IT, WHICH IS THE DURABLE PART.** `test-roundtrip` drives the real executor against `component-shim.ts` and went green on a write the real host rejects outright, for two compounding reasons — and the pair is the lesson, because each one hid the other:
+
+1. `isExposedInstance` was a plain settable field. The shim's own header states the rule it needed here — *"a shim that cannot refuse cannot witness a refusal"* — 15 lines above, about `textAlignVertical`. This field got 7 lines of comment asserting the containment precondition and modelled none of it.
+2. `createComponentFromNode` was `(n) => n` — the identity function. Returning the same object is right (Figma converts in place, which the executor's own trail bookkeeping depends on), but leaving the TYPE alone made the shim model a host where a converted frame never becomes a component. So even a correctly-modelled precondition could only ever have refused, and the fix would have looked like the bug.
+
+Both are now modelled. **The `nestExpose` predicate had been reporting `compared NOTHING` — a predicate with no subject** — because the build threw before reaching those nodes; it now walks 3. That counter is the only reason the hole was visible at all, and it earned its keep here exactly as its own comment predicted.
+
+**A THIRD FINDING FELL OUT OF THE TYPE FLIP, and it is not collateral.** With the shim converting, 1,694 members diverged on `type`: plan `FRAME`, host `COMPONENT`. The host is right — a member root IS a component after conversion, on every member of every set, in every real file. `HOST_TYPE.FRAME = ['FRAME']` had been agreeing with the shim's failure to convert, so the readback would have been wrong the first time anyone pointed it at a live member root. Fixed with an `isRoot` flag threaded through `diffNode`, set `true` at exactly one call site, rather than by widening `FRAME` to accept `COMPONENT` everywhere — a stray component inside a member is a real defect shape and this predicate must keep noticing it.
+
+**VERIFICATION — three mutations, and the middle one is the informative failure:**
+
+| mutation | result |
+|---|---|
+| exposure collection disabled (`if (false && …)`) | `nestExpose 3× :: row/controlBox/control` — **fails by name** |
+| shim precondition disabled | still PASSES — correct, and not a hole: with the write now in a legal place the precondition has nothing to refuse. Its witness is the run below. |
+| write moved back into `build` (the pre-fix ordering, new shim) | fails with Figma's message **verbatim** — the shim now guards the ordering permanently |
+
+The gate was built and confirmed failing *before* the fix, which is the strongest available order: the shim reproduced the live error message exactly, off a file it has never seen. 56/56 gates pass.
+
+**TRAP FOR WHOEVER RE-VERIFIES THIS.** Whether the marking survives `combineAsVariants` is **still unmeasured**. It is written after `createComponentFromNode` and before the combine, and #1279 has the combine dropping bindings, while the shim's detach-mode twin explicitly copies `isExposedInstance` across — i.e. combine-loses-it is a modelled possibility, not an idle worry. The per-node read-back would report a `DISCARDED` miss if the host dropped it at that point, so the failure is instrumented rather than silent, but nobody has watched it happen on a live host. **Do not read this PR's green suite as proof of that step.** Filed as **#1385**.
+
+**THE PAYLOAD HALF IS STILL UNGATED** in the sense #1377 meant: the fix is a code-read twin of the plugin's, and no harness drives the generated payload against a host. #1377 is closed because the shim gap it named is closed and the defect it would have caught is fixed; the standing asymmetry between the two executors is #1265's territory.
+
 ## (2026-09-09) — icon-property canon + the #1309 Figma display-name mechanism (#1380, closes #1309)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges, and folds in the `prism3-build-component` skill doc at merge time).** ENGINE bump 0.74.0 → **0.75.0**. **CONTRACT stands at 10.0.0** — a Figma display name is neither a token name nor a React prop, so the guaranteed 577 are unchanged (`token-contract.ts --check` confirms; `--accept` refreshed only the informational `engineVersion` stamp).

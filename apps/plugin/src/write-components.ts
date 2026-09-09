@@ -1038,7 +1038,7 @@ const writeComponentSet = async (
    *  Optional, and threaded through the recursion rather than closed over, because it is PER MEMBER — one
    *  map shared across the whole set would collide on part names, which are unique within a member and
    *  identical across all 648 of them. */
-  const build = async (n: FigmaNodePlan, parts?: Map<string, Wr>): Promise<Wr | null> => {
+  const build = async (n: FigmaNodePlan, parts?: Map<string, Wr>, expose?: Wr[]): Promise<Wr | null> => {
     let node: Wr;
     if (n.type === 'TEXT') node = wr(api.createText());
     else if (n.type === 'INSTANCE_SWAP') {
@@ -1106,12 +1106,22 @@ const writeComponentSet = async (
       } else {
         node = wr(nested.createInstance());
       }
-      // EXPOSE (#1330). A `nest-exposed` node carries `nestExpose`; mark the instance exposed so the nested
-      // component's properties surface at the parent's level. The twin of the payload executor's write, so
-      // the two paths agree. Guarded on `nestExpose`, so a `nest-fixed` instance is never marked — which is
-      // what keeps every existing plan's build byte-identical. `isExposedInstance` is writeable on a primary
-      // instance inside a component/set, which a member's nested instance becomes after combine.
-      if (node && n.nestExpose && n.nestExpose.length) node.isExposedInstance = true;
+      // EXPOSE (#1330), BUT NOT YET (#1378). A `nest-exposed` node carries `nestExpose`; the instance must be
+      // marked exposed so the nested component's properties surface at the parent's level. This line used to
+      // BE that write, and the comment it carried stated the precondition correctly and then broke it in the
+      // same breath: "`isExposedInstance` is writeable on a primary instance inside a component/set, which a
+      // member's nested instance becomes after combine" — after, while the write was here, during. `build`
+      // assembles a member's subtree DETACHED and the root only becomes a component once
+      // `createComponentFromNode` has it, so at this point the chain above `node` terminates in a parentless
+      // frame. Figma refuses, by name, and the whole set dies with two nodes already in the file:
+      //
+      //    in set_isExposedInstance: Instance must be contained within a component or component set to be
+      //    exposed.
+      //
+      // So it is COLLECTED here and written by the caller after the conversion. Threaded like `parts` and for
+      // the same reason — per member, since one array shared across the set would carry members' handles into
+      // each other's marking pass.
+      if (node && n.nestExpose && n.nestExpose.length) expose?.push(node);
     } else if (n.type === 'GLYPH') {
       // THE GLYPH (#864). The only node here whose content is geometry rather than a box, a binding or a
       // nomination — so it is also the only one that can be built successfully and contain nothing, which
@@ -1306,7 +1316,7 @@ const writeComponentSet = async (
     // against. Sibling-scoped on purpose; see the centering loop for why the wider `parts` map is wrong.
     const byPart = new Map<string, Wr>();
     for (const c of n.children) {
-      const kid = await build(c, parts);
+      const kid = await build(c, parts, expose);
       if (!kid) continue;   // a missing shared component — one precise miss, the rest still builds
       node.appendChild?.(kid);
       // NO LONGER LOOSE (#913): it has a parent, and its ancestor is what the marking would gather.
@@ -1509,7 +1519,10 @@ const writeComponentSet = async (
       }
     } else {
       const parts = new Map<string, Wr>();
-      const root = await build(spec.root, parts);
+      // #1378 — the nested instances this member wants exposed, collected during the build and written after
+      // the conversion below, because that conversion is what satisfies Figma's containment rule.
+      const expose: Wr[] = [];
+      const root = await build(spec.root, parts, expose);
       // `!root` is a missing shared component — its own miss is already recorded, precisely. It must NOT
       // skip the boundary check below, which is why this is an else-branch rather than a `continue`: a
       // plan set whose every member failed to build would otherwise never yield at all.
@@ -1522,6 +1535,21 @@ const writeComponentSet = async (
         trail.loose.delete(root);
         trail.loose.add(comp);
         comp.name = spec.name;
+        // EXPOSE, NOW THAT THERE IS A COMPONENT TO BE CONTAINED BY (#1378). `createComponentFromNode` converts
+        // in place, so these handles — captured during the build — are descendants of `comp` and their chain
+        // now reaches a COMPONENT. Before the conversion it reached a parentless frame and Figma refused.
+        //
+        // PER NODE, and READ BACK, for the two reasons this file reads everything back: a refusal here must
+        // cost one exposure rather than the whole set (that failure mode is exactly what stranded two nodes in
+        // a live file and produced no set at all), and a write Figma ACCEPTS can still be a write Figma does
+        // not RETAIN. `nestExpose`'s round-trip predicate reads the same marking off the finished member, so a
+        // silent drop is caught there too — this miss is what says WHICH node and WHY.
+        for (const inst of expose) {
+          try { inst.isExposedInstance = true; }
+          catch (err) { misses.push(`${spec.name}.nestExpose -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+          if (inst.isExposedInstance !== true)
+            misses.push(`${spec.name}.nestExpose -> DISCARDED (set true, reads ${String(inst.isExposedInstance)}; the nested instance's properties will not surface on the parent)`);
+        }
         // THE STAMP (#827), on the COMPONENT and not on the frame it was made from: the frame is consumed
         // by `createComponentFromNode`, and the node a later run reads is this one. Written here rather
         // than after the wire pass so a build that throws mid-wire still leaves every member it completed
