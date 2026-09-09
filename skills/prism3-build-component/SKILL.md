@@ -148,6 +148,24 @@ checkbox and radio spell theirs `[unchecked, checked]`, checkbox adding `indeter
 switch spelling is a decision taken, not a default inherited — a def whose axis reads
 `[unchecked, checked]` is a checkbox somebody asked for. Match the family your component joins.
 
+**Figma display names (#1309/#1380).** `slotAxes`, `swaps` and `texts` each take an optional
+`figmaName` — the label a designer reads in the Figma properties panel, decoupled from the code
+prop. The KEY stays the idiomatic code prop (`leadingVisual`, `label`) and is still validated
+against `props[].name`; `figmaName`, when present, is the panel name and need NOT be a declared
+prop. Absent, the key is the panel name — byte-identical to before. Use it to give a panel a
+designer's register without capitalizing or renaming the code prop.
+
+**The icon-property canon (#1380).** A component with leading/trailing icon slots projects, top
+to bottom: a `label` text property (the `planSetProperties` order is text → swap → boolean, so
+the keyed-`label` text lands first), then each presence as a true/false VARIANT axis with
+`figmaName` `leading icon` / `trailing icon`, each immediately followed by its swap whose
+`figmaName` is `↳ swap leading icon` / `↳ swap trailing icon`. A true/false variant renders as a
+switch in Figma; presence stays a variant (not a Figma boolean) because on button it drives the
+#326 asymmetric inset a boolean cannot reach, and select's optional leading icon follows the same
+mechanism, so button and select read identically. The `↳ ` prefix (U+21B3 + space) makes Figma nest the
+swap beneath its switch; a REQUIRED single icon has no switch, so its swap takes
+`figmaName: 'swap icon'` — no `↳`, nothing to nest under (icon-button). All lowercase.
+
 ## 7. Verification — the whole list, and the mutation that names your gate
 
 Run **`npm run verify`** (`verify.ts`) — it runs every gate in a declared, checked order and

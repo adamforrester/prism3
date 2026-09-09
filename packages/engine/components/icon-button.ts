@@ -358,7 +358,14 @@ const makeIconButton = (id: string, name: string, description: string, family: I
     // Slot CONTENT, so a designer can pick the glyph. The one property this component has, and it is
     // required-in-code but swappable-in-Figma: `required` means a consumer must SUPPLY an icon, not
     // that they must supply a particular one.
-    swaps: { icon: 'icon' },
+    //
+    // `figmaName: 'swap icon'` is the icon-property canon reaching icon-button (#1380, owner-decided
+    // 2026-09-09), via the same #1309 display-name mechanism. Lowercase, and DELIBERATELY WITHOUT the
+    // `↳ ` prefix button/select use: the prefix renders a swap as nested BENEATH its presence switch, and
+    // icon-button has none — its icon is REQUIRED, so there is no `leading icon` boolean to nest under and
+    // a `↳` would be orphaned. The icon stays required; icon-button's identity (an accessible, required
+    // icon-only control) is unchanged. The code prop stays `icon`.
+    swaps: { icon: { part: 'icon', figmaName: 'swap icon' } },
   },
 
   accessibility: {

@@ -249,5 +249,47 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── PANEL PROPERTY ORDER + DISPLAY NAMES (#1309/#1380) — HOST-TRUTH ─────────────────────────────
+//
+// The icon-property canon (#1380) is three things: `label` (the TEXT property) at the top, each presence
+// toggle a `leading icon` / `trailing icon` true/false SWITCH, and each swap a `↳ swap …` panel label
+// nested beneath it. The display NAMES are already host-gated above — member names carry the switch
+// labels and `propertyRef` carries the swap labels, so a reverted `figmaName` diverges the round-trip and
+// `lint-component-surface`'s digest moves. What has NO other gate is the ORDER the panel shows the
+// component (non-variant) properties in: it is `planSetProperties`'s output order, which the digest does
+// not hash and no other read-back inspects. So read it back off the HOST — `componentPropertyDefinitions`,
+// whose key order is the executor's `addComponentProperty` order — and pin it against an oracle authored
+// HERE, not derived from `planSetProperties` (docs/34). Reordering `planSetProperties` (its text→swap→
+// boolean sort) then fails this BY NAME.
+//
+// The panel INTERLEAVE of the variant switches with the component properties is host-RENDERED and not
+// asserted here (the repo's standing position that panel render order is "the owner's Figma check, not
+// ours" — see `version.ts`/`test.ts`'s #1150 note); what the engine controls and this gates is that
+// `label` is CREATED first and the swaps carry their `↳` labels.
+{
+  const CANON: Record<string, { componentProps: string[]; switches: string[] }> = {
+    button: { componentProps: ['label', '↳ swap leading icon', '↳ swap trailing icon'], switches: ['leading icon', 'trailing icon'] },
+    select: { componentProps: ['value', '↳ swap leading icon'], switches: ['leading icon'] },
+    'icon-button': { componentProps: ['swap icon'], switches: [] },
+  };
+  for (const [id, want] of Object.entries(CANON)) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const set = page.children[0] as unknown as { componentPropertyDefinitions: Record<string, { type: string }> };
+    const entries = Object.entries(set.componentPropertyDefinitions ?? {});
+    // Non-variant keys carry a `#<id>` suffix Figma assigns; the stem is the panel name. Variant keys do not.
+    const componentOrder = entries.filter(([, d]) => d.type !== 'VARIANT').map(([k]) => k.split('#')[0]);
+    const variantNames = entries.filter(([, d]) => d.type === 'VARIANT').map(([k]) => k);
+    ok(JSON.stringify(componentOrder) === JSON.stringify(want.componentProps),
+      `panel order (#1380): ${id} shows its component properties top-to-bottom as ${JSON.stringify(want.componentProps)} — a reordered planSetProperties fails here (host holds ${JSON.stringify(componentOrder)})`);
+    ok(want.switches.every((s) => variantNames.includes(s)) && (want.switches.length > 0 || !variantNames.some((v) => / icon$/.test(v))),
+      `panel switches (#1380): ${id} carries the ${JSON.stringify(want.switches)} true/false variant switch(es) as decoupled Figma names (host holds ${JSON.stringify(variantNames)})`);
+  }
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);
