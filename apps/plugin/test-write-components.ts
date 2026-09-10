@@ -667,6 +667,44 @@ ok(bare.misses.length > 0 && bare.misses.some((m) => m.includes(' -> ')), `every
 ok(!bare.misses.some((m) => m.includes('DISCARDED')),
   'an unresolved name reports its ONE true cause — never also "DISCARDED", which would name a write that was never attempted');
 
+// ---- #1387: a DECLARED-but-UNRESOLVABLE fill NEVER leaves Figma's opaque white default ----------
+// The bare run unresolves EVERY paint, which makes it the witness for the fallback the 2026-09-09
+// host-truth audit found: a `container` box that DECLARES a fill whose variable is ABSENT from the file
+// kept Figma's `#ffffff` opaque default — "SOLID #ffffff, opacity 1, unbound", on 324 button members.
+// The set binds `interactive.<family>.overlay.{hover,pressed}` on outline/text hover/pressed
+// UNCONDITIONALLY, while that wash is emitted only under `outlineInteraction: 'overlay-neutral'`; on a
+// 'none'/'solid-tint' brand it is genuinely missing, so the frame stayed white. The executor now clears
+// such a fill to transparent (the lever's intended clean no-change hover), so no built frame reads white.
+//
+// THREE GUARDS, per docs/34. (4) The SHIM MODELS THE WHITE — the axis this gate rests on — asserted
+// directly first, so the negative check is not vacuous and reverting the shim default fails here. (9) A
+// REACHABILITY floor proves the neutralize path ran over the exact coordinates the audit flagged. The
+// invariant itself is INDEPENDENT of the executor: the white is Figma's (the shim), the neutralize is the
+// subject, and the read-back is neither.
+const freshFrame = makeShim({}).createFrame().fills as { type?: string; opacity?: number; color?: { r: number; g: number; b: number }; boundVariables?: { color?: unknown } }[];
+ok(freshFrame.length === 1 && freshFrame[0].type === 'SOLID' && !freshFrame[0].boundVariables?.color
+   && freshFrame[0].color?.r === 1 && freshFrame[0].color?.g === 1 && freshFrame[0].color?.b === 1,
+  `#1387 positive control: a freshly created frame carries Figma's opaque WHITE default fill, so "no white after build" is a real check rather than a pass over an empty array (${JSON.stringify(freshFrame[0]?.color ?? null)})`);
+// The audit's exact coordinates: outline/text × hover/pressed declare the overlay wash on the container
+// (DEFAULT surface — F1's scope; this medium grid carries no `surface` axis). Reading the declared fill
+// off the PLAN, so the floor is independent of what the executor did with it.
+const overlayMembers = grid.filter((p) => /\/overlay\/(hover|pressed)$/.test((p.root as { paints?: { fills?: string } }).paints?.fills ?? ''));
+ok(overlayMembers.length === 4,
+  `#1387 reachable: the 4 outline/text × hover/pressed members declare the overlay wash fill the audit flagged, so the bare build exercises the neutralize path on exactly those containers (${overlayMembers.map(planComponentName).join(', ')})`);
+const whitePage: Page = { children: [] };
+await run(grid, { comps: full().comps, page: whitePage });
+const walkNodes = (n: Node, out: Node[]): Node[] => { out.push(n); for (const c of ((n.children as Node[]) ?? [])) walkNodes(c, out); return out; };
+const builtNodes = (whitePage.children as Node[]).flatMap((s) => walkNodes(s, []));
+const isOpaqueWhiteLiteral = (n: Node): boolean => {
+  const f = n.fills as { type?: string; opacity?: number; color?: { r: number; g: number; b: number }; boundVariables?: { color?: unknown } }[];
+  if (!Array.isArray(f) || f.length === 0) return false;
+  const p = f[0];
+  return p?.type === 'SOLID' && !p.boundVariables?.color && (p.opacity ?? 1) === 1 && p.color?.r === 1 && p.color?.g === 1 && p.color?.b === 1;
+};
+const whiteLeft = builtNodes.filter(isOpaqueWhiteLiteral);
+ok(whiteLeft.length === 0,
+  `#1387 no built node keeps an opaque #ffffff literal where its plan DECLARED a paint it could not resolve — a declared-but-unresolvable fill neutralizes to transparent, never Figma's white default (${whiteLeft.length} white${whiteLeft.length ? `: ${[...new Set(whiteLeft.map((n) => String(n.name)))].slice(0, 4).join(', ')}` : ''})`);
+
 // ---- #1280 / #1206: the button's icon slot, in the TWO FILE STATES A DESIGNER CAN BE IN --------
 //
 // This was an absence-only block, and that was the defect rather than a gap in it: `comps: []` was the
