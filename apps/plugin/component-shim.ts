@@ -247,15 +247,16 @@ export const makeShim = (opts: ShimOpts = {}) => {
       _targetAspectRatio: undefined as number | undefined,
       get targetAspectRatio() { return node._targetAspectRatio as number | undefined; },
       fills: [] as unknown[], strokes: [] as unknown[], children: [] as Node[],
-      // `strokeWeight` starts at 0 so the executor's `if(!node.strokeWeight)` default fires as it does
-      // live; `strokesIncludedInLayout` starts TRUE because that is Figma's default and the thing
-      // border-box has to override. It is a BACKING FIELD here, not the property itself: the real
-      // `strokesIncludedInLayout` is installed below as a throwing accessor (see the block after this
-      // literal), and a throwing setter cannot receive its own initial value while `layoutMode` is still
-      // unset. The property is defined out of the spread on purpose — object spread flattens an accessor
-      // into a plain data property (it invokes the getter once and drops the setter), which is exactly why
-      // the `textAlignVertical` accessor above, spread from a ternary, never actually throws.
-      ...(type === 'FRAME' ? { strokeWeight: 0, _strokesInLayout: true } : {}),
+      // A CREATED FRAME STARTS WITH FIGMA'S DEFAULT OPAQUE WHITE FILL (#1387), not `[]`. This models the
+      // one axis the audit's fallback lives on: `createFrame()` "hands back an opaque white box" (see the
+      // executor's own note), so a plan fill the executor cannot resolve leaves that white behind unless
+      // something clears it. A shim that started frames at `[]` cannot witness the fallback OR its fix —
+      // `claimDefaults`' neutralize and the executor's declared-but-unresolvable neutralize both look like
+      // no-ops against an already-empty array (docs/34 shape 4: a stub models the axis or it cannot gate
+      // it). Every other node type keeps `[]` — only a FRAME carries the white default in Figma.
+      ...(type === 'FRAME'
+        ? { strokeWeight: 0, _strokesInLayout: true, fills: [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 1, b: 1 } }] as unknown[] }
+        : {}),
       // #1009: `textAlignVertical` is a `TextNode` property. A TEXT node starts at Figma's default
       // `'TOP'` — so a node that reads back `CENTER` proves the executor WROTE it, rather than the shim
       // having defaulted helpfully — and every other node type THROWS on the write, which is what Figma

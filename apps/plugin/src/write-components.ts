@@ -1273,6 +1273,19 @@ const writeComponentSet = async (
     if (n.paints?.fills) {
       const p = paint(n.paints.fills, 'fills');
       if (p) { node.fills = [p]; paintedFills = true; }
+      // DECLARED BUT UNRESOLVABLE → transparent, NEVER Figma's opaque white default (#1387). The
+      // component set is brand-agnostic — it binds `interactive.<family>.overlay.{hover,pressed}` on
+      // outline/text hover/pressed unconditionally — while that wash is EMITTED only under
+      // `outlineInteraction: 'overlay-neutral'`. On a brand built with `'none'` or `'solid-tint'`, the
+      // wash variable is absent from this file, `paint()` returns null (and has already reported the
+      // miss), and the frame keeps Figma's default `#ffffff` opaque fill — the "SOLID #ffffff, opacity 1,
+      // unbound" the 2026-09-09 host-truth audit found on 324 button members. Clearing to `[]` renders the
+      // lever's intended clean no-change hover instead. This EXTENDS `claimDefaults`' own rule ("nobody
+      // asked for a fill means no fill, not a white one") from UNCLAIMED to CLAIMED-BUT-UNRESOLVABLE: the
+      // two states are indistinguishable to a viewer and neither may be the frame's arbitrary white.
+      // TEXT is exempt for the same reason `claimDefaults` reports rather than neutralizes it — `[]` is
+      // invisible text, a worse defect than an unpainted box.
+      else if (node.type !== 'TEXT') node.fills = [];
     }
     if (n.paints?.strokes) {
       const p = paint(n.paints.strokes, 'strokes');
