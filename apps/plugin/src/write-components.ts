@@ -173,6 +173,16 @@ export interface CompNode {
    *  four primitives carry the same state and throw on nothing, so the shorthand is a strictly worse
    *  way to say the same thing here. */
   cornerRadius?: unknown;
+  /** The four PER-CORNER radii. Typed rather than `unknown` because the concentric focus ring (#1388)
+   *  both READS them off its host (each may be bound to a radius token, which reads back as its resolved
+   *  number) and WRITES them onto the ring — a read-back of `unknown` cannot be summed, and the write
+   *  target must be nameable. The host binds the four corners individually (`anatomy-figma.ts` maps a
+   *  part's `radius` onto all four), so the scalar `cornerRadius` reads back `mixed`; per-corner is the
+   *  footing both sides share, the same reason the #865 neutralize loop reads them per-corner. */
+  topLeftRadius?: number;
+  topRightRadius?: number;
+  bottomLeftRadius?: number;
+  bottomRightRadius?: number;
   dashPattern?: unknown;
   itemSpacing?: unknown;
   paddingLeft?: unknown;
@@ -1441,12 +1451,42 @@ const writeComponentSet = async (
           else inset = gap + sw;
         }
       }
+      // CLEAR THE INHERITED NOMINAL SIDE (#1388, #1290's prediction). The nested component's own root
+      // binds width AND height to its `nominal-side` (`size.md.height`), present only so it builds as a
+      // ring-shaped artifact alone; an INSTANCE inherits that binding. `resize` clears the dimension
+      // bindings THIS executor set, but not one INHERITED through an instance (#1290, from the host-truth
+      // audit) — so without this the ring carries a stale `size/md/height` binding that agrees with the
+      // resized box only by coincidence on a `size=small` host (28 + 2×4 = 36 = md height) and decouples
+      // the moment a brand moves its density or size ladder. Cleared BEFORE the resize so the resized box
+      // is authoritative; `strokeWeight` is left bound — the ring's own brand stroke is nobody else's to
+      // supply, and it is not a dimension the host overwrites.
+      kid.setBoundVariable?.('width', null);
+      kid.setBoundVariable?.('height', null);
       // Grown on every side by the full coordinate, which leaves `gap` of visible background once the
       // stroke is drawn inward. `resize` is safe HERE and nowhere else — an absolute part binds no
       // dimensions by construction (gated in the validator).
       kid.resize?.((node.width ?? 0) + inset * 2, (node.height ?? 0) + inset * 2);
       kid.x = -inset;
       kid.y = -inset;
+      // CONCENTRIC RADIUS (#1388). The ring sits `inset` outside its host on every side, so its corner
+      // radius must be the host's grown by that same `inset` — otherwise the ring's straight run cuts
+      // across the host's rounded corner (a square ring on a radius-8 button) or its round corner bulges
+      // past a sharp one. Read the host's four corners (each bound to a radius token reads back as its
+      // resolved number) and add `inset`, per-corner rather than the scalar `cornerRadius` for the same
+      // reason the host binds them per-corner (the scalar reads back `mixed`). Three cases fall out of the
+      // one formula, which is why it is a derivation and not a table: a radius-0 host yields `inset` (a
+      // rounded-rect ring around a square control, not a hard square); a full-round host — a radio, whose
+      // radius ≥ half its side — yields `host + inset ≥ (ringSide)/2`, which Figma clamps to the ring's
+      // own half-side, so a circle stays a circle; and an ordinary rounded host stays concentric at the
+      // constant gap. Frozen at paste like `x`/`y` and the inset (Figma's radius write takes a number, and
+      // the host's own radius here is already resolved), so it shares their `codeOnly` ceiling — an
+      // already-pasted ring does not re-flow when a brand changes its corner radius.
+      const ringNode = kid as unknown as Record<string, unknown>;
+      const hostNode = node as unknown as Record<string, unknown>;
+      for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const) {
+        const hostR = hostNode[corner];
+        if (typeof hostR === 'number') ringNode[corner] = hostR + inset;
+      }
       // STRETCH so the ring tracks its target when a designer resizes a variant; without it the ring
       // keeps the size it was pasted at, silently, because it looks right at that one size.
       kid.constraints = { horizontal: 'STRETCH', vertical: 'STRETCH' };

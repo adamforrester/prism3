@@ -60,6 +60,68 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.76.0: the focus ring is CONCENTRIC and no longer carries a stale nominal-side binding (#1388, F2,
+ * owner-approved). Two host-executor changes, both in the one absolute-inset loop that already positions
+ * and sizes the nested ring — the same binding surface, which is why #1388 flagged them together.
+ *
+ * PREMISE RE-CHECK (the F1 rule, #1387). Both symptoms were confirmed against the CURRENT engine before
+ * any code moved, by reading the projected plan and the emitted tokens rather than trusting the audit:
+ * (1) `figmaAnatomySet(focusRing)` binds `{width, height → size/md/height, strokeWeight → focus/ring/width}`
+ * and NO radius — the standalone ring and every nested instance is a radius-0 hard square, and neither
+ * executor ever wrote a corner radius. (2) The ring's own `nominal-side` binds width AND height to
+ * `size.md.height`; a nested INSTANCE inherits that, and on aurora `size.sm.height`=28, the inset is
+ * `offset(2)+width(2)=4`, so a small button's ring resizes to 28+2×4 = 36 = `size.md.height` — the
+ * coincidental agreement #1388 names, which a density move decouples. Both reproduced; neither is F1's
+ * misread-derived-value.
+ *
+ * THE CONCENTRIC FORMULA. A ring positioned at `-inset` and sized `host + 2×inset` must take corner
+ * radius `hostRadius + inset` or its straight run cuts across the host's rounded corner. `inset` is the
+ * same `gap + strokeWidth` the position/size use, so the ring grows uniformly on every axis INCLUDING its
+ * radius — concentric by construction. Read per-corner off the host node (a bound corner reads back its
+ * resolved number; the host binds all four to `radius/md`) and written to the ring's four corners. One
+ * derivation, three cases: a radius-0 host → `inset` (a rounded-rect ring around a square control, not a
+ * hard square); a full-round host (radio, radius ≥ half its side) → `host + inset ≥ ringSide/2`, which
+ * Figma clamps to the ring's own half-side so a circle stays a circle; an ordinary rounded host stays at
+ * the constant gap. The owner's worked example (radius-8 button, +4 inset → 12) is this formula.
+ *
+ * THE STALE NOMINAL SIDE, cleared. `#1290` predicted this exactly and named its own fix: "clear the
+ * instance's inherited width/height before resizing, in the host executor, not here". The absolute loop
+ * now calls `setBoundVariable('width', null)`/`('height', null)` on the ring instance before the resize,
+ * so the resized box is authoritative and no `size/md/height` binding survives. `strokeWeight` (the ring's
+ * own brand stroke) is untouched — only the two dimensions the host overwrites are cleared.
+ *
+ * ENGINE and not CONTRACT, on #1252's decision, and this one moves NO committed artifact but the version
+ * stamp. The change is entirely in the two executors (`write-components.ts` and the `anatomy-figma.ts`
+ * paste payload); the projected PLAN is byte-identical (the radius is derived at paste from the host node,
+ * like `x`/`y`/inset, and carries no new plan field), so `lint-component-surface` and `paint-census` do
+ * not move and are NOT re-`--accept`ed. No token NAME is added, removed or retyped — a corner radius is a
+ * component geometry fact, not a token path — so `CONTRACT_VERSION` STANDS at 10.0.0 and
+ * `token-contract.ts --check` confirms the guaranteed 577 unchanged; `--accept` refreshes only the
+ * baseline's informational `engineVersion` stamp to 0.76.0, at contract 10.0.0 unchanged. `regen --check`
+ * moves only each emitted tree's own `$extensions.generator.version` stamp (0.75.0 → 0.76.0), which
+ * `lint-emission-version` requires the bump for — the emission (the stamp) moved, so the version must.
+ *
+ * THE GATE GAP #1388 FLAGGED, now closed (docs/34). Nothing checked a resolved radius on a built node —
+ * `diffAnatomy` compares plan-to-host STRUCTURE and iterates the plan's fields, and the ring's radius is
+ * neither a plan field nor structure — so the THREE offline shims (`test.ts`'s `makeFigmaStub`,
+ * `component-shim.ts`, and `lint-unclaimed-defaults.ts`'s own stub, all taught `setBoundVariable(field,
+ * null)` to unbind) were extended to model a per-corner radius (a bound corner reads back resolved; an
+ * unbound one reads what was written, default 0) and the ring instance's INHERITED nominal-side binding,
+ * and `test.ts`'s absolute-part execution block gained the gate. Its EXPECTED is INDEPENDENT of the
+ * concentric code: the host's own radius (set by the bind loop, read back off the built host) plus the
+ * declared inset, never read back from the ring-radius producer. A parity assertion pins the PLUGIN
+ * executor's radius to the paste path's (which is itself pinned to that oracle), so both executors are
+ * covered. The circle and radius-0 cases are REPRESENTED (a full-round host asserted to yield radius ≥
+ * side/2, a radius-0 host asserted to yield exactly the inset), not merely counted, and the clear has a
+ * positive control (a fresh un-hosted ring instance must carry the inherited binding the host removes).
+ *
+ * MUTATION-BY-NAME (docs/34), run by commit-between-mutations (the checkout-restore trap): (a) reverting
+ * the concentric derivation (dropping the four-corner write, so the ring stays radius 0) fails the named
+ * `anatomy/ring #1388: the ring's radius is CONCENTRIC` assertion AND both edge-case assertions, in both
+ * executors via the parity gate; (b) dropping the `setBoundVariable(…, null)` clear fails the named
+ * `anatomy/ring #1388/#1290: the host CLEARS the ring instance's inherited width/height bindings`
+ * assertion while its positive control stays green. Each restored.
+ *
  * 0.75.0: the icon-property canon + the #1309 Figma display-name mechanism (#1380, owner-decided from a
  * live Prism2 reference). A component's Figma property NAME was the code prop/axis name verbatim
  * (`planSetProperties` used the `texts`/`swaps` KEY; the presence-axis panel name was the slot-axis
@@ -2106,7 +2168,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.75.0';
+export const ENGINE_VERSION = '0.76.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
