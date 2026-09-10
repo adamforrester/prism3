@@ -386,8 +386,12 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // with no throw and nothing in `misses[]`. That is the defect the unlock exists to prevent, so the
       // shim reproduces it rather than merely counting the call — without this, `unlockAspectRatio()`
       // could be deleted from the executor and every geometry assertion here would still pass.
-      setBoundVariable(prop: string, v: { id: string; value?: number }) {
+      setBoundVariable(prop: string, v: { id: string; value?: number } | null) {
         const bv = node.boundVariables as Record<string, unknown>;
+        // NULL UNBINDS (#1388) — Figma's overload for removing a binding, which the focus ring uses to
+        // clear its inherited `width`/`height` before the host resizes it. Delete the key so the gate on
+        // the clear (`boundVariables.width` absent) can tell "cleared" from "still bound".
+        if (v === null) { delete bv[prop]; return; }
         if (node._aspectLocked && (prop === 'width' || prop === 'height')) {
           delete bv[prop === 'width' ? 'height' : 'width'];
         }
@@ -497,6 +501,20 @@ export const makeShim = (opts: ShimOpts = {}) => {
         },
       });
     }
+    // PER-CORNER RADIUS (#1388) — mirrors the engine `test.ts` shim so the parity gate compares two
+    // executors against one Figma model. A corner BOUND via `setBoundVariable` reads its resolved value
+    // (the host, where `radius/md` binds all four); an unbound corner reads whatever was written, default
+    // 0 (Figma's default, and the ring's hard square before the concentric fix). Neither read-back nor
+    // write existed before, so the ring's radius was invisible to this shim.
+    for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const) {
+      const backing = `_${corner}`;
+      (node as Record<string, unknown>)[backing] = 0;
+      Object.defineProperty(node, corner, {
+        configurable: true, enumerable: true,
+        get() { const bv = node.boundVariables as Record<string, { value?: number }>; return bv[corner]?.value ?? (node as Record<string, number>)[backing]; },
+        set(v: number) { (node as Record<string, number>)[backing] = v; },
+      });
+    }
     return node;
   };
 
@@ -553,7 +571,20 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const types = criteria?.types ?? ['COMPONENT'];
         const mkRef = (name: string, i: number) => ({
           name, id: `73:${37 + i}`,
-          createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null; return inst; },
+          createInstance: () => {
+            const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
+            // AN INSTANCE INHERITS ITS MAIN COMPONENT'S ROOT BINDINGS (#1388, #1290) — the focus-ring
+            // component binds width/height to its `nominal-side`, so a nested ring carries those bindings
+            // until the host clears them. Seeded for the ring so the executor's clear-before-resize is
+            // gated (mirrors the engine `test.ts` shim; the value is immaterial, the key's presence is
+            // what the read-back reads).
+            if (name === 'focus-ring') {
+              const bv = inst.boundVariables as Record<string, unknown>;
+              bv.width = { id: 'V:size/md/height', value: 36 };
+              bv.height = { id: 'V:size/md/height', value: 36 };
+            }
+            return inst;
+          },
         });
         const found: { name: string; id: string; createInstance: () => Node; children?: { name: string }[] }[] = [];
         let seq = 0;

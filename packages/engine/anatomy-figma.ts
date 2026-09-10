@@ -2572,12 +2572,31 @@ const build=async(n)=>{
         else inset=gap+sw;
       }
     }
+    // CLEAR THE INHERITED NOMINAL SIDE (#1388, #1290's prediction). The nested component's root binds
+    // width AND height to its \`nominal-side\` (\`size.md.height\`, present only so it builds alone), and an
+    // INSTANCE inherits that binding. \`resize\` clears the bindings this payload set but not one inherited
+    // through an instance — so without this the ring carries a stale \`size/md/height\` binding that agrees
+    // with the resized box only by coincidence on a \`size=small\` host (28 + 2×4 = 36 = md height) and
+    // decouples the moment a brand moves its density or size ladder. Cleared BEFORE the resize; the ring's
+    // own \`strokeWeight\` binding is left alone (its brand stroke, not a dimension the host overwrites).
+    kid.setBoundVariable('width',null);kid.setBoundVariable('height',null);
     // Grown on every side by the full coordinate: the ring is 2×inset larger than the parent and starts
     // at -inset, which leaves \`gap\` of visible background once the stroke is drawn inward.
     // \`resize\` is safe HERE and nowhere else in this payload: it clears dimension bindings, and an
     // absolute part binds none (its size IS the parent's, so \`bound\` is empty by construction — gated).
     kid.resize(node.width+inset*2,node.height+inset*2);
     kid.x=-inset;kid.y=-inset;
+    // CONCENTRIC RADIUS (#1388): the ring sits \`inset\` outside its host on every side, so its corner
+    // radius must be the host's grown by that same \`inset\` — else the straight run of a radius-0 ring cuts
+    // across the host's rounded corner. Read the host's four corners (a bound radius reads back resolved)
+    // and add \`inset\`, per-corner because the host binds them per-corner (the scalar reads \`mixed\`). One
+    // formula, three cases: a radius-0 host → \`inset\` (a rounded-rect ring, not a hard square); a full-round
+    // host (radio, radius ≥ half its side) → \`host + inset ≥ ringSide/2\`, which Figma clamps to a circle;
+    // an ordinary rounded host stays concentric at the constant gap. Frozen at paste like \`x\`/\`y\`/inset.
+    for(const corner of ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius']){
+      const hostR=node[corner];
+      if(typeof hostR==='number')kid[corner]=hostR+inset;
+    }
     // STRETCH on both axes so the ring tracks its target when a designer resizes a variant. Without it
     // the ring keeps the size it was pasted at and widening the button leaves it behind — silently,
     // because it looks correct at the one size it was built.

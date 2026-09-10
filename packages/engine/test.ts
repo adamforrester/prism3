@@ -9097,7 +9097,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; fileNodes?: StubFileNode[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[] };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -9162,6 +9162,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // read off the def under test, so the expected drift stays independent of what `button.ts` binds.
       const BORDER_PX: Record<string, number> = { none: 0, hairline: 1, thick: 2, heavy: 4 };
       const varValue = (name: string): number => {
+        // `varValues` PINS a variable's resolved VALUE (what `boundVariables[field].value` reads back),
+        // where `varOverrides` pins `resolveForConsumer` (the inset path). Both exist so the concentric
+        // radius (#1388) can be driven at a KNOWN host radius: the host binds `radius/md`, the ring reads
+        // that back off the host node, and a gate wanting the circle case (a full-round host) or the
+        // radius-0 case names the host radius here rather than deriving it from `varValue`'s hash — which
+        // would couple the gate's expected to the same function the ring read from.
+        if (opts.varValues && name in opts.varValues) return opts.varValues[name];
         const rung = /^border-width\/(.+)$/.exec(name)?.[1];
         if (rung !== undefined && rung in BORDER_PX) return BORDER_PX[rung];
         return 8 + ([...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) * 4;
@@ -9340,8 +9347,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // with no throw and nothing in `misses[]`. That is the defect the unlock prevents, so the stub
           // reproduces it rather than trusting the call count. Without this, the unlock could be deleted
           // from the payload and every geometry assertion here would still pass.
-          setBoundVariable(prop: string, v: { id: string; value?: number }) {
+          setBoundVariable(prop: string, v: { id: string; value?: number } | null) {
             const bv = node.boundVariables as Record<string, unknown>;
+            // NULL UNBINDS (#1388), the overload Figma uses to remove a binding — the focus ring clears
+            // its inherited `width`/`height` this way before the host resizes it. Delete the key so the
+            // read-back that gates the clear (`boundVariables.width` absent) can distinguish "cleared"
+            // from "still bound", which a stored `null` could not.
+            if (v === null) { delete bv[prop]; return; }
             if (node._aspectLocked && (prop === 'width' || prop === 'height')) delete bv[prop === 'width' ? 'height' : 'width'];
             // HOST TRUTH (#1332): binding `strokeWeight` splits across the four PER-SIDE keys on the real
             // host and leaves the scalar unbound (the 2026-09-09 host-truth Figma-console audit). Modelled
@@ -9450,6 +9462,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
             },
           });
         }
+        // PER-CORNER RADIUS (#1388), modeled so the host's BOUND radius reads back as a number and the
+        // concentric ring's WRITTEN radius is observable — neither existed before, so the ring's hard
+        // square (`topLeftRadius` 0, unbound) could not be gated. A corner bound via `setBoundVariable`
+        // reads its resolved value (the host case, where `radius/md` binds all four); an unbound corner
+        // reads whatever was written to it, default 0 (Figma's default, and the ring case before the fix).
+        // Installed with `defineProperty` for the same reason `strokesIncludedInLayout` is — an accessor
+        // in the literal above is flattened to a plain value — and mirrors the plugin shim so the parity
+        // gate compares two executors against one Figma model.
+        for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const) {
+          const backing = `_${corner}`;
+          (node as Record<string, unknown>)[backing] = 0;
+          Object.defineProperty(node, corner, {
+            configurable: true, enumerable: true,
+            get() { const bv = node.boundVariables as Record<string, { value?: number }>; return bv[corner]?.value ?? (node as Record<string, number>)[backing]; },
+            set(v: number) { (node as Record<string, number>)[backing] = v; },
+          });
+        }
         return node;
       };
       const figmaStub = {
@@ -9493,7 +9522,25 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
             const types = criteria?.types ?? ['COMPONENT'];
             const mk = (name: string, i: number) => ({
               name, id: `73:${37 + i}`,
-              createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; return inst; },
+              createInstance: () => {
+                const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec];
+                // AN INSTANCE INHERITS ITS MAIN COMPONENT'S ROOT BINDINGS (#1388, #1290). The focus-ring
+                // main component binds width AND height to its `nominal-side` (`size.md.height`, the
+                // buildable-alone square), so a nested ring instance carries those bindings until the host
+                // clears them. Seeded HERE for the ring so the executor's clear-before-resize is gated:
+                // without it the built ring keeps a stale `size/md/height` binding — invisible on a medium
+                // host, a coincidental agreement on a small one (28 + 2×4 = 36) — which is the latent bug.
+                // The VALUE (36, md height) is immaterial; the gate reads the KEY's presence, not its
+                // number. Only the ring inherits here because it is the only nested instance these pastes
+                // build; a generic model would need each main component's own bindings, which the stub does
+                // not carry.
+                if (name === 'focus-ring') {
+                  const bv = inst.boundVariables as Record<string, unknown>;
+                  bv.width = { id: 'V:size/md/height', value: 36 };
+                  bv.height = { id: 'V:size/md/height', value: 36 };
+                }
+                return inst;
+              },
             });
             const found: Record<string, unknown>[] = [];
             let seq = 0;
@@ -10002,6 +10049,64 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // And it is an INSTANCE of the shared component, not a frame. The distinction is invisible in the
       // geometry above — a placeholder frame would measure identically — so it gets its own read.
       ok(kid?.type === 'INSTANCE', `anatomy/ring: the ring is an INSTANCE of the shared component (${kid?.type})`);
+
+      // ---- #1388: THE CONCENTRIC RADIUS, EXECUTED --------------------------------------------------
+      // The ring sat at `topLeftRadius: 0` UNBOUND on every host — a hard square around a rounded button
+      // and a SQUARE ring around a circular radio (the host-truth audit, #1388). Now the host writes the
+      // ring's corner radius as its own radius grown by the same `inset` the position and size already
+      // use, so the ring stays parallel to the host edge at the constant gap. Asserted the same way the
+      // #801 size claim above is: the EXPECTED is the HOST'S radius (an input the host's bind loop set
+      // from `radius/md`, NOT produced by the concentric derivation under test) plus the DECLARED offset
+      // `coord` — not read back from the ring-radius producer (docs/34). `built.topLeftRadius` is a real
+      // number here because the stub reads a bound corner back off `boundVariables` (the host binds all
+      // four to `radius/md`); a 0 would make `+ coord` unfalsifiable, so it is pinned non-zero first.
+      const hostR = built.topLeftRadius as number;
+      ok(typeof hostR === 'number' && hostR > 0,
+        `anatomy/ring #1388: the host carries a real corner radius before the ring is sized against it — a 0 host radius makes the concentric claim unfalsifiable (${hostR})`);
+      ok(!!kid && (kid.topLeftRadius as number) === hostR + coord
+        && (kid.topRightRadius as number) === hostR + coord
+        && (kid.bottomLeftRadius as number) === hostR + coord
+        && (kid.bottomRightRadius as number) === hostR + coord,
+        `anatomy/ring #1388: the ring's radius is CONCENTRIC — the host's ${hostR} grown by the ${coord}px inset (= ${hostR + coord}) on all four corners, so the ring runs parallel to the host edge at the constant gap instead of cutting across a rounded corner (got ${JSON.stringify([kid?.topLeftRadius, kid?.topRightRadius, kid?.bottomLeftRadius, kid?.bottomRightRadius])})`);
+
+      // THE TWO EDGE CASES, REPRESENTED not counted (docs/34): the worked examples the owner gave. Driven
+      // at a KNOWN host radius via `varValues` (the read-back the ring reads off the host), so each is a
+      // statement about a specific host shape rather than about whatever `radius/md` happens to hash to.
+      const ringAtHostRadius = async (r: number): Promise<Record<string, unknown> | undefined> => {
+        const page: StubPage = { children: [] };
+        await runPayload(ringJs, { ...ringOpts, varValues: { 'radius/md': r }, page });
+        const root = page.children[0] as Record<string, unknown>;
+        return ((root?.children as Record<string, unknown>[]) ?? []).find((c) => c.name === 'focusRing');
+      };
+      // RADIUS-0 HOST → `coord`, a rounded-rect ring around a square control (the owner's "radius-0 host
+      // with a +4 offset yields a 4"), explicitly NOT the hard square that shipped.
+      const sharpRing = await ringAtHostRadius(0);
+      ok(!!sharpRing && (sharpRing.topLeftRadius as number) === coord && coord > 0,
+        `anatomy/ring #1388: a radius-0 host yields a ring radius of ${coord} (the inset), a rounded-rect ring around a square control — NOT a hard square (got ${sharpRing?.topLeftRadius})`);
+      // FULL-ROUND HOST (a radio) → host + inset, which is ≥ half the ring's own side, so Figma clamps it
+      // to a circle: a circular host keeps a circular ring. Asserted as the RELATIONSHIP that guarantees
+      // the clamp (radius ≥ side/2), which is what "circle stays a circle" MEANS, not a bare number.
+      const roundRing = await ringAtHostRadius(200);
+      const roundSide = Math.min(roundRing?.width as number, roundRing?.height as number);
+      ok(!!roundRing && (roundRing.topLeftRadius as number) === 200 + coord && (roundRing.topLeftRadius as number) >= roundSide / 2,
+        `anatomy/ring #1388: a full-round host (radius 200) yields ring radius ${200 + coord} ≥ half the ring's ${roundSide}px side (${roundSide / 2}), which Figma clamps to a circle — a circular host keeps a circular ring (got radius ${roundRing?.topLeftRadius}, side ${roundSide})`);
+
+      // ---- #1388 / #1290: THE INHERITED NOMINAL SIDE IS CLEARED ------------------------------------
+      // The ring's main component binds width/height to `size.md.height` so it builds ALONE; a nested
+      // INSTANCE inherits that binding, and `resize` does not clear one inherited through an instance
+      // (#1290, the host-truth audit). Left uncleared it is a stale `size/md/height` binding that agrees
+      // with the resized box only by coincidence on a `size=small` host and decouples on any density move.
+      // POSITIVE CONTROL first, or the clear-assertion is vacuous: a fresh, UN-hosted ring instance must
+      // actually carry the inherited bindings, so the model is exercising the state the clear removes.
+      const freshStub = makeFigmaStub({ comps: ['focus-ring'] });
+      const freshRingComp = (freshStub.root.findAllWithCriteria({ types: ['COMPONENT'] }) as { name: string; createInstance: () => Record<string, unknown> }[]).find((c) => c.name === 'focus-ring');
+      const freshRing = freshRingComp?.createInstance();
+      const freshBv = (freshRing?.boundVariables ?? {}) as Record<string, unknown>;
+      ok(!!freshBv.width && !!freshBv.height,
+        `anatomy/ring #1388 reachable: a fresh ring instance INHERITS its main component's width/height bindings — the state the host must clear (${JSON.stringify(Object.keys(freshBv))})`);
+      const kidBv = (kid?.boundVariables ?? {}) as Record<string, unknown>;
+      ok(!!kid && kidBv.width === undefined && kidBv.height === undefined,
+        `anatomy/ring #1388/#1290: the host CLEARS the ring instance's inherited width/height bindings before resizing, so the resized box is authoritative and no stale \`size/md/height\` binding survives to decouple a small host on a density change (ring boundVariables: ${JSON.stringify(Object.keys(kidBv))})`);
 
       // ---- #1266: THE RING'S OWN STROKE WEIGHT, EXECUTED on the STUDIO leg -----------------------
       // The node read above is an INSTANCE, so its stroke comes from the main component and this payload
@@ -10927,6 +11032,29 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         };
         ok(posMap(plugPage) === posMap(pastePage),
           'parity: every member lands at the same coordinate and measures the same box on both paths — the pitch is measured, so this is the layout claim `size` cannot make');
+
+        // #1388 — THE CONCENTRIC RING RADIUS, ACROSS BOTH PATHS. The paste executor's radius is asserted
+        // against the independent host+inset oracle in the absolute-part block above; the PLUGIN executor
+        // writes it through independent code in a second file, gated HERE against the paste path. So this
+        // is not shape-11's two-independent-implementations-agreeing blindness: one side (paste) is pinned
+        // to an oracle outside both, so the pair pins the other. A focus-visible member (the only state
+        // carrying a ring), built through both executors and compared per-corner, read off the pages.
+        {
+          const fvPlan = figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'outline', surface: 'default', state: 'focus-visible', leading: false, trailing: false, swapTarget: 'FPO-default-icon' });
+          const fvOpts = { vars: [...planBoundVars(fvPlan.root), ...planPaintVars(fvPlan.root)], styles: planTextStyles(fvPlan.root), comps: ['FPO-default-icon', 'focus-ring'] };
+          const walk = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(walk))];
+          const ringCorners = (page: StubPage): string => {
+            const ring = (page.children as Record<string, unknown>[]).flatMap(walk).find((n) => n.name === 'focusRing');
+            return JSON.stringify([ring?.topLeftRadius, ring?.topRightRadius, ring?.bottomLeftRadius, ring?.bottomRightRadius]);
+          };
+          const fvPastePage: StubPage = { children: [] };
+          const fvPlugPage: StubPage = { children: [] };
+          await runPayload(planToPluginJs(fvPlan), { ...fvOpts, page: fvPastePage });
+          const fvPlugged = await plugRun([fvPlan], { ...fvOpts, page: fvPlugPage });
+          ok(fvPlugged.misses.length === 0, `parity #1388: the plugin executor builds the focus-visible member CLEAN${fvPlugged.misses.length ? ` — ${JSON.stringify(fvPlugged.misses.slice(0, 4))}` : ''}`);
+          ok(ringCorners(fvPlugPage) !== JSON.stringify([0, 0, 0, 0]) && ringCorners(fvPlugPage) === ringCorners(fvPastePage),
+            `parity #1388: both executors write the SAME non-zero concentric ring radius — a hard-square (radius 0) ring or a divergence between the two derivations fails here (plugin ${ringCorners(fvPlugPage)} vs paste ${ringCorners(fvPastePage)})`);
+        }
 
         // #1009 ACROSS BOTH PATHS. The paste path's write is one line in a generated string, which no
         // typechecker reads and no plugin test reaches — so without this the codegen half of half 2 would

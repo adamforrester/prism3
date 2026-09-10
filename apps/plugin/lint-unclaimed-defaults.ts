@@ -126,7 +126,10 @@ const mkNode = (type: string, instanceOf: string | null = null): any => {
       if (p in t) return t[p];
       switch (p) {
         case 'unlockAspectRatio': return () => rec.calls.add('unlockAspectRatio()');
-        case 'setBoundVariable': return (prop: string, v: { id: string; value?: number }) => {
+        case 'setBoundVariable': return (prop: string, v: { id: string; value?: number } | null) => {
+          // NULL UNBINDS (#1388) — the focus ring clears its inherited width/height this way before the
+          // host resizes it. Delete the key rather than reading `v.id` off null.
+          if (v === null) { delete (t.boundVariables as Record<string, unknown>)[prop]; return; }
           rec.bound.add(prop);
           (t.boundVariables as Record<string, unknown>)[prop] = { id: v.id, value: v.value };
         };
