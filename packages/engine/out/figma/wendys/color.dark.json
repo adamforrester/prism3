@@ -2857,14 +2857,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.12941177189350128,
-        "g": 0.13333334028720856,
-        "b": 0.13333334028720856,
+        "r": 0.21568627655506134,
+        "g": 0.21960784494876862,
+        "b": 0.2235294133424759,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/850"
+        "name": "wds/core/palette/neutral/750"
       }
     },
     {
@@ -2876,14 +2876,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.12941177189350128,
-        "g": 0.13333334028720856,
-        "b": 0.13333334028720856,
+        "r": 0.30588236451148987,
+        "g": 0.3137255012989044,
+        "b": 0.3176470696926117,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/850"
+        "name": "wds/core/palette/neutral/650"
       }
     },
     {
@@ -2895,14 +2895,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.12941177189350128,
-        "g": 0.13333334028720856,
-        "b": 0.13333334028720856,
+        "r": 0.21568627655506134,
+        "g": 0.21960784494876862,
+        "b": 0.2235294133424759,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/850"
+        "name": "wds/core/palette/neutral/750"
       }
     },
     {
@@ -2914,14 +2914,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.12941177189350128,
-        "g": 0.13333334028720856,
-        "b": 0.13333334028720856,
+        "r": 0.30588236451148987,
+        "g": 0.3137255012989044,
+        "b": 0.3176470696926117,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/850"
+        "name": "wds/core/palette/neutral/650"
       }
     },
     {
@@ -3137,14 +3137,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.21568627655506134,
+        "g": 0.21960784494876862,
+        "b": 0.2235294133424759,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/950"
+        "name": "wds/core/palette/neutral/750"
       }
     },
     {
@@ -3175,14 +3175,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.21568627655506134,
+        "g": 0.21960784494876862,
+        "b": 0.2235294133424759,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/950"
+        "name": "wds/core/palette/neutral/750"
       }
     },
     {
@@ -3417,14 +3417,14 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.21568627655506134,
+        "g": 0.21960784494876862,
+        "b": 0.2235294133424759,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/950"
+        "name": "wds/core/palette/neutral/750"
       }
     },
     {
@@ -3455,14 +3455,14 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.21568627655506134,
+        "g": 0.21960784494876862,
+        "b": 0.2235294133424759,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/neutral/950"
+        "name": "wds/core/palette/neutral/750"
       }
     },
     {

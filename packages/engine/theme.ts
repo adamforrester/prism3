@@ -284,6 +284,14 @@ export type Theme = {
   // Neutral interactive emphasis (docs/20 §10). 'subtle' (default): a light-grey neutral
   // fill; 'strong': a bold near-black (light) / near-white (dark) neutral fill.
   neutralEmphasis: 'subtle' | 'strong';
+  // Strict interactive contrast (#1389, B4a). false (default): the inverse PRIMARY filled button
+  // carries the vivid brand `on-fill` ink (#1244), which clears AA at `rest` but may dip below it on
+  // the TRANSIENT hover / pressed states now that the fill steps toward the ground. true: primary's
+  // inverse `on-fill` swaps to the neutral high-contrast extreme (near-black / near-white, the ink the
+  // other families already use), so every interactive state clears AA — trading the brand-colored
+  // label for guaranteed legibility. The per-state on-fill contract enforces the hover/pressed floor
+  // only when this is on; `rest` is a hard floor either way.
+  strictInteractiveContrast: boolean;
   // Extensible interactive palettes (docs/20 §3). Each declared palette is promoted to a full
   // `interactive.<name>.*` column (fill+states / on-fill / text / border / inverse / overlay),
   // anchored at `anchorStep` (default 500). The built-in primary/neutral/destructive columns are
@@ -473,6 +481,12 @@ export type BrandInput = {
   /** Neutral interactive emphasis (docs/20 §10). 'subtle' (default) is a light-grey
    *  neutral fill; 'strong' is a bold near-black/near-white neutral fill. */
   neutralEmphasis?: 'subtle' | 'strong';
+  /** Strict interactive contrast (#1389, B4a). OPTIONAL, OPT-IN (off by default). The inverse filled
+   *  button steps its fill per state; the primary label's vivid brand ink (#1244) clears AA at `rest`
+   *  but dips on the transient hover/pressed steps. Off keeps the brand ink (rest AA held, later states
+   *  exempt). `true` swaps the primary inverse `on-fill` to the neutral high-contrast extreme so every
+   *  state clears AA, trading brand color for guaranteed legibility. */
+  strictInteractiveContrast?: boolean;
   /** Opt-in accent interactive colour (docs/20 §3) — the BACK-COMPAT single-column lever. Names a
    *  declared palette (typically a `brandColors` entry) to get a full `interactive.accent.*` column.
    *  Omit → no accent column (never falls back to primary). Must differ from the action palette.
@@ -2550,6 +2564,9 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const neutralEmphasis = input.neutralEmphasis ?? 'subtle';
   notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-gray, default)'}; inverse surface-context: always generated (#895 removed the lever)`);
 
+  const strictInteractiveContrast = input.strictInteractiveContrast ?? false;
+  notes.push(`strict interactive contrast: ${strictInteractiveContrast ? "ON — inverse primary on-fill is the neutral extreme, AA-clean in every state (#1389/B4a)" : "off — inverse primary carries the vivid brand on-fill (#1244); rest clears AA, transient hover/pressed may dip"}`);
+
   return {
     id: input.id, root, namespace: `${root}.${CORE_TIER}.palette`, colorFormat: 'hex', modes: modesAll, palettes, roleToPalette, notes,
     ...(customModes.length ? { customModes } : {}),
@@ -2562,7 +2579,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     disabledMin: dMin,
     iconContrast: input.iconContrast ?? 'text',
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
-    neutralEmphasis, interactivePalettes,
+    neutralEmphasis, strictInteractiveContrast, interactivePalettes,
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
     dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, [], radiusHairline), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
     motion,
@@ -2614,7 +2631,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     roleToPalette: { brand: 'red', neutral: 'neutral', success: 'green', warning: 'amber', danger: 'red', info: 'info', action: 'red' },
     roleAnchorStep: { brand: 550, neutral: 500, success: 500, warning: 500, danger: 550, info: 500, action: 550 },
     disabledStrategy: 'reduced', disabledMin: 3, iconContrast: 'text', outlineInteraction: 'overlay-neutral',
-    neutralEmphasis: 'subtle', interactivePalettes: [],
+    neutralEmphasis: 'subtle', strictInteractiveContrast: false, interactivePalettes: [],
     dims, motion: buildMotion(),
     typography: buildTypography(),
     shadow: buildShadow(s.neutralHue.hue, { tint: { amount: 0 } }),  // NB ships pure-black shadows

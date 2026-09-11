@@ -675,6 +675,145 @@ for (const b of brands) {
       + (notVivid.length ? ` — TOO FAR: ${notVivid.join('; ')}` : ''));
   }
 
+  // (d3) #1389 (F3, owner decision B4a) — the INVERSE FILLED fill STEPS PER STATE, and the on-fill ink
+  // is governed by a per-state contract. Two independent things are asserted here, both by name, both
+  // designed to fail on a revert (docs/34):
+  //
+  //   GATE A — the fill STEPS. Reverting the per-state step (re-holding primary flat, or flipping the
+  //   walk back to `-dir`) must fail this. The expected relation is derived INDEPENDENTLY of the
+  //   producer: not by reading `walk`/`dir`/`stateRungs`, but from the PHYSICS of "toward the ground".
+  //   The inverse SURFACE in a light mode is near-BLACK (a high neutral rung); in a dark mode near-WHITE
+  //   (a low rung). "Steps toward the ground" therefore means the emitted neutral rung NUMBER strictly
+  //   INCREASES per state in a light-family mode and strictly DECREASES in a dark-family mode. We read
+  //   the emitted alias rung and assert that ordering — plus that the step is non-degenerate (hover≠rest,
+  //   pressed≠hover) and mirrored (focused=hover, selected=pressed) — represented across every family,
+  //   brand and mode, with a non-empty floor so an empty sweep cannot pass.
+  //
+  //   GATE B — the on-fill PER-STATE contract + the `strictInteractiveContrast` lever. The contract
+  //   evaluates the ink against EVERY fill state (closing the "on-fill only gated against fill.rest"
+  //   gap): REST is a HARD 4.5 floor in every mode; hover/pressed/focused/selected are EXEMPT by
+  //   default (the vivid #1244 brand label is allowed to dip on transient states — recorded, not
+  //   silent) and ENFORCED when the lever is ON. The lever is proven real, not decorative: OFF keeps
+  //   primary on the BRAND ramp, ON swaps it to the NEUTRAL extreme AND that extreme clears 4.5 at
+  //   every state. All ratios are recomputed from emitted hexes, never read off the role's own `ratio`.
+  {
+    const CORPUS: Array<[string, any]> = [
+      ['nb', nbTheme()],
+      ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
+      ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input)],
+      ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
+    ];
+    const MODES = ['base', 'dark', 'hc-light', 'hc-dark'];
+    // light-family modes place the inverse surface at the DARK (high-neutral) end → the ground is "up";
+    // dark-family modes place it at the near-white (low) end → the ground is "down". Derived from the
+    // mode name, NOT from the engine's `dir` — that independence is the whole point (docs/34 shape 2).
+    const lightFamily = (m: string) => m === 'base' || m === 'hc-light';
+    const STATES = ['rest', 'hover', 'pressed', 'focused', 'selected'] as const;
+    const aliasAt = (tree: any, path: string, mode: string): string | undefined => {
+      const node = at(tree, path);
+      const v: unknown = node?.$extensions?.prism3?.modes?.[mode]?.$value ?? node?.$value;
+      return typeof v === 'string' ? v : undefined;
+    };
+    const rungOf = (alias?: string): number => { const m = /palette\.[a-z]+\.(\d+)/i.exec(alias ?? ''); return m ? parseInt(m[1], 10) : NaN; };
+    const rgb255 = (v: string) => { const c = parseColor(v); return { r: c.r * 255, g: c.g * 255, b: c.b * 255 }; };
+    const hexAt = (tree: any, path: string, mode: string): string | undefined => {
+      let node = at(tree, path);
+      for (let i = 0; i < 8 && node; i++) {
+        const per = node.$extensions?.prism3?.modes?.[mode];
+        const v: unknown = (per?.$value ?? node.$value);
+        if (typeof v !== 'string') return undefined;
+        const ref = /^\{(.+)\}$/.exec(v);
+        if (!ref) return v;
+        node = at(tree, ref[1].split('.').slice(1).join('.'));
+      }
+      return undefined;
+    };
+
+    // ---- GATE A: the fill steps per state, toward the ground, every family/brand/mode ----
+    const notStepped: string[] = [], notMonotone: string[] = [], notMirrored: string[] = [];
+    const famsSeen = new Set<string>(), brandsSeen = new Set<string>();
+    let stepTriples = 0;
+    for (const [id, th] of CORPUS) {
+      const built = buildTree(th).tree as any;
+      const tree = built[Object.keys(built)[0]];
+      for (const fam of ['primary', 'neutral', 'destructive']) {
+        for (const mode of MODES) {
+          const rung: Record<string, number> = {};
+          for (const st of STATES) rung[st] = rungOf(aliasAt(tree, `color.inverse.interactive.${fam}.fill.${st}`, mode));
+          if (STATES.some((st) => Number.isNaN(rung[st]))) continue; // not a neutral-rung fill in this mode
+          stepTriples++; famsSeen.add(fam); brandsSeen.add(id);
+          if (!(rung.hover !== rung.rest && rung.pressed !== rung.hover))
+            notStepped.push(`${id}/${mode}/${fam}: rest=${rung.rest} hover=${rung.hover} pressed=${rung.pressed}`);
+          const up = lightFamily(mode);
+          const mono = up
+            ? rung.rest < rung.hover && rung.hover < rung.pressed
+            : rung.rest > rung.hover && rung.hover > rung.pressed;
+          if (!mono) notMonotone.push(`${id}/${mode}/${fam}: expected ${up ? 'increasing' : 'decreasing'} rungs, got ${rung.rest}→${rung.hover}→${rung.pressed}`);
+          if (rung.focused !== rung.hover || rung.selected !== rung.pressed)
+            notMirrored.push(`${id}/${mode}/${fam}: focused=${rung.focused}(hover=${rung.hover}) selected=${rung.selected}(pressed=${rung.pressed})`);
+        }
+      }
+    }
+    ok(stepTriples >= 4 * 2 * 3 && famsSeen.size === 3 && brandsSeen.size === 4,
+      `#1389 GATE A represented: the inverse fill step was compared across all 3 families and 4 brands (${stepTriples} family×mode triples, fams=${[...famsSeen].sort().join('/')}, brands=${brandsSeen.size})`);
+    ok(notStepped.length === 0,
+      '#1389 GATE A: the inverse filled fill STEPS per state — hover≠rest and pressed≠hover in every family/brand/mode (reverting to a held/flat fill fails HERE)'
+      + (notStepped.length ? ` — FLAT: ${notStepped.slice(0, 4).join('; ')}` : ''));
+    ok(notMonotone.length === 0,
+      '#1389 GATE A: …and the step is MONOTONE toward the ground — rungs increase per state on a light-mode (near-black) inverse surface, decrease on a dark-mode (near-white) one; derived from the mode, not the producer (flipping the walk back to `-dir` fails HERE via the non-monotone dark 850→950→650)'
+      + (notMonotone.length ? ` — NON-MONOTONE: ${notMonotone.slice(0, 4).join('; ')}` : ''));
+    ok(notMirrored.length === 0,
+      '#1389 GATE A: …and focused mirrors hover, selected mirrors pressed, uniformly'
+      + (notMirrored.length ? ` — UNMIRRORED: ${notMirrored.slice(0, 4).join('; ')}` : ''));
+
+    // ---- GATE B: per-state on-fill contract + the strictInteractiveContrast lever ----
+    const FLOOR = 4.5;
+    const restFail: string[] = [], offNotBrand: string[] = [], onNotNeutral: string[] = [], onDips: string[] = [];
+    let leverPairs = 0;
+    for (const [id, base] of CORPUS) {
+      const neutralPal = (base as any).roleToPalette.neutral;
+      for (const strict of [false, true]) {
+        const th = { ...(base as any), strictInteractiveContrast: strict };
+        const built = buildTree(th).tree as any;
+        const tree = built[Object.keys(built)[0]];
+        for (const mode of MODES) {
+          if (mode.startsWith('hc-')) continue; // HC binds a max-extreme ink via brandOnFill's hc branch — its own #1244 arm holds it
+          const inkRef = aliasAt(tree, 'color.inverse.interactive.primary.on-fill', mode);
+          const inkHex = hexAt(tree, 'color.inverse.interactive.primary.on-fill', mode);
+          if (!inkRef || !inkHex) continue;
+          leverPairs++;
+          const isNeutral = new RegExp(`palette\\.${neutralPal}\\.`).test(inkRef);
+          if (!strict && isNeutral) offNotBrand.push(`${id}/${mode}: ${inkRef}`);   // OFF must keep the brand ink
+          if (strict && !isNeutral) onNotNeutral.push(`${id}/${mode}: ${inkRef}`);  // ON must be the neutral extreme
+          for (const st of STATES) {
+            const fillHex = hexAt(tree, `color.inverse.interactive.primary.fill.${st}`, mode);
+            if (!fillHex) continue;
+            const r = contrast(rgb255(inkHex), rgb255(fillHex));
+            // REST is a hard floor in BOTH lever positions; hover/pressed/focused/selected are enforced
+            // only when the lever is ON (the default brand-ink dip on transient states is the accepted,
+            // contract-recorded exemption).
+            if (st === 'rest' && r < FLOOR) restFail.push(`${id}/${mode} ${strict ? 'ON' : 'OFF'}: rest ${r.toFixed(2)}:1`);
+            if (strict && st !== 'rest' && r < FLOOR) onDips.push(`${id}/${mode}: ${st} ${r.toFixed(2)}:1`);
+          }
+        }
+      }
+    }
+    ok(leverPairs >= 4 * 2 * 2,
+      `#1389 GATE B represented: the on-fill contract was evaluated for lever OFF and ON across 4 brands × 2 standard modes (${leverPairs} evaluations)`);
+    ok(restFail.length === 0,
+      `#1389 GATE B: the inverse primary on-fill clears the ${FLOOR}:1 REST floor in every brand/mode, lever OFF and ON (a HARD floor, never exempt)`
+      + (restFail.length ? ` — UNDER: ${restFail.join('; ')}` : ''));
+    ok(offNotBrand.length === 0,
+      '#1389 GATE B: lever OFF (default) keeps primary on-fill on the BRAND ramp — the vivid #1244 label — so the lever is a real change, not decorative'
+      + (offNotBrand.length ? ` — NEUTRAL WHEN OFF: ${offNotBrand.join('; ')}` : ''));
+    ok(onNotNeutral.length === 0,
+      '#1389 GATE B: lever ON swaps primary on-fill to the NEUTRAL extreme (the B2 behavior) — reverting the lever wiring fails HERE'
+      + (onNotNeutral.length ? ` — NOT NEUTRAL WHEN ON: ${onNotNeutral.join('; ')}` : ''));
+    ok(onDips.length === 0,
+      `#1389 GATE B: …and with the lever ON that neutral ink clears ${FLOOR}:1 at EVERY interactive state (hover/pressed/focused/selected), not just rest — the tightening actually holds`
+      + (onDips.length ? ` — STILL DIPS: ${onDips.join('; ')}` : ''));
+  }
+
   // (e) Figma slots are scoped by SLOT (fill→paint, text→TEXT_FILL, border→STROKE_COLOR).
   const { color } = buildFigmaColor(nbTheme());
   const byName = new Map<string, any>(color.find((c) => c.$mode === 'light')!.variables.map((v: any) => [v.name, v]));

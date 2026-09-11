@@ -10875,34 +10875,34 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.050}",
+                "$value": "{nbds.core.palette.neutral.150}",
                 "$description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.050",
-                    "contrast": 15.99,
+                    "aliasOf": "nbds.core.palette.neutral.150",
+                    "contrast": 12.33,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.850}",
-                        "aliasOf": "nbds.core.palette.neutral.850",
-                        "contrast": 14.91,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.01,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.050}",
-                        "aliasOf": "nbds.core.palette.neutral.050",
-                        "contrast": 17.27,
+                        "$value": "{nbds.core.palette.neutral.150}",
+                        "aliasOf": "nbds.core.palette.neutral.150",
+                        "contrast": 13.32,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.850}",
-                        "aliasOf": "nbds.core.palette.neutral.850",
-                        "contrast": 16,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.82,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -10922,34 +10922,34 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.050}",
+                "$value": "{nbds.core.palette.neutral.250}",
                 "$description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.050",
-                    "contrast": 15.99,
+                    "aliasOf": "nbds.core.palette.neutral.250",
+                    "contrast": 9.34,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.850}",
-                        "aliasOf": "nbds.core.palette.neutral.850",
-                        "contrast": 14.91,
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 7.59,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.050}",
-                        "aliasOf": "nbds.core.palette.neutral.050",
-                        "contrast": 17.27,
+                        "$value": "{nbds.core.palette.neutral.250}",
+                        "aliasOf": "nbds.core.palette.neutral.250",
+                        "contrast": 10.09,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.850}",
-                        "aliasOf": "nbds.core.palette.neutral.850",
-                        "contrast": 16,
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 8.15,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -10969,34 +10969,34 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.050}",
+                "$value": "{nbds.core.palette.neutral.150}",
                 "$description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.050",
-                    "contrast": 15.99,
+                    "aliasOf": "nbds.core.palette.neutral.150",
+                    "contrast": 12.33,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.850}",
-                        "aliasOf": "nbds.core.palette.neutral.850",
-                        "contrast": 14.91,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.01,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.050}",
-                        "aliasOf": "nbds.core.palette.neutral.050",
-                        "contrast": 17.27,
+                        "$value": "{nbds.core.palette.neutral.150}",
+                        "aliasOf": "nbds.core.palette.neutral.150",
+                        "contrast": 13.32,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.850}",
-                        "aliasOf": "nbds.core.palette.neutral.850",
-                        "contrast": 16,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.82,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -11016,34 +11016,34 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.050}",
+                "$value": "{nbds.core.palette.neutral.250}",
                 "$description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.050",
-                    "contrast": 15.99,
+                    "aliasOf": "nbds.core.palette.neutral.250",
+                    "contrast": 9.34,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.850}",
-                        "aliasOf": "nbds.core.palette.neutral.850",
-                        "contrast": 14.91,
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 7.59,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.050}",
-                        "aliasOf": "nbds.core.palette.neutral.050",
-                        "contrast": 17.27,
+                        "$value": "{nbds.core.palette.neutral.250}",
+                        "aliasOf": "nbds.core.palette.neutral.250",
+                        "contrast": 10.09,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.850}",
-                        "aliasOf": "nbds.core.palette.neutral.850",
-                        "contrast": 16,
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 8.15,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -11625,9 +11625,9 @@
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 18.11,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.01,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
@@ -11639,9 +11639,9 @@
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 19.44,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.82,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -11719,9 +11719,9 @@
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 18.11,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.01,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
@@ -11733,9 +11733,9 @@
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 19.44,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.82,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12364,9 +12364,9 @@
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 18.11,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.01,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
@@ -12378,9 +12378,9 @@
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 19.44,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.82,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12458,9 +12458,9 @@
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 18.11,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.01,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
@@ -12472,9 +12472,9 @@
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 19.44,
+                        "$value": "{nbds.core.palette.neutral.750}",
+                        "aliasOf": "nbds.core.palette.neutral.750",
+                        "contrast": 11.82,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -19501,7 +19501,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.76.0",
+      "version": "0.77.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
