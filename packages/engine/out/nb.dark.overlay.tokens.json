@@ -3099,7 +3099,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.850}",
+                "$value": "{nbds.core.palette.neutral.750}",
                 "$description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -3114,8 +3114,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.850",
-                    "contrast": 14.91,
+                    "aliasOf": "nbds.core.palette.neutral.750",
+                    "contrast": 11.01,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3123,7 +3123,7 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.850}",
+                "$value": "{nbds.core.palette.neutral.650}",
                 "$description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -3138,8 +3138,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.850",
-                    "contrast": 14.91,
+                    "aliasOf": "nbds.core.palette.neutral.650",
+                    "contrast": 7.59,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3147,7 +3147,7 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.850}",
+                "$value": "{nbds.core.palette.neutral.750}",
                 "$description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -3162,8 +3162,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.850",
-                    "contrast": 14.91,
+                    "aliasOf": "nbds.core.palette.neutral.750",
+                    "contrast": 11.01,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3171,7 +3171,7 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.850}",
+                "$value": "{nbds.core.palette.neutral.650}",
                 "$description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -3186,8 +3186,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.850",
-                    "contrast": 14.91,
+                    "aliasOf": "nbds.core.palette.neutral.650",
+                    "contrast": 7.59,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3475,7 +3475,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.950}",
+                "$value": "{nbds.core.palette.neutral.750}",
                 "$description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -3490,8 +3490,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.950",
-                    "contrast": 18.11,
+                    "aliasOf": "nbds.core.palette.neutral.750",
+                    "contrast": 11.01,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3523,7 +3523,7 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.950}",
+                "$value": "{nbds.core.palette.neutral.750}",
                 "$description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -3538,8 +3538,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.950",
-                    "contrast": 18.11,
+                    "aliasOf": "nbds.core.palette.neutral.750",
+                    "contrast": 11.01,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3851,7 +3851,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.950}",
+                "$value": "{nbds.core.palette.neutral.750}",
                 "$description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -3866,8 +3866,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.950",
-                    "contrast": 18.11,
+                    "aliasOf": "nbds.core.palette.neutral.750",
+                    "contrast": 11.01,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3899,7 +3899,7 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.950}",
+                "$value": "{nbds.core.palette.neutral.750}",
                 "$description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -3914,8 +3914,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.950",
-                    "contrast": 18.11,
+                    "aliasOf": "nbds.core.palette.neutral.750",
+                    "contrast": 11.01,
                     "against": "inverse.background.primary",
                     "min": 3
                   }

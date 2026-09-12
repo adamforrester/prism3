@@ -93,10 +93,10 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.text.hover | red.350 | 6.97 | 4.5 | ✅ |
 | inverse.interactive.primary.text.pressed | red.250 | 9.42 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.050 | 15.99 | 3 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.050 | 15.99 | 3 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.050 | 15.99 | 3 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.050 | 15.99 | 3 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.050 | 15.99 | 3 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.150 | 12.33 | 3 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.250 | 9.34 | 3 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.150 | 12.33 | 3 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.250 | 9.34 | 3 | ✅ |
 | inverse.interactive.primary.on-fill | red.550 | 4.62 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | red.450 | 5.05 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | red.350 | 6.97 | 3 | ✅ |
@@ -341,10 +341,10 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.text.hover | red.650 | 7.72 | 4.5 | ✅ |
 | inverse.interactive.primary.text.pressed | red.750 | 11.26 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.850 | 14.91 | 3 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.850 | 14.91 | 3 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.850 | 14.91 | 3 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.850 | 14.91 | 3 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.850 | 14.91 | 3 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.750 | 11.01 | 3 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.650 | 7.59 | 3 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.750 | 11.01 | 3 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.650 | 7.59 | 3 | ✅ |
 | inverse.interactive.primary.on-fill | red.400 | 4.92 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | red.550 | 5.24 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | red.650 | 7.72 | 3 | ✅ |
@@ -353,9 +353,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.destructive.text.hover | red.700 | 7.29 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.pressed | red.800 | 10.30 | 4.5 | ✅ |
 | inverse.interactive.destructive.fill.rest | neutral.850 | 14.91 | 3 | ✅ |
-| inverse.interactive.destructive.fill.hover | neutral.950 | 18.11 | 3 | ✅ |
+| inverse.interactive.destructive.fill.hover | neutral.750 | 11.01 | 3 | ✅ |
 | inverse.interactive.destructive.fill.pressed | neutral.650 | 7.59 | 3 | ✅ |
-| inverse.interactive.destructive.fill.focused | neutral.950 | 18.11 | 3 | ✅ |
+| inverse.interactive.destructive.fill.focused | neutral.750 | 11.01 | 3 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.650 | 7.59 | 3 | ✅ |
 | inverse.interactive.destructive.on-fill | neutral.025 | 14.91 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | red.600 | 4.98 | 3 | ✅ |
@@ -365,9 +365,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.neutral.text.hover | neutral.950 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.pressed | neutral.950 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.fill.rest | neutral.850 | 14.91 | 3 | ✅ |
-| inverse.interactive.neutral.fill.hover | neutral.950 | 18.11 | 3 | ✅ |
+| inverse.interactive.neutral.fill.hover | neutral.750 | 11.01 | 3 | ✅ |
 | inverse.interactive.neutral.fill.pressed | neutral.650 | 7.59 | 3 | ✅ |
-| inverse.interactive.neutral.fill.focused | neutral.950 | 18.11 | 3 | ✅ |
+| inverse.interactive.neutral.fill.focused | neutral.750 | 11.01 | 3 | ✅ |
 | inverse.interactive.neutral.fill.selected | neutral.650 | 7.59 | 3 | ✅ |
 | inverse.interactive.neutral.on-fill | neutral.025 | 14.91 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.rest | neutral.950 | 18.11 | 3 | ✅ |
@@ -589,10 +589,10 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.text.hover | red.250 | 10.17 | 7 | ✅ |
 | inverse.interactive.primary.text.pressed | red.150 | 13.44 | 7 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.050 | 17.27 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.050 | 17.27 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.050 | 17.27 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.050 | 17.27 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.050 | 17.27 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.150 | 13.32 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.250 | 10.09 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.150 | 13.32 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.250 | 10.09 | 4.5 | ✅ |
 | inverse.interactive.primary.on-fill | black | 17.27 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | red.350 | 7.52 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | red.250 | 10.17 | 4.5 | ✅ |
@@ -837,10 +837,10 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.text.hover | red.750 | 12.08 | 7 | ✅ |
 | inverse.interactive.primary.text.pressed | red.850 | 16.32 | 7 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.850 | 16.00 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.850 | 16.00 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.850 | 16.00 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.850 | 16.00 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.850 | 16.00 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.750 | 11.82 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.650 | 8.15 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.750 | 11.82 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.650 | 8.15 | 4.5 | ✅ |
 | inverse.interactive.primary.on-fill | white | 16.00 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | red.650 | 8.29 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | red.750 | 12.08 | 4.5 | ✅ |
@@ -849,9 +849,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.destructive.text.hover | red.750 | 12.08 | 7 | ✅ |
 | inverse.interactive.destructive.text.pressed | red.850 | 16.32 | 7 | ✅ |
 | inverse.interactive.destructive.fill.rest | neutral.850 | 16.00 | 4.5 | ✅ |
-| inverse.interactive.destructive.fill.hover | neutral.950 | 19.44 | 4.5 | ✅ |
+| inverse.interactive.destructive.fill.hover | neutral.750 | 11.82 | 4.5 | ✅ |
 | inverse.interactive.destructive.fill.pressed | neutral.650 | 8.15 | 4.5 | ✅ |
-| inverse.interactive.destructive.fill.focused | neutral.950 | 19.44 | 4.5 | ✅ |
+| inverse.interactive.destructive.fill.focused | neutral.750 | 11.82 | 4.5 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.650 | 8.15 | 4.5 | ✅ |
 | inverse.interactive.destructive.on-fill | white | 16.00 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | red.650 | 8.29 | 4.5 | ✅ |
@@ -861,9 +861,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.neutral.text.hover | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.text.pressed | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.fill.rest | neutral.850 | 16.00 | 4.5 | ✅ |
-| inverse.interactive.neutral.fill.hover | neutral.950 | 19.44 | 4.5 | ✅ |
+| inverse.interactive.neutral.fill.hover | neutral.750 | 11.82 | 4.5 | ✅ |
 | inverse.interactive.neutral.fill.pressed | neutral.650 | 8.15 | 4.5 | ✅ |
-| inverse.interactive.neutral.fill.focused | neutral.950 | 19.44 | 4.5 | ✅ |
+| inverse.interactive.neutral.fill.focused | neutral.750 | 11.82 | 4.5 | ✅ |
 | inverse.interactive.neutral.fill.selected | neutral.650 | 8.15 | 4.5 | ✅ |
 | inverse.interactive.neutral.on-fill | white | 16.00 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.rest | black | 21.00 | 4.5 | ✅ |
@@ -1071,6 +1071,7 @@ Component sizes — t-shirt, density `comfortable` (height + paired padding from
 - interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque interactive.<color>.subtle-fill.{hover,pressed,selected}) or 'none' to opt out.
 - action anchored at accent 'accent' step 500 (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor
 - neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)
+- strict interactive contrast: off — inverse primary carries the vivid brand on-fill (#1244); rest clears AA, transient hover/pressed may dip
 
 Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws from `danger`.
 
@@ -1157,10 +1158,10 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.text.hover | accent.350 | 6.80 | 4.5 | ✅ |
 | inverse.interactive.primary.text.pressed | accent.250 | 9.23 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.050 | 16.01 | 3 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.050 | 16.01 | 3 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.050 | 16.01 | 3 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.050 | 16.01 | 3 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.050 | 16.01 | 3 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.150 | 12.36 | 3 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.250 | 9.38 | 3 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.150 | 12.36 | 3 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.250 | 9.38 | 3 | ✅ |
 | inverse.interactive.primary.on-fill | accent.550 | 4.69 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | accent.450 | 4.87 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | accent.350 | 6.80 | 3 | ✅ |
@@ -1405,10 +1406,10 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.text.hover | accent.650 | 7.75 | 4.5 | ✅ |
 | inverse.interactive.primary.text.pressed | accent.750 | 11.16 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.850 | 14.99 | 3 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.850 | 14.99 | 3 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.850 | 14.99 | 3 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.850 | 14.99 | 3 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.850 | 14.99 | 3 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.750 | 10.91 | 3 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.650 | 7.60 | 3 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.750 | 10.91 | 3 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.650 | 7.60 | 3 | ✅ |
 | inverse.interactive.primary.on-fill | accent.400 | 4.79 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | accent.550 | 5.31 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | accent.650 | 7.75 | 3 | ✅ |
@@ -1417,9 +1418,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.text.hover | danger.700 | 7.22 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.pressed | danger.800 | 10.27 | 4.5 | ✅ |
 | inverse.interactive.destructive.fill.rest | neutral.850 | 14.99 | 3 | ✅ |
-| inverse.interactive.destructive.fill.hover | neutral.950 | 18.13 | 3 | ✅ |
+| inverse.interactive.destructive.fill.hover | neutral.750 | 10.91 | 3 | ✅ |
 | inverse.interactive.destructive.fill.pressed | neutral.650 | 7.60 | 3 | ✅ |
-| inverse.interactive.destructive.fill.focused | neutral.950 | 18.13 | 3 | ✅ |
+| inverse.interactive.destructive.fill.focused | neutral.750 | 10.91 | 3 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.650 | 7.60 | 3 | ✅ |
 | inverse.interactive.destructive.on-fill | neutral.025 | 14.99 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | danger.600 | 4.89 | 3 | ✅ |
@@ -1429,9 +1430,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.neutral.text.hover | neutral.950 | 18.13 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.pressed | neutral.950 | 18.13 | 4.5 | ✅ |
 | inverse.interactive.neutral.fill.rest | neutral.850 | 14.99 | 3 | ✅ |
-| inverse.interactive.neutral.fill.hover | neutral.950 | 18.13 | 3 | ✅ |
+| inverse.interactive.neutral.fill.hover | neutral.750 | 10.91 | 3 | ✅ |
 | inverse.interactive.neutral.fill.pressed | neutral.650 | 7.60 | 3 | ✅ |
-| inverse.interactive.neutral.fill.focused | neutral.950 | 18.13 | 3 | ✅ |
+| inverse.interactive.neutral.fill.focused | neutral.750 | 10.91 | 3 | ✅ |
 | inverse.interactive.neutral.fill.selected | neutral.650 | 7.60 | 3 | ✅ |
 | inverse.interactive.neutral.on-fill | neutral.025 | 14.99 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.rest | neutral.950 | 18.13 | 3 | ✅ |
@@ -1653,10 +1654,10 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.text.hover | accent.250 | 9.97 | 7 | ✅ |
 | inverse.interactive.primary.text.pressed | accent.150 | 13.31 | 7 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.050 | 17.31 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.050 | 17.31 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.050 | 17.31 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.050 | 17.31 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.050 | 17.31 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.150 | 13.36 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.250 | 10.14 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.150 | 13.36 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.250 | 10.14 | 4.5 | ✅ |
 | inverse.interactive.primary.on-fill | black | 17.31 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | accent.350 | 7.36 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | accent.250 | 9.97 | 4.5 | ✅ |
@@ -1901,10 +1902,10 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.text.hover | accent.750 | 11.95 | 7 | ✅ |
 | inverse.interactive.primary.text.pressed | accent.850 | 16.08 | 7 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.850 | 16.06 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.850 | 16.06 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.850 | 16.06 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.850 | 16.06 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.850 | 16.06 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.750 | 11.69 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.650 | 8.14 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.750 | 11.69 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.650 | 8.14 | 4.5 | ✅ |
 | inverse.interactive.primary.on-fill | white | 16.06 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | accent.650 | 8.30 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | accent.750 | 11.95 | 4.5 | ✅ |
@@ -1913,9 +1914,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.text.hover | danger.750 | 11.99 | 7 | ✅ |
 | inverse.interactive.destructive.text.pressed | danger.850 | 16.35 | 7 | ✅ |
 | inverse.interactive.destructive.fill.rest | neutral.850 | 16.06 | 4.5 | ✅ |
-| inverse.interactive.destructive.fill.hover | neutral.950 | 19.43 | 4.5 | ✅ |
+| inverse.interactive.destructive.fill.hover | neutral.750 | 11.69 | 4.5 | ✅ |
 | inverse.interactive.destructive.fill.pressed | neutral.650 | 8.14 | 4.5 | ✅ |
-| inverse.interactive.destructive.fill.focused | neutral.950 | 19.43 | 4.5 | ✅ |
+| inverse.interactive.destructive.fill.focused | neutral.750 | 11.69 | 4.5 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.650 | 8.14 | 4.5 | ✅ |
 | inverse.interactive.destructive.on-fill | white | 16.06 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | danger.650 | 8.22 | 4.5 | ✅ |
@@ -1925,9 +1926,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.neutral.text.hover | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.text.pressed | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.fill.rest | neutral.850 | 16.06 | 4.5 | ✅ |
-| inverse.interactive.neutral.fill.hover | neutral.950 | 19.43 | 4.5 | ✅ |
+| inverse.interactive.neutral.fill.hover | neutral.750 | 11.69 | 4.5 | ✅ |
 | inverse.interactive.neutral.fill.pressed | neutral.650 | 8.14 | 4.5 | ✅ |
-| inverse.interactive.neutral.fill.focused | neutral.950 | 19.43 | 4.5 | ✅ |
+| inverse.interactive.neutral.fill.focused | neutral.750 | 11.69 | 4.5 | ✅ |
 | inverse.interactive.neutral.fill.selected | neutral.650 | 8.14 | 4.5 | ✅ |
 | inverse.interactive.neutral.on-fill | white | 16.06 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.rest | black | 21.00 | 4.5 | ✅ |
@@ -2134,6 +2135,7 @@ Component sizes — t-shirt, density `compact` (height + paired padding from the
 - interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque interactive.<color>.subtle-fill.{hover,pressed,selected}) or 'none' to opt out.
 - light primary surface is NON-default (neutral.50) — CONFIRM this is the page color; the contrast floor moves with it
 - neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)
+- strict interactive contrast: off — inverse primary carries the vivid brand on-fill (#1244); rest clears AA, transient hover/pressed may dip
 
 Palettes: primary, neutral, success, warning, info, danger. Danger draws from `danger`.
 
@@ -2220,10 +2222,10 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.text.hover | primary.350 | 6.91 | 4.5 | ✅ |
 | inverse.interactive.primary.text.pressed | primary.250 | 9.34 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.050 | 15.98 | 3 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.050 | 15.98 | 3 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.050 | 15.98 | 3 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.050 | 15.98 | 3 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.050 | 15.98 | 3 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.150 | 12.36 | 3 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.250 | 9.30 | 3 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.150 | 12.36 | 3 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.250 | 9.30 | 3 | ✅ |
 | inverse.interactive.primary.on-fill | primary.550 | 4.62 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.450 | 5.00 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.350 | 6.91 | 3 | ✅ |
@@ -2468,10 +2470,10 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.text.hover | primary.700 | 9.29 | 4.5 | ✅ |
 | inverse.interactive.primary.text.pressed | primary.800 | 13.02 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.850 | 14.96 | 3 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.850 | 14.96 | 3 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.850 | 14.96 | 3 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.850 | 14.96 | 3 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.850 | 14.96 | 3 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.750 | 11.06 | 3 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.650 | 7.61 | 3 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.750 | 11.06 | 3 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.650 | 7.61 | 3 | ✅ |
 | inverse.interactive.primary.on-fill | primary.400 | 4.89 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.600 | 6.33 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.700 | 9.29 | 3 | ✅ |
@@ -2480,9 +2482,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.destructive.text.hover | danger.700 | 7.24 | 4.5 | ✅ |
 | inverse.interactive.destructive.text.pressed | danger.800 | 10.32 | 4.5 | ✅ |
 | inverse.interactive.destructive.fill.rest | neutral.850 | 14.96 | 3 | ✅ |
-| inverse.interactive.destructive.fill.hover | neutral.950 | 18.11 | 3 | ✅ |
+| inverse.interactive.destructive.fill.hover | neutral.750 | 11.06 | 3 | ✅ |
 | inverse.interactive.destructive.fill.pressed | neutral.650 | 7.61 | 3 | ✅ |
-| inverse.interactive.destructive.fill.focused | neutral.950 | 18.11 | 3 | ✅ |
+| inverse.interactive.destructive.fill.focused | neutral.750 | 11.06 | 3 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.650 | 7.61 | 3 | ✅ |
 | inverse.interactive.destructive.on-fill | neutral.025 | 14.96 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | danger.600 | 4.92 | 3 | ✅ |
@@ -2492,9 +2494,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.neutral.text.hover | neutral.950 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.text.pressed | neutral.950 | 18.11 | 4.5 | ✅ |
 | inverse.interactive.neutral.fill.rest | neutral.850 | 14.96 | 3 | ✅ |
-| inverse.interactive.neutral.fill.hover | neutral.950 | 18.11 | 3 | ✅ |
+| inverse.interactive.neutral.fill.hover | neutral.750 | 11.06 | 3 | ✅ |
 | inverse.interactive.neutral.fill.pressed | neutral.650 | 7.61 | 3 | ✅ |
-| inverse.interactive.neutral.fill.focused | neutral.950 | 18.11 | 3 | ✅ |
+| inverse.interactive.neutral.fill.focused | neutral.750 | 11.06 | 3 | ✅ |
 | inverse.interactive.neutral.fill.selected | neutral.650 | 7.61 | 3 | ✅ |
 | inverse.interactive.neutral.on-fill | neutral.025 | 14.96 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.rest | neutral.950 | 18.11 | 3 | ✅ |
@@ -2716,10 +2718,10 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.text.hover | primary.250 | 10.11 | 7 | ✅ |
 | inverse.interactive.primary.text.pressed | primary.150 | 13.33 | 7 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.050 | 17.29 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.050 | 17.29 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.050 | 17.29 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.050 | 17.29 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.050 | 17.29 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.150 | 13.36 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.250 | 10.06 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.150 | 13.36 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.250 | 10.06 | 4.5 | ✅ |
 | inverse.interactive.primary.on-fill | black | 17.29 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.350 | 7.47 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | primary.250 | 10.11 | 4.5 | ✅ |
@@ -2964,10 +2966,10 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.text.hover | primary.750 | 11.78 | 7 | ✅ |
 | inverse.interactive.primary.text.pressed | primary.850 | 15.92 | 7 | ✅ |
 | inverse.interactive.primary.fill.rest | neutral.850 | 16.03 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.hover | neutral.850 | 16.03 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.pressed | neutral.850 | 16.03 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.focused | neutral.850 | 16.03 | 4.5 | ✅ |
-| inverse.interactive.primary.fill.selected | neutral.850 | 16.03 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.hover | neutral.750 | 11.85 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.pressed | neutral.650 | 8.16 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.focused | neutral.750 | 11.85 | 4.5 | ✅ |
+| inverse.interactive.primary.fill.selected | neutral.650 | 8.16 | 4.5 | ✅ |
 | inverse.interactive.primary.on-fill | white | 16.03 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.650 | 8.28 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | primary.750 | 11.78 | 4.5 | ✅ |
@@ -2976,9 +2978,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.destructive.text.hover | danger.750 | 12.06 | 7 | ✅ |
 | inverse.interactive.destructive.text.pressed | danger.850 | 16.33 | 7 | ✅ |
 | inverse.interactive.destructive.fill.rest | neutral.850 | 16.03 | 4.5 | ✅ |
-| inverse.interactive.destructive.fill.hover | neutral.950 | 19.42 | 4.5 | ✅ |
+| inverse.interactive.destructive.fill.hover | neutral.750 | 11.85 | 4.5 | ✅ |
 | inverse.interactive.destructive.fill.pressed | neutral.650 | 8.16 | 4.5 | ✅ |
-| inverse.interactive.destructive.fill.focused | neutral.950 | 19.42 | 4.5 | ✅ |
+| inverse.interactive.destructive.fill.focused | neutral.750 | 11.85 | 4.5 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.650 | 8.16 | 4.5 | ✅ |
 | inverse.interactive.destructive.on-fill | white | 16.03 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | danger.650 | 8.25 | 4.5 | ✅ |
@@ -2988,9 +2990,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.neutral.text.hover | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.text.pressed | black | 21.00 | 7 | ✅ |
 | inverse.interactive.neutral.fill.rest | neutral.850 | 16.03 | 4.5 | ✅ |
-| inverse.interactive.neutral.fill.hover | neutral.950 | 19.42 | 4.5 | ✅ |
+| inverse.interactive.neutral.fill.hover | neutral.750 | 11.85 | 4.5 | ✅ |
 | inverse.interactive.neutral.fill.pressed | neutral.650 | 8.16 | 4.5 | ✅ |
-| inverse.interactive.neutral.fill.focused | neutral.950 | 19.42 | 4.5 | ✅ |
+| inverse.interactive.neutral.fill.focused | neutral.750 | 11.85 | 4.5 | ✅ |
 | inverse.interactive.neutral.fill.selected | neutral.650 | 8.16 | 4.5 | ✅ |
 | inverse.interactive.neutral.on-fill | white | 16.03 | 4.5 | ✅ |
 | inverse.interactive.neutral.border.rest | black | 21.00 | 4.5 | ✅ |

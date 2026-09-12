@@ -12095,34 +12095,34 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{wds.core.palette.neutral.050}",
+                "$value": "{wds.core.palette.neutral.150}",
                 "$description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "wds.core.palette.neutral.050",
-                    "contrast": 16,
+                    "aliasOf": "wds.core.palette.neutral.150",
+                    "contrast": 12.35,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.850}",
-                        "aliasOf": "wds.core.palette.neutral.850",
-                        "contrast": 14.89,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 10.97,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{wds.core.palette.neutral.050}",
-                        "aliasOf": "wds.core.palette.neutral.050",
-                        "contrast": 17.3,
+                        "$value": "{wds.core.palette.neutral.150}",
+                        "aliasOf": "wds.core.palette.neutral.150",
+                        "contrast": 13.35,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.neutral.850}",
-                        "aliasOf": "wds.core.palette.neutral.850",
-                        "contrast": 15.95,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 11.75,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12142,34 +12142,34 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{wds.core.palette.neutral.050}",
+                "$value": "{wds.core.palette.neutral.250}",
                 "$description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "wds.core.palette.neutral.050",
-                    "contrast": 16,
+                    "aliasOf": "wds.core.palette.neutral.250",
+                    "contrast": 9.35,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.850}",
-                        "aliasOf": "wds.core.palette.neutral.850",
-                        "contrast": 14.89,
+                        "$value": "{wds.core.palette.neutral.650}",
+                        "aliasOf": "wds.core.palette.neutral.650",
+                        "contrast": 7.57,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{wds.core.palette.neutral.050}",
-                        "aliasOf": "wds.core.palette.neutral.050",
-                        "contrast": 17.3,
+                        "$value": "{wds.core.palette.neutral.250}",
+                        "aliasOf": "wds.core.palette.neutral.250",
+                        "contrast": 10.11,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.neutral.850}",
-                        "aliasOf": "wds.core.palette.neutral.850",
-                        "contrast": 15.95,
+                        "$value": "{wds.core.palette.neutral.650}",
+                        "aliasOf": "wds.core.palette.neutral.650",
+                        "contrast": 8.11,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12189,34 +12189,34 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{wds.core.palette.neutral.050}",
+                "$value": "{wds.core.palette.neutral.150}",
                 "$description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "wds.core.palette.neutral.050",
-                    "contrast": 16,
+                    "aliasOf": "wds.core.palette.neutral.150",
+                    "contrast": 12.35,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.850}",
-                        "aliasOf": "wds.core.palette.neutral.850",
-                        "contrast": 14.89,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 10.97,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{wds.core.palette.neutral.050}",
-                        "aliasOf": "wds.core.palette.neutral.050",
-                        "contrast": 17.3,
+                        "$value": "{wds.core.palette.neutral.150}",
+                        "aliasOf": "wds.core.palette.neutral.150",
+                        "contrast": 13.35,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.neutral.850}",
-                        "aliasOf": "wds.core.palette.neutral.850",
-                        "contrast": 15.95,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 11.75,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12236,34 +12236,34 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{wds.core.palette.neutral.050}",
+                "$value": "{wds.core.palette.neutral.250}",
                 "$description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "wds.core.palette.neutral.050",
-                    "contrast": 16,
+                    "aliasOf": "wds.core.palette.neutral.250",
+                    "contrast": 9.35,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.850}",
-                        "aliasOf": "wds.core.palette.neutral.850",
-                        "contrast": 14.89,
+                        "$value": "{wds.core.palette.neutral.650}",
+                        "aliasOf": "wds.core.palette.neutral.650",
+                        "contrast": 7.57,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{wds.core.palette.neutral.050}",
-                        "aliasOf": "wds.core.palette.neutral.050",
-                        "contrast": 17.3,
+                        "$value": "{wds.core.palette.neutral.250}",
+                        "aliasOf": "wds.core.palette.neutral.250",
+                        "contrast": 10.11,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.neutral.850}",
-                        "aliasOf": "wds.core.palette.neutral.850",
-                        "contrast": 15.95,
+                        "$value": "{wds.core.palette.neutral.650}",
+                        "aliasOf": "wds.core.palette.neutral.650",
+                        "contrast": 8.11,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12845,9 +12845,9 @@
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 18.13,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 10.97,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
@@ -12859,9 +12859,9 @@
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 19.43,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 11.75,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12939,9 +12939,9 @@
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 18.13,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 10.97,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
@@ -12953,9 +12953,9 @@
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 19.43,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 11.75,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -13584,9 +13584,9 @@
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 18.13,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 10.97,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
@@ -13598,9 +13598,9 @@
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 19.43,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 11.75,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -13678,9 +13678,9 @@
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 18.13,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 10.97,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
@@ -13692,9 +13692,9 @@
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 19.43,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 11.75,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -20721,7 +20721,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.76.0",
+      "version": "0.77.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -20746,7 +20746,8 @@
         "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=wendysFresh, title=wendysFresh, body=Roboto, label=wendysFresh, caption=Roboto, eyebrow=wendysFresh, code=JetBrains Mono; typeScale 'default'. 38 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (160px); title tier omits title.2xs). responsive: 11 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
         "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
         "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque interactive.<color>.subtle-fill.{hover,pressed,selected}) or 'none' to opt out.",
-        "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)"
+        "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)",
+        "strict interactive contrast: off — inverse primary carries the vivid brand on-fill (#1244); rest clears AA, transient hover/pressed may dip"
       ]
     }
   }

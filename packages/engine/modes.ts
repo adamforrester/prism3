@@ -1198,27 +1198,37 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // legitimately differs on an inverse ground. This comment used to RESTATE the rule instead
     // ("hover/focused one step, pressed/selected two"), which is how a copy stays in step right up
     // until the day it does not.
-    // #1351 part 2 — the inverse PRIMARY filled fill HOLDS CONSTANT across states (owner decision).
-    // On the dark band a primary filled button is a near-white surface (`fillRest`, neutral 50 in
-    // light / 850 in dark) carrying a BRAND `on-fill` ink (#1244/#1255 — `brandOnFill` below). That
-    // ink is a single value gated against `fill.rest`, so when the fill WALKED darker per state
-    // (rest → hover → pressed rode the neutral ramp toward mid) the ink's RENDERED contrast collapsed
-    // on hover/pressed — measured over the corpus on the real inverse backdrop, 4.69 → 3.62 → 2.75,
-    // two AA fails (#1351 defect 2). Holding the fill at its rest value removes that entirely: the
-    // brand ink sits on the SAME near-white ground in every state, so its rest contrast (≥4.5) holds
-    // through hover, pressed, focused and selected. The per-state feedback the inverse primary button
-    // gives lives in the outline/text INK, which steps (part 1, #1358); the FILLED fill "steps"
-    // nowhere, so the ink is the only thing that moves — the settled model for the inverse band.
+    // #1389 (F3) — the inverse FILLED fill STEPS PER STATE for EVERY family, toward the ground, uniform
+    // across primary/neutral/destructive (owner decision B4a). A filled button on the dark band is a
+    // near-white surface (`fillRest`, neutral 50 in light / 850 in dark); a flat fill gives it no hover /
+    // pressed feedback, and the overlay wash — an outline / text + fields mechanism, no fill to change —
+    // is the wrong tool for it. So the fill walks the neutral ramp TOWARD THE GROUND, exactly as a
+    // page-ground filled button steps toward its palette: light 050 → 150 (hover) → 250 (pressed), dark
+    // 850 → 750 → 650; `focused` mirrors hover, `selected` mirrors pressed, through `stateRungs`.
     //
-    // PRIMARY ONLY (scope of #1351 part 2). `destructive`/`neutral` keep the neutral walk — their
-    // `on-fill` is near-black (#0D0D0E), which survives the darkening — until their own decisions land
-    // (#1253/#1254, two genuinely different questions). Extra `interactivePalettes` columns are
-    // likewise out of scope and keep walking; only the built-in `primary` column holds.
-    const holdInverseFill = name === 'primary';
+    // DIRECTION IS `dir`, NOT `-dir`. The page fill steps `dir` (toward the palette); the inverse fill's
+    // ground is the inverse SURFACE, and stepping toward it is `dir` too — +1 in light (050→150→250),
+    // −1 in dark (850→750→650). `-dir` was the pre-#1389 form (walk toward MORE contrast with the band,
+    // like the outline/text ink): in light it overshot the white extreme and reflected inward onto the
+    // same 050→150→250 by luck, but in dark it walked toward the black extreme and only reflected on
+    // `pressed`, emitting a NON-MONOTONIC 850 → 950 (hover) → 650 (pressed). `dir` makes both modes
+    // monotonic toward the ground with no reliance on the reflection guard.
+    //
+    // THE `on-fill` INK POLICY LIVES BELOW, not here (owner decision B4a, and the #1351 lesson it
+    // reverses). Stepping the fill darker lowers the contrast of any ink sitting on it; the primary
+    // `on-fill` is a single VIVID brand step (#1244) gated against `fill.rest`, so on the stepped fill
+    // it dips below AA on hover / pressed — measured over the corpus, 4.69 → 3.62 → 2.75 (#1351 defect
+    // 2). B4a keeps the vivid brand ink as the DEFAULT and treats hover / pressed as TRANSIENT states
+    // that may dip (rest still clears AA); a brand that needs AA in every state sets the
+    // `strictInteractiveContrast` lever, which swaps primary's `on-fill` to the neutral extreme (the
+    // near-black / near-white ink the other families already use, which survives the darkening at
+    // 7.6–16:1). `neutral` / `destructive` are unchanged — their `on-fill` is already the neutral
+    // extreme, AA-clean at every step; `destructive`'s "red is lighter ink" note is about the OUTLINE /
+    // TEXT ink (page-contrast, #1367/#1352 class), not this filled surface, so it needs no change here.
     for (const st of FILL_STATES) {
       const stKey = st === 'default' ? 'rest' : st;
-      const c: Cand = st === 'default' || holdInverseFill ? fillRest
-        : walk(r2p.neutral, fillRest.num, stateRungs(st), -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
+      const c: Cand = st === 'default' ? fillRest
+        : walk(r2p.neutral, fillRest.num, stateRungs(st), dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
       put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb),
         `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'inverse.background.primary', cfg.nonTextMin);
     }
@@ -1235,8 +1245,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // lands on a grey step — which the wireframe alias contract requires ("every wireframe alias routes
     // to palette/neutral/*"). Caught by that gate on the first run, when the ink resolved to
     // `accent/950` in wireframe.
+    // PRIMARY carries the VIVID brand ink (#1244) by DEFAULT; every other family (and primary under the
+    // `strictInteractiveContrast` lever) takes the neutral extreme via `onColor`. The lever is the escape
+    // hatch B4a conditioned acceptance on: a brand that requires AA on the label in every interactive
+    // state — not just `rest` — swaps primary onto the neutral extreme, which clears the floor on the
+    // stepped fill at 7.6–16:1 where the brand step dips to ~2.7. The ink is still gated against
+    // `fill.rest` (where AA is a HARD requirement); the per-state contract in `test.ts` enforces the rest
+    // floor always and the hover/pressed floor only when the lever is ON, so a default-brand dip is an
+    // asserted, visible exemption rather than a silent fail.
     put(`inverse.interactive.${name}.on-fill`,
-      name === 'primary'
+      name === 'primary' && !theme.strictInteractiveContrast
         ? brandOnFill(palOf(r2p.action ?? r2p.brand), asGround(`inverse.interactive.${name}.fill.rest`, fillRest.rgb))
         : onColor(asGround(`inverse.interactive.${name}.fill.rest`, fillRest.rgb)),
       // ONE description serves all four modes. A leaf carries a single `$description`; the per-mode
@@ -1245,7 +1263,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       // and `hc-dark` take the max-contrast extreme instead (see the `hc` branch in `brandOnFill`).
       // Naming both arms is the only phrasing that stays true across the set — it shipped for review
       // naming only the brand arm, and described pure black in `hc-light` as a brand step.
-      name === 'primary'
+      name === 'primary' && !theme.strictInteractiveContrast
         ? `Ink on the ${name} inverse fill — the most vivid brand step clearing ${onMin}:1 against it, ` +
           `or the max-contrast extreme in the high-contrast modes (#1244)`
         : `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`,

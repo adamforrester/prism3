@@ -60,6 +60,55 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.77.0: the inverse FILLED fill now STEPS per state (#1389, F3, owner decision B4a). The inverse
+ * `interactive.<fam>.fill.{rest,hover,pressed,focused,selected}` walks the neutral ramp toward the
+ * ground — light 050→150→250, dark 850→750→650, focused=hover, selected=pressed — uniformly across
+ * primary/neutral/destructive. Emitted VALUES move in every corpus tree; no token NAME moves.
+ *
+ * PREMISE RE-CHECK (the F1 rule, #1387), before any code moved: reading the emitted `out/*.tokens.json`
+ * on 0.76.0, `inverse.interactive.primary.fill.{rest…selected}` was byte-identical (neutral.050 light /
+ * neutral.850 dark) in all four corpus brands — genuinely flat. `neutral`/`destructive` already stepped
+ * (their `on-fill` is the neutral extreme, which survives the darkening); only `primary` was held, by
+ * `holdInverseFill` (the #1351-pt-2 decision this reverses). Reproduced, not an audit misread.
+ *
+ * THE STEP + THE DIRECTION FIX. The fill loop dropped `holdInverseFill` (all families step) and flipped
+ * the walk from `-dir` to `dir`. `-dir` walked toward MORE contrast with the band (like the outline/text
+ * ink): in light it overshot the white extreme and reflected inward onto 050→150→250 by luck, but in
+ * dark it walked toward the black extreme and only reflected on `pressed`, emitting a NON-MONOTONE
+ * 850→950→650. `dir` steps toward the inverse SURFACE (the ground) — +1 light, −1 dark — giving the
+ * owner's exact monotone rungs in both modes with no reliance on the reflection guard.
+ *
+ * THE on-fill CONTRAST TENSION, and why it is a lever not a nudge. Stepping the fill darker lowers the
+ * contrast of any ink on it; the primary `on-fill` is a single VIVID brand step (#1244) gated at
+ * `fill.rest`, so on the stepped fill it dips below AA on hover/pressed — measured over the corpus,
+ * 4.69→3.62→2.75 (the #1351 defect-2 wall). B4a's a11y decision: hover/pressed are TRANSIENT states that
+ * may dip; `rest` must still clear AA (it does). The brand ink is the DEFAULT. A brand that needs AA in
+ * every state sets the new `strictInteractiveContrast` lever (off by default), which swaps primary's
+ * inverse `on-fill` to the neutral high-contrast extreme (the ink the other families already use), which
+ * clears 4.5 on the stepped fill at 7.6–16:1. `destructive` needs NO change here — its "red is lighter
+ * ink" note (#1367/#1352 class) is about the OUTLINE/TEXT ink's page contrast, not this filled surface.
+ *
+ * #1239 STILL HOLDS. That invariant is REST-ONLY, CROSS-FAMILY (the three families' `fill.rest` are one
+ * value on the neutral ramp). Per-state stepping leaves rest uniform — all three still resolve neutral.050
+ * (light) / 850 (dark) at rest, by construction (one shared `fillRest`) — so the invariant is untouched.
+ *
+ * ENGINE and not CONTRACT (#1252's split). Emitted values move → ENGINE bumps. The lever RE-SELECTS an
+ * existing role's value; it adds NO guaranteed token PATH, so `CONTRACT_VERSION` STANDS at 10.0.0 and
+ * `token-contract.ts --check` confirms the guaranteed set unchanged (`--accept` refreshes only the
+ * baseline's informational `engineVersion` stamp to 0.77.0). `regen --check` moves each emitted tree's
+ * own `$extensions.generator.version` (0.76.0 → 0.77.0) — the values moved, so `lint-emission-version`
+ * requires the bump.
+ *
+ * MUTATION-BY-NAME (docs/34), commit-between-mutations (the checkout-restore trap). Two independent gates
+ * in `test.ts` (block d3), each derived independently of the producer: (A) the fill STEPS — the emitted
+ * neutral rung is read and asserted to increase per state on a light-mode (near-black) inverse surface
+ * and decrease on a dark-mode (near-white) one, non-degenerate and mirrored, represented across all 3
+ * families × 4 brands. Re-holding primary fails `#1389 GATE A … STEPS per state` by name; reverting the
+ * walk to `-dir` fails `#1389 GATE A … MONOTONE toward the ground` via the dark 850→950→650. (B) the
+ * per-state on-fill contract + lever — `rest` is a HARD 4.5 floor in every mode, lever OFF keeps the
+ * BRAND ramp, lever ON swaps to the NEUTRAL extreme AND clears 4.5 at every state. Reverting the lever
+ * wiring fails `#1389 GATE B … swaps primary on-fill to the NEUTRAL extreme` by name.
+ *
  * 0.76.0: the focus ring is CONCENTRIC and no longer carries a stale nominal-side binding (#1388, F2,
  * owner-approved). Two host-executor changes, both in the one absolute-inset loop that already positions
  * and sizes the nested ring — the same binding surface, which is why #1388 flagged them together.
@@ -2168,7 +2217,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.76.0';
+export const ENGINE_VERSION = '0.77.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

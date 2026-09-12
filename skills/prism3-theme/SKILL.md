@@ -15,7 +15,7 @@ documents: brandInput
 # fine-tuning knobs are studio work done after a theme exists, not things a brand brief states.
 omits: customModes, overrides, modeAnchors, modeLevers, roleColors, disabledMin, baseMd,
   actionAnchorStep, destructiveAnchorStep, accentPalette, interactivePalettes,
-  outlineInteraction, neutralEmphasis, inverse
+  outlineInteraction, neutralEmphasis, strictInteractiveContrast, inverse
 when_to_use: >-
   When creating or refining a Prism3 brand from a brief, brand guidelines, or an
   existing palette — producing the `design.md` that `packages/engine/cli.ts`
