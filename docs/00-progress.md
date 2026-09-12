@@ -7,6 +7,14 @@
 
 ---
 
+## (2026-09-12) — skill §3 corrected: `nest-exposed` is the shipped decomposition mechanism, not "REFUSED (#761)" (#1382)
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges).** **NO version bump — ENGINE stands at 0.77.0, CONTRACT at 10.0.0.** Prose-only in a shipped SKILL (not an emitted artifact): `regen --check` byte-identical (108 artifacts, nothing rewritten), `lint-emission-version` clean (no emission moved), `lint-skills`/`lint-us-english`/`lint-voice`/`lint-doc-gates` all pass. **`npm run verify` → all-PASS.**
+
+**Premise re-check (the F1 rule).** Confirmed against current `main`: `skills/prism3-build-component/SKILL.md` §3 still carried the pre-#1330 bullet — *"`nest-exposed` … stays REFUSED on a `nest` part (#761): … the exposed form is not built"* — and the follow-on paragraph still asserted `absolute` and `nest` both "resolve it `nest-fixed`". Both are false since #1330 built `nest-exposed` (the 2026-09-09 entry below; the #1380 PR left this line untouched by scope, filing it as #1382). A shipped skill making a factual claim about the engine, so a real defect — though `lint-skills` cannot catch it (its own header states its ceiling: it keeps quoted NAMES honest, not stale prose whose names still resolve).
+
+**The correction (tight, existing voice, US-English/voice-standard).** §3's `nest-exposed` bullet now describes the shipped relation: it carries the same `variant` default and optional `follow` as `nest-fixed`, plus `expose` naming the CHILD axes the consumer drives — surfaced on the parent as Figma exposed nested-instance properties (and React props, `.ai.json` options, Storybook controls) rather than re-enumerated into the parent's own variant matrix — with `expose ∩ follow = ∅` enforced by the validator, and the checkbox Row as the worked example (nests `checkbox-control` `nest-exposed`, exposes `selection` + `state`, follows `size`, collapsing 54 → 3). The follow-on paragraph now says an `absolute` is always `nest-fixed` (the focus ring) while a `nest` is `nest-fixed` OR `nest-exposed`. Grounded in `component-schema.ts`'s `NestingRelation` + validator and `components/checkbox.ts`; deliberately claims only what shipped (no forward "radio/switch slated" claim in gated prose). Nothing else in the skill referenced the stale relation.
+
 ## (2026-09-12) — #1355 premise disproven; built the variant-count-vs-axis-product regression gate
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** **NO version bump — ENGINE stands at 0.77.0, CONTRACT at 10.0.0.** The change is a test-only integrity check plus two pure helper exports; no emitted artifact, no projected member, no token/prop NAME moves. `regen --check` in sync (108 artifacts, nothing rewritten), `lint-component-surface` reports the surface unmoved, `token-contract --check` reports the guaranteed **577 unchanged**, `lint-emission-version` requires no bump (no emission moved). **`npm run verify` → all-PASS.**

@@ -93,14 +93,21 @@ fact about the design (the def declares it). Three kinds:
   field drives its nested message to the error tone, and button's ring carries
   `follow: ['surface']` so a ring under an inverse button keeps its own contrast on the dark
   band. `variant` is the fallback where the host does not carry that axis.
-- **`nest-exposed`** — a nested component whose variants the consumer controls from the parent.
-  It stays REFUSED on a `nest` part (#761): the mechanism the composed field needs is
-  `nest-fixed` with `follow`, and the exposed form is not built.
+- **`nest-exposed`** — a nested component whose variants the consumer controls from the parent
+  (#1330, reversing #761's deferral). It carries the same `variant` default and optional `follow` as
+  `nest-fixed`, plus `expose` naming the CHILD axes the consumer drives: those axes surface on the
+  parent as Figma exposed nested-instance properties (and as React props, `.ai.json` options,
+  Storybook controls) rather than the parent re-enumerating them into its own variant matrix. An
+  exposed axis is the consumer's and a followed axis is the host's, so the two lists are disjoint —
+  the validator refuses an axis in both. The checkbox Row is the worked example: it nests
+  `checkbox-control` `nest-exposed`, exposing `selection` + `state` and `follow`ing its own `size`,
+  which collapses the Row's Figma set from 54 members (3 selections × 3 sizes × 6 states, mirroring
+  the atom) to 3.
 
-`absolute` and `nest` both name their component in `nests` and resolve it `nest-fixed`; the
-only difference is whether the instance sits in the flow (`nest`, taking a cell) or beside it
-(`absolute`, taking none). A focus ring is the `absolute` case — one shared component every
-host points at, rather than a ring redrawn per host.
+`absolute` and `nest` both name their component in `nests`; the only difference is whether the
+instance sits in the flow (`nest`, taking a cell) or beside it (`absolute`, taking none). An
+`absolute` is always `nest-fixed` — a focus ring, one shared component every host points at rather
+than a ring redrawn per host; a `nest` is `nest-fixed` or `nest-exposed`, per the split above.
 
 ## 4. Aspect-lock — a proportion, not two dimensions (Option A)
 
