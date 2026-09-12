@@ -2817,6 +2817,18 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // belongs to the component it instantiates — so what a stroke would mean there is a decision.
     if (p.kind !== 'box' && p.strokeWidth !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'strokeWidth' — only a 'box' projects a bound strokeWeight, so this would resolve, validate, and reach no node`);
+    // `height` is the last field of this family (#1305), and its split is one kind wider than
+    // `strokeWidth`'s: TWO kinds project a bound height — a `box` (which fixes both axes) and a `nest`
+    // (#1299, whose own height is the whole of what that issue added). On every OTHER kind the projector
+    // reads nothing into the height axis, so a bound `height` resolves, validates, and reaches no node —
+    // the silent-drop shape this pass exists to catch. `vector` is refused separately below with its own
+    // reason (a glyph's artboard is square), so it is excluded here to leave that message the one an icon
+    // author sees; the kinds this catches are `slot`, `overlay`, `text` and `absolute`. That last one is
+    // why the rule is NOT scoped to the three the filing named: `absolute` already refuses `size` outright
+    // (it is sized by its parent's bounds grown by `inset`) and dropped `height` just as silently — the
+    // same posture mismatch #1305 records, one kind past where the issue looked.
+    if (p.kind !== 'box' && p.kind !== 'nest' && p.kind !== 'vector' && p.height !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'height' — only a 'box' (which fixes both axes) or a 'nest' (#1299) projects a bound height; a slot/overlay takes the size of the content swapped into it, a text is sized by its own content, and an absolute by its parent's bounds — so this would resolve, validate, and reach no node`);
     if (p.kind !== 'absolute' && p.kind !== 'nest' && p.nests !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'nests' — only an 'absolute' (out-of-flow) or a 'nest' (in-flow) part materializes as an instance of another component`);
     // A `nest` (#1226 PR-A) is the in-flow twin of `absolute`: it MUST name what it nests, and its
