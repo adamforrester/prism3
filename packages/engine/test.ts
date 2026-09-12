@@ -51,7 +51,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -12303,6 +12303,35 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         handRolled.push(figmaAnatomyPlan(button, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', appearance: ap, surface: su, state: st }));
     ok(JSON.stringify(handRolled) === JSON.stringify(fullSet),
       `figmaAnatomySet: byte-identical to the hand-written six loops, in order (${handRolled.length} vs ${fullSet.length})`);
+
+    // ---- #1355: VARIANT-COUNT-vs-AXIS-PRODUCT + VALUE-DOMAIN, corpus-wide ------------------------
+    // The regression guard the #1355 re-scope asked for. `lint-component-surface.ts` pins each member
+    // count against a COMMITTED baseline, so a PERSISTENT out-of-product count is recorded rather than
+    // flagged — the baseline has no independent notion of what the count should be. `variantSetErrors`
+    // supplies it: the count from `figmaVariantCount` (a MULTIPLY over the declared cardinalities) vs the
+    // enumerator's real output (`figmaAnatomySet` → `planComponentName`), plus a per-axis VALUE-DOMAIN
+    // check that catches a garbage value which keeps the count right. Two independent statements against
+    // the emitter, neither derived from it (docs/34 — #536 item 5's fix, generalized past Button).
+    for (const projDef of componentDefs.filter((d) => d.figmaProperties)) {
+      const errs = variantSetErrors(projDef);
+      ok(errs.length === 0, `variant-product/${projDef.id}: members == ∏(declared axis cardinalities) and every value is declared${errs.length ? ` — ${errs[0]}` : ''}`);
+    }
+    // SELF-CHECK (docs/34: a detector a green corpus never drives adversarially proves nothing). The
+    // EXACT #1355 defect — a 433rd member on a bogus `trailing icon=ΩΩ` value, a structural duplicate of
+    // the `trailing icon=true` member — must be reported by name on BOTH arms, and a clean 432-member set
+    // must report nothing (a detector that fires on everything is no detector). Fed to `variantNameErrors`
+    // directly so the projector is not mutated to produce it.
+    {
+      const cleanNames = figmaAnatomySet(button).map(planComponentName);
+      const withBogus = [...cleanNames, 'appearance=outline, surface=inverse, size=small, state=disabled, leading icon=true, trailing icon=ΩΩ'];
+      const bogusErrs = variantNameErrors(button, withBogus);
+      ok(bogusErrs.some((e) => /433 member\(s\), but the declared axes multiply to 432/.test(e)),
+        `variant-product self-check: the #1355 433rd member fails the COUNT arm by name (${bogusErrs.length} error(s))`);
+      ok(bogusErrs.some((e) => /axis 'trailing icon=ΩΩ' in member .* is outside its declared values \{true, false\}/.test(e)),
+        'variant-product self-check: the ΩΩ garbage value fails the VALUE-DOMAIN arm by name');
+      ok(variantNameErrors(button, cleanNames).length === 0,
+        'variant-product self-check: the clean 432-member set reports nothing');
+    }
 
     // WHAT PROTECTS THE 189-VS-756 RULE NOW (#795). Until #795 this pair asserted that a fifth declared
     // variant axis THREW, because `figmaAnatomySet` enumerated `intent` and `appearance` from two

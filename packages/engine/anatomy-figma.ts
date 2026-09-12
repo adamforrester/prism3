@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName } from './component-schema';
+import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, figmaVariantCount, figmaAxisNames } from './component-schema';
 import type { ControlShape } from './scale';
 // The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
@@ -1787,6 +1787,67 @@ export const planComponentName = (plan: AnatomyPlan): string =>
     ...(plan.slotAxes.includes('leading') ? [`${plan.slotFigmaNames?.leading ?? 'leading'}=${plan.slots.leading}`] : []),
     ...(plan.slotAxes.includes('trailing') ? [`${plan.slotFigmaNames?.trailing ?? 'trailing'}=${plan.slots.trailing}`] : []),
   ].join(', ');
+
+/**
+ * VARIANT-SET INTEGRITY (#1355) — every projected member accounts for exactly the declared axes, at a
+ * declared value, and the member COUNT equals the product of the declared axis cardinalities. Two
+ * independent statements against the SAME emitter, and neither derives its expectation FROM that emitter:
+ *
+ *   COUNT  `figmaVariantCount(def)` MULTIPLIES the declared cardinalities; the subject ENUMERATES them
+ *          (`figmaAnatomySet` → `planComponentName`). A projector that emitted an extra, dropped or
+ *          duplicated member — #1355's 433rd `trailing icon=ΩΩ` — diverges from the product, which a
+ *          straight multiply cannot reproduce. This is #536 item 5's fix in the general: an expectation
+ *          from the declaration, an actual from the emitter's real output, never one derived from the other.
+ *   VALUE  every axis value in a member name is drawn from that axis's DECLARED value set (variant axes
+ *          from `variants`, the state axis from its `values`, a slot axis from `{true,false}`). This is
+ *          the arm the count alone cannot cover: a garbage value that REPLACES a legitimate one keeps the
+ *          count at 432 while `trailing icon=ΩΩ` sits in the set, and only a domain check sees it. `ΩΩ` is
+ *          Figma's placeholder for an empty/collided variant value, so it is the literal shape #1355 named.
+ *
+ * `lint-component-surface.ts` pins each member count against a COMMITTED baseline, so a *persistent*
+ * out-of-product count is simply recorded and never flagged — the baseline has no independent notion of
+ * what the count SHOULD be. That is the gap this closes (docs/34: the two sides must be independent, and a
+ * snapshot of the subject is not an independent oracle).
+ *
+ * SPLIT so the detector is testable on a KNOWN-BAD input without mutating the projector (docs/34 — a
+ * detector a green corpus never exercises adversarially proves nothing): `variantNameErrors` checks a
+ * GIVEN list of member names, and `variantSetErrors` feeds it the real projection. The self-check in
+ * `test.ts` hands `variantNameErrors` the exact #1355 bogus member and asserts BOTH arms fire by name.
+ */
+export const variantNameErrors = (def: ComponentDef, memberNames: string[]): string[] => {
+  const fp = def.figmaProperties;
+  if (!fp) return [];
+  const errs: string[] = [];
+
+  // COUNT — independent product vs the given member set.
+  const expected = figmaVariantCount(def);
+  if (memberNames.length !== expected)
+    errs.push(`${def.id}: ${memberNames.length} member(s), but the declared axes multiply to ${expected} — an out-of-product member set (an extra, dropped or duplicated coordinate)`);
+
+  // VALUE — the declared domain per axis KEY, transcribed from the declaration (not from a member).
+  const domain: Record<string, Set<string>> = {};
+  for (const a of fp.variantAxes ?? []) domain[a] = new Set((variantsOf(def)[a] ?? []).map(String));
+  if (fp.stateAxis) domain[fp.stateAxis.name] = new Set(fp.stateAxis.values);
+  for (const s of fp.slotAxes ?? []) domain[slotAxisFigmaName(s)] = new Set(['true', 'false']);
+  const declared = new Set(figmaAxisNames(def));
+
+  const seen = new Set<string>();
+  for (const name of memberNames) {
+    if (seen.has(name)) errs.push(`${def.id}: duplicate member coordinate '${name}'`);
+    seen.add(name);
+    for (const kv of name.split(', ')) {
+      const [k, v] = kv.split('=');
+      if (!declared.has(k)) errs.push(`${def.id}: member '${name}' carries undeclared axis '${k}'`);
+      else if (!domain[k].has(v)) errs.push(`${def.id}: axis '${k}=${v}' in member '${name}' is outside its declared values {${[...domain[k]].join(', ')}}`);
+    }
+  }
+  return errs;
+};
+
+/** The #1355 integrity check over a def's REAL default projection — empty iff the set is exactly the
+ *  product of its declared axes with only declared values. Projecting defs only; others project no set. */
+export const variantSetErrors = (def: ComponentDef): string[] =>
+  def.figmaProperties ? variantNameErrors(def, figmaAnatomySet(def).map(planComponentName)) : [];
 
 /**
  * FNV-1a, 32 bits, twice — forward and over the reversed string (#827). Hand-written because the engine
