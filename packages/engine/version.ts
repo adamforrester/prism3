@@ -60,6 +60,20 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.80.0: icon-button gains a `shape` variant axis — `square | circular`, square default (#1353, owner-
+ * decided 2026-09-10). PURE GEOMETRY: the two values differ ONLY in the container's corner radius (`square`
+ * → `radius.md`, `circular` → `radius.round`) and are token-identical in colour, state and every other
+ * binding, so it is a 2-value AXIS and not a component split. Each of the three icon-button components goes
+ * 54 → 108 members (appearance × size × shape × state). ENGINE, not CONTRACT, on #1252: the PROJECTED
+ * component surface moves (new axis, doubled sets), but no emitted TOKEN NAME moves — `token-contract.ts
+ * --check` confirms the guaranteed set unchanged and `--accept` refreshes only the informational
+ * `engineVersion` stamp at contract 10.0.0 (the #1354/#1348 precedent). The `controlShape: pill` brand lever
+ * (`applyControlShape`) was generalized to repoint the ROUNDED rung (`radius.md`) by ref rather than the
+ * literal key `radius`, so it still rounds the `square` shape off and leaves the intrinsic `circular` rung —
+ * the same rule it applies to switch/radio; the #1163 controlShape test carries the by-name mutation.
+ * `regen --check` moves only each artifact's own generator stamp (0.79.0 → 0.80.0); `lint-emission-version`
+ * is green (the version moved with no emission-VALUE change).
+ *
  * 0.77.0: the inverse FILLED fill now STEPS per state (#1389, F3, owner decision B4a). The inverse
  * `interactive.<fam>.fill.{rest,hover,pressed,focused,selected}` walks the neutral ramp toward the
  * ground — light 050→150→250, dark 850→750→650, focused=hover, selected=pressed — uniformly across
@@ -2217,7 +2231,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.79.0';
+export const ENGINE_VERSION = '0.80.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

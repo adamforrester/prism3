@@ -8120,18 +8120,46 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(PILL_RADIUS_RUNG === 'radius.capsule' && switchControl.tokens['radius'] === 'radius.round' && radioControl.tokens['radius'] === 'radius.round' && PILL_RADIUS_RUNG !== switchControl.tokens['radius'],
       `controlShape: the lever repoints to a rung DISTINCT from switch-control/radio-control's intrinsic pill (${PILL_RADIUS_RUNG} ≠ ${switchControl.tokens['radius']})`);
 
-    const radiusBindings = (d: ComponentDef, size: string): string[] =>
-      [...new Set(planBoundVars(figmaAnatomyPlan(d, size, {}).root).filter((v) => v.startsWith('radius/')))].sort();
+    const radiusBindings = (d: ComponentDef, size: string, slots: Record<string, string> = {}): string[] =>
+      [...new Set(planBoundVars(figmaAnatomyPlan(d, size, slots as never).root).filter((v) => v.startsWith('radius/')))].sort();
 
-    for (const id of ['button', 'icon-button']) {
+    // THE SQUARE (ROUNDED-RUNG) CASE. `button` has no shape axis; `icon-button`'s `shape=square` (#1353) IS
+    // its rounded rung. Both bind `radius/md` under `rounded` and are repointed to `radius/capsule` under
+    // `pill` — the generalized `applyControlShape` keys on the ref (`radius.md`), so it reaches button's
+    // `radius` key and icon-button's `radius.square` key alike.
+    const squareCases: { id: string; slots: Record<string, string> }[] = [
+      { id: 'button', slots: {} },
+      { id: 'icon-button', slots: { shape: 'square' } },
+    ];
+    for (const { id, slots } of squareCases) {
       const d = componentDefs.find((x) => x.id === id)!;
+      const tag = slots.shape ? `/${slots.shape}` : '';
       for (const size of d.variants?.size ?? []) {
-        const rounded = radiusBindings(applyControlShape(d, 'rounded'), size);
-        const pill = radiusBindings(applyControlShape(d, 'pill'), size);
+        const rounded = radiusBindings(applyControlShape(d, 'rounded'), size, slots);
+        const pill = radiusBindings(applyControlShape(d, 'pill'), size, slots);
         ok(rounded.length === 1 && rounded[0] === 'radius/md',
-          `controlShape: ${id}@${size} rounded binds radius/md (${rounded.join(', ') || 'none'})`);
+          `controlShape: ${id}@${size}${tag} rounded binds radius/md (${rounded.join(', ') || 'none'})`);
         ok(pill.length === 1 && pill[0] === 'radius/capsule',
-          `controlShape: ${id}@${size} pill binds radius/capsule — the unconditional height ÷ 2 pill selected BY NAME (${pill.join(', ') || 'none'})`);
+          `controlShape: ${id}@${size}${tag} pill binds radius/capsule — the unconditional height ÷ 2 pill selected BY NAME (${pill.join(', ') || 'none'})`);
+      }
+    }
+
+    // #1353 — icon-button's `shape=circular` is an INTRINSIC round rung (`radius.round`), so the pill lever
+    // LEAVES it, exactly as it leaves switch/radio's intrinsic circle. Under BOTH rounded and pill it stays
+    // radius/round. This is the by-name proof that the generalized lever (repoint the rounded rung BY REF,
+    // not by the literal key `radius`) rounds only the square shape and cannot reach the circular one —
+    // reverting `applyControlShape` to a key-name rewrite makes the SQUARE `pill binds radius/capsule` arm
+    // above fail (icon-button loses its bare `radius` key at #1353), and reverting `radius.circular` to
+    // `radius.md` in the def makes THIS arm's `radius/round` fail.
+    {
+      const ib = componentDefs.find((x) => x.id === 'icon-button')!;
+      for (const size of ib.variants?.size ?? []) {
+        const rounded = radiusBindings(applyControlShape(ib, 'rounded'), size, { shape: 'circular' });
+        const pill = radiusBindings(applyControlShape(ib, 'pill'), size, { shape: 'circular' });
+        ok(rounded.length === 1 && rounded[0] === 'radius/round',
+          `controlShape: icon-button@${size}/circular rounded binds radius/round (${rounded.join(', ') || 'none'})`);
+        ok(pill.length === 1 && pill[0] === 'radius/round',
+          `controlShape: icon-button@${size}/circular stays radius/round under pill — the intrinsic round rung the lever cannot reach (${pill.join(', ') || 'none'})`);
       }
     }
 
@@ -8151,11 +8179,95 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     for (const id of ['button', 'icon-button']) {
       const d = componentDefs.find((x) => x.id === id)!;
       const size = (d.variants?.size ?? [])[0];
-      const nonRadius = (shape: ControlShape) => planBoundVars(figmaAnatomyPlan(applyControlShape(d, shape), size, {}).root)
+      // icon-button now needs a shape coordinate to plan (`radius.{shape}`); button ignores an undeclared one.
+      const slots: Record<string, string> = d.variants?.shape ? { shape: 'square' } : {};
+      const nonRadius = (shape: ControlShape) => planBoundVars(figmaAnatomyPlan(applyControlShape(d, shape), size, slots as never).root)
         .filter((v) => !v.startsWith('radius/')).sort();
       ok(JSON.stringify(nonRadius('rounded')) === JSON.stringify(nonRadius('pill')),
         `controlShape: ${id} pill moves ONLY the radius binding — every other bound var is identical to rounded`);
     }
+  }
+
+  // #1353 — THE `shape` VARIANT AXIS (square | circular, square default), owner-decided 2026-09-10. Pure
+  // GEOMETRY: the two values differ ONLY in the container's corner radius and are token-identical everywhere
+  // else, which is what makes it a 2-value AXIS and not a component split. Every pin below is derived
+  // INDEPENDENTLY of the projector (docs/34): the axis vocabulary + default off the def, the multiplier by a
+  // straight product against the enumeration, the "differ only in radius" by comparing the two projected
+  // members' bound/paint vars, and the radius rungs read off the plan. A mutation arm reverts the geometry
+  // (circular → the square rung, and the default flipped) and confirms a NAMED assertion flips.
+  {
+    const A = iconButton.variants?.appearance?.length ?? 0;
+    const S = iconButton.variants?.size?.length ?? 0;
+    const shapeVals = iconButton.variants?.shape ?? [];
+    const St = iconButton.figmaProperties?.stateAxis?.values.length ?? 0;
+
+    // (0) THE AXIS IS EXACTLY {square, circular}, and square is the DEFAULT.
+    ok(JSON.stringify([...shapeVals].sort()) === JSON.stringify(['circular', 'square']),
+      `#1353 shape axis is EXACTLY {circular, square} (got [${shapeVals.join(', ')}])`);
+    ok(shapeVals[0] === 'square',
+      `#1353 shape values LEAD with the default 'square' (got '${shapeVals[0]}')`);
+    ok(iconButton.props.find((p) => p.name === 'shape')?.default === 'square',
+      "#1353 the shape PROP defaults to 'square'");
+    ok((iconButton.figmaProperties?.variantAxes ?? []).includes('shape'),
+      '#1353 shape PROJECTS — it is declared in figmaProperties.variantAxes');
+    // The three icon-button components declare it identically (one shared factory).
+    ok([iconButton, iconButtonDestructive, iconButtonNeutral].every(
+      (d) => JSON.stringify(d.variants?.shape) === JSON.stringify(shapeVals)),
+      '#1353 all three icon-button components declare the shape axis identically');
+
+    // (1) THE AXIS MULTIPLIES THE SET BY EXACTLY 2 — the product of declared cardinalities against the real
+    // enumeration, then a partition proving each shape value spans exactly half (independent of the product).
+    const set = figmaAnatomySet(iconButton);
+    ok(shapeVals.length === 2 && set.length === A * S * shapeVals.length * St,
+      `#1353 shape DOUBLES the set: appearance(${A})×size(${S})×shape(${shapeVals.length})×state(${St}) = ${set.length}`);
+    const square = set.filter((p) => planComponentName(p).includes('shape=square')).length;
+    const circular = set.filter((p) => planComponentName(p).includes('shape=circular')).length;
+    ok(square === set.length / 2 && circular === set.length / 2 && square === A * S * St,
+      `#1353 each shape value spans exactly half the set (square ${square}, circular ${circular} of ${set.length})`);
+
+    // (2) THE CRUX — the two shapes differ ONLY in the container's corner radius, and the rungs are exactly
+    // radius/md (square) and radius/round (circular), across EVERY appearance × size × state. Read off the
+    // projected plan (bound + paint vars), never off def.tokens.
+    const radiusOf = (shape: string, appearance: string, size: string, state: string): string[] =>
+      [...new Set(planBoundVars(figmaAnatomyPlan(iconButton, size, { appearance, state, shape }).root)
+        .filter((v) => v.startsWith('radius/')))].sort();
+    const nonRadiusOf = (shape: string, appearance: string, size: string, state: string): string =>
+      JSON.stringify(planBoundVars(figmaAnatomyPlan(iconButton, size, { appearance, state, shape }).root)
+        .filter((v) => !v.startsWith('radius/')).sort());
+    const paintOf = (shape: string, appearance: string, size: string, state: string): string =>
+      JSON.stringify(planPaintVars(figmaAnatomyPlan(iconButton, size, { appearance, state, shape }).root).sort());
+    let geomChecked = 0;
+    for (const appearance of iconButton.variants!.appearance!)
+      for (const size of iconButton.variants!.size!)
+        for (const state of iconButton.figmaProperties!.stateAxis!.values) {
+          geomChecked++;
+          ok(paintOf('square', appearance, size, state) === paintOf('circular', appearance, size, state),
+            `#1353 no colour/state difference between shapes @ ${appearance}/${size}/${state} — paint vars identical`);
+          ok(nonRadiusOf('square', appearance, size, state) === nonRadiusOf('circular', appearance, size, state),
+            `#1353 shapes differ ONLY in radius @ ${appearance}/${size}/${state} — every non-radius bound var identical`);
+          const sq = radiusOf('square', appearance, size, state);
+          const ci = radiusOf('circular', appearance, size, state);
+          ok(sq.length === 1 && sq[0] === 'radius/md',
+            `#1353 square binds radius/md @ ${appearance}/${size}/${state} (got ${sq.join(', ') || 'none'})`);
+          ok(ci.length === 1 && ci[0] === 'radius/round',
+            `#1353 circular binds radius/round @ ${appearance}/${size}/${state} (got ${ci.join(', ') || 'none'})`);
+        }
+    ok(geomChecked === A * S * St, `#1353 the geometry pin ran over the full appearance×size×state grid (${geomChecked})`);
+
+    // (3) MUTATION-BY-NAME (docs/34). Both arms flip an invariant true→false on the SUBJECT (the def), and
+    // the NAMED assertion that would fire in the suite is stated for each.
+    //   ARM A — revert the geometry: bind circular to the SQUARE rung. The projected circular member then
+    //   binds radius/md, so the `#1353 circular binds radius/round …` assertion above would FAIL BY NAME.
+    const geomMutant = { ...iconButton, tokens: { ...iconButton.tokens, 'radius.circular': 'radius.md' } };
+    const mutCircular = [...new Set(planBoundVars(figmaAnatomyPlan(geomMutant, 'medium', { appearance: 'filled', state: 'rest', shape: 'circular' }).root)
+      .filter((v) => v.startsWith('radius/')))];
+    ok(mutCircular.length === 1 && mutCircular[0] === 'radius/md',
+      `#1353 MUTATION ARM A: binding radius.circular → radius.md makes circular project radius/md, which flips '#1353 circular binds radius/round' to failing (got ${mutCircular.join(', ')})`);
+    //   ARM B — flip the default: reorder the values so circular leads. The `#1353 shape values LEAD with the
+    //   default 'square'` assertion reads `values[0]`, so a circular-first order flips it BY NAME.
+    const defaultMutant = { ...iconButton, variants: { ...iconButton.variants, shape: ['circular', 'square'] } };
+    ok(defaultMutant.variants.shape[0] === 'circular',
+      "#1353 MUTATION ARM B: reordering shape to ['circular', 'square'] makes values[0] = 'circular', which flips '#1353 shape values LEAD with the default square' to failing");
   }
 
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
@@ -8312,6 +8424,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // coord — asserted against the EMITTED name, so re-introducing an intent axis fails here too.
   const ibFirstMember = planComponentName(figmaAnatomyPlan(iconButton, iconButton.variants.size[0], {
     swapTarget: 'FPO-default-icon', appearance: iconButton.variants.appearance[0], state: 'rest',
+    shape: iconButton.variants.shape![0],
   }));
   ok(!/intent=/.test(ibFirstMember),
     `#1225: the IconButton set's members carry no intent coord (${ibFirstMember})`);
@@ -11595,7 +11708,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // Read from the projection and compared against the def's TOKEN MAP, which are two different
       // things: a projection that dropped one axis would satisfy an assertion derived from the def alone.
       const ibPlan = (size: string, o: Record<string, unknown> = {}) =>
-        figmaAnatomyPlan(iconButton, size, { swapTarget: 'FPO-default-icon', appearance: 'text', state: 'rest', ...o });
+        figmaAnatomyPlan(iconButton, size, { swapTarget: 'FPO-default-icon', appearance: 'text', state: 'rest', shape: 'square', ...o });
       const sq = ibPlan('medium');
       const sideVar = figmaVarName(iconButton.tokens['size.medium.side']);
       ok(sq.root.bound.width === sideVar && sq.root.bound.height === sideVar,
@@ -11669,9 +11782,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // with itself. The 6 is the step to check — `states` declares SEVEN and the axis projects six, because
       // `inactive` is code-only. Re-deriving from `states.length` gives 63.
       const ibSet = figmaAnatomySet(iconButton, { swapTarget: 'FPO-default-icon' });
-      ok(ibSet.length === 54, `anatomy/icon-button: the set is 54 members — 3 appearance × 3 size × 6 state, #1225 split \`intent\` into sibling components (${ibSet.length})`);
-      ok(new Set(ibSet.map(planComponentName)).size === 54,
-        `anatomy/icon-button: every member carries a distinct coordinate (${new Set(ibSet.map(planComponentName)).size}/54)`);
+      ok(ibSet.length === 108, `anatomy/icon-button: the set is 108 members — 3 appearance × 3 size × 2 shape × 6 state, #1225 split \`intent\` into siblings and #1353 added the shape axis (${ibSet.length})`);
+      ok(new Set(ibSet.map(planComponentName)).size === 108,
+        `anatomy/icon-button: every member carries a distinct coordinate (${new Set(ibSet.map(planComponentName)).size}/108)`);
       // THREE axes, where Button has six — and read off a real emitted NAME rather than the declaration,
       // which is the 189-vs-756 lesson: a count derived from a declaration cannot detect that the
       // declaration is incomplete. This is also the assertion that would catch a slot axis (or the removed
@@ -11679,7 +11792,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const ibEmitted = planComponentName(ibSet[0]).split(', ').map((kv) => kv.split('=')[0]);
       ok(ibEmitted.slice().sort().join(',') === figmaAxisNames(iconButton).slice().sort().join(','),
         `anatomy/icon-button: the DECLARED axes match the ones planComponentName emits (declared [${figmaAxisNames(iconButton).join(', ')}] vs emitted [${ibEmitted.join(', ')}])`);
-      ok(figmaAxisNames(iconButton).length === 3, `anatomy/icon-button: three axes (appearance, size, state), where Button has six and #1225 removed \`intent\` (${figmaAxisNames(iconButton).join(', ')})`);
+      ok(figmaAxisNames(iconButton).length === 4, `anatomy/icon-button: four axes (appearance, size, shape, state) — #1225 removed \`intent\`, #1353 added \`shape\` (${figmaAxisNames(iconButton).join(', ')})`);
 
       // THE SLOT-FILL DIMENSION COLLAPSES TO 1, and this is the decision recorded as a gate rather than a
       // comment. Button's `slotAxes` exists because presence changes GEOMETRY (#326: `paddingLeft` reads
@@ -11696,7 +11809,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `[false]` on both, so the two coordinates are constants and `planSetLayout` gives a dimension only
       // to axes that VARY. That much was the original decision and it stands.
       ok(ibSet.every((p) => p.slots.leading === false && p.slots.trailing === false),
-        'anatomy/icon-button: both slot coordinates are constant false across all 54 members — the collapse, observed on the plans');
+        'anatomy/icon-button: both slot coordinates are constant false across every member — the collapse, observed on the plans');
       // WHAT THE ORIGINAL DECISION GOT WRONG, and the reason the emitter moved rather than this gate: a
       // constant coordinate is free in the LAYOUT and is not free in the NAME. `combineAsVariants` derives
       // a set's properties from its members' names, so `leading=false` on all 162 becomes a real
@@ -11716,19 +11829,21 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(/leading icon=true, trailing icon=false$/.test(planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon' }))),
         'anatomy/icon-button: Button still names both — the rule is "a coordinate iff the def declares the axis", not "no slot coordinates"');
 
-      // The GRID: 9 rows × 6 columns, `state` across. Hand-derived — 3 × 3 rows against 6 states —
+      // The GRID: 18 rows × 6 columns, `state` across. Hand-derived — 3 × 3 × 2 rows against 6 states —
       // not read back from `planSetLayout`, which is the subject. (Was 27 rows before #1225 split `intent`
-      // out of the row axis into sibling components.)
+      // out of the row axis, 9 after #1225, and 18 after #1353 added the shape axis to the row product.)
       const ibLayout = planSetLayout(ibSet, 'icon-button');
-      ok(ibLayout.rows === 9 && ibLayout.cols === 6,
-        `anatomy/icon-button: the grid is 9 rows (3 appearance × 3 size) × 6 state columns (${ibLayout.rows} × ${ibLayout.cols})`);
+      ok(ibLayout.rows === 18 && ibLayout.cols === 6,
+        `anatomy/icon-button: the grid is 18 rows (3 appearance × 3 size × 2 shape) × 6 state columns (${ibLayout.rows} × ${ibLayout.cols})`);
       ok(ibLayout.colKey === 'state', `anatomy/icon-button: \`state\` is the column axis — DECLARED via gridAxis, not inherited from cardinality (${ibLayout.colKey})`);
-      ok(new Set(ibLayout.cells.map((c) => `${c.row},${c.col}`)).size === 54,
+      ok(new Set(ibLayout.cells.map((c) => `${c.row},${c.col}`)).size === 108,
         'anatomy/icon-button: every member gets its own cell — combineAsVariants preserves positions, so a shared one stacks them invisibly');
-      // Three footprint cohorts, one per size, and that is the whole point of the square: `state` and
-      // `appearance` must not move the box, and with no slot axes `size` is the only thing that may.
+      // Three footprint cohorts, one per size, and that is the whole point of the square: `state`,
+      // `appearance` and now `shape` must not move the box, and with no slot axes `size` is the only thing
+      // that may. #1353's shape axis changes the corner RADIUS, not the width/height, so it does NOT add a
+      // cohort — the count stays 3 (this is the box-level check that the shape axis is pure corner geometry).
       ok(new Set(ibLayout.cells.map((c) => c.group)).size === 3,
-        `anatomy/icon-button: three footprint cohorts, one per size — state and appearance must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
+        `anatomy/icon-button: three footprint cohorts, one per size — state, appearance and shape must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
 
       // ONE property, where Button has four ref parts. Derived from the nodes the plans BUILD, so this is
       // also the assertion that the required icon still materializes a swap: a slot that stopped producing
@@ -11741,12 +11856,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(ibLayout.refs.length === 1 && ibLayout.refs[0].part === 'icon',
         `anatomy/icon-button: one part is wired to it (${JSON.stringify(ibLayout.refs)})`);
 
-      // The RING appears on exactly the focus-visible column and nowhere else — 9 of 54, which is
-      // 54/6. Derived from the state coordinate rather than from a count, so it fails if the ring leaks
+      // The RING appears on exactly the focus-visible column and nowhere else — 18 of 108, which is
+      // 108/6. Derived from the state coordinate rather than from a count, so it fails if the ring leaks
       // into a neighbouring state as well as if it goes missing.
       const ringMembers = ibSet.filter((p) => planPartNames(p.root).includes('focusRing'));
-      ok(ringMembers.length === 9 && ringMembers.every((p) => /state=focus-visible/.test(planComponentName(p))),
-        `anatomy/icon-button: the focus ring materializes on the 9 focus-visible members and only those (${ringMembers.length})`);
+      ok(ringMembers.length === 18 && ringMembers.every((p) => /state=focus-visible/.test(planComponentName(p))),
+        `anatomy/icon-button: the focus ring materializes on the 18 focus-visible members and only those (${ringMembers.length})`);
 
       // Every member is SKINNED. A coordinate that resolved to no paints is the failure a name-only check
       // cannot see: the set builds, the axes are clean, and 162 identical grey squares come back.
@@ -11781,20 +11896,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // instruction rather than worked around. The cause was a PER-MEMBER growth: `container` gained a bound
       // `strokeWeight`, so every member carried one more binding.
       //
-      // NOW 3, AS OF #1225 — a MEMBER-COUNT drop rather than a per-member or shell change: splitting `intent`
-      // into sibling components takes THIS def's set from 162 members to 54 (the other 108 moved to the two
-      // new sibling defs, which pack their own chunks). Fewer members, fewer chunks — 54 members at ~26 per
-      // chunk is 3. This is the one number here that tracks the set SIZE rather than the per-member or shell
-      // byte cost, so it moved with the split while the "every chunk under budget" check below did not.
+      // WAS 3 AT #1225 — a MEMBER-COUNT drop rather than a per-member or shell change: splitting `intent`
+      // into sibling components took THIS def's set from 162 members to 54 (54 members at ~26 per chunk is 3).
+      //
+      // NOW 5, AS OF #1353 — another MEMBER-COUNT move, in the other direction: the shape axis DOUBLES the set
+      // 54 → 108, so it packs into 5 chunks (~26 per chunk). This is the one number here that tracks the set
+      // SIZE rather than the per-member or shell byte cost, so it moves with an axis change while the "every
+      // chunk under budget" check below does not.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 3, `anatomy/icon-button: the set packs into 3 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 5, `anatomy/icon-button: the set packs into 5 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
       // slice produces a set that is short with nothing reporting it.
       const packed = ibChunks.flatMap((c) => c.variants);
-      ok(packed.length === 54 && new Set(packed).size === 54,
-        `anatomy/icon-button: the chunks partition all 54 members exactly once (${packed.length} written, ${new Set(packed).size} distinct)`);
+      ok(packed.length === 108 && new Set(packed).size === 108,
+        `anatomy/icon-button: the chunks partition all 108 members exactly once (${packed.length} written, ${new Set(packed).size} distinct)`);
 
       // ---- the `nesting` relation (#681), and the SQUARE rules ------------------------------------
       // The field is REQUIRED on every part that points at another component, so the first assertion is
@@ -11891,14 +12008,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         ok(inflowErrs.length === 0, `#1226 an in-flow \`nest\` validates clean${inflowErrs.length ? ' — ' + inflowErrs.join('; ') : ''}`);
         const findNode = (n: { name?: string; children?: unknown[] }, name: string): any => // eslint-disable-line @typescript-eslint/no-explicit-any
           n.name === name ? n : (n.children ?? []).map((c) => findNode(c as { name?: string; children?: unknown[] }, name)).find(Boolean);
-        const ring = findNode(figmaAnatomyPlan(inflow, iconButton.variants.size[0], {}).root, 'focusRing');
+        const ring = findNode(figmaAnatomyPlan(inflow, iconButton.variants.size[0], { shape: 'square' }).root, 'focusRing');
         ok(ring?.type === 'NESTED_INSTANCE' && ring?.nestTarget === 'focus-ring',
           `#1226 an in-flow nest projects a NESTED_INSTANCE naming its target (${ring?.type} -> ${ring?.nestTarget})`);
         ok(ring?.nestVariant && ring.nestVariant.surface !== undefined,
           `#1226 ...carrying its nest-fixed coordinate, resolved by nestVariantOf (${JSON.stringify(ring?.nestVariant)})`);
         ok(ring?.absoluteInset === undefined,
           `#1226 ...and IN the flow — no absoluteInset (${JSON.stringify(ring?.absoluteInset)})`);
-        const absRing = findNode(figmaAnatomyPlan(iconButton, iconButton.variants.size[0], { state: 'focus-visible' }).root, 'focusRing');
+        const absRing = findNode(figmaAnatomyPlan(iconButton, iconButton.variants.size[0], { state: 'focus-visible', shape: 'square' }).root, 'focusRing');
         ok(absRing?.type === 'NESTED_INSTANCE' && absRing?.absoluteInset !== undefined,
           `#1226 ...where the SAME def's unpatched absolute ring is the same NESTED_INSTANCE but WITH absoluteInset — the flow is the only difference (${JSON.stringify(absRing?.absoluteInset)})`);
       }

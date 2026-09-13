@@ -317,6 +317,23 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'three, since `text-field` and `textarea` have declared three rungs since tranche 1.',
   },
   {
+    axis: 'shape',
+    values: ['square', 'circular'],
+    defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'],
+    relation: 'sole',
+    reason:
+      'The icon button\'s CORNER SILHOUETTE (#1353, owner-decided) — `square` a rounded rectangle at the '
+      + 'button\'s normal radius (`radius.md`), `circular` a full-round disc (`radius.round`). PURE GEOMETRY: '
+      + 'the two values differ only in the container\'s corner radius and are token-identical in colour, state '
+      + 'and every other binding, which is why it is a 2-value AXIS and not a component split (the #1225 '
+      + 'contrast — intent became components because each carried a different colour binding; shape carries '
+      + 'none). `square` LEADS because it is the default and the byte-identical pre-#1353 geometry. `sole`, '
+      + 'and shared by the three icon-button components BY DESIGN — one shared anatomy through `makeIconButton`, '
+      + 'so the three carry identical values and this one entry records all three. Distinct from `size` (a '
+      + 'scale rung), `ratio` (a width-to-height proportion) and `style` (a line treatment) — argued in '
+      + '`VARIANT_AXES`.',
+  },
+  {
     axis: 'style',
     values: ['outline'],
     defs: ['text-field', 'textarea'],
