@@ -1468,20 +1468,37 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  * projector a brand input, the caller that knows the brand rewrites the DEF first and hands the projector a
  * def as before. The projector stays a pure function of its def; the brand-specificity lives here.
  *
- * What it does: under `pill`, a pill-able control's `radius` binding key is repointed from its rounded rung
- * (`radius.md`) to the shared pill rung (`radius.round`). `varOf` still resolves `radius` through
- * `def.tokens` exactly as before — only the ref it finds there has moved — so no binding is bypassed and no
- * per-component token is introduced. Under `rounded` (default) and for any def that is not pill-able, this
- * is the IDENTITY: it returns the same object, which is what makes `rounded` reproduce every plan
+ * What it does: under `pill`, a pill-able control's ROUNDED rung — every `tokens` entry whose ref is
+ * `radius.md` — is repointed to the shared pill rung (`radius.capsule`). `varOf` still resolves each binding
+ * through `def.tokens` exactly as before — only the ref it finds there has moved — so no binding is bypassed
+ * and no per-component token is introduced. Under `rounded` (default) and for any def that is not pill-able,
+ * this is the IDENTITY: it returns the same object, which is what makes `rounded` reproduce every plan
  * byte-identically (acceptance #1, the no-op-default independence check).
  *
- * NARROW BY CONSTRUCTION: it rewrites ONLY the `radius` key and ONLY for pill-able defs. `switch`/`radio`
- * carry no `pill-radius` derivation, so `isPillable` is false and they pass through untouched — the lever
- * cannot reach the one binding (`radius.round`) that already gives them their intrinsic pill/circle.
+ * WHY IT KEYS ON THE ROUNDED RUNG (`radius.md`) RATHER THAN THE LITERAL KEY `radius` (#1353). Before the
+ * icon-button `shape` axis, both pill-able defs bound their corner radius through a token key spelled
+ * `radius`, so the lever could rewrite that key by name. #1353 splits icon-button's corner into a per-shape
+ * pair — `radius.square` → `radius.md`, `radius.circular` → `radius.round` — so there is no bare `radius`
+ * key on it any more, and a key-name rewrite would silently no-op the lever for icon-button. Keying on the
+ * REF instead follows the geometry rather than the spelling: the `square` shape (`radius.md`) is the rounded
+ * rung a pill rounds off, so it is repointed; the `circular` shape (`radius.round`) is an INTRINSIC round
+ * rung the lever leaves alone — the exact rule it already applies to switch/radio's own `radius.round`. So
+ * under a pill brand a square icon-button becomes a capsule (a circle, on a width = height control) and a
+ * circular one stays circular, and `button` (which still binds `radius.md` under the key `radius`) is
+ * repointed exactly as before — its default plan is byte-identical.
+ *
+ * NARROW BY CONSTRUCTION: it rewrites ONLY refs equal to the rounded rung and ONLY for pill-able defs.
+ * `switch`/`radio` carry no `pill-radius` derivation, so `isPillable` is false and they pass through
+ * untouched — and even were they pill-able, their `radius.round` ref is not the rounded rung, so the lever
+ * cannot reach the one binding that already gives them their intrinsic pill/circle.
  */
+export const ROUNDED_RADIUS_RUNG = 'radius.md';
 export const applyControlShape = (def: ComponentDef, shape: ControlShape): ComponentDef => {
   if (shape !== 'pill' || !isPillable(def)) return def;
-  return { ...def, tokens: { ...def.tokens, radius: PILL_RADIUS_RUNG } };
+  const tokens = Object.fromEntries(
+    Object.entries(def.tokens).map(([k, ref]) => [k, ref === ROUNDED_RADIUS_RUNG ? PILL_RADIUS_RUNG : ref]),
+  );
+  return { ...def, tokens };
 };
 
 /**

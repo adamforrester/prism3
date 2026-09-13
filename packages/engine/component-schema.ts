@@ -2037,12 +2037,33 @@ export type State = (typeof STATES)[number];
  * adding: two precise names replace one overloaded one on three defs, `tone` narrows to its one honest
  * use, and the bar is unchanged. `emitAsComponents` still needs exactly one `variantAxes` entry, so a
  * def cannot smuggle two of these onto one Figma set.
+ *
+ * ── `shape`: THE EIGHTEENTH NAME, FOR THE ICON BUTTON'S CORNER SILHOUETTE (#1353) ──────────────────
+ *
+ * `shape` (`square | circular`) is the CORNER GEOMETRY a control takes — a rounded rectangle or a full
+ * disc — the owner-decided axis for `icon-button` (and its two siblings), held to this list's bar the
+ * same way `ratio` and the veil's two were. It is PURE GEOMETRY: the two values differ only in the
+ * container's corner radius (`square` → `radius.md`, `circular` → `radius.round`) and are token-identical
+ * in color, state and every other binding, which is exactly why the owner made it an AXIS and not a
+ * component split (contrast #1225, where each intent carried a different `interactive.<family>` binding
+ * and so became its own component). The three nearest names are defeated: `size` is a scale RUNG (how big,
+ * on a named ladder a brand re-derives), `ratio` is a width-to-height PROPORTION the frame holds while its
+ * dimensions flex (#1316), and `style` is a LINE treatment (`outline`, the field substrate's stroke) —
+ * none is a corner silhouette. Naming it `size` would put a shape into a scale axis whose values are
+ * dimension tokens; `ratio` fixes a proportion, not a corner; `style` is about the edge's stroke, not its
+ * rounding. `lint-axis-values.ts` carries `['square', 'circular']` as a `sole` set with this reason.
+ *
+ * IT DOES NOT COLLIDE WITH THE `controlShape` BRAND LEVER (#1163), which is a distinct mechanism at a
+ * distinct layer: `controlShape` is a per-BRAND `rounded | pill` choice applied to a def BEFORE projection
+ * (`applyControlShape`), while `shape` is a per-INSTANCE variant a designer picks within one set. They
+ * compose — under a `pill` brand the lever repoints the `square` shape's rounded rung to the capsule rung
+ * and leaves the `circular` shape's intrinsic round rung, the same rule it applies to switch/radio.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis',
+  'status', 'emphasis', 'shape',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
