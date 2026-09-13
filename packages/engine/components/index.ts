@@ -55,6 +55,7 @@ import { textarea } from './textarea';
 import { checkboxControl } from './checkbox-control';
 import { checkbox } from './checkbox';
 import { radio } from './radio';
+import { switchControl } from './switch-control';
 import { switchDef } from './switch';
 import { select } from './select';
 import { veil } from './veil';
@@ -66,7 +67,7 @@ import { imagePlaceholder } from './image-placeholder';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkbox, radio, switchDef, select, veil, imagePlaceholder };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkbox, radio, switchControl, switchDef, select, veil, imagePlaceholder };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -109,10 +110,15 @@ export const componentDefs: readonly ComponentDef[] = [
   // does carry a claim beyond convention, since the chain is real: radio inherits the field substrate
   // THROUGH checkbox rather than directly.
   radio,
+  // `switch-control` is the ATOMIC track-and-thumb (#1354), extracted from `switch` so the labelled Row
+  // can nest it rather than redraw it — the #1226/#1330 mechanism a third time, built after confirming
+  // the switch Row nests it (the composition check). It leads `switch` on composition order — `switch`
+  // nests `switch-control`, which nests `focus-ring` — though nothing reads this array's order (see above).
+  switchControl,
   // `switch` follows `radio` because it `inherits` checkbox too — the same two-link chain, and the
-  // order here says only that all three share a parent. It is exported as `switchDef` rather than
-  // `switch` because `switch` is a reserved word: the def's `id` is still `'switch'`, which is what
-  // every gate and every consumer reads.
+  // order here says only that all three share a parent. Since #1354 it is the labelled ROW that nests
+  // `switch-control` in flow. It is exported as `switchDef` rather than `switch` because `switch` is a
+  // reserved word: the def's `id` is still `'switch'`, which is what every gate and every consumer reads.
   switchDef,
   // `select` (#761 mechanism resolved) — the composed, native-first field. It sits after the selection
   // controls because composition order puts it here: it NESTS `field-label`, `field-message` and

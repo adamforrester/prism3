@@ -157,16 +157,28 @@
         "sha256": "4f3cf85c9a42525af1c1d41524c2502feaec4eec5988b09acf3f72739abd8f86"
       }
     },
-    "switch": {
+    "switch-control": {
       "set": {
         "members": 24,
         "assignments": 86,
-        "sha256": "1fe009561f084fe138481f9eb7d202c8a1e6ebad852445ae9d24e8c13f0f3acb"
+        "sha256": "446f9fc50f04954cbb74e19616f31904e5d4c52e7705d9f3408a53cd0d287702"
       },
       "grid": {
-        "members": 32,
-        "assignments": 114,
-        "sha256": "bb5fa69dfb1aaff8f539729a115baa77a94cf8ea1d529e8236f1e1801fa0c5ce"
+        "members": 24,
+        "assignments": 86,
+        "sha256": "2dce3ea0c7c41bd3208ec32d195e955974ddaa105a059821639d6b08fc3eabec"
+      }
+    },
+    "switch": {
+      "set": {
+        "members": 2,
+        "assignments": 2,
+        "sha256": "f35a25e08771f3c26f975cdf6b046cc7d97a13c8268814f367c039f786f44c74"
+      },
+      "grid": {
+        "members": 16,
+        "assignments": 16,
+        "sha256": "e9897efd57e5669247b66fd9242bd3cbcde3abaa1255e718f5d3ff5c96ba43a7"
       }
     },
     "select": {

@@ -2216,14 +2216,15 @@ const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: Bo
   return { rows, misses: r.misses, members: r.variants };
 };
 
-ok(!!byId('checkbox-control') && !!byId('radio') && !!byId('switch'),
+ok(!!byId('checkbox-control') && !!byId('radio') && !!byId('switch-control'),
   '#1011 reachable: all three selection controls resolve from their ids');
-// #1226 step 2 — the painted box moved off `checkbox` (now the Row, which nests it) into the atomic
-// `checkbox-control`, so the box these arms read off the built node is the atom's. radio/switch still
-// inline theirs. The atom's box is its member ROOT (see the fallback in `readBoxes`).
+// #1226 step 2 / #1354 — the painted box moved off `checkbox`/`switch` (now Rows that nest it) into the
+// atomic `checkbox-control`/`switch-control`, so the box these arms read off the built node is the atom's.
+// radio still inlines its `control`. The atom's box is its member ROOT (see the fallback in `readBoxes`):
+// `checkbox-control`'s `control` and `switch-control`'s `track` are each their def's anatomy root.
 const cb = await readBoxes(byId('checkbox-control')!, 'control');
 const rb = await readBoxes(byId('radio')!, 'control');
-const sw = await readBoxes(byId('switch')!, 'track');
+const sw = await readBoxes(byId('switch-control')!, 'track');
 // PIN THE INPUT, same discipline as the Button block: every claim below is vacuously true over zero rows.
 ok(cb.rows.length === 54 && rb.rows.length === 36 && sw.rows.length === 24,
   `#1011 reachable: the built boxes were found on every member (checkbox ${cb.rows.length}/54, radio ${rb.rows.length}/36, switch ${sw.rows.length}/24)`);
@@ -2266,8 +2267,8 @@ ok(errored.length > 0 && errored.every((r) => r.stroke === 'color/border/danger'
 const sameFamily = [...cb.rows, ...rb.rows, ...sw.rows]
   .filter((r) => r.fill && r.stroke && famOf(r.fill) !== null && famOf(r.fill) === famOf(r.stroke));
 ok(sameFamily.length > 0, `#1011 reachable: some built box does bind a same-family fill and stroke (${sameFamily.length})`);
-ok(sameFamily.every((r) => r.def === 'switch' && r.selection === 'off'),
-  `#1011 ...and switch's OFF track is the ONLY one (${[...new Set(sameFamily.map((r) => `${r.def}/${r.selection}`))].join(', ')})`);
+ok(sameFamily.every((r) => r.def === 'switch-control' && r.selection === 'off'),
+  `#1011 ...and switch-control's OFF track is the ONLY one (${[...new Set(sameFamily.map((r) => `${r.def}/${r.selection}`))].join(', ')})`);
 ok(sw.rows.filter((r) => r.selection === 'off' && r.state !== 'error').every((r) => r.fill !== null && r.stroke !== null),
   '#1011 ...and it binds both on every non-error member, so the exception above is a fact about this build and not a hole');
 
@@ -2452,14 +2453,17 @@ ok(unstroked.length > 0 && new Set(unstroked.map((r) => r.def)).size === 3,
 // what a negative control is for.
 type BoundNode = { bound?: Record<string, string>; children?: BoundNode[] };
 const stripWeight = (n: BoundNode): void => { delete n.bound?.strokeWeight; (n.children ?? []).forEach(stripWeight); };
-const swPlansNoWeight = (JSON.parse(JSON.stringify(figmaAnatomySet(byId('switch')!, {}))) as AnatomyPlan[]);
+const swPlansNoWeight = (JSON.parse(JSON.stringify(figmaAnatomySet(byId('switch-control')!, {}))) as AnatomyPlan[]);
 for (const p of swPlansNoWeight) stripWeight(p.root as unknown as BoundNode);
 const swPage: Page = { children: [] };
 await run(swPlansNoWeight, { ...fullFor(swPlansNoWeight), page: swPage });
 const swTracks = ((swPage.children.find((n) => n.type === 'COMPONENT_SET')?.children) as Node[] | undefined) ?? [];
-const noWeight = swTracks.map((m) => allNodes(m).find((n) => n.name === 'track')).filter((n): n is Node => !!n);
+// Since #1354 `track` IS switch-control's anatomy root, so it materializes as the member frame itself
+// (named by the coordinate, not 'track') — fall back to the member when the named child is not found, the
+// same root-is-the-box shape `readBoxes` handles for `checkbox-control`.
+const noWeight = swTracks.map((m) => allNodes(m).find((n) => n.name === 'track') ?? m).filter((n): n is Node => !!n);
 ok(noWeight.length === swPlansNoWeight.length,
-  `#1228 reachable: the binding-stripped switch built a track on every member (${noWeight.length}/${swPlansNoWeight.length})`);
+  `#1228 reachable: the binding-stripped switch-control built a track on every member (${noWeight.length}/${swPlansNoWeight.length})`);
 ok(noWeight.every((n) => !((n.boundVariables as Record<string, unknown>) ?? {}).strokeWeight && n.strokeWeight === 1),
   `#1228 ...and with nothing bound the 1px fallback STILL fires on both the stroked and unstroked coordinates, so the gate gates the default rather than removing it (${[...new Set(noWeight.map((n) => String(n.strokeWeight)))].join(', ')})`);
 // AND THE SCOPE, asserted on the OTHER side rather than left to the comment above — TWO TOKENS, NOT ONE
