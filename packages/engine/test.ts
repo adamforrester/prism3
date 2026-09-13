@@ -11000,58 +11000,130 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           /footprint -> .*appearance=outline.* measures \d+x\d+ but .*appearance=filled.* measures \d+x\d+/);
       }
 
-      // ---- #1377: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, read back off the built member ---------
+      // ---- #1377 / #1392: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, over EVERY nest-exposed def -------
       // `nest-exposed` (#1330) has TWO executors that write `isExposedInstance = true` after
       // `createComponentFromNode`: the plugin's `applyComponentPlan` (gated host-truth by
-      // `apps/plugin/test-roundtrip.ts`), and THIS one — `PAYLOAD_BUILD`'s `__expose[]` queue, filled by
-      // `__expose.push(node)` in the NESTED_INSTANCE branch and drained by `__exposeNow(member)`. #1386's
-      // independent review found the payload half UNGATED: on `main`, deleting `__expose.push(node)` from
-      // the payload path leaves `test.ts`, `regen --check` and `mcp-test` all GREEN, because
-      // `test:roundtrip` drives only the plugin executor and every other assertion in this block reads the
-      // payload as TEXT — a substring probe over a string that documents itself (docs/34 shape 12). So this
-      // gate RUNS the payload for the one `nest-exposed` def (`checkbox`, whose Row nests `checkbox-control`
-      // and exposes its `selection`/`state`) against the stub, which models `isExposedInstance` and its
-      // containment refusal in lockstep with the plugin shim, and READS THE MARKING BACK off the built
-      // member. It is the payload string's OWN read-back, not a second copy of the plugin's round-trip.
+      // `apps/plugin/test-roundtrip.ts`, which iterates ALL projected defs), and THIS one —
+      // `PAYLOAD_BUILD`'s `__expose[]` queue, filled by `__expose.push(node)` in the NESTED_INSTANCE branch
+      // and drained by `__exposeNow(member)`. #1386's independent review found the payload half UNGATED: on
+      // `main`, deleting `__expose.push(node)` from the payload path leaves `test.ts`, `regen --check` and
+      // `mcp-test` all GREEN, because `test:roundtrip` drives only the plugin executor and every other
+      // assertion in this block reads the payload as TEXT — a substring probe over a string that documents
+      // itself (docs/34 shape 12). So this gate RUNS the payload against the stub — which models
+      // `isExposedInstance` and its containment refusal in lockstep with the plugin shim — and READS THE
+      // MARKING BACK off the built members. It is the payload string's OWN read-back, not a second copy of
+      // the plugin's round-trip.
+      //
+      // #1392: the SUBJECT SET is DERIVED from the registry, not the literal `checkbox`. A def is
+      // nest-exposed when any anatomy part declares a `nest-exposed` nesting relation — the same def-data
+      // flag that drives the projection's `nestExpose` (anatomy-figma) and both executors' exposure write.
+      // `checkbox` is the only such def today, but `radio`/`switch` are slated (checkbox's header, #1330):
+      // keying on the relation means the day one lands, this payload gate covers it with NO edit — closing
+      // the smaller reprise of the #1377 gap #1386's review named (a second nest-exposed def caught on the
+      // plugin side by `test-roundtrip`, silently ungated here). docs/34 represented-not-counted: the
+      // derived set comes from the def data independently of the executor under test, and the self-check
+      // below proves the derivation is LIVE — a second such def is picked up — rather than pinned to checkbox.
       {
-        const cbPlans = figmaAnatomySet(checkbox);
-        const cbOpts: StubOpts = {
-          vars: [...new Set(cbPlans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
-          styles: [...new Set(cbPlans.flatMap((p) => planTextStyles(p.root)))],
-          // The nested target, resolved as a plain COMPONENT exactly as the round-trip's `planComps` hands
-          // the plugin shim (`test-roundtrip.ts`) — one instance of it takes the control cell in each member.
-          comps: ['checkbox-control'],
-        };
-        // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so it
-        // is read off the PAGE the payload appended the combined set to. Returns every nested `control`
-        // instance across the set's members.
-        const exposedControls = (page: StubPage): Record<string, unknown>[] => {
-          const set = page.children.find((c) => (c as { type?: string }).type === 'COMPONENT_SET') as { children?: Record<string, unknown>[] } | undefined;
-          const out: Record<string, unknown>[] = [];
-          const dive = (n: Record<string, unknown>): void => {
-            if (n.type === 'INSTANCE' && n.name === 'control') out.push(n);
-            for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c);
+        // THE DERIVATION. `nestExposedPartsOf` is driven BOTH by the real subject set here and by the
+        // self-check below — one function, so a mutation that broke it (e.g. hard-coding `checkbox`) fails
+        // the self-check's negative case BY NAME. That the two callers share it is the FIX, not the docs/34
+        // shape-2 defect: they are the gate's derivation and its fixture, not a gate and its subject
+        // (docs/34 §2, the #387 note — "ask which two things the gate compares, not whether code is shared").
+        const nestExposedPartsOf = (def: ComponentDef): string[] =>
+          Object.entries(def.anatomy?.parts ?? {}).filter(([, p]) => p.nesting?.kind === 'nest-exposed').map(([n]) => n);
+        const nestExposedDefs = componentDefs.filter((d) => nestExposedPartsOf(d).length > 0);
+
+        // NON-EMPTY FLOOR (#1392, docs/34): an empty derived set would make the per-def loop below vacuous —
+        // every assertion true because there is nothing to assert over. A registry that declares no
+        // nest-exposed def at all is a red here, not a silent green.
+        ok(nestExposedDefs.length > 0,
+          `#1392 the registry declares at least one nest-exposed def to gate (derived ${nestExposedDefs.length}) — an empty set would make this block vacuous (docs/34 non-empty floor)`);
+        // REPRESENTATION, not a count: checkbox — the one nest-exposed def today — must be IN the derived
+        // set. Pins the guarantee the old hard-coded gate gave (checkbox IS covered) without re-hardcoding
+        // it, so the day another def joins, coverage widens instead of this line going stale.
+        ok(nestExposedDefs.some((d) => d.id === 'checkbox'),
+          `#1392 the derived nest-exposed set REPRESENTS checkbox (got [${nestExposedDefs.map((d) => d.id).join(', ')}])`);
+
+        // docs/34 represented-not-counted SELF-CHECK: prove the derivation keys on the nest-exposed
+        // RELATION in the def data, so a SECOND def adopting it (radio/switch, slated) is auto-covered — and
+        // cannot silently collapse to `[checkbox]`. Flip a nest part's relation and the derivation follows:
+        // `nest-exposed` in, `nest-fixed` out. Fabricated defs, NOT in the registry, so this measures the
+        // predicate rather than re-reading checkbox.
+        const synth = (kind: 'nest-fixed' | 'nest-exposed'): ComponentDef => ({
+          ...checkbox,
+          id: `synthetic-${kind}`,
+          anatomy: {
+            ...checkbox.anatomy,
+            parts: {
+              ...checkbox.anatomy.parts,
+              control: {
+                ...checkbox.anatomy.parts.control,
+                nesting: kind === 'nest-exposed'
+                  ? { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest' }, expose: ['selection', 'state'], follow: ['size'] }
+                  : { kind: 'nest-fixed', variant: { selection: 'unchecked', state: 'rest' }, follow: ['size'] },
+              },
+            },
+          },
+        } as ComponentDef);
+        ok(nestExposedPartsOf(synth('nest-exposed')).includes('control'),
+          '#1392 the derivation INCLUDES a def whose part declares nest-exposed — a second such def (radio/switch slated) is covered with no gate edit (represented, not counted)');
+        ok(nestExposedPartsOf(synth('nest-fixed')).length === 0,
+          '#1392 the derivation EXCLUDES the same def when its part is nest-fixed — it keys on the RELATION, not the def id, so it cannot silently collapse to [checkbox]');
+
+        // A tiny walker over a plan's node tree, for the offline half of the reachability floor below.
+        type PlanNode = AnatomyPlan['root'];
+        const walkPlan = (n: PlanNode): PlanNode[] => [n, ...n.children.flatMap(walkPlan)];
+
+        // PER DEF: run the paste payload and read the exposure marking back off the built members.
+        for (const def of nestExposedDefs) {
+          const exposedPartNames = nestExposedPartsOf(def);
+          const plans = figmaAnatomySet(def);
+          const opts: StubOpts = {
+            vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+            styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+            // The nested targets, resolved as plain COMPONENTs exactly as the round-trip's `planComps` hands
+            // the plugin shim (`test-roundtrip.ts`) — one instance of each takes its cell in every member.
+            comps: [...new Set(exposedPartNames.map((n) => def.anatomy?.parts[n]?.nests).filter((c): c is string => !!c))],
           };
-          for (const m of set?.children ?? []) dive(m);
-          return out;
-        };
-        const cbPage: StubPage = { children: [] };
-        const cbRun = await runPayload(planSetToPluginJs(cbPlans), { ...cbOpts, page: cbPage });
-        ok(cbRun.misses.length === 0,
-          `#1377 the checkbox set runs CLEAN through the paste payload${cbRun.misses.length ? ` — ${JSON.stringify(cbRun.misses)}` : ''}`);
-        // FLOOR / reachability, both halves of docs/34's "the fixture DOES carry it": the payload built the
-        // nested control in every member, so the read-back below has subjects. A run that resolved no
-        // `control` instance would make every exposure assertion vacuously true — the empty-set silence.
-        const controls = exposedControls(cbPage);
-        ok(controls.length === cbPlans.length && cbPlans.length === 3,
-          `#1377 reachable: the payload built the nested control in all ${cbPlans.length} checkbox members (found ${controls.length})`);
-        // THE READ-BACK THE GAP IS ABOUT. Every nested control comes back `isExposedInstance === true`.
-        // Delete `__expose.push(node)` from `PAYLOAD_BUILD` and `__exposeNow` marks nothing, so each control
-        // reads the stub's default `false` and this FAILS BY NAME. `=== true`, not truthiness: the default is
-        // a definite `false` and the payload's write is the only thing that moves it (docs/34 shape 5).
-        const unexposed = controls.filter((n) => n.isExposedInstance !== true);
-        ok(unexposed.length === 0,
-          `#1377 the paste payload marks every nested control isExposedInstance=true — the payload executor's exposure write, UNGATED until now per #1386's review (${controls.length - unexposed.length}/${controls.length} exposed)`);
+          // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
+          // it is read off the PAGE the payload appended the combined set to. Returns every nested instance
+          // whose name is a nest-exposed part — the built node's `name` IS the part name (anatomy-figma's
+          // `node.name = n.name`), which is why the part-name set is the right key across any def.
+          const exposedInstances = (page: StubPage): Record<string, unknown>[] => {
+            const set = page.children.find((c) => (c as { type?: string }).type === 'COMPONENT_SET') as { children?: Record<string, unknown>[] } | undefined;
+            const out: Record<string, unknown>[] = [];
+            const dive = (n: Record<string, unknown>): void => {
+              if (n.type === 'INSTANCE' && exposedPartNames.includes(String(n.name))) out.push(n);
+              for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c);
+            };
+            for (const m of set?.children ?? []) dive(m);
+            return out;
+          };
+          const page: StubPage = { children: [] };
+          const run = await runPayload(planSetToPluginJs(plans), { ...opts, page });
+          ok(run.misses.length === 0,
+            `#1392 the ${def.id} set runs CLEAN through the paste payload${run.misses.length ? ` — ${JSON.stringify(run.misses)}` : ''}`);
+
+          // FLOOR / reachability, both halves of docs/34's "the fixture DOES carry it". The EXPECTED count
+          // is the number of nodes the OFFLINE projection marked `nestExpose` across the set — derived from
+          // the plans, independent of the executor's read-back (plans are the projection; the page is the
+          // host build). A run that resolved no exposed instance would make every marking assertion
+          // vacuously true (the empty-set silence); a count mismatch means the executor built fewer (or
+          // more) than the plan asked for.
+          const expected = plans.flatMap((p) => walkPlan(p.root)).filter((n) => n.nestExpose !== undefined).length;
+          const instances = exposedInstances(page);
+          ok(expected > 0 && instances.length === expected,
+            `#1392 reachable: the payload built every nest-exposed instance the ${def.id} projection declared (${instances.length} built / ${expected} projected)`);
+
+          // THE READ-BACK THE GAP IS ABOUT. Every nest-exposed instance comes back `isExposedInstance ===
+          // true`. Delete `__expose.push(node)` from `PAYLOAD_BUILD` and `__exposeNow` marks nothing, so
+          // each reads the stub's default `false` and this FAILS BY NAME. `=== true`, not truthiness: the
+          // default is a definite `false` and the payload's write is the only thing that moves it (docs/34
+          // shape 5).
+          const unexposed = instances.filter((n) => n.isExposedInstance !== true);
+          ok(unexposed.length === 0,
+            `#1392 the paste payload marks every ${def.id} nest-exposed instance isExposedInstance=true — the payload executor's exposure write, UNGATED until #1386's review (${instances.length - unexposed.length}/${instances.length} exposed)`);
+        }
       }
 
       // ---- AXIS PARITY between the two write paths (#487 step 5) --------------------------------
