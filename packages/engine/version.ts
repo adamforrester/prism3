@@ -60,6 +60,35 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.81.0: `select` cluster, part 1 of #1329 (#1342 / #1343b / #1344; the #1343a default width and #1345
+ * responsive auto-layout are HELD — see below). Two projected-surface moves and one doc-only confirmation:
+ *   (1) #1343b — the `icon` slot repoints `color.icon.secondary` → `color.icon.primary`. That one key
+ *       paints BOTH the trailing chevron's vector AND the leading swap's descendants, so both glyphs go
+ *       full-contrast to match the value text (the leading glyph the caller nominates already defaulted to
+ *       `icon.primary`). No new token NAME — an existing emitted role.
+ *   (2) #1344 — `empty` leaves the projected `stateAxis` (owner: "Yes remove"), dropping the set from
+ *       status(4)×state(5)×leading(2)=40 to status(4)×state(4)×leading(2)=32 members. It STAYS a real
+ *       `state` (the placeholder-vs-value ink distinction is carried in the paint model — `label.empty`,
+ *       `error.border.empty` — and reached at the empty coordinate of the declared grid), admitted out of
+ *       the projected axis by the `codeOnly` entry leading with `empty`, exactly as `button`'s `inactive`
+ *       is. So it is an INTERNAL, content-driven ink distinction, not a variant a designer picks.
+ *   (3) #1342 — CONFIRMED + DOCUMENTED, adds nothing: hover is carried by the BORDER (`border.hover` →
+ *       `color.field.border.hover`, present at select.ts and reached at the hover coordinate) and the field
+ *       FILL is stateless by design (text-field's model). No `color/field/fill/hover` role is minted.
+ *
+ * ENGINE and not CONTRACT, on #1252: the PROJECTED component surface moves (icon ink repointed, `empty`
+ * column dropped), but no emitted TOKEN NAME is added, removed or retyped — the icon binding reuses the
+ * existing `color.icon.primary` role and the `empty` change touches only a component paint key, never a
+ * guaranteed token path. So `CONTRACT_VERSION` STANDS at 10.0.0; `token-contract.ts --check` confirms the
+ * guaranteed set unchanged and `--accept` refreshes only the baseline's informational `engineVersion`
+ * stamp. `regen --check` moves only each artifact's own generator stamp (0.80.0 → 0.81.0);
+ * `lint-emission-version` is green (no emission VALUE change). `lint-component-surface` re-`--accept`ed at
+ * the forward bump (`select` 40 → 32); `lint-paint` census `set` re-`--accept`ed (`select` set 40 → 32
+ * members, and the icon ink content moved), `grid` unchanged (still 20 declared coordinates — `empty`
+ * stays in `states`). MUTATIONS (docs/34): the `#1344`/`#1343b` `test.ts` block reverts each change and
+ * fails a NAMED assertion (icon → secondary; `empty` back on the projected axis; `empty` dropped from
+ * `states`). No schema refusal was touched.
+ *
  * 0.80.0: icon-button gains a `shape` variant axis — `square | circular`, square default (#1353, owner-
  * decided 2026-09-10). PURE GEOMETRY: the two values differ ONLY in the container's corner radius (`square`
  * → `radius.md`, `circular` → `radius.round`) and are token-identical in colour, state and every other
@@ -2231,7 +2260,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.80.0';
+export const ENGINE_VERSION = '0.81.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

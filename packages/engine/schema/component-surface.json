@@ -68,8 +68,8 @@
       "sha256": "b08a1cf375022c0821e8bb71daffb8e6dbe38219c873c6de7bd20d004f1d0d33"
     },
     "select": {
-      "members": 40,
-      "sha256": "9c09ab21af05c102e79beacf25eb787947266d2a92e69728e1cf53fe70720c35"
+      "members": 32,
+      "sha256": "631862a94b85a9246727f065f6964561564414f7e171394c871be21c88310c4b"
     },
     "veil": {
       "members": 6,

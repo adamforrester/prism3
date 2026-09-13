@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radioControl, radio, switchControl, switchDef } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radioControl, radio, switchControl, switchDef, select } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -8268,6 +8268,69 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const defaultMutant = { ...iconButton, variants: { ...iconButton.variants, shape: ['circular', 'square'] } };
     ok(defaultMutant.variants.shape[0] === 'circular',
       "#1353 MUTATION ARM B: reordering shape to ['circular', 'square'] makes values[0] = 'circular', which flips '#1353 shape values LEAD with the default square' to failing");
+  }
+
+  // #1344 / #1343b — the SELECT cluster (part 1 of #1329). Two projected-surface moves, each pinned
+  // INDEPENDENTLY of the projector (docs/34): EXPECTED is the role name / cardinality authored here,
+  // ACTUAL is read off the emitted plan or the def declaration. Each carries a mutation arm that flips a
+  // NAMED assertion true→false on the SUBJECT (the def). (#1343a default width + #1345 responsive
+  // auto-layout are HELD as a surfaced fork — no width binding here to pin.)
+  {
+    // ---- #1343b: the icon ink is PRIMARY on BOTH glyphs (trailing chevron + leading swap) ----
+    // The one `icon` key paints the chevron's vector and the leading swap's descendants; both must come
+    // back `color/icon/primary`, matching the value text. EXPECTED is the authored role, ACTUAL the pixel.
+    const iconInk = (leading: boolean): string[] =>
+      [...new Set(planPaintVars(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'rest', leading, swapTarget: 'FPO-default-icon' } as never).root)
+        .filter((v) => v.startsWith('color/icon/')))].sort();
+    ok(JSON.stringify(iconInk(true)) === JSON.stringify(['color/icon/primary']),
+      `#1343 select icon ink is PRIMARY on every glyph (chevron + leading), never secondary (got ${iconInk(true).join(', ') || 'none'})`);
+    ok(iconInk(false).length === 1 && iconInk(false)[0] === 'color/icon/primary',
+      `#1343 select chevron ink is PRIMARY with no leading glyph present (got ${iconInk(false).join(', ') || 'none'})`);
+    //   MUTATION: revert `icon` → secondary. Both glyphs then project `color/icon/secondary`, flipping the
+    //   two assertions above BY NAME.
+    const inkMutant = { ...select, tokens: { ...select.tokens, icon: 'color.icon.secondary' } };
+    const mutInk = [...new Set(planPaintVars(figmaAnatomyPlan(inkMutant as ComponentDef, undefined, { status: 'default', state: 'rest', leading: true, swapTarget: 'FPO-default-icon' } as never).root)
+      .filter((v) => v.startsWith('color/icon/')))];
+    ok(JSON.stringify(mutInk) === JSON.stringify(['color/icon/secondary']),
+      `#1343 MUTATION: reverting select.icon → color.icon.secondary makes both glyphs project color/icon/secondary, flipping '#1343 select icon ink is PRIMARY' to failing (got ${mutInk.join(', ') || 'none'})`);
+
+    // ---- #1344: `empty` is NOT a projected state, but IS carried internally ----
+    const projStates = select.figmaProperties!.stateAxis!.values;
+    const V = select.variants!.status!.length;                 // status: 4
+    const St = projStates.length;                               // rest/hover/focus-visible/disabled: 4
+    const slotFactor = 2 ** (select.figmaProperties!.slotAxes ?? []).length; // leading: ×2
+    const set = figmaAnatomySet(select);
+    // (a) empty is absent from the PROJECTED axis, and the enumeration matches the product WITHOUT it.
+    ok(!projStates.includes('empty'),
+      `#1344 'empty' is NOT a projected Figma state (stateAxis = [${projStates.join(', ')}])`);
+    ok(set.length === V * St * slotFactor && set.length === 32,
+      `#1344 select projects status(${V})×state(${St})×leading = ${V * St * slotFactor} members (was 40 with the empty column)`);
+    ok(!set.some((p) => planComponentName(p).includes('empty')),
+      '#1344 no projected member names the empty state');
+    // (b) empty IS still a real state — the placeholder-vs-value ink distinction is carried internally, and
+    // the placeholder ink is REACHED at the empty coordinate of the declared grid (what lint-paint walks).
+    ok(select.states.includes('empty'),
+      "#1344 'empty' stays in `states` — the placeholder-vs-value ink is carried internally, not dropped");
+    ok(select.tokens!['label.empty'] === 'color.field.placeholder',
+      "#1344 the placeholder ink `label.empty` → color.field.placeholder is still bound");
+    const emptyInk = planPaintVars(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'empty', leading: false } as never).root)
+      .filter((v) => v === 'color/field/placeholder');
+    ok(emptyInk.length === 1,
+      '#1344 the placeholder ink is reached at the declared empty coordinate (text paints color/field/placeholder)');
+    //   MUTATION A — restore `empty` to the projected axis. The set rebuilds the empty column (32 → 40) and
+    //   a member names it, flipping '#1344 select projects … 32 members' and '#1344 no projected member
+    //   names the empty state' BY NAME.
+    const projMutant = { ...select, figmaProperties: { ...select.figmaProperties!, stateAxis: { name: 'state', values: [...projStates, 'empty'] } } };
+    const mutSet = figmaAnatomySet(projMutant as ComponentDef);
+    ok(mutSet.length === 40 && mutSet.some((p) => planComponentName(p).includes('empty')),
+      `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 32 members' to failing`);
+    //   MUTATION B — drop `empty` from `states`. `label.empty` / `error.border.empty` then name a state the
+    //   def no longer declares, so `validateComponentDef` reports them as unreachable paint keys — the
+    //   internal carry is load-bearing, and this flips '#1344 empty stays in states' BY NAME.
+    const carryMutant = { ...select, states: select.states.filter((s) => s !== 'empty') };
+    const carryErrors = validateComponentDef(carryMutant as ComponentDef).errors;
+    ok(carryErrors.some((e) => e.includes("'label.empty'")),
+      `#1344 MUTATION B: dropping 'empty' from states makes label.empty an undeclared-state paint key — validation fails (${carryErrors.length} error(s)), proving the internal carry is real`);
   }
 
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
