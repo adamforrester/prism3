@@ -2217,7 +2217,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.77.0';
+export const ENGINE_VERSION = '0.78.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

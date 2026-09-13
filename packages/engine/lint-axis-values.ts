@@ -274,7 +274,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['off', 'on'],
-    defs: ['switch'],
+    // Since #1354 the `selection` axis lives on `switch-control` (the painted track/thumb), not the
+    // `switch` ROW (which exposes it). The row no longer declares it — the atom does.
+    defs: ['switch-control'],
     relation: 'disjoint',
     reason:
       'Argued and correct (#930), and the reason this gate is a register rather than a uniformity rule. '
@@ -299,7 +301,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium'],
-    defs: ['switch'],
+    // The `switch` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
+    // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
+    defs: ['switch', 'switch-control'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form: a switch above medium stops reading '

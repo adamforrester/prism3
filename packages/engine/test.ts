@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radio, switchDef } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radio, switchControl, switchDef } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -1345,7 +1345,10 @@ for (const b of brands) {
     // binding too — the nest pins the nested control's own square through it — so both read the varying
     // family and both belong here; the property this arm checks (px differs by brand) holds for the atom
     // and for the Row's pin alike.
-    const CONTROL_DEFS = ['checkbox-control', 'checkbox', 'radio', 'switch'];
+    // #1354 split `switch` into `switch-control` (the track/thumb, binding control/track/dot/inset) and the
+    // `switch` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's height) —
+    // so both read the varying family and both belong here, exactly as checkbox + checkbox-control do.
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox', 'radio', 'switch-control', 'switch'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -8107,11 +8110,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       `controlShape: button + icon-button are the pill-able set — they declare the \`${PILL_RADIUS_DERIVATION}\` derivation (${pillable.join(', ')})`);
     // THE EXCLUSION, asserted so the lever can never square them off. switch + radio declare no derivation,
     // so `isPillable` is false and `applyControlShape(_, 'pill')` is the identity on them.
-    ok(!isPillable(switchDef) && !isPillable(radioDef),
-      'controlShape: switch + radio are NOT pill-able — their pill/circle is intrinsic (radius.round), not a brand choice');
+    // Since #1354 switch's intrinsic pill lives on `switch-control` (the painted track), so the switch
+    // half of this check reads that atom; the switch ROW declares no radius at all. radio is undecomposed.
+    ok(!isPillable(switchControl) && !isPillable(radioDef),
+      'controlShape: switch-control + radio are NOT pill-able — their pill/circle is intrinsic (radius.round), not a brand choice');
     // The pill lever's rung is NOT the intrinsic-pill rung — raising one can never move the other.
-    ok(PILL_RADIUS_RUNG === 'radius.capsule' && switchDef.tokens['radius'] === 'radius.round' && PILL_RADIUS_RUNG !== switchDef.tokens['radius'],
-      `controlShape: the lever repoints to a rung DISTINCT from switch/radio's intrinsic pill (${PILL_RADIUS_RUNG} ≠ ${switchDef.tokens['radius']})`);
+    ok(PILL_RADIUS_RUNG === 'radius.capsule' && switchControl.tokens['radius'] === 'radius.round' && PILL_RADIUS_RUNG !== switchControl.tokens['radius'],
+      `controlShape: the lever repoints to a rung DISTINCT from switch/radio's intrinsic pill (${PILL_RADIUS_RUNG} ≠ ${switchControl.tokens['radius']})`);
 
     const radiusBindings = (d: ComponentDef, size: string): string[] =>
       [...new Set(planBoundVars(figmaAnatomyPlan(d, size, {}).root).filter((v) => v.startsWith('radius/')))].sort();
@@ -8132,11 +8137,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // excluded set — the same object back, not a rebuilt equal one, which is the strongest form of "unchanged".
     ok(applyControlShape(button, 'rounded') === button && applyControlShape(iconButton, 'rounded') === iconButton,
       'controlShape: rounded is the IDENTITY on pill-able defs — the same object, so the default plan is byte-identical');
-    ok(applyControlShape(switchDef, 'pill') === switchDef && applyControlShape(radioDef, 'pill') === radioDef,
-      'controlShape: pill is the IDENTITY on switch + radio — the excluded set cannot move');
-    for (const size of switchDef.variants?.size ?? [])
-      ok(radiusBindings(applyControlShape(switchDef, 'pill'), size).every((v) => v === 'radius/round'),
-        `controlShape: switch@${size} stays radius/round under pill — untouched by the capsule rung`);
+    ok(applyControlShape(switchControl, 'pill') === switchControl && applyControlShape(radioDef, 'pill') === radioDef,
+      'controlShape: pill is the IDENTITY on switch-control + radio — the excluded set cannot move');
+    for (const size of switchControl.variants?.size ?? [])
+      ok(radiusBindings(applyControlShape(switchControl, 'pill'), size).every((v) => v === 'radius/round') && radiusBindings(switchControl, size).length > 0,
+        `controlShape: switch-control@${size} stays radius/round under pill — untouched by the capsule rung`);
 
     // NARROW: under pill, ONLY the radius binding moves. Every OTHER bound variable is identical between the
     // rounded and pill plans, so the lever selects a derivation and changes nothing else about the component.
@@ -10307,7 +10312,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // button), so it arrives as the member frame itself and `deepFind` for a child would miss it.
         { def: checkboxControl, part: 'control', want: 'V:border-width/thick', atRoot: true, opts: {} },
         { def: radio, part: 'control', want: 'V:border-width/thick', atRoot: false, opts: {} },
-        { def: switchDef, part: 'track', want: 'V:border-width/thick', atRoot: false, opts: {} },
+        // #1354 moved switch's painted `track` to `switch-control`, the same way #1226 moved checkbox's
+        // box — so the border-width binding lives on the ATOM now, and `atRoot: true` because `track` IS
+        // the atom's anatomy root (the member frame itself). The switch ROW nests it and paints no box.
+        { def: switchControl, part: 'track', want: 'V:border-width/thick', atRoot: true, opts: {} },
         // …with the swap target NOMINATED, which the three controls need no equivalent of: button is
         // the only def here with `swap` slots, and an un-nominated one pastes as a placeholder and reports
         // four misses — real, correct, and nothing to do with the stroke this block is about.
@@ -12039,21 +12047,26 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `layout.justify` already put it. So the symptom is a switch whose thumb does not travel — visible
       // only by looking at two members of the set side by side, which no gate downstream does. Every rule
       // was deleted from `anatomyErrors` in turn and the matching line here confirmed to fail BY NAME.
-      // Patched onto `switch`, the only def that uses the field.
-      const swPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(switchDef, part, patch);
+      // Patched onto `switch-control`, the def that carries the travelling thumb since #1354 (it moved
+      // off the `switch` ROW with the painted surface). The text-part arms below stay on the ROW's `label`,
+      // the only text part in the family.
+      const swPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(switchControl, part, patch);
       ibBroke('an EMPTY positionWhen fails — a position keyed on no axis is a claim with nothing in it', /declares an EMPTY 'positionWhen'/, swPart('thumb', { positionWhen: {} }));
       // The rule `presentWhen` does NOT have, and the reason the two fields could not be one: presence
       // AND-composes across axes (absent on any gate ⇒ absent), a position cannot — two axes name two
       // different places for one part and the projector writes whichever it reaches first.
       ibBroke('positioning on TWO axes fails — a position does not AND-compose', /declares 'positionWhen' on 2 axes/,
-        { ...switchDef, variants: { ...switchDef.variants, tone: ['neutral', 'danger'] },
-          anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts, thumb: { ...switchDef.anatomy!.parts.thumb, positionWhen: { selection: { off: 'start', on: 'end' }, tone: { neutral: 'start', danger: 'end' } } } } } } as ComponentDef);
-      ibBroke('positioning the anatomy ROOT fails — the position projects onto a parent the root has not got', /is the anatomy ROOT and declares 'positionWhen'/, swPart('row', { positionWhen: { selection: { off: 'start', on: 'end' } } }));
+        { ...switchControl, variants: { ...switchControl.variants, tone: ['neutral', 'danger'] },
+          anatomy: { ...switchControl.anatomy!, parts: { ...switchControl.anatomy!.parts, thumb: { ...switchControl.anatomy!.parts.thumb, positionWhen: { selection: { off: 'start', on: 'end' }, tone: { neutral: 'start', danger: 'end' } } } } } } as ComponentDef);
+      // The ROOT (now `track`, since #1354 the atom's root) has no parent, so there is no frame whose
+      // distribution could carry it.
+      ibBroke('positioning the anatomy ROOT fails — the position projects onto a parent the root has not got', /is the anatomy ROOT and declares 'positionWhen'/, swPart('track', { positionWhen: { selection: { off: 'start', on: 'end' } } }));
       // The root's SIBLING case: a part nobody lists as a child. Separate from the root rule because the
       // root legitimately has no parent while this is a dangling part, and the fix for each is different.
+      // Orphaning the thumb (it keeps its positionWhen) drops it from `track.children`.
       ibBroke('positioning a part nobody claims as a child fails', /declares 'positionWhen' but is not a child of any part/,
-        { ...switchDef, anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts,
-          track: { ...switchDef.anatomy!.parts.track, children: ['focusRing'] } } } } as ComponentDef);
+        { ...switchControl, anatomy: { ...switchControl.anatomy!, parts: { ...switchControl.anatomy!.parts,
+          track: { ...switchControl.anatomy!.parts.track, children: ['focusRing'] } } } } as ComponentDef);
       // A parent with no layout at all is not an auto-layout frame, so it has no `primaryAxisAlignItems` for
       // the position to be written to — distinct from the sizing precondition, which is about a frame that
       // exists and cannot distribute.
@@ -12065,16 +12078,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // CENTER and MAX are the same coordinate. `sizingMode` maps 'hug' AND 'fill' to AUTO (#989), so
       // 'fill' is refused too and the message says so.
       ibBroke('a parent that HUGS its main axis fails — start/center/end collide, so the travel is a no-op', /has main-axis sizing 'hug'/,
-        swPart('track', { layout: { ...switchDef.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } }, width: undefined }));
+        swPart('track', { layout: { ...switchControl.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } }, width: undefined }));
       ibBroke("…and 'fill' fails the same way, BY NAME — it projects to AUTO as well (#989)", /has main-axis sizing 'fill'/,
-        swPart('track', { layout: { ...switchDef.anatomy!.parts.track.layout!, sizing: { x: 'fill', y: 'fixed' } }, width: undefined }));
+        swPart('track', { layout: { ...switchControl.anatomy!.parts.track.layout!, sizing: { x: 'fill', y: 'fixed' } }, width: undefined }));
       // (b) `primaryAxisAlignItems` distributes the WHOLE group, so a part sharing the flow with a sibling
       // has its place decided by where the sibling sits. `absolute`/`overlay` are not flow children, which
       // is the carve-out that lets `focusRing` sit inside the track alongside the thumb — asserted by the
-      // clean-validation line at the end of this block rather than assumed.
+      // clean-validation line at the end of this block rather than assumed. A synthetic box sibling gives
+      // the thumb a flow neighbour under the track (the glyphs are the thumb's own children, not siblings).
       ibBroke('a positioned part sharing its parent\'s flow with a sibling fails', /has 2 flow children/,
-        { ...switchDef, anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts,
-          track: { ...switchDef.anatomy!.parts.track, children: ['thumb', 'focusRing', 'label'] } } } } as ComponentDef);
+        { ...switchControl, anatomy: { ...switchControl.anatomy!, parts: { ...switchControl.anatomy!.parts,
+          track: { ...switchControl.anatomy!.parts.track, children: ['thumb', 'sibling', 'focusRing'] },
+          sibling: { kind: 'box', role: 'presentation', layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } } } } } } as ComponentDef);
       // A part OUTSIDE the flow cannot be distributed at all, so the two mechanisms are refused together.
       ibBroke('an `absolute` declaring positionWhen fails — it is placed against bounds, not distributed', /is kind 'absolute' and declares 'positionWhen'/, swPart('focusRing', { positionWhen: { selection: { off: 'start', on: 'end' } } }));
       // The AXIS rules, the same three `presentWhen` needs, for the same reasons — an axis the projector
@@ -12084,8 +12099,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `tone` rather than an invented name: axis NAMES are closed, so a made-up one fails on that rule and
       // would leave this line green on somebody else's error.
       ibBroke('keying on an axis the def declares but does not PROJECT fails', /keys its position on 'tone', which figmaProperties\.variantAxes does not project/,
-        { ...switchDef, variants: { ...switchDef.variants, tone: ['neutral', 'danger'] },
-          anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts, thumb: { ...switchDef.anatomy!.parts.thumb, positionWhen: { tone: { neutral: 'start', danger: 'end' } } } } } } as ComponentDef);
+        { ...switchControl, variants: { ...switchControl.variants, tone: ['neutral', 'danger'] },
+          anatomy: { ...switchControl.anatomy!, parts: { ...switchControl.anatomy!.parts, thumb: { ...switchControl.anatomy!.parts.thumb, positionWhen: { tone: { neutral: 'start', danger: 'end' } } } } } } as ComponentDef);
       ibBroke('an empty value map fails — a map from nothing positions nothing', /keys its position on 'selection' with no values/, swPart('thumb', { positionWhen: { selection: {} } }));
       ibBroke('an undeclared VALUE fails — the coordinate it names does not exist', /positions itself at selection='mixed'/, swPart('thumb', { positionWhen: { selection: { off: 'start', on: 'end', mixed: 'center' } } }));
       ibBroke('a position outside start/center/end fails — the JUSTIFY map returns undefined for it', /positions itself 'middle' at selection='off'/, swPart('thumb', { positionWhen: { selection: { off: 'middle', on: 'end' } } }));
@@ -12099,14 +12114,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
       // The NON-SQUARE BOX rules (#990). `width` is what a 2:1 track needs and `size` is what a square
       // needs; each is refused where the other belongs, and every arm is a binding silently discarded.
-      ibBroke('a non-box binding `width` fails', /is kind 'text' but binds 'width'/, swPart('label', { width: 'size.{size}.track' }));
+      // The text-part arm stays on the ROW's `label` — the only text part in the family (switch-control
+      // has none). The token is one `switch` binds, so the kind rule fires, not a missing-slot error.
+      ibBroke('a non-box binding `width` fails', /is kind 'text' but binds 'width'/, patched(switchDef, 'label', { width: 'size.{size}.text' }));
       ibBroke('binding both `size` and `width` fails — one of the two is silently discarded', /binds both 'size' and 'width'/, swPart('thumb', { width: 'size.{size}.dot' }));
       // The same FIXED precondition as the square's, from the box's own side rather than the child's — a
       // track may bind a width with nothing positioned inside it.
       ibBroke('a box binding `width` while hugging its main axis fails', /binds 'width' but its main-axis sizing is 'hug'/,
-        swPart('track', { layout: { ...switchDef.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } } }));
-      ok(validateComponentDef(switchDef, nbTree, nbT.root).errors.length === 0,
-        `nesting gate: and the mechanism VALIDATES as authored — a thumb positioned per selection inside a fixed-width track that also holds an absolute focus ring is clean, which is the whole of what #990 added (got [${validateComponentDef(switchDef, nbTree, nbT.root).errors.join('; ')}])`);
+        swPart('track', { layout: { ...switchControl.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } } }));
+      ok(validateComponentDef(switchControl, nbTree, nbT.root).errors.length === 0,
+        `nesting gate: and the mechanism VALIDATES as authored — a thumb positioned per selection inside a fixed-width track that also holds an absolute focus ring (and carries the state glyph) is clean, which is the whole of what #990 added and #1354 extended (got [${validateComponentDef(switchControl, nbTree, nbT.root).errors.join('; ')}])`);
 
       // The STROKE-WIDTH kind rule (#1266; the missing arm was filed as #1275 and this is it). Same shape
       // as `width` above, for a sharper reason: only the `box` branch of the projector reads `strokeWidth`,
@@ -12115,7 +12132,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // the `width` arm above uses, deliberately: a key that is not a slot trips the binding resolver too,
       // and an arm that fires on either of two errors is not evidence about the one it names — with a real
       // slot the mutation leaves EXACTLY this arm red.
-      ibBroke('a non-box binding `strokeWidth` fails — only a box projects a bound strokeWeight', /is kind 'text' but binds 'strokeWidth'/, swPart('label', { strokeWidth: 'size.{size}.track' }));
+      ibBroke('a non-box binding `strokeWidth` fails — only a box projects a bound strokeWeight', /is kind 'text' but binds 'strokeWidth'/, patched(switchDef, 'label', { strokeWidth: 'size.{size}.text' }));
 
       // The VECTOR-SIZE split (#910). The old rule refused `size` on any vector, with the reason "its
       // rendered size comes from the host that instances it" — true of a def's ROOT glyph, where a host
@@ -14372,7 +14389,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // assignments and the census cannot see it either.
   const gatedDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.presentWhen));
-  const GATED_EXPECTED = ['field-message', 'checkbox-control', 'radio'];
+  // #1354: `switch-control` gates its two state glyphs (check/X) on `selection` via `presentWhen`, joining
+  // the set (the old `switch` used `positionWhen`, not `presentWhen` — that arm is below).
+  const GATED_EXPECTED = ['field-message', 'checkbox-control', 'radio', 'switch-control'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -14450,7 +14469,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // per-part loop, so `image-placeholder` is not dragged in and asked for a height it deliberately omits.
   const widthDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.width && !p.aspectRatio));
-  const WIDTH_EXPECTED = ['switch'];
+  // #1354 moved the non-square track to `switch-control`, so the def binding `width` is the atom now.
+  const WIDTH_EXPECTED = ['switch-control'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -14508,7 +14528,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // an empty set — `docs/34` shape 15, the same shape the CONTROL_DEFS scope above was widened for.
   const positionedDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.positionWhen));
-  const POSITIONED_EXPECTED = ['switch'];
+  // #1354 moved the travelling thumb to `switch-control`, so the def with a `positionWhen` part is the atom.
+  const POSITIONED_EXPECTED = ['switch-control'];
   ok(POSITIONED_EXPECTED.every((n) => positionedDefs.some((d) => d.id === n)) && positionedDefs.length === POSITIONED_EXPECTED.length,
     `#990 the positionWhen projection rule below covers exactly [${POSITIONED_EXPECTED.join(', ')}] — a def gaining a variant-positioned part must be represented here, and a def losing one is a stale claim (found: ${positionedDefs.map((d) => d.id).join(', ') || 'none'})`);
   const JUSTIFY_EXPECT: Record<string, string> = { start: 'MIN', center: 'CENTER', end: 'MAX' };
@@ -15726,11 +15747,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   for (const def of selection) {
     const ps = def.anatomy!.parts;
     const rootRow = ps[def.anatomy!.root];
-    // The control-bearing part is one of two shapes now (#1226 step 2). radio/switch INLINE the painted
-    // box (a box carrying the 'fill' paintSlot — the square/disc or the track). checkbox DECOMPOSED it:
-    // the painted box moved to `checkbox-control` and the row holds a `kind: 'nest'` of it instead. The
-    // #1201 guarantee is the same for both — the control sits one level below the row, wrapped by the
-    // line-box box — so this arm accepts either and then checks the extra invariant the nest introduces.
+    // The control-bearing part is one of two shapes now (#1226 step 2, #1354). RADIO still INLINES the
+    // painted box (a box carrying the 'fill' paintSlot — the disc). checkbox AND switch DECOMPOSED it: the
+    // painted box/track moved to `checkbox-control`/`switch-control` and the row holds a `kind: 'nest'` of
+    // it instead. The #1201 guarantee is the same for all three — the control sits one level below the row,
+    // wrapped by the line-box box — so this arm accepts either and then checks the invariant the nest adds.
     const ctrlName = Object.keys(ps).find((n) =>
       (ps[n].kind === 'box' && (ps[n].paintSlots ?? []).includes('fill'))
       || (ps[n].kind === 'nest' && (ps[n].nests ?? '').endsWith('-control')));
@@ -15744,17 +15765,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       `#1201 ${def.id}: the control sits in a line-box wrapper — height→'…control-box', cross-axis centred (got '${boxName}' height='${box?.height}' align='${box?.layout?.align}')`);
     ok(rootRow.layout?.align === 'start',
       `#1201 ${def.id}: and the row itself stays top-aligned (align='${rootRow.layout?.align}') — the centring lives in the box, never the row`);
-    // #1226 step 2 — THE NESTED CONTROL DOES NOT STRETCH TO THE LINE BOX. A nested instance in an
+    // #1226 step 2 / #1354 — THE NESTED CONTROL DOES NOT STRETCH TO THE LINE BOX. A nested instance in an
     // auto-layout cell can be made to FILL the counter axis; the decided shape forbids it. The nest pins
-    // its OWN square (`size`→'…control' = `control.size.*.height`, 16/20/24 on nb), which is strictly
-    // SHORTER than the wrapper's '…control-box' line box (21/24/27) it centres within. Binding the line
-    // box on the nest instead — the one plausible mutation that would stretch the control — flips the
-    // second clause and fails THIS assertion by name; the nb token check below proves the two keys
-    // resolve to different heights, so `…control ≠ …control-box` is the whole of "does not stretch".
+    // its OWN height to `control.size.*.height` (16/20/24 on nb), strictly SHORTER than the wrapper's
+    // '…control-box' line box (21/24/27) it centres within. checkbox (a SQUARE control) pins via `size`
+    // (both axes from one key); switch (a NON-SQUARE track, `width` = 2× the height) pins via `height`
+    // alone — a nest cannot bind `width`, and the control's own variant carries its 2:1 width. Either way
+    // the bound key is '…control', never '…control-box'; binding the line box instead — the one plausible
+    // mutation that would stretch the control — fails THIS assertion by name, and the nb token check below
+    // proves the two keys resolve to different heights, so `…control ≠ …control-box` is all of "no stretch".
     if (ps[ctrlName!].kind === 'nest') {
-      const sz = ps[ctrlName!].size ?? '';
-      ok(sz.includes('.control') && !sz.includes('control-box'),
-        `#1201 ${def.id}: the nested control pins its OWN square via 'size'→'…control' (the shorter control height), never the wrapper's '…control-box' line box — a nest bound to the line box would stretch the control to fill the taller cell instead of centring within it (got size='${sz}')`);
+      const pin = ps[ctrlName!].size ?? ps[ctrlName!].height ?? '';
+      ok(pin.includes('.control') && !pin.includes('control-box'),
+        `#1201 ${def.id}: the nested control pins its OWN extent via 'size'/'height'→'…control' (the shorter control height), never the wrapper's '…control-box' line box — a nest bound to the line box would stretch the control to fill the taller cell instead of centring within it (got '${pin}')`);
     }
   }
   // MEASURED (nb): a line-box is strictly TALLER than the control at every rung, so "centre within" is a
@@ -15767,6 +15790,102 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(pxOf(nbCtl[rung]['line-box']) > pxOf(nbCtl[rung].height),
       `#1201 nb: control.size.${rung}.line-box (${pxOf(nbCtl[rung]['line-box'])}px) is taller than the control (${pxOf(nbCtl[rung].height)}px), so centring within it is a real first-line inset`);
   }
+}
+
+// ---- #1354: THE SWITCH DECOMPOSITION — four invariants, each pinned independently of the producer ----
+//
+// The switch split into `switch-control` (the painted track/thumb/glyph, carrying selection+size+state) +
+// the `switch` Row (size-only, nest-exposed), the #1226/#1330 mechanism a third time. This block pins the
+// four things #1354 is: the nest-exposed wiring, the 24→2 member collapse, the X/checkmark thumb
+// affordance, and the Prism 2 track styling. Each expectation is derived INDEPENDENTLY of the projector —
+// a straight multiply of declared cardinalities, the OTHER token the value must equal, a node walk for
+// presence, the bound-variable wire — so reverting the subject fails the NAMED assertion rather than
+// agreeing with it. Selection-control alignment, contrast and the roundtrip/host-truth checks cover the
+// shared surface corpus-wide; this is the switch-specific net.
+{
+  const sc = componentDefs.find((d) => d.id === 'switch-control')!;
+  type PNode = { name?: string; children?: PNode[] };
+  const names = (n: PNode): string[] => [n.name ?? '', ...((n.children ?? []) as PNode[]).flatMap(names)];
+  const planNames = (selection: string): string[] =>
+    names(figmaAnatomyPlan(sc, 'medium', { selection, state: 'rest' }).root as unknown as PNode);
+
+  // (1) THE NEST-EXPOSED SPLIT. The Row nests switch-control as nest-exposed, exposing the control's
+  // consumer axes and following size. A revert to nest-fixed, or dropping an exposed axis, fails here.
+  const ctrl = switchDef.anatomy!.parts.control;
+  const rel = ctrl?.nesting as { kind?: string; expose?: readonly string[]; follow?: readonly string[] } | undefined;
+  ok(ctrl?.kind === 'nest' && ctrl.nests === 'switch-control' && rel?.kind === 'nest-exposed'
+    && ['selection', 'state', 'showStateLabel'].every((a) => rel!.expose?.includes(a)) && !!rel.follow?.includes('size'),
+    `#1354 the switch ROW nests switch-control nest-exposed, exposing selection+state+showStateLabel and following size (kind=${ctrl?.kind}, nests=${ctrl?.nests}, rel=${rel?.kind}, expose=[${rel?.expose?.join(', ')}], follow=[${rel?.follow?.join(', ')}])`);
+
+  // (2) THE MEMBER COLLAPSE, a multiply INDEPENDENT of the enumeration. The Row is size-only; the atom
+  // carries selection×size×state. 24 → 2.
+  const rowN = figmaAnatomySet(switchDef).length;
+  const ctlN = figmaAnatomySet(sc).length;
+  const ctlProduct = sc.variants!.selection!.length * sc.variants!.size!.length * sc.figmaProperties!.stateAxis!.values.length;
+  ok(rowN === switchDef.variants!.size!.length && rowN === 2,
+    `#1354 the switch ROW projects SIZE-ONLY — ${rowN} members (its one axis), the 24→2 collapse against the atom's set`);
+  ok(ctlN === ctlProduct && ctlProduct === 24,
+    `#1354 switch-control carries the 24 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
+
+  // (3) THE X/CHECKMARK AFFORDANCE is present (read off the PROJECTED PLAN) and bound to the inverse-of-
+  // thumb ink. The glyph's ink is the SAME selection's TRACK fill — derived from the track token, NOT read
+  // off the glyph's own binding — which is what makes a dark check read on the light on-thumb and a light X
+  // on the dark off-thumb. Deleting a glyph, or miswiring its ink, fails here.
+  ok(planNames('on').includes('onGlyph') && !planNames('on').includes('offGlyph'),
+    `#1354 the ON member draws the check in the thumb and not the X (plan nodes: ${planNames('on').join(',')})`);
+  ok(planNames('off').includes('offGlyph') && !planNames('off').includes('onGlyph'),
+    `#1354 the OFF member draws the X in the thumb and not the check (plan nodes: ${planNames('off').join(',')})`);
+  ok(sc.anatomy!.parts.onGlyph?.glyph === 'check' && sc.anatomy!.parts.offGlyph?.glyph === 'close',
+    `#1354 the affordance glyphs are a check (on) and a close/X (off) — Prism 2's checkLine/closeLine (on=${sc.anatomy!.parts.onGlyph?.glyph}, off=${sc.anatomy!.parts.offGlyph?.glyph})`);
+  ok(sc.tokens['on.icon'] === sc.tokens['on.fill'] && sc.tokens['off.icon'] === sc.tokens['off.fill']
+    && sc.tokens['on.icon'] !== sc.tokens['on.indicator'],
+    `#1354 each glyph's ink is its own selection's TRACK fill (the inverse of the thumb) — on.icon=${sc.tokens['on.icon']} vs on.fill=${sc.tokens['on.fill']}; off.icon=${sc.tokens['off.icon']} vs off.fill=${sc.tokens['off.fill']}; and distinct from the thumb it sits on (on.indicator=${sc.tokens['on.indicator']})`);
+
+  // (4) THE PRISM 2 TRACK STYLING, read off the PROJECTED PLAN's bound variables: a 2px inside border
+  // (`border-width/thick`, Prism 2's strokeWeight 2) and a full pill (`radius/round`, its cornerRadius 999).
+  const trackVars = planBoundVars(figmaAnatomyPlan(sc, 'medium', { selection: 'off', state: 'rest' }).root);
+  ok(trackVars.includes('border-width/thick') && trackVars.includes('radius/round'),
+    `#1354 the track binds Prism 2's 2px inside border and full pill (${trackVars.filter((v) => v.startsWith('border-width') || v.startsWith('radius')).join(', ') || 'neither present'})`);
+
+  // MUTATION-BY-NAME (docs/34): with the glyph parts removed from the atom, the projection carries NO thumb
+  // glyph at either coordinate — so arm (3)'s presence arms gate the real parts rather than restating the
+  // def. The subject is the def (mutated inline), the oracle is the projection.
+  const noGlyphs = { ...sc, anatomy: { ...sc.anatomy!, parts: Object.fromEntries(
+    Object.entries(sc.anatomy!.parts)
+      .filter(([n]) => n !== 'onGlyph' && n !== 'offGlyph')
+      .map(([n, p]) => [n, n === 'thumb' ? { ...p, children: [] } : p])) } } as typeof sc;
+  const mutNames = names(figmaAnatomyPlan(noGlyphs, 'medium', { selection: 'on', state: 'rest' }).root as unknown as PNode);
+  ok(!mutNames.includes('onGlyph') && !mutNames.includes('offGlyph'),
+    `#1354 MUTATION: with the glyph parts removed the projection carries no thumb glyph — the presence arms above gate the real parts, not the def text (mutant plan nodes: ${mutNames.join(',')})`);
+
+  // THE #864/#910 INDICATOR-RULE WIDENING, PINNED (docs/34). This PR LOOSENED a safety refusal —
+  // `anatomyErrors` refused an `indicator` box that parents a glyph (#864's fill-behind-a-glyph square),
+  // now exempting a box that binds `size` AND `radius` (a deliberately-shaped filled disc — the switch
+  // thumb). A loosened refusal MUST be pinned by a by-name mutation, or the exemption could silently grow
+  // to "always on". The rule's message is the oracle (`INDICATOR_REFUSAL`), and each arm drives
+  // `validateComponentDef` over a patched thumb and checks whether THAT named refusal is among the errors
+  // — not the failure count (docs/34 §corollary 4).
+  const INDICATOR_REFUSAL = /declares paintSlots 'indicator' and has .* child/;
+  const patchThumb = (patch: Record<string, unknown>): ComponentDef =>
+    ({ ...sc, anatomy: { ...sc.anatomy!, parts: { ...sc.anatomy!.parts,
+      thumb: { ...sc.anatomy!.parts.thumb, ...patch } } } } as ComponentDef);
+  // (a) POSITIVE — the authored thumb (an indicator disc binding size AND radius, parenting the state
+  // glyph) draws NO indicator refusal. Reverting the widening (`!isShapedDisc` → always refuse) fails THIS
+  // arm by name, which is what makes it the pin on the loosening rather than on some unrelated shape.
+  ok(!validateComponentDef(sc).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 the authored thumb — an indicator disc binding size+radius, parenting the check/X — is NOT refused; the #864/#910 widening permits exactly this (errors: ${validateComponentDef(sc).errors.filter((e) => INDICATOR_REFUSAL.test(e)).join('; ') || 'none match'})`);
+  // (b) NON-EXEMPT still refuses — the ORIGINAL #864 case (an indicator box parenting a glyph while
+  // binding NEITHER size nor radius, the SVG-wrapper shape whose fill is an incidental square) stays
+  // refused BY NAME. A wrapper frame binds neither, so #864 is intact.
+  ok(validateComponentDef(patchThumb({ size: undefined, radius: undefined })).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 MUTATION: an indicator box parenting a glyph while binding NEITHER size nor radius is STILL refused — the original #864 shape is unchanged`);
+  // (c) the exemption keys on BOTH conditions, not accidentally always-on: dropping radius (keeping size),
+  // or dropping size (keeping radius), re-triggers the refusal BY NAME. Proves `isShapedDisc` reads the
+  // real `size && radius`, not a constant.
+  ok(validateComponentDef(patchThumb({ radius: undefined })).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 MUTATION: the thumb WITHOUT radius (size only) is refused — the exemption keys on radius, not size alone`);
+  ok(validateComponentDef(patchThumb({ size: undefined })).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 MUTATION: the thumb WITHOUT size (radius only) is refused — the exemption keys on size, not radius alone`);
 }
 
 // ---- #1039: MATERIALIZATION RENAMES — check 2, and the table that proves check 1's shape ----------

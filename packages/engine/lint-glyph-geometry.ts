@@ -176,6 +176,24 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     why: 'the indeterminate dash, the other half of the same split. Deliberately `minus` and not `minus-filled`: the two draw ONE rectangle from a different start vertex (see `DUPLICATE_SHAPES`; this reason said "differ only in the winding" until #917 measured it and found a rotation, not a reversal) and the line form is the one the rest of the corpus draws',
   },
 
+  // SWITCH-CONTROL'S TWO THUMB GLYPHS (#1354) — the X/checkmark-in-the-thumb state affordance, on the
+  // atomic control (the #1226-style split). `glyph: '{selection}'` cannot express this set for the same
+  // reason checkbox's cannot — the vocabulary holds no `off`/`on` glyph — so the two are `presentWhen`-gated
+  // parts, a `check` at `selection=on` and a `close` (the X) at `selection=off`. Prism 2 ships exactly these
+  // as `checkLine`/`closeLine` in the handle (`reference/Prism2/component-specs/toggle-switch.json`). Fixed
+  // rather than `{name}`-templated because the shape is a property of the component (what "on" and "off"
+  // look like), not a coordinate a designer picks.
+  'switch-control.onGlyph': {
+    glyph: 'check',
+    at: { selection: ['on'] },
+    why: "the on mark in the thumb (#1354) — a check, the same shape checkbox's checked box draws. Prism 2's `checkLine`. Present only at `selection=on` (`presentWhen`), so a fixed glyph is the right record: there is no `on` glyph to template on",
+  },
+  'switch-control.offGlyph': {
+    glyph: 'close',
+    at: { selection: ['off'] },
+    why: "the off mark in the thumb (#1354) — an X (`close`), Prism 2's `closeLine`. The counterpart to `onGlyph`, gated to `selection=off`. `close` is the vocabulary name for the X enclosure; the pairing is recorded here so a later edit that swaps the two (or re-templates them) fails as a stale record rather than drawing the wrong mark on a correct artboard",
+  },
+
   // FIELD-MESSAGE'S THREE STATUS GLYPHS (#1010), and this table is the RIGHT place for them rather than a
   // formality to be satisfied. The mapping reads TRANSPOSED — `error` draws `warning-triangle` and
   // `warning` draws `error-circle` — because a name in `icon-glyphs.ts` describes the ENCLOSURE it draws,

@@ -2510,8 +2510,18 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     const p = parts[n];
     if (p.kind !== 'box' || !(p.paintSlots ?? []).includes('indicator')) continue;
     const drawn = (p.children ?? []).filter((c) => parts[c] && (parts[c].kind === 'vector' || parts[c].kind === 'text'));
-    if (drawn.length)
-      e.push(`anatomy part '${n}' declares paintSlots 'indicator' and has ${parts[drawn[0]].kind} child${drawn.length > 1 ? 'ren' : ''} [${drawn.join(', ')}] — a box may take an ink slot only when it DRAWS the mark itself, or the fill lands behind the node that does (#864). Move the ink to the drawing part's own slot.`);
+    // A `size`+`radius` DISC is the one shape allowed to parent a glyph (#1354, the switch thumb). #864's
+    // case was an SVG WRAPPER FRAME — a box with no shape of its own — whose fill landed as an incidental
+    // SQUARE behind the glyph; the fix was "move the ink to the drawing part's slot". A Prism 2 switch
+    // thumb is the opposite: a deliberately-shaped round filled mark (bound `size` AND `radius`) that
+    // legitimately carries a check/X, the round disc behind the glyph being the INTENDED visual (Prism 2's
+    // filled handle). So the refusal is narrowed with a stated reason rather than dodged with a wrapper
+    // node that would reproduce the exact fill-behind-glyph #864 exists to prevent. A wrapper frame binds
+    // neither `size` nor `radius`, so it stays refused; `checkbox-control`'s filled `control` box already
+    // parents its `mark` the same way, using `fill` (never refused).
+    const isShapedDisc = p.size !== undefined && p.radius !== undefined;
+    if (drawn.length && !isShapedDisc)
+      e.push(`anatomy part '${n}' declares paintSlots 'indicator' and has ${parts[drawn[0]].kind} child${drawn.length > 1 ? 'ren' : ''} [${drawn.join(', ')}] — a box may take an ink slot only when it DRAWS the mark itself, the fill lands behind the node that does (#864), or it is a deliberately-shaped filled mark (binds 'size' AND 'radius', e.g. the switch thumb carrying a state glyph — #1354). Move the ink to the drawing part's own slot, or shape the box.`);
   }
 
   // Every binding key anatomy names must be a slot the component actually binds, AT EVERY COORDINATE
