@@ -195,14 +195,14 @@
     },
     "select": {
       "set": {
-        "members": 40,
-        "assignments": 180,
-        "sha256": "930758b1a35c22bc0a0c30748a7c2582a9593fae881a5c491e450d967f546b9e"
+        "members": 32,
+        "assignments": 144,
+        "sha256": "77cab6bb9162ea44ab0023cf42121c21578581c05e9a471570c242438aafbd32"
       },
       "grid": {
         "members": 20,
         "assignments": 100,
-        "sha256": "12d7f9cb2568c6e178b693ed94c0b2d6f30962adc73e54bf417dd63541461301"
+        "sha256": "909d1219121156903215a1b4e5d5ae90d4f3ef554e72ac4d8b38c81d670e7c97"
       }
     },
     "veil": {
