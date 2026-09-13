@@ -97,8 +97,9 @@ export const icon: ComponentDef = {
   // #864 was this def building four empty artboards — one per size rung, each containing nothing. The
   // geometry existed in `ICON_PATHS` and nothing reached it, so what the Figma leg needs is a member PER
   // GLYPH; a member per size rung is four copies of the same empty square. Enumerating both would be
-  // 4 × 40 = 160 members carrying each glyph's path FOUR times, for members that differ only by a
-  // dimension — and a vector is scaled to the box it sits in, so those four are the same drawing.
+  // four members per glyph (the whole set × four size rungs) carrying each glyph's path FOUR times, for
+  // members that differ only by a dimension — and a vector is scaled to the box it sits in, so those
+  // four are the same drawing.
   //
   // `size` therefore leaves `variants` rather than merely leaving `variantAxes`, and that is forced
   // rather than chosen: `figmaAnatomySet` hands `figmaAnatomyPlan` an undefined size for an axis it does
@@ -134,10 +135,10 @@ export const icon: ComponentDef = {
   // whatever ink it inherits", which that comment called the correct projection of `currentColor`
   // rather than a dropped binding. That reasoning predates any rendered default icon and it is wrong on
   // contact with the output. MEASURED: `variantAxes` is `['name']` alone, so no projected member carries
-  // a `tone` coordinate at all — `tone.{tone}` is unfillable at every one of the 40 and all 40 ship with
-  // no fill bound. What they then inherit is not a host cascade: Figma has no `currentColor`, so it
+  // a `tone` coordinate at all — `tone.{tone}` is unfillable at every projected member and every one
+  // ships with no fill bound. What they then inherit is not a host cascade: Figma has no `currentColor`, so it
   // resolves the literal `fill="currentColor"` in the glyph document to BLACK. The old position did not
-  // project `currentColor`; it shipped unbound black glyphs (39 at the time, 40 now) and read that as the projection.
+  // project `currentColor`; it shipped unbound black glyphs (39 at the time, every member since) and read that as the projection.
   //
   // `'{slot}'` is the fallback the rest of the corpus already spells this way — `checkbox`, `radio`,
   // `switch` and `field-label` all end on it — and it sits SECOND on purpose: `paintOf` walks these in
@@ -186,7 +187,7 @@ export const icon: ComponentDef = {
   //
   // So the part is now `kind: 'vector'` and NAMES A GLYPH, templated on the `name` axis. `'{name}'`
   // resolves per member against the set at projection, which is the distinction that matters here: a
-  // static `glyph: 'check'` also projects 40 correctly-named members and every one of them draws a check
+  // static `glyph: 'check'` also projects one correctly-named member per glyph and every one of them draws a check
   // mark. Measured on this branch before it was fixed, which is why the templating exists and why the
   // gate for this checks each member's path against `ICON_PATHS[its own name]` rather than checking that
   // a vector is present.
@@ -235,8 +236,8 @@ export const icon: ComponentDef = {
     ],
   },
 
-  // `name` ALONE — 40 members, one per glyph, each carrying its own outline (#864, 40th added #1012). This used to be
-  // `['size']`, four members that were four empty squares.
+  // `name` ALONE — one member per glyph, each carrying its own outline (#864, FPO added 40th in #1012).
+  // This used to be `['size']`, four members that were four empty squares.
   //
   // Still the def #795's `variantAxes` doc comment points at, and now more sharply: it projects along
   // `name` and PAINTS along `tone`, so the projected axis set and the def's axis set are disjoint. That is
@@ -246,10 +247,14 @@ export const icon: ComponentDef = {
   // `size` is not here and is not in `variants` either; see the `variants` comment for why the second
   // follows from the first rather than being a separate decision.
   //
-  // MEASURED: 40 members in ONE paste chunk, with the indivisible unit (shell + largest single variant)
-  // at 40% of `SET_CHUNK_BYTES`. Each glyph's path travels once, which is the property that made this
-  // shape the cheap one — enumerating size as well would ship every path four times for members that are
-  // the same drawing at four scales.
+  // MEASURED, and asserted in `test.ts` rather than pinned here (#1323): the set no longer fits ONE paste
+  // chunk. Its single-shot payload exceeds `SET_CHUNK_BYTES`, so `planSetChunks` splits it and the first
+  // chunk packs to ~99% of budget. It was one chunk until #1316 grew the vocabulary past the threshold;
+  // the chunk count is a measured property of the current set against the budget, not a frozen number,
+  // which is why the check lives in a test that fails by name the day a member tips it into a new chunk.
+  // Each glyph's path still travels once, which is the property that made this shape the cheap one —
+  // enumerating size as well would ship every path four times for members that are the same drawing at
+  // four scales.
   //
   // No `stateAxis`: `states` is `[]`, so there is nothing to project. No `swaps`: an icon has no slot
   // — it IS what fills someone else's. `booleans` is stated-empty rather than omitted, which is the
@@ -257,12 +262,12 @@ export const icon: ComponentDef = {
   //
   // `emitAsComponents` — the one place icon differs from every control def at MATERIALIZATION (#1012). A
   // control wants its members combined into one COMPONENT_SET with a variant picker; an icon set does
-  // not. A designer reaches for `search`, not for a 40-variant set they must then select a `name=` out
+  // not. A designer reaches for `search`, not for a whole-vocabulary variant set they must then select a `name=` out
   // of — and Figma folds the slash in `icon/search` into an assets-panel FOLDER, which is the delivery
   // an icon library is supposed to have. So each member is left as its own top-level `icon/<glyph>`
   // component instead of being combined. This changes only how the plugin writes the SAME projected
-  // members — the flag never enters the plan, so it moves no plan stamp; the surface is still the 40
-  // members `variantAxes: ['name']` enumerates.
+  // members — the flag never enters the plan, so it moves no plan stamp; the surface is still the members
+  // `variantAxes: ['name']` enumerates.
   figmaProperties: {
     variantAxes: ['name'],
     booleans: {},
