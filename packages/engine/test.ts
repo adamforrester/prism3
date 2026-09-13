@@ -15857,6 +15857,35 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const mutNames = names(figmaAnatomyPlan(noGlyphs, 'medium', { selection: 'on', state: 'rest' }).root as unknown as PNode);
   ok(!mutNames.includes('onGlyph') && !mutNames.includes('offGlyph'),
     `#1354 MUTATION: with the glyph parts removed the projection carries no thumb glyph — the presence arms above gate the real parts, not the def text (mutant plan nodes: ${mutNames.join(',')})`);
+
+  // THE #864/#910 INDICATOR-RULE WIDENING, PINNED (docs/34). This PR LOOSENED a safety refusal —
+  // `anatomyErrors` refused an `indicator` box that parents a glyph (#864's fill-behind-a-glyph square),
+  // now exempting a box that binds `size` AND `radius` (a deliberately-shaped filled disc — the switch
+  // thumb). A loosened refusal MUST be pinned by a by-name mutation, or the exemption could silently grow
+  // to "always on". The rule's message is the oracle (`INDICATOR_REFUSAL`), and each arm drives
+  // `validateComponentDef` over a patched thumb and checks whether THAT named refusal is among the errors
+  // — not the failure count (docs/34 §corollary 4).
+  const INDICATOR_REFUSAL = /declares paintSlots 'indicator' and has .* child/;
+  const patchThumb = (patch: Record<string, unknown>): ComponentDef =>
+    ({ ...sc, anatomy: { ...sc.anatomy!, parts: { ...sc.anatomy!.parts,
+      thumb: { ...sc.anatomy!.parts.thumb, ...patch } } } } as ComponentDef);
+  // (a) POSITIVE — the authored thumb (an indicator disc binding size AND radius, parenting the state
+  // glyph) draws NO indicator refusal. Reverting the widening (`!isShapedDisc` → always refuse) fails THIS
+  // arm by name, which is what makes it the pin on the loosening rather than on some unrelated shape.
+  ok(!validateComponentDef(sc).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 the authored thumb — an indicator disc binding size+radius, parenting the check/X — is NOT refused; the #864/#910 widening permits exactly this (errors: ${validateComponentDef(sc).errors.filter((e) => INDICATOR_REFUSAL.test(e)).join('; ') || 'none match'})`);
+  // (b) NON-EXEMPT still refuses — the ORIGINAL #864 case (an indicator box parenting a glyph while
+  // binding NEITHER size nor radius, the SVG-wrapper shape whose fill is an incidental square) stays
+  // refused BY NAME. A wrapper frame binds neither, so #864 is intact.
+  ok(validateComponentDef(patchThumb({ size: undefined, radius: undefined })).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 MUTATION: an indicator box parenting a glyph while binding NEITHER size nor radius is STILL refused — the original #864 shape is unchanged`);
+  // (c) the exemption keys on BOTH conditions, not accidentally always-on: dropping radius (keeping size),
+  // or dropping size (keeping radius), re-triggers the refusal BY NAME. Proves `isShapedDisc` reads the
+  // real `size && radius`, not a constant.
+  ok(validateComponentDef(patchThumb({ radius: undefined })).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 MUTATION: the thumb WITHOUT radius (size only) is refused — the exemption keys on radius, not size alone`);
+  ok(validateComponentDef(patchThumb({ size: undefined })).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 MUTATION: the thumb WITHOUT size (radius only) is refused — the exemption keys on size, not radius alone`);
 }
 
 // ---- #1039: MATERIALIZATION RENAMES — check 2, and the table that proves check 1's shape ----------
