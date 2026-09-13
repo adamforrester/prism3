@@ -145,16 +145,28 @@
         "sha256": "df79a42491e54e3dfc00a6c7e7ed0756a123362ab8c90a8fd626cbeaf46c02d2"
       }
     },
-    "radio": {
+    "radio-control": {
       "set": {
         "members": 36,
-        "assignments": 93,
-        "sha256": "7463d01a67decb47c516154a3361c49f5154dfdf759c6d81599e32493002116e"
+        "assignments": 54,
+        "sha256": "13df41aa2850ceb9319d522e0e935ad5763b69b1f6c9e0f2daaac47be1f18413"
       },
       "grid": {
-        "members": 42,
-        "assignments": 108,
-        "sha256": "4f3cf85c9a42525af1c1d41524c2502feaec4eec5988b09acf3f72739abd8f86"
+        "members": 36,
+        "assignments": 54,
+        "sha256": "3395cbe67deaf4e0f1e138a18ee1527d1d4c3f6b07d98951f88fdd932c31e19d"
+      }
+    },
+    "radio": {
+      "set": {
+        "members": 3,
+        "assignments": 3,
+        "sha256": "e2ccaf9c277316221e700c9a025ac415b50f46221e3d7f6945d6947408ee2541"
+      },
+      "grid": {
+        "members": 21,
+        "assignments": 21,
+        "sha256": "df79a42491e54e3dfc00a6c7e7ed0756a123362ab8c90a8fd626cbeaf46c02d2"
       }
     },
     "switch-control": {
