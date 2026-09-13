@@ -11889,13 +11889,38 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         const sq = findPart(figmaAnatomyPlan(square, 'medium', { appearance: 'filled', surface: 'default' }).root, 'focusRing');
         ok(sq?.bound?.width === wantVar && sq?.bound?.height === wantVar,
           `#1299 a nest binding 'size' still binds both axes to one variable (${String(sq?.bound?.width)} / ${String(sq?.bound?.height)})`);
-        // THE SCOPE, stated as a measurement rather than as prose. `slot`/`overlay`/`text` still drop a
-        // `height` silently — one concern per PR, so it is FILED (#1305) rather than fixed here. This line
-        // fails when that lands, by design, which is what keeps the filed issue from being the only record.
-        const slotTall = patched(button, 'leadingVisual', { height: 'size.{size}.height', size: undefined });
-        const st = findPart(figmaAnatomyPlan(slotTall, 'medium', { appearance: 'filled', surface: 'default', leading: true }).root, 'leadingVisual');
-        ok(st !== undefined && st.bound?.height === undefined,
-          `#1299 scope: a 'height' on a \`slot\` is STILL dropped — filed as #1305, not fixed here. Fails when it lands, by design (${JSON.stringify(st?.bound)})`);
+      }
+
+      // ---- #1305: A `height` ON A KIND THAT CANNOT HONOR IT IS REFUSED ----
+      // The other half of #1299's silence, now closed. `node()` projects a bound `height` on exactly two
+      // kinds — a `box` and (since #1299) a `nest`. On every other kind it reached no node, and #1299
+      // filed the remainder as #1305 rather than folding it in. Refused BY NAME here, one arm per affected
+      // kind, because the rule is a disjunction over kinds and a narrowing to any single kind passes the
+      // others. `size` is stripped from the parts that carry one, so each arm ISOLATES the new rule: with
+      // `size` left on, the pre-existing "binds both 'size' and 'height'" rule fires too, and an arm that
+      // passes on either error is not evidence about the one it names (the discipline the `strokeWidth` and
+      // vector arms state in full). Each regex is written from the RULE ("kind X but binds 'height'"), not
+      // read back off the validator's output, so the expectation is independent of the message's wording.
+      ibBroke('a `slot` binding `height` is refused (#1305)', /is kind 'slot' but binds 'height'/, patched(button, 'leadingVisual', { height: 'size.{size}.height', size: undefined }));
+      ibBroke('an `overlay` binding `height` is refused (#1305)', /is kind 'overlay' but binds 'height'/, patched(button, 'spinner', { height: 'size.{size}.height', size: undefined }));
+      ibBroke('a `text` binding `height` is refused (#1305)', /is kind 'text' but binds 'height'/, patched(button, 'label', { height: 'size.{size}.height' }));
+      // The FOURTH kind, and the reason this rule is not scoped to the three #1305 named. `absolute` refuses
+      // `size` outright (it is sized by its parent's bounds grown by `inset`) yet dropped `height` just as
+      // silently — the same posture mismatch #1305 records, one kind past where the filing looked. Measured
+      // on the current engine before the fix: an absolute part binding `height` validated clean and reached
+      // no node, exactly like the three. Caught here rather than left as a fresh latent hole.
+      ibBroke('an `absolute` binding `height` is refused (#1305) — the kind the filing looked past', /is kind 'absolute' but binds 'height'/, patched(button, 'focusRing', { height: 'size.{size}.height' }));
+      // NEGATIVE CONTROLS, in both directions, so the four arms above are not a rule that fires on
+      // everything. (a) The honoring kinds report nothing: the `nest` block above binds `height` clean, and
+      // `button.container` is a real `box` that binds `height` in the shipped corpus — so an UNPATCHED
+      // button draws no height refusal. (b) The same slot WITHOUT a `height` draws none either, which pins
+      // the arms to the FIELD rather than to the part or the stripped `size`.
+      {
+        const boxErrs = validateComponentDef(button, nbTree, nbT.root).errors.filter((x) => /binds 'height'/.test(x));
+        ok(boxErrs.length === 0, `#1305 negative control: a shipped 'box' (button.container) binding 'height' is NOT refused — the rule excludes the kinds that honor it${boxErrs.length ? ' — ' + boxErrs.join('; ') : ''}`);
+        const slotNoH = patched(button, 'leadingVisual', { size: undefined });
+        const slotNoHErrs = validateComponentDef(slotNoH, nbTree, nbT.root).errors.filter((x) => /is kind 'slot' but binds 'height'/.test(x));
+        ok(slotNoHErrs.length === 0, `#1305 negative control: the same slot WITHOUT a 'height' draws no height refusal — the arms fire on the field, not the part${slotNoHErrs.length ? ' — ' + slotNoHErrs.join('; ') : ''}`);
       }
 
       // The SQUARE rules. `size` and `height` both drive the height axis, so a part binding both states
