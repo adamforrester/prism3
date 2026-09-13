@@ -13630,8 +13630,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // consumer's, the tier's four rungs are the engine's, and the REF THE DEF ITSELF BINDS is what joins
   // them. So the check reads `icon.tokens` instead of rebuilding a path, which is the only version that
   // survives the two halves being spelled differently.
-  // READ FROM THE PROP, not from `variants` (#864). `icon`'s Figma grid is now the 40-glyph `name` axis
-  // and a def cannot declare a `variants` axis it does not project, so `variants.size` is gone and the
+  // READ FROM THE PROP, not from `variants` (#864). `icon`'s Figma grid is now the `name` axis (one member
+  // per glyph in the vocabulary) and a def cannot declare a `variants` axis it does not project, so `variants.size` is gone and the
   // ladder lives in `props.size` plus `tokens` — the two halves this block compares anyway. That absence
   // is admitted by name in `lint-rung-names.ts`'s `LADDER_STATED_ONCE` rather than skipped, so it costs a
   // decision rather than silently deleting the comparison.
@@ -13701,7 +13701,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // The message is built OUTSIDE the template that reports it — `ok(...)`'s argument evaluates eagerly,
   // so a null-safe condition with an unguarded message string still crashes (the second half of M14).
   ok(iconSetThrow === '', `icon: the def PROJECTS — every anatomy binding key resolves in tokens${iconSetThrow ? ` (threw: ${iconSetThrow})` : ''}`);
-  // ONE MEMBER PER GLYPH, and the count is read from the VOCABULARY rather than written as 40 — the set
+  // ONE MEMBER PER GLYPH, and the count is read from the VOCABULARY rather than written as a literal — the set
   // grows the day a `.svg` lands in `icons/`, and a literal here would fail for the wrong reason.
   ok(iconSet.length === ICON_NAMES.length,
     `icon: projects one member per glyph in the set — ${ICON_NAMES.length} (#864; it used to project four members, one per size rung, and every one of them was empty)`);
@@ -13746,7 +13746,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // The plan no longer carries the bare path: `createNodeFromSvg` takes a DOCUMENT, so the assertion is
     // that the document submitted to Figma's importer contains this glyph's `d`, on the declared viewBox.
     ok((onePlan.root.glyphSvg ?? '').includes(`d="${ICON_PATHS.check}"`),
-      `icon: the member named 'check' carries the CHECK geometry from the set (${ICON_PATHS.check.length} chars) — #864 was four members carrying none, and templating \`glyph: '{name}'\` wrong is 40 members carrying one`);
+      `icon: the member named 'check' carries the CHECK geometry from the set (${ICON_PATHS.check.length} chars) — #864 was four members carrying none, and templating \`glyph: '{name}'\` wrong is ${ICON_NAMES.length} members carrying one`);
     ok((onePlan.root.glyphSvg ?? '').includes(`viewBox="${ICON_VIEWBOX}"`),
       `icon: the glyph document declares the set's viewBox ('${ICON_VIEWBOX}') — a path drawn on a 24-unit grid inside a document that claims another one imports at the wrong scale, which builds fine and renders wrong`);
     // AND THE READ-BACK EXPECTATION the executors compare the imported frame against. Parsed here from
@@ -13784,9 +13784,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     //
     // WHAT THIS STILL FAILS ON, unchanged in spirit from the old line: it names the ROLE rather than
     // counting, so re-pointing the floor at a different role fails here by name, and so does dropping the
-    // `{slot}` key — which returns all 40 members to the unbound black this ticket exists to remove.
+    // `{slot}` key — which returns every member to the unbound black this ticket exists to remove.
     ok(planPaintVars(onePlan.root).join(',') === 'color/icon/primary',
-      `icon: every projected member carries the DEFAULT INK (#1211) — no member has a \`tone\` coordinate, so \`tone.{tone}\` is unfillable and the \`{slot}\` floor answers instead; asserted at zero until #1211, which is what left 40 glyphs unbound and rendering as Figma's resolution of fill="currentColor" (got [${planPaintVars(onePlan.root).join(', ')}])`);
+      `icon: every projected member carries the DEFAULT INK (#1211) — no member has a \`tone\` coordinate, so \`tone.{tone}\` is unfillable and the \`{slot}\` floor answers instead; asserted at zero until #1211, which is what left every glyph unbound and rendering as Figma's resolution of fill="currentColor" (got [${planPaintVars(onePlan.root).join(', ')}])`);
     // AND IT IS THE VECTOR THAT CARRIES IT, not the frame — the distinction the floor would be worthless
     // without, since a fill on the artboard paints a coloured square with the glyph invisible inside it.
     ok(onePlan.root.descendantFills === 'color/icon/primary' && !onePlan.root.paints?.fills,
@@ -13803,6 +13803,46 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // made the suite crash here with "icon: 'md' is not a declared size".
     ok(planPaintVars(figmaAnatomyPlan(icon, undefined, { name: 'check', tone: 'danger' } as never).root).join(',') === 'color/icon/danger',
       'icon: the SAME def paints correctly at a coordinate that carries a tone — the ceiling is the set, not the grammar (#784)');
+  }
+
+  // ---- icon: the TWO-CHUNK paste (#1323) --------------------------------------------------------
+  // #1316 grew the vocabulary until the set no longer fits ONE `figma_execute` payload, and nothing
+  // noticed: the only chunk-count assertion in this suite was `icon-button`'s, so the icon set crossed
+  // silently from one paste chunk to two and left `icon.ts`'s "40 members in ONE paste chunk" comment
+  // stale and unmeasured. This block is the check that was missing — and it derives its expectation from
+  // the BYTE THRESHOLD (`SET_CHUNK_BYTES`), never from `planSetChunks`'s own output, so a broken packer
+  // cannot make its own count look right. It also deliberately does NOT pin a literal chunk count (the
+  // #1323 anti-pattern): it asserts the PROPERTIES a correct multi-chunk split must have.
+  if (iconSet.length) {
+    // WHY IT MUST CHUNK, measured against the threshold and independent of the packer: the single-shot
+    // payload — the one `planSetToPluginJs` would ship in a single paste — is over `SET_CHUNK_BYTES`, so
+    // the set CANNOT go in one chunk. A packer that returned one chunk anyway would breach the budget
+    // (asserted below) and be rejected by the transport after nothing, or half the set, had landed.
+    const iconSingleShot = planSetToPluginJs(iconSet).length;
+    ok(iconSingleShot > SET_CHUNK_BYTES,
+      `icon: the whole set does not fit ONE paste payload — single-shot is ${iconSingleShot}B against the ${SET_CHUNK_BYTES}B budget, which is WHY it chunks (#1316 grew it past the threshold)`);
+    const iconChunks = planSetChunks(iconSet);
+    // MORE THAN ONE, which is the crossing #1316 made and this block exists to keep tested. Not pinned at
+    // two: the count is a measured property of the set against the budget, and the day a member tips it
+    // into a third chunk is a real, visible change here rather than a stale comment.
+    ok(iconChunks.length > 1,
+      `icon: the set packs into MORE THAN ONE paste chunk — ${iconChunks.length} (${iconChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES}); it was one until #1316`);
+    // THE BUDGET, which is the whole point of chunking: an over-budget chunk is rejected AFTER its
+    // predecessors have landed, leaving a half-built set. Asserted on the MEASURED `bytes` the packer
+    // reports, because that is the string that ships. A packer that stopped splitting fails HERE by name.
+    const iconOver = iconChunks.filter((c) => c.bytes > SET_CHUNK_BYTES);
+    ok(iconOver.length === 0,
+      `icon: every paste chunk is inside the byte budget${iconOver.length ? ` — OVER: ${iconOver.map((c) => `#${c.index + 1}=${c.bytes}`).join(', ')}` : ` (largest ${Math.max(...iconChunks.map((c) => c.bytes))}/${SET_CHUNK_BYTES})`}`);
+    // FILLS rather than pads — every chunk but the last is >90% of budget, so the split is minimal and the
+    // count is not padded up. This is what makes "more than one" the RIGHT shape without pinning a number.
+    ok(iconChunks.slice(0, -1).every((c) => c.bytes > SET_CHUNK_BYTES * 0.9),
+      `icon: packing FILLS each paste payload rather than padding to a count — ${iconChunks.map((c) => `${c.variants.length}v/${c.bytes}B`).join(' ')}`);
+    // PARTITIONS the set — every glyph packed exactly once, no drop, no duplicate. Derived from
+    // `ICON_NAMES.length`, not from a literal: a packer that lost a slice produces a set short by that
+    // slice with nothing else reporting it, and a duplicate name is the one input that POISONS the set.
+    const iconPacked = iconChunks.flatMap((c) => c.variants);
+    ok(iconPacked.length === ICON_NAMES.length && new Set(iconPacked).size === ICON_NAMES.length,
+      `icon: the chunks partition all ${ICON_NAMES.length} glyphs exactly once (${iconPacked.length} placed, ${new Set(iconPacked).size} distinct)`);
   }
 
   // ---- glyph-shape: RENDER EQUIVALENCE, proved on constructed inputs first (#917) ----
