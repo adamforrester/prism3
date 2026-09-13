@@ -263,13 +263,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unchecked', 'checked'],
-    defs: ['radio'],
+    // Since #1348 the `selection` axis lives on `radio-control` (the painted circle/dot), not the `radio`
+    // ROW (which exposes it). The row no longer declares it — the atom does.
+    defs: ['radio-control'],
     relation: 'subset',
     reason:
       'Checkbox\'s vocabulary minus `indeterminate`, which a mutually-exclusive choice does not have — '
-      + '`radio.ts` argues it from the brief\'s own `no-indeterminate` line, and notes that an ABSENCE is '
-      + 'not a value you can declare. The cheapest kind of divergence: every value it does carry means '
-      + 'exactly what it means in canonical, so the two line up without a translation.',
+      + '`radio-control.ts` (the atom that carries the axis since #1348) argues it from the brief\'s own '
+      + '`no-indeterminate` line, and notes that an ABSENCE is not a value you can declare. The cheapest '
+      + 'kind of divergence: every value it does carry means exactly what it means in canonical, so the '
+      + 'two line up without a translation.',
   },
   {
     axis: 'selection',
@@ -290,7 +293,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'checkbox', 'radio', 'field-label'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'checkbox', 'radio-control', 'radio', 'field-label'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — ten of the defs with a size axis, the '

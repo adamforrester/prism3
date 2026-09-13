@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radio, switchControl, switchDef } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radioControl, radio, switchControl, switchDef } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -1348,7 +1348,9 @@ for (const b of brands) {
     // #1354 split `switch` into `switch-control` (the track/thumb, binding control/track/dot/inset) and the
     // `switch` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's height) —
     // so both read the varying family and both belong here, exactly as checkbox + checkbox-control do.
-    const CONTROL_DEFS = ['checkbox-control', 'checkbox', 'radio', 'switch-control', 'switch'];
+    // #1348 split `radio` the same way: `radio-control` (the circle/dot, binding control+dot) and the
+    // `radio` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's square).
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox', 'radio-control', 'radio', 'switch-control', 'switch'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -8104,19 +8106,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // for arbitrary-height controls (999px clamps to a pill up to ~1998px, where round's 128 stops at 256),
   // and does so WITHOUT touching the rung switch/radio bind — the intrinsic pills stay on `radius.round`.
   {
-    const radioDef = componentDefs.find((d) => d.id === 'radio')!;
     const pillable = componentDefs.filter(isPillable).map((d) => d.id).sort();
     ok(pillable.includes('button') && pillable.includes('icon-button'),
       `controlShape: button + icon-button are the pill-able set — they declare the \`${PILL_RADIUS_DERIVATION}\` derivation (${pillable.join(', ')})`);
-    // THE EXCLUSION, asserted so the lever can never square them off. switch + radio declare no derivation,
-    // so `isPillable` is false and `applyControlShape(_, 'pill')` is the identity on them.
-    // Since #1354 switch's intrinsic pill lives on `switch-control` (the painted track), so the switch
-    // half of this check reads that atom; the switch ROW declares no radius at all. radio is undecomposed.
-    ok(!isPillable(switchControl) && !isPillable(radioDef),
-      'controlShape: switch-control + radio are NOT pill-able — their pill/circle is intrinsic (radius.round), not a brand choice');
+    // THE EXCLUSION, asserted so the lever can never square them off. The intrinsic-pill controls declare
+    // no derivation, so `isPillable` is false and `applyControlShape(_, 'pill')` is the identity on them.
+    // Since #1354/#1348 both switch's and radio's intrinsic pill/circle live on their ATOMS
+    // (`switch-control`'s track, `radio-control`'s disc, both `radius.round`); the ROWs declare no radius
+    // at all. So this half of the check reads the two atoms, not the rows.
+    ok(!isPillable(switchControl) && !isPillable(radioControl),
+      'controlShape: switch-control + radio-control are NOT pill-able — their pill/circle is intrinsic (radius.round), not a brand choice');
     // The pill lever's rung is NOT the intrinsic-pill rung — raising one can never move the other.
-    ok(PILL_RADIUS_RUNG === 'radius.capsule' && switchControl.tokens['radius'] === 'radius.round' && PILL_RADIUS_RUNG !== switchControl.tokens['radius'],
-      `controlShape: the lever repoints to a rung DISTINCT from switch/radio's intrinsic pill (${PILL_RADIUS_RUNG} ≠ ${switchControl.tokens['radius']})`);
+    ok(PILL_RADIUS_RUNG === 'radius.capsule' && switchControl.tokens['radius'] === 'radius.round' && radioControl.tokens['radius'] === 'radius.round' && PILL_RADIUS_RUNG !== switchControl.tokens['radius'],
+      `controlShape: the lever repoints to a rung DISTINCT from switch-control/radio-control's intrinsic pill (${PILL_RADIUS_RUNG} ≠ ${switchControl.tokens['radius']})`);
 
     const radiusBindings = (d: ComponentDef, size: string): string[] =>
       [...new Set(planBoundVars(figmaAnatomyPlan(d, size, {}).root).filter((v) => v.startsWith('radius/')))].sort();
@@ -8137,11 +8139,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // excluded set — the same object back, not a rebuilt equal one, which is the strongest form of "unchanged".
     ok(applyControlShape(button, 'rounded') === button && applyControlShape(iconButton, 'rounded') === iconButton,
       'controlShape: rounded is the IDENTITY on pill-able defs — the same object, so the default plan is byte-identical');
-    ok(applyControlShape(switchControl, 'pill') === switchControl && applyControlShape(radioDef, 'pill') === radioDef,
-      'controlShape: pill is the IDENTITY on switch-control + radio — the excluded set cannot move');
-    for (const size of switchControl.variants?.size ?? [])
-      ok(radiusBindings(applyControlShape(switchControl, 'pill'), size).every((v) => v === 'radius/round') && radiusBindings(switchControl, size).length > 0,
-        `controlShape: switch-control@${size} stays radius/round under pill — untouched by the capsule rung`);
+    ok(applyControlShape(switchControl, 'pill') === switchControl && applyControlShape(radioControl, 'pill') === radioControl,
+      'controlShape: pill is the IDENTITY on switch-control + radio-control — the excluded set cannot move');
+    for (const atom of [switchControl, radioControl])
+      for (const size of atom.variants?.size ?? [])
+        ok(radiusBindings(applyControlShape(atom, 'pill'), size).every((v) => v === 'radius/round') && radiusBindings(atom, size).length > 0,
+          `controlShape: ${atom.id}@${size} stays radius/round under pill — untouched by the capsule rung`);
 
     // NARROW: under pill, ONLY the radius binding moves. Every OTHER bound variable is identical between the
     // rounded and pill plans, so the lever selects a derivation and changes nothing else about the component.
@@ -10305,27 +10308,39 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // rather than the loop assuming one: the whole content of #1278's scope claim is that these two
       // rungs are DIFFERENT (`hairline` for a button's edge, `thick` for a selection control's), so a loop
       // with one expected name baked in would have to be widened by whoever swept them together.
-      for (const { def, part, want, atRoot, opts } of [
+      for (const { def, part, want, atRoot, opts, expectUnstroked } of [
         // #1226 step 2 moved checkbox's painted `control` box to `checkbox-control`, so the border-width
         // binding this arm executes lives on the ATOM now — `checkbox` itself nests it and paints no box.
         // `atRoot: true` because `control` IS the atom's anatomy root (the same trap `container` is for
         // button), so it arrives as the member frame itself and `deepFind` for a child would miss it.
-        { def: checkboxControl, part: 'control', want: 'V:border-width/thick', atRoot: true, opts: {} },
-        { def: radio, part: 'control', want: 'V:border-width/thick', atRoot: false, opts: {} },
+        // `expectUnstroked` because its `checked`/`indeterminate` boxes are filled with NO border — the
+        // executor-default path this block gates.
+        { def: checkboxControl, part: 'control', want: 'V:border-width/thick', atRoot: true, opts: {}, expectUnstroked: true },
+        // #1348 moved radio's painted `control` disc to `radio-control`, the same way #1226 moved
+        // checkbox's box — so the border-width binding lives on the ATOM now, and `atRoot: true` because
+        // `control` IS the atom's anatomy root (the member frame itself). `expectUnstroked: false` is the
+        // ONE exception in this loop and it is the whole of the Prism 2 visual (#1348): radio's ring is
+        // OUTLINED at EVERY selection (a 2px border, constant), so it has NO stroke-less coordinate — it
+        // never reaches the executor default the others exercise. Its border-width binding is still
+        // executed and confirmed below, at a stroked coordinate (`set[0]`); it simply does not — and must
+        // not — contribute the unstroked path. A revert to the filled disc would restore an unstroked
+        // `checked` coordinate here, which is the regression the #1348 block above pins from the token side.
+        { def: radioControl, part: 'control', want: 'V:border-width/thick', atRoot: true, opts: {}, expectUnstroked: false },
         // #1354 moved switch's painted `track` to `switch-control`, the same way #1226 moved checkbox's
         // box — so the border-width binding lives on the ATOM now, and `atRoot: true` because `track` IS
         // the atom's anatomy root (the member frame itself). The switch ROW nests it and paints no box.
-        { def: switchControl, part: 'track', want: 'V:border-width/thick', atRoot: true, opts: {} },
+        // `expectUnstroked` because its `on` track is filled with no border.
+        { def: switchControl, part: 'track', want: 'V:border-width/thick', atRoot: true, opts: {}, expectUnstroked: true },
         // …with the swap target NOMINATED, which the three controls need no equivalent of: button is
         // the only def here with `swap` slots, and an un-nominated one pastes as a placeholder and reports
         // four misses — real, correct, and nothing to do with the stroke this block is about.
-        { def: button, part: 'container', want: 'V:border-width/hairline', atRoot: true, opts: { swapTarget: 'FPO-default-icon' } },
+        { def: button, part: 'container', want: 'V:border-width/hairline', atRoot: true, opts: { swapTarget: 'FPO-default-icon' }, expectUnstroked: true },
         // …and `icon-button`, which is a SEPARATE def with its own 162-member set. `inherits: 'button'`
         // is prose — nothing in the projector resolves through it — so the factory binding reaches it
         // not at all, and an arm covering only `button` would have reported a clean scope over a def
         // still on the executors' literal. Same rung, same reason: Prism 2 draws both at 1px.
-        { def: iconButton, part: 'container', want: 'V:border-width/hairline', atRoot: true, opts: { swapTarget: 'FPO-default-icon' } },
-      ] as { def: ComponentDef; part: string; want: string; atRoot: boolean; opts: Record<string, unknown> }[]) {
+        { def: iconButton, part: 'container', want: 'V:border-width/hairline', atRoot: true, opts: { swapTarget: 'FPO-default-icon' }, expectUnstroked: true },
+      ] as { def: ComponentDef; part: string; want: string; atRoot: boolean; opts: Record<string, unknown>; expectUnstroked: boolean }[]) {
         // ONE COORDINATE PER DEF, not the whole set: the payload is executed here, and 54 + 36 + 24 pastes
         // would pay a lot of run time for the same two facts. The coordinate is chosen to be the UNSTROKED
         // one where the def has it — `checked` / `on` — because that is the path through the executor the
@@ -10336,8 +10351,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           const box = (p.root as unknown as Record<string, unknown>) && partOf(p.root as unknown as Record<string, unknown>);
           return box && !((box.paints as { strokes?: string } | undefined)?.strokes);
         });
-        ok(unstroked.length > 0,
-          `anatomy/${def.id} #1228 reachable: the def projects at least one coordinate that binds a thickness and paints NO border — the only path into the executor default this gates (${unstroked.length} of ${set.length})`);
+        // The unstroked-executor-default path is reachable for every control that fills on select — asserted
+        // so the border-width execution below is not vacuously over the already-gated stroked path. #1348's
+        // radio-control is the ONE exception (`expectUnstroked: false`): its ring is outlined at every
+        // selection, so it has no stroke-less coordinate; it executes its border-width binding at a stroked
+        // coordinate (`set[0]` below) instead. Asserting radio's ABSENCE from this path by name is the same
+        // #1348 fact the token-side block pins — a filled-disc revert would restore an unstroked coordinate.
+        if (expectUnstroked)
+          ok(unstroked.length > 0,
+            `anatomy/${def.id} #1228 reachable: the def projects at least one coordinate that binds a thickness and paints NO border — the only path into the executor default this gates (${unstroked.length} of ${set.length})`);
+        else
+          ok(unstroked.length === 0,
+            `anatomy/${def.id} #1348: the outlined ring binds a thickness and paints a border at EVERY coordinate — no stroke-less path, the Prism 2 constant-border visual (${unstroked.length} unstroked of ${set.length})`);
         const p = unstroked[0] ?? set[0];
         const at = planComponentName(p);
         const page: StubPage = { children: [] };
@@ -14391,7 +14416,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.presentWhen));
   // #1354: `switch-control` gates its two state glyphs (check/X) on `selection` via `presentWhen`, joining
   // the set (the old `switch` used `positionWhen`, not `presentWhen` — that arm is below).
-  const GATED_EXPECTED = ['field-message', 'checkbox-control', 'radio', 'switch-control'];
+  // #1348: the radio ROW dropped its `presentWhen` part — the selection-gated dot moved to `radio-control`
+  // with the painted disc — so `radio` LEAVES this set and `radio-control` joins it, the same swap #1330
+  // made for checkbox → checkbox-control.
+  const GATED_EXPECTED = ['field-message', 'checkbox-control', 'radio-control', 'switch-control'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -15886,6 +15914,98 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `#1354 MUTATION: the thumb WITHOUT radius (size only) is refused — the exemption keys on radius, not size alone`);
   ok(validateComponentDef(patchThumb({ size: undefined })).errors.some((e) => INDICATOR_REFUSAL.test(e)),
     `#1354 MUTATION: the thumb WITHOUT size (radius only) is refused — the exemption keys on size, not radius alone`);
+}
+
+// ---- #1348: THE RADIO DECOMPOSITION — five invariants, each pinned independently of the producer -----
+//
+// The radio split into `radio-control` (the painted circle/dot + focus ring, carrying selection+size+state)
+// + the `radio` Row (size-only, nest-exposed), the #1226/#1330 mechanism a fourth time. This block pins the
+// five things #1348 is: the composition/nesting precondition, the nest-exposed wiring, the 36→3 member
+// collapse, the Prism 2 constant-border/inner-circle-on-select visual, and the F2 circular-focus-ring
+// confirmation. Each expectation is derived INDEPENDENTLY of the projector — a registry composition walk,
+// the nest relation fields, a straight multiply of declared cardinalities, token equality/absence, a node
+// walk for presence, the full-round-host condition — so reverting the subject fails the NAMED assertion
+// rather than agreeing with it. Selection-control alignment, contrast and the roundtrip/host-truth checks
+// cover the shared surface corpus-wide; this is the radio-specific net. NOTE this PR touches NO schema
+// refusal (radio's dot is a childless `indicator` box, so the #1354 indicator widening is untouched), so
+// unlike the switch block there are no refusal-loosening mutation arms to carry.
+{
+  const rc = componentDefs.find((d) => d.id === 'radio-control')!;
+  type PNode = { name?: string; children?: PNode[] };
+  const nodeNames = (n: PNode): string[] => [n.name ?? '', ...((n.children ?? []) as PNode[]).flatMap(nodeNames)];
+  const planNames = (selection: string): string[] =>
+    nodeNames(figmaAnatomyPlan(rc, 'medium', { selection, state: 'rest' }).root as unknown as PNode);
+
+  // (0) THE COMPOSITION / NESTING PRECONDITION (#1348, the owner's flat requirement — confirm the Row
+  // NESTS a control before building the split). The radio Row must nest EXACTLY ONE control, and it must be
+  // `radio-control`, nest-exposed — a registry composition walk over the Row's anatomy, not a trust of the
+  // header. Zero or two nested controls, or one not named `radio-control`, would mean the split was forced
+  // rather than genuine, and this fails.
+  const rowNestParts = Object.entries(radio.anatomy!.parts)
+    .filter(([, p]) => p.kind === 'nest' && (p.nests ?? '').endsWith('-control'));
+  ok(rowNestParts.length === 1 && rowNestParts[0][1].nests === 'radio-control'
+     && rowNestParts[0][1].nesting?.kind === 'nest-exposed',
+    `#1348 the radio ROW nests EXACTLY ONE control and it is radio-control, nest-exposed — the composition precondition (nested: [${rowNestParts.map(([n, p]) => `${n}→${p.nests}/${p.nesting?.kind}`).join(', ') || 'none'}])`);
+
+  // (1) THE NEST-EXPOSED SPLIT. The Row nests radio-control as nest-exposed, exposing selection+state and
+  // following size. A revert to nest-fixed, or dropping an exposed axis, fails here by name.
+  const ctrl = radio.anatomy!.parts.control;
+  const rel = ctrl?.nesting as { kind?: string; expose?: readonly string[]; follow?: readonly string[] } | undefined;
+  ok(ctrl?.kind === 'nest' && ctrl.nests === 'radio-control' && rel?.kind === 'nest-exposed'
+    && ['selection', 'state'].every((a) => rel!.expose?.includes(a)) && !!rel.follow?.includes('size'),
+    `#1348 the radio ROW nests radio-control nest-exposed, exposing selection+state and following size (kind=${ctrl?.kind}, nests=${ctrl?.nests}, rel=${rel?.kind}, expose=[${rel?.expose?.join(', ')}], follow=[${rel?.follow?.join(', ')}])`);
+
+  // (2) THE MEMBER COLLAPSE, a multiply INDEPENDENT of the enumeration. The Row is size-only; the atom
+  // carries selection×size×state. 36 → 3.
+  const rowN = figmaAnatomySet(radio).length;
+  const ctlN = figmaAnatomySet(rc).length;
+  const ctlProduct = rc.variants!.selection!.length * rc.variants!.size!.length * rc.figmaProperties!.stateAxis!.values.length;
+  ok(rowN === radio.variants!.size!.length && rowN === 3,
+    `#1348 the radio ROW projects SIZE-ONLY — ${rowN} members (its one axis), the 36→3 collapse against the atom's set`);
+  ok(ctlN === ctlProduct && ctlProduct === 36,
+    `#1348 radio-control carries the 36 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
+
+  // (3) THE PRISM 2 VISUAL — CONSTANT BORDER + INNER CIRCLE ON SELECT (#1348 point 2), read four ways, each
+  // independent of the producer.
+  //   (a) the INNER CIRCLE appears on select and ONLY on select — read off the PROJECTED PLAN's nodes.
+  ok(planNames('checked').includes('dot') && !planNames('unchecked').includes('dot'),
+    `#1348 the CHECKED member draws the inner dot and the UNCHECKED member does not (checked: ${planNames('checked').join(',')}; unchecked: ${planNames('unchecked').join(',')})`);
+  //   (b) the ring is OUTLINED — NO fill at either selection (not the pre-split filled disc). The fill's
+  //   ABSENCE is the binding "no fill" (#1011), and the control part carries no `fill` slot.
+  ok(rc.tokens['checked.fill'] === undefined && rc.tokens['unchecked.fill'] === undefined
+     && !(rc.anatomy!.parts.control.paintSlots ?? []).includes('fill'),
+    `#1348 radio-control's ring binds NO fill at either selection — the outlined model, not a filled disc (checked.fill=${rc.tokens['checked.fill']}, unchecked.fill=${rc.tokens['unchecked.fill']}, control.paintSlots=[${(rc.anatomy!.parts.control.paintSlots ?? []).join(', ')}])`);
+  //   (c) the BORDER is CONSTANT across selection — checked binds the SAME tokens as unchecked, at rest and
+  //   hover alike, at a 2px weight. A recolor-on-select (the Material fork) or a border-thickening cue on
+  //   select breaks this by name — the border does not change on select, the dot does.
+  ok(rc.tokens['checked.border'] === rc.tokens['unchecked.border']
+     && rc.tokens['checked.border.hover'] === rc.tokens['unchecked.border.hover']
+     && rc.tokens['checked.border'] !== undefined && rc.tokens['border-width'] === 'border-width.thick',
+    `#1348 radio-control's ring border is CONSTANT across selection (checked.border=${rc.tokens['checked.border']} == unchecked.border=${rc.tokens['unchecked.border']}; hover equal=${rc.tokens['checked.border.hover'] === rc.tokens['unchecked.border.hover']}) at a 2px weight (${rc.tokens['border-width']})`);
+  //   (d) the inner dot's ink is the brand fill AGAINST THE PAGE (the ring is unfilled) — the same token the
+  //   pre-split filled disc used, now read as a dot on the page (measured 3:1-clearing there).
+  ok(rc.tokens['checked.indicator'] === 'color.interactive.primary.fill.selected',
+    `#1348 the inner dot's ink is the brand fill on the page (${rc.tokens['checked.indicator']})`);
+
+  // MUTATION-BY-NAME (docs/34): reverting to the pre-split FILLED DISC — a checked.fill binding plus the
+  // fill slot back on the control — is the exact regression #1348 undoes. With the def mutated inline to
+  // that model, the projected checked ring carries a fill and arm (3b)'s "no fill" reading flips. The
+  // subject is the def (mutated), the oracle is the projected plan.
+  const filledDisc = { ...rc, tokens: { ...rc.tokens, 'checked.fill': 'color.interactive.primary.fill.selected' },
+    anatomy: { ...rc.anatomy!, parts: { ...rc.anatomy!.parts,
+      control: { ...rc.anatomy!.parts.control, paintSlots: ['fill', 'border'] } } } } as typeof rc;
+  const mutFillVars = planBoundVars(figmaAnatomyPlan(filledDisc, 'medium', { selection: 'checked', state: 'rest' }).root);
+  ok(mutFillVars.some((v) => v.startsWith('color/interactive/primary/fill')),
+    `#1348 MUTATION: with a filled-disc checked.fill restored the checked ring DOES paint a fill — arm (3b)'s no-fill reading gates the real outlined ring, not the def text (fill vars: ${mutFillVars.filter((v) => v.includes('fill')).join(', ') || 'none'})`);
+
+  // (4) THE F2 CIRCULAR FOCUS RING (#1348 point 3), CONFIRMED not re-derived. F2 (#1388) derives the ring
+  // radius concentrically off the host at paste; a full-round host (radius ≥ half its side) yields a
+  // circular ring. This arm confirms radio-control IS a full-round host — its control binds `radius.round`
+  // — so the #1388 execution block's full-round-host → circular-ring derivation applies to radio. The
+  // derivation itself is gated in that block (`anatomy/ring #1388`); this is the confirmation the owner asked for.
+  ok(rc.tokens['radius'] === 'radius.round' && rc.anatomy!.parts.control.radius === 'radius'
+     && rc.anatomy!.parts.focusRing?.nests === 'focus-ring',
+    `#1348 radio-control's control is a FULL-ROUND host (radius→${rc.tokens['radius']}) nesting focus-ring, so F2/#1388 yields a CIRCULAR focus ring by construction — confirmed, not re-derived`);
 }
 
 // ---- #1039: MATERIALIZATION RENAMES — check 2, and the table that proves check 1's shape ----------
