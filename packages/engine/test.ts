@@ -8387,6 +8387,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const rootGlyphDef = { id: 'x', name: 'X', category: 'media', status: 'draft', description: 'x', props: [], states: [], variants: {}, paintKeys: ['{slot}'], tokens: {}, anatomy: { root: 'g', parts: { g: { kind: 'vector' as const, role: 'target' as const, glyph: 'image', glyphPx: 180 } } }, figmaProperties: { variantAxes: [], booleans: {} }, accessibility: { role: 'img', wcag: [], focus: 'n', aria: 'n' }, content: { labelPattern: 'n' }, docs: { usage: 'n', do: [], dont: [], contentGuidelines: 'n' }, ai: { primaryPurpose: 'n', whenToUse: 'n', avoidWhen: 'n', commonPartners: [], triggerKeywords: [], generationPriority: 3 }, composition: { composesWith: [], alternativeTo: [], supersedes: [], supersededBy: [] } };
     ok(validateComponentDef(rootGlyphDef as unknown as ComponentDef).errors.some((e) => /declares 'glyphPx' and is the anatomy ROOT/.test(e)),
       "#1340 glyphPx on the ROOT vector is refused BY NAME — a root glyph's rendered size comes from the host that instances it, so a literal here fixes a size the host is meant to give");
+    // (d) glyphPx NON-POSITIVE — the frame is resized to this square, so a 0 or negative literal builds a
+    // collapsed or inverted frame. Patch the real marker (a non-root vector with `size` removed) to `0`, and
+    // also a negative, so the `> 0` bound (not merely `!== 0`) is what is pinned.
+    const glyphPxZero = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, marker: { ...marker, glyphPx: 0 } } } };
+    ok(validateComponentDef(glyphPxZero as ComponentDef).errors.some((e) => /declares glyphPx 0/.test(e) && /must be > 0/.test(e)),
+      "#1340 a NON-POSITIVE glyphPx (0) is refused BY NAME — the glyph frame is resized to the literal, so a zero builds a collapsed frame; without this arm disabling the `>0` check leaves the suite green");
+    const glyphPxNeg = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, marker: { ...marker, glyphPx: -1 } } } };
+    ok(validateComponentDef(glyphPxNeg as ComponentDef).errors.some((e) => /declares glyphPx -1/.test(e) && /must be > 0/.test(e)),
+      "#1340 a NEGATIVE glyphPx (-1) is refused BY NAME — a negative literal would invert the frame; the bound is `> 0`, not `!== 0`");
 
     // ---- #1344: `empty` is NOT a projected state, but IS carried internally ----
     // NOTE the count moved with #1331: `leading` is no longer a slot ×2 axis (it is a node-visibility
