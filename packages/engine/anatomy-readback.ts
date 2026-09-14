@@ -264,6 +264,16 @@ export const FIELDS: Record<string, FieldCheck> = {
     check: (p, n) => (n.minWidth === p ? null : str(n.minWidth)),
   },
 
+  // ── literal glyph size (#1340) ─────────────────────────────────────────────────────────────────
+  // Unlike `glyphViewBox` (below, ignored because the executor MEASURES the import and this reader has no
+  // second opinion), `glyphPx` is a size the executor SETS to an exact literal — so the reader DOES have
+  // an opinion: the built glyph frame's own `width` must come back as that literal. Only
+  // `image-placeholder`'s marker carries it today.
+  glyphPx: {
+    show: (p) => `glyphPx ${String(p)}`,
+    check: (p, n) => (n.width === p ? null : str(n.width)),
+  },
+
   // ── positioning ──────────────────────────────────────────────────────────────────────────────
   absoluteInset: {
     show: () => 'ABSOLUTE',

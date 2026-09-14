@@ -1191,6 +1191,13 @@ const writeComponentSet = async (
       // 24px it was drawn at, so a 16px instance would show the glyph's top-left corner. This is the one
       // property of the import that gets overridden, which is why it is the only write in this branch.
       for (const v of drawn) wr(v as CompNode).constraints = { horizontal: 'SCALE', vertical: 'SCALE' };
+      // THE LITERAL GLYPH SIZE (#1340). A non-root glyph whose def states `glyphPx` binds no `size` variable
+      // and is not sized by an instancing host, so it stays at its 24px import — a stray small mark in a
+      // large frame. Resize it to the literal here, AFTER the artboard read-back above (which reads the
+      // import's own 24px) and BEFORE the bind loop below (this node binds no dimension, so the resize is
+      // never cleared). The outline's SCALE constraints, just set, scale the drawn grid to fill it. Twin of
+      // the `figma_execute` payload's own glyph resize (`anatomy-figma.ts`).
+      if (n.glyphPx) node.resize?.(n.glyphPx, n.glyphPx);
     } else {
       node = wr(api.createFrame());
       // THREADED FROM THE PLAN (#1316), default false — unchanged for every existing box, which omits the
