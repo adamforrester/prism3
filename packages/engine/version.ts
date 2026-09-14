@@ -60,6 +60,38 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.82.0: checkbox-control inner-glyph calibration (#1346, both items owner-triaged). Two changes:
+ *   (1) The check/dash are inset to 0.80 of the control box. QA read them slightly large; before this the
+ *       `mark`/`dash` frames bound the FULL box and drew the artwork's own ~71% grid inset, so the check
+ *       ink spanned 70.7% of the box width. Prism 2 sizes it smaller — `checkFill` 16 in a 20px control
+ *       box (the focus frame is 28 at −4, so box = 28 − 2×4 = 20; cross-checked by its cornerRadius 2 =
+ *       the engine's `edge ÷ 8`), a 16/20 = 0.80 mark ratio. The ~71% artwork inset is common to Prism 2's
+ *       `checkFill` and the engine's `check` glyph, so it cancels; the NET move is the FRAME from 1.0 to
+ *       0.80, rendering the check ink at 0.80 × 70.7% = 56.6% of the box (the dash 58.3% → 46.6%). The new
+ *       schema field `glyphScale` (on `mark`/`dash`) pads the emitted glyph DOCUMENT's artboard to
+ *       `grid ÷ 0.8` (24 → 30, centred, path `d` untouched) so the existing box binding renders the grid
+ *       at 0.80 — an internal, def-local multiplier, NOT a shrunk frame (which would need a per-rung
+ *       `control.size.*.mark` token, a guaranteed name and a CONTRACT bump, the class #910's `dot` bumped
+ *       for). `lint-glyph-geometry` re-derives the padded artboard from a scale it declares itself
+ *       (`SCALED_GLYPH`), and `test.ts` pins the rendered 0.80 against the projected artboard, both by
+ *       name; a revert to a full 24 grid fails both.
+ *   (2) The pressed border is CONFIRMED + DOCUMENTED, adds nothing (owner 2026-09-13): the empty box's
+ *       pressed state reuses the rest border (`unchecked.border` → `color.field.border.rest`), there is no
+ *       `color.field.border.pressed` role, and none is minted — consistent with #1342's no-new-
+ *       `field/fill/hover` call. Header + token comment record why; no binding or token moves.
+ *
+ * ENGINE and not CONTRACT, on #1252: the PROJECTED component surface moves (the mark/dash artboard is
+ * padded, so their `glyphSvg` documents and `glyphViewBox` read-back change from 24 to 30), but no emitted
+ * TOKEN NAME is added, removed or retyped — `glyphScale` is a def-local literal baked into the glyph
+ * document, never a token, and the frame still binds the existing `control.size.*` box variable. So
+ * `CONTRACT_VERSION` STANDS at 10.0.0; `token-contract.ts --check` confirms the guaranteed 577 unchanged
+ * and `--accept` refreshes only the baseline's informational `engineVersion` stamp. `regen --check` moves
+ * each artifact's own generator stamp (0.81.0 → 0.82.0) and the two checkbox-control glyph documents;
+ * `lint-emission-version` is green (no emission VALUE change — the token layer is untouched).
+ * `lint-component-surface` and `lint-paint` census re-`--accept`ed at the forward bump only if the padded
+ * artboard moved a recorded figure (the member counts and paint slots are unchanged; the glyph geometry is
+ * not part of those censuses).
+ *
  * 0.81.0: `select` cluster, part 1 of #1329 (#1342 / #1343b / #1344; the #1343a default width and #1345
  * responsive auto-layout are HELD — see below). Two projected-surface moves and one doc-only confirmation:
  *   (1) #1343b — the `icon` slot repoints `color.icon.secondary` → `color.icon.primary`. That one key
@@ -2260,7 +2292,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.81.0';
+export const ENGINE_VERSION = '0.82.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
