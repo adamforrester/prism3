@@ -14567,6 +14567,31 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(cbGlyphs({}) === 'neither',
     `checkbox-control: and with neither axis supplied — the structure-only plan a consumer asking "what parts does this def have" gets (got '${cbGlyphs({})}')`);
 
+  // #1346 — THE INNER GLYPH IS INSET TO PRISM 2's 0.80 MARK-TO-BOX RATIO, pinned on the PROJECTED
+  // artboard rather than on the def's `glyphScale` field, so a revert to the old full-bleed mark fails
+  // HERE by name, not only in the projector that produced it. EXPECTED is authored from the Prism 2
+  // MEASUREMENT — `checkFill` 16 inside a 20px control box (the focus frame is 28 at offset −4, so the
+  // box is 28 − 2×4 = 20), giving 16/20 = 0.80, `reference/Prism2/component-specs/checkboxes.json` —
+  // independent of the engine. ACTUAL is the drawn grid's fraction of its artboard, read back from the
+  // plan: the mark FRAME binds the control box (asserted first), and the emitter pads the artboard to
+  // `grid / scale`, so the rendered mark is `grid / artboard` of the box. A mutation setting `glyphScale`
+  // back to 1 pads to the bare 24 grid, makes the ratio 1.0, and fails these by name. Not "it resolves"
+  // (docs/34 shape 5) — the VALUE 0.80 is asserted, transcribed from Prism 2, not read off the def.
+  const PRISM2_MARK_TO_BOX = 0.8;                                   // checkFill 16 / control box 20
+  const grid = Number(ICON_VIEWBOX.split(/\s+/)[2]);                // the 24-unit source grid, parsed
+  const glyphNode = (part: string, selection: string) => {
+    const f = (n: any): any => (n.name === part ? n : (n.children ?? []).map(f).find(Boolean));
+    return f(figmaAnatomyPlan(checkboxControl, 'medium', { selection, state: 'rest' } as never).root);
+  };
+  ok((checkboxControl.anatomy!.parts.mark as any).size === 'size.{size}.control',
+    `checkbox-control: the mark FRAME binds the control box ('size.{size}.control'), so the padded artboard is what insets the ink and the ratio below is box-relative (got size='${(checkboxControl.anatomy!.parts.mark as any).size}')`);
+  const markRatio = grid / (glyphNode('mark', 'checked').glyphViewBox as [number, number])[0];
+  ok(Math.abs(markRatio - PRISM2_MARK_TO_BOX) < 1e-9,
+    `checkbox-control: the check renders at Prism 2's ${PRISM2_MARK_TO_BOX} of the box — the 24-grid fills ${markRatio.toFixed(4)} of its ${(glyphNode('mark', 'checked').glyphViewBox as [number, number])[0]}px artboard, and the frame is box-bound, so a revert to a full-bleed 24px artboard (ratio 1.0) restores the oversized mark #1346 shrank (got ${markRatio.toFixed(4)})`);
+  const dashRatio = grid / (glyphNode('dash', 'indeterminate').glyphViewBox as [number, number])[0];
+  ok(Math.abs(dashRatio - PRISM2_MARK_TO_BOX) < 1e-9,
+    `checkbox-control: the dash renders at the same ${PRISM2_MARK_TO_BOX} of the box as the check (Prism 2 sizes subtractFill identically to checkFill), pinned separately so a change to one part cannot pass on the other's ratio (got ${dashRatio.toFixed(4)})`);
+
   // ---- the same three directions as a RULE over every gated part, because the block above is
   // ---- CHECKBOX-SHAPED and the second def to use the mechanism does not fit it (#910) -------------
   // The arms above name `mark` and `dash`. `lint-glyph-geometry.ts`, cited above as covering the

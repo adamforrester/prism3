@@ -36,6 +36,21 @@
  * the result to the outline. So this gate asserts the declared dimensions are present, SQUARE, equal
  * to the viewBox's own, and that the ink fits inside them.
  *
+ * ── THE PADDED ARTBOARD, WHERE A CONTROL INSETS ITS GLYPH (`SCALED_GLYPH`, #1346) ───────────────
+ *
+ * A `vector` part may carry `glyphScale` — the fraction of its artboard the drawn grid occupies — to
+ * sit a mark SMALLER than the box that hosts it (checkbox's check is Prism 2's 0.80). The projector
+ * pads the emitted document's artboard to `grid ÷ scale`, centred, so the same host size binding
+ * renders the grid at `scale` of the frame with the path `d` untouched. That relaxes arm D's "the
+ * artboard is the set's own square" for exactly those parts — so the scale is DECLARED here in
+ * `SCALED_GLYPH` and compared to the def's `glyphScale` by value in both directions, and arm D's
+ * expected box is RE-DERIVED here by `paddedArtboard` (never imported from the projector's
+ * `glyphArtboard`), so a wrong pad fails rather than agreeing with itself. The pad only enlarges a
+ * SQUARE canvas: the square and ink-fit checks still hold, and an unscaled part is byte-identical to
+ * before. The Figma import of a negative-origin viewBox is a real-host fact this offline gate cannot
+ * see (recorded in the def's `notes.unverified`); what it pins is the SUBMITTED document and its
+ * declared box.
+ *
  * ── INDEPENDENCE, WHICH IS THE WHOLE DESIGN (`docs/34`) ─────────────────────────────────────────
  *
  * EXPECTED comes from the VOCABULARY and the DEF: the part's `glyph` template names an axis, the
@@ -286,7 +301,49 @@ const declaredViewBox = (): { minX: number; minY: number; w: number; h: number }
   return { minX, minY, w, h };
 };
 
+/**
+ * PARTS WHOSE GLYPH IS INSET BY A PADDED ARTBOARD (#1346), keyed `<def>.<part>` → the scale and why.
+ *
+ * `glyphScale` on a `vector` part pads the emitted artboard to `grid ÷ scale` (centred) so the drawn grid
+ * renders at `scale` of the frame — a control whose reference sits its mark smaller than the box, without
+ * minting a per-rung control token. This table is the SECOND author of that number, exactly as
+ * `FIXED_GLYPH` is the second author of a fixed part's glyph name: the def declares `glyphScale`, this
+ * declares the scale it EXPECTS, and the two are compared by value in BOTH directions — a def scaling a
+ * part this table does not list fails, and an entry for a part the def no longer scales fails as stale.
+ * Without it, "the artboard is the set's own square" (arm D) could not be relaxed for an inset part
+ * without being relaxed for every part, which would let a genuinely wrong artboard through.
+ *
+ * The padded viewBox arm D checks against is re-derived HERE by `paddedArtboard`, NOT imported from
+ * `glyphArtboard` in `anatomy-figma.ts` (which the projector calls) — the duplicated derivation IS the
+ * check, same rule as `declaredViewBox`'s re-parse below. The 1e4 rounding is duplicated with it on
+ * purpose: `24 / 0.8` is `29.999999999999996` in IEEE, and both sides must round it to 30 the same way
+ * or a correct document would read as a mismatch.
+ */
+const SCALED_GLYPH: Record<string, { scale: number; why: string }> = {
+  'checkbox-control.mark': {
+    scale: 0.8,
+    why: "the check inset to 0.80 of the box (#1346), matching Prism 2's `checkFill` (16) in its 20px control square. A padded artboard rather than a shrunk frame, because shrinking the frame would mint a guaranteed `control.size.*.mark` token and bump CONTRACT",
+  },
+  'checkbox-control.dash': {
+    scale: 0.8,
+    why: "the indeterminate dash, inset identically to the check — Prism 2's `subtractFill` is the same 16 in the 20px box, so the dash takes the same 0.80 ratio",
+  },
+};
+
 type Box = { x: number; y: number; w: number; h: number };
+
+/** The artboard a `glyphScale` pads to, re-derived independently of the projector (see `SCALED_GLYPH`).
+ *  Mirrors `glyphArtboard` in `anatomy-figma.ts` — grid ÷ scale, centred on the same origin, 1e4-rounded
+ *  — but is a second implementation on purpose so a wrong pad in the projector fails here. */
+const paddedArtboard = (base: { minX: number; minY: number; w: number; h: number }, scale?: number)
+  : { viewBox: string; dims: [number, number]; minX: number; minY: number; w: number; h: number } => {
+  if (scale === undefined || scale === 1)
+    return { viewBox: ICON_VIEWBOX, dims: [base.w, base.h], ...base };
+  const r = (v: number): number => Math.round(v * 1e4) / 1e4;
+  const w = r(base.w / scale), h = r(base.h / scale);
+  const minX = r(base.minX - (w - base.w) / 2), minY = r(base.minY - (h - base.h) / 2);
+  return { viewBox: `${minX} ${minY} ${w} ${h}`, dims: [w, h], minX, minY, w, h };
+};
 
 /**
  * THE INK a path draws, as a bounding box. Nothing else in this repo measures this, so it is not a
@@ -407,8 +464,24 @@ for (const def of componentDefs as ComponentDef[]) {
   }
 
   for (const [partName, raw] of parts) {
-    const part = raw as { glyph?: string; presentWhen?: Record<string, readonly string[]> };
+    const part = raw as { glyph?: string; presentWhen?: Record<string, readonly string[]>; glyphScale?: number };
     const key = `${def.id}.${partName}`;
+    // THE ARTBOARD SCALE, against the def, BEFORE the geometry arms — because arm D re-derives the
+    // expected artboard from this scale, so a disagreement here would make arm D compare against the
+    // wrong padded box and report the mismatch as a wrong document rather than as a moved record.
+    // Compared by VALUE in both directions: a def scaling a part this table omits fails as an undeclared
+    // inset, an entry the def no longer carries fails as stale (its OTHER direction is the STALE sweep at
+    // the end of the file, for a part removed entirely). `paddedArtboard` re-derives the box arm D wants.
+    const scaled = SCALED_GLYPH[key];
+    if (part.glyphScale !== undefined && !scaled) {
+      failures.push(`${def.id}.${partName}: the def declares glyphScale ${part.glyphScale} and SCALED_GLYPH records no inset for it — an undeclared artboard pad would let arm D's "the artboard is the set's own square" be relaxed with nothing checking to what. Add '${key}' to SCALED_GLYPH with the scale and why.`);
+      continue;
+    }
+    if (scaled && part.glyphScale !== scaled.scale) {
+      failures.push(`${def.id}.${partName}: the def scales the glyph by ${part.glyphScale ?? '(none)'} and SCALED_GLYPH records ${scaled.scale}. One of the two moved. Arm D re-derives the padded artboard from the record, so a wrong def scale would draw a mark at the wrong size on an artboard this file still calls correct.`);
+      continue;
+    }
+    const pvb = paddedArtboard(vb, part.glyphScale);
     // The axis the glyph template names, read from the DEF. `'{name}'` → `name`; a literal glyph name is
     // a DIFFERENT claim (one shape at every coordinate) and must be recorded in `FIXED_GLYPH` with the
     // name it draws, so a fixed glyph is admitted by decision rather than by the absence of a rule.
@@ -526,20 +599,29 @@ for (const def of componentDefs as ComponentDef[]) {
       // square), and every host binds ONE square variable to width AND height, so a non-square main
       // component distorts non-uniformly. The declared width/height are what deny the importer the
       // freedom to size the frame to the outline.
-      if (docVb !== ICON_VIEWBOX)
-        failures.push(`${def.id}.${partName} @ ${at}: the document declares viewBox="${docVb ?? 'absent'}", not the set's '${ICON_VIEWBOX}' — a path drawn on one grid inside a document claiming another imports at the wrong scale.`);
+      //
+      // AGAINST `pvb`, THE PER-PART EXPECTED ARTBOARD (#1346), not the set's bare square. For an unscaled
+      // part `pvb` IS the set's square (`ICON_VIEWBOX`, [24,24]) and every check below is byte-identical
+      // to before; for a `glyphScale` part it is the padded box re-derived here from the SCALED_GLYPH
+      // scale, so a mark inset to 0.80 imports on `-3 -3 30 30` and is checked against exactly that. The
+      // artboard stays SQUARE and the ink still must FIT — the pad only enlarges the canvas, it does not
+      // license a non-square or an escaping outline.
+      if (docVb !== pvb.viewBox)
+        failures.push(`${def.id}.${partName} @ ${at}: the document declares viewBox="${docVb ?? 'absent'}", not the expected '${pvb.viewBox}'${part.glyphScale ? ` (padded by glyphScale ${part.glyphScale})` : ''} — a path drawn on one grid inside a document claiming another imports at the wrong scale.`);
       if (!(docW > 0) || !(docH > 0))
         failures.push(`${def.id}.${partName} @ ${at}: the document declares width="${docW || 'absent'}" height="${docH || 'absent'}". Without both, an importer is free to size the frame to the INK — which is how a 14×2 'minus' becomes the main component's own box, and then a bar 7× too thick when a host stretches it into a square slot.`);
-      else if (docW !== vb.w || docH !== vb.h)
-        failures.push(`${def.id}.${partName} @ ${at}: the document is ${docW}×${docH} but its viewBox is ${vb.w}×${vb.h} — the artboard and the coordinate system disagree, so the glyph imports scaled.`);
+      else if (docW !== pvb.w || docH !== pvb.h)
+        failures.push(`${def.id}.${partName} @ ${at}: the document is ${docW}×${docH} but its expected artboard is ${pvb.w}×${pvb.h} — the artboard and the coordinate system disagree, so the glyph imports scaled.`);
       else if (docW !== docH)
         failures.push(`${def.id}.${partName} @ ${at}: the artboard is ${docW}×${docH}, not SQUARE. Hosts bind one variable to both axes of the slot they swap a glyph into (button and icon-button both bind size.{size}.icon to width and height), so a non-square member is stretched non-uniformly.`);
-      // The read-back expectation the executors compare the imported frame against.
-      if (JSON.stringify(node.glyphViewBox) !== JSON.stringify([vb.w, vb.h]))
-        failures.push(`${def.id}.${partName} @ ${at}: glyphViewBox is ${JSON.stringify(node.glyphViewBox)}, expected [${vb.w}, ${vb.h}] — this is the only thing the executors can compare the imported frame's size against, so a wrong value makes their read-back agree with the wrong artboard.`);
+      // The read-back expectation the executors compare the imported frame against — the padded dims for
+      // a scaled part, so the executor's box read-back agrees with the enlarged artboard the frame builds
+      // at before its host binding resizes it.
+      if (JSON.stringify(node.glyphViewBox) !== JSON.stringify(pvb.dims))
+        failures.push(`${def.id}.${partName} @ ${at}: glyphViewBox is ${JSON.stringify(node.glyphViewBox)}, expected ${JSON.stringify(pvb.dims)} — this is the only thing the executors can compare the imported frame's size against, so a wrong value makes their read-back agree with the wrong artboard.`);
       // The ink must fit the artboard: an outline outside it is clipped or off-canvas.
-      if (ink.x < vb.minX || ink.y < vb.minY || ink.x + ink.w > vb.minX + vb.w || ink.y + ink.h > vb.minY + vb.h)
-        failures.push(`${def.id}.${partName} @ ${at}: the outline occupies ${ink.x},${ink.y} ${ink.w}×${ink.h}, which leaves the ${vb.w}×${vb.h} artboard at ${vb.minX},${vb.minY} — the part outside imports clipped or off-canvas.`);
+      if (ink.x < pvb.minX || ink.y < pvb.minY || ink.x + ink.w > pvb.minX + pvb.w || ink.y + ink.h > pvb.minY + pvb.h)
+        failures.push(`${def.id}.${partName} @ ${at}: the outline occupies ${ink.x},${ink.y} ${ink.w}×${ink.h}, which leaves the ${pvb.w}×${pvb.h} artboard at ${pvb.minX},${pvb.minY} — the part outside imports clipped or off-canvas.`);
 
       const prior = seenNames.get(member);
       if (prior !== undefined && prior !== d)
@@ -555,7 +637,7 @@ for (const def of componentDefs as ComponentDef[]) {
     if (fixed) {
       if (!appearances)
         failures.push(`${def.id}.${partName}: drew its fixed '${fixed.glyph}' at NONE of the set's ${set.length} members. Every arm above ranges over the coordinates it appears at, so a part gated out of all of them reports clean having measured nothing.`);
-      notes.push(`${key}: fixed '${fixed.glyph}' at ${appearances}/${set.length} member(s) on a ${vb.w}×${vb.h} artboard${part.presentWhen ? `, gated ${JSON.stringify(part.presentWhen)}` : ''}`);
+      notes.push(`${key}: fixed '${fixed.glyph}' at ${appearances}/${set.length} member(s) on a ${pvb.w}×${pvb.h} artboard${part.glyphScale ? ` (glyphScale ${part.glyphScale}, drawn grid at ${(part.glyphScale * 100).toFixed(0)}% of the frame)` : ''}${part.presentWhen ? `, gated ${JSON.stringify(part.presentWhen)}` : ''}`);
       continue;
     }
 
@@ -642,6 +724,15 @@ const vectorParts = new Set(
 for (const key of Object.keys(FIXED_GLYPH))
   if (!vectorParts.has(key))
     failures.push(`STALE FIXED_GLYPH: '${key}' is recorded as drawing a fixed '${FIXED_GLYPH[key].glyph}', and no def declares a vector part by that name. The per-part loop cannot see this — it only ever reads entries for parts that exist — so the exemption would outlive its subject and silently admit the next part to take that name.`);
+
+// SCALED_GLYPH's OTHER DIRECTION, same reason as FIXED_GLYPH's above (#1346). The per-part loop fails a
+// def scaling a part this table omits and a table scale that disagrees with the def; nothing there can
+// see an entry naming a part that no longer exists — a part removed entirely is never reached. So the
+// artboard-pad exemption is made perishable here: an entry for a vanished part fails as stale rather than
+// outliving its subject and relaxing arm D for whatever part next takes that name.
+for (const key of Object.keys(SCALED_GLYPH))
+  if (!vectorParts.has(key))
+    failures.push(`STALE SCALED_GLYPH: '${key}' records a glyphScale of ${SCALED_GLYPH[key].scale}, and no def declares a vector part by that name. The per-part loop cannot see this, so the padded-artboard exemption would outlive its subject and let arm D be relaxed for the next part to take that name.`);
 
 console.log(`Glyph geometry — ${glyphChecks} glyph(s) measured across ${covered.size} vector part(s): ${[...covered].join(', ') || 'NONE'}`);
 for (const n of notes) console.log(`    ${n}`);

@@ -620,19 +620,47 @@ const viewBoxDims = (): [number, number] => {
  * inside, from `descendantFills`. Carrying it anyway keeps this document identical to the source file,
  * which is what makes `emit-icons.ts`'s assertions about the source assertions about this too.
  */
-const glyphDocument = (path: string, fillRule?: string): string =>
-  `<svg width="${viewBoxDims()[0]}" height="${viewBoxDims()[1]}" viewBox="${ICON_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg">` +
+/**
+ * THE ARTBOARD a glyph document declares, PADDED by `glyphScale` (#1346). Absent (or `1`) is the set's
+ * own square untouched; a scale in `(0, 1)` pads the artboard to `grid / scale` and shifts its origin so
+ * the SAME drawn path is CENTRED in the larger canvas — the ink then occupies `scale` of the frame, and
+ * the host's existing size binding renders it at `scale` of the box with the path `d` and the shared
+ * vocabulary byte-unchanged. Shrinking the FRAME instead would mint a per-rung control token (the plan
+ * is brand-agnostic, a frame binds a variable, a new emitted name is a CONTRACT bump); padding the
+ * DOCUMENT is a def-local literal, so `token-contract.ts --check` stays put. Returns the `viewBox`
+ * string and the `[w, h]` the built frame must come back as — one derivation for both, so the document
+ * and its read-back cannot disagree; `lint-glyph-geometry.ts` re-derives this independently from a scale
+ * it declares itself, which is what makes the padding falsifiable rather than self-consistent. */
+const glyphArtboard = (scale?: number): { viewBox: string; dims: [number, number] } => {
+  const [w, h] = viewBoxDims();
+  if (scale === undefined || scale === 1) return { viewBox: ICON_VIEWBOX, dims: [w, h] };
+  // Rounded to a 4-decimal grid so `24 / 0.8` is the clean 30 the artboard wants rather than the
+  // 29.999999999999996 IEEE division hands back — a stray tail would ship in the emitted document and
+  // in the frame's read-back box. `lint-glyph-geometry.ts` re-derives with the SAME rounding (stated in
+  // its header), independently, so the two agree by construction rather than by sharing this code.
+  const r = (v: number): number => Math.round(v * 1e4) / 1e4;
+  const [minX, minY] = ICON_VIEWBOX.split(/\s+/).map(Number);
+  const padW = r(w / scale), padH = r(h / scale);          // the drawn grid is `scale` of the padded box
+  const offX = r(minX - (padW - w) / 2), offY = r(minY - (padH - h) / 2);  // centre the SAME path, `d` unshifted
+  return { viewBox: `${offX} ${offY} ${padW} ${padH}`, dims: [padW, padH] };
+};
+
+const glyphDocument = (path: string, fillRule?: string, scale?: number): string => {
+  const ab = glyphArtboard(scale);
+  return `<svg width="${ab.dims[0]}" height="${ab.dims[1]}" viewBox="${ab.viewBox}" fill="none" xmlns="http://www.w3.org/2000/svg">` +
   // `fill-rule` is written only when the source declared a non-default one (#1012). It sits BEFORE `d`
   // the way the source authored it, and it is the attribute that keeps a lettered disc's counters cut
   // OUT rather than filled solid — Figma's importer honours it, so a glyph that stored `evenodd` renders
   // as drawn. Absent means `nonzero`, the default both SVG and Figma already assume, so the string is
   // byte-identical to before for every glyph that needs no rule.
   `<path ${fillRule ? `fill-rule="${fillRule}" ` : ''}d="${path}" fill="currentColor"/></svg>`;
+};
 
 /** `glyphDocument` for a resolved glyph NAME — looks its path and (sparse) winding rule up together, so
- *  the two lookups stay in one place and the caller passes a name rather than re-deriving both (#1012). */
-const glyphSvgFor = (defId: string, part: string, glyph: string | undefined): string =>
-  glyphDocument(glyphPath(defId, part, glyph), glyph ? ICON_FILL_RULES[glyph as keyof typeof ICON_PATHS] : undefined);
+ *  the two lookups stay in one place and the caller passes a name rather than re-deriving both (#1012).
+ *  `scale` pads the artboard per `glyphScale` (#1346); absent leaves the set's own square untouched. */
+const glyphSvgFor = (defId: string, part: string, glyph: string | undefined, scale?: number): string =>
+  glyphDocument(glyphPath(defId, part, glyph), glyph ? ICON_FILL_RULES[glyph as keyof typeof ICON_PATHS] : undefined, scale);
 
 const ALIGN: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'> = {
   start: 'MIN', center: 'CENTER', end: 'MAX', baseline: 'BASELINE',
@@ -1337,8 +1365,10 @@ export const figmaAnatomyPlan = (
       // but which the field's grammar allows — resolves instead of throwing on an axis that is in fact known.
       ...(p.kind === 'vector'
         ? {
-            glyphSvg: glyphSvgFor(def.id, name, resolveGlyph(def.id, name, p.glyph, paintCoord)),
-            glyphViewBox: viewBoxDims(),
+            glyphSvg: glyphSvgFor(def.id, name, resolveGlyph(def.id, name, p.glyph, paintCoord), p.glyphScale),
+            // The artboard PADDED by `glyphScale` (#1346), not the set's bare square: the two come from
+            // one `glyphArtboard` call so the document and the box its executor reads back cannot disagree.
+            glyphViewBox: glyphArtboard(p.glyphScale).dims,
           }
         : {}),
       // THE ASPECT-RATIO LOCK (#1316), carried as the numeric proportion so each executor can resize the

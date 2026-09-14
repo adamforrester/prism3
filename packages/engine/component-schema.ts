@@ -394,6 +394,22 @@ export type PartDef = {
    *  naming a glyph that survives the swap is untouched, and every def naming one that does not fails at
    *  projection instead of building an empty square. */
   glyph?: string;
+  /** THE FRACTION OF ITS ARTBOARD A `vector`'s DRAWN GRID OCCUPIES (#1346). A glyph's 24-unit source grid
+   *  fills its artboard by default (`glyphScale` absent ≡ `1`): the frame is bound to its host size and the
+   *  ink renders at whatever proportion the artwork itself draws (`check` draws ~71% of the grid). A control
+   *  whose reference sits its glyph SMALLER than the box needs a second, optical inset ON TOP of that
+   *  artwork inset — and expressing it by SHRINKING THE FRAME would mint a per-rung control token (a
+   *  guaranteed name, a CONTRACT bump), because the plan is brand-agnostic and a frame binds a VARIABLE.
+   *  So the inset is baked into the emitted glyph DOCUMENT instead: the projector pads the artboard to
+   *  `grid / glyphScale` (centred, so the path `d` and the shared vocabulary are untouched), and the
+   *  same host binding renders the grid at `glyphScale` of the frame. A def-local literal, not a token —
+   *  `token-contract.ts --check` stays put. Prism 2's checkbox is the motivating case: its `checkFill`
+   *  (16) sits at 0.80 of its control box (20 = focus frame 28 − 2×4), so `mark`/`dash` carry
+   *  `glyphScale: 0.8`. `0 < glyphScale ≤ 1`; `1` is the no-op default and is not authored. `lint-glyph-
+   *  geometry.ts` re-derives the padded artboard from a scale it declares independently, so a value moving
+   *  in either file fails by name; the Figma import of a padded (negative-origin) artboard is a real-host
+   *  fact this offline model cannot verify, recorded in the def's `notes.unverified`. */
+  glyphScale?: number;
   /** A slot that need not be present. `false`/absent means required. */
   optional?: boolean;
   /** VARIANT-GATED PRESENCE (#910): axis → the values at which this part exists. AND-composed across
@@ -3064,6 +3080,17 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // leaves an author believing the part draws something.
     if (p.kind !== 'vector' && p.glyph !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but names a 'glyph' — only a 'vector' part carries geometry. A slot's content is whatever the consumer swaps in, which is a component and not a path`);
+    // `glyphScale` (#1346) is read only by the vector branch's glyph-document emitter, so it is the
+    // same wrong-kind-silently-ignored shape as `glyph` above and refused the same way. And its RANGE is
+    // load-bearing: the projector pads the artboard to `grid / glyphScale`, so `0` divides and a value
+    // `> 1` shrinks the artboard BELOW the grid and clips the ink — both project a broken glyph rather
+    // than fail here, so the bound is stated where the author writes the value.
+    if (p.glyphScale !== undefined) {
+      if (p.kind !== 'vector')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'glyphScale' — only a 'vector' part carries a glyph artboard to pad, so on any other kind it validates clean, is ignored, and leaves an author believing the mark is inset`);
+      else if (!(p.glyphScale > 0 && p.glyphScale <= 1))
+        e.push(`anatomy part '${n}' declares glyphScale ${p.glyphScale} — the drawn grid occupies this fraction of its artboard, so it must be in (0, 1]; 0 divides at emit and a value above 1 pads the artboard SMALLER than the grid and clips the outline`);
+    }
     // A `{...}`-TEMPLATED GLYPH must name an axis this def has, the same rule `paintKeyErrors` applies to
     // a paint template and for the same reason: `glyph: '{nmae}'` is unfillable, and the projector's throw
     // arrives per-coordinate at emission rather than here at authoring time. `size` is admissible on top
