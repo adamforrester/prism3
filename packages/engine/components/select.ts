@@ -71,6 +71,18 @@
  * `disabled.*`). No new emitted token name, so `CONTRACT_VERSION` stands at 10.0.0. `ENGINE_VERSION`
  * moves for the changed projected surface (#1252's case — the icon ink repoints to `primary` and the
  * `empty` column leaves the Figma state axis).
+ *
+ * ── DEFAULT WIDTH: A MIN-WIDTH FLOOR ON THE CONTROL, NOT A TOKEN (#1343a, #1345) ──────────────────
+ *
+ * The control carries `minWidth: 320` — a LITERAL, not a token. Prism 2's select is `root width 320 ·
+ * HUG` with its inner containers FILLing that width (`reference/Prism2/component-specs/select.json`),
+ * and the field should flex like Prism 2 rather than sit at a hard fixed size. The engine cannot project
+ * a child that FILLs (`sizing: 'fill'` → AUTO, #989/#990), so the floor sits on the visible control, the
+ * one place projection can express it: the control renders at ≥320, the hugging column inherits that
+ * width, and the still-AUTO sizing lets the field grow above 320 rather than being pinned. 320 is a
+ * comfortable projection default in 8px increments — the #1343 owner decision was explicit that it is
+ * NOT a `field.width` semantic role — so no emitted token NAME moves and `CONTRACT_VERSION` holds; the
+ * projected plan changes, which is the `ENGINE_VERSION` trigger this def already carries.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -252,6 +264,15 @@ export const select: ComponentDef = {
         paintSlots: ['fill', 'border'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
         height: 'min-height',
+        // THE COMFORTABLE DEFAULT WIDTH (#1343a, #1345), a MIN-WIDTH not a fixed width. Prism 2's select
+        // is `root width 320 · HUG` with its inner containers FILLing that width; the engine cannot
+        // project a child that FILLs (sizing 'fill' → AUTO, #989/#990), so the field is floored HERE, on
+        // the visible control, the one way projection allows. The column then hugs to the 320 control, so
+        // the field reads at 320 in Figma; and because the sizing stays 'fill' (AUTO, not FIXED) the field
+        // FLEXES above the floor rather than being pinned. A literal, not a token — 320 is a projection
+        // default in 8px increments, not a semantic value that earns a `field.width` role (#1343 owner
+        // decision). So no emitted token NAME moves and `CONTRACT_VERSION` stands.
+        minWidth: 320,
         radius: 'radius',
         // The edge weight (#1266's field) — 1px, the field hairline, bound rather than left to the
         // executors' fallback so a brand re-runging its border floor moves it.
@@ -419,7 +440,7 @@ export const select: ComponentDef = {
       'error as a border swap vs a full validation border set — settled as text-field settles it: error is the ONLY status that colors the border, warning and success are message-only. A brand wanting colored warning/success borders would be adding border roles the tier does not emit, which is a token-tier decision, not this def\'s.',
     ],
     unverified: [
-      'The nested field parts hug rather than fill in Figma (a `nest` cannot bind sizing, #1299 gives it only a height), so the projected label and message sit at their natural width. A consumer setting them to fill is a code-side layout concern; check a built member before assuming the stack reads full-width.',
+      'The nested field parts hug rather than fill in Figma (a `nest` cannot bind sizing, #1299 gives it only a height), so the projected label and message sit at their natural width rather than spanning the 320 control. A consumer setting them to fill is a code-side layout concern; check a built member before assuming the whole stack reads full-width. The control itself is floored at 320 (`minWidth`), so the field reads at that width even though `fill` cannot stretch the label and message to it.',
       'The value text does not ellipsize in the Figma projection — `maxLines` / `textOverflow` have no PartDef expression — so a long placeholder in a narrow member overflows rather than truncating. The ellipsis is a code-side behavior.',
     ],
   },

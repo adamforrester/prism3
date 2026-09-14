@@ -154,6 +154,9 @@ export interface CompNode {
   counterAxisAlignItems?: unknown;
   primaryAxisSizingMode?: unknown;
   counterAxisSizingMode?: unknown;
+  /** #1343a/#1345 — the auto-layout minimum width. Written only where the plan carries it (`select`'s
+   *  control), inside the `layoutMode` branch; Figma accepts it only on an auto-layout frame. */
+  minWidth?: unknown;
   layoutPositioning?: unknown;
   constraints?: unknown;
   componentPropertyReferences?: unknown;
@@ -1247,6 +1250,10 @@ const writeComponentSet = async (
       node.counterAxisAlignItems = n.counterAxisAlignItems;
       node.primaryAxisSizingMode = n.primaryAxisSizingMode;
       node.counterAxisSizingMode = n.counterAxisSizingMode;
+      // THE MIN-WIDTH FLOOR (#1343a, #1345). Inside the `layoutMode` branch because Figma accepts a
+      // minimum width only on an auto-layout frame (the schema refuses `minWidth` on a layout-less box).
+      // Written only when the plan carries it, so every other frame is untouched.
+      if (n.minWidth !== undefined) node.minWidth = n.minWidth;
     }
 
     // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind

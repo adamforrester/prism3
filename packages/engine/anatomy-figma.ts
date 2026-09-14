@@ -356,6 +356,11 @@ export type FigmaNodePlan = {
    *  Carried onto the plan ONLY when `true`, so every existing box's plan is byte-identical (both
    *  executors read `n.clipsContent ?? false`, which is the literal they hardcoded before this field). */
   clipsContent?: boolean;
+  /** For a `box`: the literal auto-layout `minWidth` floor in px (#1343a, #1345). Carried ONLY when the
+   *  def sets it, so every existing box's plan is byte-identical; both executors write it inside the
+   *  `layoutMode` branch, where Figma accepts a minimum width. See `PartDef.minWidth` for why a `select`
+   *  gets a min-width and not a bound `width`. */
+  minWidth?: number;
   children: FigmaNodePlan[];
 };
 
@@ -1378,6 +1383,9 @@ export const figmaAnatomyPlan = (
       // The crop flag (#1316), carried ONLY when true so every existing box's plan is byte-identical —
       // both executors read `n.clipsContent ?? false`, which is the literal `false` they hardcoded before.
       ...(p.kind === 'box' && p.clipsContent ? { clipsContent: true as const } : {}),
+      // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
+      // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
+      ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: p.minWidth } : {}),
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nests ? { nestTarget: p.nests } : {}),
       // The def's chosen coordinate — the member the instance starts at. Projected for BOTH `nest-fixed`
       // (the def's final choice) and `nest-exposed` (the DEFAULT, from which the consumer drives the
@@ -2520,6 +2528,10 @@ const build=async(n)=>{
     node.counterAxisAlignItems=n.counterAxisAlignItems;
     node.primaryAxisSizingMode=n.primaryAxisSizingMode;
     node.counterAxisSizingMode=n.counterAxisSizingMode;
+    // THE MIN-WIDTH FLOOR (#1343a, #1345). Inside the \`layoutMode\` branch because Figma accepts a
+    // minimum width only on an auto-layout frame (the schema refuses \`minWidth\` on a layout-less box for
+    // the same reason). Written only when the plan carries it, so every other frame is untouched.
+    if(n.minWidth!==undefined)node.minWidth=n.minWidth;
   }
   // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind
   // loop bind the SINGLE nominal dimension — Figma derives the other axis from the lock. Ordered after

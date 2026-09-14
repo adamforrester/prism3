@@ -256,6 +256,13 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `clipsContent ${String(p)}`,
     check: (p, n) => (n.clipsContent === p ? null : str(n.clipsContent)),
   },
+  // ── auto-layout width floor (#1343a, #1345) ────────────────────────────────────────────────────
+  // A literal min-width the executor sets on an auto-layout frame; the host echoes it back on the same
+  // property, so this compares directly. Only `select`'s control carries it today.
+  minWidth: {
+    show: (p) => `minWidth ${String(p)}`,
+    check: (p, n) => (n.minWidth === p ? null : str(n.minWidth)),
+  },
 
   // ── positioning ──────────────────────────────────────────────────────────────────────────────
   absoluteInset: {

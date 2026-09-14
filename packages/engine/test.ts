@@ -8270,11 +8270,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       "#1353 MUTATION ARM B: reordering shape to ['circular', 'square'] makes values[0] = 'circular', which flips '#1353 shape values LEAD with the default square' to failing");
   }
 
-  // #1344 / #1343b — the SELECT cluster (part 1 of #1329). Two projected-surface moves, each pinned
-  // INDEPENDENTLY of the projector (docs/34): EXPECTED is the role name / cardinality authored here,
-  // ACTUAL is read off the emitted plan or the def declaration. Each carries a mutation arm that flips a
-  // NAMED assertion true→false on the SUBJECT (the def). (#1343a default width + #1345 responsive
-  // auto-layout are HELD as a surfaced fork — no width binding here to pin.)
+  // #1344 / #1343b / #1343a / #1345 — the SELECT cluster (#1329). Projected-surface moves, each pinned
+  // INDEPENDENTLY of the projector (docs/34): EXPECTED is the role name / cardinality / literal authored
+  // here, ACTUAL is read off the emitted plan or the def declaration. Each carries a mutation arm that
+  // flips a NAMED assertion true→false on the SUBJECT (the def).
   {
     // ---- #1343b: the icon ink is PRIMARY on BOTH glyphs (trailing chevron + leading swap) ----
     // The one `icon` key paints the chevron's vector and the leading swap's descendants; both must come
@@ -8293,6 +8292,55 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       .filter((v) => v.startsWith('color/icon/')))];
     ok(JSON.stringify(mutInk) === JSON.stringify(['color/icon/secondary']),
       `#1343 MUTATION: reverting select.icon → color.icon.secondary makes both glyphs project color/icon/secondary, flipping '#1343 select icon ink is PRIMARY' to failing (got ${mutInk.join(', ') || 'none'})`);
+
+    // ---- #1343a / #1345: the DEFAULT WIDTH is a 320 MIN-WIDTH on the control, and the field FLEXES ----
+    // The floor sits on the CONTROL, not the container: Prism 2 gives its select `root width 320` with the
+    // inner containers FILLing it, but the engine cannot project a child that FILLs (`sizing: 'fill'` →
+    // AUTO, #989/#990), so a container-only floor would leave a hugging (narrow) control inside a 320
+    // frame. Flooring the visible control renders it at ≥320 and the hugging column inherits that width —
+    // Prism 2's rendered geometry, the one way projection allows. EXPECTED is the authored literal 320 and
+    // the responsive contract; ACTUAL is read off the emitted plan.
+    const controlOf = (d: ComponentDef): AnatomyPlan['root'] => {
+      const root = figmaAnatomyPlan(d, undefined, { status: 'default', state: 'rest', leading: false } as never).root;
+      const ctrl = (root.children ?? []).find((c) => c.name === 'control');
+      if (!ctrl) throw new Error(`select projection has no 'control' child (got [${(root.children ?? []).map((c) => c.name).join(', ')}])`);
+      return ctrl;
+    };
+    // #1343a — the control carries the 320 floor. A literal on the plan, not a bound token.
+    ok(controlOf(select).minWidth === 320,
+      `#1343a select control carries the 320 min-width floor (got ${String(controlOf(select).minWidth)})`);
+    // #1345 — and the field FLEXES above that floor rather than being pinned: the control's main-axis
+    // (horizontal, it is a row) sizing is AUTO, not FIXED — Prism 2's `fill` as far as projection can carry
+    // it (#989/#990). A hard-fixed width would read as FIXED here.
+    ok(controlOf(select).primaryAxisSizingMode === 'AUTO',
+      `#1345 select control FLEXES above the floor (primaryAxisSizingMode AUTO, not a hard-fixed width) — got ${String(controlOf(select).primaryAxisSizingMode)}`);
+    //   MUTATION #1343a — remove the floor. The plan drops `control.minWidth`, flipping '#1343a select
+    //   control carries the 320 min-width floor' BY NAME.
+    const noFloor = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, control: { ...select.anatomy.parts.control, minWidth: undefined } } } };
+    ok(controlOf(noFloor as ComponentDef).minWidth === undefined,
+      `#1343a MUTATION: removing control.minWidth drops the 320 floor from the plan (got ${String(controlOf(noFloor as ComponentDef).minWidth)}), flipping '#1343a select control carries the 320 min-width floor' to failing`);
+    //   MUTATION #1345 — pin the width. Flipping the control's main-axis sizing 'fill' → 'fixed' turns its
+    //   primaryAxisSizingMode AUTO → FIXED, so the field sits at a hard size, flipping '#1345 select control
+    //   FLEXES' BY NAME.
+    const pinnedCtrl = { ...select.anatomy.parts.control, layout: { ...select.anatomy.parts.control.layout!, sizing: { x: 'fixed' as const, y: 'fixed' as const } } };
+    const pinned = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, control: pinnedCtrl } } };
+    ok(controlOf(pinned as ComponentDef).primaryAxisSizingMode === 'FIXED',
+      `#1345 MUTATION: fixing the control's main-axis sizing turns primaryAxisSizingMode FIXED (got ${String(controlOf(pinned as ComponentDef).primaryAxisSizingMode)}), flipping '#1345 select control FLEXES' to failing`);
+
+    // ---- #1343a: the two REFUSAL arms `PartDef.minWidth` adds, each pinned BY NAME (docs/34) ----
+    // A PR's own new refusal owes its own by-name mutation: without these, either arm of the validator
+    // could be deleted from `anatomyErrors` and the whole suite stays green. The precedent is `verticalAlign`'s
+    // wrong-kind test (this def cites it). EXPECTED is the authored message shape; the SUBJECT is the mutated def.
+    // (a) minWidth on a NON-BOX part — Figma applies a minimum width only to an auto-layout frame, so a floor
+    // on the text node would resolve, validate, and reach no node. `text` is select's only non-box, non-nest part.
+    const minWidthOnText = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, text: { ...select.anatomy.parts.text, minWidth: 320 } } } };
+    ok(validateComponentDef(minWidthOnText as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /kind 'text'/.test(e) && /only a 'box'/.test(e)),
+      "#1343a a NON-box part declaring minWidth is refused BY NAME — otherwise a min-width on a leaf validates clean and reaches no node (the wrong-kind rule modelled on clipsContent/verticalAlign)");
+    // (b) minWidth on a BOX with NO layout — Figma would silently drop the floor on a non-auto-layout frame.
+    // Strip the control's own `layout` while keeping its real `minWidth: 320`, so this arm fires on exactly the box that carries the floor.
+    const minWidthNoLayout = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, control: { ...select.anatomy.parts.control, layout: undefined } } } };
+    ok(validateComponentDef(minWidthNoLayout as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /binds no 'layout'/.test(e)),
+      "#1343a a BOX declaring minWidth with NO layout is refused BY NAME — Figma applies a minimum width only to an auto-layout frame, so a layout-less floor is silently dropped");
 
     // ---- #1344: `empty` is NOT a projected state, but IS carried internally ----
     const projStates = select.figmaProperties!.stateAxis!.values;
