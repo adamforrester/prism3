@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, figmaVariantCount, figmaAxisNames } from './component-schema';
+import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames } from './component-schema';
 import type { ControlShape } from './scale';
 // The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
@@ -139,6 +139,21 @@ export type FigmaNodePlan = {
    *  differs on every paste, so a plan holding one would not be brand-invariant — the same argument
    *  `bound` holds names rather than `VariableID:*`. The payload maps name → returned id. */
   propertyRef?: { field: 'characters' | 'mainComponent' | 'visible'; prop: string };
+  /** NODE-VISIBILITY BOOLEAN (#1331). Two fields, kept apart from `propertyRef` because the boolean
+   *  coexists on a node that ALSO carries a swap or text `propertyRef` (a select's leading glyph is a
+   *  `visible` toggle AND a `mainComponent` swap), and `propertyRef` is singular by design.
+   *
+   *  `visibleProp` — the Figma BOOLEAN property NAME whose value drives this node's `visible`. Present only
+   *  on a node a `figmaProperties.booleans` entry targets; the property is declared once on the set
+   *  (`planSetProperties`) and wired per member through the same ref machinery a swap uses (keyed by
+   *  part+field, so both refs on one part survive).
+   *
+   *  `visible` — the node's BUILT visibility, carried ONLY when `false` so every existing plan stays
+   *  byte-identical (both executors read `n.visible ?? true`). It is also the boolean property's own
+   *  DEFAULT value: `planSetProperties` reads it off the node "as built", so a hidden-by-default leading
+   *  glyph both renders hidden and defaults its switch to off. */
+  visibleProp?: string;
+  visible?: boolean;
   /** For an `INSTANCE_SWAP` node: the paint for VECTOR descendants INSIDE the instance.
    *
    *  Its own field because the instance's own `fills` would paint a background square behind the
@@ -729,6 +744,13 @@ export const figmaAnatomyPlan = (
   const leading = slots.leading ?? false;
   const trailing = slots.trailing ?? false;
   const { state } = slots;
+  // NODE-VISIBILITY BOOLEANS (#1331), part name → the Figma property that drives its `visible` and the
+  // BUILT visibility (also the property's default). Computed HERE, above `present()`, because a
+  // boolean-driven part must stay in the tree at every member — the boolean toggles its `visible` in place
+  // rather than a variant/slot axis dropping the node — so `present()` has to know which parts these are.
+  const booleanParts = new Map<string, { prop: string; visible: boolean }>();
+  for (const [prop, v] of Object.entries(def.figmaProperties?.booleans ?? {}))
+    booleanParts.set(booleanPart(v), { prop: booleanFigmaName(prop, v), visible: booleanDefault(v) });
   // An axis coordinate read off `slots` is a string or it is absent — `leading`/`trailing` share the
   // index signature but are not coordinates, and a def is free to declare an axis named either.
   const axisValue = (axis: string): string | undefined => {
@@ -1027,6 +1049,12 @@ export const figmaAnatomyPlan = (
   const overlaidPart = activeOverlay && !replacedByOverlay ? activeOverlay[1].overlaysWhenAbsent : undefined;
 
   const present = (name: string): boolean => {
+    // A NODE-VISIBILITY BOOLEAN part (#1331) is EMITTED at every member — the boolean flips its `visible`
+    // in place, so the node has to exist for there to be anything to toggle. This leads `present()` because
+    // the part is also `optional` (the mechanism requires it) and may be one of the hardcoded slot names,
+    // both of which the lines below would otherwise DROP it on. `figmaPropertyErrors` refuses a boolean on
+    // a `presentWhen`/`when`-gated part, so no second presence mechanism contends here.
+    if (booleanParts.has(name)) return true;
     // The replaced part yields its cell — one node in one position, not two fighting for it. Figma
     // builds every variant as its own tree, so there is nothing to hide: the `pending` variant simply
     // has a spinner where the leading visual would otherwise be.
@@ -1141,7 +1169,9 @@ export const figmaAnatomyPlan = (
     textDefaults.set(t.part, t.default);
   }
   for (const [prop, v] of Object.entries(fp?.swaps ?? {})) drivenBy.set(swapPart(v), { field: 'mainComponent', prop: swapFigmaName(prop, v) });
-  for (const [prop, part] of Object.entries(fp?.booleans ?? {})) drivenBy.set(part, { field: 'visible', prop });
+  // `booleans` does NOT ride `drivenBy`/`propertyRef` (#1331): a boolean's `visible` field coexists with a
+  // swap or text on the same node, and `propertyRef` is singular. The boolean's plan carrier is
+  // `visibleProp`/`visible`, computed above in `booleanParts` and emitted on the node below.
 
   const node = (name: string, p: PartDef): FigmaNodePlan => {
     const bound: Record<string, string> = {};
@@ -1409,6 +1439,12 @@ export const figmaAnatomyPlan = (
       ...(chars !== undefined ? { characters: chars } : {}),
       ...(textDef !== undefined && textDef !== chars ? { textDefault: textDef } : {}),
       ...(propertyRef ? { propertyRef } : {}),
+      // NODE-VISIBILITY BOOLEAN (#1331). `visibleProp` names the property; `visible: false` is carried ONLY
+      // for a hidden-by-default part so every existing plan stays byte-identical (executors read
+      // `n.visible ?? true`). A boolean part is present at every member (see `present()`), so this rides
+      // the tree, not a variant coordinate.
+      ...(booleanParts.has(name) ? { visibleProp: booleanParts.get(name)!.prop } : {}),
+      ...(booleanParts.get(name)?.visible === false ? { visible: false as const } : {}),
       ...(textStyle ? { textStyle } : {}),
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
       // here and nowhere else, so this line IS the rule #1009 asked to be located.
@@ -1693,6 +1729,12 @@ export const planPaintVars = (n: FigmaNodePlan): string[] =>
 const refNodes = (n: FigmaNodePlan): FigmaNodePlan[] =>
   [...(n.propertyRef ? [n] : []), ...n.children.flatMap(refNodes)];
 
+/** Every node driven by a NODE-VISIBILITY BOOLEAN (#1331), depth-first. Its own walker rather than folding
+ *  into `refNodes` because the boolean rides `visibleProp` (not `propertyRef`) so it can coexist on a node
+ *  that already carries a swap or text ref. */
+const visibleRefNodes = (n: FigmaNodePlan): FigmaNodePlan[] =>
+  [...(n.visibleProp ? [n] : []), ...n.children.flatMap(visibleRefNodes)];
+
 /**
  * The COMPONENT PROPERTIES to declare on a set — derived from the nodes the plans actually BUILD,
  * not from the def's declaration.
@@ -1734,8 +1776,8 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
         if (!n.swapTarget) continue;
         prop = { name: ref.prop, type: 'INSTANCE_SWAP', swapTarget: n.swapTarget };
       } else {
-        // The node EXISTS in this plan, so the part is present — an absent optional part builds no
-        // node and therefore no reference. `true` is read off that fact, not assumed.
+        // A propertyRef-carried boolean (legacy shape); node-visibility booleans come through the
+        // `visibleProp` walk below since #1331. `true` is read off the fact the node exists, not assumed.
         prop = { name: ref.prop, type: 'BOOLEAN', default: true };
       }
       const prev = byName.get(prop.name);
@@ -1743,17 +1785,26 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
         throw new Error(`planSetProperties: '${prop.name}' is declared two different ways across the set — ${JSON.stringify(prev)} vs ${JSON.stringify(prop)}`);
       byName.set(prop.name, prop);
     }
+    // NODE-VISIBILITY BOOLEANS (#1331). A separate walk because these ride `visibleProp`, not `propertyRef`
+    // (so the boolean can share a node with a swap). The property's DEFAULT is the node's BUILT visibility
+    // — `n.visible ?? true`, read "as built" — so a hidden-by-default leading glyph defaults its switch off.
+    for (const n of visibleRefNodes(plan.root)) {
+      const prop: FigmaPropertyPlan = { name: n.visibleProp!, type: 'BOOLEAN', default: n.visible ?? true };
+      const prev = byName.get(prop.name);
+      if (prev && JSON.stringify(prev) !== JSON.stringify(prop))
+        throw new Error(`planSetProperties: '${prop.name}' is declared two different ways across the set — ${JSON.stringify(prev)} vs ${JSON.stringify(prop)}`);
+      byName.set(prop.name, prop);
+    }
   }
-  // ORDERED text → swap → boolean (#1380), which is the property CREATION order the executor applies and
-  // therefore the order Figma shows the component (non-variant) properties in. The icon-property canon
-  // puts `label` at the TOP, above the per-slot swaps — a TEXT before the INSTANCE_SWAPs — and the swaps
-  // keep their by-part insertion order (leading before trailing). Variant switches (`leading icon`) come
-  // from the member NAMES and are a separate panel group Figma renders from the coordinate, not from this
-  // list — the panel INTERLEAVE of the two groups is host-rendered (see `version.ts`'s note that panel
-  // order is "the owner's Figma check, not ours"); what this controls, and what the round-trip gates, is
-  // that `label` is created before any swap. A stable sort by kind rank preserves insertion order within a
-  // kind, so no def with a single property kind moves.
-  const KIND_RANK: Record<FigmaPropertyPlan['type'], number> = { TEXT: 0, INSTANCE_SWAP: 1, BOOLEAN: 2 };
+  // ORDERED text → boolean → swap (#1380, #1331), which is the property CREATION order the executor applies
+  // and therefore the order Figma shows the component (non-variant) properties in. The icon-property canon
+  // puts `value`/`label` at the TOP (a TEXT), then a slot's PRESENCE boolean (`leading icon`) immediately
+  // above the swap it gates (`↳ swap leading icon`) — the `↳` reads as nested beneath the toggle only when
+  // the toggle is created first. So BOOLEAN ranks ABOVE INSTANCE_SWAP. No existing def is reordered: every
+  // boolean in the corpus was stated-empty until select (#1331), and a def with only TEXT + SWAP keeps
+  // TEXT(0) before SWAP(2) exactly as before. A stable sort by kind rank preserves insertion order within a
+  // kind, so a def's swaps keep their by-part order.
+  const KIND_RANK: Record<FigmaPropertyPlan['type'], number> = { TEXT: 0, BOOLEAN: 1, INSTANCE_SWAP: 2 };
   return [...byName.values()].map((p, i) => ({ p, i })).sort((a, b) => KIND_RANK[a.p.type] - KIND_RANK[b.p.type] || a.i - b.i).map((x) => x.p);
 };
 
@@ -2489,6 +2540,9 @@ const build=async(n)=>{
   }
   else{node=figma.createFrame();node.clipsContent=n.clipsContent===true;}
   node.name=n.name;
+  // NODE-VISIBILITY BOOLEAN (#1331): a hidden-by-default part is BUILT hidden, and its \`leading icon\`
+  // switch (wired below) toggles it. Carried only when false, so every other node keeps Figma's default.
+  if(n.visible===false)node.visible=false;
   // Before ANY dimension binding. See the header note — a locked node keeps only the last of the two.
   node.unlockAspectRatio();
   if(n.textStyle){
@@ -2792,7 +2846,9 @@ const PAYLOAD_WIRE_REFS = `// WIRE the references, per MEMBER. They do NOT propa
 // where one exists. This is the paste-path half of #1202, which fixed \`applyComponentPlan\` the same way
 // (its \`refByMember\`); the two executors now wire the same property, gated at the parity gate.
 const refOv=new Map();
-for(const o of REF_OVERRIDES){let m=refOv.get(o.member);if(!m){m=new Map();refOv.set(o.member,m);}m.set(o.part,o);}
+// Keyed member -> part+field (#1331): one part can carry two refs (a swap + a node-visibility boolean), so
+// a part-only key would hand the visible ref the swap's override and vice versa.
+for(const o of REF_OVERRIDES){let m=refOv.get(o.member);if(!m){m=new Map();refOv.set(o.member,m);}m.set(o.part+'|'+o.field,o);}
 const wiredRefs=[];
 for(const member of set.children){
   const own=refOv.get(member.name);
@@ -2803,7 +2859,7 @@ for(const member of set.children){
     // references, so a part missing everywhere would leave the property undeclared instead.
     if(!node)continue;
     // The member's own prop/field where it diverges from the deduped entry, else the deduped one.
-    const o=own&&own.get(r.part);
+    const o=own&&own.get(r.part+'|'+r.field);
     const field=o?o.field:r.field;
     const prop=o?o.prop:r.prop;
     const id=propIds.get(prop);
@@ -3014,10 +3070,22 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // member carries the same anatomy — the payload loops members, so a per-plan list would wire each
   // node twenty-one times over.
   const props = planSetProperties(plans);
+  // Keyed by PART + FIELD, not by part alone (#1331): one node can carry both a swap (`mainComponent`) and
+  // a node-visibility boolean (`visible`) — select's leading glyph — so a part-only key would collapse the
+  // two to whichever was walked last. `field` is the Figma property field, so distinct-field refs on one
+  // part coexist while a genuine same-field duplicate still collapses. For every single-property part this
+  // is a unique-ified part key and the wire is byte-identical.
+  const refKey = (part: string, field: string): string => `${part}|${field}`;
   const refs = new Map<string, { part: string; field: string; prop: string }>();
   for (const plan of plans)
     for (const n of refNodes(plan.root))
-      if (props.some((p) => p.name === n.propertyRef!.prop)) refs.set(n.name, { part: n.name, ...n.propertyRef! });
+      if (props.some((p) => p.name === n.propertyRef!.prop)) refs.set(refKey(n.name, n.propertyRef!.field), { part: n.name, ...n.propertyRef! });
+  // NODE-VISIBILITY BOOLEANS (#1331) contribute a `visible` ref on top of any swap/text ref the same part
+  // carries, so the executor wires both fields. Uniform across the set (unlike a spinner's per-member swap),
+  // so they need no `refOverrides` entry below.
+  for (const plan of plans)
+    for (const n of visibleRefNodes(plan.root))
+      if (props.some((p) => p.name === n.visibleProp)) refs.set(refKey(n.name, 'visible'), { part: n.name, field: 'visible', prop: n.visibleProp! });
 
   // THE PER-MEMBER OVERRIDES the deduped `refs` above collapses (#1203, the paste-path half of #1202).
   // `refs` keys by PART on the premise the comment states — "every member carries the same anatomy" —
@@ -3034,7 +3102,7 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   const refOverrides: { member: string; part: string; field: string; prop: string }[] = [];
   for (const plan of plans)
     for (const n of refNodes(plan.root)) {
-      const ded = refs.get(n.name);
+      const ded = refs.get(refKey(n.name, n.propertyRef!.field));
       if (ded && (ded.prop !== n.propertyRef!.prop || ded.field !== n.propertyRef!.field))
         refOverrides.push({ member: planComponentName(plan), part: n.name, ...n.propertyRef! });
     }

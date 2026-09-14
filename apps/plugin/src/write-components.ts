@@ -673,8 +673,10 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   if (t === 'INSTANCE' || t === 'COMPONENT') return;
 
   // Universal — every node type Figma lets us create carries all five, on SceneNodeMixin, BlendMixin
-  // and LayoutMixin.
-  set('visible', true);
+  // and LayoutMixin. `n.visible` is `false` only for a NODE-VISIBILITY BOOLEAN part built hidden-by-default
+  // (#1331); its `leading icon` switch (wired below) toggles it. Still a #865 CLAIM either way — the value
+  // is decided here, not left to Figma's default.
+  set('visible', n?.visible ?? true);
   // `zeroOpacity` is applied by the PARENT after this returns, so writing 1 here would be overwritten
   // anyway. Skipped rather than relied on: a claim the plan makes should not depend on write order.
   if (!n?.zeroOpacity) set('opacity', 1);
@@ -996,11 +998,14 @@ const writeComponentSet = async (
    * `planComponentName` for the same reason `stampByMember` is: every name derivation goes through it,
    * so the key agrees with the member's name by construction.
    */
+  // Keyed by part + FIELD (#1331), not part alone: one part can carry both a swap and a node-visibility
+  // boolean, so a part-only key would collapse the two to whichever was walked last and hand the wire loop
+  // the wrong field. For every single-property part this is a unique-ified part key.
   const refByMember = new Map<string, Map<string, { field: string; prop: string }>>();
   for (const plan of plans) {
     const perPart = new Map<string, { field: string; prop: string }>();
     const walk = (n: { name: string; propertyRef?: { field: string; prop: string }; children: unknown[] }): void => {
-      if (n.propertyRef) perPart.set(n.name, n.propertyRef);
+      if (n.propertyRef) perPart.set(`${n.name}|${n.propertyRef.field}`, n.propertyRef);
       for (const c of n.children as (typeof n)[]) walk(c);
     };
     walk(plan.root as unknown as Parameters<typeof walk>[0]);
@@ -1197,6 +1202,12 @@ const writeComponentSet = async (
     // and every line below this one can throw.
     trail.loose.add(node);
     node.name = n.name;
+    // NODE-VISIBILITY BOOLEAN (#1331): a hidden-by-default part is BUILT hidden; its `leading icon` switch
+    // (wired below) toggles it. Applied HERE, in the shared build path, rather than in `claimDefaults` —
+    // that helper returns early for an INSTANCE (a slot's node is an INSTANCE, and it must not neutralize
+    // one), yet a boolean legitimately hides an instance. Carried only when false, so every other node is
+    // unchanged. `claimDefaults` still makes the #865 `visible` CLAIM on the non-instance nodes it reaches.
+    if (n?.visible === false) node.visible = false;
     // Before ANY dimension binding — see the header note. Unconditional, unlike the
     // `constrainProportions` form this replaced: that needed an `in` guard because it lives on
     // `LayoutMixin`, which not every node type has. `unlockAspectRatio` is on `AspectRatioLockMixin`,
@@ -1902,7 +1913,7 @@ const writeComponentSet = async (
       // and a second copy of that rule here would be a second thing to get wrong (`docs/34` shape 8).
       // `refs` keeps its job — WHICH PARTS to visit, deduped, so the #701 fast route is untouched — and
       // only the property it names is now per member.
-      const own = refByMember.get(String(member.name))?.get(r.part);
+      const own = refByMember.get(String(member.name))?.get(`${r.part}|${r.field}`);
       const field = own?.field ?? r.field;
       const id = propIds.get(own?.prop ?? r.prop);
       if (!id) continue;   // the property itself failed above and reported its own cause

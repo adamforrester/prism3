@@ -2324,8 +2324,42 @@
  *     NAME — the field would then sit at a hard size instead of flexing above the floor.
  *   `lint-component-surface.ts` arm A ALSO catches the `minWidth` removal (the `planStamp` moves), a
  *   second, coarser by-name guard on the same property.
+ *
+ * ── 0.83.0 → 0.84.0 — the node-visibility BOOLEAN projection, proven by select's leading glyph (#1331) ──
+ *
+ * A new projection PRIMITIVE: a `figmaProperties.booleans` entry drives a part's `visible` — the part is
+ * EMITTED at every member and its visibility flipped in place by a Figma BOOLEAN component property, rather
+ * than a variant/slot axis that emits the node in some members and DROPS it in others (multiplying the set)
+ * or `presentWhen` (which drops the node at gated-out coordinates). New plan fields (`FigmaNodePlan.visible`
+ * / `visibleProp`), a new `planSetProperties` BOOLEAN derivation whose default is the node's BUILT
+ * visibility, and a widened one-property-per-node rule (keyed on the Figma FIELD, so `visible` coexists with
+ * a swap's `mainComponent` on one node). The projected surface moves, so ENGINE MINOR.
+ *
+ * FIRST CONSUMER — select's leading glyph, a `leading` slot ×2 variant axis until now, becomes the boolean
+ * `leading icon`. The set HALVES: status(4) × state(4) × leading(2) = 32 → status(4) × state(4) = 16. Clean
+ * for select because the glyph sits inside `content`, taking no #326 padding asymmetry a boolean cannot
+ * drive (button's edge-hugging leading/trailing stay variant axes — #1379, out of scope).
+ *
+ * CONTRACT STANDS at 10.0.0. A variant axis becoming a boolean property is component-API surface, not a
+ * token name — no guaranteed token NAME is added, removed or retyped; `token-contract.ts --check` confirms
+ * the guaranteed 577 unchanged and `--accept` refreshes only the informational `engineVersion` stamp.
+ * `regen --check` moves only each artifact's own generator stamp (no emitted tree changes — component defs
+ * emit into no committed file). `lint-component-surface.ts` needs a bump-gated `--accept` (select's member
+ * count 32 → 16 and its plan digest move); `paint-census` moves for select (its `set` shrinks 32 → 16 while
+ * the DECLARED grid census is unchanged — the leading glyph was always painted, and still is, at every
+ * member; only the projected member count halves).
+ *
+ * NEW REFUSAL ARM (docs/34 / principle 6): a `booleans` entry on a `presentWhen`- or `when`-gated part is
+ * refused — a boolean is the sole presence mechanism on its part, and a second (variant/state) gate would
+ * drop the node at some coordinates, leaving the boolean nothing to toggle. `test.ts`'s #1331 block reverts
+ * the arm and confirms it fails BY NAME. The widened field-based collision keeps a by-name arm proving two
+ * SAME-field claims (two swaps on one node) still fail. BEHAVIOR mutation (docs/34): the leading glyph is
+ * emitted at EVERY projected member with its `visible` driven by the boolean — reverting `leading` to a slot
+ * variant axis re-doubles the set to 32 and re-drops the node in the false members, flipping the #1331
+ * count/mechanism assertions BY NAME; `test-roundtrip` reads the `leading icon` BOOLEAN property + the
+ * part's `visible` back off the built node (host truth).
  */
-export const ENGINE_VERSION = '0.83.0';
+export const ENGINE_VERSION = '0.84.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -305,6 +305,27 @@ export const FIELDS: Record<string, FieldCheck> = {
     },
   },
 
+  // ── node-visibility boolean (#1331) ────────────────────────────────────────────────────────────
+  // The part is BUILT with this visibility (false = hidden by default), read back off the host: an
+  // executor that dropped the write, or a shim that ignored it, reads back `true` and fails here. Only
+  // present on a boolean-driven node built hidden; every other node omits it and is not checked.
+  visible: {
+    show: (p) => `visible=${String(p)}`,
+    check: (p, n) => (n.visible === p ? null : `visible=${str(n.visible)} — the built node did not keep the plan's visibility`),
+  },
+  // The Figma BOOLEAN property whose value drives `visible`, wired as `componentPropertyReferences.visible`
+  // — the same host shape `propertyRef` reads, on the `visible` field, compared on the STEM for the same
+  // `#<id>`-suffix reason. The two coexist on one node (a swap + a boolean); this is the `visible` half.
+  visibleProp: {
+    show: (p) => `visible ← ${String(p)}`,
+    check: (p, n) => {
+      const refs = n.componentPropertyReferences as Record<string, unknown> | null | undefined;
+      const got = refs?.visible;
+      if (got === undefined || got === null) return `visible → DISCARDED (host holds ${refs ? JSON.stringify(refs) : 'no references'})`;
+      return String(got).split('#')[0] === p ? null : `visible → ${String(got)}`;
+    },
+  },
+
   // ── nominations that come back as identity ───────────────────────────────────────────────────
   swapTarget: {
     show: (p) => `an instance of ${String(p)}`,

@@ -699,7 +699,9 @@ export type AnatomyDef = {
  *  - TEXT           — a string on one text node.
  *  - BOOLEAN        — drives one node's `visible`, and nothing else. It cannot touch an ancestor's
  *                     `paddingLeft`, which is the whole reason #326's split inline padding cannot
- *                     ride on a boolean.
+ *                     ride on a boolean. But it CAN sit on a node that already carries a swap or a
+ *                     text property — `visible` is a distinct field from `mainComponent`/`characters`,
+ *                     so a leading glyph is a `visible` toggle AND a `mainComponent` swap at once (#1331).
  */
 export type FigmaProperties = {
   /** Which `variants` axes become VARIANT properties, in the order Figma should show them. An axis
@@ -797,10 +799,28 @@ export type FigmaProperties = {
    *  where nothing structurally varies is a blanket, and the second def to need this for a different
    *  reason should have to change the check rather than inherit a hole. */
   footprintVaries?: string[];
-  /** prop name → part name. BOOLEAN property; drives that one part's `visible`. An empty object is
-   *  a meaningful statement — "considered, and none survive" — and is preferred to omitting the
-   *  field: a schema that lists booleans it cannot honor is worse than one that admits there are none. */
-  booleans?: Record<string, string>;
+  /** prop name → the part whose `visible` this BOOLEAN drives (#1331). A NODE-VISIBILITY toggle: the
+   *  part is EMITTED at every member and its `visible` is driven by the boolean — NOT a variant axis that
+   *  multiplies the set (that is `slotAxes`, which #326's padding forces), and NOT `presentWhen`, which
+   *  DROPS the node at the gated-out coordinates of a variant it multiplies over. One member, one node,
+   *  visibility flipped in place; the set does not grow.
+   *
+   *  THE OBJECT FORM mirrors `swaps`/`texts` (#1380). A bare string is `prop → part` and defaults the
+   *  part VISIBLE (Figma's own default for a built node); the object carries `default` — the BUILT
+   *  visibility, which is also the boolean's own default value (`planSetProperties` reads it off the node,
+   *  "as built") — and `figmaName`, the panel LABEL decoupled from the code prop KEY. `select`'s leading
+   *  glyph is `{ part: 'leadingVisual', default: false, figmaName: 'leading icon' }`: hidden by default,
+   *  shown when the designer flips the switch.
+   *
+   *  COEXISTS WITH A SWAP OR TEXT ON THE SAME NODE. `visible` is a different Figma property FIELD from
+   *  `mainComponent` (swap) and `characters` (text), so one node legitimately carries both — a select's
+   *  leading glyph is a boolean `leading icon` (present?) AND a swap `↳ swap leading icon` (which icon),
+   *  the #1380 canon. The one-property-per-node rule below is keyed on the FIELD for exactly this reason.
+   *
+   *  An empty object is a meaningful statement — "considered, and none survive" — and is preferred to
+   *  omitting the field: a schema that lists booleans it cannot honor is worse than one that admits there
+   *  are none. */
+  booleans?: Record<string, string | { part: string; default?: boolean; figmaName?: string }>;
   /** prop name → the `kind: 'text'` part it drives, plus the PLACEHOLDER the component ships with.
    *
    *  THE ODD SHAPE OUT, and deliberately so: `booleans` and `swaps` are bare part names because
@@ -1252,6 +1272,17 @@ export const swapFigmaName = (prop: string, v: string | { part: string; figmaNam
 /** A `texts` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
 export const textFigmaName = (prop: string, t: { figmaName?: string }): string => t.figmaName ?? prop;
 
+/** The part whose `visible` a `booleans` entry drives — bare string or `{ part }` object (#1331). */
+export const booleanPart = (v: string | { part: string; default?: boolean; figmaName?: string }): string =>
+  typeof v === 'string' ? v : v.part;
+/** A `booleans` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
+export const booleanFigmaName = (prop: string, v: string | { part: string; default?: boolean; figmaName?: string }): string =>
+  typeof v === 'string' ? prop : v.figmaName ?? prop;
+/** A `booleans` entry's BUILT visibility (#1331) — the value the part is created with AND the boolean's own
+ *  default. Bare string defaults VISIBLE (Figma's own default for a built node); the object states otherwise. */
+export const booleanDefault = (v: string | { part: string; default?: boolean; figmaName?: string }): boolean =>
+  typeof v === 'string' ? true : v.default ?? true;
+
 /**
  * Which axis belongs across the COLUMNS (#656) — the declared preference, else the widest axis.
  *
@@ -1411,11 +1442,16 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
 
   // ---- the part-targeting maps ----
   const propNames = new Set((def.props ?? []).map((p) => p.name));
-  const claimed = new Map<string, string>();
-  // Takes `prop → part name`. `texts` carries a second field and is normalized to this shape by its
-  // caller below, rather than this helper learning two shapes — the relational checks are identical
-  // for all three maps and the difference is one field, so the narrower helper is the honest one.
-  const checkMap = (label: string, map: Record<string, string> | undefined, kind?: PartKind, requireOptional = false): void => {
+  // part → the Figma property FIELDS already claimed on it, each with its source. Keyed by FIELD, not by
+  // part, because one node legitimately carries more than one property so long as each uses a DIFFERENT
+  // Figma field: `characters` (text), `mainComponent` (swap) and `visible` (boolean) are three fields, and
+  // a select's leading glyph is a `visible` toggle AND a `mainComponent` swap at once (#1331/#1380). What
+  // is unresolvable is two claims on the SAME field — two swaps, or two booleans, pointed at one node.
+  const claimed = new Map<string, Map<string, string>>();
+  // Takes `prop → part name` and the Figma FIELD the property drives. `texts`/`swaps`/`booleans` each carry
+  // a richer shape, normalized to `prop → part` by the callers below rather than this helper learning three
+  // shapes — the relational checks are identical for all three and the difference is one field.
+  const checkMap = (label: string, map: Record<string, string> | undefined, field: string, kind?: PartKind, requireOptional = false): void => {
     for (const [prop, part] of Object.entries(map ?? {})) {
       if (!propNames.has(prop)) e.push(`figmaProperties.${label}: '${prop}' is not a declared prop`);
       const p = parts[part];
@@ -1424,19 +1460,36 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       // A BOOLEAN drives `visible`, so its target must be a part the anatomy already says may be
       // absent. Toggling a required part off produces a component whose own anatomy forbids it.
       if (requireOptional && !p.optional) e.push(`figmaProperties.${label}.${prop} → part '${part}' is not optional; a BOOLEAN toggles visibility, so the anatomy must allow the part to be absent`);
-      const owner = claimed.get(part);
-      // One node, one property kind. A part driven as both a TEXT and an INSTANCE_SWAP is two
-      // different Figma property types pointed at the same node — unresolvable at creation.
-      if (owner) e.push(`part '${part}' is targeted by both ${owner} and ${label}.${prop} — a node carries at most one property kind`);
-      claimed.set(part, `${label}.${prop}`);
+      const byField = claimed.get(part) ?? new Map<string, string>();
+      const owner = byField.get(field);
+      // One node, one property PER FIELD. Two claims on the same Figma field pointed at one node (two
+      // swaps, two booleans) are unresolvable at creation; DIFFERENT fields (a swap + a boolean) coexist.
+      if (owner) e.push(`part '${part}' is targeted by both ${owner} and ${label}.${prop} — a node carries at most one '${field}' property`);
+      byField.set(field, `${label}.${prop}`);
+      claimed.set(part, byField);
     }
   };
-  checkMap('texts', Object.fromEntries(Object.entries(fp.texts ?? {}).map(([p, t]) => [p, t.part])), 'text');
+  checkMap('texts', Object.fromEntries(Object.entries(fp.texts ?? {}).map(([p, t]) => [p, t.part])), 'characters', 'text');
   // `swaps` may carry the #1380 object form `{ part, figmaName }`; normalized to `prop → part` here so
-  // the relational checks (prop is a declared prop, part exists and is a slot, one property kind per part)
-  // are identical for the string and object forms — the display name is a Figma label, checked below.
-  checkMap('swaps', Object.fromEntries(Object.entries(fp.swaps ?? {}).map(([p, v]) => [p, swapPart(v)])), 'slot');
-  checkMap('booleans', fp.booleans, undefined, true);
+  // the relational checks (prop is a declared prop, part exists and is a slot, one property per field) are
+  // identical for the string and object forms — the display name is a Figma label, checked below.
+  checkMap('swaps', Object.fromEntries(Object.entries(fp.swaps ?? {}).map(([p, v]) => [p, swapPart(v)])), 'mainComponent', 'slot');
+  // `booleans` normalizes the same way (#1331). No `kind` — a `visible` toggle sits on any node type — and
+  // `requireOptional`, because the anatomy must allow the part to be hidden.
+  checkMap('booleans', Object.fromEntries(Object.entries(fp.booleans ?? {}).map(([p, v]) => [p, booleanPart(v)])), 'visible', undefined, true);
+
+  // A BOOLEAN is the SOLE presence mechanism on its part (#1331): the part is emitted at every member and
+  // its `visible` is toggled in place. A part that is ALSO `presentWhen`-gated (a variant it multiplies
+  // over) or `when`-gated (an overlay/absolute state) has a SECOND, conflicting presence mechanism that
+  // would DROP the node at some coordinates — leaving the boolean nothing to toggle there — so the
+  // combination is refused rather than given an undefined composition. The clean cases the mechanism is
+  // for (select's leading glyph, field-label's marker) gate presence on neither.
+  for (const [prop, v] of Object.entries(fp.booleans ?? {})) {
+    const part = booleanPart(v);
+    const p = parts[part];
+    if (p && (p.presentWhen || p.when))
+      e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares ${p.presentWhen ? 'presentWhen' : 'when'} — a boolean toggles the part's visibility at every member, so a variant/state presence gate on the same part is a second presence mechanism the boolean cannot compose with`);
+  }
 
   // ZERO-WIDTH characters are stripped before the "does it render" test, not just whitespace — see the
   // fuller note on the placeholder loop below, where this same predicate gates an empty TEXT default.
@@ -1465,6 +1518,7 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   for (const s of fp.slotAxes ?? []) claimPanel(slotAxisFigmaName(s), `slotAxes.${s.name}`);
   for (const [prop, t] of Object.entries(fp.texts ?? {})) claimPanel(textFigmaName(prop, t), `texts.${prop}`);
   for (const [prop, v] of Object.entries(fp.swaps ?? {})) claimPanel(swapFigmaName(prop, v), `swaps.${prop}`);
+  for (const [prop, v] of Object.entries(fp.booleans ?? {})) claimPanel(booleanFigmaName(prop, v), `booleans.${prop}`);
 
   // The placeholder is REQUIRED to say something. An empty default is exactly what Figma accepts and
   // what #510 shipped — 21 variants with nothing readable in them — so a def that declares a TEXT
