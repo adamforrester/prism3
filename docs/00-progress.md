@@ -7,6 +7,24 @@
 
 ---
 
+## (2026-09-14) — button family's disabled border rebinds to track the disabled ink (#1349)
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges).** **ENGINE bump 0.86.0 → 0.87.0; CONTRACT stands at 10.0.0.** The #1349 lane (owner-triaged, `engine`+`a11y`, decision-free directive): on the DISABLED state the button's border read much heavier than the disabled icon/text ink. A border is a non-text graphical object, so its whole a11y bar is SC 1.4.11's **3:1 against adjacent colors** — it does not need to be darker than the ink. The directive: rebind the disabled border to track the disabled ink.
+
+**OLD → NEW binding (button / button-destructive / button-neutral — one `makeButton` factory, one shared line, so all three move together):**
+- OLD: `disabled.border` → `color.disabled.border` — a muted neutral matched to `disabled.fill` (both resolve `neutralLow()` in `modes.ts`), gated `min: 0` with **no contrast contract**. That role resolves at **1.48–1.80:1** against the page across the example corpus (measured live in the #1349 test's reverted-mutation run) — i.e. the old edge was not a compliant graphical object at all, it was exempt.
+- NEW: `disabled.border` → `color.disabled.icon` — the disabled ink's graphical-object peer (`disabled.text`/`disabled.icon` resolve identically; icon is the non-text one). `button.ts:338`.
+
+**The measured 3:1 graphical-object ratio.** The disabled border is STRUCTURAL (`anatomy-figma.ts` `STRUCTURAL = {fill, border}`), so it paints **only on `outline`** — the one appearance with a border at rest. An outline button has no fill, so its edge sits on the **page** (`background.primary`), which is exactly the ground `disabled.icon` is gated against. So the border inherits that role's real contract: **nb 3.16:1, aurora 3.16:1, harbor 3.32:1** (reduced strategy, `disabledMin` floor 3); **HC modes ≥4.5:1**. Clears 3:1 in every mode by construction — `disabled.icon`'s own `min` is ≥3, so nothing can dip below the graphical-object bar. `filled`/`text` disabled paint no border (STRUCTURAL guard), so there is no filled-button ink-on-fill contrast to reconcile.
+
+**The exemption interaction.** The disabled ink is NOT contrast-exempt here — `modes.ts` gates both `disabledStrategy` branches (`full` = 4.5, `reduced` = `disabledMin` 3–4.5) since #290; the old ungated WCAG-inactive path is gone. So there is no exemption to square the 3:1 bar against: the rebind swaps a `min: 0` role for a role carrying a live ≥3 contract. The `color.disabled.border` ROLE is unchanged and still bound by the other bordered controls (icon-button, text-field, select, checkbox/radio/switch-control), so no guaranteed token NAME moves — CONTRACT holds 10.0.0 (`token-contract --check` confirms guaranteed 577 unchanged; only the informational `engineVersion` stamp was `--accept`ed).
+
+**Safety net.** No new schema field or refusal arm — a pure token rebind, so only a BEHAVIOR mutation is owed (stated explicitly). `test.ts`'s #1349 arm pins, per family, that the disabled BORDER role EQUALS the disabled ICON role and is NOT `color.disabled.border`, and re-measures the resolved ratio ≥3 via `resolveAllModes` (independent of the button def) across the example brands × every mode, with a non-empty-sweep floor. Reverting `button.ts:338` to `color.disabled.border` fails 14 NAMED `#1349` assertions (6 role-equality + 8 ratio, the ratio ones printing the sub-3 numbers above). The pre-existing paint tests at `test.ts:9460` read the binding dynamically, so they follow it and cannot notice a revert — which is why the by-name pin was added rather than relying on them.
+
+**Baselines refreshed (bump-gated `--accept`):** `lint-component-surface` (button trio's `outline` disabled coordinate repoints, same 432 members each) and `paint-census` (same assignment count, different variable). `out/**` moved only its per-tree `generator.version` stamp (0.86.0 → 0.87.0) — component payloads are not committed under `out/`.
+
+**Trap for re-verifiers.** `regen --check` and its drift-coverage SKIP under `npm run verify` while `out/**` is uncommitted (verify compares against HEAD) — commit first, then they pass. `token-contract --check` fails on an uncommitted informational stamp until `--accept` is run; that is not a contract move (guaranteed 577, still 10.0.0). And the smoke gate needs `npx playwright install chromium chromium-headless-shell` in a fresh container before `verify` runs any gate.
+
 ## (2026-09-14) — image-placeholder marker grows to a 180px literal glyph size (#1340)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** **ENGINE bump 0.85.0 → 0.86.0; CONTRACT stands at 10.0.0.** The #1340 lane (owner-triaged, `engine`, decision-free direction, nice-to-have): the empty-state "no image" marker was `icon.size.lg` (32px) — tiny against the 720px frame — and the owner asked to make it larger and, ideally, scale it with the frame.
