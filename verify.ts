@@ -673,6 +673,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-absolute-inset.ts'),
   },
   {
+    id: 'lint-lineheight-bake',
+    ciStep: "A text style's line height is an unbound, mode-invariant PERCENT bake",
+    cmd: engine('lint-lineheight-bake.ts'),
+  },
+  {
     id: 'lint-standalone-floor',
     ciStep: 'A def offered as a build target projects something with an extent',
     cmd: engine('lint-standalone-floor.ts'),

@@ -306,6 +306,24 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
     // Line-height: PERCENT = unitless × 100 (fix 3a). Unbound — Figma has no
     // unitless line-height primitive, but PERCENT is mode/size-independent so
     // this bake is invariant across desktop/mobile fluid modes.
+    //
+    // #1356 (part of the #1329 host-truth audit) asked whether this omission was
+    // deliberate. It is, and correct — binding is not merely unimplemented but
+    // WRONG, for three independent reasons:
+    //   1. The role is a UNITLESS multiplier (theme.ts `lineHeights: {key,value}[]`;
+    //      `core.font.line-height.*` is typed `number`). A FLOAT variable holding
+    //      1.5 bound to line height renders as 1.5 PIXELS, not 150%.
+    //   2. Figma binds line height as PIXELS ONLY. A percentage/unitless line
+    //      height cannot be variable-bound at all — a long-standing, intentional
+    //      platform limitation (measured against Figma's API, 2026-09).
+    //   3. `buildFigmaFont` emits NO `font/line-height/*` variable — there is
+    //      nothing to bind to.
+    // A faithful bind would need a per-size PIXEL variable (fontSize × multiplier),
+    // which is size-dependent and would lose the invariance above — a new
+    // guaranteed name and a dropped invariant, i.e. an owner contract decision, not
+    // an engine fix. `lint-lineheight-bake.ts` gates this shape and fails by name
+    // if a later edit flips `bound` or breaks the PERCENT bake. Same for
+    // letterSpacing below (em-relative, the identical platform case).
     // DEREF, not subNode (#377). The composite now aliases a semantic ROLE, which aliases the ladder
     // step — two hops. `subNode` resolves exactly one, so it would land on the role node whose $value is
     // the string "{…font.line-height.150}", fail the `typeof === 'number'` test below, and take the

@@ -654,6 +654,27 @@ npx tsx packages/engine/lint-absolute-inset.ts      # an absolutely-positioned p
                                                     # quantity — it printed a pass on the shipped ring
                                                     # while test.ts's parity gate confirmed both
                                                     # executors agreed on the same wrong formula.
+npx tsx packages/engine/lint-lineheight-bake.ts     # a text style's line height is emitted as an
+                                                    # UNBOUND, mode-invariant PERCENT bake, never a
+                                                    # variable binding (#1356, part of the #1329
+                                                    # host-truth audit). The audit found lineHeight
+                                                    # boundVariables empty everywhere and asked whether
+                                                    # that was deliberate: it is, and correct. The role
+                                                    # is a UNITLESS multiplier; Figma binds line height
+                                                    # only as PIXELS; and no line-height Figma variable
+                                                    # is even emitted to bind to. A faithful bind would
+                                                    # need a per-size PIXEL variable (size-dependent, a
+                                                    # NEW name) and would lose the mode invariance the
+                                                    # PERCENT bake preserves — an owner contract
+                                                    # decision, not an engine fix. Asserts UNBOUND (A),
+                                                    # PERCENT (B), the letterSpacing sibling (C), the
+                                                    # mode-invariance witness over fluid composites (D,
+                                                    # non-empty floor), and that no line-height variable
+                                                    # exists to bind to (E). Independent of the emitter:
+                                                    # reads the committed out/figma export, EXPECTED is
+                                                    # the documented contract, not a computed value.
+                                                    # Mutation-verified BY NAME (bound:false→true fires
+                                                    # A; PERCENT→PIXELS fires B).
 npx tsx packages/engine/lint-standalone-floor.ts    # a def offered as a build target must project
                                                     # members that acquire an EXTENT, and a def that
                                                     # cannot must declare
