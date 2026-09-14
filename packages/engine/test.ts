@@ -8327,6 +8327,21 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(controlOf(pinned as ComponentDef).primaryAxisSizingMode === 'FIXED',
       `#1345 MUTATION: fixing the control's main-axis sizing turns primaryAxisSizingMode FIXED (got ${String(controlOf(pinned as ComponentDef).primaryAxisSizingMode)}), flipping '#1345 select control FLEXES' to failing`);
 
+    // ---- #1343a: the two REFUSAL arms `PartDef.minWidth` adds, each pinned BY NAME (docs/34) ----
+    // A PR's own new refusal owes its own by-name mutation: without these, either arm of the validator
+    // could be deleted from `anatomyErrors` and the whole suite stays green. The precedent is `verticalAlign`'s
+    // wrong-kind test (this def cites it). EXPECTED is the authored message shape; the SUBJECT is the mutated def.
+    // (a) minWidth on a NON-BOX part — Figma applies a minimum width only to an auto-layout frame, so a floor
+    // on the text node would resolve, validate, and reach no node. `text` is select's only non-box, non-nest part.
+    const minWidthOnText = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, text: { ...select.anatomy.parts.text, minWidth: 320 } } } };
+    ok(validateComponentDef(minWidthOnText as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /kind 'text'/.test(e) && /only a 'box'/.test(e)),
+      "#1343a a NON-box part declaring minWidth is refused BY NAME — otherwise a min-width on a leaf validates clean and reaches no node (the wrong-kind rule modelled on clipsContent/verticalAlign)");
+    // (b) minWidth on a BOX with NO layout — Figma would silently drop the floor on a non-auto-layout frame.
+    // Strip the control's own `layout` while keeping its real `minWidth: 320`, so this arm fires on exactly the box that carries the floor.
+    const minWidthNoLayout = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, control: { ...select.anatomy.parts.control, layout: undefined } } } };
+    ok(validateComponentDef(minWidthNoLayout as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /binds no 'layout'/.test(e)),
+      "#1343a a BOX declaring minWidth with NO layout is refused BY NAME — Figma applies a minimum width only to an auto-layout frame, so a layout-less floor is silently dropped");
+
     // ---- #1344: `empty` is NOT a projected state, but IS carried internally ----
     const projStates = select.figmaProperties!.stateAxis!.values;
     const V = select.variants!.status!.length;                 // status: 4
