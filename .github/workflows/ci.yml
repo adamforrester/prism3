@@ -653,6 +653,18 @@ jobs:
       - name: An absolutely-positioned part lands outside its parent
         run: npx --yes tsx@4 packages/engine/lint-absolute-inset.ts
 
+      # A text style's line height is emitted as an UNBOUND, mode-invariant PERCENT bake, never a
+      # variable binding (#1356, part of the #1329 host-truth audit). The audit found lineHeight
+      # boundVariables empty everywhere and asked whether that was deliberate: it is, and correct.
+      # The role is a UNITLESS multiplier; Figma binds line height only as PIXELS; no line-height
+      # Figma variable is even emitted to bind to. A faithful bind would need a per-size PIXEL variable
+      # (size-dependent, a new name) and would lose the mode invariance the PERCENT bake preserves —
+      # an owner contract decision, not an engine fix. This gate documents that and fails BY NAME if
+      # someone flips bound:false→true or breaks the PERCENT bake. Independent of the emitter (reads
+      # the committed out/figma export; EXPECTED is the documented contract, not a computed value).
+      - name: A text style's line height is an unbound, mode-invariant PERCENT bake
+        run: npx --yes tsx@4 packages/engine/lint-lineheight-bake.ts
+
       # A def offered as a build target must project members that acquire an EXTENT, and a def that
       # cannot must declare `figmaProperties.notStandalone`. #869: building `focus-ring` produced a
       # 100x100 white box with the correct focus color at 1px — not a crash and not a miss report, an
