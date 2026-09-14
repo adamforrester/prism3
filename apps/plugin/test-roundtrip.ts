@@ -269,7 +269,11 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 {
   const CANON: Record<string, { componentProps: string[]; switches: string[] }> = {
     button: { componentProps: ['label', '↳ swap leading icon', '↳ swap trailing icon'], switches: ['leading icon', 'trailing icon'] },
-    select: { componentProps: ['value', '↳ swap leading icon'], switches: ['leading icon'] },
+    // select's `leading icon` is a node-visibility BOOLEAN component property since #1331 (not a variant
+    // switch): it appears in componentProps, ordered `value` (TEXT) → `leading icon` (BOOLEAN) → swap, and
+    // NO longer among the variant switches. Reverting it to a slot axis moves it back to `switches` and
+    // fails both assertions below by name.
+    select: { componentProps: ['value', 'leading icon', '↳ swap leading icon'], switches: [] },
     'icon-button': { componentProps: ['swap icon'], switches: [] },
   };
   for (const [id, want] of Object.entries(CANON)) {
@@ -289,6 +293,41 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     ok(want.switches.every((s) => variantNames.includes(s)) && (want.switches.length > 0 || !variantNames.some((v) => / icon$/.test(v))),
       `panel switches (#1380): ${id} carries the ${JSON.stringify(want.switches)} true/false variant switch(es) as decoupled Figma names (host holds ${JSON.stringify(variantNames)})`);
   }
+}
+
+// ── #1331: THE NODE-VISIBILITY BOOLEAN, READ BACK OFF THE BUILT NODE — HOST-TRUTH ───────────────
+//
+// The mechanism's host truth, the two facts a property DEFINITION alone cannot show (the panel-order block
+// above pins that `leading icon` is a BOOLEAN, not a variant switch): the leading glyph node is BUILT into
+// EVERY member with `visible=false` (hidden by default, present-and-toggled rather than dropped), and its
+// `visible` field is WIRED to the `leading icon` boolean via `componentPropertyReferences.visible`. The
+// executor writes both; the host echoes them; this reads them back. Reverting `leading` to a variant slot
+// axis drops the node in the false members (no node to read) and moves `leading icon` to a variant switch
+// (no BOOLEAN property to wire), flipping these BY NAME.
+{
+  const def = componentDefs.find((d) => d.id === 'select')!;
+  const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(plans), page });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  await applyComponentPlan(plans, shim as any, {});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's set
+  const set = page.children[0] as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's members
+  const members = (set?.children ?? []) as any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+  const findByName = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+  const defs = set.componentPropertyDefinitions as Record<string, { type: string }>;
+  const liKey = Object.keys(defs).find((k) => k.split('#')[0] === 'leading icon');
+  ok(!!liKey && defs[liKey!].type === 'BOOLEAN',
+    `#1331 host-truth: the built set carries a 'leading icon' BOOLEAN property (host holds ${liKey})`);
+  const lvs = members.map((m) => findByName(m, 'leadingVisual'));
+  ok(members.length === 16 && lvs.every(Boolean),
+    `#1331 host-truth: the leading glyph node is built into EVERY member (${lvs.filter(Boolean).length}/${members.length})`);
+  ok(lvs.length > 0 && lvs.every((lv) => lv.visible === false),
+    '#1331 host-truth: every built leading glyph reads back `visible=false` — built hidden by default, not dropped');
+  ok(lvs.length > 0 && lvs.every((lv) => (lv.componentPropertyReferences ?? {}).visible === liKey),
+    "#1331 host-truth: every built leading glyph's `visible` is wired to the 'leading icon' boolean (componentPropertyReferences.visible)");
 }
 
 // ── STROKE-WEIGHT PER-SIDE READ-BACK (#1332) — HOST-TRUTH ──────────────────────────────────────

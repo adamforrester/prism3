@@ -69,8 +69,19 @@
  * Every binding is an EXISTING semantic role (`field.border.*`, `border.focus`, `border.danger`,
  * `field.fill`, `field.placeholder`, `text.primary`, `icon.primary`, `focus.ring.*`, the cross-cutting
  * `disabled.*`). No new emitted token name, so `CONTRACT_VERSION` stands at 10.0.0. `ENGINE_VERSION`
- * moves for the changed projected surface (#1252's case — the icon ink repoints to `primary` and the
- * `empty` column leaves the Figma state axis).
+ * moves for the changed projected surface (#1252's case).
+ *
+ * ── LEADING GLYPH: A NODE-VISIBILITY BOOLEAN, NOT A VARIANT AXIS (#1331) ───────────────────────────
+ *
+ * The leading glyph's PRESENCE is a Figma boolean component property (`leading icon`), the first consumer
+ * of the node-visibility mechanism. The `leadingVisual` node is EMITTED at every member with `visible:
+ * false` (hidden by default) and the switch flips it in place — where a variant/slot axis would emit the
+ * node in the true members and DROP it in the false ones, doubling the set. So the projected set HALVES:
+ * status(4) × state(4) × leading(2) = 32 → status(4) × state(4) = 16. This is clean for select precisely
+ * because the glyph sits INSIDE `content`, not against the box edge, so it takes NO #326 padding asymmetry
+ * a boolean cannot drive (button's edge-hugging leading/trailing stay variant axes — the #1331/#1379
+ * split). The `leadingVisual` node carries BOTH this boolean (`visible`) and the content swap
+ * (`mainComponent`) — different Figma fields, so one node holds both.
  *
  * ── DEFAULT WIDTH: A MIN-WIDTH FLOOR ON THE CONTROL, NOT A TOKEN (#1343a, #1345) ──────────────────
  *
@@ -292,9 +303,10 @@ export const select: ComponentDef = {
         gap: 'gap',
         children: ['leadingVisual', 'text'],
       },
-      // THE OPTIONAL LEADING GLYPH. A swap slot, absent by default and toggled by the `leading` axis
-      // (`figmaProperties.slotAxes`), named `leadingVisual` so the projector's presence machinery drives
-      // it. The file nominates its swap target.
+      // THE OPTIONAL LEADING GLYPH. A swap slot whose PRESENCE is a node-visibility BOOLEAN (#1331): the
+      // node is emitted at every member with `visible: false` and the `leading icon` switch toggles it,
+      // rather than a variant axis multiplying the set. `optional: true` is required by the boolean
+      // mechanism (the anatomy must allow the part to be hidden). The file nominates its swap target.
       leadingVisual: {
         kind: 'slot',
         optional: true,
@@ -346,39 +358,44 @@ export const select: ComponentDef = {
     codeOnly: [
       'the OPEN MENU / listbox — the whole option list is the platform\'s (a native `<select>`\'s popup is OS-drawn; a custom one is a separate listbox/popover surface). This def models the CLOSED control only, so there is no `expanded` state and no option-list anatomy. A designer building the open menu reaches for a menu/listbox component, not a variant of this one.',
       'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the control, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the control and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit). aria-expanded / aria-haspopup describe the popup this def does not model.',
-      'empty — a real STATE (the displayed text is the placeholder, not a chosen value), deliberately NOT a Figma variant (#1344, the same posture as `button`\'s `inactive`). Its whole delta is the value INK: `label.empty` swaps the muted placeholder role in for `text.primary`, and `error.border.empty` keeps the danger boundary at the "required field left unchosen" coordinate. That is a content condition the code (or an instance\'s typed value) drives, not a skin a designer toggles from a variant matrix — and Figma cannot show one text node as two strings across a column anyway, so a projected `empty` member differed from `rest` only by an ink no designer chose. So `empty` stays in `states` (the paint model carries the distinction, and `lint-paint` reaches `label.empty` / `error.border.empty` at the empty coordinate of the declared grid) and is admitted OUT of the projected `stateAxis` here, dropping the set from status(4)×state(5)×leading(2)=40 members to status(4)×state(4)×leading(2)=32.',
+      'empty — a real STATE (the displayed text is the placeholder, not a chosen value), deliberately NOT a Figma variant (#1344, the same posture as `button`\'s `inactive`). Its whole delta is the value INK: `label.empty` swaps the muted placeholder role in for `text.primary`, and `error.border.empty` keeps the danger boundary at the "required field left unchosen" coordinate. That is a content condition the code (or an instance\'s typed value) drives, not a skin a designer toggles from a variant matrix — and Figma cannot show one text node as two strings across a column anyway, so a projected `empty` member differed from `rest` only by an ink no designer chose. So `empty` stays in `states` (the paint model carries the distinction, and `lint-paint` reaches `label.empty` / `error.border.empty` at the empty coordinate of the declared grid) and is admitted OUT of the projected `stateAxis` here, dropping the set from status(4)×state(5)=20 to status(4)×state(4)=16 projected members (#1331 then made the leading glyph a node-visibility boolean, so it no longer multiplies the set — see figmaProperties).',
       'the nested LABEL\'s disabled dimming — select fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not select\'s (rest / hover / focus-visible / disabled / empty), so it cannot be followed by value. In code a disabled select dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
       'the KEYBOARD MODEL — typeahead to a matching option, arrow keys to move within the open list, Enter/Space to open and commit, Escape to close. All of it belongs to the interaction the closed control opens INTO, which is not modeled here.',
     ],
   },
 
-  // How this projects into Figma. `status` is the one variant axis; `state` projects as the state axis;
-  // `leading` is the slot-presence axis for the optional glyph. status(4) × state(4) × leading(2) = 32
-  // members. `empty` is a real state (see `states` and the `codeOnly` entry leading with `empty`) but is
-  // deliberately absent from this projected axis (#1344) — it is a content-driven ink distinction the code
-  // carries, not a variant a designer picks; that is why `state` lists four values here while `states`
+  // How this projects into Figma. `status` is the one variant axis; `state` projects as the state axis. The
+  // leading glyph's PRESENCE is a node-visibility BOOLEAN (`booleans` below), NOT a variant axis, so it does
+  // NOT multiply the set: status(4) × state(4) = 16 members (was 32 while `leading` was a slot ×2 axis —
+  // the #1331 conversion). `empty` is a real state (see `states` and the `codeOnly` entry leading with
+  // `empty`) but is deliberately absent from this projected axis (#1344) — a content-driven ink distinction
+  // the code carries, not a variant a designer picks; that is why `state` lists four values while `states`
   // lists five.
   figmaProperties: {
     variantAxes: ['status'],
     stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'disabled'] },
-    // The presence axis renders as a `leading icon` switch (#1380 canon): the code axis stays `leading`
-    // (what the slot machinery keys on) and `figmaName` gives the panel its true/false switch label —
-    // identical to button's, so the panel + `↳`-nesting read the same across the two. Select has no
-    // trailing slot (its glyph sits inside `content`, not against the box edge — the #1331/#1379 split).
-    slotAxes: [{ name: 'leading', part: 'leadingVisual', figmaName: 'leading icon' }],
+    // NO slot axis. The leading glyph's presence was a `leading` slot ×2 variant axis until #1331; it is now
+    // a node-visibility BOOLEAN (`booleans` below). A select's glyph sits INSIDE `content`, not against the
+    // box edge, so it takes NO #326 slot-aware padding asymmetry — which is exactly why a boolean can drive
+    // it where button's edge-hugging leading/trailing must stay variant axes (the #1331/#1379 split). The
+    // node is emitted at every member and hidden by default; the switch flips its visibility in place.
     // `state` across the columns — the axis a designer reads a control's skin across, and the widest here.
     gridAxis: 'state',
     // The displayed text. `value`, a designer-facing name (#1242), lowercase per #1333 — the
     // placeholder is the copy every member ships, and a chosen-value string is what a designer types over it.
-    // Projects FIRST in the panel (text → swap order, #1380) — the "text property at the top" of the canon.
+    // Projects FIRST in the panel (text → boolean → swap order, #1380/#1331) — the "text property at the top".
     texts: { value: { part: 'text', default: 'Placeholder' } },
-    // The leading glyph's CONTENT — orthogonal to its presence axis above. `figmaName` gives it the canon
+    // THE LEADING GLYPH'S PRESENCE (#1331) — a node-visibility boolean, not a variant axis. `leadingVisual`
+    // is emitted at every member with `visible: false` (hidden by default, matching the prop's "Hidden by
+    // default"), and the `leading icon` switch toggles it. Panel label `leading icon` (the #1380 canon,
+    // preserved from the retired slot axis); the code prop stays `leadingIcon`. It shares the `leadingVisual`
+    // node with the swap below — `visible` and `mainComponent` are different Figma fields — so the panel
+    // reads `leading icon` (present?) with `↳ swap leading icon` (which icon) beneath it, the canon nesting.
+    booleans: { leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false } },
+    // The leading glyph's CONTENT — orthogonal to its presence boolean above. `figmaName` gives it the canon
     // panel label `↳ swap leading icon` (#1380), nested beneath the `leading icon` switch; the code prop
-    // stays `leadingIcon`.
+    // stays `leadingIcon` (one prop, two Figma properties: a presence boolean and a content swap).
     swaps: { leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' } },
-    // Considered, none survive: `required` is aria/behavioral, `disabled` folds into the state axis,
-    // `validation` is the status axis, the leading glyph is a presence axis + swap.
-    booleans: {},
   },
 
   accessibility: {
@@ -442,6 +459,7 @@ export const select: ComponentDef = {
     unverified: [
       'The nested field parts hug rather than fill in Figma (a `nest` cannot bind sizing, #1299 gives it only a height), so the projected label and message sit at their natural width rather than spanning the 320 control. A consumer setting them to fill is a code-side layout concern; check a built member before assuming the whole stack reads full-width. The control itself is floored at 320 (`minWidth`), so the field reads at that width even though `fill` cannot stretch the label and message to it.',
       'The value text does not ellipsize in the Figma projection — `maxLines` / `textOverflow` have no PartDef expression — so a long placeholder in a narrow member overflows rather than truncating. The ellipsis is a code-side behavior.',
+      'The leading glyph is a node-visibility BOOLEAN (#1331): the node is built at every member with `visible:false` and shown by the `leading icon` switch. In Figma auto-layout a `visible:false` child is EXCLUDED from the flow — it takes no space or gap — so a hidden glyph should add no gap to `content`, exactly as the absent slot did. The offline shims gate the boolean property, the built `visible=false` and the `componentPropertyReferences.visible` wiring, but NOT auto-layout\'s exclusion of invisible children: whether a real host reflows `content` when the switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where the hidden glyph sits, or the field not tightening when leading is off.',
     ],
   },
 };

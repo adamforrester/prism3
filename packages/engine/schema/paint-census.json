@@ -195,9 +195,9 @@
     },
     "select": {
       "set": {
-        "members": 32,
-        "assignments": 144,
-        "sha256": "77cab6bb9162ea44ab0023cf42121c21578581c05e9a471570c242438aafbd32"
+        "members": 16,
+        "assignments": 80,
+        "sha256": "445ca30b938ff1e25572331a418b24978a15ccd27ad85a12788f812b0f5aa4ac"
       },
       "grid": {
         "members": 20,

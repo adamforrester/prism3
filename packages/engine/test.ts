@@ -8343,16 +8343,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       "#1343a a BOX declaring minWidth with NO layout is refused BY NAME — Figma applies a minimum width only to an auto-layout frame, so a layout-less floor is silently dropped");
 
     // ---- #1344: `empty` is NOT a projected state, but IS carried internally ----
+    // NOTE the count moved with #1331: `leading` is no longer a slot ×2 axis (it is a node-visibility
+    // boolean, `leading icon`), so the set is status × state, not status × state × leading. See the #1331
+    // block below for the halving.
     const projStates = select.figmaProperties!.stateAxis!.values;
     const V = select.variants!.status!.length;                 // status: 4
     const St = projStates.length;                               // rest/hover/focus-visible/disabled: 4
-    const slotFactor = 2 ** (select.figmaProperties!.slotAxes ?? []).length; // leading: ×2
     const set = figmaAnatomySet(select);
     // (a) empty is absent from the PROJECTED axis, and the enumeration matches the product WITHOUT it.
     ok(!projStates.includes('empty'),
       `#1344 'empty' is NOT a projected Figma state (stateAxis = [${projStates.join(', ')}])`);
-    ok(set.length === V * St * slotFactor && set.length === 32,
-      `#1344 select projects status(${V})×state(${St})×leading = ${V * St * slotFactor} members (was 40 with the empty column)`);
+    ok(set.length === V * St && set.length === 16,
+      `#1344 select projects status(${V})×state(${St}) = ${V * St} members (was 20 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
     ok(!set.some((p) => planComponentName(p).includes('empty')),
       '#1344 no projected member names the empty state');
     // (b) empty IS still a real state — the placeholder-vs-value ink distinction is carried internally, and
@@ -8361,17 +8363,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       "#1344 'empty' stays in `states` — the placeholder-vs-value ink is carried internally, not dropped");
     ok(select.tokens!['label.empty'] === 'color.field.placeholder',
       "#1344 the placeholder ink `label.empty` → color.field.placeholder is still bound");
-    const emptyInk = planPaintVars(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'empty', leading: false } as never).root)
+    const emptyInk = planPaintVars(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'empty' } as never).root)
       .filter((v) => v === 'color/field/placeholder');
     ok(emptyInk.length === 1,
       '#1344 the placeholder ink is reached at the declared empty coordinate (text paints color/field/placeholder)');
-    //   MUTATION A — restore `empty` to the projected axis. The set rebuilds the empty column (32 → 40) and
-    //   a member names it, flipping '#1344 select projects … 32 members' and '#1344 no projected member
+    //   MUTATION A — restore `empty` to the projected axis. The set rebuilds the empty column (16 → 20) and
+    //   a member names it, flipping '#1344 select projects … 16 members' and '#1344 no projected member
     //   names the empty state' BY NAME.
     const projMutant = { ...select, figmaProperties: { ...select.figmaProperties!, stateAxis: { name: 'state', values: [...projStates, 'empty'] } } };
     const mutSet = figmaAnatomySet(projMutant as ComponentDef);
-    ok(mutSet.length === 40 && mutSet.some((p) => planComponentName(p).includes('empty')),
-      `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 32 members' to failing`);
+    ok(mutSet.length === 20 && mutSet.some((p) => planComponentName(p).includes('empty')),
+      `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 16 members' to failing`);
     //   MUTATION B — drop `empty` from `states`. `label.empty` / `error.border.empty` then name a state the
     //   def no longer declares, so `validateComponentDef` reports them as unreachable paint keys — the
     //   internal carry is load-bearing, and this flips '#1344 empty stays in states' BY NAME.
@@ -8379,6 +8381,78 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const carryErrors = validateComponentDef(carryMutant as ComponentDef).errors;
     ok(carryErrors.some((e) => e.includes("'label.empty'")),
       `#1344 MUTATION B: dropping 'empty' from states makes label.empty an undeclared-state paint key — validation fails (${carryErrors.length} error(s)), proving the internal carry is real`);
+  }
+
+  // ---- #1331: the leading glyph is a NODE-VISIBILITY BOOLEAN, not a variant axis ----
+  // The foundational mechanism (a boolean drives a part's `visible`), pinned INDEPENDENTLY of the projector:
+  // EXPECTED is the authored contract — the node is emitted at EVERY member, hidden by default, its
+  // visibility driven by a boolean, so the set HALVES rather than doubling — and ACTUAL is read off the
+  // emitted plan / planSetProperties. This is the docs/34 behavior net for the mechanism.
+  {
+    const fp = select.figmaProperties!;
+    const sset = figmaAnatomySet(select, { swapTarget: 'FPO-default-icon' });
+    const findLV = (n: any): any => (n.name === 'leadingVisual' ? n : (n.children ?? []).map(findLV).find(Boolean));
+
+    // (1) `leading` is NOT a slot/variant axis — it does not multiply the set, and no member name carries it.
+    ok(!(fp.slotAxes ?? []).some((s) => s.name === 'leading') && !(fp.variantAxes ?? []).includes('leading'),
+      '#1331 select `leading` is NOT a slot/variant axis — presence is a node-visibility boolean');
+    ok(!sset.some((p) => /leading/.test(planComponentName(p))),
+      '#1331 no projected member name carries a `leading` coordinate — the boolean does not multiply the set');
+
+    // (2) THE MECHANISM: the leading glyph node is EMITTED at EVERY member, hidden by default, its `visible`
+    //     driven by the boolean — present-and-toggled, NOT present-in-some/absent-in-others as a variant.
+    const lvNodes = sset.map((p) => findLV(p.root));
+    ok(lvNodes.length === sset.length && lvNodes.every((lv) => !!lv),
+      `#1331 the leading glyph node is emitted at EVERY projected member (${lvNodes.filter(Boolean).length}/${sset.length})`);
+    ok(lvNodes.length > 0 && lvNodes.every((lv) => lv?.visibleProp === 'leading icon' && lv?.visible === false),
+      '#1331 every leading glyph node is hidden by default (`visible:false`) with its `visible` driven by the `leading icon` boolean');
+    ok(lvNodes.length > 0 && lvNodes.every((lv) => lv?.swapTarget === 'FPO-default-icon'),
+      '#1331 the leading glyph node carries the content swap AND the visibility boolean on ONE node (mainComponent + visible)');
+
+    // (3) the set HALVES: status(4) × state(4) = 16, from 32 while `leading` was a ×2 axis.
+    ok(sset.length === 16,
+      `#1331 select projects 16 members (was 32 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
+
+    // (4) planSetProperties declares `leading icon` as a BOOLEAN defaulting to the built (hidden) visibility,
+    //     ordered ABOVE the swap it gates (the #1380 `leading icon` → `↳ swap leading icon` panel nesting).
+    const props = planSetProperties(sset);
+    const li = props.find((p) => p.name === 'leading icon');
+    ok(!!li && li.type === 'BOOLEAN' && li.default === false,
+      `#1331 planSetProperties declares 'leading icon' as a BOOLEAN defaulting false (the built visibility) — got ${JSON.stringify(li)}`);
+    const iLi = props.findIndex((p) => p.name === 'leading icon');
+    const iSwap = props.findIndex((p) => p.name === '↳ swap leading icon');
+    ok(iLi >= 0 && iSwap >= 0 && iLi < iSwap,
+      `#1331 the 'leading icon' boolean is created before its '↳ swap leading icon' swap (panel order) — got [${props.map((p) => p.name).join(', ')}]`);
+
+    // (5) BEHAVIOR MUTATION (docs/34) — the boolean is what keeps the node present. Drop it and the optional
+    //     leadingVisual is DROPPED at every member (present() returns !optional), flipping (2) BY NAME.
+    const noBool = { ...select, figmaProperties: { ...fp, booleans: {} } };
+    const noBoolSet = figmaAnatomySet(noBool as never, { swapTarget: 'FPO-default-icon' });
+    ok(noBoolSet.every((p) => !findLV(p.root)),
+      '#1331 MUTATION: dropping the boolean drops the (optional) leading glyph from every member — the boolean is what keeps it present, flipping "#1331 the leading glyph node is emitted at EVERY projected member" BY NAME');
+
+    // (6) BEHAVIOR MUTATION — reverting `leading` to a VARIANT SLOT AXIS re-doubles the set to 32 and re-drops
+    //     the node in the leading=false members (present-in-some/absent-in-others), the exact multiplication the
+    //     boolean replaced. Flips "#1331 select projects 16 members" BY NAME.
+    const asAxis = { ...select, figmaProperties: { ...fp, booleans: {}, slotAxes: [{ name: 'leading', part: 'leadingVisual', figmaName: 'leading icon' }] } };
+    const asAxisSet = figmaAnatomySet(asAxis as never, { swapTarget: 'FPO-default-icon' });
+    ok(asAxisSet.length === 32 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
+      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 32 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
+
+    // (7) VALIDATOR ARMS (new refusals, by-name).
+    //   (a) the LOOSENING is real: select's leadingVisual carries a swap AND a boolean and validates clean
+    //       (visible and mainComponent are different Figma fields).
+    ok(validateComponentDef(select).errors.length === 0,
+      `#1331 a swap + a boolean on ONE node (select's leading glyph) validates clean (${validateComponentDef(select).errors.join('; ')})`);
+    //   (b) NEW REFUSAL — a boolean on a `presentWhen`-gated part is refused (two presence mechanisms).
+    const boolAndGate = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, leadingVisual: { ...select.anatomy!.parts.leadingVisual, presentWhen: { status: ['error'] } } } } };
+    ok(validateComponentDef(boolAndGate as never).errors.some((e) => /booleans\.leadingIcon/.test(e) && /also declares presentWhen/.test(e)),
+      '#1331 a boolean on a presentWhen-gated part is refused BY NAME — the boolean is the sole presence mechanism, a variant gate would drop the node it toggles');
+    //   (c) requireOptional — a boolean toggling a NON-optional part is refused (the anatomy must allow the
+    //       part to be hidden). Pinned on select's own required `text` node.
+    const boolOnRequired = { ...select, figmaProperties: { ...fp, booleans: { required: 'text' } } };
+    ok(validateComponentDef(boolOnRequired as never).errors.some((e) => /booleans\.required/.test(e) && /not optional/.test(e)),
+      '#1331 a boolean toggling a NON-optional part is refused BY NAME — the anatomy must allow the part to be hidden');
   }
 
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
@@ -11043,13 +11117,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       };
       const boolRun = await runPayload(planSetToPluginJs(boolGrid), boolOpts);
       ok(boolRun.misses.length === 0, `set properties: a set carrying a BOOLEAN runs CLEAN end to end${boolRun.misses.length ? ` — ${JSON.stringify(boolRun.misses)}` : ''}`);
-      ok(JSON.stringify([...(boolRun.properties ?? [])].sort()) === JSON.stringify(['fullWidth:BOOLEAN', 'label:TEXT', '↳ swap leading icon:INSTANCE_SWAP']),
-        `set properties: the BOOLEAN comes back alongside the other two, the swap under its canon panel label (#1380) — got ${JSON.stringify(boolRun.properties)}`);
+      // FOUR properties, and the trailing swap is the point (#1331): `fullWidth` toggles `trailingVisual`'s
+      // `visible`, and that node ALSO carries `↳ swap trailing icon`. Before booleans rode their own plan
+      // field, the boolean CLOBBERED the swap on that node (both took the singular `propertyRef`, last write
+      // won) and the trailing swap vanished; now `visible` and `mainComponent` coexist on one node, so the
+      // set comes back carrying BOTH.
+      ok(JSON.stringify([...(boolRun.properties ?? [])].sort()) === JSON.stringify(['fullWidth:BOOLEAN', 'label:TEXT', '↳ swap leading icon:INSTANCE_SWAP', '↳ swap trailing icon:INSTANCE_SWAP']),
+        `set properties: the BOOLEAN comes back alongside the text and BOTH swaps — trailingVisual carries visible + mainComponent at once (#1331) — got ${JSON.stringify(boolRun.properties)}`);
       // SPREAD, for the same reason as the 21-member assertion: a `visible` reference does not propagate
       // to siblings any more than `characters` does, so a set wired once shows the toggle working on
-      // whichever variant a designer opens first and doing nothing on the rest.
-      ok(boolRun.wiredMembers === 2 && boolRun.refs === 6,
-        `set properties: all three refs are wired on every member — ${boolRun.wiredMembers}/2 distinct members across ${boolRun.refs} writes (3 each)`);
+      // whichever variant a designer opens first and doing nothing on the rest. FOUR refs per member now
+      // (label, both swaps, and the boolean's `visible` sharing trailingVisual's node) × 2 members = 8.
+      ok(boolRun.wiredMembers === 2 && boolRun.refs === 8,
+        `set properties: all four refs are wired on every member — ${boolRun.wiredMembers}/2 distinct members across ${boolRun.refs} writes (4 each)`);
       // The `REFUSED` branch, which nothing reached until now. `addComponentProperty` throws when the
       // default does not match the type, and the payload catches it into `misses` rather than letting the
       // whole paste die — a set missing one property is recoverable, a payload that threw at byte 12781
@@ -12809,7 +12889,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     brokeFp('a property pointed at a part that does not exist fails', /does not exist in anatomy.parts/, { texts: { label: { part: 'ghost', default: 'Button' } } });
     brokeFp('a property keyed on an undeclared prop fails', /is not a declared prop/, { texts: { notAProp: { part: 'label', default: 'Button' } } });
     brokeFp('a BOOLEAN toggling a REQUIRED part fails', /anatomy must allow the part to be absent/, { booleans: { fullWidth: 'label' } });
-    brokeFp('two property kinds on one node fails', /carries at most one property kind/, { texts: { label: { part: 'label', default: 'Button' } }, booleans: { fullWidth: 'label' } });
+    // The one-property-per-node rule is FIELD-based since #1331 (a swap + a boolean coexist on one node —
+    // different Figma fields). Two claims on the SAME field still collide: two booleans (both `visible`) on
+    // one part. (The loosening — swap + boolean coexisting — is proven on the real `select` def in #1331.)
+    brokeFp('two BOOLEANs on one node fails (same `visible` field)', /at most one 'visible' property/, { booleans: { fullWidth: 'leadingVisual', isPending: 'leadingVisual' } });
     // The PLACEHOLDER is required to say something. Figma accepts `''` and #510's set is what that
     // produces: 21 variants, every binding resolved, nothing readable in any of them.
     brokeFp('a TEXT property with an empty default fails', /no placeholder/, { texts: { label: { part: 'label', default: '' } } });
