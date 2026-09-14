@@ -8703,6 +8703,121 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     && fieldLabel.tokens['size.medium.regular.text'] === 'type.body.md.default',
     'component: FieldLabel\'s default size x weight resolves to the `md` rung at `default` (#756 arm 3, #1248)');
 
+  // ---- #1338: the required marker is a NODE-VISIBILITY BOOLEAN, reconciling away the `indicator` axis ----
+  // The SECOND consumer of the #1412 mechanism (after select's leading glyph), and the FIRST that defaults
+  // the part VISIBLE — Prism 2's `Required` default-true. EXPECTED is the authored contract (the marker is
+  // emitted at every member, shown by default, toggled by the boolean, and its presence is NOT a variant
+  // axis so the set does not grow); ACTUAL is read off the emitted plan / planSetProperties. docs/34 net.
+  {
+    const fp = fieldLabel.figmaProperties!;
+    const set = figmaAnatomySet(fieldLabel);
+    const findInd = (n: any): any => (n.name === 'indicator' ? n : (n.children ?? []).map(findInd).find(Boolean));
+
+    // (1) `indicator` is GONE as a variant axis — the def, the projected member names, and the axis-values
+    //     register no longer carry it. Pinned as hand-written literals so reverting the reconciliation fails
+    //     here by name (alongside lint-axis-values' register, which fails a stale entry independently).
+    ok(fieldLabel.variants.indicator === undefined && !fieldLabel.props.some((p) => p.name === 'indicator'),
+      '#1338 the 3-value `indicator` axis + prop are gone from field-label (reconciled into the `required` boolean)');
+    ok(!set.some((p) => /indicator|required/.test(planComponentName(p))),
+      '#1338 no projected member name carries an `indicator`/`required` coordinate — presence is a boolean, not an axis');
+
+    // (2) THE MECHANISM: the marker node is EMITTED at EVERY member, VISIBLE by default (required defaults
+    //     true — Prism 2's model), its `visible` driven by the `required` boolean. `visible` is omitted on a
+    //     built-visible node (both executors read `n.visible ?? true`), so "built visible" is `visible !== false`.
+    const indNodes = set.map((p) => findInd(p.root));
+    ok(indNodes.length === set.length && indNodes.every((n) => !!n),
+      `#1338 the required marker node is emitted at EVERY projected member (${indNodes.filter(Boolean).length}/${set.length})`);
+    ok(indNodes.length > 0 && indNodes.every((n) => n?.visibleProp === 'required' && n?.visible !== false),
+      '#1338 every required marker node is VISIBLE by default (built visible) with its `visible` driven by the `required` boolean (Prism 2 default-true)');
+    ok(indNodes.length > 0 && indNodes.every((n) => n?.characters === '*'),
+      '#1338 the required marker carries its `*` content (`characters`) AND its visibility boolean on ONE node — the #798 non-empty rule holds under the boolean');
+
+    // (3) the set does NOT grow: size(3) × emphasis(2) × weight(2) × state(2) = 24, unchanged by the boolean.
+    ok(set.length === 24,
+      `#1338 field-label projects 24 members — the boolean toggles a part in place and does not multiply the grid (got ${set.length})`);
+
+    // (4) planSetProperties declares `required` as a BOOLEAN defaulting TRUE (the built visibility), beside
+    //     its `required marker` TEXT sibling (one prop, two Figma properties on one node).
+    const props = planSetProperties(set);
+    const req = props.find((p) => p.name === 'required');
+    ok(!!req && req.type === 'BOOLEAN' && req.default === true,
+      `#1338 planSetProperties declares 'required' as a BOOLEAN defaulting true (the built, Prism-2-default visibility) — got ${JSON.stringify(req)}`);
+    ok(props.some((p) => p.name === 'required marker' && p.type === 'TEXT' && p.default === '*'),
+      '#1338 the marker TEXT projects as `required marker` defaulting `*` (Prism 2\'s `_Form label` required content)');
+
+    // (5) BEHAVIOR MUTATION (docs/34) — the boolean is what keeps the marker present. Drop it and the
+    //     (optional) marker is DROPPED at every member (present() returns !optional), flipping (2) BY NAME.
+    const noBool = { ...fieldLabel, figmaProperties: { ...fp, booleans: {} } };
+    const noBoolSet = figmaAnatomySet(noBool as never);
+    ok(noBoolSet.every((p) => !findInd(p.root)),
+      '#1338 MUTATION: dropping the boolean drops the (optional) required marker from every member — the boolean is what keeps it present, flipping "#1338 the required marker node is emitted at EVERY projected member" BY NAME');
+
+    // (6) BEHAVIOR MUTATION — flip the built visibility (required default false). The marker then builds
+    //     HIDDEN (`visible:false`) and the boolean defaults false, flipping "VISIBLE by default" BY NAME —
+    //     this is the on-shows/off-hides direction, and it proves the default is load-bearing not incidental.
+    const offByDefault = { ...fieldLabel, figmaProperties: { ...fp, booleans: { required: { part: 'indicator', default: false } } } };
+    const offSet = figmaAnatomySet(offByDefault as never);
+    const offNodes = offSet.map((p) => findInd(p.root));
+    ok(offNodes.every((n) => n?.visible === false) && planSetProperties(offSet).find((p) => p.name === 'required')?.default === false,
+      '#1338 MUTATION: required default false builds the marker HIDDEN (`visible:false`, boolean defaults false) — flipping "VISIBLE by default" BY NAME (the on-shows/off-hides direction)');
+
+    // (7) BEHAVIOR MUTATION — reverting `indicator` to a VARIANT AXIS re-multiplies the set and re-names the
+    //     members, the exact multiplication the boolean replaced. Flips "#1338 field-label projects 24" and
+    //     "no projected member name carries indicator" BY NAME.
+    const asAxis = { ...fieldLabel, variants: { ...fieldLabel.variants, indicator: ['required', 'optional'] } };
+    const asAxisSet = figmaAnatomySet({ ...asAxis, figmaProperties: { ...fp, variantAxes: [...(fp.variantAxes ?? []), 'indicator'], booleans: {} } } as never);
+    ok(asAxisSet.length === 48 && asAxisSet.some((p) => /indicator/.test(planComponentName(p))),
+      `#1338 MUTATION: reverting indicator to a variant axis re-multiplies the set (24 -> ${asAxisSet.length}) and re-names the members — the multiplication the boolean replaced`);
+  }
+
+  // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
+  // The label dims when its field is disabled, carried by the `disabled` STATE (a paint change projected as a
+  // Figma variant), with NO duplicating `disabled` prop. EXPECTED is the authored contract; ACTUAL is the
+  // resolved paint at the disabled coordinate and the def's own surface. docs/34 net for the collapse.
+  {
+    // (1) the duplication is COLLAPSED: `disabled` is a STATE (and projects), and there is NO `disabled` prop.
+    ok(fieldLabel.states.includes('disabled') && fieldLabel.figmaProperties!.stateAxis!.values.includes('disabled'),
+      '#1339 `disabled` is a projected STATE (the single dim mechanism)');
+    ok(!fieldLabel.props.some((p) => p.name === 'disabled'),
+      '#1339 field-label has NO `disabled` prop — the state axis and the code prop are collapsed to ONE mechanism');
+
+    // (2) THE DIM IS REAL: rest paints the full-contrast ink, disabled paints the dimmed disabled ink — on
+    //     BOTH text nodes (label + marker). A consequence (the ink CHANGES), not just a resolvable key.
+    const restPaint = planPaintVars(figmaAnatomyPlan(fieldLabel, 'medium', { emphasis: 'primary', weight: 'regular', state: 'rest' } as never).root);
+    const disPaint = planPaintVars(figmaAnatomyPlan(fieldLabel, 'medium', { emphasis: 'primary', weight: 'regular', state: 'disabled' } as never).root);
+    ok(restPaint.every((v) => v === 'color/text/primary') && restPaint.length === 2,
+      `#1339 at rest both text nodes paint full-contrast color/text/primary (${JSON.stringify(restPaint)})`);
+    ok(disPaint.every((v) => v === 'color/disabled/text') && disPaint.length === 2,
+      `#1339 when disabled both text nodes DIM to color/disabled/text — the label dims with its field (${JSON.stringify(disPaint)})`);
+
+    // (3) CONTRAST FLOOR (#1339's "kept above the contrast floor"): the disabled ink clears >=3:1 in every
+    //     mode AND is genuinely dimmer than the rest ink — dimmed but legible, not vanished. Resolved on a
+    //     real brand across all four modes (independent of the def: `resolveAllModes`, not the token keys).
+    const seed = { id: 'fl', root: 'prism', modes: ['light', 'dark', 'hc-light', 'hc-dark'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } } as never;
+    const modes = resolveAllModes(brandTheme(seed));
+    let worstDisabled = Infinity, everDimmer = true, sawMode = 0;
+    for (const m of modes) {
+      const dis: any = (m.roles as any)['disabled.text'];
+      const pri: any = (m.roles as any)['text.primary'];
+      if (!dis || !pri) continue;
+      sawMode++;
+      worstDisabled = Math.min(worstDisabled, dis.ratio ?? 0);
+      if (!((dis.ratio ?? 0) < (pri.ratio ?? 0))) everDimmer = false;
+    }
+    ok(sawMode === 4 && worstDisabled >= 3,
+      `#1339 the dimmed label ink (color.disabled.text) clears the >=3:1 contrast floor in all ${sawMode} modes (worst ${worstDisabled.toFixed(2)}:1) — dimmed but legible`);
+    ok(everDimmer,
+      '#1339 the disabled label ink is genuinely DIMMER than the rest ink in every mode — the dim is a real change, not a same-ink no-op');
+
+    // (4) BEHAVIOR MUTATION (docs/34) — drop `disabled` from `states`. `disabled.label` / `disabled.indicator`
+    //     then name a state the def no longer declares, so validateComponentDef reports them as unreachable
+    //     paint keys — proving the STATE is what carries the dim, and flipping (1) BY NAME.
+    const noState = { ...fieldLabel, states: fieldLabel.states.filter((s) => s !== 'disabled') };
+    const noStateErrors = validateComponentDef(noState as never).errors;
+    ok(noStateErrors.some((e) => e.includes("'disabled.label'")),
+      `#1339 MUTATION: dropping 'disabled' from states makes disabled.label an undeclared-state paint key — validation fails (${noStateErrors.length} error(s)), proving the STATE carries the dim`);
+  }
+
   // The drift gate bites: a broken def is caught (missing avoid_when + an unresolvable binding).
   const broken = { ...button, ai: { ...button.ai, avoidWhen: '' }, tokens: { ...button.tokens, bogus: 'color.nope.nope' } } as ComponentDef;
   const vb = validateComponentDef(broken, nbTree, nbT.root);

@@ -199,16 +199,15 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'name, and a status-colored one would be the validation signal `field-message` already owns via '
       + 'its `status` axis.',
   },
-  {
-    axis: 'indicator',
-    values: ['none', 'required', 'optional'],
-    defs: ['field-label'],
-    relation: 'sole',
-    reason:
-      'A three-way choice whose most important value is ABSENCE, which is why `none` is declared rather '
-      + 'than left implicit — the def\'s own notes record that this is exactly what stops the axis being '
-      + 'projected to Figma, since a member with the marker still drawn would be a coordinate that lies.',
-  },
+  // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
+  // the same shape the `intent` note below records. field-label carried a three-way
+  // `[none/required/optional]` axis whose most important value was ABSENCE, which is exactly why it never
+  // projected to Figma. The owner decision (2026-09-13) reconciled it into Prism 2's `Required` BOOLEAN
+  // (default true) — a node-visibility toggle, not a variant axis — so no def declares `indicator` as a
+  // variant axis any more, and a register entry no def uses is what ARM B fails as stale. Removed, the
+  // register is true again; the marker's presence now lives on `figmaProperties.booleans`, which this
+  // register (a VARIANT-axis census) does not cover.
+  //
   // `intent` IS GONE FROM THE REGISTER (#1225), and its absence is the point rather than an omission.
   // #1223 made Button's intents three COMPONENTS and left `icon-button` carrying `intent` as an axis of
   // its own, with the entry here scoped to `['icon-button']` alone and its reason naming the open sibling
