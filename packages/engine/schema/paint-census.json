@@ -104,9 +104,9 @@
         "sha256": "5bf6efcaee41daa2cc670c8311687f7f7360905b0f690dae21a6ae48805ce257"
       },
       "grid": {
-        "members": 72,
-        "assignments": 144,
-        "sha256": "3a3dfad20c1cc862a96af7ca542d6c202976a20ecac6e925ff50daab8d994f87"
+        "members": 24,
+        "assignments": 48,
+        "sha256": "7704e9b876060424f5c45ad3e08957c005577d374d94b1c1473d0f360a0efb14"
       }
     },
     "field-message": {

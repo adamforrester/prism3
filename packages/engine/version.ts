@@ -2359,7 +2359,7 @@
  * count/mechanism assertions BY NAME; `test-roundtrip` reads the `leading icon` BOOLEAN property + the
  * part's `visible` back off the built node (host truth).
  */
-export const ENGINE_VERSION = '0.84.0';
+export const ENGINE_VERSION = '0.85.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
