@@ -2359,7 +2359,44 @@
  * count/mechanism assertions BY NAME; `test-roundtrip` reads the `leading icon` BOOLEAN property + the
  * part's `visible` back off the built node (host truth).
  */
-export const ENGINE_VERSION = '0.85.0';
+/**
+ * 0.86.0 — image-placeholder's empty-state marker grows from a 32px icon rung to a 180px def-local literal
+ * (#1340). VALUE + PROJECTED-SURFACE change, so ENGINE MINOR.
+ *
+ * A new projection field: `PartDef.glyphPx` — a LITERAL square px a non-root `vector`'s glyph frame is
+ * built at (the executor resizes the imported SVG frame to it, the outline's SCALE constraints scaling the
+ * drawn grid to fill), instead of binding a token via `size`. A def-local literal in the `minWidth`/
+ * `glyphScale` family, carried on `FigmaNodePlan.glyphPx` only when set (every existing glyph's plan is
+ * byte-identical). image-placeholder's marker was `size: 'glyph-size'` → `icon.size.lg` (32px), which read
+ * as a stray small icon against the 720px frame (#1340). It is now `glyphPx: 180`.
+ *
+ * WHY A LITERAL AND NOT A TOKEN. No icon rung reaches a marker-of-the-frame proportion (they top out at
+ * `icon.size.xl` = 40px) and no other semantic dimension names near it; minting one would move CONTRACT and
+ * hand a brand a knob nobody should re-theme. 180px is grounded in Prism 2's own centered-glyph proportion
+ * for this exact frame family (`playCircleLine` 160px on the 480px-tall 4:3 frame = 1/3 of the shorter side;
+ * 1/3 of prism3's 540px 4:3 nominal shorter side = 180). It is a FIXED floor held across the three ratios,
+ * not a size that tracks the frame's flexing extent on resize — true resize-tracking would need a Figma
+ * scale-constraint / percentage projection the engine lacks (the fluid `100%` container is skipped for the
+ * same reason), filed as a follow-up.
+ *
+ * CONTRACT STANDS at 10.0.0. `glyphPx` is a def-local literal; no guaranteed token NAME is added, removed or
+ * retyped, and the marker merely stops REFERENCING `icon.size.lg` (still emitted, other defs bind it), which
+ * the contract does not track. `token-contract.ts --check` confirms the guaranteed 577 unchanged and
+ * `--accept` refreshes only the informational `engineVersion` stamp. `regen --check` moves only each
+ * artifact's own generator stamp (component defs emit into no committed file). `lint-component-surface.ts`
+ * needs a bump-gated `--accept` (image-placeholder's marker plan digest moves — `glyphPx` added, the `size`
+ * binding dropped); `paint-census` is UNCHANGED (glyphPx is geometry, not paint — the marker still paints
+ * `icon` at the same coordinate).
+ *
+ * NEW REFUSAL ARM (docs/34 / principle 6): `glyphPx` and `size` on one part are refused (the glyph's square
+ * stated twice, once as a binding and once as a literal — the projection would keep whichever it read last).
+ * `test.ts`'s #1340 block reverts the arm and confirms it fails BY NAME (alongside the wrong-kind and
+ * root-vector arms). BEHAVIOR mutation (docs/34): the marker's projected plan carries `glyphPx: 180` and the
+ * built glyph frame comes back 180px square — reverting to the old `icon.size.lg` rung (a bound `size`, no
+ * `glyphPx`) flips both the projected-plan and the built-size assertions BY NAME; `test-roundtrip` reads the
+ * 180px frame back off the built node (host truth) via the new `glyphPx` readback classifier.
+ */
+export const ENGINE_VERSION = '0.86.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -8342,6 +8342,61 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(validateComponentDef(minWidthNoLayout as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /binds no 'layout'/.test(e)),
       "#1343a a BOX declaring minWidth with NO layout is refused BY NAME — Figma applies a minimum width only to an auto-layout frame, so a layout-less floor is silently dropped");
 
+    // ---- #1340: image-placeholder's marker sizes off a LITERAL glyphPx, not an icon rung ----
+    // The empty-state marker was a bound `icon.size.lg` (32px) that read as a stray small icon against the
+    // 720px frame (#1340). It is now a def-local literal 180px — Prism 2's centered-glyph proportion for
+    // this frame family (`playCircleLine` 160/480 = 1/3 of the 4:3 shorter side; 1/3 of prism3's 540px 4:3
+    // nominal shorter side = 180). EXPECTED is the grounded literal; ACTUAL is read off the emitted plan,
+    // independent of the projector, so a value move fails HERE and not only in the round-trip.
+    const imgPlaceholder = componentDefs.find((d) => d.id === 'image-placeholder')!;
+    const markerOf = (d: ComponentDef): FigmaNodePlan => {
+      const root = figmaAnatomyPlan(d, undefined, { ratio: '4:3' } as never).root;
+      const m = (root.children ?? []).find((c) => c.type === 'GLYPH');
+      if (!m) throw new Error(`image-placeholder projection has no GLYPH marker (got [${(root.children ?? []).map((c) => `${c.name}:${c.type}`).join(', ')}])`);
+      return m;
+    };
+    // (a) the plan carries the literal, and it is a REAL enlargement past every icon rung (xl = 40) — a
+    // rung binding could never reach it, which is why it is a literal and not a token.
+    ok(markerOf(imgPlaceholder).glyphPx === 180,
+      `#1340 image-placeholder marker carries the 180px literal glyph size (got ${String(markerOf(imgPlaceholder).glyphPx)})`);
+    ok((markerOf(imgPlaceholder).glyphPx ?? 0) > 40 && Object.keys(markerOf(imgPlaceholder).bound).length === 0,
+      `#1340 the marker's size is a LITERAL past every icon rung (>40) and binds NO dimension variable (bound ${JSON.stringify(markerOf(imgPlaceholder).bound)}) — a rung could not reach 180`);
+    //   MUTATION #1340 — revert to the old rung. Restore the `size: 'glyph-size'` token binding and drop
+    //   `glyphPx`, exactly as before this PR: the marker re-binds width/height to the 32px icon variable and
+    //   carries NO glyphPx, flipping '#1340 image-placeholder marker carries the 180px literal glyph size'
+    //   BY NAME.
+    const marker = imgPlaceholder.anatomy.parts.marker;
+    const revertedMarker = { ...marker, glyphPx: undefined, size: 'glyph-size' };
+    const reverted = { ...imgPlaceholder, tokens: { ...imgPlaceholder.tokens, 'glyph-size': 'icon.size.lg' }, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, marker: revertedMarker } } };
+    const revertedMarkerPlan = markerOf(reverted as ComponentDef);
+    ok(revertedMarkerPlan.glyphPx === undefined && !!revertedMarkerPlan.bound.width,
+      `#1340 MUTATION: reverting to the icon.size.lg binding drops glyphPx (got ${String(revertedMarkerPlan.glyphPx)}) and re-binds the size variable (bound.width ${String(revertedMarkerPlan.bound.width)}), flipping '#1340 image-placeholder marker carries the 180px literal glyph size' to failing`);
+
+    // ---- #1340: the three REFUSAL arms `PartDef.glyphPx` adds, each pinned BY NAME (docs/34) ----
+    // A PR's own new refusal owes its own by-name mutation, or an arm could be deleted from `anatomyErrors`
+    // with the suite green. EXPECTED is the authored message shape; the SUBJECT is the mutated def.
+    // (a) glyphPx AND size on one part — the glyph's square stated twice; the projection keeps whichever it read last.
+    const glyphPxAndSize = { ...imgPlaceholder, tokens: { ...imgPlaceholder.tokens, 'glyph-size': 'icon.size.lg' }, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, marker: { ...marker, size: 'glyph-size' } } } };
+    ok(validateComponentDef(glyphPxAndSize as ComponentDef).errors.some((e) => /declares BOTH 'size' and 'glyphPx'/.test(e)),
+      "#1340 a part declaring BOTH size and glyphPx is refused BY NAME — the glyph's square stated twice (a binding and a literal) would keep whichever the projection read last");
+    // (b) glyphPx on a NON-vector — read only by the GLYPH executor, so on any other kind it validates clean and reaches no node.
+    const glyphPxOnBox = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, frame: { ...imgPlaceholder.anatomy.parts.frame, glyphPx: 180 } } } };
+    ok(validateComponentDef(glyphPxOnBox as ComponentDef).errors.some((e) => /declares 'glyphPx'/.test(e) && /kind 'box'/.test(e) && /only a 'vector'/.test(e)),
+      "#1340 glyphPx on a NON-vector part is refused BY NAME — only a vector is a glyph frame the executor resizes, so on any other kind it validates clean, is ignored, and leaves the author believing the part was sized");
+    // (c) glyphPx on the ROOT vector — a root glyph's size is the instancing host's, so a literal fixes a size the host is meant to give.
+    const rootGlyphDef = { id: 'x', name: 'X', category: 'media', status: 'draft', description: 'x', props: [], states: [], variants: {}, paintKeys: ['{slot}'], tokens: {}, anatomy: { root: 'g', parts: { g: { kind: 'vector' as const, role: 'target' as const, glyph: 'image', glyphPx: 180 } } }, figmaProperties: { variantAxes: [], booleans: {} }, accessibility: { role: 'img', wcag: [], focus: 'n', aria: 'n' }, content: { labelPattern: 'n' }, docs: { usage: 'n', do: [], dont: [], contentGuidelines: 'n' }, ai: { primaryPurpose: 'n', whenToUse: 'n', avoidWhen: 'n', commonPartners: [], triggerKeywords: [], generationPriority: 3 }, composition: { composesWith: [], alternativeTo: [], supersedes: [], supersededBy: [] } };
+    ok(validateComponentDef(rootGlyphDef as unknown as ComponentDef).errors.some((e) => /declares 'glyphPx' and is the anatomy ROOT/.test(e)),
+      "#1340 glyphPx on the ROOT vector is refused BY NAME — a root glyph's rendered size comes from the host that instances it, so a literal here fixes a size the host is meant to give");
+    // (d) glyphPx NON-POSITIVE — the frame is resized to this square, so a 0 or negative literal builds a
+    // collapsed or inverted frame. Patch the real marker (a non-root vector with `size` removed) to `0`, and
+    // also a negative, so the `> 0` bound (not merely `!== 0`) is what is pinned.
+    const glyphPxZero = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, marker: { ...marker, glyphPx: 0 } } } };
+    ok(validateComponentDef(glyphPxZero as ComponentDef).errors.some((e) => /declares glyphPx 0/.test(e) && /must be > 0/.test(e)),
+      "#1340 a NON-POSITIVE glyphPx (0) is refused BY NAME — the glyph frame is resized to the literal, so a zero builds a collapsed frame; without this arm disabling the `>0` check leaves the suite green");
+    const glyphPxNeg = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, marker: { ...marker, glyphPx: -1 } } } };
+    ok(validateComponentDef(glyphPxNeg as ComponentDef).errors.some((e) => /declares glyphPx -1/.test(e) && /must be > 0/.test(e)),
+      "#1340 a NEGATIVE glyphPx (-1) is refused BY NAME — a negative literal would invert the frame; the bound is `> 0`, not `!== 0`");
+
     // ---- #1344: `empty` is NOT a projected state, but IS carried internally ----
     // NOTE the count moved with #1331: `leading` is no longer a slot ×2 axis (it is a node-visibility
     // boolean, `leading icon`), so the set is status × state, not status × state × leading. See the #1331

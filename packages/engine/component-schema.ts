@@ -430,6 +430,28 @@ export type PartDef = {
    *  in either file fails by name; the Figma import of a padded (negative-origin) artboard is a real-host
    *  fact this offline model cannot verify, recorded in the def's `notes.unverified`. */
   glyphScale?: number;
+  /** For a NON-ROOT `vector`: a LITERAL square px the glyph frame is BUILT at, instead of binding a token
+   *  via `size` (#1340). A def-local literal (the `minWidth`/`glyphScale` precedent), so it mints no
+   *  emitted token name and `token-contract.ts --check` stays put — the point over a token binding here.
+   *
+   *  WHY A LITERAL RATHER THAN A `size` BINDING. `image-placeholder`'s empty-state marker must read as a
+   *  PROPORTION of its large media frame (720px nominal, #1316), not as a stray small icon — a size no icon
+   *  rung reaches (they top out at `icon.size.xl` = 40px) and that no other semantic dimension names near
+   *  it. Minting a token for it would move CONTRACT and hand a brand a knob nobody should re-theme; a
+   *  glyph proportion of a component's own frame is component STRUCTURE, like the aspect lock and the
+   *  nominal width, not a brand value. So the frame is resized to this literal after the SVG import, with
+   *  the drawn grid scaling to fill it (the vector's SCALE constraints), and no variable is bound.
+   *
+   *  This is a FIXED size, held constant across the def's variants — the FLOOR the owner asked for, not a
+   *  size that tracks the frame's flexing extent on resize. True resize-tracking would need a Figma
+   *  scale-constraint / percentage-size projection the engine does not have (the fluid `100%` container is
+   *  skipped for exactly this reason — Figma has no percentage FLOAT primitive), filed as a follow-up.
+   *
+   *  MUTUALLY EXCLUSIVE with `size` (stating the glyph's size twice), and refused on any non-`vector` kind
+   *  and on the anatomy ROOT (a root glyph's size comes from the host that instances it — the same reason
+   *  `size` is refused on a root vector). `> 0`. `test.ts` pins the built size independently of the
+   *  projector, and reverting it to the old rung fails a NAMED assertion. */
+  glyphPx?: number;
   /** A slot that need not be present. `false`/absent means required. */
   optional?: boolean;
   /** VARIANT-GATED PRESENCE (#910): axis → the values at which this part exists. AND-composed across
@@ -3211,6 +3233,22 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is kind 'vector' but binds 'height' — a glyph's artboard is square, so binding one axis alone states a shape the icon set does not draw; use 'size', which binds both`);
     if (p.kind === 'vector' && p.size && n === a.root)
       e.push(`anatomy part '${n}' is kind 'vector', binds 'size' and is the anatomy ROOT — a root glyph's rendered size comes from the host that instances it (a host binds \`size.{size}.icon\` onto its own slot), so binding it here states the same square a third time and the three can disagree with nothing noticing`);
+    // `glyphPx` (#1340) is a def-local LITERAL square px the glyph frame is built at, read only by the
+    // vector branch's GLYPH executor — the same wrong-kind-silently-ignored shape as `glyph`/`glyphScale`
+    // above, refused on every non-vector kind. It is refused on the anatomy ROOT for the same reason a
+    // root `size` binding is (a root glyph's size is the instancing host's), and it is mutually exclusive
+    // with `size`: a part stating its size by both a token binding AND a literal would keep whichever the
+    // projector read last with nothing noticing. `> 0`, or the frame builds at a zero/negative square.
+    if (p.glyphPx !== undefined) {
+      if (p.kind !== 'vector')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'glyphPx' — only a 'vector' part is a glyph frame the executor resizes to a literal, so on any other kind it validates clean, is ignored, and leaves an author believing the part was sized`);
+      else if (n === a.root)
+        e.push(`anatomy part '${n}' is kind 'vector', declares 'glyphPx' and is the anatomy ROOT — a root glyph's rendered size comes from the host that instances it, so a literal here fixes a size the host is meant to give and the two can disagree with nothing noticing`);
+      else if (p.size !== undefined)
+        e.push(`anatomy part '${n}' declares BOTH 'size' and 'glyphPx' — that states the glyph's square twice, once as a token binding and once as a literal, and the projection would keep whichever it read last; a glyph frame states its size ONE way`);
+      else if (!(p.glyphPx > 0))
+        e.push(`anatomy part '${n}' declares glyphPx ${p.glyphPx} — the glyph frame is resized to this square, so it must be > 0; a zero or negative literal builds a collapsed or inverted frame`);
+    }
   }
 
   return e;

@@ -376,6 +376,11 @@ export type FigmaNodePlan = {
    *  `layoutMode` branch, where Figma accepts a minimum width. See `PartDef.minWidth` for why a `select`
    *  gets a min-width and not a bound `width`. */
   minWidth?: number;
+  /** For a `GLYPH`: the literal square px the glyph frame is built at (#1340). Carried ONLY when the def
+   *  sets it, so every existing glyph's plan is byte-identical; the executor resizes the imported frame to
+   *  it after the SVG import (the outline's SCALE constraints scale the drawn grid to fill), instead of
+   *  binding a token via `size`. See `PartDef.glyphPx` for why a literal and not a bound size. */
+  glyphPx?: number;
   children: FigmaNodePlan[];
 };
 
@@ -1416,6 +1421,11 @@ export const figmaAnatomyPlan = (
       // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
       // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
       ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: p.minWidth } : {}),
+      // The literal glyph size (#1340), carried ONLY when a vector sets it so every other glyph's plan is
+      // byte-identical — a def-local literal the executor resizes the imported frame to (`PartDef.glyphPx`),
+      // not a bound token. It replaces the `size` binding for a marker that must read at a proportion of a
+      // large frame, past every icon rung and CONTRACT-free (no token minted).
+      ...(p.kind === 'vector' && p.glyphPx !== undefined ? { glyphPx: p.glyphPx } : {}),
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nests ? { nestTarget: p.nests } : {}),
       // The def's chosen coordinate — the member the instance starts at. Projected for BOTH `nest-fixed`
       // (the def's final choice) and `nest-exposed` (the DEFAULT, from which the consumer drives the
@@ -2537,6 +2547,13 @@ const build=async(n)=>{
     // Figma's MIN/MIN constraint keeps the 24px it was drawn at, so a 16px instance would show the
     // top-left corner of the glyph. This is the one property of the import we override.
     for(const v of drawn)v.constraints={horizontal:'SCALE',vertical:'SCALE'};
+    // THE LITERAL GLYPH SIZE (#1340). A non-root glyph whose def states \`glyphPx\` is not sized by an
+    // instancing host and binds no \`size\` variable, so the frame stays at its 24px import — a stray small
+    // mark in a large frame. Resize it to the literal here, AFTER the artboard read-back above (which sees
+    // the import's own 24px) and BEFORE the bind loop below (this node binds no dimension, so the resize is
+    // never cleared — resize-then-bind, the #500 order the anatomy gate checks). The outline's SCALE
+    // constraints, just set, scale the drawn grid to fill the resized frame.
+    if(n.glyphPx)node.resize(n.glyphPx,n.glyphPx);
   }
   else{node=figma.createFrame();node.clipsContent=n.clipsContent===true;}
   node.name=n.name;
