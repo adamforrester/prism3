@@ -2291,8 +2291,41 @@
  * key `container` → `root` in the def moves its `planStamp` and fails `lint-component-surface.ts` arm A
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
+ *
+ * ── 0.82.0 → 0.83.0: `select` gains a 320 min-width floor + rides its declared responsive fill (#1343a,
+ *    #1345) ─────────────────────────────────────────────────────────────────────────────────────────
+ *
+ * The HELD half of the select cluster (#1343a default width + #1345 responsive auto-layout), on the
+ * #1343 owner decision. `select`'s control gains `minWidth: 320` — a LITERAL px floor, not a token.
+ * Prism 2's select is `root width 320 · HUG` with its inner containers FILLing that width
+ * (`reference/Prism2/component-specs/select.json`); the engine cannot project a child that FILLs
+ * (`sizing: 'fill'` → AUTO, #989/#990), so the floor sits on the visible control — which renders at ≥320
+ * while the hugging column inherits that width, and, because the sizing stays AUTO not FIXED, the field
+ * FLEXES above the floor rather than being pinned (#1345 rides on the floor). A NEW projected property
+ * (`FigmaNodePlan.minWidth`), so the surface moves: ENGINE MINOR. No new schema mechanism touches the
+ * width-refusal — a min-width on the control avoids it entirely (`PartDef.minWidth` is a plain literal, no
+ * `width` binding, no sizing change), so no direction-aware refusal change and no refusal mutation is owed.
+ *
+ * CONTRACT STANDS at 10.0.0. 320 is a projection default in 8px increments, not a semantic value — the
+ * owner decision was explicit that it is NOT a `field.width` token — so no guaranteed token NAME is added,
+ * removed or retyped; `token-contract.ts --check` confirms the guaranteed 577 unchanged and `--accept`
+ * refreshes only the baseline's informational `engineVersion` stamp at contract 10.0.0. `regen --check`
+ * moves only each artifact's own generator stamp (no emitted tree changes — a component geometry literal
+ * is not a token); `lint-component-surface.ts` needs a bump-gated `--accept` because `select`'s `planStamp`
+ * moved (the new `minWidth` field is inside `JSON.stringify(plan)`), and its member count holds at 32.
+ *
+ * MUTATION (docs/34, in `test.ts`, pinning the floor INDEPENDENTLY of the projector — EXPECTED is the
+ * authored 320 / the responsive contract, ACTUAL is read off the emitted plan):
+ *   · #1343a — removing `minWidth` from the control (`{ ...control, minWidth: undefined }`) drops
+ *     `control.minWidth` from the plan, flipping *"#1343a select control carries the 320 min-width floor"*
+ *     to failing BY NAME.
+ *   · #1345 — flipping the control's `layout.sizing.x` from `'fill'` to `'fixed'` turns its
+ *     `primaryAxisSizingMode` AUTO → FIXED, flipping *"#1345 select control FLEXES (not hard-fixed)"* BY
+ *     NAME — the field would then sit at a hard size instead of flexing above the floor.
+ *   `lint-component-surface.ts` arm A ALSO catches the `minWidth` removal (the `planStamp` moves), a
+ *   second, coarser by-name guard on the same property.
  */
-export const ENGINE_VERSION = '0.82.0';
+export const ENGINE_VERSION = '0.83.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

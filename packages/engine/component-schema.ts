@@ -351,6 +351,26 @@ export type PartDef = {
    *  reason: only the frame-creating branch reads it, so on a text/vector/slot it would validate clean
    *  and reach no node. */
   clipsContent?: boolean;
+  /** For `box` parts: a LITERAL minimum horizontal width in px — Figma's auto-layout `minWidth` (#1343a,
+   *  #1345). A COMFORTABLE PROJECTION FLOOR, not a token: 320 is where `select` sits by default so the
+   *  field reads at a usable width in Figma, chosen in 8px increments — and the owner's #1343 decision was
+   *  explicit that this is NOT a semantic value that earns a `field.width` role (the same posture as the
+   *  #1346 glyph-inset literal). So it is a raw number the def states, never a `tokens` key resolved to a
+   *  variable, and it does not touch the guaranteed token-NAME surface: `CONTRACT_VERSION` does not move.
+   *
+   *  WHY A MIN-WIDTH AND NOT A BOUND `width`. Prism 2's select is `root width 320 · HUG` with its inner
+   *  containers `FILL`ing that width (`reference/Prism2/component-specs/select.json`). The engine cannot
+   *  project a child that FILLs — `sizing: 'fill'` maps to AUTO (#989/#990), so a `fill` control HUGS its
+   *  content rather than stretching to a floored parent. A `minWidth` on the visible `control` reproduces
+   *  Prism 2's rendered geometry the one way projection allows: the control renders at ≥320, the hugging
+   *  column inherits that width, and — because the sizing is still AUTO, not FIXED — the field FLEXES above
+   *  the floor rather than being pinned to a hard size (the responsive half, #1345). A bound `width` would
+   *  instead need `sizing.x: 'fixed'` (the row-oriented width rule), pinning the field and losing the flex.
+   *
+   *  Refused on a non-`box` kind, and on a `box` with no `layout`: Figma applies `minWidth` only to an
+   *  auto-layout frame, so a floor on a layout-less box would be silently dropped (or throw on the real
+   *  host) — the silent-loss shape the width and sizing rules exist to catch. */
+  minWidth?: number;
   /** For `box` parts: the name of a VARIANT axis whose values are `W:H` ratio strings, from which the
    *  box's aspect-ratio LOCK is derived per member (#1316). image-placeholder declares `aspectRatio:
    *  'ratio'` and a `ratio` axis of `['1:1', '4:3', '16:9']`; the projector parses the member's own
@@ -3033,6 +3053,14 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // it, so on any other kind it validates clean, is silently ignored, and reaches no node.
     if (p.kind !== 'box' && p.clipsContent !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'clipsContent' — only a 'box' becomes a frame that can crop its overflow; every other kind is a leaf whose content is its own`);
+    // ---- `minWidth`, the BOX kind's auto-layout width FLOOR (#1343a, #1345) ----
+    // Figma applies `minWidth` only to an auto-layout frame, so it is refused on a non-box and on a box
+    // with no `layout`: either way the executor would not carry it onto an auto-layout frame, and the
+    // floor would be silently dropped (or throw on the real host) — the silent-loss shape.
+    if (p.minWidth !== undefined && p.kind !== 'box')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidth' — only a 'box' becomes an auto-layout frame that can carry a minimum width; every other kind is sized by its content or its artboard`);
+    if (p.minWidth !== undefined && p.kind === 'box' && !p.layout)
+      e.push(`anatomy part '${n}' declares 'minWidth' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so a floor on a layout-less box would be silently dropped`);
     // ---- `aspectRatio`, the BOX kind's proportion LOCK (#1316) ----
     // A ratio-locked box binds ONE nominal dimension and lets Figma's aspect lock derive the other. Every
     // rule here is a way the field would validate and then leave a member unlocked or evicted — the
