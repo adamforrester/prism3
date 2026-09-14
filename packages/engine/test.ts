@@ -9464,6 +9464,38 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(disText.ink.fills === figmaVarName(button.tokens['disabled.label']) && disText.icon === figmaVarName(button.tokens['disabled.icon']),
       'anatomy/paint: disabled INK is unconditional — every appearance has ink even when it has no structure');
 
+    // THE DISABLED EDGE TRACKS THE DISABLED INK (#1349), pinned BY NAME independently of the projector.
+    // The paint tests above read `button.tokens['disabled.border']` dynamically, so they follow whatever
+    // the binding is and cannot notice a revert to the old darker `color.disabled.border` role. These
+    // three assertions are the behavior pin (docs/34): on each of the three families the disabled BORDER
+    // role must EQUAL the disabled ICON role (the graphical-object ink) AND must NOT be `color.disabled.border`
+    // (the muted, `min: 0`, fill-matched neutral it used to bind, darker than the ink on an inverse band).
+    // A mutation reverting line ~317 of button.ts to `color.disabled.border` fails the named assertion below,
+    // rather than the border silently going heavy again. `disabled.icon` (not `.text`) is the peer named
+    // because a border is a non-text graphical object, though the two roles resolve identically.
+    for (const def of [button, buttonDestructive, buttonNeutral]) {
+      ok(def.tokens['disabled.border'] === def.tokens['disabled.icon'],
+        `#1349 disabled edge: ${def.id} border role (${def.tokens['disabled.border']}) tracks the disabled icon ink (${def.tokens['disabled.icon']})`);
+      ok(def.tokens['disabled.border'] !== 'color.disabled.border',
+        `#1349 disabled edge: ${def.id} border is rebound off the old darker \`color.disabled.border\` (fill-matched, min:0), not reverted to it`);
+    }
+    // …and the rebound edge clears the SC 1.4.11 3:1 graphical-object bar. The `outline` disabled border is
+    // the only appearance that paints it (STRUCTURAL, no fill) and it sits on the page, which is exactly the
+    // ground `disabled.icon` is gated against — so the role's own measured ratio IS the border-vs-page ratio.
+    // Measured live via resolveAllModes (independent of the button def), across the example brands × every mode
+    // (aurora, harbor — the two shipped as brand-input JSON; nb 3.16 / aurora 3.16 / harbor 3.32 in the report).
+    const borderInkRole = button.tokens['disabled.border'].replace(/^color\./, '');
+    let checkedRatios = 0;
+    for (const id of EXAMPLE_IDS) {
+      for (const M of resolveAllModes(brandTheme(exampleBrands()[id] as BrandInput))) {
+        const role = (M.roles as Record<string, { ratio?: number; min?: number } | undefined>)[borderInkRole];
+        ok(!!role && typeof role.ratio === 'number' && role.ratio >= 3,
+          `#1349 disabled edge: ${id}/${M.mode} rebound border (${borderInkRole}) clears 3:1 as a graphical object (ratio ${role?.ratio})`);
+        checkedRatios++;
+      }
+    }
+    ok(checkedRatios >= EXAMPLE_IDS.length, `#1349 disabled edge: the 3:1 sweep actually ran (measured ${checkedRatios} brand×mode ratios, not an empty set)`);
+
     // Paints resolve against the SAME variable namespace as `bound`, so they must ride
     // `planBoundVars` — anything else silently exempts every paint from the emit cross-check above.
     ok(planBoundVars(skin('filled').root).includes(filledRest.box.fills!), 'anatomy/paint: paints ride planBoundVars — they share the variable namespace, so the emit gate sees them');

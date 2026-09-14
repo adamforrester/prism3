@@ -2396,7 +2396,41 @@
  * `glyphPx`) flips both the projected-plan and the built-size assertions BY NAME; `test-roundtrip` reads the
  * 180px frame back off the built node (host truth) via the new `glyphPx` readback classifier.
  */
-export const ENGINE_VERSION = '0.86.0';
+/**
+ * 0.87.0 — the button family's DISABLED BORDER rebinds to track the disabled ink (#1349, owner-triaged
+ * `engine`+`a11y`, decision-free). A pure component-binding change, so ENGINE MINOR (the emitted paint moves
+ * at one coordinate). Applies to button / button-destructive / button-neutral, which are one `makeButton`
+ * factory sharing a single `disabled.border` line, so all three move together.
+ *
+ * OLD → NEW: `disabled.border` bound `color.disabled.border` — a muted neutral matched to `disabled.fill`
+ * (both `neutralLow()`, gated `min: 0`, no contrast contract), which on a dark/inverse band paints DARKER
+ * than the disabled label/icon it surrounds (nb dark: border `neutral.750` vs ink `neutral.550`). It now
+ * binds `color.disabled.icon`, the disabled ink's graphical-object peer. A border is a non-text graphical
+ * object whose whole a11y bar is SC 1.4.11's 3:1 against adjacent colors — it does not need to be darker
+ * than the ink, and matching the ink gives it a REAL contract where the old role carried an exemption.
+ *
+ * CONTRAST: the disabled border is STRUCTURAL (`anatomy-figma.ts` STRUCTURAL = {fill, border}), so it paints
+ * only on `outline` — no fill, edge on the page — which is exactly the ground `disabled.icon` is gated against
+ * (`background.primary`). So the border inherits that role's measured ratio: nb/aurora 3.16:1, harbor 3.32:1
+ * (reduced, `disabledMin` floor 3), HC modes ≥4.5:1 — clears 3:1 in every mode by construction. The disabled
+ * ink is NOT contrast-exempt here (modes.ts gates both strategies since #290), so there is no exemption to
+ * reconcile: the border now rides a live ≥3 contract rather than the old `min: 0`.
+ *
+ * CONTRACT STANDS at 10.0.0. `color.disabled.icon` and `color.disabled.border` both remain emitted (the latter
+ * still bound by icon-button, text-field, select and the *-control trio), so no guaranteed token NAME is added,
+ * removed or retyped — one component swaps which existing role it references. `token-contract.ts --check`
+ * confirms the guaranteed 577 unchanged; `--accept` refreshes only the informational `engineVersion` stamp.
+ * `lint-component-surface.ts` needs a bump-gated `--accept` (the button families' `outline` disabled coordinate
+ * now paints the `disabled.icon` variable) and `paint-census` moves with it (the census records which variable
+ * each coordinate paints, and this coordinate's variable changed).
+ *
+ * NO NEW REFUSAL ARM — a pure token rebind adds no schema field and no refusal, so only a BEHAVIOR mutation is
+ * owed. BEHAVIOR mutation (docs/34): `test.ts`'s #1349 arm pins, per family, that the disabled BORDER role
+ * EQUALS the disabled ICON role and is NOT `color.disabled.border`, and re-measures the resolved ratio ≥3
+ * across the corpus × every mode via resolveAllModes — so a revert to the old darker binding fails a NAMED
+ * assertion rather than shipping the heavier edge again.
+ */
+export const ENGINE_VERSION = '0.87.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
