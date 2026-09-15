@@ -53,7 +53,8 @@ import { fieldMessage } from './field-message';
 import { textField } from './text-field';
 import { textarea } from './textarea';
 import { checkboxControl } from './checkbox-control';
-import { checkbox } from './checkbox';
+import { checkboxRow } from './checkbox-row';
+import { checkboxGroup } from './checkbox-group';
 import { radioControl } from './radio-control';
 import { radio } from './radio';
 import { switchControl } from './switch-control';
@@ -68,7 +69,7 @@ import { imagePlaceholder } from './image-placeholder';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkbox, radioControl, radio, switchControl, switchDef, select, veil, imagePlaceholder };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radio, switchControl, switchDef, select, veil, imagePlaceholder };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -102,11 +103,16 @@ export const componentDefs: readonly ComponentDef[] = [
   // Row can nest it rather than redraw it. It leads `checkbox` on composition order — `checkbox` nests
   // `checkbox-control`, which nests `focus-ring` — though nothing reads this array's order (see above).
   checkboxControl,
-  // `checkbox` likewise `inherits` the field substrate. It sits after `textarea` rather than beside it
-  // because composition order is the ordering rule and nothing more: both are children of the same
-  // parent, so their relative order carries no claim. Since #1226 step 2 it is the labelled ROW that
-  // nests `checkbox-control` in flow, rather than inlining the painted box.
-  checkbox,
+  // `checkbox-row` (renamed from `checkbox`, #1347) likewise `inherits` the field substrate. It sits after
+  // `textarea` rather than beside it because composition order is the ordering rule and nothing more: both
+  // are children of the same parent, so their relative order carries no claim. Since #1226 step 2 it is the
+  // labelled ROW that nests `checkbox-control` in flow, rather than inlining the painted box.
+  checkboxRow,
+  // `checkbox-group` (#1347) — the set: a `field-label` above a stack of `checkbox-row`s. It follows
+  // `checkbox-row` on composition order because it NESTS the Row (which nests `checkbox-control`, which
+  // nests `focus-ring`), the deepest nest chain in the corpus — though nothing reads this array's order
+  // (see the header). It owns the value array and group validation the Row cannot express.
+  checkboxGroup,
   // `radio-control` is the ATOMIC circle-and-dot (#1348), extracted from `radio` so the labelled Row can
   // nest it rather than redraw it — the #1226/#1330 mechanism a fourth time, built after confirming the
   // radio Row nests it (the composition check). It leads `radio` on composition order — `radio` nests

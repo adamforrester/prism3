@@ -60,6 +60,43 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.90.0: the `controlShape` FORM lever gains two fixed off-ramps — `boxed` (binds `radius.none`, sharp 0px)
+ *   and `hairline` (binds `radius.hairline`, the 1px sentinel #1362) — for the four-way set Boxed · Hairline ·
+ *   Rounded · Pill (#1371, owner-decided 2026-09-15). 0.90.0 and not 0.89.0 because this merged onto post-#1347
+ *   main, which took 0.89.0 — the next free ENGINE above it. Projected-surface move (a pill-able control's
+ *   corner rebinds under the new shapes); no corpus brand sets it, so committed `out/` moves only its version
+ *   stamp. `hairline` implies the opt-in hairline rung (`brandTheme` provisions it); `boxed` needs no coupling.
+ *   Full docblock beside the constant. CONTRACT stands at 10.0.0 (a lever, no guaranteed name moves).
+ *
+ * 0.89.0: the checkbox family adopts Prism 2's naming AND builds the group (#1347, OPTION B, owner-decided
+ *   2026-09-15). 0.89.0 and not 0.88.0 because this rebased onto post-#1423 main, which took 0.88.0 for the
+ *   radio-control ring rebind (see the 0.88.0 entry below) — the next free ENGINE above it. Two
+ *   projected-surface moves:
+ *   (1) RENAME `checkbox` → `checkbox-row`. The labelled Row def keeps its behaviour verbatim; only its
+ *       `id` (and `name` → `Checkbox.Row`) change, so its projected member set is byte-identical (3 size
+ *       members) and the baselines rename the KEY, not the digest. `checkbox-control` is unchanged;
+ *       `radio`/`switch` repoint `inherits: 'checkbox'` → `'checkbox-row'`.
+ *   (2) ADD `checkbox-group` — a `field-label` above a stack of `checkbox-row`s, built from Prism 2's
+ *       specs. It nests the already-collapsed Row (`checkbox-row` projects size-only since #1330), so the
+ *       group does NOT inherit the control's 54-member explosion — the nest chain is four deep
+ *       (`focus-ring` ← `checkbox-control` ← `checkbox-row` ← `checkbox-group`), the corpus's deepest.
+ *       Projects a SIZE-only 3-member set; paints nothing of its own (its ink is the nested children's).
+ *
+ *   ENGINE and NOT CONTRACT, on #1252: the PROJECTED component surface moves (a renamed def, a new def),
+ *   but NO emitted TOKEN NAME is added, removed or retyped — a component `id` is not in the versioned
+ *   token contract (`schema/token-contract.json` is the emitted token-name surface; docs/30). So
+ *   `CONTRACT_VERSION` STANDS at 10.0.0 — `token-contract.ts --check` reports `level: none` (guaranteed set
+ *   unchanged) and `--accept` refreshes only the informational `engineVersion` stamp. The #1347 brief
+ *   called for a MAJOR CONTRACT bump to 11.0.0; that premise is a misread of what the contract covers
+ *   (component prop/id names are explicitly out of it, docs/30) and is CORRECTED here rather than
+ *   fabricated — full note in `docs/00-progress.md`. `regen --check` moves each artifact's own generator
+ *   stamp (0.87.0 → 0.88.0); `lint-emission-version` is green (no emission-VALUE change — the token layer is
+ *   untouched). `lint-component-surface` re-`--accept`ed (the `checkbox` baseline key → `checkbox-row`, plus
+ *   a new `checkbox-group` entry); `lint-paint` census likewise re-`--accept`ed. Several composition-model
+ *   choices Prism 2 does not settle (group-level error visual, inter-row gap, select-all, variable row
+ *   count, the group `size` axis) are HELD and surfaced for owner decision rather than invented — see
+ *   `checkbox-group.ts` and `docs/00-progress.md`.
+ *
  * 0.82.0: checkbox-control inner-glyph calibration (#1346, both items owner-triaged). Two changes:
  *   (1) The check/dash are inset to 0.80 of the control box. QA read them slightly large; before this the
  *       `mark`/`dash` frames bound the FULL box and drew the artwork's own ~71% grid inset, so the check
@@ -2468,7 +2505,7 @@
  * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
  */
 /**
- * 0.89.0 — the `controlShape` FORM lever gains TWO fixed off-ramps (#1371, owner-decided 2026-09-15):
+ * 0.90.0 — the `controlShape` FORM lever gains TWO fixed off-ramps (#1371, owner-decided 2026-09-15):
  * `boxed` (binds `radius.none`, a fixed 0px / sharp corner, independent of the corner-softness dial) and
  * `hairline` (binds `radius.hairline`, the fixed 1px sentinel #1362). The complete four-way set is now
  * Boxed · Hairline · Rounded · Pill. It stays a SEMANTIC model — each value names a relationship to a rung,
@@ -2503,8 +2540,11 @@
  * tree and pins that a brand setting only `controlShape: hairline` still emits `radius.hairline = 1px` while
  * `boxed` provisions nothing — so dropping the OR flips it. Enum widening is gated both ways (a valid
  * off-ramp validates clean; garbage is still rejected).
+ *
+ * 0.90.0 and not 0.89.0 because this merged post-#1347 main, which took 0.89.0 for the checkbox-row rename +
+ * checkbox-group build — the next free ENGINE above it (never lower).
  */
-export const ENGINE_VERSION = '0.89.0';
+export const ENGINE_VERSION = '0.90.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
