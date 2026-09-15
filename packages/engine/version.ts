@@ -2429,8 +2429,35 @@
  * EQUALS the disabled ICON role and is NOT `color.disabled.border`, and re-measures the resolved ratio ≥3
  * across the corpus × every mode via resolveAllModes — so a revert to the old darker binding fails a NAMED
  * assertion rather than shipping the heavier edge again.
+ *
+ * 0.88.0 — `switch-control` is SCALED to Prism 2's toggle proportions (#1425, owner-triaged `engine`+`a11y`,
+ * decision-free calibration). It was ~half Prism 2's scale — a 16px track at aurora's largest switch rung,
+ * a thumb half that, failing to read as a switch and leaning on the row for the whole hit target — because
+ * it BORROWED the square-control box (`control.size.*.height`) for its track and radio's `dot` for its thumb.
+ * The tier now carries the switch's OWN two fields, `track` (its cross-axis edge) and `thumb` (its travelling
+ * mark), a SEPARATE density-windowed ladder from the box: the default `md` is Prism 2's 32px track holding a
+ * 24px thumb (0.75), pill-cornered, 2px-bordered, at a 2:1 width. `switch-control` rebinds its track height to
+ * `.track`, its thumb to `.thumb`, and the glyph follows the (larger) thumb; the `switch` Row rebinds its
+ * nested-height pin to `.track` so the instance is not squashed back to the box height. `width` moved from
+ * `2× height` to `2× track` and `inset` from `(height − dot) / 2` to `(track − thumb) / 2` — both switch-only
+ * fields, so checkbox and radio (which read only `height`/`dot`) are untouched. ENGINE MINOR — emitted
+ * dimensions move, no code contract changes shape.
+ *
+ * THE CONTRACT MOVES A MINOR (see CONTRACT 10.1.0): `track`/`thumb` are additive. The one trap #1425's first
+ * cut hit is that the `inset` re-derivation drops aurora's UNUSED `control.size.lg.inset` from 5→4, which would
+ * have DEMOTED `core.dimension.5` (aurora's only reference to it) — a MAJOR and a hard block at
+ * `lint-materialization-renames`. It is not avoidable by picking switch numbers (the density window ties
+ * compact-`lg` to comfortable-`md`, so 32 at `md` forces compact-`lg` to 32, inset 4, no 5). The fix keeps the
+ * grid's small-primitive floor stable: `buildDims` also feeds the box mark-clearance `(height − dot) / 2` (the
+ * quantity that WAS `inset` before #1425, aurora's 3/4/5), so `core.dimension.5` stays guaranteed exactly as on
+ * `main`. Surface stability, MINOR earned honestly — not a MAJOR papered over.
+ *
+ * BEHAVIOR mutation (docs/34): `test.ts`'s #1425 arms pin, per density, the switch `track` ladder (distinct,
+ * increasing, and TALLER than the box `height` at every rung — the undersize this fixes), `thumb = 0.75 × track`
+ * read off resolved px (so a `SWITCH_THUMB_RATIO` mutation fails by name), `inset = (track − thumb) / 2`, and
+ * `width = 2 × track`; the authored `EXPECTED_CONTROL` table pins comfortable-`md` at Prism 2's 32/24/64/4.
  */
-export const ENGINE_VERSION = '0.87.0';
+export const ENGINE_VERSION = '0.88.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -2829,8 +2856,29 @@ export const ENGINE_VERSION = '0.87.0';
  * counterparts for border's other seven roles, which land INSIDE a container that now exists. The
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
+ *
+ * 10.1.0 — #1425 scales `switch-control` to Prism 2's toggle proportions, ADDING the switch's own two tier
+ * fields to the guaranteed surface: `control.size.{sm,md,lg}.track` (its cross-axis edge, a ladder distinct
+ * from the square box `height`) and `.thumb` (its travelling mark, 0.75× the track, distinct from radio's
+ * `dot`), plus the `core.dimension.{3,18}` primitives the new thumb/inset px promote into every brand's grid
+ * (`core.dimension.30`, from comfortable/spacious `lg` thumbs, joins brand-dependent — aurora never reaches it).
+ * Additions only — a clean MINOR. Checkbox and radio are untouched: they read only `height`/`dot`, whose
+ * values do not move.
+ *
+ * WHY THIS IS NOT A MAJOR — the `core.dimension.5` trap, recorded because the first cut of #1425 hit it. The
+ * switch's `inset` re-derives from `(height − dot) / 2` to `(track − thumb) / 2`, which drops aurora's UNUSED
+ * `control.size.lg.inset` from 5px to 4px — and that leaf was aurora's ONLY reference to `core.dimension.5`, so
+ * the primitive would have DEMOTED out of aurora's grid (a guaranteed-surface removal → MAJOR, and a hard block
+ * at `lint-materialization-renames`, which has no path for a non-rename deletion). It is not avoidable by
+ * choosing switch numbers: the density window makes compact-`lg` the same rung as comfortable-`md`, so pinning
+ * Prism 2's 32px at the default `md` forces compact-`lg` to 32 (inset 4, no 5). The fix is not to churn the
+ * grid's small-primitive floor for an unrelated tier's arithmetic: `buildDims` now also feeds the box
+ * mark-clearance `(height − dot) / 2` — the quantity that WAS `inset` before #1425, aurora's 3/4/5 — so
+ * `core.dimension.5` stays exactly as guaranteed as it was on `main`, sourced by a real geometric value rather
+ * than a phantom. The switch's own clearance is fed beside it. Surface stability kept, MINOR earned honestly.
+ * (#1425)
  */
-export const CONTRACT_VERSION = '10.0.0';
+export const CONTRACT_VERSION = '10.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

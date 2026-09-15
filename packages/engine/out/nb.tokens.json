@@ -2317,6 +2317,17 @@
             }
           }
         },
+        "3": {
+          "$type": "dimension",
+          "$value": "3px",
+          "$description": "3px — dimension primitive",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "px": 3
+            }
+          }
+        },
         "4": {
           "$type": "dimension",
           "$value": "4px",
@@ -2394,6 +2405,17 @@
             }
           }
         },
+        "18": {
+          "$type": "dimension",
+          "$value": "18px",
+          "$description": "18px — dimension primitive",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "px": 18
+            }
+          }
+        },
         "20": {
           "$type": "dimension",
           "$value": "20px",
@@ -2424,6 +2446,17 @@
             "prism3": {
               "generated": true,
               "px": 28
+            }
+          }
+        },
+        "30": {
+          "$type": "dimension",
+          "$value": "30px",
+          "$description": "30px — dimension primitive",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "px": 30
             }
           }
         },
@@ -19262,7 +19295,7 @@
           "height": {
             "$type": "dimension",
             "$value": "{nbds.core.dimension.16}",
-            "$description": "control.size.sm — 16px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: comfortable). A SQUARE control reads this on both axes.",
+            "$description": "control.size.sm — 16px box edge for a SQUARE control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is NOT square and reads `track`/`width` instead (#1425).",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -19274,13 +19307,13 @@
           },
           "width": {
             "$type": "dimension",
-            "$value": "{nbds.core.dimension.32}",
-            "$description": "control.size.sm width — 32px track width for a two-position control, i.e. a switch (2x the 16px height, the field-convergent track ratio). A square control uses `height` on both axes and does not read this.",
+            "$value": "{nbds.core.dimension.48}",
+            "$description": "control.size.sm width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.dimension.32",
-                "px": 32,
+                "aliasOf": "nbds.core.dimension.48",
+                "px": 48,
                 "density": "comfortable"
               }
             }
@@ -19288,7 +19321,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{nbds.core.dimension.8}",
-            "$description": "control.size.sm dot — 8px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height` instead.",
+            "$description": "control.size.sm dot — 8px inner mark for a RADIO's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's travelling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -19300,13 +19333,39 @@
           },
           "inset": {
             "$type": "dimension",
-            "$value": "{nbds.core.dimension.4}",
-            "$description": "control.size.sm inset — 4px gap between the inner mark and the box's boundary ((16px box edge − 8px dot) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
+            "$value": "{nbds.core.dimension.3}",
+            "$description": "control.size.sm inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.dimension.4",
-                "px": 4,
+                "aliasOf": "nbds.core.dimension.3",
+                "px": 3,
+                "density": "comfortable"
+              }
+            }
+          },
+          "track": {
+            "$type": "dimension",
+            "$value": "{nbds.core.dimension.24}",
+            "$description": "control.size.sm track — 24px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a travelling thumb. A checkbox/radio does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.core.dimension.24",
+                "px": 24,
+                "density": "comfortable"
+              }
+            }
+          },
+          "thumb": {
+            "$type": "dimension",
+            "$value": "{nbds.core.dimension.18}",
+            "$description": "control.size.sm thumb — 18px travelling thumb for a switch (0.75 × the 24px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.core.dimension.18",
+                "px": 18,
                 "density": "comfortable"
               }
             }
@@ -19341,7 +19400,7 @@
           "height": {
             "$type": "dimension",
             "$value": "{nbds.core.dimension.20}",
-            "$description": "control.size.md — 20px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: comfortable). A SQUARE control reads this on both axes.",
+            "$description": "control.size.md — 20px box edge for a SQUARE control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is NOT square and reads `track`/`width` instead (#1425).",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -19353,13 +19412,13 @@
           },
           "width": {
             "$type": "dimension",
-            "$value": "{nbds.core.dimension.40}",
-            "$description": "control.size.md width — 40px track width for a two-position control, i.e. a switch (2x the 20px height, the field-convergent track ratio). A square control uses `height` on both axes and does not read this.",
+            "$value": "{nbds.core.dimension.64}",
+            "$description": "control.size.md width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.dimension.40",
-                "px": 40,
+                "aliasOf": "nbds.core.dimension.64",
+                "px": 64,
                 "density": "comfortable"
               }
             }
@@ -19367,7 +19426,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{nbds.core.dimension.10}",
-            "$description": "control.size.md dot — 10px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height` instead.",
+            "$description": "control.size.md dot — 10px inner mark for a RADIO's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's travelling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -19379,13 +19438,39 @@
           },
           "inset": {
             "$type": "dimension",
-            "$value": "{nbds.core.dimension.5}",
-            "$description": "control.size.md inset — 5px gap between the inner mark and the box's boundary ((20px box edge − 10px dot) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
+            "$value": "{nbds.core.dimension.4}",
+            "$description": "control.size.md inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.dimension.5",
-                "px": 5,
+                "aliasOf": "nbds.core.dimension.4",
+                "px": 4,
+                "density": "comfortable"
+              }
+            }
+          },
+          "track": {
+            "$type": "dimension",
+            "$value": "{nbds.core.dimension.32}",
+            "$description": "control.size.md track — 32px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a travelling thumb. A checkbox/radio does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.core.dimension.32",
+                "px": 32,
+                "density": "comfortable"
+              }
+            }
+          },
+          "thumb": {
+            "$type": "dimension",
+            "$value": "{nbds.core.dimension.24}",
+            "$description": "control.size.md thumb — 24px travelling thumb for a switch (0.75 × the 32px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.core.dimension.24",
+                "px": 24,
                 "density": "comfortable"
               }
             }
@@ -19420,7 +19505,7 @@
           "height": {
             "$type": "dimension",
             "$value": "{nbds.core.dimension.24}",
-            "$description": "control.size.lg — 24px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: comfortable). A SQUARE control reads this on both axes.",
+            "$description": "control.size.lg — 24px box edge for a SQUARE control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is NOT square and reads `track`/`width` instead (#1425).",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -19432,13 +19517,13 @@
           },
           "width": {
             "$type": "dimension",
-            "$value": "{nbds.core.dimension.48}",
-            "$description": "control.size.lg width — 48px track width for a two-position control, i.e. a switch (2x the 24px height, the field-convergent track ratio). A square control uses `height` on both axes and does not read this.",
+            "$value": "{nbds.core.dimension.80}",
+            "$description": "control.size.lg width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.dimension.48",
-                "px": 48,
+                "aliasOf": "nbds.core.dimension.80",
+                "px": 80,
                 "density": "comfortable"
               }
             }
@@ -19446,7 +19531,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{nbds.core.dimension.12}",
-            "$description": "control.size.lg dot — 12px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height` instead.",
+            "$description": "control.size.lg dot — 12px inner mark for a RADIO's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's travelling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -19458,13 +19543,39 @@
           },
           "inset": {
             "$type": "dimension",
-            "$value": "{nbds.core.dimension.6}",
-            "$description": "control.size.lg inset — 6px gap between the inner mark and the box's boundary ((24px box edge − 12px dot) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
+            "$value": "{nbds.core.dimension.5}",
+            "$description": "control.size.lg inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.dimension.6",
-                "px": 6,
+                "aliasOf": "nbds.core.dimension.5",
+                "px": 5,
+                "density": "comfortable"
+              }
+            }
+          },
+          "track": {
+            "$type": "dimension",
+            "$value": "{nbds.core.dimension.40}",
+            "$description": "control.size.lg track — 40px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a travelling thumb. A checkbox/radio does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.core.dimension.40",
+                "px": 40,
+                "density": "comfortable"
+              }
+            }
+          },
+          "thumb": {
+            "$type": "dimension",
+            "$value": "{nbds.core.dimension.30}",
+            "$description": "control.size.lg thumb — 30px travelling thumb for a switch (0.75 × the 40px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.core.dimension.30",
+                "px": 30,
                 "density": "comfortable"
               }
             }
@@ -19501,7 +19612,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.87.0",
+      "version": "0.88.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

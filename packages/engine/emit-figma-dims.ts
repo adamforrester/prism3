@@ -248,7 +248,12 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     // `radius` with #1015, and it is the field this list exists for: checkbox's box binds its CORNER to
     // it, so a client file without the variable renders the corner unbound — the DTCG tier carrying the
     // value would not help, because nothing in Figma reads DTCG.
-    for (const field of ['height', 'width', 'dot', 'line-box', 'inset', 'radius']) {
+    // `track` + `thumb` with #1425 — the switch's own track height and travelling thumb. `switch-control`
+    // binds both as variables (the track's `height`, the thumb's `size`), so a client file lacking them
+    // would render the switch unbound; both are WIDTH_HEIGHT dimensions like `height`/`dot`. This list
+    // caught them exactly as it caught `inset`: the exporter gate reported the six new paths as prism3-only
+    // on the first run, which is this authored list's stated purpose working as designed.
+    for (const field of ['height', 'width', 'dot', 'line-box', 'inset', 'radius', 'track', 'thumb']) {
       const leaf = brand.control.size[rung][field];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);

@@ -132,14 +132,16 @@ export const switchDef: ComponentDef = {
     'size.medium.control-box': 'control.size.md.line-box',
 
     // ── THE NESTED CONTROL'S OWN HEIGHT (#1299-style pin). The `control` nest part binds this as its
-    // `height` so the nested instance is PINNED to the track height — 16/20 on nb, 12/16 on aurora — and
-    // does NOT stretch to fill the taller `control-box` line box it is centered within. The control is
-    // NON-SQUARE (a track is 2:1), so the Row pins the HEIGHT only; the width is the control's own
-    // (`control.size.*.width`, 2× the height), carried by its variant. `control.size.*.height` and NOT
-    // `icon.size.*` for the same reason the atom binds it (the control ladder shifts a rung with brand
-    // density where the glyph grid is fixed). The atom binds the identical key on its own root.
-    'size.small.control': 'control.size.sm.height',
-    'size.medium.control': 'control.size.md.height',
+    // `height` so the nested instance is PINNED to the switch TRACK height — 24/32 on nb, 16/24 on aurora
+    // (#1425) — and does NOT stretch to fill the `control-box` line box it is centered within. The pin
+    // agrees with the atom's own intrinsic track height (both read `control.size.*.track`), so it fixes
+    // the height without resizing the control. The control is NON-SQUARE (a track is 2:1), so the Row pins
+    // the HEIGHT only; the width is the control's own (`control.size.*.width`, 2× the track), carried by
+    // its variant. `control.size.*.track` and NOT `control.size.*.height` (the smaller square-control box)
+    // and NOT `icon.size.*` — the switch's track is its own tier field (#1425), density-windowed where the
+    // glyph grid is fixed. The atom binds the identical key on its own root.
+    'size.small.control': 'control.size.sm.track',
+    'size.medium.control': 'control.size.md.track',
 
     // ── THE ROW'S TYPE. `type.body.*` and not `type.label.*` — semantically this is a setting name
     // sitting BESIDE a control (a settings-row label), not a form field's label announcing one above it,
