@@ -149,12 +149,12 @@
       "set": {
         "members": 36,
         "assignments": 54,
-        "sha256": "13df41aa2850ceb9319d522e0e935ad5763b69b1f6c9e0f2daaac47be1f18413"
+        "sha256": "8946e888c0f5d803bd13639baeffe944282d3cb7efba08b08c513988fa99de78"
       },
       "grid": {
         "members": 36,
         "assignments": 54,
-        "sha256": "3395cbe67deaf4e0f1e138a18ee1527d1d4c3f6b07d98951f88fdd932c31e19d"
+        "sha256": "75e60095ba2ce8e7a4a1873c8a76cc72c6883d5d86b61a848bb5d3dc0673d5e2"
       }
     },
     "radio": {
