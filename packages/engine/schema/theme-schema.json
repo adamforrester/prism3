@@ -391,6 +391,11 @@
             "code": { "type": "array", "items": { "type": "string", "enum": ["subtle", "default", "emphasis", "strong", "max"] } }
           }
         },
+        "faces": {
+          "type": "object",
+          "additionalProperties": { "type": "object", "additionalProperties": { "$ref": "#/$defs/facePin" } },
+          "description": "OPTIONAL. Verbatim face pin per (category -> weight-role) slot (#1368): the exact Figma { family, style } to bind, overriding numeric-weight resolution (width cuts like Light Condensed). `family` must equal the category's bound family; invalid slots/families are refused by brandTheme. Omit for none."
+        },
         "links": {
           "type": "array",
           "items": { "type": "string", "enum": ["display", "title", "body", "label", "caption", "eyebrow", "code"] },
@@ -484,6 +489,17 @@
     }
   },
   "$defs": {
+    "facePin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["family", "style"],
+      "description": "Exact Figma { family, style } for a slot (#1368).",
+      "properties": {
+        "family": { "type": "string", "description": "Figma family; must equal the category's bound family." },
+        "style": { "type": "string", "description": "Verbatim Figma style to bind (e.g. 'Light Condensed')." },
+        "postscript": { "type": "string", "description": "OPTIONAL provenance; drives nothing." }
+      }
+    },
     "gradient": {
       "type": "object",
       "additionalProperties": false,

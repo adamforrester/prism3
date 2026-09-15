@@ -2467,7 +2467,39 @@
  * dropped its colour-equality clause (it now pins the constant WEIGHT only, the half of "constant border"
  * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
  */
-export const ENGINE_VERSION = '0.88.0';
+/**
+ * 0.89.0 — a text CATEGORY may PIN a VERBATIM FACE per weight-role slot (#1368, owner-resolved the
+ * three type-model forks 2026-09-15). `typography.faces.<category>.<weightRole> = { family, style }`
+ * names the exact Figma face a slot binds, OVERRIDING the numeric-weight → style-name derivation, so a
+ * WIDTH cut the weight axis can't reach (NB's ITC Garamond Std *Light Condensed*, PostScript
+ * `ITCGaramondStd-LtCond`) binds from a brand input at last. ENGINE MINOR: the emitted Figma STYLE of a
+ * pinned composite changes (the baked `fontStyle`), so what a consumer observes moves.
+ *
+ * THE FORK, AS THE OWNER RESOLVED IT. (i) The pin is `{family, style}`, not fontStyle-only — resolved to
+ * Figma's family + style. (ii) It is a per-(category, weight-role) SLOT pin, not a broad map: the
+ * mechanism generalizes (any slot a category ships can name a face) but is populated one slot at a time;
+ * NB pins display/subtle and title/subtle only, a single Light cut each, so there is NO multi-weight
+ * condensed sub-family here. (iii) The numeric `fontWeight` variable still follows the slot's weight-role
+ * numeric (Light = 300 = NB's subtle), staying truthful — only the STYLE drives the Figma text. `family`
+ * MUST equal the category's bound family: the Text Style binds `fontFamily` to the `font.family.<cat>`
+ * variable and the write lane loads `fontName.family` FROM that variable (`write-plan.ts`
+ * `fontFamilyPrimary`), so a divergent family would be silently dropped at the host — `buildComposites`
+ * refuses it instead.
+ *
+ * CONTRACT STANDS at 10.0.0. A face pin is brandDependent: it adds NO guaranteed token NAME — it changes a
+ * baked style VALUE on existing `type.*` composites and hangs a `$extensions.prism3.facePin` on them; no
+ * path is added, removed or retyped. `token-contract.ts --check` confirms the guaranteed surface unchanged;
+ * `--accept` refreshes only the informational `engineVersion` stamp.
+ *
+ * NEW REFUSAL ARMS (docs/34 — a refusal owes its own by-name mutation test). `buildComposites` throws by
+ * name on: a pin on an unbound category, a weight-role the category does not ship, a malformed/empty
+ * {family, style}, and a family that diverges from the category's bound family. `test.ts`'s #1368 block
+ * pins each throw AND the positive emission (a brand naming a verbatim face EMITS that family+style — the
+ * host-truth write-plan row carries `fontStyle: 'Light Condensed'` + `fontFamilyPrimary: 'ITC Garamond
+ * Std'`, and the numeric weight stays `subtle`), so deleting the mechanism or a guard fails a NAMED
+ * assertion, not just "the suite goes red".
+ */
+export const ENGINE_VERSION = '0.89.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -300,7 +300,12 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
     const weightRole = weightRoleFromAlias(v.fontWeight);
     const numeric = numericWeightForRole(font, weightRole);
     const italic = !!ext.italic || v.fontStyle === 'italic';
-    const styleName = fontStyleName(isMonoCategory(font, familyCategory), numeric, italic);
+    // #1368 — a verbatim face pin bakes its Figma STYLE directly, OVERRIDING the numeric-weight →
+    // style-name derivation (which can only reach weights, never a WIDTH cut like "Light Condensed").
+    // fontFamily still binds the category's `font/family/*` variable, whose value equals the pin's
+    // family (enforced in buildComposites), so the host loads {family: <that>, style: <pinned>}.
+    const facePin = (ext.facePin as { family: string; style: string } | undefined);
+    const styleName = facePin ? facePin.style : fontStyleName(isMonoCategory(font, familyCategory), numeric, italic);
     const fluid: boolean = !!ext.responsive?.fluid;
     const sb = sizeBinding(root, path, v.fontSize, fluid);
     // Line-height: PERCENT = unitless × 100 (fix 3a). Unbound — Figma has no

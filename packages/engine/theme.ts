@@ -802,6 +802,20 @@ export type WeightRole = { role: WeightRoleName; value: number };
  *  routing through a `display|text|mono` role, so this list doubles as the family-binding domain. */
 export const TYPE_GROUPS = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'] as const;
 export type TypeGroup = typeof TYPE_GROUPS[number];
+/** #1368 — a VERBATIM FACE PIN for one (category, weight-role) slot. A brand names the exact Figma
+ *  face — `{ family, style }` — that a slot should bind, OVERRIDING the numeric-weight → style-name
+ *  derivation. This is how a WIDTH cut the numeric weight axis can't reach (e.g. ITC Garamond Std
+ *  *Light Condensed*, PostScript `ITCGaramondStd-LtCond`) binds at all: `subtle` (300) would resolve
+ *  plain "Light", never "Light Condensed".
+ *
+ *  `family` must equal the category's bound family — a pin names a CUT WITHIN the face, not a different
+ *  face — because the emitted Text Style binds `fontFamily` to the `font.family.<category>` variable and
+ *  the write lane resolves the loaded `fontName.family` FROM that variable's value (`write-plan.ts`
+ *  `fontFamilyPrimary`). A pin whose family diverged would be silently ignored at the host. Only the
+ *  STYLE changes. The numeric `fontWeight` variable still follows the slot's weight-role numeric (a Light
+ *  cut is still weight 300), so it stays truthful. `postscript` is provenance only — it drives nothing. */
+export type FacePin = { family: string; style: string; postscript?: string };
+
 // A semantic composite: a (group, variant) bundling family + size + weight role +
 // line-height + tracking. Two composites may share a size primitive (e.g. title.xs
 // and body.lg both at 18px) — they differ on family/line-height/weight/intent;
@@ -827,6 +841,10 @@ export type TypeComposite = {
                                                    // (`strong` + `strong-italic`), NOT a weight role; emits
                                                    // `fontStyle: 'italic'` on the composite $value (off-core-DTCG,
                                                    // the shared Token-Press contract), omitted when normal.
+  // #1368 — a verbatim Figma face pinned for THIS slot (see `FacePin`). Present only on the composites
+  // whose (group, weightRole) the brand pinned via `typography.faces`; absent ⇒ the fontStyle is derived
+  // from the weight-role numeric as before. Carries the whole pin so the emitter needs no re-lookup.
+  facePin?: FacePin;
 };
 export type Typography = {
   families: FontFamilyBinding[];
@@ -1027,6 +1045,20 @@ export type TypographyInput = {
    *  for a black hero). Roles use the canonical weight-role names
    *  (subtle/default/emphasis/strong/max, lightest→heaviest). */
   weights?: Partial<Record<TypeGroup, WeightRoleName[]>>;
+  /** Per-(category, weight-role) VERBATIM FACE PIN (#1368). A slot may name the exact Figma face —
+   *  `{ family, style }` — it should bind, OVERRIDING the numeric-weight → style-name derivation for
+   *  that slot only. This is the WIDTH-cut escape hatch: `subtle` (300) otherwise resolves plain
+   *  "Light", never NB's *Light Condensed* (`ITCGaramondStd-LtCond`). The mechanism is general (any
+   *  slot the category ships can name a face) but is populated a slot at a time — NB pins display/subtle
+   *  and title/subtle only.
+   *
+   *  Constraints (all enforced in `buildComposites`, each with its own by-name refusal): the category
+   *  must be one the brand binds a family for; the weight-role must be one that category actually ships
+   *  (via `weights`); and `family` must equal the category's bound family — a pin names a CUT within the
+   *  face, not a different family (the emitted Text Style binds `fontFamily` to the category's variable,
+   *  so a divergent family would be dropped at the host). Only the STYLE changes; the numeric weight the
+   *  slot binds is untouched and stays truthful. Omit for none (byte-identical). */
+  faces?: Partial<Record<TypeGroup, Partial<Record<WeightRoleName, FacePin>>>>;
   /** Which roles get an underlined `.link` variant for every size×weight. Default
    *  `['body','caption']`. Underline is baked; the link colour stays `text.link.*`. */
   links?: TypeGroup[];
@@ -1242,6 +1274,26 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
   const weightsMap = { ...TYPE_WEIGHTS_DEFAULT, ...(t.weights ?? {}) };
   const linkGroups = new Set(t.links ?? TYPE_LINK_DEFAULT);
   const italicGroups = new Set(t.italics ?? []);   // default none — italics are opt-in per role
+  // #1368 — verbatim face pins, validated once here so a bad pin fails at build with a named message
+  // rather than emitting a Text Style the host silently drops. Each throw is a refusal with its own
+  // by-name mutation test (docs/34). `familyPrimary` is `stack[0]` — the value the `font.family.<cat>`
+  // variable carries and the host loads as `fontName.family`, so a pin's family must equal it.
+  const facePins: Partial<Record<TypeGroup, Partial<Record<WeightRoleName, FacePin>>>> = t.faces ?? {};
+  for (const [g, roles] of Object.entries(facePins)) {
+    if (!boundGroups.has(g as TypeGroup))
+      throw new Error(`typography.faces.${g}: '${g}' is not a category this brand binds a face for (${[...boundGroups].join('/')}) — a face pin names a CUT within a bound category, it can never add one.`);
+    const familyPrimary = families.find((f) => f.group === g)?.stack[0];
+    for (const [role, pin] of Object.entries(roles ?? {})) {
+      if (!WEIGHT_ROLE_ORDER.includes(role as WeightRoleName))
+        throw new Error(`typography.faces.${g}.${role}: '${role}' is not a weight role (${WEIGHT_ROLE_ORDER.join('/')}).`);
+      if (!weightsMap[g as TypeGroup].includes(role as WeightRoleName))
+        throw new Error(`typography.faces.${g}.${role}: this category does not ship the '${role}' weight role (it ships ${weightsMap[g as TypeGroup].join('/')}) — pin a slot the category has, or add the role to typography.weights.${g}.`);
+      if (!pin || typeof pin.family !== 'string' || typeof pin.style !== 'string' || !pin.family.trim() || !pin.style.trim())
+        throw new Error(`typography.faces.${g}.${role}: a face pin needs a non-empty { family, style } — the exact Figma family and style to bind (e.g. { family: 'ITC Garamond Std', style: 'Light Condensed' }).`);
+      if (pin.family !== familyPrimary)
+        throw new Error(`typography.faces.${g}.${role}: family '${pin.family}' must match the category's bound family '${familyPrimary}' — a pin names a WIDTH/STYLE cut WITHIN the face, not a different family. The Text Style binds fontFamily to the category's variable, so a divergent family is dropped at the host.`);
+    }
+  }
   const out: TypeComposite[] = [];
   // One (group, size) fans out to every weight the role ships, and — orthogonally —
   // an italic modifier and/or an underlined link modifier of each. The modifiers are
@@ -1258,8 +1310,10 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
       // `-subtle`/`on-fill` convention.
       const weightSeg = `${weightRole}${italic ? '-italic' : ''}${link ? '-link' : ''}`;
       const segs = [group, variant, weightSeg].filter(Boolean);
+      const facePin = facePins[group]?.[weightRole];   // #1368 — verbatim style for this slot, if pinned
       out.push({
         group, variant, weightRole, link, italic, path: segs.join('.'), sizePx, sizeMinPx,
+        ...(facePin ? { facePin } : {}),
         // The derived rung is size-sensitive; the per-group nudge shifts that curve
         // rather than replacing it, so `title` keeps tightening as it grows.
         lineHeight: shiftRung(LINE_HEIGHT_KEYS, lineHeightFor(group, sizePx), leadShift[group] ?? 0),
