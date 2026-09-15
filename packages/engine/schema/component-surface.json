@@ -45,11 +45,15 @@
     "textarea": null,
     "checkbox-control": {
       "members": 54,
-      "sha256": "6e7d71dfc933cb770029e87245c29a4db4174656c9ce362c94fb60be90314000"
+      "sha256": "9aac7591932de37db065a04616393cd984af90ccf3a482211ea31f9c62df456d"
     },
-    "checkbox": {
+    "checkbox-row": {
       "members": 3,
-      "sha256": "8289636c8171a964798f4f314b0713427ffdf45076e8f13c05d825a073c6c330"
+      "sha256": "a0e193f1183fe5f69043db353257a70f7b07aeb7f6a397eb38207f779f70ac84"
+    },
+    "checkbox-group": {
+      "members": 3,
+      "sha256": "2be437e5bcbda520b5fc7b24de6d8352d14f142cc7ab1527ba42c7e8e77960ec"
     },
     "radio-control": {
       "members": 36,

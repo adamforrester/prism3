@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radioControl, radio, switchControl, switchDef, select } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioControl, radio, switchControl, switchDef, select } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -1350,7 +1350,7 @@ for (const b of brands) {
     // so both read the varying family and both belong here, exactly as checkbox + checkbox-control do.
     // #1348 split `radio` the same way: `radio-control` (the circle/dot, binding control+dot) and the
     // `radio` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's square).
-    const CONTROL_DEFS = ['checkbox-control', 'checkbox', 'radio-control', 'radio', 'switch-control', 'switch'];
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio', 'switch-control', 'switch'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -9192,7 +9192,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       { def: button, part: 'label', axes: { size: 2 } },
       { def: buttonDestructive, part: 'label', axes: { size: 2 } },
       { def: buttonNeutral, part: 'label', axes: { size: 2 } },
-      { def: checkbox, part: 'label', axes: { size: 3 } },
+      { def: checkboxRow, part: 'label', axes: { size: 3 } },
       { def: radio, part: 'label', axes: { size: 3 } },
       // TWO, and not a collapse: `switch` declares `size: [small, medium]` only, on its brief's own
       // words ("switches rarely warrant a large"). Two values, two styles — full discrimination over
@@ -11580,8 +11580,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // REPRESENTATION, not a count: checkbox — the one nest-exposed def today — must be IN the derived
         // set. Pins the guarantee the old hard-coded gate gave (checkbox IS covered) without re-hardcoding
         // it, so the day another def joins, coverage widens instead of this line going stale.
-        ok(nestExposedDefs.some((d) => d.id === 'checkbox'),
-          `#1392 the derived nest-exposed set REPRESENTS checkbox (got [${nestExposedDefs.map((d) => d.id).join(', ')}])`);
+        ok(nestExposedDefs.some((d) => d.id === 'checkbox-row'),
+          `#1392 the derived nest-exposed set REPRESENTS checkbox-row (got [${nestExposedDefs.map((d) => d.id).join(', ')}])`);
 
         // docs/34 represented-not-counted SELF-CHECK: prove the derivation keys on the nest-exposed
         // RELATION in the def data, so a SECOND def adopting it (radio/switch, slated) is auto-covered — and
@@ -11589,14 +11589,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // `nest-exposed` in, `nest-fixed` out. Fabricated defs, NOT in the registry, so this measures the
         // predicate rather than re-reading checkbox.
         const synth = (kind: 'nest-fixed' | 'nest-exposed'): ComponentDef => ({
-          ...checkbox,
+          ...checkboxRow,
           id: `synthetic-${kind}`,
           anatomy: {
-            ...checkbox.anatomy,
+            ...checkboxRow.anatomy,
             parts: {
-              ...checkbox.anatomy.parts,
+              ...checkboxRow.anatomy.parts,
               control: {
-                ...checkbox.anatomy.parts.control,
+                ...checkboxRow.anatomy.parts.control,
                 nesting: kind === 'nest-exposed'
                   ? { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest' }, expose: ['selection', 'state'], follow: ['size'] }
                   : { kind: 'nest-fixed', variant: { selection: 'unchecked', state: 'rest' }, follow: ['size'] },
@@ -11607,7 +11607,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         ok(nestExposedPartsOf(synth('nest-exposed')).includes('control'),
           '#1392 the derivation INCLUDES a def whose part declares nest-exposed — a second such def (radio/switch slated) is covered with no gate edit (represented, not counted)');
         ok(nestExposedPartsOf(synth('nest-fixed')).length === 0,
-          '#1392 the derivation EXCLUDES the same def when its part is nest-fixed — it keys on the RELATION, not the def id, so it cannot silently collapse to [checkbox]');
+          '#1392 the derivation EXCLUDES the same def when its part is nest-fixed — it keys on the RELATION, not the def id, so it cannot silently collapse to [checkbox-row]');
 
         // A tiny walker over a plan's node tree, for the offline half of the reachability floor below.
         type PlanNode = AnatomyPlan['root'];
@@ -12569,7 +12569,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `tone` rather than an invented name, because axis NAMES are closed (VARIANT_AXES) and a made-up one
       // fails on that rule instead — which would leave this line green on somebody else's error.
       ibBroke('gating on an axis the def declares but does not PROJECT fails', /gates presence on 'tone', which figmaProperties\.variantAxes does not project/,
-        { ...checkbox, variants: { ...checkbox.variants, tone: ['neutral', 'danger'] }, anatomy: { ...checkbox.anatomy!, parts: { ...checkbox.anatomy!.parts, mark: { ...checkbox.anatomy!.parts.mark, presentWhen: { tone: ['danger'] } } } } } as ComponentDef);
+        { ...checkboxRow, variants: { ...checkboxRow.variants, tone: ['neutral', 'danger'] }, anatomy: { ...checkboxRow.anatomy!, parts: { ...checkboxRow.anatomy!.parts, mark: { ...checkboxRow.anatomy!.parts.mark, presentWhen: { tone: ['danger'] } } } } } as ComponentDef);
       ibBroke('an empty value list fails — satisfied by nothing, so absent everywhere', /gates presence on 'selection' with no values/, cbPart('mark', { presentWhen: { selection: [] } }));
       ibBroke('an undeclared VALUE fails — the coordinate it names does not exist', /gates presence on selection='mixed'/, cbPart('mark', { presentWhen: { selection: ['mixed'] } }));
       // A gate naming every value is a no-op wearing a condition's clothes: it reads as conditional to
@@ -12683,8 +12683,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // pre-existing "binds both 'size' and 'height'" rule as well, and an assertion that passes on either
       // of two errors is not evidence about the one it names.
       ibBroke('a vector binding `height` fails on EITHER axis alone — a glyph artboard is square', /is kind 'vector' but binds 'height'/, cbPart('mark', { size: undefined, height: 'size.{size}.control' }));
-      ok(validateComponentDef(checkbox, nbTree, nbT.root).errors.length === 0,
-        `nesting gate: and the relaxation is real — a NON-root vector binding 'size' validates clean, which is the whole of what #910 changed here (got [${validateComponentDef(checkbox, nbTree, nbT.root).errors.join('; ')}])`);
+      ok(validateComponentDef(checkboxRow, nbTree, nbT.root).errors.length === 0,
+        `nesting gate: and the relaxation is real — a NON-root vector binding 'size' validates clean, which is the whole of what #910 changed here (got [${validateComponentDef(checkboxRow, nbTree, nbT.root).errors.join('; ')}])`);
     }
 
     // ---- can the spike actually RUN? (#342) ---------------------------------------------------
@@ -16206,10 +16206,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // THE OVERRIDE EXISTS AND WORKS, exercised on a synthesised part rather than waiting for `textarea`'s
   // anatomy. An opt-out that ships after the default is an opt-out nobody could have used, so it has to
   // be exercised in the change that introduces the default.
-  const parts = checkbox.anatomy!.parts;
+  const parts = checkboxRow.anatomy!.parts;
   const withPart = (name: string, patch: Record<string, unknown>): ComponentDef => ({
-    ...checkbox,
-    anatomy: { ...checkbox.anatomy!, parts: { ...parts, [name]: { ...parts[name], ...patch } } },
+    ...checkboxRow,
+    anatomy: { ...checkboxRow.anatomy!, parts: { ...parts, [name]: { ...parts[name], ...patch } } },
   } as ComponentDef);
 
   let sawTop = 0, sawCenter = 0;
@@ -16308,7 +16308,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // halves are needed: without this, deleting the box and its wrapper leaves the row-not-centred gate green
 // while the control silently returns to cap height.
 {
-  const selection = componentDefs.filter((d) => ['checkbox', 'radio', 'switch'].includes(d.id));
+  const selection = componentDefs.filter((d) => ['checkbox-row', 'radio', 'switch'].includes(d.id));
   ok(selection.length === 3, `#1201: the three selection controls are present to check (got ${selection.map((d) => d.id).join(', ')})`);
   for (const def of selection) {
     const ps = def.anatomy!.parts;
@@ -16356,6 +16356,42 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(pxOf(nbCtl[rung]['line-box']) > pxOf(nbCtl[rung].height),
       `#1201 nb: control.size.${rung}.line-box (${pxOf(nbCtl[rung]['line-box'])}px) is taller than the control (${pxOf(nbCtl[rung].height)}px), so centring within it is a real first-line inset`);
   }
+}
+
+// ---- #1347: THE CHECKBOX GROUP composes via the ALREADY-COLLAPSED Row, not the atom ----------------
+//
+// #1347 renamed `checkbox` → `checkbox-row` and built `checkbox-group` as a `field-label` above a stack
+// of `checkbox-row`s. The load-bearing property the brief named is that the group nests the ROW (size-only
+// since #1330), never `checkbox-control` (the 54-member atom) directly, and does not re-expose the rows'
+// selection into its OWN matrix — so it inherits the Row's collapse rather than the atom's explosion. Each
+// expected value is derived independently of the projector: the nest targets are read off the anatomy, the
+// member count is a straight multiply of the declared `size` cardinality, and the four-deep chain is walked
+// by `nests`. A mutation that repoints a row nest to the atom, flips it to nest-exposed, or grows the group
+// a new axis fails the NAMED assertion here rather than agreeing with it.
+{
+  const g = componentDefs.find((d) => d.id === 'checkbox-group');
+  ok(!!g, '#1347: checkbox-group is registered in componentDefs');
+  const parts = g!.anatomy!.parts;
+  const rowNests = Object.entries(parts).filter(([, p]) => p.kind === 'nest' && p.nests === 'checkbox-row');
+  ok(rowNests.length >= 2, `#1347: the group nests MULTIPLE checkbox-row instances — a stack (got ${rowNests.length})`);
+  ok(rowNests.every(([, p]) => p.nesting?.kind === 'nest-fixed'),
+    '#1347: every row nest is nest-FIXED — the group does NOT re-expose the rows\' selection as its own properties, which would re-enumerate the matrix the Row collapsed');
+  ok(!Object.values(parts).some((p) => p.kind === 'nest' && p.nests === 'checkbox-control'),
+    '#1347: the group nests checkbox-row, NEVER checkbox-control directly — it composes the collapsed Row so it does not inherit the 54-member atom set');
+  ok(Object.values(parts).filter((p) => p.kind === 'nest' && p.nests === 'field-label').length === 1,
+    '#1347: the group nests exactly one field-label (its heading)');
+  // MEMBER COUNT = product of the declared variant-axis cardinalities (size only), computed here rather
+  // than read off the projector, so a re-exposed child axis or a new group axis moves ACTUAL away from it.
+  const expected = g!.figmaProperties!.variantAxes.reduce((n, a) => n * ((g!.variants as Record<string, string[] | undefined>)[a]?.length ?? 1), 1);
+  const actual = figmaAnatomySet(g!, { swapTarget: 'FPO-default-icon' }).length;
+  ok(expected === 3 && actual === expected,
+    `#1347: the group projects a size-only ${expected}-member set (the Row's collapse inherited, not the atom's explosion) — got ${actual}`);
+  // The nest chain is FOUR deep — group → checkbox-row → checkbox-control → focus-ring — walked by `nests`.
+  const byId = (id: string) => componentDefs.find((d) => d.id === id)!;
+  const nestsOf = (d: ComponentDef): string[] =>
+    Object.values(d.anatomy?.parts ?? {}).filter((p) => p.kind === 'nest' || p.kind === 'absolute').map((p) => p.nests ?? '').filter(Boolean);
+  ok(nestsOf(byId('checkbox-row')).includes('checkbox-control'), '#1347: checkbox-row nests checkbox-control (chain link 2 of the four-deep nest)');
+  ok(nestsOf(byId('checkbox-control')).includes('focus-ring'), '#1347: checkbox-control nests focus-ring (chain link 1) — the group→row→control→ring chain is the corpus\'s deepest');
 }
 
 // ---- #1354: THE SWITCH DECOMPOSITION — four invariants, each pinned independently of the producer ----

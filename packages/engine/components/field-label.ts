@@ -378,7 +378,7 @@ export const fieldLabel: ComponentDef = {
     primaryPurpose: 'Name a form field visibly and programmatically.',
     whenToUse: 'Above every field control — the accessible name for the input.',
     avoidWhen: 'As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.',
-    commonPartners: ['text-field', 'number-field', 'select', 'checkbox', 'field-message'],
+    commonPartners: ['text-field', 'number-field', 'select', 'checkbox-row', 'checkbox-group', 'field-message'],
     triggerKeywords: ['label', 'field label', 'form label', 'required indicator', 'optional field'],
     generationPriority: 3,
   },

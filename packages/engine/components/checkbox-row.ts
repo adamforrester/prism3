@@ -6,17 +6,21 @@
  * The brief's own framing: *"Checkbox looks atomic and isn't."* The same control appears at three
  * granularities — the bare box, the labelled row, the group — and the brief's headline job is deciding
  * how many components that becomes. Its answer is **two public components plus an exposed atomic
- * primitive**: `Checkbox` (the labelled row), `CheckboxGroup` (the set, which owns the value array and
- * ALL group validation), and `Checkbox.Control` (the nestable box).
+ * primitive**, and #1347 (OPTION B, owner-decided 2026-09-15) adopts Prism 2's names for all three:
+ * `checkbox-row` (this def — the labelled row, renamed from `checkbox`), `checkbox-group` (the set, which
+ * owns the value array and ALL group validation, built in #1347), and `checkbox-control` (the nestable
+ * box). The rename is a component-surface move (ENGINE), NOT a token-contract break: the versioned
+ * contract is the emitted token-name surface, and no component id lives in it (docs/30, #1252).
  *
  * ── WHAT THIS DEF IS, AND THE TWO SURFACES IT IS NOT ────────────────────────────────────────────
  *
  * **This def is the labelled ROW only** — the ~90% case. `Checkbox.Control` is now its OWN def
- * (`checkbox-control`, #1226 step 2), which this Row NESTS in flow rather than inlining; `CheckboxGroup`
- * is still separate and unbuilt (`#901`). That the group is not folded in is worth stating rather than
- * leaving to be inferred from an absence: a reader who assumes it is here will look for `orientation`
- * and `value: string[]` in `props` and conclude they were forgotten. They are in `composition` and in
- * `notes.unverified`, filed as #901 rather than deferred in prose.
+ * (`checkbox-control`, #1226 step 2), which this Row NESTS in flow rather than inlining; `checkbox-group`
+ * is a separate def, built in #1347 — it NESTS this Row (a `field-label` above a stack of these). That
+ * the group is not folded in is worth stating rather than leaving to be inferred from an absence: a
+ * reader who assumes it is here will look for `orientation` and `value: string[]` in `props` and conclude
+ * they were forgotten. They belong to `checkbox-group`, which owns the value array and group validation,
+ * and this Row deliberately carries neither.
  *
  * So this is the first def where a brief's decomposition does NOT map one-to-one onto engine defs, and
  * that is the calibration: the brief decides a component's public surface, and a `ComponentDef`
@@ -97,10 +101,10 @@
  */
 import { ComponentDef } from '../component-schema';
 
-export const checkbox: ComponentDef = {
-  id: 'checkbox',
-  name: 'Checkbox',
-  aliases: ['check', 'tickbox', 'checkbox-field', 'checkbox-list', 'choice-list', 'multiselect'],
+export const checkboxRow: ComponentDef = {
+  id: 'checkbox-row',
+  name: 'Checkbox.Row',
+  aliases: ['checkbox', 'check', 'tickbox', 'checkbox-field', 'checkbox-list', 'choice-list', 'multiselect'],
   category: 'form',
   status: 'draft',
   inherits: 'text-field',
@@ -375,7 +379,7 @@ export const checkbox: ComponentDef = {
     primaryPurpose: 'Capture an independent binary choice that is staged into a form and submitted, with an associated label that doubles as the hit target and an optional indeterminate state for select-all hierarchy.',
     whenToUse: 'A single opt-in (consent, "remember me", "include X"), or any-number-from-a-set selection where the change applies on save rather than instantly. The indeterminate state when a parent row summarizes a partially-selected set of children.',
     avoidWhen: 'The change takes effect the instant it is toggled (Switch — the boundary is staged versus immediate, and only Checkbox has indeterminate), the options are mutually exclusive (Radio — any-number versus exactly-one; a two-option exclusive choice is Radio, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (ToggleButton with aria-pressed), or the set runs past roughly 7-10 options (a filtering multi-select Combobox or Listbox).',
-    commonPartners: ['field-label', 'field-message', 'focus-ring', 'icon', 'button', 'form'],
+    commonPartners: ['checkbox-control', 'checkbox-group', 'field-label', 'field-message', 'focus-ring', 'icon', 'button', 'form'],
     triggerKeywords: ['checkbox', 'check box', 'tickbox', 'check', 'choice list', 'multiselect', 'select all', 'consent', 'terms and conditions', 'opt in'],
     generationPriority: 2,
   },
@@ -407,7 +411,7 @@ export const checkbox: ComponentDef = {
       'The unchecked box has no `pressed` binding. `color.field.border.*` emits `rest` and `hover` only, so a pressed unchecked box falls through to its rest border. Reaching into `color.interactive.neutral.border.pressed` for that one coordinate would put two families on one ladder, which is the inconsistency `lint-paint.ts` arm 1 exists to see in its axis-led form. The checked and indeterminate coordinates DO paint pressed, so the gap is asymmetric — worth knowing before anyone reads the pressed row as covered.',
       '`read-only` is declared and binds nothing (see `states`). The brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to bind; a consumer choosing `aria-readonly` plus a prevented toggle has no token telling them what it should look like.',
       'The whole-row hit target — at least 24x24 (SC 2.5.8), 44 (Apple) / 48 (Material) on touch — is STILL not expressed, and the anatomy block landing is what makes that precise rather than resolving it. The row hugs its content on both axes, so its height is the taller of the square and the label\'s line box; `size.*.min-height` is a floor that `PartDef` has no field to state (it carries `height`, which is fixed, and binding a floor there would clip a consent label that wraps to two lines — the common case). So the keys stay bound for the code projection and the Figma row carries no floor at all. Measured on aurora at `small`: a 12px square beside `body.sm` at 14px on `line-height-role.normal` (1.5), so the row hugs to 21px — short of 24, and the square is not what closes the gap. Named in `anatomy.codeOnly` as well, where the projection can see it.',
-      '`Checkbox.Control` IS NOW A SEPARATE COMPONENT (`checkbox-control`, #1226 step 2) — the atom this Row nests. `CheckboxGroup` is still deferred: it owns real contract the brief specifies (§2) — the value array, group-level required/validation, `orientation` — and none of it is expressible from here. Filed as #901 rather than in prose, and it is a three-def decision, since radio refines this decomposition with the group made mandatory and switch with no group at all.',
+      '`Checkbox.Control` IS NOW A SEPARATE COMPONENT (`checkbox-control`, #1226 step 2) — the atom this Row nests. `checkbox-group` IS NOW BUILT (#1347) — it nests this Row and owns the contract the brief specifies (§2): the value array, group-level required/validation, `orientation` — none of which is expressible from this Row, which is why the group is its own def rather than folded in. It is a three-def family decision, since radio refines this decomposition with the group made mandatory and switch with no group at all.',
       'The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed entirely under prefers-reduced-motion) has no expression in the def schema at all — there is no motion field — and the engine emits `motion.duration-ms.*` that nothing here can point at.',
     ],
   },
