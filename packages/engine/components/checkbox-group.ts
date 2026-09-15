@@ -117,8 +117,14 @@ export const checkboxGroup: ComponentDef = {
     'size.medium.gap': 'size.md.gap',
     'size.large.gap': 'size.lg.gap',
     // ── THE GROUP'S BLOCK PADDING — Prism 2's container `padding {top: 8, bottom: 8}` exactly (`space.100`
-    // = 8px on nb). The inline sides are 0 (the rows FILL the group's width), so only block padding binds.
+    // = 8px on nb).
     'pad-y': 'space.100',
+    // ── THE INLINE PADDING IS ZERO — Prism 2's container `padding {start: 0, end: 0}`, so the rows FILL the
+    // group's full width. `PaddingDef.inlineLabel` is REQUIRED, so this binds `space.0` (0px, emitted in
+    // every brand tier) EXPLICITLY rather than reusing `pad-y`: the projector sets paddingLeft/Right from
+    // `inlineLabel` for a slotless container (`anatomy-figma.ts`), so binding `pad-y` here would ship an
+    // 8px inline inset that contradicts both Prism 2 and the rows-fill-width intent. A literal-zero slot.
+    'pad-x': 'space.0',
   },
 
   // ── ANATOMY — a column: the nested FieldLabel above a stack of nested Checkbox rows ─────────────────
@@ -132,13 +138,14 @@ export const checkboxGroup: ComponentDef = {
     parts: {
       // THE GROUP CONTAINER and the a11y target (role="group"). Structure only — no `paintSlots`; it keys
       // no fill or border and draws nothing. Column, filling its width so the rows span it; hugs its
-      // height. `pad-y` is Prism 2's 8px block padding; the inline sides fall back to 0.
+      // height. `pad-y` is Prism 2's 8px block padding; `pad-x` is `space.0` (0px), so the inline sides are
+      // truly zero and the rows fill the group's full width — Prism 2's `{start: 0, end: 0}`.
       container: {
         kind: 'box',
         role: 'target',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'size.{size}.gap',
-        padding: { block: 'pad-y', inlineLabel: 'pad-y' },
+        padding: { block: 'pad-y', inlineLabel: 'pad-x' },
         children: ['label', 'row1', 'row2', 'row3'],
       },
       // THE NESTED GROUP LABEL (nest-fixed, FOLLOWING size). An in-flow instance of `field-label`,

@@ -9,7 +9,11 @@
 
 ## (2026-09-15) — checkbox adopts Prism 2's naming AND builds the group (#1347, OPTION B)
 
-**STATUS: PR open, DO NOT merge (orchestrator verifies + merges). Post-turn: `need_input` — several composition-model choices Prism 2 does not settle are HELD for the owner (below).** **Version: ENGINE 0.87.0 → 0.88.0. CONTRACT STAYS 10.0.0 — NOT the MAJOR bump the lane brief specified (see "Versioning correction" — this is the load-bearing call).**
+**STATUS: PR #1422 open, DO NOT merge (orchestrator verifies + merges). Post-turn: `review_ready` after the send-back fixes below; the composition-model forks remain HELD for the owner.** **Version: ENGINE 0.87.0 → 0.88.0. CONTRACT STAYS 10.0.0 — NOT the MAJOR bump the lane brief specified (see "Versioning correction"). The orchestrator INDEPENDENTLY CONFIRMED this: `checkbox` is 0 occurrences in `schema/token-contract.json`, the diff is stamp-only, so ENGINE-only is correct and stands.**
+
+**SEND-BACK FIXES (orchestrator review, 2026-09-15 — both technical, applied to the same PR):**
+- **A. Padding fidelity.** The group container bound `padding.inlineLabel: 'pad-y'` (= `space.100` = 8px), which the projector applies as paddingLeft/Right for a slotless container (`anatomy-figma.ts`) — an 8px inline inset contradicting Prism 2's `{start: 0, end: 0}` AND this def's own comments. FIX: added a `pad-x → space.0` slot and bound `inlineLabel: 'pad-x'`, so the inline sides are truly 0 and the rows fill the group's width. The change moves only the two projection baselines (`component-surface.json` + `paint-census.json`, re-`--accept`ed at 0.88.0); `regen --check` stays byte-identical (a component-padding binding is not emitted to `out/`).
+- **B. Gate scope-floor (docs/34 "represented, not counted").** `lint-rung-names.ts` MUST_COVER had `checkbox-row` but not `checkbox-group`, though the group carries a `size` axis binding the rung ladder (`size.*.gap`) and its peers `radio`/`switch` are covered. FIX: added `'checkbox-group'` to MUST_COVER so the floor pins it (the sibling registers `lint-axis-values`/`lint-standalone-floor` already had it).
 
 **WHAT SHIPPED (OPTION B, owner-decided 2026-09-15).** Three things, all in one PR:
 1. **RENAME** the labelled-row def `checkbox` → `checkbox-row` (id + `name: Checkbox.Row`, file `checkbox.ts` → `checkbox-row.ts`, export `checkbox` → `checkboxRow`). Behaviour is byte-identical — only identity moves — so its projected member set is unchanged (3 size members) and the baselines rename the KEY, not the digest.
