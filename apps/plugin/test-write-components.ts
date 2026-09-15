@@ -2247,8 +2247,8 @@ ok(empty.every((r) => r.stroke !== null),
 // ---- FINDING 3: the filled box has NO second edge, and the relationship is what is asserted ----
 // The two-value form of this check — `fill === X && border === Y` — passes on exactly the configuration
 // that shipped, so it is the CO-OCCURRENCE that is asserted here, not either value.
-// #1348: radio's selected RING is now OUTLINED (the Prism 2 visual — constant border, inner dot), so it
-// is NOT a filled selected box and is asserted separately below. This finding is checkbox's checked/
+// #1348: radio's selected RING is OUTLINED (the Prism 2 visual — constant WEIGHT, inner dot; it recolors on
+// select per #1423 but never fills), so it is NOT a filled selected box and is asserted separately below. This finding is checkbox's checked/
 // indeterminate + switch's ON, the two controls that fill on select.
 const filled = [...cb.rows, ...sw.rows].filter((r) => !['unchecked', 'off'].includes(r.selection));
 // 36 (checkbox: `checked` + `indeterminate`, 3 sizes × 6 states) + 12 (switch `on`, which has a two-rung
@@ -2264,28 +2264,44 @@ const errored = filled.filter((r) => r.state === 'error');
 ok(errored.length > 0 && errored.every((r) => r.stroke === 'color/border/danger' && r.fill !== null),
   `#1011 ...and every selected box at \`error\` still binds the danger rim over its fill (${errored.length} member(s))`);
 
-// ---- #1348: RADIO'S RING IS CONSTANT — the Prism 2 outlined visual, read off the BUILT node ----------
+// ---- #1348/#1423: RADIO'S RING — outlined, constant WEIGHT, RECOLORS on select, read off the BUILT node --
 // The owner's decision (#1348): the outer ring's border WEIGHT stays constant across states (it was the
 // filled disc reading as a thickened border that was the defect), and selection shows an inner filled
 // circle inside the ring (the dot — a separate box, its presence pinned in the engine suite's #1348 block,
 // not here). So the RING binds NO fill at ANY member and a 2px border at every non-error member, unchecked
-// and checked ALIKE — that constancy is the whole of "the border does not change on select". Reverting to
-// the pre-split filled disc (a `checked.fill`, no `checked.border`) fails these by name: a filled checked
-// ring trips the no-fill arm, and a checked ring with no border trips the constant-border arm.
+// and checked ALIKE — that WEIGHT constancy is the surviving half of "the border does not change on select".
+// #1423 then rebound the ring to RECOLOR on select (constant weight, brand COLOR when checked, matching
+// Prism 2 literally); the recolor is pinned in the selection loop just below. Reverting to the pre-split
+// filled disc (a `checked.fill`, no `checked.border`) fails these by name: a filled checked ring trips the
+// no-fill arm, and a checked ring with no border trips the constant-weight arm.
 ok(rb.rows.length === 36, `#1348 reachable: radio-control built every member (${rb.rows.length}/36)`);
 ok(rb.rows.every((r) => r.fill === null),
   `#1348 radio's ring binds NO fill at any member — the Prism 2 outlined model, not a filled disc (${rb.rows.filter((r) => r.fill !== null).map((r) => `${r.member} -> ${r.fill}`).slice(0, 3).join('; ') || 'none does'})`);
 ok(rb.rows.filter((r) => r.state !== 'error').every((r) => r.stroke !== null && r.weight === 'border-width/thick'),
   `#1348 radio's ring binds a CONSTANT 2px border (\`border-width/thick\`) at every non-error member, unchecked and checked alike — the border weight does not change on select (${rb.rows.filter((r) => r.state !== 'error' && r.weight !== 'border-width/thick').map((r) => `${r.member} -> ${r.weight}`).slice(0, 3).join('; ') || 'all thick'})`);
-// CONSTANT ACROSS SELECTION, the sharpest form: at each non-error state the unchecked and checked rings
-// resolve the SAME stroke colour, so the ring is identical and only the dot differs. Keyed off the built
-// members by state so a selection-dependent recolor (the Material fork the atom documents) would fail here.
-for (const st of ['rest', 'hover', 'pressed', 'focus-visible', 'disabled']) {
-  const atState = rb.rows.filter((r) => r.state === st);
-  const strokes = new Set(atState.map((r) => r.stroke));
-  ok(atState.length > 0 && strokes.size === 1,
-    `#1348 radio's ring stroke is CONSTANT across selection at \`${st}\` — unchecked and checked resolve one colour (${[...strokes].join(', ') || 'none'})`);
+// RECOLORS ACROSS SELECTION (#1423), read off the BUILT node — the sharpest form of the rebind: at each
+// interactive non-error state the UNCHECKED ring resolves the neutral field-border edge and the CHECKED
+// ring the interactive brand edge, so the two DIFFER. Only the stroke COLOR moves; the WEIGHT is constant
+// (asserted above). Keyed off the built members by state × selection, so reverting `checked.border.*` back
+// to `color.field.border.*` (the pre-#1423 constant-colour ring, now the fork the atom documents) collapses
+// the two families back to one and fails these by name — the host-truth mirror of the engine suite's #1423 arm.
+for (const st of ['rest', 'hover', 'pressed', 'focus-visible']) {
+  const uStrokes = new Set(rb.rows.filter((r) => r.state === st && r.selection === 'unchecked').map((r) => r.stroke));
+  const cStrokes = new Set(rb.rows.filter((r) => r.state === st && r.selection === 'checked').map((r) => r.stroke));
+  const u = [...uStrokes][0], c = [...cStrokes][0];
+  ok(uStrokes.size === 1 && cStrokes.size === 1
+     && !!u && u.startsWith('color/field/border')
+     && !!c && c.startsWith('color/interactive/primary/border')
+     && u !== c,
+    `#1423 radio's ring RECOLORS across selection at \`${st}\` — unchecked resolves the field-border edge and checked the interactive brand edge, differing (unchecked ${u ?? 'none'}, checked ${c ?? 'none'})`);
 }
+// At `disabled` the two selections still share the contrast-exempt disabled skin, so the ring is CONSTANT
+// across selection there — one stroke, unchecked and checked alike (the recolor is an interactive-state
+// affordance, not a disabled one).
+const disRows = rb.rows.filter((r) => r.state === 'disabled');
+const disStrokes = new Set(disRows.map((r) => r.stroke));
+ok(disRows.length > 0 && disStrokes.size === 1,
+  `#1348 radio's ring is CONSTANT across selection at \`disabled\` — the shared disabled skin (${[...disStrokes].join(', ') || 'none'})`);
 const rErrored = rb.rows.filter((r) => r.state === 'error');
 ok(rErrored.length > 0 && rErrored.every((r) => r.stroke === 'color/border/danger'),
   `#1348 ...and the danger rim survives at \`error\` on the unfilled ring (${rErrored.length} member(s))`);

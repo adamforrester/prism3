@@ -29,17 +29,22 @@
  *
  *   · **The outer ring's border WEIGHT stays constant across states** — the 2px `radioBase` stroke, the
  *     same at unchecked and checked. No fill at either selection: an empty radio is a ring on the page
- *     and a selected one is the SAME ring with a dot inside it, not a filled disc.
+ *     and a selected one is the SAME-weight ring with a dot inside it, not a filled disc.
  *   · **Selection shows an INNER FILLED CIRCLE** inside the ring — Prism 2's `checkboxBlankCircleFill`,
- *     a 12px disc on a 20px ring. That inner circle is the ONE selection affordance; the border does not
- *     become the cue.
+ *     a 12px disc on a 20px ring. That inner circle is a selection affordance; the border does not
+ *     THICKEN to become the cue.
+ *   · **The ring RECOLORS on select (#1423)** — Prism 2's radio is a NEUTRAL gray ring when unchecked
+ *     (`selected=false` → #82899D) and a BRAND ring when checked (`selected=true` → #1E1EFF, darkening on
+ *     hover/press). So `checked.border` binds the INTERACTIVE family (`color.interactive.primary.border.*`,
+ *     per-state) while `unchecked.border` keeps the neutral `color.field.border.*`. The weight is constant;
+ *     the COLOR is not, exactly as Prism 2 ships it.
  *
- * So the ring is IDENTICAL at both selections — the same border family, the same per-state ladder, no
- * fill — and the only thing `checked` adds is the dot. That is the purest reading of "constant border
- * weight across states, with the inner circle appearing on select (not a border-thickening cue)", and it
- * is why `checked.border` binds the SAME `color.field.border.*` tokens `unchecked.border` does rather
- * than a second family: a constant border is one that does not move, and the mutation gate asserts the
- * equality by name (`test.ts` #1348).
+ * So `checked` adds two things over `unchecked` — the inner dot, and the ring going brand-colored — at a
+ * constant 2px weight. This is the #1423 correction: the decomposed def originally bound `field.border.*`
+ * at BOTH selections (a fully constant-color ring), which left a selected radio's ring gray instead of
+ * brand, unlike Prism 2. The mutation gate asserts the recolor by name — `checked.border.*` EQUALS the
+ * interactive role and is NOT `field.border` (`test.ts` #1423) — and that the border WEIGHT is a single
+ * constant key across selection (`test.ts` #1348, retained).
  *
  * THE DOT NOW SITS ON THE PAGE, WHICH IS THE ONE CONTRAST CONSEQUENCE. The pre-split dot sat on the
  * disc's fill, so its ink was `on-fill` (gated against the fill) and its disabled ink `disabled.indicator.on-fill`.
@@ -50,11 +55,13 @@
  * `paintOf`'s disabled branch asks for the `on-fill` form only when a fill is bound at rest (`restKey('fill')`),
  * and this atom binds no fill, so the plain `disabled.indicator` is what resolves.
  *
- * The Material brand-ring recolor (the ring goes brand-colored on select, keeping the dot) is the named
- * ALTERNATIVE, in `notes.contested`. It is a rebind of the `checked.border.*` keys, not a restructure,
- * and is left reversible for a brand that wants it — the owner's decision distilled to constant border +
- * inner circle, and a ring that stays constant in color as well as weight is the most literal form of
- * "the ring stays constant".
+ * The brand-ring recolor on select (the ring goes brand-colored when checked, keeping the dot) is now the
+ * ADOPTED model (#1423), matching Prism 2 literally. It was originally the named ALTERNATIVE in
+ * `notes.contested` and the pre-#1423 def shipped the fully-constant-color ring instead; the owner's QA of
+ * the Figma import (2026-09-15) found that left a selected radio's ring gray where Prism 2's is brand, and
+ * triaged the rebind decision-free (Prism 2 is the oracle). It is a rebind of the `checked.border.*` keys,
+ * not a restructure. A brand that wants the fully-constant-color ring back rebinds those three keys to
+ * `field.border.*`; that is the fork now, recorded in `notes.contested`.
  *
  * ── THE DOT IS A BOX, NOT A GLYPH, AND THAT IS #900's ONE FINDING THAT SURVIVES THE SPLIT ───────────
  *
@@ -96,7 +103,7 @@ export const radioControl: ComponentDef = {
   category: 'form',
   status: 'draft',
   description:
-    'The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labelled Radio row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Adopts the Prism 2 visual: a constant-weight outlined ring (no fill) at both selections, with an inner filled circle appearing on select — never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.',
+    'The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labelled Radio row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Adopts the Prism 2 visual: a constant-weight outlined ring (no fill) at both selections that RECOLORS on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.',
 
   // The atom's surface, not the field's. No `label`, no `description`, no form wiring — those are the
   // Row's and the Group's. What it exposes is the visual state a host drives through the nest.
@@ -126,17 +133,29 @@ export const radioControl: ComponentDef = {
   paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
 
   tokens: {
-    // ── THE OUTLINED RING — the SAME at both selections, which is the whole of the Prism 2 visual (#1348).
-    // The form-field substrate's chrome: `color.field.border.*` (rest + hover only; the family emits no
-    // pressed rung, so pressed falls through to rest at both selections alike). NO FILL at either selection
-    // (#1011): an empty radio is a ring on the page and a selected one is the SAME ring with a dot inside
-    // it, never a filled disc. `checked.border` binds the IDENTICAL tokens `unchecked.border` does — a
-    // constant border is one that does not move, and `test.ts` #1348 asserts the equality by name.
+    // ── THE OUTLINED RING — CONSTANT IN WEIGHT (2px, both selections), but RECOLORED ON SELECT, which is
+    // Prism 2's radio literally (#1423). NO FILL at either selection (#1011): an empty radio is a ring on
+    // the page and a selected one is the SAME-weight ring with a dot inside it, never a filled disc.
+    //
+    //   · UNCHECKED — the form-field substrate's neutral chrome: `color.field.border.*` (rest + hover only;
+    //     the family emits no pressed rung, so pressed falls through to rest). This is Prism 2's `selected=false`
+    //     ring, a static neutral edge (#82899D in the spec).
+    //   · CHECKED — the INTERACTIVE brand edge: `color.interactive.primary.border.*`, per-state (rest, hover,
+    //     pressed). This is Prism 2's `selected=true` ring — brand blue at rest (#1E1EFF), darkening on
+    //     hover (#0812C3) and press (#090A83). The pre-#1423 def bound `field.border.*` here too, so a
+    //     selected radio's ring stayed gray instead of going brand (the QA finding). The interactive border
+    //     is contracted against the page at `nonTextMin` (modes.ts `iBorder`, rated to clear it), so the
+    //     recolored ring keeps a live ≥3 SC 1.4.11 contract in every mode.
+    //
+    // So selection now moves BOTH the inner dot AND the ring's COLOR (its weight stays constant). `test.ts`
+    // #1423 asserts by name that `checked.border.*` EQUALS the interactive role and is NOT `field.border`,
+    // and that the recolored ring clears 3:1 across the corpus × every mode.
     'unchecked.border': 'color.field.border.rest',
     'unchecked.border.hover': 'color.field.border.hover',
     'unchecked.border.error': 'color.border.danger',
-    'checked.border': 'color.field.border.rest',
-    'checked.border.hover': 'color.field.border.hover',
+    'checked.border': 'color.interactive.primary.border.rest',
+    'checked.border.hover': 'color.interactive.primary.border.hover',
+    'checked.border.pressed': 'color.interactive.primary.border.pressed',
     'checked.border.error': 'color.border.danger',
 
     // ── THE INNER DOT — the selection affordance, present only at `checked`, painted the brand fill
@@ -214,7 +233,7 @@ export const radioControl: ComponentDef = {
         strokeWidth: 'border-width',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['dot', 'focusRing'],
-        note: 'The outlined ring AND the nominal hit-target marker. The real hit target is the whole labelled ROW, which lives on `radio`; this circle is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `checkbox-control`\'s `control` carries. No fill: the Prism 2 visual is a constant-weight outlined ring at both selections, with the inner dot as the selection cue (#1348).',
+        note: 'The outlined ring AND the nominal hit-target marker. The real hit target is the whole labelled ROW, which lives on `radio`; this circle is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `checkbox-control`\'s `control` carries. No fill: the Prism 2 visual is a constant-WEIGHT outlined ring at both selections that RECOLORS on select — neutral `field.border.*` when unchecked, the interactive brand edge `interactive.primary.border.*` when checked — with the inner dot as an additional selection cue (#1348, #1423).',
       },
       // THE INNER DOT. A `box`, not a `vector`, and sized from its OWN key rather than the control's — a
       // filled shape has no artboard to carry an optical inset, so full-bleed would draw the disc rather
@@ -292,14 +311,14 @@ export const radioControl: ComponentDef = {
     do: [
       'Nest this from the Radio row rather than redrawing the circle per host',
       'Let the host row pass `selection` and `state` through, and `follow` its size, so the nested control tracks the row',
-      'Let the inner circle carry the selection; the ring border stays constant in weight across states',
+      'Let the inner circle and the ring recolor carry the selection; the ring border stays constant in WEIGHT across states, going brand-colored (not thicker) on select',
       'Supply an external aria-label only when using the control genuinely alone',
     ],
     dont: [
       'Place a bare circle as the clickable element — it fails SC 2.5.8 in isolation; the labelled row is the hit target',
       'Double-label a nested control — the host row already provides the accessible name',
       'Fill the disc on select — the Prism 2 visual keeps the ring outlined and shows an inner circle instead',
-      'Thicken the border to signal selection — the border weight is constant; the dot is the cue',
+      'Thicken the border to signal selection — the border WEIGHT is constant across states; selection recolors the ring to brand and adds the inner dot',
     ],
     contentGuidelines: 'The atom has no copy of its own; all label, description and error text belongs to the row and the group that compose it.',
   },
@@ -327,14 +346,14 @@ export const radioControl: ComponentDef = {
     contested: [
       'THE ATOM IS A SEPARATE COMPONENT rather than kept inline in the row, and the #1348 precondition made it earn that: the split was built ONLY after confirming the radio Row nests it (the composition check), which it does — the radio was already a row containing a control subtree, the shape checkbox had before #1226 and switch before #1354. The rejected alternative (keep the disc inline and let the family diverge) is exactly the per-def duplication #1011 found had shipped the identical fill/border pairing across three defs.',
       'THE PRISM 2 VISUAL — a constant-weight outlined ring with an inner circle on select — REPLACES the pre-split filled disc (checkbox\'s treatment at a round radius), on the owner\'s decision (#1348, 2026-09-10). The pre-split radio\'s own `notes.contested` argued filled WON over the outlined model on two grounds (one visual family with checkbox, and `on-fill` being a gated pairing); the owner reversed that in favor of matching Prism 2, whose radio is an outlined ring plus `checkboxBlankCircleFill`. Filled is no longer the fork — it is superseded. What made the reversal clean rather than a new contrast problem: the dot now sits on the PAGE (the ring is unfilled), and `interactive.primary.fill.selected` clears 3:1 against the page as a dot exactly as it did as a disc, so no pairing that was gated stops being gated.',
-      'THE RING STAYS CONSTANT IN COLOR AS WELL AS WEIGHT — `checked.border` binds the SAME `field.border.*` tokens `unchecked.border` does, so the ONLY difference between the two selections is the dot. The NAMED ALTERNATIVE is Material\'s (and Prism 2\'s literal) brand-ring recolor: `checked.border` → `interactive.primary.border.*`, the ring going brand-colored on select while the dot stays. It is a real fork and several systems ship it, and it is a rebind of the three `checked.border.*` keys, not a restructure. Constant color was chosen because the owner\'s decision distilled to "constant border weight ... inner circle appearing on select (not a border-thickening cue)": the inner circle is THE cue, and a ring that stays constant in color as well as weight is the most literal form of "the ring stays constant". Revisit if a brand wants the brand-ring skin.',
+      'THE RING RECOLORS ON SELECT — `checked.border.*` binds the INTERACTIVE family (`color.interactive.primary.border.{rest,hover,pressed}`) while `unchecked.border.*` keeps the neutral `field.border.*`, so selection moves the ring\'s COLOR as well as adding the dot. Its WEIGHT is still constant (one 2px key across selection). This is the #1423 correction, and the direction reversed since #1348: the decomposed def originally bound `field.border.*` at BOTH selections (a fully-constant-color ring) on the reading that "the ring stays constant" meant color too, with the brand-ring recolor named as the ALTERNATIVE. The owner\'s QA of the Figma import (2026-09-15) found that left a selected radio\'s ring gray where Prism 2 ships it brand (spec: unchecked #82899D, checked #1E1EFF/#0812C3/#090A83), and triaged the recolor decision-free — Prism 2 is the oracle. THE NAMED ALTERNATIVE is now the reverse: a fully-constant-color ring (both selections on `field.border.*`), a rebind of the three `checked.border.*` keys back, for a brand that wants the ring to hold neutral through selection. Revisit if a brand wants that constant-color skin.',
       'THE PAINT GRAMMAR IS AXIS-LED, inherited from `checkbox` rather than re-decided, and the exemption that makes it legal is declared once per AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`). Recorded here only so this def is not read as a second independent vote: the family shares one grammar and one exemption. What is genuinely open is not the grammar but its cost — arm 1 does not check a non-family axis at all (#916).',
     ],
     unverified: [
       'THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`\'s and `switch-control`\'s were: the nested control instance must pin its own SQUARE (the control edge) rather than stretch to the `control-box` line box, and whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. Radio\'s control is SQUARE, so the Row pins via `size` (both axes from one key), the same as checkbox — a wider pin than switch\'s height-only.',
       'THE INNER DOT AT `small` IS UNBUILT AND MAY NOT READ — the dot is half the control edge by the tier\'s construction, so at `small` it is 8px (6 on aurora). Whether a 6px filled circle reads as a selection dot at all is exactly what building one answers. The affordance is most useful at `medium`, and the row\'s own min-height is what has to reach SC 2.5.8.',
       'THE CIRCULAR FOCUS RING IS DERIVED, NOT RE-DERIVED HERE (#1348 point 3). F2 (#1388) made the ring concentric, and a full-round host (this disc, `radius.round`) yields a circular ring by construction — `version.ts` names radio as the middle of its three derivation cases. This def CONFIRMS the full-round-host condition (`test.ts` #1348); the #1388 execution block gates the derivation itself. What is unverified is the same real-host question F2 left open, now one nest deeper: the ring is nested inside the control and the control inside the row, so an inherited dimension binding would have to be cleared twice, the same as `checkbox-control` (#1280/#1290).',
-      'THE UNCHECKED RING HAS NO `pressed` BINDING, for checkbox\'s reason: `color.field.border.*` emits `rest` and `hover` only, and the checked ring is identical, so pressed falls through to rest at both selections. The dot DOES paint pressed (`checked.indicator.pressed`), so the gap is asymmetric — the ring holds still under press while the dot tracks the fill ladder.',
+      'THE PRESSED LADDER IS ASYMMETRIC ACROSS SELECTION, and that is faithful to Prism 2 (#1423). The CHECKED ring binds `pressed` (`interactive.primary.border.pressed`, #090A83 in the spec — a distinct Active color), because the interactive family emits a pressed rung and Prism 2 darkens the selected ring under press. The UNCHECKED ring has NO `pressed` binding: `color.field.border.*` emits `rest` and `hover` only, so pressed falls through to rest — matching Prism 2, whose `selected=false` ring is a static neutral edge with no Active override. The inner DOT paints one value with no per-state ladder (`checked.indicator`), so under press it is the CHECKED ring that tracks the interactive ladder while the dot and the unchecked ring hold still.',
       '`RadioGroup` is a separate component with no def (#901), and it is MANDATORY rather than optional: the shared `name`, the single scalar value, the roving-tabindex single tab stop, `orientation`, and all validation live there, and none of it is expressible from this atom or from the Row. This def is the OPTION\'s painted control only.',
     ],
   },

@@ -2430,7 +2430,44 @@
  * across the corpus × every mode via resolveAllModes — so a revert to the old darker binding fails a NAMED
  * assertion rather than shipping the heavier edge again.
  */
-export const ENGINE_VERSION = '0.87.0';
+/**
+ * 0.88.0 — radio-control's OUTER SELECTION RING rebinds from the field-border colour to the INTERACTIVE
+ * family on select (#1423, owner-triaged `engine`, decision-free — Prism 2 is the oracle). A pure
+ * component-binding change, so ENGINE MINOR (the emitted paint moves at the checked coordinate). The same
+ * shape as the #1349 button rebind: a role rebind, no new token NAME.
+ *
+ * OLD → NEW: the decomposed def (#1348) bound `color.field.border.*` at BOTH selections — a fully
+ * constant-colour ring — on the reading that "the ring stays constant" meant colour as well as weight. QA
+ * of the Figma import (2026-09-15) found that left a SELECTED radio's ring grey where Prism 2 ships it
+ * brand (spec: unchecked #82899D, checked #1E1EFF / hover #0812C3 / active #090A83). The CHECKED ring now
+ * binds `color.interactive.primary.border.{rest,hover,pressed}` — per-state, the interactive family's full
+ * ladder, including a `pressed` rung the field-border family does not emit. The UNCHECKED ring KEEPS the
+ * neutral `color.field.border.*` (Prism 2's static grey `selected=false` edge), so selection now recolours
+ * the ring as well as adding the inner dot. The border WEIGHT is unchanged — one constant 2px key.
+ *
+ * CONTRAST: the interactive border role is gated against the page (`background.primary`) at `nonTextMin`
+ * (modes.ts `iBorder`, rated to clear it), so the recoloured checked ring rides a live ≥3 SC 1.4.11
+ * graphical-object contract in every mode — verified live via resolveAllModes across the example brands ×
+ * every mode (`test.ts` #1423). The unchecked ring is unchanged, so its contract is untouched.
+ *
+ * CONTRACT STANDS at 10.0.0. `color.interactive.primary.border.*` and `color.field.border.*` all remain
+ * emitted (the latter still bound by unchecked here and by text-field / select / the other *-control defs),
+ * so no guaranteed token NAME is added, removed or retyped — one component swaps which existing role its
+ * checked ring references. `token-contract.ts --check` confirms the guaranteed surface unchanged; `--accept`
+ * refreshes only the informational `engineVersion` stamp. `lint-component-surface.ts` needs a bump-gated
+ * `--accept` (radio-control's checked coordinate now paints the interactive border variables, and adds a
+ * `pressed` paint) and `paint-census` moves with it (the census records which variable each coordinate
+ * paints, and this coordinate's variable changed).
+ *
+ * NO NEW REFUSAL ARM — a pure token rebind adds no schema field and no refusal, so only a BEHAVIOR mutation
+ * is owed. BEHAVIOR mutation (docs/34): `test.ts`'s #1423 arm pins that the CHECKED ring role EQUALS the
+ * interactive role per-state and is NOT `color.field.border.*`, that the UNCHECKED ring stays neutral, and
+ * re-measures the resolved ratio ≥3 across the corpus × every mode — so reverting the bind back to
+ * `field.border.*` fails a NAMED assertion rather than the ring silently going grey again. #1348's arm (3c)
+ * dropped its colour-equality clause (it now pins the constant WEIGHT only, the half of "constant border"
+ * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
+ */
+export const ENGINE_VERSION = '0.88.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
