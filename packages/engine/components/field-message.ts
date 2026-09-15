@@ -341,7 +341,7 @@ export const fieldMessage: ComponentDef = {
     primaryPurpose: 'Carry helper guidance or a validation result below a form field, as icon + caption.',
     whenToUse: 'Under any field control that needs persistent guidance or an error/warning/success message.',
     avoidWhen: 'As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.',
-    commonPartners: ['text-field', 'number-field', 'select', 'checkbox', 'field-label', 'icon'],
+    commonPartners: ['text-field', 'number-field', 'select', 'checkbox-row', 'field-label', 'icon'],
     triggerKeywords: ['helper text', 'help text', 'error message', 'validation message', 'field error', 'caption', 'hint'],
     generationPriority: 3,
   },

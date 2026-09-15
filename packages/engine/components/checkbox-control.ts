@@ -41,7 +41,7 @@
  * is the label ink), so its `paintKeys` are just `['{slot}']`.
  *
  * The grammar and the fill decisions are unchanged from the pre-split `checkbox` and their reasoning is
- * not restated here — see `checkbox.ts` history for `#1011` (no structural fill on an empty box, no
+ * not restated here — see `checkbox-row.ts` / `checkbox-control.ts` history for `#1011` (no structural fill on an empty box, no
  * structural border on a filled one), `#1015` (the per-rung clamped corner) and `#1228` (the 2px control
  * border). This def is a verbatim extraction of that box, not a redesign of it.
  *
@@ -250,7 +250,7 @@ export const checkboxControl: ComponentDef = {
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
       'read-only — deliberately not a state of this atom. It is the field/row-level concern the brief calls "the awkward one" (static text over a styled locked control), so there is no box treatment to project and the state is absent rather than admitted-and-unbound. The Row and the Group decide it.',
       'The check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). Neither the def schema nor a Figma variant carries motion, so the two glyph parts are static outlines at every coordinate.',
-      'The whole-row hit target. A bare control square is a 12-24px box that fails SC 2.5.8 in isolation; the accessible target is the labelled ROW, which is `checkbox` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
+      'The whole-row hit target. A bare control square is a 12-24px box that fails SC 2.5.8 in isolation; the accessible target is the labelled ROW, which is `checkbox-row` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
     ],
   },
 
@@ -278,7 +278,7 @@ export const checkboxControl: ComponentDef = {
   },
 
   content: {
-    labelPattern: 'None — the atom carries no label. The consent line and its rules live on the Checkbox row (`checkbox`).',
+    labelPattern: 'None — the atom carries no label. The consent line and its rules live on the Checkbox row (`checkbox-row`).',
     errorPattern: 'None of its own — an error boundary is a color treatment the host coordinate selects; the message is the Group\'s (`checkbox-group`).',
   },
 
@@ -301,7 +301,7 @@ export const checkboxControl: ComponentDef = {
     primaryPurpose: 'Render the atomic checkbox control — the painted square with its check or dash glyph and focus ring — for a host row to nest.',
     whenToUse: 'Nested by the labelled Checkbox row (the common case), or standalone only for a control with an external label and its own aria wiring.',
     avoidWhen: 'You want the labelled ~90% case (that is Checkbox), a mutually-exclusive one-of-many (Radio.Control), or an immediate-effect toggle (Switch). Never place a bare control square as the clickable element — the hit target is the labelled row.',
-    commonPartners: ['checkbox', 'focus-ring', 'checkbox-group'],
+    commonPartners: ['checkbox-row', 'focus-ring', 'checkbox-group'],
     triggerKeywords: ['checkbox control', 'checkbox box', 'check box atom', 'checkbox square'],
     generationPriority: 3,
   },
