@@ -1539,6 +1539,27 @@ export const PILL_RADIUS_DERIVATION = 'pill-radius';
  *  bound to a radius corner, not a height variable bound across Figma's scope boundary. */
 export const PILL_RADIUS_RUNG = 'radius.capsule';
 
+/** The rung a pill-able control binds under `controlShape: boxed` (#1371) — a fixed 0px / sharp corner.
+ *  `radius.none` is ALWAYS emitted (it is the ramp's floor, `RADIUS_LADDER`'s `factor: 0`), so `boxed`
+ *  carries no rung dependency: unlike `hairline` it is valid for every brand with nothing to provision. */
+export const BOXED_RADIUS_RUNG = 'radius.none';
+
+/** The rung a pill-able control binds under `controlShape: hairline` (#1371) — the fixed 1px sentinel
+ *  (#1362). `radius.hairline` is OPT-IN: it exists only when the brand's `radiusHairline` lever is on, so
+ *  selecting `controlShape: hairline` IMPLIES that rung — `brandTheme` provisions `radius.hairline`
+ *  whenever the control shape needs it (theme.ts), which is what keeps this rewrite always resolvable
+ *  rather than dangling against a brand that never opted in. */
+export const HAIRLINE_RADIUS_RUNG = 'radius.hairline';
+
+/** The rung each shape repoints the ROUNDED rung (`radius.md`) to on a pill-able def. `rounded` is `null`
+ *  — the IDENTITY, no rewrite — which is what makes the default plan byte-identical (acceptance #1). */
+export const CONTROL_SHAPE_RUNG: Record<ControlShape, string | null> = {
+  rounded: null,
+  pill: PILL_RADIUS_RUNG,
+  boxed: BOXED_RADIUS_RUNG,
+  hairline: HAIRLINE_RADIUS_RUNG,
+};
+
 /** True when `def` is a pill-able control — it declares the `pill-radius` derivation. */
 export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[PILL_RADIUS_DERIVATION];
 
@@ -1552,12 +1573,19 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  * projector a brand input, the caller that knows the brand rewrites the DEF first and hands the projector a
  * def as before. The projector stays a pure function of its def; the brand-specificity lives here.
  *
- * What it does: under `pill`, a pill-able control's ROUNDED rung — every `tokens` entry whose ref is
- * `radius.md` — is repointed to the shared pill rung (`radius.capsule`). `varOf` still resolves each binding
- * through `def.tokens` exactly as before — only the ref it finds there has moved — so no binding is bypassed
- * and no per-component token is introduced. Under `rounded` (default) and for any def that is not pill-able,
- * this is the IDENTITY: it returns the same object, which is what makes `rounded` reproduce every plan
- * byte-identically (acceptance #1, the no-op-default independence check).
+ * What it does: for a non-`rounded` shape, a pill-able control's ROUNDED rung — every `tokens` entry whose
+ * ref is `radius.md` — is repointed to that shape's rung (`CONTROL_SHAPE_RUNG`): `pill` → `radius.capsule`
+ * (height ÷ 2), `boxed` → `radius.none` (sharp), `hairline` → `radius.hairline` (1px). `varOf` still resolves
+ * each binding through `def.tokens` exactly as before — only the ref it finds there has moved — so no binding
+ * is bypassed and no per-component token is introduced. Under `rounded` (default) and for any def that is not
+ * pill-able, this is the IDENTITY: it returns the same object, which is what makes `rounded` reproduce every
+ * plan byte-identically (acceptance #1, the no-op-default independence check).
+ *
+ * EACH SHAPE NAMES A RELATIONSHIP, NOT A RAW RADIUS (#1371). The four values are one selector reaching four
+ * rungs by ref: `rounded` tracks the softness ramp, `pill` is the unconditional height ÷ 2, `boxed` is the
+ * always-present sharp floor, and `hairline` is the opt-in 1px sentinel. `boxed`'s `radius.none` always
+ * exists, so it is valid for any brand; `hairline`'s `radius.hairline` is provisioned by `brandTheme`
+ * whenever `controlShape: hairline` is chosen (see `HAIRLINE_RADIUS_RUNG`), so this rewrite never dangles.
  *
  * WHY IT KEYS ON THE ROUNDED RUNG (`radius.md`) RATHER THAN THE LITERAL KEY `radius` (#1353). Before the
  * icon-button `shape` axis, both pill-able defs bound their corner radius through a token key spelled
@@ -1578,9 +1606,10 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  */
 export const ROUNDED_RADIUS_RUNG = 'radius.md';
 export const applyControlShape = (def: ComponentDef, shape: ControlShape): ComponentDef => {
-  if (shape !== 'pill' || !isPillable(def)) return def;
+  const target = CONTROL_SHAPE_RUNG[shape];
+  if (target === null || !isPillable(def)) return def;
   const tokens = Object.fromEntries(
-    Object.entries(def.tokens).map(([k, ref]) => [k, ref === ROUNDED_RADIUS_RUNG ? PILL_RADIUS_RUNG : ref]),
+    Object.entries(def.tokens).map(([k, ref]) => [k, ref === ROUNDED_RADIUS_RUNG ? target : ref]),
   );
   return { ...def, tokens };
 };
