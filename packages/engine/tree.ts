@@ -15,7 +15,7 @@
 import { RGB, contrast, hex } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER } from './theme';
-import { SizeStep, ControlSizeStep, controlRadius } from './scale';
+import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
 import { resolveAllModes, ModeResult } from './modes';
 import { ENGINE_VERSION } from './version';
 
@@ -607,6 +607,36 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     if (pyMods) padYLeaf.$extensions.prism3.modes = pyMods;
     size[z.name] = { height: heightLeaf, 'padding-x': padXLeaf, 'padding-x-visual': padXVisLeaf, 'padding-y': padYLeaf, gap: gapLeaf };
   }
+
+  // ── size.md.min-height — the INTERACTIVE TARGET-SIZE FLOOR (#1437, WCAG 2.2 SC 2.5.5 Enhanced) ────
+  // The `md` control height RAISED to the 44px enhanced target wherever a dense brand falls below it
+  // (compact `md` is 36px). A FLOOR, not a fixed value — `max(size.md.height, AAA_TARGET_PX)` — so a
+  // spacious brand's 56px `md` stays 56, and only the sub-44 densities are lifted. Density-AWARE (it tracks
+  // `md`) but never below the enhanced target, so `min-height ≥ height` always, differing only where the
+  // density runs the control below 44. Bound by `select` (#1426), whose control IS the tap target: the plain
+  // `size.md.height` it used before rendered 36px on a compact brand — clearing SC 2.5.8 (24) but not the
+  // 2.5.5 enhanced target. Small buttons stay a knowing exception below the floor (owner, 2026-09-15); a
+  // field control is not, so it binds this. Placed INSIDE the `md` rung group (not a new top-level `size.*`
+  // key) so the rung-iterating gates see the existing shape unchanged. Scoped to `md` — the field-control
+  // rung — rather than minted for every rung, per the minimum-code rule (#1437 tracks the family rollout).
+  const mdStep = theme.dims.sizes.find((z) => z.name === 'md')!;
+  const targetPx = Math.max(mdStep.height, AAA_TARGET_PX);
+  const minHeightLeaf = gridSet.has(targetPx)
+    ? dimAlias(`${root}.${CORE_TIER}.dimension.${targetPx}`, `size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height ${mdStep.height}, ${AAA_TARGET_PX}) = ${targetPx}px`, { px: targetPx })
+    : dimLeaf(targetPx, `size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): ${targetPx}px`);
+  // Per-mode density seam, mirroring the height leaves: a customizable mode at a different density
+  // re-derives `md`, so the floor moves with it — `max(mode md, AAA_TARGET_PX)`. Absent maps ⇒ no override
+  // ⇒ byte-identical for a single-density brand.
+  const minHeightMods: Record<string, unknown> = {};
+  for (const [mode, steps] of Object.entries(sizesByMode)) {
+    const mz = steps.find((s) => s.name === 'md');
+    if (!mz) continue;
+    const px = Math.max(mz.height, AAA_TARGET_PX);
+    if (px === targetPx) continue;
+    minHeightMods[mode] = gridStepOverride(px, `density lever override — ${mode} (min-height ${px}px)`);
+  }
+  if (Object.keys(minHeightMods).length) minHeightLeaf.$extensions.prism3.modes = minHeightMods;
+  (size.md as Record<string, unknown>)['min-height'] = minHeightLeaf;
 
   // ---- icon.size — the icon artboard ladder (#324) ----
   // A component's visual slot had nothing to bind for size: there was no `icon` category in the tree

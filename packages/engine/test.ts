@@ -8583,6 +8583,65 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       `#1426 select validates clean with the showMessage boolean added (${validateComponentDef(select).errors.join('; ')})`);
   }
 
+  // ---- #1437: the 44px INTERACTIVE TARGET-SIZE FLOOR (owner-decided 2026-09-15) ----
+  // `size.md.min-height` = max(size.md.height, AAA_TARGET_PX). EXPECTED is that formula transcribed
+  // INDEPENDENTLY of the emitter (docs/34); ACTUAL is the emitted px. The compact brand is the load-bearing
+  // case — its md rung (36) is below the target, so the floor lifts it and `min-height ≠ height` proves the
+  // floor is doing work rather than measuring a constant (shape 4).
+  {
+    const brands: Array<[string, any]> = [
+      ['nb (comfortable)', nbTheme()],
+      ['aurora (compact)', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
+    ];
+    for (const [id, t] of brands) {
+      const tree = buildTree(t).tree as any;
+      const md = tree[Object.keys(tree)[0]].size.md;
+      const mdPx = md.height.$extensions.prism3.px as number;
+      const minPx = md['min-height'].$extensions.prism3.px as number;
+      // The emitter's `max` is under test: drop it (emit `mdStep.height`) and minPx becomes 36 on aurora,
+      // failing `minPx === max(mdPx, 44)` (36 ≠ 44) BY NAME.
+      ok(minPx === Math.max(mdPx, AAA_TARGET_PX),
+        `#1437 ${id}: size.md.min-height = max(size.md.height ${mdPx}, ${AAA_TARGET_PX}) = ${Math.max(mdPx, AAA_TARGET_PX)} (got ${minPx})`);
+      ok(minPx >= AAA_TARGET_PX,
+        `#1437 ${id}: size.md.min-height (${minPx}) meets the ${AAA_TARGET_PX}px enhanced target at this density`);
+    }
+    // NOT VACUOUS (docs/34 shape 4): on a compact brand the floor LIFTS the value, so min-height ≠ height.
+    const aMd = (buildTree(brands[1][1]).tree as any)[Object.keys(buildTree(brands[1][1]).tree)[0]].size.md;
+    ok(aMd.height.$extensions.prism3.px === 36 && aMd['min-height'].$extensions.prism3.px === 44,
+      `#1437 the floor DOES work: aurora (compact) size.md.height=${aMd.height.$extensions.prism3.px} is lifted to min-height=${aMd['min-height'].$extensions.prism3.px} (a constant would coincide)`);
+    // select binds the FLOOR, not the plain rung — the binding mutation. Reverting to `size.md.height`
+    // resolves the control to 36px on a compact brand (the fact below), below the enhanced target.
+    ok(select.tokens!['min-height'] === 'size.md.min-height',
+      `#1437 select's control binds size.md.min-height (the floor), not size.md.height (got ${select.tokens!['min-height']})`);
+    ok(aMd.height.$extensions.prism3.px < AAA_TARGET_PX,
+      `#1437 MUTATION basis: reverting select's binding to size.md.height would resolve ${aMd.height.$extensions.prism3.px}px on a compact brand — below the ${AAA_TARGET_PX}px target, the regression the floor binding prevents`);
+  }
+
+  // ---- #1438: the composed FieldLabel is NEST-EXPOSED (owner-decided 2026-09-15) ----
+  // The label nest exposes field-label's author axes; marking the instance exposed ALSO surfaces its label
+  // text + required in Figma (the host-truth for that lives in #1392, which now includes select, and in
+  // test-roundtrip). Here: the def declaration and the projected `nestExpose` marking, mutation-gated.
+  {
+    const labelPart = select.anatomy!.parts.label;
+    ok(labelPart.nesting?.kind === 'nest-exposed',
+      `#1438 select's label nest is nest-exposed (got ${labelPart.nesting?.kind})`);
+    ok(labelPart.nesting?.kind === 'nest-exposed'
+      && JSON.stringify([...labelPart.nesting.expose].sort()) === JSON.stringify(['emphasis', 'size', 'weight']),
+      `#1438 select exposes field-label's author axes [size, emphasis, weight] (got ${labelPart.nesting?.kind === 'nest-exposed' ? labelPart.nesting.expose.join(', ') : 'n/a'})`);
+    const findLabel = (n: any): any => (n.name === 'label' ? n : (n.children ?? []).map(findLabel).find(Boolean));
+    const labelNode = findLabel(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'rest' } as never).root);
+    ok(labelNode && Array.isArray(labelNode.nestExpose) && labelNode.nestExpose.length === 3,
+      `#1438 the projected label node carries nestExpose (${labelNode?.nestExpose?.join(', ') ?? 'MISSING'})`);
+    // MUTATION: reverting the label to nest-fixed drops nestExpose from the projected node BY NAME.
+    const fixedLabel = { ...select.anatomy!.parts.label, nesting: { kind: 'nest-fixed' as const, variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' } } };
+    const fixed = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, label: fixedLabel } } };
+    const fixedLabelNode = findLabel(figmaAnatomyPlan(fixed as ComponentDef, undefined, { status: 'default', state: 'rest' } as never).root);
+    ok(fixedLabelNode && fixedLabelNode.nestExpose === undefined,
+      `#1438 MUTATION: reverting the label nest to nest-fixed drops nestExpose from the projected node (got ${JSON.stringify(fixedLabelNode?.nestExpose)}), flipping '#1438 the projected label node carries nestExpose' BY NAME`);
+    ok(validateComponentDef(select).errors.length === 0,
+      `#1438 select validates clean as nest-exposed — expose ⊂ field-label's axes, disjoint from follow (${validateComponentDef(select).errors.join('; ')})`);
+  }
+
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
   // (Button = primary, Destructive Button, Neutral Button), built by one factory. Button carries NO
   // `intent` prop, and hierarchy is still the appearance axis (filled > outline > text).
@@ -11689,13 +11748,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // PER DEF: run the paste payload and read the exposure marking back off the built members.
         for (const def of nestExposedDefs) {
           const exposedPartNames = nestExposedPartsOf(def);
-          const plans = figmaAnatomySet(def);
+          // Nominate the swap target exactly as the real caller and the round-trip do (`SWAP_TARGET`): a def
+          // with a swap slot (select's leading glyph, #1426) leaves it unnominated otherwise and the executor
+          // builds a placeholder frame it then reports as a miss. select is the first nest-exposed def with a
+          // swap slot, so the gate now nominates one.
+          const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
           const opts: StubOpts = {
             vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
             styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
-            // The nested targets, resolved as plain COMPONENTs exactly as the round-trip's `planComps` hands
-            // the plugin shim (`test-roundtrip.ts`) — one instance of each takes its cell in every member.
-            comps: [...new Set(exposedPartNames.map((n) => def.anatomy?.parts[n]?.nests).filter((c): c is string => !!c))],
+            // EVERY component the def's plan references — swap targets AND nest targets, collected off the
+            // plan exactly as the round-trip's `planComps`/`fullFor` does, so one instance of each takes its
+            // cell in every member. select (#1438) is the first nest-exposed def that ALSO nests NON-exposed
+            // parts (`field-message`, `focus-ring`) and carries a swap slot; leaving either unprovisioned
+            // drops nodes — and a dropped `field-message` node orphans the `showMessage` visibility boolean
+            // (#1426). Provisioning both mirrors the real build (the plugin builds each nested component and
+            // the swap target first), where no node is dropped.
+            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c))],
           };
           // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
           // it is read off the PAGE the payload appended the combined set to. Returns every nested instance
@@ -16576,8 +16644,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(ctlN === ctlProduct && ctlProduct === 36,
     `#1348 radio-control carries the 36 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
 
-  // (3) THE PRISM 2 VISUAL — CONSTANT BORDER + INNER CIRCLE ON SELECT (#1348 point 2), read four ways, each
-  // independent of the producer.
+  // (3) THE PRISM 2 VISUAL — CONSTANT-WEIGHT OUTLINED RING + INNER CIRCLE ON SELECT (#1348 point 2), read
+  // four ways, each independent of the producer. Since #1423 the ring RECOLORS on select (constant WEIGHT,
+  // brand COLOR when checked); the recolor itself is pinned in the #1423 block just below arm (3d).
   //   (a) the INNER CIRCLE appears on select and ONLY on select — read off the PROJECTED PLAN's nodes.
   ok(planNames('checked').includes('dot') && !planNames('unchecked').includes('dot'),
     `#1348 the CHECKED member draws the inner dot and the UNCHECKED member does not (checked: ${planNames('checked').join(',')}; unchecked: ${planNames('unchecked').join(',')})`);
@@ -16586,17 +16655,66 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(rc.tokens['checked.fill'] === undefined && rc.tokens['unchecked.fill'] === undefined
      && !(rc.anatomy!.parts.control.paintSlots ?? []).includes('fill'),
     `#1348 radio-control's ring binds NO fill at either selection — the outlined model, not a filled disc (checked.fill=${rc.tokens['checked.fill']}, unchecked.fill=${rc.tokens['unchecked.fill']}, control.paintSlots=[${(rc.anatomy!.parts.control.paintSlots ?? []).join(', ')}])`);
-  //   (c) the BORDER is CONSTANT across selection — checked binds the SAME tokens as unchecked, at rest and
-  //   hover alike, at a 2px weight. A recolor-on-select (the Material fork) or a border-thickening cue on
-  //   select breaks this by name — the border does not change on select, the dot does.
-  ok(rc.tokens['checked.border'] === rc.tokens['unchecked.border']
-     && rc.tokens['checked.border.hover'] === rc.tokens['unchecked.border.hover']
-     && rc.tokens['checked.border'] !== undefined && rc.tokens['border-width'] === 'border-width.thick',
-    `#1348 radio-control's ring border is CONSTANT across selection (checked.border=${rc.tokens['checked.border']} == unchecked.border=${rc.tokens['unchecked.border']}; hover equal=${rc.tokens['checked.border.hover'] === rc.tokens['unchecked.border.hover']}) at a 2px weight (${rc.tokens['border-width']})`);
+  //   (c) the BORDER WEIGHT is CONSTANT across selection — one `border-width.thick` (2px) key on the
+  //   `control`, no per-selection weight binding, so selection never THICKENS the ring (the pre-split
+  //   filled-disc cue). #1423 made the ring RECOLOR on select (pinned separately below), but its WEIGHT
+  //   still does not move — a border-thickening cue on select would add a per-selection weight key and
+  //   break this by name. This is the half of #1348's "constant border" that survives #1423.
+  ok(rc.tokens['border-width'] === 'border-width.thick'
+     && rc.tokens['checked.border-width'] === undefined && rc.tokens['unchecked.border-width'] === undefined
+     && rc.anatomy!.parts.control.strokeWidth === 'border-width',
+    `#1348 radio-control's ring WEIGHT is constant across selection — one 2px key (${rc.tokens['border-width']}) named by the control's strokeWidth, no per-selection thickening (checked=${rc.tokens['checked.border-width']}, unchecked=${rc.tokens['unchecked.border-width']})`);
   //   (d) the inner dot's ink is the brand fill AGAINST THE PAGE (the ring is unfilled) — the same token the
   //   pre-split filled disc used, now read as a dot on the page (measured 3:1-clearing there).
   ok(rc.tokens['checked.indicator'] === 'color.interactive.primary.fill.selected',
     `#1348 the inner dot's ink is the brand fill on the page (${rc.tokens['checked.indicator']})`);
+
+  // ---- #1423: THE RING RECOLORS ON SELECT — the CHECKED ring binds the INTERACTIVE family, NOT field-border.
+  // Pinned BY NAME independently of the projector, the same shape as #1349's disabled-edge rebind. arm (3c)
+  // above dropped its color-equality clause (it now pins WEIGHT only), so this is the arm that gates the
+  // recolor: reverting `checked.border.*` back to `color.field.border.*` (the pre-#1423 fully-constant-color
+  // ring, still the named fork in notes.contested) fails the NAMED assertions below rather than the ring
+  // silently going grey again. The UNCHECKED ring must STAY neutral (Prism 2 ships its `selected=false` ring
+  // grey, #82899D), so this also pins that the two selections DIFFER — a rebind of BOTH selections to
+  // interactive would erase Prism 2's neutral unchecked edge and is not what #1423 asks for.
+  ok(rc.tokens['checked.border'] === 'color.interactive.primary.border.rest'
+     && rc.tokens['checked.border.hover'] === 'color.interactive.primary.border.hover'
+     && rc.tokens['checked.border.pressed'] === 'color.interactive.primary.border.pressed',
+    `#1423 radio-control's CHECKED ring binds the INTERACTIVE family per-state (rest=${rc.tokens['checked.border']}, hover=${rc.tokens['checked.border.hover']}, pressed=${rc.tokens['checked.border.pressed']})`);
+  ok(rc.tokens['checked.border'] !== 'color.field.border.rest'
+     && rc.tokens['checked.border.hover'] !== 'color.field.border.hover'
+     && rc.tokens['checked.border'] !== rc.tokens['unchecked.border'],
+    `#1423 radio-control's CHECKED ring is NOT the field-border role and DIFFERS from the unchecked ring (checked=${rc.tokens['checked.border']}, unchecked=${rc.tokens['unchecked.border']}) — the recolor, not a fully-constant-color ring`);
+  ok(rc.tokens['unchecked.border'] === 'color.field.border.rest'
+     && rc.tokens['unchecked.border.hover'] === 'color.field.border.hover',
+    `#1423 radio-control's UNCHECKED ring STAYS the neutral field-border edge (rest=${rc.tokens['unchecked.border']}, hover=${rc.tokens['unchecked.border.hover']}) — Prism 2's grey selected=false ring`);
+  // …and the recolored CHECKED ring keeps a live SC 1.4.11 3:1 contract as a graphical object on the page.
+  // The interactive border role is gated against `background.primary` at `nonTextMin` (modes.ts `iBorder`,
+  // rated to clear it), so the role's own measured ratio IS the ring-vs-page ratio. Measured live via
+  // resolveAllModes (independent of the def) across the example brands × every mode — the same sweep #1349 uses.
+  // Read defensively — a mutation reverting the rebind may DROP the `pressed` key entirely (the pre-#1423
+  // field-border ring had none), and this sweep must not crash on it: the by-name EQUALS/NOT assertions
+  // above are what fire on the revert (docs/34 rule 4), while this sweep proves the bound roles clear 3:1.
+  const ringInkRoles = ['checked.border', 'checked.border.hover', 'checked.border.pressed']
+    .map((k) => rc.tokens[k])
+    .filter((v): v is string => v !== undefined)
+    .map((v) => v.replace(/^color\./, ''));
+  let ringRatios = 0;
+  for (const id of EXAMPLE_IDS) {
+    for (const M of resolveAllModes(brandTheme(exampleBrands()[id] as BrandInput))) {
+      for (const roleName of ringInkRoles) {
+        const role = (M.roles as Record<string, { ratio?: number; min?: number } | undefined>)[roleName];
+        ok(!!role && typeof role.ratio === 'number' && role.ratio >= 3,
+          `#1423 radio-control: ${id}/${M.mode} recolored checked ring (${roleName}) clears 3:1 as a graphical object (ratio ${role?.ratio})`);
+        ringRatios++;
+      }
+    }
+  }
+  // Floor is the FULL expected shape (3 checked-ring states × every brand × every mode), a literal 3 rather
+  // than `ringInkRoles.length` so a revert that drops the `pressed` rung fails this by name too — an empty or
+  // short sweep is not a quiet pass (docs/34 shape 9).
+  ok(ringInkRoles.length === 3 && ringRatios >= EXAMPLE_IDS.length * 3,
+    `#1423 radio-control: the 3:1 ring sweep ran over all 3 checked-ring states × every brand×mode (roles ${ringInkRoles.length}, measured ${ringRatios} ratios, not an empty or short set)`);
 
   // MUTATION-BY-NAME (docs/34): reverting to the pre-split FILLED DISC — a checked.fill binding plus the
   // fill slot back on the control — is the exact regression #1348 undoes. With the def mutated inline to

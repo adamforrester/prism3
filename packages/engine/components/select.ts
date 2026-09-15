@@ -66,21 +66,27 @@
  *
  * ── ROLES REUSED, VERSION ────────────────────────────────────────────────────────────────────────
  *
- * Every binding is an EXISTING semantic role (`field.border.*`, `border.focus`, `border.danger`,
+ * Almost every binding is an EXISTING semantic role (`field.border.*`, `border.focus`, `border.danger`,
  * `field.fill`, `field.placeholder`, `text.primary`, `icon.primary`, `focus.ring.*`, the cross-cutting
- * `disabled.*`). No new emitted token name, so `CONTRACT_VERSION` stands at 10.0.0. `ENGINE_VERSION`
- * moves for the changed projected surface (#1252's case).
+ * `disabled.*`). The ONE new emitted name is `size.target` (#1437, below), so `CONTRACT_VERSION` moves to
+ * 10.1.0 (a MINOR add); `ENGINE_VERSION` moves for the changed projected surface (#1252's case).
  *
- * ── #1426 QA FIXES (2026-09-15) ──────────────────────────────────────────────────────────────────
+ * ── #1426 QA FIXES (2026-09-15, all four owner-decided) ──────────────────────────────────────────
  *
- * Two decision-free fixes from the plugin-import QA, neither moving a token name (CONTRACT holds at
- * 10.0.0; ENGINE moves for the projected surface — the caret geometry and the new boolean):
- *   1. The trailing chevron pins to the field's RIGHT EDGE via the control's `space-between`, rather than
- *      tracking the value width (`content` fills in code but hugs in Figma, #989 — see the `control` part).
- *   2. `showMessage` — a node-visibility boolean (#1412) that hides the composed FieldMessage entirely
- *      (see `props`, the `message` part's `optional`, and `figmaProperties.booleans`).
- * (Two further #1426 items — the control-height hit-target token and exposing the composed FieldLabel's
- * properties — carry design decisions and are held for the owner, tracked separately.)
+ * Four fixes from the plugin-import QA:
+ *   1. CARET PINNED RIGHT. The trailing chevron pins to the field's RIGHT EDGE via the control's
+ *      `space-between`, rather than tracking the value width (`content` fills in code but hugs in Figma,
+ *      #989 — see the `control` part). No token move.
+ *   2. `showMessage` BOOLEAN. A node-visibility boolean (#1412) that hides the composed FieldMessage
+ *      entirely (see `props`, the `message` part's `optional`, and `figmaProperties.booleans`). A component
+ *      prop, not a token — no CONTRACT move.
+ *   3. 44px INTERACTIVE FLOOR (#1437). The control binds `size.target` = `max(size.md.height, 44)` instead
+ *      of the plain `size.md.height` rung, so it meets the WCAG 2.5.5 enhanced target at every density (the
+ *      rung was 36px on a compact brand). `size.target` is a NEW guaranteed emitted name → `CONTRACT_VERSION`
+ *      10.0.0 → 10.1.0 (MINOR add). See the `min-height` binding.
+ *   4. EXPOSE THE FIELD-LABEL (#1438). The nested `field-label` is now `nest-exposed`: its label text,
+ *      required marker and size/emphasis/weight surface on the select (see the `label` part). A projected-
+ *      surface change, no token move.
  *
  * ── LEADING GLYPH: A NODE-VISIBILITY BOOLEAN, NOT A VARIANT AXIS (#1331) ───────────────────────────
  *
@@ -182,9 +188,15 @@ export const select: ComponentDef = {
   tokens: {
     // ── GEOMETRY ─────────────────────────────────────────────────────────────────────────────────
     'radius': 'radius.sm',
-    // The control's single-line height (44 on nb) — bound as a fixed height, since the value is one
-    // ellipsized line (`text-field` binds the same rung for its medium control).
-    'min-height': 'size.md.height',
+    // The control's single-line height, bound as a fixed height (the value is one ellipsized line).
+    // #1437 (owner, 2026-09-15): bound to `size.md.min-height` — the INTERACTIVE TARGET-SIZE FLOOR, not the
+    // plain `size.md.height` rung — so the control meets the 44px WCAG 2.5.5 enhanced target at EVERY
+    // density. `size.md.height` is 44 on a comfortable brand but 36 on a compact one (the QA symptom),
+    // which clears SC 2.5.8 (24) but not the enhanced target; `size.md.min-height` = max(md, 44) lifts the
+    // sub-44 densities and leaves a spacious 56 alone. A field control IS the tap target, so it takes the
+    // floor; small buttons stay the knowing exception below it (owner). text-field keeps `size.md.height`
+    // for now — the family generalization is tracked in #1437.
+    'min-height': 'size.md.min-height',
     'pad-x': 'size.md.padding-x',
     'pad-y': 'size.md.padding-y',
     // The control's internal spacing (value ↔ chevron, and the leading glyph ↔ value).
@@ -271,18 +283,29 @@ export const select: ComponentDef = {
         gap: 'root-gap',
         children: ['label', 'control', 'message'],
       },
-      // THE NESTED LABEL (nest-fixed). An in-flow instance of `field-label`, fixed to Prism2's select
-      // label configuration — small, secondary, regular, rest. Its four projected axes (size, emphasis,
-      // weight, state) are all named in the coordinate, because `nestVariantMatch` requires the
-      // coordinate to account for EVERY axis the member name carries. NOT followed: field-label's `emphasis`
-      // (primary/secondary) and `state` (rest/disabled) are a different vocabulary from select's, so
-      // there is no value to pass through — the label reads at one fixed configuration in Figma, and the
-      // consumer's disabled dimming is a code concern (see codeOnly).
+      // THE NESTED LABEL (nest-exposed, #1438 — owner-decided 2026-09-15). An in-flow instance of
+      // `field-label`, whose properties the consumer drives FROM the select. All four field-label axes
+      // (size, emphasis, weight, state) are named in the `variant` coordinate — the DEFAULT the instance
+      // starts at (Prism2's select label: small / secondary / regular / rest), and `nestVariantMatch`
+      // requires the coordinate to account for EVERY axis the member name carries. `expose` surfaces the
+      // three AUTHOR axes (size / emphasis / weight) as consumer-driven exposed nested-instance properties;
+      // marking the instance exposed (`isExposedInstance`) ALSO surfaces field-label's `label` TEXT and
+      // `required` BOOLEAN in Figma — the "label text, required, etc." #1438 asks for, which the fixed nest
+      // could not reach (select had no text/boolean property for the label, so its text sat at field-label's
+      // default and `required` was unreachable). `state` is deliberately NOT exposed: it stays fixed at
+      // `rest`, and the disabled dim is code-driven from the field's context (a designer sets the whole
+      // field disabled, not the label alone — see codeOnly). NOT `follow`ed either: field-label's vocabulary
+      // is a different one from select's, so there is no host axis to pass through — exposure lets the
+      // consumer drive the child directly, which is the mechanism `follow` is not.
+      //
+      // GENERALIZES TO EVERY FIELD-LABEL COMPOSER (#1438): text-field and the checkbox/switch rows compose
+      // field-label the same way and would expose it identically. Scoped to select here per the owner; the
+      // family rollout is tracked in #1438.
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-fixed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' } },
-        note: 'The accessible name, composed rather than re-declared. Fixed to the select label configuration (small / secondary / regular); a fix to FieldLabel reaches here without a copy.',
+        nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts at the select default (small / secondary / regular).',
       },
       // THE CONTROL — the bordered, interactive box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill and border (`paintSlots`); fills the column width

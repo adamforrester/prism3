@@ -14389,6 +14389,18 @@
               "px": 8
             }
           }
+        },
+        "min-height": {
+          "$type": "dimension",
+          "$value": "{ads.core.dimension.44}",
+          "$description": "size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height 36, 44) = 44px",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "ads.core.dimension.44",
+              "px": 44
+            }
+          }
         }
       },
       "lg": {
@@ -14763,7 +14775,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.88.0",
+      "version": "0.90.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

@@ -2429,46 +2429,52 @@
  * EQUALS the disabled ICON role and is NOT `color.disabled.border`, and re-measures the resolved ratio ≥3
  * across the corpus × every mode via resolveAllModes — so a revert to the old darker binding fails a NAMED
  * assertion rather than shipping the heavier edge again.
- *
- * 0.88.0 — two decision-free `select` QA fixes from the plugin-import review (#1426, owner-filed `engine`).
- * ENGINE MINOR on #1252's decision: the PROJECTED component surface moves (the control's main-axis
- * distribution, and a new node-visibility boolean), and no emitted token path moves, so CONTRACT STANDS at
- * 10.0.0.
- *   (1) CARET PINNED RIGHT. The control's `justify` goes `start` → `space-between`, so the trailing chevron
- *       sits at the field's right edge at every value length rather than tracking the value string. The bug
- *       was projection-shaped: `content` (value row) declares `sizing: 'fill'`, which the engine maps to
- *       AUTO/HUG (#989), so in Figma it hugged its text and a `start` control let the chevron follow it.
- *       `space-between` distributes the two flow children (`content`, the absolute `focusRing` takes no cell)
- *       to the ends. Projects as `primaryAxisAlignItems: SPACE_BETWEEN` at every member.
- *   (2) `showMessage` BOOLEAN. A node-visibility boolean (the #1412 mechanism) that hides the composed
- *       FieldMessage entirely. DEFAULT TRUE (the message is part of the field — the INVERSE direction of
- *       select's leading glyph, matching field-label's `required`), and the FIRST use of the mechanism on a
- *       `nest` part (`present()` keeps any boolean-named part at every member regardless of kind). The
- *       `message` nest gains `optional: true` (the requireOptional half of the mechanism) and a
- *       `figmaProperties.booleans` entry (panel name `message`). No variant multiplication — still 16 members.
- *
- * CONTRACT STANDS at 10.0.0: a boolean is a component PROP, not a token path (`pathsOf` is token names only),
- * and no token name is added, removed or retyped — `token-contract.ts --check` confirms the guaranteed 577
- * unchanged; `--accept` refreshes only the informational `engineVersion` stamp. `lint-component-surface.ts`
- * needs a bump-gated `--accept` (select's projected plan moves: the control's `primaryAxisAlignItems` and the
- * new `message` boolean at every member).
- *
- * NO NEW REFUSAL ARM — both fixes use existing mechanisms (the `space-between` justify value and the #1412
- * boolean projection), adding no schema field and no refusal, so only BEHAVIOR mutations are owed. BEHAVIOR
- * mutations (docs/34), in `test.ts`'s #1426 block: (a) the chevron pin — the control projects
- * `primaryAxisAlignItems: SPACE_BETWEEN`, and reverting `justify` to `start` flips it to `MIN` by name; (b)
- * the boolean — the `message` node is emitted at every member with `visible:true` driven by `message`, and
- * dropping the boolean drops the (now-optional) nest from every member (the boolean is its sole presence
- * mechanism), each flipping a NAMED assertion.
- *
- * TWO further #1426 items are HELD for the owner as genuine design forks, tracked as their own issues rather
- * than smuggled in here: the control-height hit-target token (select binds `size.md.height`, 36px on a
- * compact-density brand — forcing the 44px enhanced target contradicts the documented density philosophy and
- * needs a new density-invariant token, a token-tier decision) and exposing the composed FieldLabel's
- * properties (the `nest-exposed` mechanism exposes AXES, and doing so would surface the size/emphasis/weight
- * axes select deliberately FIXES — a posture reversal that generalizes to every field-label composer).
  */
-export const ENGINE_VERSION = '0.88.0';
+/**
+ * 0.88.0 — radio-control's OUTER SELECTION RING rebinds from the field-border colour to the INTERACTIVE
+ * family on select (#1423, owner-triaged `engine`, decision-free — Prism 2 is the oracle). A pure
+ * component-binding change, so ENGINE MINOR (the emitted paint moves at the checked coordinate). The same
+ * shape as the #1349 button rebind: a role rebind, no new token NAME.
+ *
+ * OLD → NEW: the decomposed def (#1348) bound `color.field.border.*` at BOTH selections — a fully
+ * constant-colour ring — on the reading that "the ring stays constant" meant colour as well as weight. QA
+ * of the Figma import (2026-09-15) found that left a SELECTED radio's ring grey where Prism 2 ships it
+ * brand (spec: unchecked #82899D, checked #1E1EFF / hover #0812C3 / active #090A83). The CHECKED ring now
+ * binds `color.interactive.primary.border.{rest,hover,pressed}` — per-state, the interactive family's full
+ * ladder, including a `pressed` rung the field-border family does not emit. The UNCHECKED ring KEEPS the
+ * neutral `color.field.border.*` (Prism 2's static grey `selected=false` edge), so selection now recolours
+ * the ring as well as adding the inner dot. The border WEIGHT is unchanged — one constant 2px key.
+ *
+ * CONTRAST: the interactive border role is gated against the page (`background.primary`) at `nonTextMin`
+ * (modes.ts `iBorder`, rated to clear it), so the recoloured checked ring rides a live ≥3 SC 1.4.11
+ * graphical-object contract in every mode — verified live via resolveAllModes across the example brands ×
+ * every mode (`test.ts` #1423). The unchecked ring is unchanged, so its contract is untouched.
+ *
+ * CONTRACT STANDS at 10.0.0. `color.interactive.primary.border.*` and `color.field.border.*` all remain
+ * emitted (the latter still bound by unchecked here and by text-field / select / the other *-control defs),
+ * so no guaranteed token NAME is added, removed or retyped — one component swaps which existing role its
+ * checked ring references. `token-contract.ts --check` confirms the guaranteed surface unchanged; `--accept`
+ * refreshes only the informational `engineVersion` stamp. `lint-component-surface.ts` needs a bump-gated
+ * `--accept` (radio-control's checked coordinate now paints the interactive border variables, and adds a
+ * `pressed` paint) and `paint-census` moves with it (the census records which variable each coordinate
+ * paints, and this coordinate's variable changed).
+ *
+ * NO NEW REFUSAL ARM — a pure token rebind adds no schema field and no refusal, so only a BEHAVIOR mutation
+ * is owed. BEHAVIOR mutation (docs/34): `test.ts`'s #1423 arm pins that the CHECKED ring role EQUALS the
+ * interactive role per-state and is NOT `color.field.border.*`, that the UNCHECKED ring stays neutral, and
+ * re-measures the resolved ratio ≥3 across the corpus × every mode — so reverting the bind back to
+ * `field.border.*` fails a NAMED assertion rather than the ring silently going grey again. #1348's arm (3c)
+ * dropped its colour-equality clause (it now pins the constant WEIGHT only, the half of "constant border"
+ * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
+ */
+/**
+ * 0.90.0 — #1426 `select` QA, owner-decided (2026-09-15). FOUR fixes now land together (0.89.0 is #1347's
+ * MAJOR rename, serialized ahead of this): the caret pin + hideable message shipped in the first pass, and
+ * the owner has since decided the two held forks — bind the control to a 44px INTERACTIVE FLOOR (#1437) and
+ * EXPOSE the composed FieldLabel's properties (#1438). This entry is completed alongside the implementation
+ * below; see `docs/00-progress.md` for the full record.
+ */
+export const ENGINE_VERSION = '0.90.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -2867,8 +2873,20 @@ export const ENGINE_VERSION = '0.88.0';
  * counterparts for border's other seven roles, which land INSIDE a container that now exists. The
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
+ *
+ * 10.1.0 — ADD `size.md.min-height`, the interactive target-size floor (#1437, owner-decided 2026-09-15). ONE
+ * new guaranteed dimension path: `<root>.size.md.min-height` = `max(size.md.height, AAA_TARGET_PX)` = the `md`
+ * control height raised to the WCAG 2.2 SC 2.5.5 enhanced 44px target wherever a dense brand falls below it (a
+ * FLOOR, so a spacious 56 stays 56). Emitted unconditionally by every corpus brand, so it lands in the
+ * GUARANTEED intersection, not `brandDependent`. ADD, so MINOR — 10.0.0 → 10.1.0 (adding a path never forces a
+ * MAJOR; `brandDependent` is untouched; nothing is removed or retyped). Placed inside the existing `size.md`
+ * group rather than as a new top-level `size.*` key, so the rung-iterating gates are unaffected. Bound by
+ * `select` (#1426) so a field control meets the enhanced target at every density; the family generalization
+ * (text-field, the checkbox/switch rows) is tracked in #1437 and does not move the contract further (they
+ * would bind the same existing name). `token-contract.ts --accept` records it and refuses unless
+ * `CONTRACT_VERSION` was raised by exactly this MINOR first. (guaranteed +1)
  */
-export const CONTRACT_VERSION = '10.0.0';
+export const CONTRACT_VERSION = '10.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
