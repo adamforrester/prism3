@@ -60,6 +60,43 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.90.0: the `controlShape` FORM lever gains two fixed off-ramps — `boxed` (binds `radius.none`, sharp 0px)
+ *   and `hairline` (binds `radius.hairline`, the 1px sentinel #1362) — for the four-way set Boxed · Hairline ·
+ *   Rounded · Pill (#1371, owner-decided 2026-09-15). 0.90.0 and not 0.89.0 because this merged onto post-#1347
+ *   main, which took 0.89.0 — the next free ENGINE above it. Projected-surface move (a pill-able control's
+ *   corner rebinds under the new shapes); no corpus brand sets it, so committed `out/` moves only its version
+ *   stamp. `hairline` implies the opt-in hairline rung (`brandTheme` provisions it); `boxed` needs no coupling.
+ *   Full docblock beside the constant. CONTRACT stands at 10.0.0 (a lever, no guaranteed name moves).
+ *
+ * 0.89.0: the checkbox family adopts Prism 2's naming AND builds the group (#1347, OPTION B, owner-decided
+ *   2026-09-15). 0.89.0 and not 0.88.0 because this rebased onto post-#1423 main, which took 0.88.0 for the
+ *   radio-control ring rebind (see the 0.88.0 entry below) — the next free ENGINE above it. Two
+ *   projected-surface moves:
+ *   (1) RENAME `checkbox` → `checkbox-row`. The labelled Row def keeps its behaviour verbatim; only its
+ *       `id` (and `name` → `Checkbox.Row`) change, so its projected member set is byte-identical (3 size
+ *       members) and the baselines rename the KEY, not the digest. `checkbox-control` is unchanged;
+ *       `radio`/`switch` repoint `inherits: 'checkbox'` → `'checkbox-row'`.
+ *   (2) ADD `checkbox-group` — a `field-label` above a stack of `checkbox-row`s, built from Prism 2's
+ *       specs. It nests the already-collapsed Row (`checkbox-row` projects size-only since #1330), so the
+ *       group does NOT inherit the control's 54-member explosion — the nest chain is four deep
+ *       (`focus-ring` ← `checkbox-control` ← `checkbox-row` ← `checkbox-group`), the corpus's deepest.
+ *       Projects a SIZE-only 3-member set; paints nothing of its own (its ink is the nested children's).
+ *
+ *   ENGINE and NOT CONTRACT, on #1252: the PROJECTED component surface moves (a renamed def, a new def),
+ *   but NO emitted TOKEN NAME is added, removed or retyped — a component `id` is not in the versioned
+ *   token contract (`schema/token-contract.json` is the emitted token-name surface; docs/30). So
+ *   `CONTRACT_VERSION` STANDS at 10.0.0 — `token-contract.ts --check` reports `level: none` (guaranteed set
+ *   unchanged) and `--accept` refreshes only the informational `engineVersion` stamp. The #1347 brief
+ *   called for a MAJOR CONTRACT bump to 11.0.0; that premise is a misread of what the contract covers
+ *   (component prop/id names are explicitly out of it, docs/30) and is CORRECTED here rather than
+ *   fabricated — full note in `docs/00-progress.md`. `regen --check` moves each artifact's own generator
+ *   stamp (0.87.0 → 0.88.0); `lint-emission-version` is green (no emission-VALUE change — the token layer is
+ *   untouched). `lint-component-surface` re-`--accept`ed (the `checkbox` baseline key → `checkbox-row`, plus
+ *   a new `checkbox-group` entry); `lint-paint` census likewise re-`--accept`ed. Several composition-model
+ *   choices Prism 2 does not settle (group-level error visual, inter-row gap, select-all, variable row
+ *   count, the group `size` axis) are HELD and surfaced for owner decision rather than invented — see
+ *   `checkbox-group.ts` and `docs/00-progress.md`.
+ *
  * 0.82.0: checkbox-control inner-glyph calibration (#1346, both items owner-triaged). Two changes:
  *   (1) The check/dash are inset to 0.80 of the control box. QA read them slightly large; before this the
  *       `mark`/`dash` frames bound the FULL box and drew the artwork's own ~71% grid inset, so the check
@@ -2468,10 +2505,11 @@
  * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
  */
 /**
- * 0.90.0 — #1426 `select` QA, all FOUR fixes, owner-decided (2026-09-15). ENGINE MINOR (the projected surface
+ * 0.92.0 — #1426 `select` QA, all FOUR fixes, owner-decided (2026-09-15). ENGINE MINOR (the projected surface
  * moves on all four) and — uniquely for this lane — a CONTRACT MINOR too (10.1.0, the one new emitted name in
- * #1437). 0.89.0 is left for #1347's MAJOR rename, serialized ahead of this per the orchestrator; the
- * next-free integer above main's 0.88.0 (#1423) is 0.90.0.
+ * #1437). Serialized LAST behind the lanes that landed on main first — #1347 (0.89.0, checkbox-row rename),
+ * #1371 (0.90.0, control-shape off-ramps) and #1368 (0.91.0, face pin) — so this takes the next free integer
+ * above main's 0.91.0: 0.92.0.
  *   (1) CARET PINNED RIGHT. The control's `justify` goes `start` → `space-between`, so the trailing chevron
  *       sits at the field's right edge at every value length rather than tracking the value string
  *       (`content` fills in code but hugs in Figma, #989). Projects `primaryAxisAlignItems: SPACE_BETWEEN`.
@@ -2503,7 +2541,86 @@
  * `--accept` (select's plan moves: `primaryAxisAlignItems`, the `message` boolean, the `min-height` binding,
  * the label's `nestExpose`); `paint-census` is unchanged (no paint moved).
  */
-export const ENGINE_VERSION = '0.90.0';
+/**
+ * 0.91.0 — a text CATEGORY may PIN a VERBATIM FACE per weight-role slot (#1368, owner-resolved the
+ * three type-model forks 2026-09-15). `typography.faces.<category>.<weightRole> = { family, style }`
+ * names the exact Figma face a slot binds, OVERRIDING the numeric-weight → style-name derivation, so a
+ * WIDTH cut the weight axis can't reach (NB's ITC Garamond Std *Light Condensed*, PostScript
+ * `ITCGaramondStd-LtCond`) binds from a brand input at last. ENGINE MINOR: the emitted Figma STYLE of a
+ * pinned composite changes (the baked `fontStyle`), so what a consumer observes moves. (Integer above
+ * 0.90.0 — #1347/#1423 then #1371's control-shape off-ramps landed on main first, taking 0.89.0 and
+ * 0.90.0; this lane rebased onto each and takes the next free integer.)
+ *
+ * THE FORK, AS THE OWNER RESOLVED IT. (i) The pin is `{family, style}`, not fontStyle-only — resolved to
+ * Figma's family + style. (ii) It is a per-(category, weight-role) SLOT pin, not a broad map: the
+ * mechanism generalizes (any slot a category ships can name a face) but is populated one slot at a time;
+ * NB pins display/subtle and title/subtle only, a single Light cut each, so there is NO multi-weight
+ * condensed sub-family here. (iii) The numeric `fontWeight` variable still follows the slot's weight-role
+ * numeric (Light = 300 = NB's subtle), staying truthful — only the STYLE drives the Figma text. `family`
+ * MUST equal the category's bound family: the Text Style binds `fontFamily` to the `font.family.<cat>`
+ * variable and the write lane loads `fontName.family` FROM that variable (`write-plan.ts`
+ * `fontFamilyPrimary`), so a divergent family would be silently dropped at the host — `buildComposites`
+ * refuses it instead.
+ *
+ * CONTRACT STANDS at 10.0.0. A face pin is brandDependent: it adds NO guaranteed token NAME — it changes a
+ * baked style VALUE on existing `type.*` composites and hangs a `$extensions.prism3.facePin` on them; no
+ * path is added, removed or retyped. `token-contract.ts --check` confirms the guaranteed surface unchanged;
+ * `--accept` refreshes only the informational `engineVersion` stamp.
+ *
+ * THE SCHEMA STAYS LEAN — NO GATE CEILING RAISE (owner directive 2026-09-15). The `faces` field is
+ * expressed with OPEN keys (`additionalProperties`, not a 7×5 enumeration) and terse descriptions, and the
+ * pin leaf is `{family, style}` (the optional `postscript` provenance field was dropped as it drove
+ * nothing), so `tools/list` stays under its existing 60,000-char ceiling — no bump to that gate.
+ *
+ * NEW REFUSAL ARMS (docs/34 — a refusal owes its own by-name mutation test). `buildComposites` throws by
+ * name on: a pin on an unbound category, a weight-role the category does not ship, a malformed/empty
+ * {family, style}, and a family that diverges from the category's bound family. `test.ts`'s #1368 block
+ * pins each throw AND the positive emission (a brand naming a verbatim face EMITS that family+style — the
+ * host-truth write-plan row carries `fontStyle: 'Light Condensed'` + `fontFamilyPrimary: 'ITC Garamond
+ * Std'`, and the numeric weight stays `subtle`), so deleting the mechanism or a guard fails a NAMED
+ * assertion, not just "the suite goes red".
+ */
+/**
+ * 0.90.0 — the `controlShape` FORM lever gains TWO fixed off-ramps (#1371, owner-decided 2026-09-15):
+ * `boxed` (binds `radius.none`, a fixed 0px / sharp corner, independent of the corner-softness dial) and
+ * `hairline` (binds `radius.hairline`, the fixed 1px sentinel #1362). The complete four-way set is now
+ * Boxed · Hairline · Rounded · Pill. It stays a SEMANTIC model — each value names a relationship to a rung,
+ * never a raw radius — so `rounded` still tracks the softness ramp and `pill` is still the unconditional
+ * height ÷ 2. ENGINE MINOR: adding enum values + their emitted radius bindings moves the PROJECTED COMPONENT
+ * SURFACE for a brand that picks one (the pill-able controls' corner rebinds), which is an observable-surface
+ * change (#1252) even though no corpus brand sets it, so committed `out/` moves only on the `engineVersion`
+ * stamp.
+ *
+ * MECHANISM: `applyControlShape` was generalized from a single `pill`-vs-rest branch to a `CONTROL_SHAPE_RUNG`
+ * map (rounded→identity, pill→`radius.capsule`, boxed→`radius.none`, hairline→`radius.hairline`), still
+ * repointing the ROUNDED rung BY REF (`radius.md`) so it reaches button's `radius` key and icon-button's
+ * `radius.square` key alike and still LEAVES the intrinsic `circular`/switch/radio round rung. `rounded`
+ * remains the IDENTITY, so the default plan is byte-identical.
+ *
+ * THE HAIRLINE↔RUNG COUPLING, decided mechanically (not a UX fork). `radius.hairline` is opt-in — it exists
+ * only with `radiusHairline` on — so `controlShape: hairline` would otherwise bind a rung a brand never
+ * provisioned and dangle. `brandTheme` couples them: choosing the shape IMPLIES the rung (the same
+ * `radiusHairline` local that `buildDims` already threads is OR'd with `controlShape === 'hairline'`), so the
+ * binding always resolves. `boxed` needs no coupling — `radius.none` is the ramp floor, always emitted.
+ *
+ * CONTRACT STANDS at 10.0.0. `controlShape` is a LEVER, not a token name, so widening its enum adds no
+ * guaranteed name; `radius.none` was already emitted and `radius.hairline` is `brandDependent` (opt-in, never
+ * a guaranteed name) — so no guaranteed token NAME is added, removed or retyped. `token-contract.ts --check`
+ * confirms the guaranteed surface unchanged; `--accept` refreshes only the informational `engineVersion` stamp.
+ *
+ * NO NEW REFUSAL ARM — the enum simply admits two more values (schema `enum` + `brandTheme`'s enumLevers), so
+ * a BEHAVIOR mutation is what is owed. BEHAVIOR mutation (docs/34): `test.ts`'s #1371 arm derives the bound
+ * radius var from the projected PLAN (independent of the `CONTROL_SHAPE_RUNG` map it checks) and pins, by
+ * name, that boxed→`radius/none` and hairline→`radius/hairline` at every size while `circular`/switch/radio
+ * stay `radius/round` — so reverting a map entry fails a NAMED assertion. The coupling arm reads the EMITTED
+ * tree and pins that a brand setting only `controlShape: hairline` still emits `radius.hairline = 1px` while
+ * `boxed` provisions nothing — so dropping the OR flips it. Enum widening is gated both ways (a valid
+ * off-ramp validates clean; garbage is still rejected).
+ *
+ * 0.90.0 and not 0.89.0 because this merged post-#1347 main, which took 0.89.0 for the checkbox-row rename +
+ * checkbox-group build — the next free ENGINE above it (never lower).
+ */
+export const ENGINE_VERSION = '0.92.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

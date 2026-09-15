@@ -67,7 +67,7 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 **The root part is named for its role, never `root`.** The anatomy's `root` field names the
 part every other part hangs beneath, and the corpus names that part semantically: `container`
 for button, icon-button and select (`packages/engine/components/select.ts`); `row` for
-checkbox, radio and switch; `label` for field-label; `message` for field-message; `ring` for
+checkbox-row, radio and switch; `label` for field-label; `message` for field-message; `ring` for
 focus-ring; `glyph` for icon; `frame` for image-placeholder; `wash` for veil. A bare `root`
 misdescribes the part — a column stack is a `container`, not a `row` — so pick the existing
 key that fits the shape rather than inventing one.
@@ -99,7 +99,7 @@ fact about the design (the def declares it). Three kinds:
   parent as Figma exposed nested-instance properties (and as React props, `.ai.json` options,
   Storybook controls) rather than the parent re-enumerating them into its own variant matrix. An
   exposed axis is the consumer's and a followed axis is the host's, so the two lists are disjoint —
-  the validator refuses an axis in both. The checkbox Row is the worked example: it nests
+  the validator refuses an axis in both. The `checkbox-row` def is the worked example: it nests
   `checkbox-control` `nest-exposed`, exposing `selection` + `state` and `follow`ing its own `size`,
   which collapses the Row's Figma set from 54 members (3 selections × 3 sizes × 6 states, mirroring
   the atom) to 3.

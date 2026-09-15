@@ -68,8 +68,8 @@
  *
  * Almost every binding is an EXISTING semantic role (`field.border.*`, `border.focus`, `border.danger`,
  * `field.fill`, `field.placeholder`, `text.primary`, `icon.primary`, `focus.ring.*`, the cross-cutting
- * `disabled.*`). The ONE new emitted name is `size.target` (#1437, below), so `CONTRACT_VERSION` moves to
- * 10.1.0 (a MINOR add); `ENGINE_VERSION` moves for the changed projected surface (#1252's case).
+ * `disabled.*`). The ONE new emitted name is `size.md.min-height` (#1437, below), so `CONTRACT_VERSION`
+ * moves to 10.1.0 (a MINOR add); `ENGINE_VERSION` moves for the changed projected surface (#1252's case).
  *
  * ── #1426 QA FIXES (2026-09-15, all four owner-decided) ──────────────────────────────────────────
  *
@@ -80,10 +80,10 @@
  *   2. `showMessage` BOOLEAN. A node-visibility boolean (#1412) that hides the composed FieldMessage
  *      entirely (see `props`, the `message` part's `optional`, and `figmaProperties.booleans`). A component
  *      prop, not a token — no CONTRACT move.
- *   3. 44px INTERACTIVE FLOOR (#1437). The control binds `size.target` = `max(size.md.height, 44)` instead
- *      of the plain `size.md.height` rung, so it meets the WCAG 2.5.5 enhanced target at every density (the
- *      rung was 36px on a compact brand). `size.target` is a NEW guaranteed emitted name → `CONTRACT_VERSION`
- *      10.0.0 → 10.1.0 (MINOR add). See the `min-height` binding.
+ *   3. 44px INTERACTIVE FLOOR (#1437). The control binds `size.md.min-height` = `max(size.md.height, 44)`
+ *      instead of the plain `size.md.height` rung, so it meets the WCAG 2.5.5 enhanced target at every density
+ *      (the rung was 36px on a compact brand). `size.md.min-height` is a NEW guaranteed emitted name →
+ *      `CONTRACT_VERSION` 10.0.0 → 10.1.0 (MINOR add). See the `min-height` binding.
  *   4. EXPOSE THE FIELD-LABEL (#1438). The nested `field-label` is now `nest-exposed`: its label text,
  *      required marker and size/emphasis/weight surface on the select (see the `label` part). A projected-
  *      surface change, no token move.
@@ -511,7 +511,7 @@ export const select: ComponentDef = {
 
   composition: {
     composesWith: ['field-label', 'field-message', 'focus-ring', 'icon', 'form'],
-    alternativeTo: ['text-field', 'combobox', 'radio', 'checkbox', 'segmented-control', 'menu'],
+    alternativeTo: ['text-field', 'combobox', 'radio', 'checkbox-group', 'segmented-control', 'menu'],
     supersedes: ['a bare <select> with no label wiring', 'placeholder-as-label'],
     // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by
     // intent and scale, not replacements.

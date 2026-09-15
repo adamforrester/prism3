@@ -57,11 +57,11 @@
  *
  * ── `inherits`, AND A LIMIT OF THE FIELD THAT RADIO IS THE FIRST TO MEET ────────────────────────────
  *
- * `inherits: 'checkbox'`. The brief's §15 states `inherits: [text-field, checkbox]` — **a chain** — and
- * `ComponentDef.inherits` is a single string, so the chain cannot be written down. The nearest parent is
- * named and the rest is this sentence: the form-field substrate (`description`/helper, `error`, the
- * `aria-describedby` wiring, `name`/`id`/`required`/`disabled`/`readOnly`) reaches this def *through*
- * `checkbox`, along with checkbox's own row shape — the rich-content label that doubles as the hit
+ * `inherits: 'checkbox-row'` (renamed from `checkbox`, #1347). The brief's §15 states
+ * `inherits: [text-field, checkbox]` — **a chain** — and `ComponentDef.inherits` is a single string, so the
+ * chain cannot be written down. The nearest parent is named and the rest is this sentence: the form-field
+ * substrate (`description`/helper, `error`, the `aria-describedby` wiring, `name`/`id`/`required`/`disabled`/`readOnly`)
+ * reaches this def *through* `checkbox-row`, along with the Row's own shape — the rich-content label that doubles as the hit
  * target, top-baseline alignment, and native DOM naming.
  *
  * As on `textarea` and `checkbox`, **nothing in the engine resolves `inherits`**: it is prose for a
@@ -98,7 +98,7 @@ export const radio: ComponentDef = {
   aliases: ['radio-button', 'radio-group', 'option', 'choice-list'],
   category: 'form',
   status: 'draft',
-  inherits: 'checkbox',
+  inherits: 'checkbox-row',
   description:
     'A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. This def is the labelled OPTION: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is MANDATORY, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox), not an immediate on/off (Switch), not the same choice collapsed (Select) or in a compact skin (Segmented Control).',
 
@@ -338,7 +338,7 @@ export const radio: ComponentDef = {
 
   composition: {
     composesWith: ['radio-control', 'field-label', 'field-message', 'focus-ring', 'icon', 'form'],
-    alternativeTo: ['checkbox', 'switch', 'select', 'segmented-control', 'toggle-button'],
+    alternativeTo: ['checkbox-row', 'switch', 'select', 'segmented-control', 'toggle-button'],
     supersedes: [
       'a set of checkboxes misused for a mutually exclusive choice',
       'a bare <input type="radio"> set with no group label',

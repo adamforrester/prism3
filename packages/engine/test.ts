@@ -51,7 +51,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radioControl, radio, switchControl, switchDef, select } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioControl, radio, switchControl, switchDef, select } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -239,6 +239,67 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
       ok(false, `every-example-compiles: ${file} builds cleanly — ${(e as Error).message}`);
     }
   }
+}
+
+// ── #1368 — VERBATIM FACE PIN (typography.faces) ──────────────────────────────────────
+// A (category, weight-role) slot may name the exact Figma face { family, style } it binds, OVERRIDING
+// the numeric-weight → style-name derivation, so a WIDTH cut the weight axis can't reach (NB's ITC
+// Garamond Std *Light Condensed*) binds from a brand input. This block is the mechanism's regression.
+// Independence (docs/34): the oracle is the engine's own build — the emitted Figma Text Style and the
+// host-truth write-plan row (exactly what materialise-to-figma feeds `fontName = {family, style}`), not
+// a recorded number — so deleting the mechanism, or any one refusal guard, fails HERE by NAME.
+{
+  const pinBase: BrandInput = {
+    id: 'facepin', primary: { l: 0.55, c: 0.16, h: 25 }, neutral: { hue: 25, chroma: 0.01 }, modes: ['light'],
+    typography: {
+      families: { display: 'ITC Garamond Std', title: 'ITC Garamond Std' },
+      weights: { display: ['subtle'], title: ['subtle'] },
+      faces: { display: { subtle: { family: 'ITC Garamond Std', style: 'Light Condensed' } } },
+    },
+  };
+  const theme = brandTheme(pinBase);
+  // (a) EMISSION — the DTCG composite carries the pin; the Figma Text Style bakes the pinned STYLE.
+  const tree = buildTree(theme).tree as any;
+  const root = Object.keys(tree)[0];
+  const dispLeaf = tree[root].type.display.md.subtle;   // a display/subtle composite
+  ok(dispLeaf?.$extensions?.prism3?.facePin?.style === 'Light Condensed'
+    && dispLeaf?.$extensions?.prism3?.facePin?.family === 'ITC Garamond Std',
+    `#1368(a): the pinned display composite carries facePin {family,style} (got ${JSON.stringify(dispLeaf?.$extensions?.prism3?.facePin)})`);
+  const styles = buildFigmaTextStyles(theme).styles;
+  const dispStyle = styles.find((s) => s.name === 'display/md/subtle');
+  ok((dispStyle?.properties.fontStyle as any)?.value === 'Light Condensed',
+    `#1368(a): the display/md/subtle Text Style bakes fontStyle='Light Condensed' (got ${JSON.stringify((dispStyle?.properties.fontStyle as any)?.value)})`);
+  // (b) HOST-TRUTH — the write-plan row is what the plugin loads/sets as fontName. family comes FROM the
+  // bound font/family/* variable, so pin.family reaching the host proves the family-match invariant too.
+  const rows = buildTextStylePlan(theme);
+  const dispRow = rows.find((r) => r.name === 'display/md/subtle');
+  ok(dispRow?.fontStyle === 'Light Condensed' && dispRow?.fontFamilyPrimary === 'ITC Garamond Std',
+    `#1368(b): host-truth row = {family:'ITC Garamond Std', style:'Light Condensed'} (got {family:${JSON.stringify(dispRow?.fontFamilyPrimary)}, style:${JSON.stringify(dispRow?.fontStyle)}})`);
+  // (c) TRUTHFUL NUMERIC — the slot still binds its weight-role numeric (Light = subtle = 300); the pin
+  // moves the STYLE only, never the weight.
+  ok(/font\/weight-role\/subtle$/.test(dispRow?.fontWeightVar ?? ''),
+    `#1368(c): the pinned slot still binds the subtle weight-role numeric, untouched (got ${dispRow?.fontWeightVar})`);
+  // (d) SLOT-SCOPED — an UNPINNED category derives its style from the weight as before (not pinned).
+  ok((styles.find((s) => s.name === 'title/md/subtle')?.properties.fontStyle as any)?.value === 'Light',
+    `#1368(d): an unpinned category (title) still derives fontStyle from the weight ('Light'), proving the pin is per-slot`);
+  // (e) NB seed EMITS it — the real brand that motivated #1368 now binds the condensed cut engine-side.
+  {
+    const nb = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input);
+    const nbRow = buildTextStylePlan(nb).find((r) => /^display\/.+\/subtle$/.test(r.name));
+    ok(nbRow?.fontStyle === 'Light Condensed' && nbRow?.fontFamilyPrimary === 'ITC Garamond Std',
+      `#1368(e): nb-redesign display/subtle emits ITC Garamond Std / Light Condensed (got {${JSON.stringify(nbRow?.fontFamilyPrimary)}, ${JSON.stringify(nbRow?.fontStyle)}})`);
+  }
+  // (f) REFUSALS — each is a NAMED throw with its own mutation (docs/34: mutate the subject, confirm the
+  // guard fires by name). Delete a guard and its assertion goes red.
+  const threwPin = (t: BrandInput['typography']): string => { try { brandTheme({ ...pinBase, typography: t }); return ''; } catch (e) { return (e as Error).message; } };
+  ok(/must match the category's bound family/.test(threwPin({ ...pinBase.typography, faces: { display: { subtle: { family: 'Wrong Family', style: 'Light Condensed' } } } })),
+    '#1368(f): a pin whose family diverges from the category family is REFUSED');
+  ok(/does not ship the 'strong' weight role/.test(threwPin({ ...pinBase.typography, faces: { display: { strong: { family: 'ITC Garamond Std', style: 'Bold Condensed' } } } })),
+    '#1368(f): a pin on a weight-role the category does not ship is REFUSED');
+  ok(/not a category this brand binds a face for/.test(threwPin({ families: { display: 'ITC Garamond Std', code: null }, weights: { display: ['subtle'] }, faces: { code: { subtle: { family: 'X', style: 'Y' } } } } as BrandInput['typography'])),
+    '#1368(f): a pin on an unbound category (code: null) is REFUSED');
+  ok(/needs a non-empty \{ family, style \}/.test(threwPin({ ...pinBase.typography, faces: { display: { subtle: { family: 'ITC Garamond Std', style: '' } } } })),
+    '#1368(f): a malformed pin (empty style) is REFUSED');
 }
 
 
@@ -1350,7 +1411,7 @@ for (const b of brands) {
     // so both read the varying family and both belong here, exactly as checkbox + checkbox-control do.
     // #1348 split `radio` the same way: `radio-control` (the circle/dot, binding control+dot) and the
     // `radio` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's square).
-    const CONTROL_DEFS = ['checkbox-control', 'checkbox', 'radio-control', 'radio', 'switch-control', 'switch'];
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio', 'switch-control', 'switch'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -7650,8 +7711,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `MCP: export_theme is the ONLY non-read-only tool (got: ${writers.join(',') || 'none'})`);
   ok(tools.find((t) => t.name === 'export_theme')?.annotations?.readOnlyHint === false,
     'MCP: export_theme states readOnlyHint:false explicitly rather than omitting it');
-  // The 52KB brand schema is inlined ONCE. Two copies made tools/list ~91,500 chars (~23k tokens) to
-  // discover three tools, and the second copy told a client nothing the first had not.
+  // The brand schema is inlined ONCE. Two copies made tools/list ~91,500 chars (~23k tokens) to
+  // discover three tools, and the second copy told a client nothing the first had not. The 60k ceiling
+  // keeps the MCP surface lean for clients; a new lever fits by COMPRESSION, not by raising it (#1368
+  // `faces`: open keys + a terse description + a `{family, style}` leaf, no schema bloat).
   const listChars = JSON.stringify(tools).length;
   ok(listChars < 60_000, `MCP: tools/list stays under 60,000 chars — the schema is inlined once (${listChars.toLocaleString()})`);
 
@@ -8185,6 +8248,83 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         .filter((v) => !v.startsWith('radius/')).sort();
       ok(JSON.stringify(nonRadius('rounded')) === JSON.stringify(nonRadius('pill')),
         `controlShape: ${id} pill moves ONLY the radius binding — every other bound var is identical to rounded`);
+    }
+
+    // (#1371) THE TWO FIXED OFF-RAMPS — `boxed` (radius.none, a sharp 0px corner) and `hairline`
+    // (radius.hairline, the 1px sentinel #1362). Each names a RELATIONSHIP, not a raw radius, and rides the
+    // SAME generalized mechanism as `pill`: `applyControlShape` repoints the ROUNDED rung BY REF, so a shape
+    // reaches button's `radius` key and icon-button's `radius.square` key alike and LEAVES the intrinsic
+    // `circular` round rung. The SUBJECT is the exported `CONTROL_SHAPE_RUNG` map; the ORACLE is the
+    // projected plan (`radiusBindings`), derived independently of the map (docs/34) — so a wrong or reverted
+    // map entry surfaces as a wrong bound var by name, not as silence.
+    ok(CONTROL_SHAPE_RUNG.rounded === null && CONTROL_SHAPE_RUNG.pill === PILL_RADIUS_RUNG
+      && CONTROL_SHAPE_RUNG.boxed === BOXED_RADIUS_RUNG && BOXED_RADIUS_RUNG === 'radius.none'
+      && CONTROL_SHAPE_RUNG.hairline === HAIRLINE_RADIUS_RUNG && HAIRLINE_RADIUS_RUNG === 'radius.hairline'
+      && ROUNDED_RADIUS_RUNG === 'radius.md',
+      'controlShape: CONTROL_SHAPE_RUNG maps rounded→identity, pill→capsule, boxed→none, hairline→hairline (all off the rounded rung radius.md)');
+    const OFFRAMP: { shape: ControlShape; varName: string }[] = [
+      { shape: 'boxed', varName: 'radius/none' },
+      { shape: 'hairline', varName: 'radius/hairline' },
+    ];
+    for (const { shape, varName } of OFFRAMP) {
+      // THE SQUARE (ROUNDED-RUNG) CASE — button and icon-button's `shape=square` both repoint to the off-ramp.
+      for (const { id, slots } of squareCases) {
+        const d = componentDefs.find((x) => x.id === id)!;
+        const tag = slots.shape ? `/${slots.shape}` : '';
+        for (const size of d.variants?.size ?? []) {
+          const bound = radiusBindings(applyControlShape(d, shape), size, slots);
+          ok(bound.length === 1 && bound[0] === varName,
+            `controlShape: ${id}@${size}${tag} ${shape} binds ${varName} — the fixed off-ramp rung selected BY NAME (${bound.join(', ') || 'none'})`);
+        }
+      }
+      // icon-button's `shape=circular` is an INTRINSIC round rung — the off-ramp leaves it, exactly as pill does.
+      {
+        const ib = componentDefs.find((x) => x.id === 'icon-button')!;
+        for (const size of ib.variants?.size ?? []) {
+          const circ = radiusBindings(applyControlShape(ib, shape), size, { shape: 'circular' });
+          ok(circ.length === 1 && circ[0] === 'radius/round',
+            `controlShape: icon-button@${size}/circular stays radius/round under ${shape} — the intrinsic round rung no shape can reach (${circ.join(', ') || 'none'})`);
+        }
+      }
+      // IDENTITY on the excluded set (switch/radio carry no derivation → the same object back).
+      ok(applyControlShape(switchControl, shape) === switchControl && applyControlShape(radioControl, shape) === radioControl,
+        `controlShape: ${shape} is the IDENTITY on switch-control + radio-control — the excluded set cannot move`);
+      // NARROW: under the off-ramp, ONLY the radius binding moves; every other bound var equals rounded.
+      for (const id of ['button', 'icon-button']) {
+        const d = componentDefs.find((x) => x.id === id)!;
+        const size = (d.variants?.size ?? [])[0];
+        const slots: Record<string, string> = d.variants?.shape ? { shape: 'square' } : {};
+        const nonRadius = (sh: ControlShape) => planBoundVars(figmaAnatomyPlan(applyControlShape(d, sh), size, slots as never).root)
+          .filter((v) => !v.startsWith('radius/')).sort();
+        ok(JSON.stringify(nonRadius('rounded')) === JSON.stringify(nonRadius(shape)),
+          `controlShape: ${id} ${shape} moves ONLY the radius binding — every other bound var is identical to rounded`);
+      }
+    }
+
+    // THE HAIRLINE↔RUNG COUPLING (#1371). `hairline` repoints a control's corner to `radius.hairline` — an
+    // OPT-IN rung (#1362) that exists only with `radiusHairline` on — so choosing the shape must PROVISION
+    // the rung, or the projected `radius/hairline` binding dangles against a brand that never opted in.
+    // `brandTheme` couples them: `controlShape: hairline` IMPLIES the rung. Read the EMITTED tree (the
+    // contract a consumer sees), so this is independent of `applyControlShape`. `boxed`'s `radius.none` is
+    // always present, so it provisions NOTHING — the asymmetry is the point.
+    {
+      const seedHue = { primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } };
+      const radiusOf = (input: object) => { const t = buildTree(brandTheme(input as unknown as BrandInput)).tree; return (t as any)[Object.keys(t)[0]].radius; };
+      const hairShape = radiusOf({ id: 'cshair', ...seedHue, controlShape: 'hairline' });
+      ok(hairShape.hairline?.$extensions?.prism3?.px === 1 && /\.core\.dimension\.1}$/.test(hairShape.hairline?.$value ?? ''),
+        `controlShape: hairline IMPLIES the hairline rung — a brand setting ONLY controlShape:hairline (radiusHairline unset) still emits radius.hairline = 1px (got ${hairShape.hairline?.$value})`);
+      const boxedShape = radiusOf({ id: 'csbox', ...seedHue, controlShape: 'boxed' });
+      ok(boxedShape.hairline === undefined && boxedShape.none?.$extensions?.prism3?.px === 0,
+        `controlShape: boxed provisions NOTHING — radius.none is always emitted (0px) and no hairline rung appears (got hairline=${JSON.stringify(boxedShape.hairline)})`);
+      // The enum values are ACCEPTED by the schema (both halves gate the theme-schema/enumLevers edits): a
+      // valid off-ramp validates clean, and garbage is still rejected — so reverting the enum widening fails
+      // the acceptance arm by name rather than silently narrowing what a brand may write.
+      const seed = { id: 'csval', ...seedHue } as unknown as BrandInput;
+      ok(validateBrandInput({ ...seed, controlShape: 'boxed' } as any).length === 0
+        && validateBrandInput({ ...seed, controlShape: 'hairline' } as any).length === 0,
+        'controlShape: boxed + hairline are ACCEPTED by the schema (the enum was widened)');
+      ok(validateBrandInput({ ...seed, controlShape: 'nope' } as any).length > 0,
+        'controlShape: an unknown shape is still REJECTED — the enum widened, it did not open');
     }
   }
 
@@ -9324,7 +9464,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       { def: button, part: 'label', axes: { size: 2 } },
       { def: buttonDestructive, part: 'label', axes: { size: 2 } },
       { def: buttonNeutral, part: 'label', axes: { size: 2 } },
-      { def: checkbox, part: 'label', axes: { size: 3 } },
+      { def: checkboxRow, part: 'label', axes: { size: 3 } },
       { def: radio, part: 'label', axes: { size: 3 } },
       // TWO, and not a collapse: `switch` declares `size: [small, medium]` only, on its brief's own
       // words ("switches rarely warrant a large"). Two values, two styles — full discrimination over
@@ -11712,8 +11852,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // REPRESENTATION, not a count: checkbox — the one nest-exposed def today — must be IN the derived
         // set. Pins the guarantee the old hard-coded gate gave (checkbox IS covered) without re-hardcoding
         // it, so the day another def joins, coverage widens instead of this line going stale.
-        ok(nestExposedDefs.some((d) => d.id === 'checkbox'),
-          `#1392 the derived nest-exposed set REPRESENTS checkbox (got [${nestExposedDefs.map((d) => d.id).join(', ')}])`);
+        ok(nestExposedDefs.some((d) => d.id === 'checkbox-row'),
+          `#1392 the derived nest-exposed set REPRESENTS checkbox-row (got [${nestExposedDefs.map((d) => d.id).join(', ')}])`);
 
         // docs/34 represented-not-counted SELF-CHECK: prove the derivation keys on the nest-exposed
         // RELATION in the def data, so a SECOND def adopting it (radio/switch, slated) is auto-covered — and
@@ -11721,14 +11861,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // `nest-exposed` in, `nest-fixed` out. Fabricated defs, NOT in the registry, so this measures the
         // predicate rather than re-reading checkbox.
         const synth = (kind: 'nest-fixed' | 'nest-exposed'): ComponentDef => ({
-          ...checkbox,
+          ...checkboxRow,
           id: `synthetic-${kind}`,
           anatomy: {
-            ...checkbox.anatomy,
+            ...checkboxRow.anatomy,
             parts: {
-              ...checkbox.anatomy.parts,
+              ...checkboxRow.anatomy.parts,
               control: {
-                ...checkbox.anatomy.parts.control,
+                ...checkboxRow.anatomy.parts.control,
                 nesting: kind === 'nest-exposed'
                   ? { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest' }, expose: ['selection', 'state'], follow: ['size'] }
                   : { kind: 'nest-fixed', variant: { selection: 'unchecked', state: 'rest' }, follow: ['size'] },
@@ -11739,7 +11879,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         ok(nestExposedPartsOf(synth('nest-exposed')).includes('control'),
           '#1392 the derivation INCLUDES a def whose part declares nest-exposed — a second such def (radio/switch slated) is covered with no gate edit (represented, not counted)');
         ok(nestExposedPartsOf(synth('nest-fixed')).length === 0,
-          '#1392 the derivation EXCLUDES the same def when its part is nest-fixed — it keys on the RELATION, not the def id, so it cannot silently collapse to [checkbox]');
+          '#1392 the derivation EXCLUDES the same def when its part is nest-fixed — it keys on the RELATION, not the def id, so it cannot silently collapse to [checkbox-row]');
 
         // A tiny walker over a plan's node tree, for the offline half of the reachability floor below.
         type PlanNode = AnatomyPlan['root'];
@@ -12710,7 +12850,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `tone` rather than an invented name, because axis NAMES are closed (VARIANT_AXES) and a made-up one
       // fails on that rule instead — which would leave this line green on somebody else's error.
       ibBroke('gating on an axis the def declares but does not PROJECT fails', /gates presence on 'tone', which figmaProperties\.variantAxes does not project/,
-        { ...checkbox, variants: { ...checkbox.variants, tone: ['neutral', 'danger'] }, anatomy: { ...checkbox.anatomy!, parts: { ...checkbox.anatomy!.parts, mark: { ...checkbox.anatomy!.parts.mark, presentWhen: { tone: ['danger'] } } } } } as ComponentDef);
+        { ...checkboxRow, variants: { ...checkboxRow.variants, tone: ['neutral', 'danger'] }, anatomy: { ...checkboxRow.anatomy!, parts: { ...checkboxRow.anatomy!.parts, mark: { ...checkboxRow.anatomy!.parts.mark, presentWhen: { tone: ['danger'] } } } } } as ComponentDef);
       ibBroke('an empty value list fails — satisfied by nothing, so absent everywhere', /gates presence on 'selection' with no values/, cbPart('mark', { presentWhen: { selection: [] } }));
       ibBroke('an undeclared VALUE fails — the coordinate it names does not exist', /gates presence on selection='mixed'/, cbPart('mark', { presentWhen: { selection: ['mixed'] } }));
       // A gate naming every value is a no-op wearing a condition's clothes: it reads as conditional to
@@ -12824,8 +12964,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // pre-existing "binds both 'size' and 'height'" rule as well, and an assertion that passes on either
       // of two errors is not evidence about the one it names.
       ibBroke('a vector binding `height` fails on EITHER axis alone — a glyph artboard is square', /is kind 'vector' but binds 'height'/, cbPart('mark', { size: undefined, height: 'size.{size}.control' }));
-      ok(validateComponentDef(checkbox, nbTree, nbT.root).errors.length === 0,
-        `nesting gate: and the relaxation is real — a NON-root vector binding 'size' validates clean, which is the whole of what #910 changed here (got [${validateComponentDef(checkbox, nbTree, nbT.root).errors.join('; ')}])`);
+      ok(validateComponentDef(checkboxRow, nbTree, nbT.root).errors.length === 0,
+        `nesting gate: and the relaxation is real — a NON-root vector binding 'size' validates clean, which is the whole of what #910 changed here (got [${validateComponentDef(checkboxRow, nbTree, nbT.root).errors.join('; ')}])`);
     }
 
     // ---- can the spike actually RUN? (#342) ---------------------------------------------------
@@ -16347,10 +16487,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // THE OVERRIDE EXISTS AND WORKS, exercised on a synthesised part rather than waiting for `textarea`'s
   // anatomy. An opt-out that ships after the default is an opt-out nobody could have used, so it has to
   // be exercised in the change that introduces the default.
-  const parts = checkbox.anatomy!.parts;
+  const parts = checkboxRow.anatomy!.parts;
   const withPart = (name: string, patch: Record<string, unknown>): ComponentDef => ({
-    ...checkbox,
-    anatomy: { ...checkbox.anatomy!, parts: { ...parts, [name]: { ...parts[name], ...patch } } },
+    ...checkboxRow,
+    anatomy: { ...checkboxRow.anatomy!, parts: { ...parts, [name]: { ...parts[name], ...patch } } },
   } as ComponentDef);
 
   let sawTop = 0, sawCenter = 0;
@@ -16449,7 +16589,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // halves are needed: without this, deleting the box and its wrapper leaves the row-not-centred gate green
 // while the control silently returns to cap height.
 {
-  const selection = componentDefs.filter((d) => ['checkbox', 'radio', 'switch'].includes(d.id));
+  const selection = componentDefs.filter((d) => ['checkbox-row', 'radio', 'switch'].includes(d.id));
   ok(selection.length === 3, `#1201: the three selection controls are present to check (got ${selection.map((d) => d.id).join(', ')})`);
   for (const def of selection) {
     const ps = def.anatomy!.parts;
@@ -16497,6 +16637,42 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(pxOf(nbCtl[rung]['line-box']) > pxOf(nbCtl[rung].height),
       `#1201 nb: control.size.${rung}.line-box (${pxOf(nbCtl[rung]['line-box'])}px) is taller than the control (${pxOf(nbCtl[rung].height)}px), so centring within it is a real first-line inset`);
   }
+}
+
+// ---- #1347: THE CHECKBOX GROUP composes via the ALREADY-COLLAPSED Row, not the atom ----------------
+//
+// #1347 renamed `checkbox` → `checkbox-row` and built `checkbox-group` as a `field-label` above a stack
+// of `checkbox-row`s. The load-bearing property the brief named is that the group nests the ROW (size-only
+// since #1330), never `checkbox-control` (the 54-member atom) directly, and does not re-expose the rows'
+// selection into its OWN matrix — so it inherits the Row's collapse rather than the atom's explosion. Each
+// expected value is derived independently of the projector: the nest targets are read off the anatomy, the
+// member count is a straight multiply of the declared `size` cardinality, and the four-deep chain is walked
+// by `nests`. A mutation that repoints a row nest to the atom, flips it to nest-exposed, or grows the group
+// a new axis fails the NAMED assertion here rather than agreeing with it.
+{
+  const g = componentDefs.find((d) => d.id === 'checkbox-group');
+  ok(!!g, '#1347: checkbox-group is registered in componentDefs');
+  const parts = g!.anatomy!.parts;
+  const rowNests = Object.entries(parts).filter(([, p]) => p.kind === 'nest' && p.nests === 'checkbox-row');
+  ok(rowNests.length >= 2, `#1347: the group nests MULTIPLE checkbox-row instances — a stack (got ${rowNests.length})`);
+  ok(rowNests.every(([, p]) => p.nesting?.kind === 'nest-fixed'),
+    '#1347: every row nest is nest-FIXED — the group does NOT re-expose the rows\' selection as its own properties, which would re-enumerate the matrix the Row collapsed');
+  ok(!Object.values(parts).some((p) => p.kind === 'nest' && p.nests === 'checkbox-control'),
+    '#1347: the group nests checkbox-row, NEVER checkbox-control directly — it composes the collapsed Row so it does not inherit the 54-member atom set');
+  ok(Object.values(parts).filter((p) => p.kind === 'nest' && p.nests === 'field-label').length === 1,
+    '#1347: the group nests exactly one field-label (its heading)');
+  // MEMBER COUNT = product of the declared variant-axis cardinalities (size only), computed here rather
+  // than read off the projector, so a re-exposed child axis or a new group axis moves ACTUAL away from it.
+  const expected = g!.figmaProperties!.variantAxes.reduce((n, a) => n * ((g!.variants as Record<string, string[] | undefined>)[a]?.length ?? 1), 1);
+  const actual = figmaAnatomySet(g!, { swapTarget: 'FPO-default-icon' }).length;
+  ok(expected === 3 && actual === expected,
+    `#1347: the group projects a size-only ${expected}-member set (the Row's collapse inherited, not the atom's explosion) — got ${actual}`);
+  // The nest chain is FOUR deep — group → checkbox-row → checkbox-control → focus-ring — walked by `nests`.
+  const byId = (id: string) => componentDefs.find((d) => d.id === id)!;
+  const nestsOf = (d: ComponentDef): string[] =>
+    Object.values(d.anatomy?.parts ?? {}).filter((p) => p.kind === 'nest' || p.kind === 'absolute').map((p) => p.nests ?? '').filter(Boolean);
+  ok(nestsOf(byId('checkbox-row')).includes('checkbox-control'), '#1347: checkbox-row nests checkbox-control (chain link 2 of the four-deep nest)');
+  ok(nestsOf(byId('checkbox-control')).includes('focus-ring'), '#1347: checkbox-control nests focus-ring (chain link 1) — the group→row→control→ring chain is the corpus\'s deepest');
 }
 
 // ---- #1354: THE SWITCH DECOMPOSITION — four invariants, each pinned independently of the producer ----

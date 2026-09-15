@@ -194,6 +194,14 @@
       "default": "rounded",
       "options": [
         {
+          "value": "boxed",
+          "label": "Boxed"
+        },
+        {
+          "value": "hairline",
+          "label": "Hairline"
+        },
+        {
           "value": "rounded",
           "label": "Rounded"
         },
@@ -202,7 +210,7 @@
           "label": "Pill"
         }
       ],
-      "description": "Corner shape for pill-able controls like buttons. Rounded follows corner softness; pill is a full height ÷ 2, whatever the softness."
+      "description": "Corner shape for pill-able controls like buttons. Boxed is sharp (0px); hairline is a fixed 1px edge; rounded follows corner softness; pill is a full height ÷ 2, whatever the softness."
     },
     {
       "key": "baseMd",

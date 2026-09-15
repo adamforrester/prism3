@@ -391,6 +391,11 @@
             "code": { "type": "array", "items": { "type": "string", "enum": ["subtle", "default", "emphasis", "strong", "max"] } }
           }
         },
+        "faces": {
+          "type": "object",
+          "additionalProperties": { "type": "object", "additionalProperties": { "$ref": "#/$defs/facePin" } },
+          "description": "OPTIONAL. Verbatim Figma {family,style} pin per category->weight-role slot (#1368)."
+        },
         "links": {
           "type": "array",
           "items": { "type": "string", "enum": ["display", "title", "body", "label", "caption", "eyebrow", "code"] },
@@ -470,9 +475,9 @@
     },
     "controlShape": {
       "type": "string",
-      "enum": ["rounded", "pill"],
+      "enum": ["rounded", "pill", "boxed", "hairline"],
       "default": "rounded",
-      "description": "OPTIONAL. Corner shape for pill-able controls (button, icon-button). 'rounded' follows corner softness; 'pill' is a full height ÷ 2. Default 'rounded'."
+      "description": "OPTIONAL. Corner shape for pill-able controls (button, icon-button). 'boxed' is sharp (radius.none, 0px); 'hairline' is a fixed 1px edge (radius.hairline, implies the hairline rung); 'rounded' follows corner softness (radius.md); 'pill' is a full height ÷ 2 (radius.capsule). Default 'rounded'."
     },
     "radiusScale": { "oneOf": [ { "type": "number", "default": 1, "description": "OPTIONAL. Corner softness: 0 = sharp, 1 = default, 2 = soft. Default 1." }, { "type": "string", "enum": ["sharp", "modest", "standard", "soft", "round"], "description": "Named stop — sharp 0 · modest 0.5 · standard 1 · soft 1.5 · round 2." } ] },
     "baseMd": { "type": "number", "default": 4, "description": "OPTIONAL. The radius.md anchor (px) at scale 1. Default 4." },
@@ -484,6 +489,12 @@
     }
   },
   "$defs": {
+    "facePin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["family", "style"],
+      "properties": { "family": { "type": "string" }, "style": { "type": "string" } }
+    },
     "gradient": {
       "type": "object",
       "additionalProperties": false,
