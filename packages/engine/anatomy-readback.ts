@@ -263,6 +263,19 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `minWidth ${String(p)}`,
     check: (p, n) => (n.minWidth === p ? null : str(n.minWidth)),
   },
+  // ── wrapping label (#1424) ─────────────────────────────────────────────────────────────────────
+  // Two child/text-side properties the executor sets so a long label FILLS its row and reflows instead of
+  // overflowing. Both are plain properties the host echoes verbatim, so this compares directly. Carried onto
+  // the plan ONLY for a wrapping label (the row's `label`), so `diffNode` reaches these predicates on that
+  // node alone and every other node is byte-identical. `radio` and `checkbox-row` carry them today.
+  layoutGrow: {
+    show: (p) => `layoutGrow ${String(p)}`,
+    check: (p, n) => (n.layoutGrow === p ? null : str(n.layoutGrow)),
+  },
+  textAutoResize: {
+    show: (p) => `textAutoResize ${String(p)}`,
+    check: (p, n) => (n.textAutoResize === p ? null : str(n.textAutoResize)),
+  },
 
   // ── literal glyph size (#1340) ─────────────────────────────────────────────────────────────────
   // Unlike `glyphViewBox` (below, ignored because the executor MEASURES the import and this reader has no

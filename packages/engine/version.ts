@@ -2583,7 +2583,51 @@
  * 0.90.0 and not 0.89.0 because this merged post-#1347 main, which took 0.89.0 for the checkbox-row rename +
  * checkbox-group build — the next free ENGINE above it (never lower).
  */
-export const ENGINE_VERSION = '0.91.0';
+/**
+ * 0.94.0 — the radio/checkbox ROW QA bundle (#1424 + #1433), two owner-approved fixes on the two row defs.
+ *
+ * #1424 — LONG LABELS WRAP INSTEAD OF OVERFLOWING. Prism 2's radio-button-row / checkbox-row let a long
+ * label wrap to a second line (its description text is `layoutSizingHorizontal: FILL`); the engine had no way
+ * to express "fill the main axis and reflow" — `sizing: 'fill'` maps to AUTO (#989), so a text node hugged
+ * its glyphs and ran off the row. New `PartDef.wrap` (text-only) projects the two Figma facts that wrap a
+ * label: `layoutGrow: 1` (fill the row's main axis, fixing the WIDTH) + `textAutoResize: 'HEIGHT'` (auto
+ * height, so the fixed-width box reflows), carried on two new `FigmaNodePlan` fields threaded through BOTH
+ * executors (`write-components.ts`'s neutralizer, driven off the plan; the emitted payload) and classified in
+ * `anatomy-readback.ts`. Each row's `row` gets `minWidth: 320` (Prism 2's root width — a def-local literal,
+ * the `select` #1345 precedent, NOT a token), because `layoutGrow` fills REMAINING space and a hugging row has
+ * none; `anatomyErrors` refuses a `wrap` label under a floorless parent, which makes that floor load-bearing.
+ *
+ * #1433a — ERROR-STATE FILL. Owner-decided: signal error on the control BORDER/RING (and the field-message),
+ * and KEEP the selected control's inner fill (the checkbox's box + check, the radio's dot) on the INTERACTIVE
+ * color — never red, since color is not error's sole carrier. The atoms already satisfied this (no
+ * `checked.fill.error`/`checked.indicator.error` key, so error falls back to the interactive `checked.fill`/
+ * `checked.indicator`); this bundle LOCKS it with a by-name gate that a red-fill mutation flips (docs/34).
+ * No code change to the atoms — the deliverable is the enforcement.
+ *
+ * #1433b — ROW TOP/BOTTOM PADDING. Prism 2's rows sit their content in `padding {top:12, bottom:12}`; the
+ * engine's rows had none. Both rows now bind `pad-y → space.150` (= 12px on nb, the nearest existing spacing
+ * step and an EXACT match — no new rung minted) and `pad-x → space.0` (inline zero, Prism 2's `{start:0,
+ * end:0}`), mirroring `checkbox-group`'s own padding. A CONSTANT inset (the same 12 on both rows), not
+ * size-scaled — Prism 2 uses 12 flat.
+ *
+ * CONTRACT STANDS at 10.0.0. `wrap`/`layoutGrow`/`textAutoResize`/`minWidth` are STRUCTURE (schema + plan +
+ * projection), never emitted token NAMES; the padding binds EXISTING guaranteed names (`space.150`, `space.0`
+ * both already emitted in every brand tier). No guaranteed token name is added, removed or retyped —
+ * `token-contract.ts --check` confirms the guaranteed surface unchanged.
+ *
+ * SAFETY NET (docs/34). #1424: `test.ts` reads the projected plan and pins label→(layoutGrow 1 + HEIGHT) /
+ * control→fixed for both rows, with a mutation dropping `wrap` that flips it BY NAME, plus two refusal arms
+ * (wrap on a non-text kind; wrap under a floorless row) each with a by-name mutation; `test-roundtrip.ts`
+ * reads the same two facts back off the built shim with an oracle authored there (a def that stops wrapping
+ * fails there though the generic plan-vs-host diff would still agree). #1433a: `test.ts` reads the projected
+ * error member and pins fill-stays-interactive / border-goes-danger for both atoms, with a mutation binding
+ * the forbidden red fill that flips it BY NAME.
+ *
+ * 0.94.0 PROVISIONALLY — 0.92.0/0.93.0 are spoken for by in-flight select/switch lanes; the orchestrator
+ * reassigns this to the true next-free integer on the pre-merge rebase relay. The next free ENGINE above the
+ * lane floor (never lower).
+ */
+export const ENGINE_VERSION = '0.94.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
