@@ -241,6 +241,67 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
   }
 }
 
+// ── #1368 — VERBATIM FACE PIN (typography.faces) ──────────────────────────────────────
+// A (category, weight-role) slot may name the exact Figma face { family, style } it binds, OVERRIDING
+// the numeric-weight → style-name derivation, so a WIDTH cut the weight axis can't reach (NB's ITC
+// Garamond Std *Light Condensed*) binds from a brand input. This block is the mechanism's regression.
+// Independence (docs/34): the oracle is the engine's own build — the emitted Figma Text Style and the
+// host-truth write-plan row (exactly what materialise-to-figma feeds `fontName = {family, style}`), not
+// a recorded number — so deleting the mechanism, or any one refusal guard, fails HERE by NAME.
+{
+  const pinBase: BrandInput = {
+    id: 'facepin', primary: { l: 0.55, c: 0.16, h: 25 }, neutral: { hue: 25, chroma: 0.01 }, modes: ['light'],
+    typography: {
+      families: { display: 'ITC Garamond Std', title: 'ITC Garamond Std' },
+      weights: { display: ['subtle'], title: ['subtle'] },
+      faces: { display: { subtle: { family: 'ITC Garamond Std', style: 'Light Condensed' } } },
+    },
+  };
+  const theme = brandTheme(pinBase);
+  // (a) EMISSION — the DTCG composite carries the pin; the Figma Text Style bakes the pinned STYLE.
+  const tree = buildTree(theme).tree as any;
+  const root = Object.keys(tree)[0];
+  const dispLeaf = tree[root].type.display.md.subtle;   // a display/subtle composite
+  ok(dispLeaf?.$extensions?.prism3?.facePin?.style === 'Light Condensed'
+    && dispLeaf?.$extensions?.prism3?.facePin?.family === 'ITC Garamond Std',
+    `#1368(a): the pinned display composite carries facePin {family,style} (got ${JSON.stringify(dispLeaf?.$extensions?.prism3?.facePin)})`);
+  const styles = buildFigmaTextStyles(theme).styles;
+  const dispStyle = styles.find((s) => s.name === 'display/md/subtle');
+  ok((dispStyle?.properties.fontStyle as any)?.value === 'Light Condensed',
+    `#1368(a): the display/md/subtle Text Style bakes fontStyle='Light Condensed' (got ${JSON.stringify((dispStyle?.properties.fontStyle as any)?.value)})`);
+  // (b) HOST-TRUTH — the write-plan row is what the plugin loads/sets as fontName. family comes FROM the
+  // bound font/family/* variable, so pin.family reaching the host proves the family-match invariant too.
+  const rows = buildTextStylePlan(theme);
+  const dispRow = rows.find((r) => r.name === 'display/md/subtle');
+  ok(dispRow?.fontStyle === 'Light Condensed' && dispRow?.fontFamilyPrimary === 'ITC Garamond Std',
+    `#1368(b): host-truth row = {family:'ITC Garamond Std', style:'Light Condensed'} (got {family:${JSON.stringify(dispRow?.fontFamilyPrimary)}, style:${JSON.stringify(dispRow?.fontStyle)}})`);
+  // (c) TRUTHFUL NUMERIC — the slot still binds its weight-role numeric (Light = subtle = 300); the pin
+  // moves the STYLE only, never the weight.
+  ok(/font\/weight-role\/subtle$/.test(dispRow?.fontWeightVar ?? ''),
+    `#1368(c): the pinned slot still binds the subtle weight-role numeric, untouched (got ${dispRow?.fontWeightVar})`);
+  // (d) SLOT-SCOPED — an UNPINNED category derives its style from the weight as before (not pinned).
+  ok((styles.find((s) => s.name === 'title/md/subtle')?.properties.fontStyle as any)?.value === 'Light',
+    `#1368(d): an unpinned category (title) still derives fontStyle from the weight ('Light'), proving the pin is per-slot`);
+  // (e) NB seed EMITS it — the real brand that motivated #1368 now binds the condensed cut engine-side.
+  {
+    const nb = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input);
+    const nbRow = buildTextStylePlan(nb).find((r) => /^display\/.+\/subtle$/.test(r.name));
+    ok(nbRow?.fontStyle === 'Light Condensed' && nbRow?.fontFamilyPrimary === 'ITC Garamond Std',
+      `#1368(e): nb-redesign display/subtle emits ITC Garamond Std / Light Condensed (got {${JSON.stringify(nbRow?.fontFamilyPrimary)}, ${JSON.stringify(nbRow?.fontStyle)}})`);
+  }
+  // (f) REFUSALS — each is a NAMED throw with its own mutation (docs/34: mutate the subject, confirm the
+  // guard fires by name). Delete a guard and its assertion goes red.
+  const threwPin = (t: BrandInput['typography']): string => { try { brandTheme({ ...pinBase, typography: t }); return ''; } catch (e) { return (e as Error).message; } };
+  ok(/must match the category's bound family/.test(threwPin({ ...pinBase.typography, faces: { display: { subtle: { family: 'Wrong Family', style: 'Light Condensed' } } } })),
+    '#1368(f): a pin whose family diverges from the category family is REFUSED');
+  ok(/does not ship the 'strong' weight role/.test(threwPin({ ...pinBase.typography, faces: { display: { strong: { family: 'ITC Garamond Std', style: 'Bold Condensed' } } } })),
+    '#1368(f): a pin on a weight-role the category does not ship is REFUSED');
+  ok(/not a category this brand binds a face for/.test(threwPin({ families: { display: 'ITC Garamond Std', code: null }, weights: { display: ['subtle'] }, faces: { code: { subtle: { family: 'X', style: 'Y' } } } } as BrandInput['typography'])),
+    '#1368(f): a pin on an unbound category (code: null) is REFUSED');
+  ok(/needs a non-empty \{ family, style \}/.test(threwPin({ ...pinBase.typography, faces: { display: { subtle: { family: 'ITC Garamond Std', style: '' } } } })),
+    '#1368(f): a malformed pin (empty style) is REFUSED');
+}
+
 
 // ---------------------------------------------------------------- colour math
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
@@ -7650,8 +7711,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `MCP: export_theme is the ONLY non-read-only tool (got: ${writers.join(',') || 'none'})`);
   ok(tools.find((t) => t.name === 'export_theme')?.annotations?.readOnlyHint === false,
     'MCP: export_theme states readOnlyHint:false explicitly rather than omitting it');
-  // The 52KB brand schema is inlined ONCE. Two copies made tools/list ~91,500 chars (~23k tokens) to
-  // discover three tools, and the second copy told a client nothing the first had not.
+  // The brand schema is inlined ONCE. Two copies made tools/list ~91,500 chars (~23k tokens) to
+  // discover three tools, and the second copy told a client nothing the first had not. The 60k ceiling
+  // keeps the MCP surface lean for clients; a new lever fits by COMPRESSION, not by raising it (#1368
+  // `faces`: open keys + a terse description + a `{family, style}` leaf, no schema bloat).
   const listChars = JSON.stringify(tools).length;
   ok(listChars < 60_000, `MCP: tools/list stays under 60,000 chars — the schema is inlined once (${listChars.toLocaleString()})`);
 

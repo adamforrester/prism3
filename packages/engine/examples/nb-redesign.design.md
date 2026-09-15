@@ -3,8 +3,8 @@
 #
 # ⚠️ THIS IS A STARTING POINT, NOT THE FINISHED THEME. It captures the New Balance
 # redesign as a first-pass BrandInput that the owner imports into the plugin and then
-# FINISHES BY HAND (condensed display face, 1px hairline corners, and any manual tuning
-# the engine's levers can't yet express). Once NB is finished manually, THIS committed
+# FINISHES BY HAND (1px hairline corners, and any manual tuning the engine's levers
+# can't yet express). Once NB is finished manually, THIS committed
 # file is updated to the finished version. Until then, treat it as the authoritative
 # SEED — enough to compile cleanly and stand up a plausible NB — not the authoritative
 # final brand. It is HELD for the owner's review, never auto-merged.
@@ -65,12 +65,6 @@ typography:
   # Families per CATEGORY (#415). Display/title on ITC Garamond Std (NB's editorial serif);
   # body/label/caption/eyebrow on Suisse Int'l (NB's workhorse grotesque). A lone name is
   # auto-padded with a system fallback stack. From the brand type spec.
-  #
-  # CONDENSED FACE (best-effort — noted, not blocking): NB's display/title condensed face is
-  # `ITCGaramondStd-LtCond`. The engine emits NUMERIC weights, not width/condensed variants
-  # (#1368), so this seed cannot fully bind Light *Condensed*. We use `ITC Garamond Std` for
-  # the family here; condensed headings are set manually in the plugin, and engine width-axis
-  # support is tracked in #1368.
   families: { display: ITC Garamond Std, title: ITC Garamond Std, body: "Suisse Int'l", label: "Suisse Int'l", caption: "Suisse Int'l", eyebrow: "Suisse Int'l" }
   # Pinned sizes from the NB redesign spec: title tops out at 36 (xl), display hero at 56 (md).
   sizes: { title: { xl: 36 }, display: { md: 56 } }
@@ -79,6 +73,16 @@ typography:
   weights: { display: [subtle], title: [subtle], body: [default, emphasis], caption: [default, emphasis] }
   # NB's Medium is 500, not the engine's default 600 — remap the `emphasis` weight-role numeric.
   weightRoles: { emphasis: 500 }
+  # CONDENSED FACE (#1368) — NB's display/title headings are set in ITC Garamond Std *Light
+  # Condensed* (PostScript `ITCGaramondStd-LtCond`), a WIDTH cut the numeric weight axis can't
+  # reach. A verbatim FACE PIN binds the exact Figma face for the `subtle` (Light) slot each
+  # category ships, OVERRIDING the numeric-weight → style derivation. `family` is the SAME face
+  # the category already binds ("ITC Garamond Std"); only the STYLE ("Light Condensed") differs.
+  # The numeric weight the slot binds stays 300, so the CSS weight remains truthful. This closes
+  # the "set condensed by hand in the plugin" gap for these two slots.
+  faces:
+    display: { subtle: { family: ITC Garamond Std, style: Light Condensed } }
+    title: { subtle: { family: ITC Garamond Std, style: Light Condensed } }
   # Line heights: PRISM DEFAULTS (owner decision 2026-09-09 — "stay with prism line heights").
   # The pasted source truncated this line; rather than reconstruct an NB-specific ramp, this seed
   # OMITS `lineHeights` entirely so the engine's curated default leading applies. Adjust in the
@@ -107,8 +111,10 @@ grotesque.
 2. **1px hairline corners.** NB uses 1px corners in places. The engine reaches 1px only via
    the opt-in `radiusHairline: true` lever (#1362), left OFF here on purpose. Flip it on if
    the finished NB wants the 1px rung engine-side.
-3. **Condensed display face.** The display/title condensed cut (`ITCGaramondStd-LtCond`)
-   can't be bound as a width variant yet — the engine emits numeric weights, not widths
-   (#1368). Condensed headings are set manually in the plugin for now.
+3. **Condensed display face — now bound (#1368).** The display/title condensed cut
+   (`ITCGaramondStd-LtCond`) is pinned engine-side via a verbatim FACE PIN on the `subtle`
+   slot each category ships (`typography.faces`), so headings emit ITC Garamond Std *Light
+   Condensed* directly — no longer a manual plugin step. (A brand needing a fuller condensed
+   weight ramp would pin more slots; NB ships the single Light cut.)
 
 *(Prose is authoring latitude — the MVP CLI consumes the frontmatter only.)*

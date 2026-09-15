@@ -2505,6 +2505,45 @@
  * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
  */
 /**
+ * 0.91.0 — a text CATEGORY may PIN a VERBATIM FACE per weight-role slot (#1368, owner-resolved the
+ * three type-model forks 2026-09-15). `typography.faces.<category>.<weightRole> = { family, style }`
+ * names the exact Figma face a slot binds, OVERRIDING the numeric-weight → style-name derivation, so a
+ * WIDTH cut the weight axis can't reach (NB's ITC Garamond Std *Light Condensed*, PostScript
+ * `ITCGaramondStd-LtCond`) binds from a brand input at last. ENGINE MINOR: the emitted Figma STYLE of a
+ * pinned composite changes (the baked `fontStyle`), so what a consumer observes moves. (Integer above
+ * 0.90.0 — #1347/#1423 then #1371's control-shape off-ramps landed on main first, taking 0.89.0 and
+ * 0.90.0; this lane rebased onto each and takes the next free integer.)
+ *
+ * THE FORK, AS THE OWNER RESOLVED IT. (i) The pin is `{family, style}`, not fontStyle-only — resolved to
+ * Figma's family + style. (ii) It is a per-(category, weight-role) SLOT pin, not a broad map: the
+ * mechanism generalizes (any slot a category ships can name a face) but is populated one slot at a time;
+ * NB pins display/subtle and title/subtle only, a single Light cut each, so there is NO multi-weight
+ * condensed sub-family here. (iii) The numeric `fontWeight` variable still follows the slot's weight-role
+ * numeric (Light = 300 = NB's subtle), staying truthful — only the STYLE drives the Figma text. `family`
+ * MUST equal the category's bound family: the Text Style binds `fontFamily` to the `font.family.<cat>`
+ * variable and the write lane loads `fontName.family` FROM that variable (`write-plan.ts`
+ * `fontFamilyPrimary`), so a divergent family would be silently dropped at the host — `buildComposites`
+ * refuses it instead.
+ *
+ * CONTRACT STANDS at 10.0.0. A face pin is brandDependent: it adds NO guaranteed token NAME — it changes a
+ * baked style VALUE on existing `type.*` composites and hangs a `$extensions.prism3.facePin` on them; no
+ * path is added, removed or retyped. `token-contract.ts --check` confirms the guaranteed surface unchanged;
+ * `--accept` refreshes only the informational `engineVersion` stamp.
+ *
+ * THE SCHEMA STAYS LEAN — NO GATE CEILING RAISE (owner directive 2026-09-15). The `faces` field is
+ * expressed with OPEN keys (`additionalProperties`, not a 7×5 enumeration) and terse descriptions, and the
+ * pin leaf is `{family, style}` (the optional `postscript` provenance field was dropped as it drove
+ * nothing), so `tools/list` stays under its existing 60,000-char ceiling — no bump to that gate.
+ *
+ * NEW REFUSAL ARMS (docs/34 — a refusal owes its own by-name mutation test). `buildComposites` throws by
+ * name on: a pin on an unbound category, a weight-role the category does not ship, a malformed/empty
+ * {family, style}, and a family that diverges from the category's bound family. `test.ts`'s #1368 block
+ * pins each throw AND the positive emission (a brand naming a verbatim face EMITS that family+style — the
+ * host-truth write-plan row carries `fontStyle: 'Light Condensed'` + `fontFamilyPrimary: 'ITC Garamond
+ * Std'`, and the numeric weight stays `subtle`), so deleting the mechanism or a guard fails a NAMED
+ * assertion, not just "the suite goes red".
+ */
+/**
  * 0.90.0 — the `controlShape` FORM lever gains TWO fixed off-ramps (#1371, owner-decided 2026-09-15):
  * `boxed` (binds `radius.none`, a fixed 0px / sharp corner, independent of the corner-softness dial) and
  * `hairline` (binds `radius.hairline`, the fixed 1px sentinel #1362). The complete four-way set is now
@@ -2544,7 +2583,7 @@
  * 0.90.0 and not 0.89.0 because this merged post-#1347 main, which took 0.89.0 for the checkbox-row rename +
  * checkbox-group build — the next free ENGINE above it (never lower).
  */
-export const ENGINE_VERSION = '0.90.0';
+export const ENGINE_VERSION = '0.91.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

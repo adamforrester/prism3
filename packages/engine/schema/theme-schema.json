@@ -391,6 +391,11 @@
             "code": { "type": "array", "items": { "type": "string", "enum": ["subtle", "default", "emphasis", "strong", "max"] } }
           }
         },
+        "faces": {
+          "type": "object",
+          "additionalProperties": { "type": "object", "additionalProperties": { "$ref": "#/$defs/facePin" } },
+          "description": "OPTIONAL. Verbatim Figma {family,style} pin per category->weight-role slot (#1368)."
+        },
         "links": {
           "type": "array",
           "items": { "type": "string", "enum": ["display", "title", "body", "label", "caption", "eyebrow", "code"] },
@@ -484,6 +489,12 @@
     }
   },
   "$defs": {
+    "facePin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["family", "style"],
+      "properties": { "family": { "type": "string" }, "style": { "type": "string" } }
+    },
     "gradient": {
       "type": "object",
       "additionalProperties": false,
