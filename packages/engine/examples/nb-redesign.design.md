@@ -81,8 +81,8 @@ typography:
   # The numeric weight the slot binds stays 300, so the CSS weight remains truthful. This closes
   # the "set condensed by hand in the plugin" gap for these two slots.
   faces:
-    display: { subtle: { family: ITC Garamond Std, style: Light Condensed, postscript: ITCGaramondStd-LtCond } }
-    title: { subtle: { family: ITC Garamond Std, style: Light Condensed, postscript: ITCGaramondStd-LtCond } }
+    display: { subtle: { family: ITC Garamond Std, style: Light Condensed } }
+    title: { subtle: { family: ITC Garamond Std, style: Light Condensed } }
   # Line heights: PRISM DEFAULTS (owner decision 2026-09-09 — "stay with prism line heights").
   # The pasted source truncated this line; rather than reconstruct an NB-specific ramp, this seed
   # OMITS `lineHeights` entirely so the engine's curated default leading applies. Adjust in the

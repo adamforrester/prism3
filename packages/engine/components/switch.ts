@@ -46,8 +46,9 @@
  * argued at length in `VARIANT_AXES`'s header and `notes.contested`: the values describe what is on
  * SCREEN and appear in no ARIA tree; `role="switch"` is ANNOUNCED "on"/"off"; and `checked` is the word
  * that carries this component's most common misuse. They now live on `switch-control` (the def that
- * carries the `selection` axis), and the Row exposes them. `inherits: 'checkbox'` is prose for a human
- * (nothing in the engine resolves it): the form-field substrate reaches this def through checkbox.
+ * carries the `selection` axis), and the Row exposes them. `inherits: 'checkbox-row'` (renamed from
+ * `checkbox`, #1347) is prose for a human (nothing in the engine resolves it): the form-field substrate
+ * reaches this def through the checkbox Row.
  *
  * ── THE LABEL LEADS, WHICH IS THE FAMILY'S ONE STRUCTURAL DIVERGENCE ────────────────────────────────
  *
@@ -75,7 +76,7 @@ export const switchDef: ComponentDef = {
   aliases: ['toggle', 'toggle-switch', 'on-off', 'switch-group'],
   category: 'form',
   status: 'draft',
-  inherits: 'checkbox',
+  inherits: 'checkbox-row',
   description:
     'A control for a binary on/off setting that takes effect IMMEDIATELY — no save, no submit; the flip is both the input and the execution command. The labelled ROW: it nests a Switch.Control (the track, thumb and state glyph) and carries the setting label, with the whole row as the hit target and the control at the trailing edge. Independent by definition: there is NO SwitchGroup, which closes the selection-control decomposition arc (checkbox has an optional group, radio a mandatory one, switch none). A settings list of switches is a list of rows, not a selection group. Not a staged binary submitted with a form (Checkbox — if a submit button sits anywhere in the flow, it is a Checkbox), not an action or view-mode toggle (ToggleButton, aria-pressed), not a one-of-two exclusive labelled choice (Radio, Segmented Control).',
 
@@ -307,7 +308,7 @@ export const switchDef: ComponentDef = {
 
   composition: {
     composesWith: ['switch-control', 'field-label', 'field-message', 'focus-ring', 'icon'],
-    alternativeTo: ['checkbox', 'toggle-button', 'radio', 'segmented-control'],
+    alternativeTo: ['checkbox-row', 'toggle-button', 'radio', 'segmented-control'],
     supersedes: [
       'a checkbox misused for an immediate-effect setting',
       'two radios standing in for an obvious binary on/off',
@@ -321,7 +322,7 @@ export const switchDef: ComponentDef = {
   notes: {
     contested: [
       'THE `selection` VALUES ARE `[off, on]`, DIVERGING FROM checkbox\'s AND radio\'s `[unchecked, checked]`. #910 settled the axis NAME for the family and left the values open with an ARIA recommendation, so this is a decision taken against that recommendation. Three grounds: paint-key values describe what is on SCREEN and appear in no ARIA tree; `role="switch"` is announced "on"/"off", so ARIA\'s own OUTPUT is on/off even though its PROPERTY is aria-checked; and `checked` is the word that carries this component\'s most common misuse. Since #1354 the values live on `switch-control` (the def that carries the axis), and the Row exposes them. The cost is real and unchecked by anything: the family now spells one axis two ways, and there is no cross-def values census in the engine. If the family should have one vocabulary, this is the entry to delete.',
-      'THE TRACK IS DELIBERATELY ASYMMETRIC ABOUT ITS RIM (off paints a fill AND a border, on paints a fill only), and that asymmetry, the interactive-neutral off track, and the selection-keyed thumb ink all moved to `switch-control` with the painted surface. They are the one place in the selection family where the border survived #1011, and the reason is measured (a gray fill does not clear 3:1 against the page, so the off rim is the only edge the track has). Removing `off.border` "for consistency" breaks 1.4.11 on all five brands at once AND empties `lint-paint.ts` arm 4\'s scope — this track is the only def that still contributes a same-family fill+border pair. Full reasoning: `switch-control.ts` and `checkbox.ts`.',
+      'THE TRACK IS DELIBERATELY ASYMMETRIC ABOUT ITS RIM (off paints a fill AND a border, on paints a fill only), and that asymmetry, the interactive-neutral off track, and the selection-keyed thumb ink all moved to `switch-control` with the painted surface. They are the one place in the selection family where the border survived #1011, and the reason is measured (a gray fill does not clear 3:1 against the page, so the off rim is the only edge the track has). Removing `off.border` "for consistency" breaks 1.4.11 on all five brands at once AND empties `lint-paint.ts` arm 4\'s scope — this track is the only def that still contributes a same-family fill+border pair. Full reasoning: `switch-control.ts` and `checkbox-control.ts`.',
       'THE ASYNC MODEL SHIPS BOTH STANCES — optimistic-by-default with revert-and-message, plus a first-class `pending` lock. The field genuinely splits here, and the brief\'s reconciliation is deliberate: mandating optimism universally puts the whole orchestration burden on every consumer, and mandating the lock kills the immediacy that is the entire component.',
       'READ-ONLY IS SUPPORTED, against the brief author\'s own first instinct and adopted on the external pass\'s enterprise argument: users review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers.',
       'THE LABEL SIDE DEFAULTS TO LEADING, the opposite of every other control in the corpus, because the default follows the dominant habitat (the settings row). It is a prop, not a `variants` axis, because it paints nothing.',

@@ -813,8 +813,8 @@ export type TypeGroup = typeof TYPE_GROUPS[number];
  *  the write lane resolves the loaded `fontName.family` FROM that variable's value (`write-plan.ts`
  *  `fontFamilyPrimary`). A pin whose family diverged would be silently ignored at the host. Only the
  *  STYLE changes. The numeric `fontWeight` variable still follows the slot's weight-role numeric (a Light
- *  cut is still weight 300), so it stays truthful. `postscript` is provenance only — it drives nothing. */
-export type FacePin = { family: string; style: string; postscript?: string };
+ *  cut is still weight 300), so it stays truthful. */
+export type FacePin = { family: string; style: string };
 
 // A semantic composite: a (group, variant) bundling family + size + weight role +
 // line-height + tracking. Two composites may share a size primitive (e.g. title.xs

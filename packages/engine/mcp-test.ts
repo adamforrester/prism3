@@ -171,11 +171,9 @@ await new Promise((r) => setTimeout(r, 3000));
     'conformance: every tool name matches the allowed character set and length');
   ok((list.tools ?? []).every((t: any) => t.title && t.annotations), 'conformance: every tool carries a title + annotations');
   // The size ceiling that keeps discovery affordable — the schema must be inlined once, not per tool.
-  // 64,000 (was 60,000): a single inline is ~60k and a DOUBLE would be ~120k, so the once-not-twice
-  // guarantee holds with a ~56k margin; the ceiling was raised when #1368's `faces` lever grew the
-  // schema past a 60k line that had only ~540 chars of headroom. Kept in lockstep with test.ts's copy.
+  // A new lever fits by COMPRESSION, not by raising this (#1368 `faces`); kept in lockstep with test.ts.
   const listChars = JSON.stringify(list.tools ?? []).length;
-  ok(listChars < 64_000, `conformance: tools/list stays affordable to fetch (${listChars.toLocaleString()} chars)`);
+  ok(listChars < 60_000, `conformance: tools/list stays affordable to fetch (${listChars.toLocaleString()} chars)`);
 
   // Per-request version negotiation, which is how a stateless server learns the version at all.
   const good = await server.reply(server.send('tools/list', { _meta: { [V]: '2026-07-28' } }));
