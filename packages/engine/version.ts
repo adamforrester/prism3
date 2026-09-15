@@ -2468,11 +2468,40 @@
  * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
  */
 /**
- * 0.90.0 — #1426 `select` QA, owner-decided (2026-09-15). FOUR fixes now land together (0.89.0 is #1347's
- * MAJOR rename, serialized ahead of this): the caret pin + hideable message shipped in the first pass, and
- * the owner has since decided the two held forks — bind the control to a 44px INTERACTIVE FLOOR (#1437) and
- * EXPOSE the composed FieldLabel's properties (#1438). This entry is completed alongside the implementation
- * below; see `docs/00-progress.md` for the full record.
+ * 0.90.0 — #1426 `select` QA, all FOUR fixes, owner-decided (2026-09-15). ENGINE MINOR (the projected surface
+ * moves on all four) and — uniquely for this lane — a CONTRACT MINOR too (10.1.0, the one new emitted name in
+ * #1437). 0.89.0 is left for #1347's MAJOR rename, serialized ahead of this per the orchestrator; the
+ * next-free integer above main's 0.88.0 (#1423) is 0.90.0.
+ *   (1) CARET PINNED RIGHT. The control's `justify` goes `start` → `space-between`, so the trailing chevron
+ *       sits at the field's right edge at every value length rather than tracking the value string
+ *       (`content` fills in code but hugs in Figma, #989). Projects `primaryAxisAlignItems: SPACE_BETWEEN`.
+ *   (2) `showMessage` BOOLEAN. A node-visibility boolean (#1412) that hides the composed FieldMessage
+ *       entirely — DEFAULT TRUE, and the FIRST use of the mechanism on a `nest` part. A component prop, not
+ *       a token; no CONTRACT move.
+ *   (3) 44px INTERACTIVE FLOOR (#1437). The control binds `size.md.min-height` = `max(size.md.height,
+ *       AAA_TARGET_PX)` — the md control height raised to the WCAG 2.5.5 enhanced 44px target wherever a
+ *       dense brand falls below it (a FLOOR: a spacious 56 stays 56; a compact 36 lifts to 44). This is the
+ *       one new emitted guaranteed name, so CONTRACT moves 10.0.0 → 10.1.0 (the MINOR is recorded under
+ *       CONTRACT_VERSION below). Placed inside the existing `size.md` group so the rung-iterating gates are
+ *       unaffected; `emit-figma-dims` emits it as a `size/md/min-height` variable on the height scopes.
+ *   (4) EXPOSE THE FIELD-LABEL (#1438). select's `label` nest goes `nest-fixed` → `nest-exposed`, exposing
+ *       field-label's size/emphasis/weight; marking the instance exposed also surfaces its label text and
+ *       `required` in Figma. A projected-surface change, no token move.
+ *
+ * ENGINE and not (only) CONTRACT on #1252's decision for (1),(2),(4): the projected component surface moves
+ * with no emitted token path. (3) additionally moves the guaranteed name surface, which is why THIS lane —
+ * unlike the select fixes that preceded it — carries a CONTRACT bump.
+ *
+ * NEW REFUSAL ARMS: none. All four use existing mechanisms (the `space-between` justify value, the #1412
+ * boolean projection, the `size.*` tier + a max, the #1330 nest-exposed relation), adding no schema field
+ * and no refusal — so only BEHAVIOR mutations are owed (docs/34). `test.ts`'s #1426/#1437/#1438 blocks carry
+ * them: the SPACE_BETWEEN projection (revert `justify`→`start` → `MIN`), the message boolean's every-member
+ * presence + shown-by-default-not-a-constant, the floor formula `max(md,44)` proven non-vacuous on the
+ * compact brand, select's binding to the floor, and the projected `nestExpose` marking (revert to
+ * nest-fixed drops it). The host-truth for the boolean and the exposure is `test-roundtrip` and the #1392
+ * payload gate (now provisioning select's full nest + swap set). `lint-component-surface` took a bump-gated
+ * `--accept` (select's plan moves: `primaryAxisAlignItems`, the `message` boolean, the `min-height` binding,
+ * the label's `nestExpose`); `paint-census` is unchanged (no paint moved).
  */
 export const ENGINE_VERSION = '0.90.0';
 
