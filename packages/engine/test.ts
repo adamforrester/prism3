@@ -8510,6 +8510,79 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       '#1331 a boolean toggling a NON-optional part is refused BY NAME — the anatomy must allow the part to be hidden');
   }
 
+  // ---- #1426: select QA fixes — caret pinned right (space-between) + hideable message boolean ----
+  // The two decision-free fixes from the plugin-import QA, each pinned INDEPENDENTLY of the projector and
+  // gated by a docs/34 mutation that flips a NAMED assertion. (Two further #1426 items — the hit-target
+  // control height and exposing the composed FieldLabel's props — are held for the owner as design forks.)
+  {
+    const fp = select.figmaProperties!;
+    const ctrlOf = (d: ComponentDef): { primaryAxisAlignItems?: string } => {
+      const root = figmaAnatomyPlan(d, undefined, { status: 'default', state: 'rest' } as never).root;
+      const c = (root.children ?? []).find((x: { name?: string }) => x.name === 'control');
+      if (!c) throw new Error(`select projection has no 'control' child (got [${(root.children ?? []).map((x: { name?: string }) => x.name).join(', ')}])`);
+      return c as { primaryAxisAlignItems?: string };
+    };
+
+    // (1) CARET — the control distributes its two flow children with SPACE_BETWEEN, pinning the trailing
+    //     chevron to the field's right edge independent of the value width. Read off the projected plan's
+    //     `primaryAxisAlignItems`, never the def's own `justify` word (the JUSTIFY map is the thing under test).
+    ok(ctrlOf(select).primaryAxisAlignItems === 'SPACE_BETWEEN',
+      `#1426 select control pins the chevron right via space-between (primaryAxisAlignItems SPACE_BETWEEN) — got ${String(ctrlOf(select).primaryAxisAlignItems)}`);
+    //   MUTATION — reverting `justify` to 'start' projects MIN (the chevron tracks the value again), flipping
+    //   the assertion BY NAME.
+    const startCtrl = { ...select.anatomy!.parts.control, layout: { ...select.anatomy!.parts.control.layout!, justify: 'start' as const } };
+    const startJustify = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, control: startCtrl } } };
+    ok(ctrlOf(startJustify as ComponentDef).primaryAxisAlignItems === 'MIN',
+      `#1426 MUTATION: reverting control.justify to 'start' projects primaryAxisAlignItems MIN (got ${String(ctrlOf(startJustify as ComponentDef).primaryAxisAlignItems)}), flipping '#1426 select control pins the chevron right' BY NAME`);
+
+    // (2) showMessage BOOLEAN (#1412 on a `nest` part — a first). The composed `message` nest is emitted at
+    //     EVERY member, shown by default, its `visible` driven by the `message` boolean — the INVERSE
+    //     direction of the leading glyph (default true, like field-label's `required`).
+    const sset = figmaAnatomySet(select, { swapTarget: 'FPO-default-icon' });
+    const findMsg = (n: any): any => (n.name === 'message' ? n : (n.children ?? []).map(findMsg).find(Boolean));
+    const msgNodes = sset.map((p) => findMsg(p.root));
+    ok(msgNodes.length === sset.length && msgNodes.every(Boolean),
+      `#1426 the composed message nest is emitted at EVERY projected member (${msgNodes.filter(Boolean).length}/${sset.length})`);
+    ok(msgNodes.length > 0 && msgNodes.every((m) => m?.visibleProp === 'message' && (m?.visible ?? true) === true),
+      '#1426 every message node is shown by default (built visible — `visible` omitted per #1331\'s "carried only when false" rule) with its `visible` driven by the `message` boolean (inverse of the leading glyph, which defaults hidden)');
+    //   and the built visibility TRACKS the default rather than being a constant (docs/34 shape 4): flipping
+    //   the boolean default to false builds every message node `visible:false`.
+    const hiddenDefault = { ...select, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { part: 'message', figmaName: 'message', default: false } } } };
+    const hiddenMsgs = figmaAnatomySet(hiddenDefault as never, { swapTarget: 'FPO-default-icon' }).map((p) => findMsg(p.root));
+    ok(hiddenMsgs.length > 0 && hiddenMsgs.every((m) => m?.visible === false),
+      '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
+
+    // (3) the boolean does NOT multiply the set — still status(4) × state(4) = 16 members.
+    ok(sset.length === 16,
+      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 16 members (got ${sset.length})`);
+
+    // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
+    const props = planSetProperties(sset);
+    const msgProp = props.find((p) => p.name === 'message');
+    ok(!!msgProp && msgProp.type === 'BOOLEAN' && msgProp.default === true,
+      `#1426 planSetProperties declares 'message' as a BOOLEAN defaulting true (the built visibility) — got ${JSON.stringify(msgProp)}`);
+
+    // (5) BEHAVIOR MUTATION (docs/34) — the boolean is the message nest's SOLE presence mechanism now that it
+    //     is optional. Drop only the showMessage boolean (keep leadingIcon) and the message nest is DROPPED at
+    //     every member (present() returns !optional), flipping (2) BY NAME.
+    const noMsgBool = { ...select, figmaProperties: { ...fp, booleans: { leadingIcon: fp.booleans!.leadingIcon } } };
+    const noMsgSet = figmaAnatomySet(noMsgBool as never, { swapTarget: 'FPO-default-icon' });
+    ok(noMsgSet.every((p) => !findMsg(p.root)),
+      '#1426 MUTATION: dropping the showMessage boolean drops the (now-optional) message nest from every member — the boolean is its sole presence mechanism, flipping "#1426 the composed message nest is emitted at EVERY projected member" BY NAME');
+
+    // (6) the requireOptional half — the message nest is optional, and a boolean on a NON-optional nest is
+    //     refused BY NAME (the #1331 arm, pinned on select's own `message`).
+    ok(select.anatomy!.parts.message.optional === true,
+      '#1426 the message nest is optional — the anatomy half of the #1412 mechanism (the boolean toggles visibility, so the part must be allowed to be absent)');
+    const msgNotOptional = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, message: { ...select.anatomy!.parts.message, optional: undefined } } } };
+    ok(validateComponentDef(msgNotOptional as never).errors.some((e) => /booleans\.showMessage/.test(e) && /not optional/.test(e)),
+      '#1426 a boolean toggling a NON-optional message nest is refused BY NAME — the anatomy must allow the part to be hidden');
+
+    // (7) the def still validates clean with the second boolean added.
+    ok(validateComponentDef(select).errors.length === 0,
+      `#1426 select validates clean with the showMessage boolean added (${validateComponentDef(select).errors.join('; ')})`);
+  }
+
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
   // (Button = primary, Destructive Button, Neutral Button), built by one factory. Button carries NO
   // `intent` prop, and hierarchy is still the appearance axis (filled > outline > text).

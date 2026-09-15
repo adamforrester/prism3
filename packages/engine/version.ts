@@ -2429,8 +2429,46 @@
  * EQUALS the disabled ICON role and is NOT `color.disabled.border`, and re-measures the resolved ratio ≥3
  * across the corpus × every mode via resolveAllModes — so a revert to the old darker binding fails a NAMED
  * assertion rather than shipping the heavier edge again.
+ *
+ * 0.88.0 — two decision-free `select` QA fixes from the plugin-import review (#1426, owner-filed `engine`).
+ * ENGINE MINOR on #1252's decision: the PROJECTED component surface moves (the control's main-axis
+ * distribution, and a new node-visibility boolean), and no emitted token path moves, so CONTRACT STANDS at
+ * 10.0.0.
+ *   (1) CARET PINNED RIGHT. The control's `justify` goes `start` → `space-between`, so the trailing chevron
+ *       sits at the field's right edge at every value length rather than tracking the value string. The bug
+ *       was projection-shaped: `content` (value row) declares `sizing: 'fill'`, which the engine maps to
+ *       AUTO/HUG (#989), so in Figma it hugged its text and a `start` control let the chevron follow it.
+ *       `space-between` distributes the two flow children (`content`, the absolute `focusRing` takes no cell)
+ *       to the ends. Projects as `primaryAxisAlignItems: SPACE_BETWEEN` at every member.
+ *   (2) `showMessage` BOOLEAN. A node-visibility boolean (the #1412 mechanism) that hides the composed
+ *       FieldMessage entirely. DEFAULT TRUE (the message is part of the field — the INVERSE direction of
+ *       select's leading glyph, matching field-label's `required`), and the FIRST use of the mechanism on a
+ *       `nest` part (`present()` keeps any boolean-named part at every member regardless of kind). The
+ *       `message` nest gains `optional: true` (the requireOptional half of the mechanism) and a
+ *       `figmaProperties.booleans` entry (panel name `message`). No variant multiplication — still 16 members.
+ *
+ * CONTRACT STANDS at 10.0.0: a boolean is a component PROP, not a token path (`pathsOf` is token names only),
+ * and no token name is added, removed or retyped — `token-contract.ts --check` confirms the guaranteed 577
+ * unchanged; `--accept` refreshes only the informational `engineVersion` stamp. `lint-component-surface.ts`
+ * needs a bump-gated `--accept` (select's projected plan moves: the control's `primaryAxisAlignItems` and the
+ * new `message` boolean at every member).
+ *
+ * NO NEW REFUSAL ARM — both fixes use existing mechanisms (the `space-between` justify value and the #1412
+ * boolean projection), adding no schema field and no refusal, so only BEHAVIOR mutations are owed. BEHAVIOR
+ * mutations (docs/34), in `test.ts`'s #1426 block: (a) the chevron pin — the control projects
+ * `primaryAxisAlignItems: SPACE_BETWEEN`, and reverting `justify` to `start` flips it to `MIN` by name; (b)
+ * the boolean — the `message` node is emitted at every member with `visible:true` driven by `message`, and
+ * dropping the boolean drops the (now-optional) nest from every member (the boolean is its sole presence
+ * mechanism), each flipping a NAMED assertion.
+ *
+ * TWO further #1426 items are HELD for the owner as genuine design forks, tracked as their own issues rather
+ * than smuggled in here: the control-height hit-target token (select binds `size.md.height`, 36px on a
+ * compact-density brand — forcing the 44px enhanced target contradicts the documented density philosophy and
+ * needs a new density-invariant token, a token-tier decision) and exposing the composed FieldLabel's
+ * properties (the `nest-exposed` mechanism exposes AXES, and doing so would surface the size/emphasis/weight
+ * axes select deliberately FIXES — a posture reversal that generalizes to every field-label composer).
  */
-export const ENGINE_VERSION = '0.87.0';
+export const ENGINE_VERSION = '0.88.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
