@@ -85,7 +85,11 @@
  *      set must be NON-EMPTY (the scope floor), or the invariance claim is untested.
  *   E. NOTHING TO BIND TO — no emitted Figma collection defines a `line-height` VARIABLE, so a binding
  *      would be a dangling reference. Fact (3) above, asserted so that minting such a variable — the
- *      owner decision the boundary reserves — cannot land silently without touching this gate.
+ *      owner decision the boundary reserves — cannot land silently without touching this gate. Its
+ *      matcher (`isLineHeightVar`) is itself driven by the self-check in both directions (#1419): it
+ *      must fire on a minted line-height name and must not on a near-miss, so E's guarantee rests on a
+ *      driven check, not on reasoning (docs/34 — the assertion that guards a future contract move is
+ *      itself mutation-proven).
  *
  * ── WHAT IT DOES NOT CLAIM ──────────────────────────────────────────────────────────────────────
  *
@@ -95,20 +99,29 @@
  */
 
 /**
- * MUTATION-VERIFIED BY NAME (record the exact edit + the named failures in the PR body):
+ * MUTATION-VERIFIED BY NAME (record the exact edit + the named failures in the PR body). Targets are
+ * cited BY CONTENT, not line number — the emitter lines drift (#1419: the #1418 rationale block moved
+ * these from 337/338 to 355/356; a numeral here would go stale again at the next comment edit):
  *
- *   · emit-figma-font.ts line 337 `lineHeight: { bound: false, … }` → `{ bound: true, … }`, then
- *     `npx tsx packages/engine/regen.ts`
+ *   · emit-figma-font.ts `lineHeight: { bound: false, value: { unit: 'PERCENT', … } }` → `bound: true`,
+ *     then `npx tsx packages/engine/regen.ts`
  *       → assertion A fires: "line height is VARIABLE-BOUND on '<style>' in brand '<b>'" for every
  *         style in every brand. Not "the suite went red" — THIS gate names the bind.
- *   · emit-figma-font.ts line 337 `unit: 'PERCENT'` → `unit: 'PIXELS'`, then regen
+ *   · emit-figma-font.ts that same `lineHeight` bake `unit: 'PERCENT'` → `unit: 'PIXELS'`, then regen
  *       → assertion B fires: "line height baked in PIXELS, not PERCENT …" — the mode-varying bake.
- *   · emit-figma-font.ts line 338 letterSpacing `bound: false` → `bound: true`, then regen
+ *   · emit-figma-font.ts `letterSpacing: { bound: false, … }` → `bound: true`, then regen
  *       → assertion C fires for letterSpacing.
+ *   · this file's `isLineHeightVar` regex narrowed so it no longer matches a minted line-height
+ *     variable name (e.g. `/(^|\/)font-line-height(\/|$)/`) — NO regen needed, the self-check runs
+ *     before the real run
+ *       → the SELF-CHECK fails BY NAME: "isLineHeightVar does not match a minted line-height variable
+ *         name ('ads/core/font/line-height/150') — assertion E's matcher is DEAD …" (#1419). This is
+ *         the arm that keeps E's reserved-contract guarantee resting on a driven check, not reasoning.
  *
  * Commit (a `wip:` commit is enough) before each mutation: the restore step `git checkout --
- * packages/engine/emit-figma-font.ts packages/engine/out` reaches HEAD and would otherwise destroy
- * uncommitted work in between (CLAUDE.md, docs/00-progress.md 2026-08-21/24).
+ * packages/engine/emit-figma-font.ts packages/engine/lint-lineheight-bake.ts packages/engine/out`
+ * reaches HEAD and would otherwise destroy uncommitted work in between (CLAUDE.md, docs/00-progress.md
+ * 2026-08-21/24).
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -158,6 +171,14 @@ export const renderedPx = (pct: number, sizeMobile: number, sizeDesktop: number)
   desktop: (pct / 100) * sizeDesktop,
 });
 
+/** THE ORACLE for E. Does a Figma variable NAME denote a line-height variable — the thing whose very
+ *  existence would give a binding a target and cross the #1356 decision boundary? Pure and exported so
+ *  the real run and the self-check drive THIS function, never a copy — the same discipline classifyField
+ *  and renderedPx follow. Its EXPECTED (which names count) is the repo's kebab/slash naming contract
+ *  transcribed here (`(^|/)line-height(/|$)`: the segment `line-height` bounded by a slash or an end),
+ *  not read from any emitter. */
+export const isLineHeightVar = (name: string): boolean => /(^|\/)line-height(\/|$)/.test(name);
+
 // ---- SELF-CHECK: can the oracle still see a violation, and still pass a conforming field? ---------
 const selfFails: string[] = [];
 
@@ -188,6 +209,27 @@ if (!classifyField('letterSpacing', { bound: true, variable: 'x' }).some((r) => 
 const w = renderedPx(150, 16, 24);
 if (!(w.mobile !== w.desktop)) selfFails.push('renderedPx does not diverge when the per-mode sizes differ — the invariance witness cannot demonstrate anything');
 if (renderedPx(150, 20, 20).mobile !== renderedPx(150, 20, 20).desktop) selfFails.push('renderedPx diverges when the sizes are equal — a false witness');
+// Assertion E's matcher (`isLineHeightVar`) is the reserved-contract guard #1356 sets so that minting a
+// bindable line-height variable — the owner decision the boundary holds — cannot land silently. A–D are
+// driven above; E was not (#1419), so drive it here in BOTH directions. POSITIVE: a minted line-height
+// variable name MUST match, or minting one slips past E unseen — this is the arm that fails BY NAME if
+// the E regex is narrowed so it no longer sees a real line-height variable. NEGATIVE: near-misses that
+// merely share the substring — a differently-suffixed segment, an un-hyphenated word, the substring
+// buried mid-segment — must NOT match, or E fires on the wrong thing and the floor below false-alarms.
+if (!isLineHeightVar('ads/core/font/line-height/150')) {
+  selfFails.push("isLineHeightVar does not match a minted line-height variable name ('ads/core/font/line-height/150') — assertion E's matcher is DEAD, so minting a bindable line-height variable (the #1356 reserved contract move) would land silently");
+}
+if (!isLineHeightVar('line-height/normal')) {
+  selfFails.push("isLineHeightVar does not match a leading-segment line-height name ('line-height/normal') — the (^|/) anchor is broken");
+}
+if (!isLineHeightVar('pds/font/line-height')) {
+  selfFails.push("isLineHeightVar does not match a trailing-segment line-height name ('pds/font/line-height') — the (/|$) anchor is broken");
+}
+for (const nearMiss of ['ads/core/font/line-height-role/150', 'ads/core/font/lineheight/150', 'ads/core/baseline-height/150']) {
+  if (isLineHeightVar(nearMiss)) {
+    selfFails.push(`isLineHeightVar matches the near-miss '${nearMiss}', which is NOT a line-height variable — E would fire on the wrong name and the nothing-to-bind-to floor would false-alarm`);
+  }
+}
 
 if (selfFails.length) {
   console.error("\n❌ the line-height bake gate's own detection is broken — it cannot see what it claims to:\n");
@@ -245,7 +287,7 @@ for (const brand of brands) {
   // and the header's fact (3) — has changed; that is the owner decision the boundary reserves.
   for (const f of readdirSync(dir).filter((n) => n.endsWith('.json'))) {
     const doc = JSON.parse(readFileSync(join(dir, f), 'utf8')) as { variables?: Array<{ name?: string }> };
-    for (const v of doc.variables ?? []) if (v.name && /(^|\/)line-height(\/|$)/.test(v.name)) lineHeightVarsSeen++;
+    for (const v of doc.variables ?? []) if (v.name && isLineHeightVar(v.name)) lineHeightVarsSeen++;
   }
 
   for (const s of styles) {
