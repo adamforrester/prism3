@@ -2505,6 +2505,40 @@
  * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
  */
 /**
+ * 0.95.0 — the emitted PLACEHOLDER copy on the field family goes GENERIC (#1434, copy PENDING owner
+ * sign-off). Two shipped example strings read as real, prescriptive product copy rather than the
+ * illustrative scaffolding a white-label engine owes — the failure the voice standard's RECESSIVE
+ * attribute exists to prevent (§1): the tool's voice must not compete with the brand a customer is
+ * building. `field-message`'s `status=default` member shipped "Use 8+ characters" (a real password
+ * rule) and `field-label` shipped "Email address" (a specific field). Both are re-pointed at the
+ * Prism 2 reference's own generic placeholders: `field-message` default → "This is a standard message."
+ * (helper-message.json's helper/standard copy, making the four members one parallel set — standard /
+ * error / warning / success message), `field-label` → "Label" (_Form label's default). ENGINE MINOR:
+ * the emitted Figma member TEXT of these two defs changes, so what a designer opening the set observes
+ * moves (#1252 — the projected component surface is engine surface). No token or prop NAME moves.
+ * (Provisional integer above 0.91.0 — 0.92/0.93/0.94 are spoken for by in-flight lanes; a rebase relay
+ * reassigns the true next-free integer before merge.)
+ *
+ * SCOPE, AND WHAT IS DELIBERATELY LEFT. `select`'s "Placeholder" and `button`'s "Button" are already
+ * generic scaffolding and stand. `checkbox-row` ("I agree to the Terms of Service"), `radio` ("Standard
+ * shipping") and `switch` ("Airplane mode") read as realistic too, but each carries a FILED decision
+ * (#798) that a canonical, realistic label demonstrates the content rule — they are selection-control
+ * LABELS, not prescriptive rules, and reversing #798 is a design call. They are surfaced for the owner
+ * rather than changed here. `content.labelPattern`'s format-up-front ADVICE (and its "Use 8+ characters"
+ * teaching example) is CONSUMER guidance about the copy a customer writes — separate from the shipped
+ * placeholder scaffold — and stands.
+ *
+ * CONTRACT STANDS at 10.0.0. A placeholder string is neither a guaranteed token NAME nor a React prop —
+ * it is emitted member copy — so no path or prop is added, removed or retyped. `token-contract.ts --check`
+ * confirms the guaranteed surface unchanged; `--accept` refreshes only the informational `engineVersion`
+ * stamp.
+ *
+ * NO NEW GATE. No copy INVARIANT is locked here (e.g. "no field-message ships a concrete numeric rule"):
+ * the wording is pending owner sign-off, so pinning a rule the owner has not settled would gate against a
+ * moving target. If the owner wants such an invariant, it is its own follow-up with a by-name mutation
+ * (docs/34).
+ */
+/**
  * 0.91.0 — a text CATEGORY may PIN a VERBATIM FACE per weight-role slot (#1368, owner-resolved the
  * three type-model forks 2026-09-15). `typography.faces.<category>.<weightRole> = { family, style }`
  * names the exact Figma face a slot binds, OVERRIDING the numeric-weight → style-name derivation, so a
@@ -2583,7 +2617,7 @@
  * 0.90.0 and not 0.89.0 because this merged post-#1347 main, which took 0.89.0 for the checkbox-row rename +
  * checkbox-group build — the next free ENGINE above it (never lower).
  */
-export const ENGINE_VERSION = '0.91.0';
+export const ENGINE_VERSION = '0.95.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

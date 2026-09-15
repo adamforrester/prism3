@@ -327,7 +327,11 @@ export const fieldLabel: ComponentDef = {
     texts: {
       // `label` not `children` (#1242) — this key is the designer-facing Figma property name and is
       // validated against `props`, so it renames with the prop above. Lowercase per #1333.
-      label: { part: 'text', default: 'Email address' },
+      // GENERIC illustrative scaffold ("Label", the Prism 2 `_Form label` reference's own default), not a
+      // specific field name like "Email address" (#1434, owner-directed): the shipped placeholder reads as
+      // obviously illustrative for a white-label engine, and still satisfies the label content rule (noun,
+      // sentence case, ≤3 words, no trailing colon).
+      label: { part: 'text', default: 'Label' },
       // The marker's TEXT (`*`, #1338), keyed on the `required` prop like the boolean below — ONE consumer
       // prop backing TWO Figma properties on ONE node (its `characters` and its `visible`), exactly as
       // select's `leadingIcon` backs a swap AND a boolean. The two Figma FIELDS differ (`characters` vs

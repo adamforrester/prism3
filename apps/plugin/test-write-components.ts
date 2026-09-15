@@ -1904,8 +1904,8 @@ ok(fmMembers.length === 4 && fmMembers.map((m) => m.name).join(' | ') === 'statu
 // per-member default from a set-wide one.
 const fmCaption = (m: Node): string => String(fmKids(m).find((c) => c.type === 'TEXT')?.characters ?? '<none>');
 const fmCaptions = fmMembers.map(fmCaption);
-ok(fmCaptions.join(' | ') === 'Use 8+ characters | This is an error message. | This is a warning message. | This is a success message.',
-  `#1018 each status member renders its OWN caption copy at the node — the error member no longer ships the status=default helper string (${fmCaptions.join(' | ')})`);
+ok(fmCaptions.join(' | ') === 'This is a standard message. | This is an error message. | This is a warning message. | This is a success message.',
+  `#1018/#1434 each status member renders its OWN caption copy at the node — the four are one parallel set of generic scaffolds and the error member does not ship the status=default helper string (${fmCaptions.join(' | ')})`);
 ok(new Set(fmCaptions).size === 4,
   `#1018 ...and the four captions are pairwise distinct, so no single set-wide default leaks onto the wrong member (${new Set(fmCaptions).size} distinct)`);
 

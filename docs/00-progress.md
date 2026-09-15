@@ -7,6 +7,34 @@
 
 ---
 
+## (2026-09-15) — field-family placeholder copy goes GENERIC; the shipped scaffold stops reading as real product copy (#1434)
+
+**STATUS: PR open, do NOT merge — and the COPY ITSELF IS PENDING OWNER SIGN-OFF (Adam QAs tomorrow).** This lane produced concrete, on-voice replacement strings so the direction is reviewable, but the exact wording is Adam's call, not settled here. The orchestrator will not merge until Adam approves the copy. **ENGINE bump 0.91.0 → 0.95.0 (PROVISIONAL — 0.92/0.93/0.94 are spoken for by in-flight lanes; expect a rebase relay reassigning the true next-free integer before merge); CONTRACT stands at 10.0.0.**
+
+**THE DIRECTION (#1434, owner).** The generated example/placeholder strings read as *not-yet-considered* — `field-message` shipped `"Use 8+ characters"`, which reads as a real product's password RULE. These are emitted-artifact prose under `docs/voice-standard.md`, and the failure is the **recessive** attribute (§1): a white-label engine's own copy must not compete with the brand a customer is building, so a placeholder must read as obviously illustrative scaffolding, never as prescriptive product copy. Two owner constraints: (1) mine Prism 2 (`reference/Prism2/**`) for the placeholder patterns it used; (2) placeholders must NOT feel "real".
+
+**WHAT PRISM 2 DID, and it is decisive.** The Prism 2 specs use consistently generic, illustrative scaffolding — never realistic product copy: `helper-message.json` default (helper/standard tone) = **"This is a standard message."** (error/warning/success = "This is an error/warning/success message."); `_Form label` default = **"Label"**; text-field / text-area / search-field / select placeholders = **"Placeholder"**, filled value = "Filled Text", selected = "Selected Option". So the fix is a return to the reference, not an invention.
+
+**CHANGED (implemented as PROPOSALS, Prism 2-anchored):**
+- **`field-message`** `figmaProperties.texts.message.default`: `"Use 8+ characters"` → **`"This is a standard message."`** (Prism 2 helper-message.json's own helper/standard copy). The four members now read as one parallel set — standard / error / warning / success message — and error/warning/success were ALREADY these exact Prism 2 strings, so only the default drifted. The #1018 per-member `byVariant` fix is untouched.
+- **`field-label`** `figmaProperties.texts.label.default`: `"Email address"` → **`"Label"`** (Prism 2 `_Form label`'s default). Still satisfies the label content rule (noun, sentence case, ≤3 words, no colon).
+
+**AUDITED, LEFT AS-IS (with reason):**
+- `select` value default `"Placeholder"` and `button` label `"Button"` — already generic scaffolding (select matches Prism 2 exactly). Stand.
+- `field-label` required marker `"*"` — Prism 2's `_Form label` `required` content. Stands.
+- **`checkbox-row` (`"I agree to the Terms of Service"`), `radio` (`"Standard shipping"`), `switch` (`"Airplane mode"`)** — these read as realistic too, but each carries a FILED decision (#798) that a canonical realistic label demonstrates the content rule, and they are selection-control LABELS, not prescriptive rules. Reversing #798 is a design call the owner must make, so they are **surfaced in the PR for Adam** rather than changed here. Proposed generic alternatives (e.g. "Checkbox label" / "Radio option" / "Toggle label") are offered in the PR body for his decision.
+- `content.labelPattern`'s format-up-front ADVICE (and its "Use 8+ characters" teaching example) — this is CONSUMER guidance about the copy a customer writes, in the usage-guidance channel where a concrete example teaches (voice-standard §4). It is separate from the shipped placeholder scaffold and stands. The `field-message` header comments coupling the old default TO this example were updated to reflect the decoupling.
+
+**CONTRACT holds 10.0.0.** A placeholder string is neither a guaranteed token NAME nor a React prop — it is emitted member copy — so no path or prop is added, removed or retyped. `token-contract --check` confirms the guaranteed 577 unchanged; only the informational `engineVersion` stamp was `--accept`ed (→ 0.95.0).
+
+**Why ENGINE MINOR.** The emitted Figma member TEXT of `field-label` and `field-message` changes, so what a designer opening the set observes moves (#1252 — the projected component surface is engine surface, and component payloads are not committed under `out/`, so `lint-emission-version.ts` cannot see it; `lint-component-surface.ts` does). `lint-component-surface --accept` moved exactly the two defs' digests (member COUNTS unchanged at 24 and 4); `out/**` DTCG trees move only their per-tree `generator.version` stamp.
+
+**NO NEW GATE, deliberately.** No copy invariant (e.g. "no field-message ships a concrete numeric rule") is locked here: the wording is pending owner sign-off, so pinning a rule the owner has not settled would gate against a moving target. If Adam wants such an invariant, it is its own follow-up with a by-name mutation (docs/34).
+
+**Safety net.** Full `npm run verify` → **57/57 PASS** (foreground). The two prose gates are load-bearing for a copy change and both pass over the freshly built web + plugin bundles (`lint-us-english`, `lint-voice` — US English + no banned §2 phrases). The one test asserting the field-message captions (`apps/plugin/test-write-components.ts`, #1018) was updated to the new parallel set; its distinctness check (four pairwise-distinct captions) still holds.
+
+**Trap for re-verifiers.** Smoke needs `npx playwright install chromium chromium-headless-shell` in a fresh container before `verify` (the cached browser version can lag the pinned playwright — hit here). Bump `version.ts` BEFORE `regen` — the `ENGINE_VERSION` stamp lands in every emitted tree. And the copy is a PROPOSAL: do not treat these exact strings as settled until Adam signs off.
+
 ## (2026-09-15) — a text category may PIN a VERBATIM FACE per weight-role slot; NB's condensed headings bind engine-side (#1368)
 
 **STATUS: PR #1442 open, do NOT merge (orchestrator verifies + merges).** **ENGINE bump 0.90.0 → 0.91.0 (rebased onto post-#1371 main, which took 0.90.0 after #1347/#1423 took 0.89.0); CONTRACT stands at 10.0.0.** The engine expressed only NUMERIC weights within a family, so a WIDTH cut — NB's display/title *ITC Garamond Std Light Condensed* (`ITCGaramondStd-LtCond`) — could not be emitted from a brand input: `subtle` (300) resolves plain "Light", never "Light *Condensed*". Owner picked **Option A** (a verbatim face pin), not Option B (a first-class width axis, deferred), with the constraint "slot into an existing type set, no capability sprawl."

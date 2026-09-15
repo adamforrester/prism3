@@ -35,11 +35,11 @@
     },
     "field-label": {
       "members": 24,
-      "sha256": "4d95785c70e11ccfcab25f9f28fc39dd23a0a5af2e862b7023cb81e5fe9e4414"
+      "sha256": "14b07016c79e5057c44339dcb4ef46e485ee72ebcf0dabbd9bbb21bfae4ef1c0"
     },
     "field-message": {
       "members": 4,
-      "sha256": "9c3c40f9b5104a8f452e1916e79ebeffd20db800c74d58c4145ccbc48c4eece7"
+      "sha256": "07d5119cb90e73390dea36a63494b88a8832e7db48bf7fea6bcdf342f23e943a"
     },
     "text-field": null,
     "textarea": null,
