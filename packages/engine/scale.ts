@@ -63,10 +63,13 @@ export const MIN_TARGET_PX = 24;
 export const AAA_TARGET_PX = 44;
 
 export type Density = 'comfortable' | 'compact' | 'spacious';
-/** The `controlShape` FORM lever (#1163): the corner shape a pill-able control takes. `rounded`
- *  follows the radius ramp; `pill` binds the shared pill rung (`radius.round`) so Figma clamps every
- *  size to height ÷ 2. A brand-level choice, not a per-instance variant — see `applyControlShape`. */
-export type ControlShape = 'rounded' | 'pill';
+/** The `controlShape` FORM lever (#1163, #1371): the corner shape a pill-able control takes. Each value
+ *  names a RELATIONSHIP to a radius rung, never a raw radius: `rounded` follows the radius ramp
+ *  (`radius.md`, tracks corner softness); `pill` binds the shared pill rung (`radius.capsule`) so Figma
+ *  clamps every size to height ÷ 2; `boxed` binds `radius.none` (a fixed 0px / sharp corner, independent
+ *  of the softness dial); `hairline` binds `radius.hairline` (the fixed 1px sentinel #1362). A
+ *  brand-level choice, not a per-instance variant — see `applyControlShape`. */
+export type ControlShape = 'rounded' | 'pill' | 'boxed' | 'hairline';
 export type SpaceStep = { key: string; mult: number; px: number };
 export type RadiusStep = { name: string; px: number; pill?: boolean };
 export type SizeStep = { name: string; height: number; padX: number; padY: number; padXVisual: number; gap: number };

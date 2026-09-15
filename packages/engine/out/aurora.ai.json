@@ -7992,7 +7992,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "size.lg.height"
+        "size.lg.height",
+        "size.md.min-height"
       ]
     },
     "core.dimension.48": {

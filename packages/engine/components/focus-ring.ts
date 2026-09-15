@@ -373,13 +373,13 @@ export const focusRing: ComponentDef = {
     whenToUse: 'Nested by any component that can receive keyboard focus, as an absolute sibling — the host declares it and picks the surface and offset.',
     avoidWhen:
       'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside `:focus-visible` destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. "Standalone" here means placed in a layout: the component IS built on its own, because a host can only nest one that already exists.',
-    commonPartners: ['button', 'icon-button', 'text-field', 'select', 'checkbox', 'link'],
+    commonPartners: ['button', 'icon-button', 'text-field', 'select', 'checkbox-row', 'link'],
     triggerKeywords: ['focus ring', 'focus indicator', 'focus outline', 'focus visible', 'keyboard focus'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['button', 'icon-button', 'text-field', 'select', 'checkbox', 'link'],
+    composesWith: ['button', 'icon-button', 'text-field', 'select', 'checkbox-row', 'link'],
     alternativeTo: ['a per-component focus border', 'a box-shadow focus glow'],
   },
 

@@ -201,14 +201,17 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // per leaf; height aliases dimension, padding aliases space.
   const sizeVars: FigmaVar[] = [];
   for (const t of Object.keys(brand.size)) {
-    for (const prop of ['height', 'padding-x', 'padding-x-visual', 'padding-y', 'gap']) {
+    // `min-height` (#1437) is the interactive target-size floor, present on `md` only; the `if (!leaf)`
+    // guard skips it on the other rungs. It is a HEIGHT (aliases the dimension grid), so it takes the
+    // height scopes, not the padding ones.
+    for (const prop of ['height', 'min-height', 'padding-x', 'padding-x-visual', 'padding-y', 'gap']) {
       const leaf = brand.size[t][prop];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       sizeVars.push({
         name: ns(`size/${t}/${prop}`),
         resolvedType: 'FLOAT',
-        scopes: prop === 'height' ? SIZE_HEIGHT_SCOPES : SIZE_PADDING_SCOPES,
+        scopes: prop === 'height' || prop === 'min-height' ? SIZE_HEIGHT_SCOPES : SIZE_PADDING_SCOPES,
         description: desc(leaf),
         value: pxFromValue(tree, leaf.$value),
         alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
