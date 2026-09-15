@@ -8650,6 +8650,138 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       '#1331 a boolean toggling a NON-optional part is refused BY NAME — the anatomy must allow the part to be hidden');
   }
 
+  // ---- #1426: select QA fixes — caret pinned right (space-between) + hideable message boolean ----
+  // The two decision-free fixes from the plugin-import QA, each pinned INDEPENDENTLY of the projector and
+  // gated by a docs/34 mutation that flips a NAMED assertion. (Two further #1426 items — the hit-target
+  // control height and exposing the composed FieldLabel's props — are held for the owner as design forks.)
+  {
+    const fp = select.figmaProperties!;
+    const ctrlOf = (d: ComponentDef): { primaryAxisAlignItems?: string } => {
+      const root = figmaAnatomyPlan(d, undefined, { status: 'default', state: 'rest' } as never).root;
+      const c = (root.children ?? []).find((x: { name?: string }) => x.name === 'control');
+      if (!c) throw new Error(`select projection has no 'control' child (got [${(root.children ?? []).map((x: { name?: string }) => x.name).join(', ')}])`);
+      return c as { primaryAxisAlignItems?: string };
+    };
+
+    // (1) CARET — the control distributes its two flow children with SPACE_BETWEEN, pinning the trailing
+    //     chevron to the field's right edge independent of the value width. Read off the projected plan's
+    //     `primaryAxisAlignItems`, never the def's own `justify` word (the JUSTIFY map is the thing under test).
+    ok(ctrlOf(select).primaryAxisAlignItems === 'SPACE_BETWEEN',
+      `#1426 select control pins the chevron right via space-between (primaryAxisAlignItems SPACE_BETWEEN) — got ${String(ctrlOf(select).primaryAxisAlignItems)}`);
+    //   MUTATION — reverting `justify` to 'start' projects MIN (the chevron tracks the value again), flipping
+    //   the assertion BY NAME.
+    const startCtrl = { ...select.anatomy!.parts.control, layout: { ...select.anatomy!.parts.control.layout!, justify: 'start' as const } };
+    const startJustify = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, control: startCtrl } } };
+    ok(ctrlOf(startJustify as ComponentDef).primaryAxisAlignItems === 'MIN',
+      `#1426 MUTATION: reverting control.justify to 'start' projects primaryAxisAlignItems MIN (got ${String(ctrlOf(startJustify as ComponentDef).primaryAxisAlignItems)}), flipping '#1426 select control pins the chevron right' BY NAME`);
+
+    // (2) showMessage BOOLEAN (#1412 on a `nest` part — a first). The composed `message` nest is emitted at
+    //     EVERY member, shown by default, its `visible` driven by the `message` boolean — the INVERSE
+    //     direction of the leading glyph (default true, like field-label's `required`).
+    const sset = figmaAnatomySet(select, { swapTarget: 'FPO-default-icon' });
+    const findMsg = (n: any): any => (n.name === 'message' ? n : (n.children ?? []).map(findMsg).find(Boolean));
+    const msgNodes = sset.map((p) => findMsg(p.root));
+    ok(msgNodes.length === sset.length && msgNodes.every(Boolean),
+      `#1426 the composed message nest is emitted at EVERY projected member (${msgNodes.filter(Boolean).length}/${sset.length})`);
+    ok(msgNodes.length > 0 && msgNodes.every((m) => m?.visibleProp === 'message' && (m?.visible ?? true) === true),
+      '#1426 every message node is shown by default (built visible — `visible` omitted per #1331\'s "carried only when false" rule) with its `visible` driven by the `message` boolean (inverse of the leading glyph, which defaults hidden)');
+    //   and the built visibility TRACKS the default rather than being a constant (docs/34 shape 4): flipping
+    //   the boolean default to false builds every message node `visible:false`.
+    const hiddenDefault = { ...select, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { part: 'message', figmaName: 'message', default: false } } } };
+    const hiddenMsgs = figmaAnatomySet(hiddenDefault as never, { swapTarget: 'FPO-default-icon' }).map((p) => findMsg(p.root));
+    ok(hiddenMsgs.length > 0 && hiddenMsgs.every((m) => m?.visible === false),
+      '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
+
+    // (3) the boolean does NOT multiply the set — still status(4) × state(4) = 16 members.
+    ok(sset.length === 16,
+      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 16 members (got ${sset.length})`);
+
+    // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
+    const props = planSetProperties(sset);
+    const msgProp = props.find((p) => p.name === 'message');
+    ok(!!msgProp && msgProp.type === 'BOOLEAN' && msgProp.default === true,
+      `#1426 planSetProperties declares 'message' as a BOOLEAN defaulting true (the built visibility) — got ${JSON.stringify(msgProp)}`);
+
+    // (5) BEHAVIOR MUTATION (docs/34) — the boolean is the message nest's SOLE presence mechanism now that it
+    //     is optional. Drop only the showMessage boolean (keep leadingIcon) and the message nest is DROPPED at
+    //     every member (present() returns !optional), flipping (2) BY NAME.
+    const noMsgBool = { ...select, figmaProperties: { ...fp, booleans: { leadingIcon: fp.booleans!.leadingIcon } } };
+    const noMsgSet = figmaAnatomySet(noMsgBool as never, { swapTarget: 'FPO-default-icon' });
+    ok(noMsgSet.every((p) => !findMsg(p.root)),
+      '#1426 MUTATION: dropping the showMessage boolean drops the (now-optional) message nest from every member — the boolean is its sole presence mechanism, flipping "#1426 the composed message nest is emitted at EVERY projected member" BY NAME');
+
+    // (6) the requireOptional half — the message nest is optional, and a boolean on a NON-optional nest is
+    //     refused BY NAME (the #1331 arm, pinned on select's own `message`).
+    ok(select.anatomy!.parts.message.optional === true,
+      '#1426 the message nest is optional — the anatomy half of the #1412 mechanism (the boolean toggles visibility, so the part must be allowed to be absent)');
+    const msgNotOptional = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, message: { ...select.anatomy!.parts.message, optional: undefined } } } };
+    ok(validateComponentDef(msgNotOptional as never).errors.some((e) => /booleans\.showMessage/.test(e) && /not optional/.test(e)),
+      '#1426 a boolean toggling a NON-optional message nest is refused BY NAME — the anatomy must allow the part to be hidden');
+
+    // (7) the def still validates clean with the second boolean added.
+    ok(validateComponentDef(select).errors.length === 0,
+      `#1426 select validates clean with the showMessage boolean added (${validateComponentDef(select).errors.join('; ')})`);
+  }
+
+  // ---- #1437: the 44px INTERACTIVE TARGET-SIZE FLOOR (owner-decided 2026-09-15) ----
+  // `size.md.min-height` = max(size.md.height, AAA_TARGET_PX). EXPECTED is that formula transcribed
+  // INDEPENDENTLY of the emitter (docs/34); ACTUAL is the emitted px. The compact brand is the load-bearing
+  // case — its md rung (36) is below the target, so the floor lifts it and `min-height ≠ height` proves the
+  // floor is doing work rather than measuring a constant (shape 4).
+  {
+    const brands: Array<[string, any]> = [
+      ['nb (comfortable)', nbTheme()],
+      ['aurora (compact)', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
+    ];
+    for (const [id, t] of brands) {
+      const tree = buildTree(t).tree as any;
+      const md = tree[Object.keys(tree)[0]].size.md;
+      const mdPx = md.height.$extensions.prism3.px as number;
+      const minPx = md['min-height'].$extensions.prism3.px as number;
+      // The emitter's `max` is under test: drop it (emit `mdStep.height`) and minPx becomes 36 on aurora,
+      // failing `minPx === max(mdPx, 44)` (36 ≠ 44) BY NAME.
+      ok(minPx === Math.max(mdPx, AAA_TARGET_PX),
+        `#1437 ${id}: size.md.min-height = max(size.md.height ${mdPx}, ${AAA_TARGET_PX}) = ${Math.max(mdPx, AAA_TARGET_PX)} (got ${minPx})`);
+      ok(minPx >= AAA_TARGET_PX,
+        `#1437 ${id}: size.md.min-height (${minPx}) meets the ${AAA_TARGET_PX}px enhanced target at this density`);
+    }
+    // NOT VACUOUS (docs/34 shape 4): on a compact brand the floor LIFTS the value, so min-height ≠ height.
+    const aMd = (buildTree(brands[1][1]).tree as any)[Object.keys(buildTree(brands[1][1]).tree)[0]].size.md;
+    ok(aMd.height.$extensions.prism3.px === 36 && aMd['min-height'].$extensions.prism3.px === 44,
+      `#1437 the floor DOES work: aurora (compact) size.md.height=${aMd.height.$extensions.prism3.px} is lifted to min-height=${aMd['min-height'].$extensions.prism3.px} (a constant would coincide)`);
+    // select binds the FLOOR, not the plain rung — the binding mutation. Reverting to `size.md.height`
+    // resolves the control to 36px on a compact brand (the fact below), below the enhanced target.
+    ok(select.tokens!['min-height'] === 'size.md.min-height',
+      `#1437 select's control binds size.md.min-height (the floor), not size.md.height (got ${select.tokens!['min-height']})`);
+    ok(aMd.height.$extensions.prism3.px < AAA_TARGET_PX,
+      `#1437 MUTATION basis: reverting select's binding to size.md.height would resolve ${aMd.height.$extensions.prism3.px}px on a compact brand — below the ${AAA_TARGET_PX}px target, the regression the floor binding prevents`);
+  }
+
+  // ---- #1438: the composed FieldLabel is NEST-EXPOSED (owner-decided 2026-09-15) ----
+  // The label nest exposes field-label's author axes; marking the instance exposed ALSO surfaces its label
+  // text + required in Figma (the host-truth for that lives in #1392, which now includes select, and in
+  // test-roundtrip). Here: the def declaration and the projected `nestExpose` marking, mutation-gated.
+  {
+    const labelPart = select.anatomy!.parts.label;
+    ok(labelPart.nesting?.kind === 'nest-exposed',
+      `#1438 select's label nest is nest-exposed (got ${labelPart.nesting?.kind})`);
+    ok(labelPart.nesting?.kind === 'nest-exposed'
+      && JSON.stringify([...labelPart.nesting.expose].sort()) === JSON.stringify(['emphasis', 'size', 'weight']),
+      `#1438 select exposes field-label's author axes [size, emphasis, weight] (got ${labelPart.nesting?.kind === 'nest-exposed' ? labelPart.nesting.expose.join(', ') : 'n/a'})`);
+    const findLabel = (n: any): any => (n.name === 'label' ? n : (n.children ?? []).map(findLabel).find(Boolean));
+    const labelNode = findLabel(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'rest' } as never).root);
+    ok(labelNode && Array.isArray(labelNode.nestExpose) && labelNode.nestExpose.length === 3,
+      `#1438 the projected label node carries nestExpose (${labelNode?.nestExpose?.join(', ') ?? 'MISSING'})`);
+    // MUTATION: reverting the label to nest-fixed drops nestExpose from the projected node BY NAME.
+    const fixedLabel = { ...select.anatomy!.parts.label, nesting: { kind: 'nest-fixed' as const, variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' } } };
+    const fixed = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, label: fixedLabel } } };
+    const fixedLabelNode = findLabel(figmaAnatomyPlan(fixed as ComponentDef, undefined, { status: 'default', state: 'rest' } as never).root);
+    ok(fixedLabelNode && fixedLabelNode.nestExpose === undefined,
+      `#1438 MUTATION: reverting the label nest to nest-fixed drops nestExpose from the projected node (got ${JSON.stringify(fixedLabelNode?.nestExpose)}), flipping '#1438 the projected label node carries nestExpose' BY NAME`);
+    ok(validateComponentDef(select).errors.length === 0,
+      `#1438 select validates clean as nest-exposed — expose ⊂ field-label's axes, disjoint from follow (${validateComponentDef(select).errors.join('; ')})`);
+  }
+
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
   // (Button = primary, Destructive Button, Neutral Button), built by one factory. Button carries NO
   // `intent` prop, and hierarchy is still the appearance axis (filled > outline > text).
@@ -11756,13 +11888,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // PER DEF: run the paste payload and read the exposure marking back off the built members.
         for (const def of nestExposedDefs) {
           const exposedPartNames = nestExposedPartsOf(def);
-          const plans = figmaAnatomySet(def);
+          // Nominate the swap target exactly as the real caller and the round-trip do (`SWAP_TARGET`): a def
+          // with a swap slot (select's leading glyph, #1426) leaves it unnominated otherwise and the executor
+          // builds a placeholder frame it then reports as a miss. select is the first nest-exposed def with a
+          // swap slot, so the gate now nominates one.
+          const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
           const opts: StubOpts = {
             vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
             styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
-            // The nested targets, resolved as plain COMPONENTs exactly as the round-trip's `planComps` hands
-            // the plugin shim (`test-roundtrip.ts`) — one instance of each takes its cell in every member.
-            comps: [...new Set(exposedPartNames.map((n) => def.anatomy?.parts[n]?.nests).filter((c): c is string => !!c))],
+            // EVERY component the def's plan references — swap targets AND nest targets, collected off the
+            // plan exactly as the round-trip's `planComps`/`fullFor` does, so one instance of each takes its
+            // cell in every member. select (#1438) is the first nest-exposed def that ALSO nests NON-exposed
+            // parts (`field-message`, `focus-ring`) and carries a swap slot; leaving either unprovisioned
+            // drops nodes — and a dropped `field-message` node orphans the `showMessage` visibility boolean
+            // (#1426). Provisioning both mirrors the real build (the plugin builds each nested component and
+            // the swap target first), where no node is dropped.
+            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c))],
           };
           // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
           // it is read off the PAGE the payload appended the combined set to. Returns every nested instance

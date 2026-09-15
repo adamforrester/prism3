@@ -2505,6 +2505,43 @@
  * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
  */
 /**
+ * 0.92.0 — #1426 `select` QA, all FOUR fixes, owner-decided (2026-09-15). ENGINE MINOR (the projected surface
+ * moves on all four) and — uniquely for this lane — a CONTRACT MINOR too (10.1.0, the one new emitted name in
+ * #1437). Serialized LAST behind the lanes that landed on main first — #1347 (0.89.0, checkbox-row rename),
+ * #1371 (0.90.0, control-shape off-ramps) and #1368 (0.91.0, face pin) — so this takes the next free integer
+ * above main's 0.91.0: 0.92.0.
+ *   (1) CARET PINNED RIGHT. The control's `justify` goes `start` → `space-between`, so the trailing chevron
+ *       sits at the field's right edge at every value length rather than tracking the value string
+ *       (`content` fills in code but hugs in Figma, #989). Projects `primaryAxisAlignItems: SPACE_BETWEEN`.
+ *   (2) `showMessage` BOOLEAN. A node-visibility boolean (#1412) that hides the composed FieldMessage
+ *       entirely — DEFAULT TRUE, and the FIRST use of the mechanism on a `nest` part. A component prop, not
+ *       a token; no CONTRACT move.
+ *   (3) 44px INTERACTIVE FLOOR (#1437). The control binds `size.md.min-height` = `max(size.md.height,
+ *       AAA_TARGET_PX)` — the md control height raised to the WCAG 2.5.5 enhanced 44px target wherever a
+ *       dense brand falls below it (a FLOOR: a spacious 56 stays 56; a compact 36 lifts to 44). This is the
+ *       one new emitted guaranteed name, so CONTRACT moves 10.0.0 → 10.1.0 (the MINOR is recorded under
+ *       CONTRACT_VERSION below). Placed inside the existing `size.md` group so the rung-iterating gates are
+ *       unaffected; `emit-figma-dims` emits it as a `size/md/min-height` variable on the height scopes.
+ *   (4) EXPOSE THE FIELD-LABEL (#1438). select's `label` nest goes `nest-fixed` → `nest-exposed`, exposing
+ *       field-label's size/emphasis/weight; marking the instance exposed also surfaces its label text and
+ *       `required` in Figma. A projected-surface change, no token move.
+ *
+ * ENGINE and not (only) CONTRACT on #1252's decision for (1),(2),(4): the projected component surface moves
+ * with no emitted token path. (3) additionally moves the guaranteed name surface, which is why THIS lane —
+ * unlike the select fixes that preceded it — carries a CONTRACT bump.
+ *
+ * NEW REFUSAL ARMS: none. All four use existing mechanisms (the `space-between` justify value, the #1412
+ * boolean projection, the `size.*` tier + a max, the #1330 nest-exposed relation), adding no schema field
+ * and no refusal — so only BEHAVIOR mutations are owed (docs/34). `test.ts`'s #1426/#1437/#1438 blocks carry
+ * them: the SPACE_BETWEEN projection (revert `justify`→`start` → `MIN`), the message boolean's every-member
+ * presence + shown-by-default-not-a-constant, the floor formula `max(md,44)` proven non-vacuous on the
+ * compact brand, select's binding to the floor, and the projected `nestExpose` marking (revert to
+ * nest-fixed drops it). The host-truth for the boolean and the exposure is `test-roundtrip` and the #1392
+ * payload gate (now provisioning select's full nest + swap set). `lint-component-surface` took a bump-gated
+ * `--accept` (select's plan moves: `primaryAxisAlignItems`, the `message` boolean, the `min-height` binding,
+ * the label's `nestExpose`); `paint-census` is unchanged (no paint moved).
+ */
+/**
  * 0.91.0 — a text CATEGORY may PIN a VERBATIM FACE per weight-role slot (#1368, owner-resolved the
  * three type-model forks 2026-09-15). `typography.faces.<category>.<weightRole> = { family, style }`
  * names the exact Figma face a slot binds, OVERRIDING the numeric-weight → style-name derivation, so a
@@ -2583,7 +2620,7 @@
  * 0.90.0 and not 0.89.0 because this merged post-#1347 main, which took 0.89.0 for the checkbox-row rename +
  * checkbox-group build — the next free ENGINE above it (never lower).
  */
-export const ENGINE_VERSION = '0.91.0';
+export const ENGINE_VERSION = '0.92.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -2982,8 +3019,20 @@ export const ENGINE_VERSION = '0.91.0';
  * counterparts for border's other seven roles, which land INSIDE a container that now exists. The
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
+ *
+ * 10.1.0 — ADD `size.md.min-height`, the interactive target-size floor (#1437, owner-decided 2026-09-15). ONE
+ * new guaranteed dimension path: `<root>.size.md.min-height` = `max(size.md.height, AAA_TARGET_PX)` = the `md`
+ * control height raised to the WCAG 2.2 SC 2.5.5 enhanced 44px target wherever a dense brand falls below it (a
+ * FLOOR, so a spacious 56 stays 56). Emitted unconditionally by every corpus brand, so it lands in the
+ * GUARANTEED intersection, not `brandDependent`. ADD, so MINOR — 10.0.0 → 10.1.0 (adding a path never forces a
+ * MAJOR; `brandDependent` is untouched; nothing is removed or retyped). Placed inside the existing `size.md`
+ * group rather than as a new top-level `size.*` key, so the rung-iterating gates are unaffected. Bound by
+ * `select` (#1426) so a field control meets the enhanced target at every density; the family generalization
+ * (text-field, the checkbox/switch rows) is tracked in #1437 and does not move the contract further (they
+ * would bind the same existing name). `token-contract.ts --accept` records it and refuses unless
+ * `CONTRACT_VERSION` was raised by exactly this MINOR first. (guaranteed +1)
  */
-export const CONTRACT_VERSION = '10.0.0';
+export const CONTRACT_VERSION = '10.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
