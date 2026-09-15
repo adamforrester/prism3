@@ -536,7 +536,7 @@ export type BrandInput = {
   density?: Density;                 // default 'comfortable' (drives component sizes)
   radiusScale?: number;              // 0=sharp … 1=default … 2=soft, default 1
   baseMd?: number;                   // radius.md anchor (px) at scale 1, default 4
-  controlShape?: ControlShape;       // 'rounded' (default) | 'pill' — corner shape for pill-able controls
+  controlShape?: ControlShape;       // 'rounded' (default) | 'pill' | 'boxed' | 'hairline' — corner shape for pill-able controls (#1371)
   /** OPT-IN 1px hairline radius (#1362). The scaled ramp rides an even 2px sub-grid (`snap2`), so 1px is
    *  unreachable from `radiusScale` / `baseMd`; `true` adds a fixed, unscaled `radius.hairline` = 1px
    *  sentinel alongside the pills for near-sharp brands (New Balance uses 1px as its dominant corner).
@@ -1988,7 +1988,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // build with a clear diagnosis"), not two.
   const enumLevers: { path: string; value: unknown; options: readonly (string | number)[] }[] = [
     { path: 'density', value: input.density, options: DENSITY_VALUES },
-    { path: 'controlShape', value: input.controlShape, options: ['rounded', 'pill'] },
+    { path: 'controlShape', value: input.controlShape, options: ['rounded', 'pill', 'boxed', 'hairline'] },
     { path: 'typography.typeScale', value: input.typography?.typeScale, options: ['compact', 'default', 'expressive'] },
     { path: 'typography.displayCeiling', value: input.typography?.displayCeiling, options: DISPLAY_VARIANTS },
     { path: 'typography.titleFloor', value: input.typography?.titleFloor, options: [16, 18] },
@@ -2230,8 +2230,12 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const density = input.density ?? 'comfortable';
   const rScale = input.radiusScale ?? 1;
   const baseMd = input.baseMd ?? 4;
-  // OPT-IN 1px hairline sentinel (#1362) — off by default, so absent it changes nothing.
-  const radiusHairline = input.radiusHairline ?? false;
+  // OPT-IN 1px hairline sentinel (#1362) — off by default, so absent it changes nothing. IMPLIED by
+  // `controlShape: hairline` (#1371): that shape repoints a pill-able control's corner to `radius.hairline`
+  // (`applyControlShape`), and the rung must EXIST for the binding to resolve rather than dangle against a
+  // brand that never opted in — so choosing the shape provisions the rung. Mechanical rung-resolution, not a
+  // second lever the user must find: `radius.none` (`boxed`) is always emitted and needs no such coupling.
+  const radiusHairline = (input.radiusHairline ?? false) || input.controlShape === 'hairline';
   // Per-mode radius levers (Phase D): a customizable mode overriding `radius` re-derives its radius
   // ramp via the SAME radiusScale(value, baseMd, 128) buildDims uses (same baseMd). Only a mode whose
   // re-derived ramp DIFFERS from the global baseline gets an entry (no-diff suppression — mirrors the
@@ -2259,7 +2263,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     }
   }
   notes.push(`dimension axis: ${baseUnit}px grid, ${spaceBase}px space rhythm, density '${density}' (drives component sizes), radius scale ${rScale} (baseMd ${baseMd}px)`);
-  if (radiusHairline) notes.push('radius: hairline sentinel ON — a fixed, unscaled radius.hairline = 1px alongside the pills (#1362, opt-in), reachable where the even 2px sub-grid cannot go; the scaled ramp is unchanged.');
+  if (radiusHairline) notes.push(`radius: hairline sentinel ON${input.radiusHairline ? '' : ' (implied by controlShape: hairline #1371)'} — a fixed, unscaled radius.hairline = 1px alongside the pills (#1362, opt-in), reachable where the even 2px sub-grid cannot go; the scaled ramp is unchanged.`);
   notes.push(`motion: tempo '${input.motionPersonality?.tempo ?? 'standard'}' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)`);
   // Per-mode MOTION TEMPO (Phase D): a customizable mode overriding `tempo` re-derives its duration ramp
   // (+ reduce-motion + stagger) via the SAME buildMotion the baseline uses, just at the mode's tempo.

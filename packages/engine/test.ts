@@ -51,7 +51,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -8185,6 +8185,83 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         .filter((v) => !v.startsWith('radius/')).sort();
       ok(JSON.stringify(nonRadius('rounded')) === JSON.stringify(nonRadius('pill')),
         `controlShape: ${id} pill moves ONLY the radius binding — every other bound var is identical to rounded`);
+    }
+
+    // (#1371) THE TWO FIXED OFF-RAMPS — `boxed` (radius.none, a sharp 0px corner) and `hairline`
+    // (radius.hairline, the 1px sentinel #1362). Each names a RELATIONSHIP, not a raw radius, and rides the
+    // SAME generalized mechanism as `pill`: `applyControlShape` repoints the ROUNDED rung BY REF, so a shape
+    // reaches button's `radius` key and icon-button's `radius.square` key alike and LEAVES the intrinsic
+    // `circular` round rung. The SUBJECT is the exported `CONTROL_SHAPE_RUNG` map; the ORACLE is the
+    // projected plan (`radiusBindings`), derived independently of the map (docs/34) — so a wrong or reverted
+    // map entry surfaces as a wrong bound var by name, not as silence.
+    ok(CONTROL_SHAPE_RUNG.rounded === null && CONTROL_SHAPE_RUNG.pill === PILL_RADIUS_RUNG
+      && CONTROL_SHAPE_RUNG.boxed === BOXED_RADIUS_RUNG && BOXED_RADIUS_RUNG === 'radius.none'
+      && CONTROL_SHAPE_RUNG.hairline === HAIRLINE_RADIUS_RUNG && HAIRLINE_RADIUS_RUNG === 'radius.hairline'
+      && ROUNDED_RADIUS_RUNG === 'radius.md',
+      'controlShape: CONTROL_SHAPE_RUNG maps rounded→identity, pill→capsule, boxed→none, hairline→hairline (all off the rounded rung radius.md)');
+    const OFFRAMP: { shape: ControlShape; varName: string }[] = [
+      { shape: 'boxed', varName: 'radius/none' },
+      { shape: 'hairline', varName: 'radius/hairline' },
+    ];
+    for (const { shape, varName } of OFFRAMP) {
+      // THE SQUARE (ROUNDED-RUNG) CASE — button and icon-button's `shape=square` both repoint to the off-ramp.
+      for (const { id, slots } of squareCases) {
+        const d = componentDefs.find((x) => x.id === id)!;
+        const tag = slots.shape ? `/${slots.shape}` : '';
+        for (const size of d.variants?.size ?? []) {
+          const bound = radiusBindings(applyControlShape(d, shape), size, slots);
+          ok(bound.length === 1 && bound[0] === varName,
+            `controlShape: ${id}@${size}${tag} ${shape} binds ${varName} — the fixed off-ramp rung selected BY NAME (${bound.join(', ') || 'none'})`);
+        }
+      }
+      // icon-button's `shape=circular` is an INTRINSIC round rung — the off-ramp leaves it, exactly as pill does.
+      {
+        const ib = componentDefs.find((x) => x.id === 'icon-button')!;
+        for (const size of ib.variants?.size ?? []) {
+          const circ = radiusBindings(applyControlShape(ib, shape), size, { shape: 'circular' });
+          ok(circ.length === 1 && circ[0] === 'radius/round',
+            `controlShape: icon-button@${size}/circular stays radius/round under ${shape} — the intrinsic round rung no shape can reach (${circ.join(', ') || 'none'})`);
+        }
+      }
+      // IDENTITY on the excluded set (switch/radio carry no derivation → the same object back).
+      ok(applyControlShape(switchControl, shape) === switchControl && applyControlShape(radioControl, shape) === radioControl,
+        `controlShape: ${shape} is the IDENTITY on switch-control + radio-control — the excluded set cannot move`);
+      // NARROW: under the off-ramp, ONLY the radius binding moves; every other bound var equals rounded.
+      for (const id of ['button', 'icon-button']) {
+        const d = componentDefs.find((x) => x.id === id)!;
+        const size = (d.variants?.size ?? [])[0];
+        const slots: Record<string, string> = d.variants?.shape ? { shape: 'square' } : {};
+        const nonRadius = (sh: ControlShape) => planBoundVars(figmaAnatomyPlan(applyControlShape(d, sh), size, slots as never).root)
+          .filter((v) => !v.startsWith('radius/')).sort();
+        ok(JSON.stringify(nonRadius('rounded')) === JSON.stringify(nonRadius(shape)),
+          `controlShape: ${id} ${shape} moves ONLY the radius binding — every other bound var is identical to rounded`);
+      }
+    }
+
+    // THE HAIRLINE↔RUNG COUPLING (#1371). `hairline` repoints a control's corner to `radius.hairline` — an
+    // OPT-IN rung (#1362) that exists only with `radiusHairline` on — so choosing the shape must PROVISION
+    // the rung, or the projected `radius/hairline` binding dangles against a brand that never opted in.
+    // `brandTheme` couples them: `controlShape: hairline` IMPLIES the rung. Read the EMITTED tree (the
+    // contract a consumer sees), so this is independent of `applyControlShape`. `boxed`'s `radius.none` is
+    // always present, so it provisions NOTHING — the asymmetry is the point.
+    {
+      const seedHue = { primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } };
+      const radiusOf = (input: object) => { const t = buildTree(brandTheme(input as unknown as BrandInput)).tree; return (t as any)[Object.keys(t)[0]].radius; };
+      const hairShape = radiusOf({ id: 'cshair', ...seedHue, controlShape: 'hairline' });
+      ok(hairShape.hairline?.$extensions?.prism3?.px === 1 && /\.core\.dimension\.1}$/.test(hairShape.hairline?.$value ?? ''),
+        `controlShape: hairline IMPLIES the hairline rung — a brand setting ONLY controlShape:hairline (radiusHairline unset) still emits radius.hairline = 1px (got ${hairShape.hairline?.$value})`);
+      const boxedShape = radiusOf({ id: 'csbox', ...seedHue, controlShape: 'boxed' });
+      ok(boxedShape.hairline === undefined && boxedShape.none?.$extensions?.prism3?.px === 0,
+        `controlShape: boxed provisions NOTHING — radius.none is always emitted (0px) and no hairline rung appears (got hairline=${JSON.stringify(boxedShape.hairline)})`);
+      // The enum values are ACCEPTED by the schema (both halves gate the theme-schema/enumLevers edits): a
+      // valid off-ramp validates clean, and garbage is still rejected — so reverting the enum widening fails
+      // the acceptance arm by name rather than silently narrowing what a brand may write.
+      const seed = { id: 'csval', ...seedHue } as unknown as BrandInput;
+      ok(validateBrandInput({ ...seed, controlShape: 'boxed' } as any).length === 0
+        && validateBrandInput({ ...seed, controlShape: 'hairline' } as any).length === 0,
+        'controlShape: boxed + hairline are ACCEPTED by the schema (the enum was widened)');
+      ok(validateBrandInput({ ...seed, controlShape: 'nope' } as any).length > 0,
+        'controlShape: an unknown shape is still REJECTED — the enum widened, it did not open');
     }
   }
 

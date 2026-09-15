@@ -2165,11 +2165,12 @@ export type State = (typeof STATES)[number];
  * dimension tokens; `ratio` fixes a proportion, not a corner; `style` is about the edge's stroke, not its
  * rounding. `lint-axis-values.ts` carries `['square', 'circular']` as a `sole` set with this reason.
  *
- * IT DOES NOT COLLIDE WITH THE `controlShape` BRAND LEVER (#1163), which is a distinct mechanism at a
- * distinct layer: `controlShape` is a per-BRAND `rounded | pill` choice applied to a def BEFORE projection
- * (`applyControlShape`), while `shape` is a per-INSTANCE variant a designer picks within one set. They
- * compose — under a `pill` brand the lever repoints the `square` shape's rounded rung to the capsule rung
- * and leaves the `circular` shape's intrinsic round rung, the same rule it applies to switch/radio.
+ * IT DOES NOT COLLIDE WITH THE `controlShape` BRAND LEVER (#1163, #1371), which is a distinct mechanism at a
+ * distinct layer: `controlShape` is a per-BRAND `rounded | pill | boxed | hairline` choice applied to a def
+ * BEFORE projection (`applyControlShape`), while `shape` is a per-INSTANCE variant a designer picks within
+ * one set. They compose — under a non-`rounded` brand the lever repoints the `square` shape's rounded rung
+ * to the shape's rung (capsule/none/hairline) and leaves the `circular` shape's intrinsic round rung, the
+ * same rule it applies to switch/radio.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
