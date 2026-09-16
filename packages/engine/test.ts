@@ -1170,13 +1170,19 @@ for (const b of brands) {
 // `CONTROL_RUNGS` and `DENSITY_START` are the subject; a table derived from either could not fail when
 // they move. This is the whole ladder, all three densities, as px:
 {
-  const EXPECTED_CONTROL: Record<string, Record<string, { height: number; width: number; dot: number }>> = {
-    compact:     { sm: { height: 12, width: 24, dot: 6 },  md: { height: 16, width: 32, dot: 8 },  lg: { height: 20, width: 40, dot: 10 } },
-    comfortable: { sm: { height: 16, width: 32, dot: 8 },  md: { height: 20, width: 40, dot: 10 }, lg: { height: 24, width: 48, dot: 12 } },
-    spacious:    { sm: { height: 20, width: 40, dot: 10 }, md: { height: 24, width: 48, dot: 12 }, lg: { height: 28, width: 56, dot: 14 } },
+  // #1425 added `track` + `thumb` (the switch's OWN track height and traveling thumb, DISTINCT from the
+  // square box `height`/`dot` a checkbox/radio reads) and rebased `width` onto `2× track` and `inset` onto
+  // `(track − thumb) / 2`. The whole ladder, all three densities, as px — box fields and switch fields
+  // side by side, authored here so a mutation of either ladder or any ratio fails against a table that
+  // could not have derived from it:
+  type ControlRow = { height: number; width: number; dot: number; track: number; thumb: number; inset: number };
+  const EXPECTED_CONTROL: Record<string, Record<string, ControlRow>> = {
+    compact:     { sm: { height: 12, dot: 6,  track: 16, thumb: 12, width: 32, inset: 2 }, md: { height: 16, dot: 8,  track: 24, thumb: 18, width: 48, inset: 3 }, lg: { height: 20, dot: 10, track: 32, thumb: 24, width: 64, inset: 4 } },
+    comfortable: { sm: { height: 16, dot: 8,  track: 24, thumb: 18, width: 48, inset: 3 }, md: { height: 20, dot: 10, track: 32, thumb: 24, width: 64, inset: 4 }, lg: { height: 24, dot: 12, track: 40, thumb: 30, width: 80, inset: 5 } },
+    spacious:    { sm: { height: 20, dot: 10, track: 32, thumb: 24, width: 64, inset: 4 }, md: { height: 24, dot: 12, track: 40, thumb: 30, width: 80, inset: 5 }, lg: { height: 28, dot: 14, track: 48, thumb: 36, width: 96, inset: 6 } },
   };
   const CONTROL_RUNG_NAMES = ['sm', 'md', 'lg'];
-  const CONTROL_FIELDS = ['height', 'width', 'dot'] as const;
+  const CONTROL_FIELDS = ['height', 'width', 'dot', 'track', 'thumb', 'inset'] as const;
   // Read a rung's resolved px DEFENSIVELY. Not politeness: with the tier authored as a leaf instead of
   // a group — the mutation this block's shape check exists for — a direct `grp[n].height.$extensions`
   // read throws, and a suite that CRASHES reports no failure by name at all. The shape assertion below
@@ -1229,10 +1235,18 @@ for (const b of brands) {
     // the card ramp that still could not scale with the box it corners. Unlike `inset` this one is not
     // derived from a sibling — it is derived from `height` and from `radius.sm`, a value from ANOTHER
     // group, which is why it is the first field here whose value is clamped rather than computed.
-    // A seventh field is still a decision someone takes.
+    //
+    // #1425 added the SEVENTH and EIGHTH, `track` + `thumb`, and the pin moving is again the checkpoint
+    // working rather than yielding — it fired on the first run of this change. The argument is that a
+    // switch is not a checkbox: its track holds a TRAVELLING thumb, so it needs its own cross-axis edge
+    // (`track`, Prism 2's 32px toggle) and its own mark (`thumb`, 0.75× the track), both larger than the
+    // square box `height`/`dot` a checkbox/radio reads and both density-windowed the same way. Housed on
+    // the SHARED rung so the switch stays inside the one control tier (its `width`/`inset` already lived
+    // here, switch-only), not as a separate group that would orphan those two. A ninth field is still a
+    // decision someone takes.
     const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
-    ok(fields.every((f) => f === 'dot+height+inset+line-box+radius+width'),
-      `#910/#1201/#997/#1015 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` + \`radius\` — no seventh field drifts in (got ${[...new Set(fields)].join(' / ')})`);
+    ok(fields.every((f) => f === 'dot+height+inset+line-box+radius+thumb+track+width'),
+      `#910/#1201/#997/#1015/#1425 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` + \`radius\` + \`track\` + \`thumb\` — no ninth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
     ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
@@ -1258,10 +1272,46 @@ for (const b of brands) {
     ok(new Set(heights).size === 3 && heights.every((h, i) => i === 0 || h > heights[i - 1]),
       `#900 ${density}: three DISTINCT, strictly increasing heights — the windowed ladder, not a clamped shift (${heights.join('/')})`);
 
-    // `width` is 2× `height`, read off the two RESOLVED px rather than off `CONTROL_TRACK_RATIO`.
-    const offRatio = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'width') !== (px(grp, n, 'height') ?? NaN) * 2);
-    ok(offRatio.length === 0, `#900 ${density}: every track \`width\` is exactly 2× its \`height\` — the one ratio the field converges on (Carbon 24×48, Ant 22×44, Fluent 20×40)`
+    // `width` is 2× `track` (#1425 rebased it off `height`), read off the two RESOLVED px rather than off
+    // `CONTROL_TRACK_RATIO`. The switch borrowed the box `height` for its track before #1425, which is why
+    // this once read `2× height`; now the track is its own field and the width doubles IT.
+    const offRatio = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'width') !== (px(grp, n, 'track') ?? NaN) * 2);
+    ok(offRatio.length === 0, `#900/#1425 ${density}: every track \`width\` is exactly 2× its \`track\` height — the one ratio the field converges on (Carbon 24×48, Ant 22×44, Fluent 20×40)`
       + (offRatio.length ? ` — OFF: ${offRatio.join(', ')}` : ''));
+
+    // #1425 — the SWITCH track ladder, its own edge distinct from the box `height`. Three DISTINCT,
+    // strictly increasing tracks at EVERY density (the same windowing/clamp check `height` gets, since the
+    // switch ladder is a second window over `SWITCH_TRACK_RUNGS` and the clamping bug is available here
+    // too), and — the property the issue turns on — every track is LARGER than the box `height` it
+    // replaced, at every rung and density. A track that came out equal to the box is the #1425 undersize
+    // regressed. Read off resolved px, independent of the ladder constants by construction.
+    const tracks = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'track') ?? NaN);
+    ok(new Set(tracks).size === 3 && tracks.every((t, i) => i === 0 || t > tracks[i - 1]),
+      `#1425 ${density}: three DISTINCT, strictly increasing switch tracks — the windowed ladder, not a clamped shift (${tracks.join('/')})`);
+    const notBigger = CONTROL_RUNG_NAMES.filter((n) => (px(grp, n, 'track') ?? NaN) <= (px(grp, n, 'height') ?? NaN));
+    ok(notBigger.length === 0, `#1425 ${density}: every switch \`track\` is TALLER than the square box \`height\` — a track that holds a traveling thumb is not a checkbox square (the undersize #1425 fixes)`
+      + (notBigger.length ? ` — NOT BIGGER: ${notBigger.join(', ')}` : ''));
+
+    // #1425 — `thumb` is 0.75× the TRACK (Prism 2's 24-in-32), the switch's own mark and a SEPARATE ratio
+    // from radio's `dot` (0.5× the box). Read off the two resolved px, so a mutation of `SWITCH_THUMB_RATIO`
+    // fails here by name. Integer at every rung (the multiples-of-8 track guarantees it) and — the
+    // proportion the issue names — strictly BETWEEN 0.5 (radio's) and 1.0, i.e. reads as a thumb.
+    const offThumb = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'thumb') !== (px(grp, n, 'track') ?? NaN) * 0.75);
+    ok(offThumb.length === 0, `#1425 ${density}: every switch \`thumb\` is exactly 0.75× its \`track\` — Prism 2's toggle proportion`
+      + (offThumb.length ? ` — OFF: ${offThumb.join(', ')}` : ''));
+    const thumbs = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'thumb') ?? NaN);
+    ok(thumbs.every((t) => Number.isInteger(t)), `#1425 ${density}: every switch \`thumb\` is a whole px — a half-px thumb cannot be centred on the grid (${thumbs.join('/')})`);
+    const thumbRatios = CONTROL_RUNG_NAMES.map((n) => (px(grp, n, 'thumb') ?? NaN) / (px(grp, n, 'track') ?? NaN));
+    ok(thumbRatios.every((r) => r > 0.5 && r < 1), `#1425 ${density}: the thumb-to-track proportion sits strictly between a radio dot (0.5) and the whole track — it reads as a traveling thumb (${thumbRatios.map((r) => r.toFixed(2)).join('/')})`);
+
+    // #1425 — `inset` is `(track − thumb) / 2` (the thumb centred in the track, its clearance at each
+    // end), rebased off `(height − dot) / 2`. Derived from the two SWITCH fields, so it cannot drift from
+    // them; integer at every rung by the same multiples-of-8 construction.
+    const offInset = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'inset') !== ((px(grp, n, 'track') ?? NaN) - (px(grp, n, 'thumb') ?? NaN)) / 2);
+    ok(offInset.length === 0, `#997/#1425 ${density}: every \`inset\` is exactly (track − thumb) ÷ 2 — the thumb centred in its track`
+      + (offInset.length ? ` — OFF: ${offInset.join(', ')}` : ''));
+    const insets = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'inset') ?? NaN);
+    ok(insets.every((v) => Number.isInteger(v) && v >= 2), `#997/#1425 ${density}: every \`inset\` is a whole px ≥ 2 — a switch thumb clears its track end by at least a 2px border's worth (${insets.join('/')})`);
 
     // `dot` is HALF the height, read off the two resolved px for the same reason. Deliberately NOT
     // described as field-convergent, because it is not and the reviewer was right to say so: M3 is
@@ -12863,7 +12913,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `layout.justify` already put it. So the symptom is a switch whose thumb does not travel — visible
       // only by looking at two members of the set side by side, which no gate downstream does. Every rule
       // was deleted from `anatomyErrors` in turn and the matching line here confirmed to fail BY NAME.
-      // Patched onto `switch-control`, the def that carries the travelling thumb since #1354 (it moved
+      // Patched onto `switch-control`, the def that carries the traveling thumb since #1354 (it moved
       // off the `switch` ROW with the painted surface). The text-part arms below stay on the ROW's `label`,
       // the only text part in the family.
       const swPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(switchControl, part, patch);
@@ -12925,7 +12975,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // which reads in the def as though it had been.
       ibBroke('naming a position for only SOME values fails — the rest fall back to a field that does not mention this part', /names no position for \[on\]/, swPart('thumb', { positionWhen: { selection: { off: 'start' } } }));
       // ALL THE SAME POSITION is `layout.justify` wearing a condition's clothes — the one rule here whose
-      // symptom is a part that reads as travelling and projects as static.
+      // symptom is a part that reads as traveling and projects as static.
       ibBroke('the same position at every value fails as a no-op', /positions itself 'start' at every value of 'selection'/, swPart('thumb', { positionWhen: { selection: { off: 'start', on: 'start' } } }));
 
       // The NON-SQUARE BOX rules (#990). `width` is what a 2:1 track needs and `size` is what a square
@@ -15375,7 +15425,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // an empty set — `docs/34` shape 15, the same shape the CONTROL_DEFS scope above was widened for.
   const positionedDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.positionWhen));
-  // #1354 moved the travelling thumb to `switch-control`, so the def with a `positionWhen` part is the atom.
+  // #1354 moved the traveling thumb to `switch-control`, so the def with a `positionWhen` part is the atom.
   const POSITIONED_EXPECTED = ['switch-control'];
   ok(POSITIONED_EXPECTED.every((n) => positionedDefs.some((d) => d.id === n)) && positionedDefs.length === POSITIONED_EXPECTED.length,
     `#990 the positionWhen projection rule below covers exactly [${POSITIONED_EXPECTED.join(', ')}] — a def gaining a variant-positioned part must be represented here, and a def losing one is a stale claim (found: ${positionedDefs.map((d) => d.id).join(', ') || 'none'})`);
@@ -15455,7 +15505,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `#997 ${def.id}: '${parent}' pads BOTH main-axis ends with one variable at ${axis}=${v}, so '${name}' clears the end it is distributed to — an alignment has no offset, so padding is the only source of clearance and without it the part is flush (got ${mainEnds.map((e) => `${e}=${b[e] ?? 'unbound'}`).join(', ')})`);
 
         // …and the clearance is the RIGHT SIZE, resolved to px. A padding that exists but does not relate
-        // to the travelling part would satisfy the arm above while leaving the part cramped or overflowing.
+        // to the traveling part would satisfy the arm above while leaving the part cramped or overflowing.
         // The cross axis is the checkable one: the padded box must be exactly the part, or the part is not
         // centred in the track it slides along.
         const asPath = (figName?: string) => figName?.split('/').join('.');
@@ -15474,7 +15524,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // the same claim read out of the PROJECTION, which is where a projector that silently collapsed the
       // travel (a stale `JUSTIFY` lookup, a `??` reversed) would show up.
       ok(seen.size > 1,
-        `#990 ${def.id}: '${name}' occupies MORE THAN ONE place across '${axis}' — a projection that resolved every value to '${[...seen][0]}' is a part that reads as travelling and renders as static, and no node count, paint assignment or census can tell the difference (got ${seen.size} distinct: ${[...seen].join(', ')})`);
+        `#990 ${def.id}: '${name}' occupies MORE THAN ONE place across '${axis}' — a projection that resolved every value to '${[...seen][0]}' is a part that reads as traveling and renders as static, and no node count, paint assignment or census can tell the difference (got ${seen.size} distinct: ${[...seen].join(', ')})`);
       // THE UNSUPPLIED AXIS, the third direction the projected set cannot reach: a structure-only plan is
       // legal (the partial-coordinate guard throws only when SOME of a template's axes are missing), and it
       // must fall back to the parent's DECLARED justify rather than to the first entry of the map. Asserting
@@ -15830,12 +15880,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //      (`color.background.inverse.primary` → `color.appearance.…`); #1133 retired one and #1140 emptied
   //      the rest, because `replacedBy` follows the LIVE name by rule, so relocating the inverse marker
   //      gave each of those entries a role delta on top of the tier delta and they began projecting like
-  //      any other rename. #1148 REMOVES the segment, so its 243 entries are tier-only travelling the
+  //      any other rename. #1148 REMOVES the segment, so its 243 entries are tier-only traveling the
   //      other way (`color.appearance.background.primary` → `color.background.primary`).
   //      **SO THE PREDICATE IS TWO PREDICATES, AND WAS ONE UNTIL THIS CHANGE.** The arm read only
   //      `replacedBy === color.appearance.<path tail>` — #1013's direction — which #1148 leaves matching
   //      nothing at all while 243 live entries take the identical skip. A bucket asserted EMPTY by a
-  //      predicate aimed at a direction the data has stopped travelling in is `docs/34` shape 9 wearing a
+  //      predicate aimed at a direction the data has stopped traveling in is `docs/34` shape 9 wearing a
   //      green tick, and it would have shipped: the arm's other half, the constructed pair, still passes.
   //      The two halves are counted separately below (0 and 243) so neither can cover for the other, and
   //      the ADDING half keeps its constructed pair for exactly the reason it had one at zero.

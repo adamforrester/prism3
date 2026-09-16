@@ -7514,6 +7514,15 @@
         "space.025"
       ]
     },
+    "core.dimension.3": {
+      "$description": "3px — dimension primitive",
+      "meaning": "core primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "control.size.sm.inset"
+      ]
+    },
     "core.dimension.4": {
       "$description": "4px — dimension primitive",
       "meaning": "core primitive",
@@ -7521,7 +7530,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "border-width.heavy",
-        "control.size.sm.inset",
+        "control.size.md.inset",
         "radius.md",
         "size.xs.gap",
         "size.xs.padding-y",
@@ -7534,7 +7543,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "control.size.md.inset"
+        "control.size.lg.inset"
       ]
     },
     "core.dimension.6": {
@@ -7543,7 +7552,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "control.size.lg.inset",
         "radius.lg",
         "size.sm.padding-y",
         "size.xs.padding-x-visual",
@@ -7607,6 +7615,15 @@
         "space.200"
       ]
     },
+    "core.dimension.18": {
+      "$description": "18px — dimension primitive",
+      "meaning": "core primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "control.size.sm.thumb"
+      ]
+    },
     "core.dimension.20": {
       "$description": "20px — dimension primitive",
       "meaning": "core primitive",
@@ -7625,6 +7642,8 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "control.size.lg.height",
+        "control.size.md.thumb",
+        "control.size.sm.track",
         "grid.lg.gutter",
         "grid.lg.margin",
         "grid.md.margin",
@@ -7644,13 +7663,22 @@
         "size.xs.height"
       ]
     },
+    "core.dimension.30": {
+      "$description": "30px — dimension primitive",
+      "meaning": "core primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "control.size.lg.thumb"
+      ]
+    },
     "core.dimension.32": {
       "$description": "32px — dimension primitive",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "control.size.sm.width",
+        "control.size.md.track",
         "grid.2xl.gutter",
         "grid.xl.margin",
         "icon.size.lg",
@@ -7672,7 +7700,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "control.size.md.width",
+        "control.size.lg.track",
         "icon.size.xl",
         "space.500"
       ]
@@ -7693,7 +7721,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "control.size.lg.width",
+        "control.size.sm.width",
         "grid.2xl.margin",
         "space.600"
       ]
@@ -7726,6 +7754,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "control.size.md.width",
         "space.800"
       ]
     },
@@ -7759,6 +7788,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "control.size.lg.width",
         "space.1000"
       ]
     },

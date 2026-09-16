@@ -1,6 +1,6 @@
 /**
  * Switch.Control — the ATOMIC track-and-thumb (#1354, the #1226/#1330 mechanism a third time). The
- * painted pill, its travelling thumb, the state glyph in that thumb, and the focus ring — extracted
+ * painted pill, its traveling thumb, the state glyph in that thumb, and the focus ring — extracted
  * from `switch` so the labelled Row NESTS it rather than redraws it, exactly as `checkbox` nests
  * `checkbox-control`. A fix to the track (its border weight, its fill grammar) or the thumb (its
  * travel, its glyph) now propagates to the Row by single-sourcing rather than by a copy kept in step
@@ -19,7 +19,7 @@
  *
  * ── WHAT MOVED HERE, AND WHY THE ROW STILL EXISTS ──────────────────────────────────────────────────
  *
- * Everything that PAINTS the control: the track (fill + border), the thumb (the travelling indicator
+ * Everything that PAINTS the control: the track (fill + border), the thumb (the traveling indicator
  * disc) and the focus ring, rooted at `track`. The Row keeps what is the Row's — the label, the
  * label-to-control gap, the row's floor, and the `trackBox` line-box wrapper that centers the control
  * against the first line of a wrapping label (#1201). This atom knows nothing about labels or hit
@@ -73,10 +73,13 @@
  * `NON_FAMILY_AXES`, the deliberately ASYMMETRIC rim (off track keeps its border, on track drops it —
  * #1011, and the trap `switch.ts`'s contested note documents at length), the interactive-neutral family
  * for the off track (forced by the thumb's contrast, not chosen), the selection-keyed thumb ink, the
- * 2px load-bearing border (#1228), `radius.round`, and the `control.size.*` height/width/dot/inset
- * bindings (#900, #951, #997). None of that is redesigned here; it is a verbatim extraction of the
- * painted surface from `switch`, the same way `checkbox-control` was of `checkbox`. The reasoning for
- * each lives in `switch.ts` history and is not restated.
+ * 2px load-bearing border (#1228), `radius.round`, and the `control.size.*` track/width/thumb/inset
+ * bindings (#900, #951, #997, #1425). The GEOMETRY is where #1425 diverges from a verbatim extraction:
+ * the switch reads its OWN tier fields (`track` height, `thumb`) rather than borrowing the square-control
+ * `height`/`dot` a checkbox/radio reads — the split that scales the track to Prism 2's 32px / 24px thumb
+ * proportions and clears the hit-target floor. The PAINT is still a verbatim extraction of the painted
+ * surface from `switch`, the same way `checkbox-control` was of `checkbox`. The reasoning for each lives
+ * in `switch.ts` history and is not restated.
  *
  * The NEW keys are the two glyph inks. Each glyph sits ON the thumb, so its ink is the INVERSE of the
  * thumb's: the off thumb is the dark `neutral.on-fill`, so `off.icon` is the light `neutral.fill.rest`
@@ -95,7 +98,7 @@ export const switchControl: ComponentDef = {
   category: 'form',
   status: 'draft',
   description:
-    'The atomic switch control — the painted pill track, its travelling thumb, the X/checkmark state glyph in that thumb, and the focus ring, and nothing else. Nested by the labelled Switch row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the two-value selection axis (off / on) whose thumb POSITION is the part that varies, the off-track border that is load-bearing for WCAG 1.4.11, and the 2px control border.',
+    'The atomic switch control — the painted pill track, its traveling thumb, the X/checkmark state glyph in that thumb, and the focus ring, and nothing else. Nested by the labelled Switch row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the two-value selection axis (off / on) whose thumb POSITION is the part that varies, the off-track border that is load-bearing for WCAG 1.4.11, and the 2px control border.',
 
   // The atom's surface, not the field's. No `label`, no `description`, no form wiring — those are the
   // Row's. `showStateLabel` lives here because it gates a part of this atom (the thumb glyph); the Row
@@ -183,19 +186,23 @@ export const switchControl: ComponentDef = {
     // track at strokeWeight 2 / strokeAlign INSIDE. See `switch.ts` for the inside-stroke clearance note.
     'border-width': 'border-width.thick',
 
-    // ── THE TRACK'S TWO DIMENSIONS AND THE THUMB'S ONE — #900's third instance. `control` is the HEIGHT,
-    // `track` is the WIDTH (2× the height, the field-convergent ratio, the first binding of
-    // `control.size.*.width`). `control.size.*` and NOT `icon.size.*`: the glyph grid is fixed 16/20/24
-    // in every brand, the control ladder shifts a rung with density (aurora is a full rung smaller).
-    'size.small.control': 'control.size.sm.height',
-    'size.medium.control': 'control.size.md.height',
+    // ── THE TRACK'S TWO DIMENSIONS AND THE THUMB'S ONE — #900's third instance, rebased by #1425 onto the
+    // switch's OWN tier fields. `control` is the track HEIGHT (`control.size.*.track` — Prism 2's 32px
+    // toggle at `md`, NOT the smaller square-control `height` the switch used to borrow, which was the
+    // undersize #1425 corrects). `track` is the WIDTH (`control.size.*.width` = 2× the track height, the
+    // field-convergent 2:1 ratio). `control.size.*` and NOT `icon.size.*`: the glyph grid is fixed
+    // 16/20/24 in every brand, the control ladder shifts a rung with density (aurora is a full rung smaller).
+    'size.small.control': 'control.size.sm.track',
+    'size.medium.control': 'control.size.md.track',
     'size.small.track': 'control.size.sm.width',
     'size.medium.track': 'control.size.md.width',
-    // The THUMB's diameter, half the track's height by the tier's construction (`control.size.*.dot`).
-    'size.small.dot': 'control.size.sm.dot',
-    'size.medium.dot': 'control.size.md.dot',
+    // The THUMB's diameter — 0.75× the track (`control.size.*.thumb`, Prism 2's 24-in-32), a SEPARATE,
+    // larger ratio than radio's `dot` (#1425). At full size the thumb reads as the moving element and the
+    // 2px border stops reading heavy.
+    'size.small.dot': 'control.size.sm.thumb',
+    'size.medium.dot': 'control.size.md.thumb',
     // THE THUMB'S CLEARANCE FROM THE TRACK'S ENDS (#997), read as the track's UNIFORM padding =
-    // `(height − dot) / 2`, so the padded inner box is one thumb tall and one thumb short of the track's
+    // `(track − thumb) / 2`, so the padded inner box is one thumb tall and one thumb short of the track's
     // length (the travel). Prism 2 sites its thumb the same way (`padding: 4` in a 32px track).
     'size.small.inset': 'control.size.sm.inset',
     'size.medium.inset': 'control.size.md.inset',
@@ -207,7 +214,7 @@ export const switchControl: ComponentDef = {
   // varies (`positionWhen`), not two parts that take turns — a code projection reads one element that
   // translates. The thumb carries the state glyph (a check at on, an X at off) as children, which travel
   // with it. The focus ring is an absolute sibling nesting the shared `focus-ring`, on the TRACK (a ring
-  // travelling with the thumb would read as two indicators).
+  // traveling with the thumb would read as two indicators).
   anatomy: {
     root: 'track',
     parts: {
@@ -313,7 +320,7 @@ export const switchControl: ComponentDef = {
       '4.1.2 Name Role Value (carried by the host; this atom is presentational when nested)',
     ],
     keyboard: 'None of its own — the atom is not a tab stop. Focus, Space-to-toggle and the tab order belong to the host input; the ring here renders the host\'s `:focus-visible` state.',
-    focus: 'The nested focus ring surrounds the TRACK on `:focus-visible`, never the thumb (the thumb moves, so a ring travelling with it reads as two indicators). Offset, keyboard traversal only.',
+    focus: 'The nested focus ring surrounds the TRACK on `:focus-visible`, never the thumb (the thumb moves, so a ring traveling with it reads as two indicators). Offset, keyboard traversal only.',
     aria: 'When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `switch`, announced "on"/"off"; putting `aria-pressed` on it corrupts the announcement (that is a toggle button). The glyph is decorative (`aria-hidden`) — the role+state already carries on/off.',
   },
 
@@ -340,7 +347,7 @@ export const switchControl: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'Render the atomic switch control — the painted pill, its travelling thumb, the X/checkmark state glyph and the focus ring — for a host row to nest.',
+    primaryPurpose: 'Render the atomic switch control — the painted pill, its traveling thumb, the X/checkmark state glyph and the focus ring — for a host row to nest.',
     whenToUse: 'Nested by the labelled Switch row (the common case), or standalone only for a control with an external label and its own aria wiring.',
     avoidWhen: 'You want the labelled case (that is Switch), a staged binary submitted with a form (Checkbox / Checkbox.Control), or a mutually-exclusive one-of-many (Radio). Never place a bare track as the clickable element — the hit target is the labelled row.',
     commonPartners: ['switch', 'focus-ring'],
@@ -364,7 +371,7 @@ export const switchControl: ComponentDef = {
       'THE STATE GLYPH IS SELECTION-GATED AND PRESENT AT EVERY MEMBER, with `showStateLabel` gating it in code rather than as a variant axis. The alternative — a `showStateLabel` boolean variant axis — honors the default-off in the Figma set itself but adds a name to the closed `VARIANT_AXES` family vocabulary for one def AND doubles the member count (24 → 48), the cost `switch.ts`\'s old `codeOnly` named as the reason the affordance was deferred. Prism 2\'s `icon` prop is not a set variant either. The cost of this choice is real and stated: a designer cannot pick "no glyph" in the Figma set, only in code.',
     ],
     unverified: [
-      'THE GLYPH IN A HALF-HEIGHT THUMB IS UNBUILT AND MAY NOT READ. The thumb is `control.size.*.dot` = half the track height by the tier\'s construction (a ratio SHARED with radio\'s dot, so not this def\'s to override — Prism 2\'s 0.75 thumb would mean splitting the tier field per consumer). At `small` the thumb is 8px (6 on aurora), and a check or X at 8px with its ~71% optical inset is ~5.7px — whether that reads as a glyph at all is exactly what building one answers. The affordance is most useful at `medium` and the row\'s own min-height is what has to reach SC 2.5.8.',
+      'THE GLYPH IN THE THUMB IS STILL UNBUILT, but #1425 made it far more likely to read. The thumb is now `control.size.*.thumb` = 0.75 × the track (Prism 2\'s 24-in-32), its OWN tier field rather than radio\'s `dot` — the split this note previously called out as the blocker ("Prism 2\'s 0.75 thumb would mean splitting the tier field per consumer") is done. At `medium` the thumb is 24px (18 on aurora) and its ~71%-inset glyph ~17px; the smallest case is compact `small` at a 12px thumb / ~8.5px glyph, up from the old 8px thumb / ~5.7px glyph. The affordance is most useful at `medium`, and the row\'s own min-height (not the atom) is still what reaches SC 2.5.8.',
       'THE OFF TRACK TAKES THE INTERACTIVE-NEUTRAL FAMILY and the thumb is SELECTION-KEYED — both forced by the thumb\'s contrast rather than chosen, both measured in `switch.ts`. Prism 2\'s own off track is a dark slab (#000000) where this is a light neutral fill; that divergence is the token engine doing its job (Prism 2\'s hex is one brand in one mode, and a hardcoded dark off-track would break light mode), so this def adopts Prism 2\'s TREATMENT — filled track, bordered off state, glyph in thumb — through semantic tokens rather than its literal values.',
       'READ-ONLY AND PENDING BIND NOTHING here and are not even states of the atom — they are the Row\'s (a lock affordance; a spinner swap). Recorded so nobody reads their absence as an oversight.',
       'THE INHERITED FOCUS-RING BINDING is now two layers deep (#1280/#1290), the same as `checkbox-control`: the ring is nested inside the track and the track inside the row, so an inherited dimension binding would have to be cleared twice. The symptom to look for: a nested ring sitting at the md control height instead of hugging the track.',

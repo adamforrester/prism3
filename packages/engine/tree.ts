@@ -754,32 +754,43 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     bodyLineBox[rung] = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
   }
   for (const c of theme.dims.controls) {
-    const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: ${theme.dims.density}). A SQUARE control reads this on both axes.`);
-    const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.height}px height, the field-convergent track ratio). A square control uses \`height\` on both axes and does not read this.`);
-    // The INNER mark, half the box edge (#910). Read by a control whose mark is a filled shape rather
-    // than a glyph — radio's dot, and a switch's thumb when it lands. A checkbox does not read it: its
+    const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a SQUARE control's own dimension: a checkbox square or a radio circle (density: ${theme.dims.density}). A square control reads this on both axes. A switch's track is NOT square and reads \`track\`/\`width\` instead (#1425).`);
+    const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.track}px \`track\` height, the field-convergent 2:1 track ratio). A square control uses \`height\` on both axes and does not read this.`);
+    // The INNER mark, half the box edge (#910). Read by RADIO — its dot. A checkbox does not read it: its
     // mark is a `vector` whose optical inset is already inside the glyph artboard, so it draws full
-    // bleed at `height` and a second dimension would inset it twice.
-    const dotLeaf = controlLeaf(c.dot, `control.size.${c.name} dot — ${c.dot}px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the ${c.height}px box edge, leaving a ${(c.height - c.dot) / 2}px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at \`height\` instead.`);
-    // The GAP between the inner mark and the box's boundary (#997), and the field that stops a switch's
+    // bleed at `height` and a second dimension would inset it twice. A switch's traveling mark is
+    // `thumb`, a separate, larger ratio (#1425) — a switch is not a radio scaled down.
+    const dotLeaf = controlLeaf(c.dot, `control.size.${c.name} dot — ${c.dot}px inner mark for a RADIO's dot (half the ${c.height}px box edge, leaving a ${(c.height - c.dot) / 2}px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at \`height\`; a switch's traveling thumb reads \`thumb\` instead.`);
+    // THE SWITCH TRACK HEIGHT (#1425) — the switch's own cross-axis edge, DISTINCT from the square box
+    // `height` above. Grounded on Prism 2's `toggle-switch.json` (a 32px track at the default `md`), so a
+    // track that holds a traveling thumb is sized as a track rather than borrowed from a checkbox square.
+    const trackLeaf = controlLeaf(c.track, `control.size.${c.name} track — ${c.track}px track HEIGHT for a switch (Prism 2's 32px toggle at the default \`md\`; density: ${theme.dims.density}). The switch's own cross-axis edge, larger than the ${c.height}px square-control \`height\` because a track holds a traveling thumb. A checkbox/radio does not read it.`);
+    // THE SWITCH THUMB (#1425) — the traveling mark, 0.75 × the track (Prism 2's 24-in-32), a SEPARATE
+    // ratio from radio's `dot` (0.5). This is the split the #997 inset header flagged as deferred.
+    const thumbLeaf = controlLeaf(c.thumb, `control.size.${c.name} thumb — ${c.thumb}px traveling thumb for a switch (0.75 × the ${c.track}px \`track\`, Prism 2's toggle proportion). Larger than a radio's \`dot\` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.`);
+    // The GAP between the thumb and the track's boundary (#997), and the field that stops a switch's
     // thumb sitting FLUSH at both ends of its track. The thumb is a flow child of a fixed-size track
     // positioned by `positionWhen` onto the track's main-axis distribution, so MIN and MAX put its edge
     // exactly on the track's unless the track carries padding — and the space scale (4/8/12/…) has
-    // nothing to bind at `md`'s 5px. Read as the track's UNIFORM padding, which is how Prism 2 sites the
+    // nothing to bind at `md`'s 4px. Read as the track's UNIFORM padding, which is how Prism 2 sites the
     // same thumb (`toggle-switch.json`: a 32px track with `padding: 4` around a 24px thumb).
     //
     // A square control does not read it: a checkbox's mark is a `vector` whose optical inset already
     // lives inside the glyph artboard, and radio's dot is centred by its parent rather than padded away
     // from it. This is the field a control needs when its mark TRAVELS.
-    const insetLeaf = controlLeaf(c.inset, `control.size.${c.name} inset — ${c.inset}px gap between the inner mark and the box's boundary ((${c.height}px box edge − ${c.dot}px dot) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.`);
+    const insetLeaf = controlLeaf(c.inset, `control.size.${c.name} inset — ${c.inset}px gap between the thumb and the track's boundary ((${c.track}px track − ${c.thumb}px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.`);
     const hMods = controlModes(c.name, 'height', c.height, (x) => x.height);
     const wMods = controlModes(c.name, 'width', c.width, (x) => x.width);
     const dMods = controlModes(c.name, 'dot', c.dot, (x) => x.dot);
     const iMods = controlModes(c.name, 'inset', c.inset, (x) => x.inset);
+    const tMods = controlModes(c.name, 'track', c.track, (x) => x.track);
+    const thMods = controlModes(c.name, 'thumb', c.thumb, (x) => x.thumb);
     if (hMods) heightLeaf.$extensions.prism3.modes = hMods;
     if (wMods) widthLeaf.$extensions.prism3.modes = wMods;
     if (dMods) dotLeaf.$extensions.prism3.modes = dMods;
     if (iMods) insetLeaf.$extensions.prism3.modes = iMods;
+    if (tMods) trackLeaf.$extensions.prism3.modes = tMods;
+    if (thMods) thumbLeaf.$extensions.prism3.modes = thMods;
     // #1201 — the alignment box (see `bodyLineBox` above). A single baked value per rung: it carries no
     // per-mode override because the centring it enables is a static-layout nicety, not a mode-varying
     // dimension, and a mode that resized the body ramp would re-derive this from the same product.
@@ -792,7 +803,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const radiusLeaf = controlRadiusLeaf(radiusPx, c.name, c.height);
     const rMods = controlRadiusModes(c.name, c.height, radiusPx);
     if (rMods) radiusLeaf.$extensions.prism3.modes = rMods;
-    controlSize[c.name] = { height: heightLeaf, width: widthLeaf, dot: dotLeaf, inset: insetLeaf, radius: radiusLeaf, ...(lineBox ? { 'line-box': lineBox } : {}) };
+    controlSize[c.name] = { height: heightLeaf, width: widthLeaf, dot: dotLeaf, inset: insetLeaf, track: trackLeaf, thumb: thumbLeaf, radius: radiusLeaf, ...(lineBox ? { 'line-box': lineBox } : {}) };
   }
   const control = { size: controlSize };
 
