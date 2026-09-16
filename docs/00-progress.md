@@ -7,6 +7,33 @@
 
 ---
 
+## (2026-09-16) — #1429 overlay-wash "misses" are a telemetry reading, not a dropped wash; gated in test:roundtrip against the emitted brand
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges).** **NO version bump — ENGINE stands at 0.93.0, CONTRACT at 10.2.0.** This is a gate-only change: one assertion block added to `apps/plugin/test-roundtrip.ts` and its three engine imports. No emitted artifact moves, no projected member moves, no token/prop NAME moves — the #1387/#1332/#1377 precedent for a host-truth/read-back gate. `regen --check` byte-identical, `lint-emission-version` requires no bump, `token-contract --check` unchanged at 10.2.0. **`npm run verify` → all-PASS (table in the PR body).** The orchestrator's provisional `0.97.0` assumed an emission code change; the diagnosis is (b) and the fix is a gate, so ENGINE stands — flagged for the rebase relay.
+
+**THE FINDING (QA 2026-09-15, ENGINE 0.87.0):** all button families reported **96** misses and all icon-button families **24**, of the form `container.fills -> color/interactive/<primary|destructive|neutral>/overlay/{hover,pressed}` — read as "the hover/pressed overlay wash is not being bound on the container across the corpus."
+
+**DIAGNOSIS — (b), A TELEMETRY READING, NOT A DROPPED WASH.** Reproduced live at 0.93.0, two measurements:
+- **The projection DOES apply the wash.** The `container` box declares `paintSlots: ['overlay','fill','border']` (`button.ts:348` / `icon-button.ts:216`), so on an outline/text hover/pressed coordinate `interactive.<c>.overlay.<state>` (the translucent wash) binds onto `container.fills`. Measured by building through the shim and reading the container back: **96** wash bindings per button family, **12** per icon-button family (the QA's 24 was the 0.87.0 icon-button projection; that def's member set has since changed — the overlay mechanism is unchanged). Quoted plan: `container.paints.fills = "color/interactive/primary/overlay/hover"` on a `state=hover, appearance=outline` member.
+- **The emitter DOES emit it, and it resolves.** Cross-checking every button/icon-button plan paint/bound var against the engine's actually-emitted Figma variable tails (`buildFigmaColor(theme)`), across the whole corpus: **0 dangling on every `outlineInteraction: 'overlay-neutral'` brand** (nb, aurora, harbor, wendys, minimal) and **18 on `minimal-levers` (`outlineInteraction: 'none'`)** — exactly the `interactive.*.overlay.{hover,pressed}` fills (page + inverse). This reproduces #1387's measurement byte-for-byte.
+
+So the wash binds and resolves wherever the brand uses it. The 96/24 QA misses came from a brand on `outlineInteraction: 'none'` (the `minimal-levers` corpus member), which DELIBERATELY does not emit the wash; the brand-agnostic component binds it regardless, the paste's name-resolution channel reports the miss, and **#1387 already neutralizes the visual to transparent** (never Figma's white). Counting a legitimate opt-out as a corpus-wide defect was the false positive. No projection or emission change was made — a disproven "genuinely dropped" premise is a result.
+
+**THE GATE GAP, now closed (docs/34 shape 11).** #1387's own review named it: `test-roundtrip.ts` stocks its shim's variable catalogue FROM THE PLAN (`fullFor`), so a bound paint ALWAYS resolves — a wash the engine never emits, or emits under a drifted name, round-trips green. The only witness is an INDEPENDENT ORACLE: the token layer the engine actually emits (`emit-figma-color`/`modes.ts`), a code path separate from the projection (`anatomy-figma`). The new block reads each container's bound wash off the HOST (what the executor wrote) and checks it against `buildFigmaColor(nbTheme())`'s emitted tails. Three positive checks + two negative controls, all citing #1429:
+- **(1) per-family reachability floor** — the wash is bound on `container.fills` in EVERY named family (`button{,-destructive,-neutral}`, `icon-button{,-destructive,-neutral}`). Per-family, not a corpus count, because the button factory is shared but icon-button is a separate def, so a corpus-wide `>0` would pass on a single-family drop (docs/34 representation).
+- **(2) resolution** — every bound wash resolves against the independent emitted overlay-neutral brand: 0 dangling. This is the QA's "miss", proven ABSENT for a brand that uses the wash.
+- **(3) right tokens** — the exact names the QA quoted (`color/interactive/primary/overlay/{hover,pressed}`) are bound (docs/34 shape 5, not a truthiness check).
+- **negative (a) projection drop** and **(b) emission drop** prove neither check is vacuous.
+
+**MUTATION-BY-NAME (docs/34), source-level, run before merge:**
+- Drop `'overlay'` from BOTH defs' `container.paintSlots` → floor (1) fires alone, naming all six families `DROPPED IN`, and (3) fires for both primary names. 5 failed.
+- Drop `'overlay'` from `button.ts` ONLY (icon-button keeps it) → floor (1) STILL fires, naming exactly `button, button-destructive, button-neutral` as `DROPPED IN`, while (3) passes because icon-button still binds `primary/overlay/hover`. This is the proof the per-family floor is load-bearing: a corpus-wide count would have gone green here.
+- Restored: all PASS.
+
+**TRAP FOR RE-VERIFIERS.** Do NOT "simplify" the oracle to the shim's own `fullFor` catalogue or to `planPaintVars` — that is precisely the shape-11 collapse this block exists to undo (the corpus loop above already resolves everything that way). The oracle must stay the engine's emitted layer. And the floor is per-FAMILY on purpose: reverting it to a single corpus `washBindings > 0` re-opens the single-family blind spot the mutation above exercises. `minimal-levers` (`outlineInteraction: 'none'`) legitimately has NO wash and must never be used as the resolution oracle — an overlay-neutral brand only.
+
+---
+
 ## (2026-09-12) — #1355 premise disproven; built the variant-count-vs-axis-product regression gate
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** **NO version bump — ENGINE stands at 0.77.0, CONTRACT at 10.0.0.** The change is a test-only integrity check plus two pure helper exports; no emitted artifact, no projected member, no token/prop NAME moves. `regen --check` in sync (108 artifacts, nothing rewritten), `lint-component-surface` reports the surface unmoved, `token-contract --check` reports the guaranteed **577 unchanged**, `lint-emission-version` requires no bump (no emission moved). **`npm run verify` → all-PASS.**

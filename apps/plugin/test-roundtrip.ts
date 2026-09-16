@@ -38,6 +38,9 @@ import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
 import { diffAnatomy, unclassifiedFields, fieldCoverage } from '@prism3/engine/anatomy-readback';
 import type { Divergence, HostNode, ReadPorts } from '@prism3/engine/anatomy-readback';
+import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
+import { nbTheme } from '@prism3/engine/nb-fixture';
+import { tailOf } from '@prism3/engine/figma-names';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim } from './component-shim';
 import type { Node, Page, ShimOpts } from './component-shim';
@@ -343,6 +346,128 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const partial = diffAnatomy(plans, members, planComponentName, ports, {});
     ok(partial.some((d) => d.field === 'bound' && /strokeWeight→UNBOUND/.test(d.actual ?? '')),
       `#1332 an INCOMPLETE per-side binding (three of four sides) is reported, not accepted — the check requires the complete set (${partial.filter((d) => d.field === 'bound').map((d) => d.actual).join('; ') || 'NOT REPORTED'})`);
+  }
+}
+
+// ── OVERLAY-WASH: BOUND ON container.fills AND RESOLVED BY THE EMITTED BRAND (#1429) ────────────
+//
+// THE QA FINDING (2026-09-15, ENGINE 0.87.0): all button families reported 96 misses and all
+// icon-button families 24, of the form `container.fills -> color/interactive/<c>/overlay/{hover,pressed}`
+// — read as "the hover/pressed overlay wash is not being bound on the container across the corpus".
+//
+// THE DIAGNOSIS IS (b), A TELEMETRY READING — NOT A DROPPED WASH, and the evidence is below in this very
+// block. The `container` box declares `paintSlots: ['overlay','fill','border']` (button.ts / icon-button.ts),
+// so on an outline/text hover/pressed coordinate the projection binds `interactive.<c>.overlay.<state>`
+// (the translucent wash) onto `container.fills` — measured here as 96 bindings per button family and 12 per
+// icon-button family, exactly where the QA said nothing landed. On every brand that USES the wash
+// (`outlineInteraction: 'overlay-neutral'`, the default and the whole committed corpus) that variable IS
+// emitted and the binding RESOLVES: 0 dangling. The 96/24 QA misses came from a brand built with
+// `outlineInteraction: 'none'` (the `minimal-levers` corpus member), which DELIBERATELY does not emit the
+// wash; the brand-agnostic component binds it regardless, so the paste's name-resolution channel reports a
+// miss and #1387 already neutralizes the visual to transparent (never Figma's white). So counting that as a
+// corpus-wide defect was the false positive.
+//
+// WHY THIS BLOCK EXISTS, and why the corpus loop above could never have caught it (docs/34 shape 11): that
+// loop stocks its shim's variable catalogue FROM THE PLAN (`fullFor`), so a bound paint ALWAYS resolves and
+// a wash that the engine never emits — or emits under a drifted name — round-trips green. The only witness
+// is an INDEPENDENT ORACLE: the token layer the engine actually emits, a code path (`emit-figma-color` /
+// `modes.ts`) entirely separate from the projection (`anatomy-figma`). This block reads the container's
+// bound wash off the HOST (what the executor wrote) and checks it against that emitted brand — so a wash
+// dropped from the PROJECTION fails the reachability floor by name, and a wash dropped from (or renamed in)
+// the EMISSION fails the resolution check by name. Neither is derivable from the other.
+{
+  // THE INDEPENDENT ORACLE — an overlay-neutral brand's emitted color-variable tails. `nbTheme()` is a real
+  // brand on the default `overlay-neutral`, measured 0-dangling; its variables come from the emitter, never
+  // from any plan, which is the whole point (docs/34 shape 11). Tail space because a plan binds root-relative
+  // and every emitted variable is `<root>/<tail>` — the same `tailOf` the paste executor keys `byName` on.
+  const { palette, color } = buildFigmaColor(nbTheme());
+  const emittedTails = new Set<string>();
+  for (const c of [palette, ...color]) for (const v of c.variables ?? []) emittedTails.add(tailOf(v.name));
+  ok(emittedTails.size > 0, `#1429 the overlay-neutral oracle emitted color variables (independent-oracle floor: ${emittedTails.size})`);
+
+  // A wash tail is `…/interactive/<family>/overlay/<hover|pressed>` — page (`color/interactive/…`) and inverse
+  // (`color/inverse/interactive/…`) both end this way; `selected` is not a button/icon-button state and is not
+  // matched. This is the SAME shape the QA quoted, so a match here is a binding on exactly the coordinate it named.
+  const washTail = /(^|\/)interactive\/[a-z-]+\/overlay\/(hover|pressed)$/;
+  // The families the QA named — button + its two intent siblings, icon-button + its two — read off `componentDefs`
+  // rather than listed, so a new intent sibling is covered without editing this gate.
+  const FAMILIES = componentDefs.filter((d) => /^(button|icon-button)(-|$)/.test(d.id)).map((d) => d.id);
+
+  let washBindings = 0;                       // container members whose fills bind a hover/pressed wash
+  const washNames = new Set<string>();        // the distinct wash tails the containers bind
+  const perFamily: string[] = [];
+  const emptyFamilies: string[] = [];         // families binding NO wash — a per-family representation gap
+  const dangling: string[] = [];              // wash bindings the emitted brand does NOT resolve
+  for (const id of FAMILIES) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    let n = 0;
+    for (const m of members) {
+      const arr = (m as { fills?: unknown }).fills;
+      const first = Array.isArray(arr) ? (arr[0] as { boundVariables?: Record<string, { id?: unknown }> } | undefined) : undefined;
+      const boundId = first?.boundVariables?.color?.id;
+      if (typeof boundId !== 'string') continue;
+      const tail = boundId.replace(/^V:/, '');   // the shim ids variables `V:<tail>` (component-shim `mkVar`)
+      if (!washTail.test(tail)) continue;
+      n++; washBindings++; washNames.add(tail);
+      if (!emittedTails.has(tail)) dangling.push(`${id}: ${String(m.name)} -> ${tail}`);
+    }
+    perFamily.push(`${id}=${n}`);
+    if (n === 0) emptyFamilies.push(id);
+  }
+
+  // (1) THE WASH LANDS ON container.fills IN EVERY NAMED FAMILY — representation, not a corpus count
+  //     (docs/34): a wash dropped on ONE family (the button factory is shared, but icon-button is a
+  //     separate def) still binds the wash from the others, so a corpus-wide `> 0` floor would pass on a
+  //     real per-family drop. Asserting each family is represented is what fires BY NAME on the defect the
+  //     issue scopes to "button / button-destructive / button-neutral / icon-button (+ its variants)".
+  ok(FAMILIES.length > 0 && emptyFamilies.length === 0,
+    `#1429 the hover/pressed overlay wash IS bound on container.fills in every named family (${washBindings} bindings — ${perFamily.join(', ')})${emptyFamilies.length ? ` — DROPPED IN: ${emptyFamilies.join(', ')}` : ''}`);
+  // (2) EVERY bound wash RESOLVES against the INDEPENDENT emitted overlay-neutral brand — 0 dangling. This is
+  //     the QA's `container.fills -> …/overlay/{hover,pressed}` "miss", proven ABSENT for a brand that uses the
+  //     wash: the 96/24 misses were an `outlineInteraction: 'none'` brand opting out (#1387), not a drop.
+  ok(dangling.length === 0,
+    `#1429 every container overlay-wash binding resolves against the emitted overlay-neutral brand — 0 dangling (${dangling.length ? dangling.slice(0, 4).join('; ') : 'none'})`);
+  // (3) THE RIGHT TOKENS, not merely "some overlay" (docs/34 shape 5): the exact names the QA quoted are bound.
+  for (const want of ['color/interactive/primary/overlay/hover', 'color/interactive/primary/overlay/pressed'])
+    ok(washNames.has(want), `#1429 the container binds ${want} at its state coordinate (host truth)`);
+
+  // ── NEGATIVE CONTROLS — the two directions of a genuinely-dropped wash, proving neither check is vacuous.
+  //
+  // (a) PROJECTION DROP. Rebuild button, clear the wash off its containers (models the projection not binding
+  //     the overlay), and confirm the reachability floor (1) would then read 0 — so a dropped wash fires it.
+  {
+    const def = componentDefs.find((d) => d.id === 'button')!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const countWash = (): number => members.reduce((a, m) => {
+      const id = (m as { fills?: { boundVariables?: Record<string, { id?: unknown }> }[] }).fills?.[0]?.boundVariables?.color?.id;
+      return a + (typeof id === 'string' && washTail.test(id.replace(/^V:/, '')) ? 1 : 0);
+    }, 0);
+    const before = countWash();
+    for (const m of members) {
+      const id = (m as { fills?: { boundVariables?: Record<string, { id?: unknown }> }[] }).fills?.[0]?.boundVariables?.color?.id;
+      if (typeof id === 'string' && washTail.test(id.replace(/^V:/, ''))) (m as { fills: unknown[] }).fills = [];
+    }
+    ok(before > 0 && countWash() === 0,
+      `#1429 mutation (projection drop): clearing the wash off button containers drives the count ${before} → 0, so floor (1) fires by name`);
+  }
+  // (b) EMISSION DROP. Remove the wash tails from the oracle (models `modes.ts` no longer emitting the wash,
+  //     or renaming it) and confirm EVERY container wash binding is then reported dangling — so check (2) fires.
+  {
+    const oracleNoWash = new Set([...emittedTails].filter((t) => !washTail.test(t)));
+    const nowDangling = [...washNames].filter((t) => !oracleNoWash.has(t));
+    ok(washNames.size > 0 && nowDangling.length === washNames.size,
+      `#1429 mutation (emission drop): with the wash removed from the oracle, all ${washNames.size} bound wash name(s) are reported dangling, so check (2) fires by name (dangling ${nowDangling.length})`);
   }
 }
 
