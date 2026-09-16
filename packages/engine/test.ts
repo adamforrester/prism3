@@ -8493,6 +8493,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const A = iconButton.variants?.appearance?.length ?? 0;
     const S = iconButton.variants?.size?.length ?? 0;
     const shapeVals = iconButton.variants?.shape ?? [];
+    const Su = iconButton.variants?.surface?.length ?? 0;   // #1427 — the surface axis (default/inverse)
     const St = iconButton.figmaProperties?.stateAxis?.values.length ?? 0;
 
     // (0) THE AXIS IS EXACTLY {square, circular}, and square is the DEFAULT.
@@ -8512,11 +8513,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // (1) THE AXIS MULTIPLIES THE SET BY EXACTLY 2 — the product of declared cardinalities against the real
     // enumeration, then a partition proving each shape value spans exactly half (independent of the product).
     const set = figmaAnatomySet(iconButton);
-    ok(shapeVals.length === 2 && set.length === A * S * shapeVals.length * St,
-      `#1353 shape DOUBLES the set: appearance(${A})×size(${S})×shape(${shapeVals.length})×state(${St}) = ${set.length}`);
+    ok(shapeVals.length === 2 && set.length === A * S * shapeVals.length * Su * St,
+      `#1353 shape DOUBLES the set: appearance(${A})×size(${S})×shape(${shapeVals.length})×surface(${Su})×state(${St}) = ${set.length}`);
     const square = set.filter((p) => planComponentName(p).includes('shape=square')).length;
     const circular = set.filter((p) => planComponentName(p).includes('shape=circular')).length;
-    ok(square === set.length / 2 && circular === set.length / 2 && square === A * S * St,
+    // #1427 — the surface axis is now a factor too, so a shape value spans A×S×surface×state, still exactly half.
+    ok(square === set.length / 2 && circular === set.length / 2 && square === A * S * Su * St,
       `#1353 each shape value spans exactly half the set (square ${square}, circular ${circular} of ${set.length})`);
 
     // (2) THE CRUX — the two shapes differ ONLY in the container's corner radius, and the rungs are exactly
@@ -8562,6 +8564,116 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const defaultMutant = { ...iconButton, variants: { ...iconButton.variants, shape: ['circular', 'square'] } };
     ok(defaultMutant.variants.shape[0] === 'circular',
       "#1353 MUTATION ARM B: reordering shape to ['circular', 'square'] makes values[0] = 'circular', which flips '#1353 shape values LEAD with the default square' to failing");
+  }
+
+  // #1427 — icon-button follows Button 1:1 apart from the `shape` axis: (item 1) the GLYPH INK walks state on
+  // `outline`/`text` (it was pinned to `.rest`), and (item 2) a new `surface` axis (default/inverse) whose
+  // inverse members inherit #1384's white-inverse model with the ICON as the ink. Every pin is derived
+  // INDEPENDENTLY of the projector (docs/34): the axis vocabulary/default off the def, the ×2 by a set
+  // partition against the enumeration, the per-state ink and the inverse-fill/on-fill roles read off the
+  // projected plan's paint vars (never off def.tokens). Three mutation arms flip a NAMED assertion
+  // true→false on the SUBJECT (the def). Runs over ALL THREE families (the shared `makeIconButton` factory),
+  // so a binding edited on one and not the others fails here.
+  {
+    const IB_FAMILIES: [ComponentDef, string][] = [
+      [iconButton, 'primary'], [iconButtonDestructive, 'destructive'], [iconButtonNeutral, 'neutral'],
+    ];
+    const ibFindPart = (n: { name?: string; children?: unknown[] }, name: string): any => // eslint-disable-line @typescript-eslint/no-explicit-any
+      n.name === name ? n : (n.children ?? []).map((c) => ibFindPart(c as { name?: string; children?: unknown[] }, name)).find(Boolean);
+    // The ink bound on the projected GLYPH node alone (not the whole plan), read off the plan's paint vars.
+    const glyphInk = (def: ComponentDef, appearance: string, state: string, surface: string): string[] => {
+      const root = figmaAnatomyPlan(def, 'medium', { appearance, state, shape: 'square', surface } as never).root;
+      const glyph = ibFindPart(root, 'icon');
+      if (!glyph) throw new Error(`icon-button projection has no 'icon' glyph node (${def.id} ${appearance}/${state}/${surface})`);
+      return [...new Set(planPaintVars(glyph).filter((v: string) => v.startsWith('color/')))].sort();
+    };
+    // The container's fill/overlay/border paints for one coordinate (whole-plan, since the fill sits on the box).
+    const containerPaints = (def: ComponentDef, appearance: string, state: string, surface: string): string[] => {
+      const root = figmaAnatomyPlan(def, 'medium', { appearance, state, shape: 'square', surface } as never).root;
+      return [...new Set(planPaintVars(root).filter((v: string) => v.startsWith('color/')))].sort();
+    };
+
+    // (0) THE AXIS IS EXACTLY {default, inverse}, default LEADS, it PROJECTS, and the three defs agree.
+    const surfVals = iconButton.variants?.surface ?? [];
+    ok(JSON.stringify([...surfVals].sort()) === JSON.stringify(['default', 'inverse']),
+      `#1427 surface axis is EXACTLY {default, inverse} (got [${surfVals.join(', ')}])`);
+    ok(surfVals[0] === 'default',
+      `#1427 surface values LEAD with 'default' — the rest coordinate the inverse rewrite falls through to (got '${surfVals[0]}')`);
+    ok(iconButton.props.find((p) => p.name === 'surface')?.default === 'default',
+      "#1427 the surface PROP defaults to 'default'");
+    ok((iconButton.figmaProperties?.variantAxes ?? []).includes('surface'),
+      '#1427 surface PROJECTS — it is declared in figmaProperties.variantAxes');
+    ok(IB_FAMILIES.every(([d]) => JSON.stringify(d.variants?.surface) === JSON.stringify(surfVals)),
+      '#1427 all three icon-button components declare the surface axis identically (one shared factory)');
+
+    // (1) THE AXIS DOUBLES THE SET — a partition proving surface=inverse spans exactly half, independent of
+    // the product asserted in the #1353 block. This is the assertion MUTATION ARM B (drop the axis) flips.
+    const ibSet = figmaAnatomySet(iconButton);
+    const invMembers = ibSet.filter((p) => planComponentName(p).includes('surface=inverse')).length;
+    const defMembers = ibSet.filter((p) => planComponentName(p).includes('surface=default')).length;
+    ok(invMembers === ibSet.length / 2 && defMembers === ibSet.length / 2 && invMembers > 0,
+      `#1427 surface DOUBLES the set — inverse spans exactly half (default ${defMembers}, inverse ${invMembers} of ${ibSet.length})`);
+
+    // (2) INVERSE FILL INHERITS #1384's WHITE-INVERSE MODEL, per family. A surface=inverse FILLED member binds
+    // the SHARED `color.inverse.interactive.<family>.fill.rest` role on its container (the projector's inverse
+    // rewrite) — the exact role #1384 made white and the #1384 GATE A/B (token tier) prove is white + AA-clean.
+    // The glyph (the "ink", there being no label) binds the inverse ON-FILL role, which GATE B floors ≥4.5 on
+    // that white fill. The default-surface member binds the PAGE roles, so this is the rewrite firing on the
+    // axis, not a constant. Read off the plan, so it connects icon-button's projection to the gated role BY NAME.
+    for (const [def, fam] of IB_FAMILIES) {
+      ok(containerPaints(def, 'filled', 'rest', 'inverse').includes(`color/inverse/interactive/${fam}/fill/rest`),
+        `#1427 ${def.id}: the inverse FILLED container binds the shared inverse fill role color/inverse/interactive/${fam}/fill/rest (white per #1384) — inherited, not re-minted`);
+      ok(glyphInk(def, 'filled', 'rest', 'inverse').includes(`color/inverse/interactive/${fam}/on-fill`),
+        `#1427 ${def.id}: the inverse FILLED glyph (the icon-ink) binds color/inverse/interactive/${fam}/on-fill — the role #1384 GATE B floors ≥4.5 on the white fill`);
+      ok(containerPaints(def, 'filled', 'rest', 'default').includes(`color/interactive/${fam}/fill/rest`),
+        `#1427 ${def.id}: the DEFAULT-surface filled container binds the PAGE role color/interactive/${fam}/fill/rest — so the inverse binding above is the surface rewrite, not a constant`);
+    }
+
+    // (3) THE GLYPH INK WALKS STATE on outline/text (item 1). At rest it is text.rest; at hover/pressed it is
+    // text.<state>, not text.rest — for every family. `filled` ink stays on-fill across states (unchanged).
+    let inkChecked = 0;
+    for (const [def, fam] of IB_FAMILIES)
+      for (const appearance of ['outline', 'text']) {
+        ok(glyphInk(def, appearance, 'rest', 'default').includes(`color/interactive/${fam}/text/rest`),
+          `#1427 ${def.id} ${appearance}: the glyph ink at rest is text.rest (color/interactive/${fam}/text/rest)`);
+        for (const state of ['hover', 'pressed']) {
+          inkChecked++;
+          ok(glyphInk(def, appearance, state, 'default').includes(`color/interactive/${fam}/text/${state}`),
+            `#1427 ${def.id} ${appearance}: the glyph ink at ${state} WALKS to text.${state} (color/interactive/${fam}/text/${state}), not text.rest`);
+        }
+      }
+    ok(inkChecked === IB_FAMILIES.length * 2 * 2, `#1427 the per-state ink pin ran over 3 families × {outline,text} × {hover,pressed} (${inkChecked})`);
+    // filled ink is state-invariant on-fill — the appearance that has a fill, so the ink sits on it, not on a wash.
+    ok(IB_FAMILIES.every(([def, fam]) =>
+      ['rest', 'hover', 'pressed'].every((s) => JSON.stringify(glyphInk(def, 'filled', s, 'default')) === JSON.stringify([`color/interactive/${fam}/on-fill`]))),
+      '#1427 the FILLED glyph ink is on-fill at every state (unchanged) — item 1 is scoped to outline/text');
+
+    // (4) THE FOCUS RING FOLLOWS surface (the one line Button carries): a surface=inverse member nests the
+    // surface=inverse ring, so the ring tuned for the dark band is the one that lands (its own 1.4.11 contract).
+    const ibRing = (surface: string): any => // eslint-disable-line @typescript-eslint/no-explicit-any
+      ibFindPart(figmaAnatomyPlan(iconButton, 'medium', { appearance: 'filled', state: 'focus-visible', shape: 'square', surface } as never).root, 'focusRing');
+    ok(ibRing('inverse')?.nestVariant?.surface === 'inverse',
+      `#1427 a surface=inverse icon-button nests the surface=inverse focus-ring (follow: ['surface']) — got ${JSON.stringify(ibRing('inverse')?.nestVariant)}`);
+    ok(ibRing('default')?.nestVariant?.surface === 'default',
+      `#1427 a surface=default icon-button nests the surface=default focus-ring — got ${JSON.stringify(ibRing('default')?.nestVariant)}`);
+
+    // ── MUTATION ARMS (docs/34), each flipping a NAMED assertion true→false on the SUBJECT (the def) ──
+    //   ARM A (item 1) — make the outline glyph ink STATIC again: bind outline.icon.hover back to text.rest.
+    //   The projected outline hover glyph then binds text/rest, flipping the '#1427 … outline: the glyph ink
+    //   at hover WALKS to text.hover' assertion BY NAME.
+    const inkStatic = { ...iconButton, tokens: { ...iconButton.tokens, 'outline.icon.hover': 'color.interactive.primary.text.rest' } };
+    ok(glyphInk(inkStatic as ComponentDef, 'outline', 'hover', 'default').includes('color/interactive/primary/text/rest')
+      && !glyphInk(inkStatic as ComponentDef, 'outline', 'hover', 'default').includes('color/interactive/primary/text/hover'),
+      "#1427 MUTATION ARM A: pinning outline.icon.hover back to text.rest makes the hover glyph bind text/rest (not text/hover), flipping '#1427 icon-button outline: the glyph ink at hover WALKS to text.hover' to failing");
+    //   ARM B (item 2) — DROP the surface axis. The enumerated set then carries NO surface=inverse member, so
+    //   the inverse fill/glyph and the doubling assertions above have no member to fire on — the '#1427 surface
+    //   DOUBLES the set' assertion (which reads the enumeration, not a hand-passed coordinate) flips BY NAME.
+    const noSurface = { ...iconButton, variants: { ...iconButton.variants } };
+    delete (noSurface.variants as Record<string, unknown>).surface;
+    const noSurfSet = figmaAnatomySet(noSurface as ComponentDef);
+    ok(noSurfSet.filter((p) => planComponentName(p).includes('surface=inverse')).length === 0
+      && noSurfSet.length === ibSet.length / 2,
+      `#1427 MUTATION ARM B: dropping the surface axis removes every surface=inverse member (set ${ibSet.length} → ${noSurfSet.length}), flipping '#1427 surface DOUBLES the set' to failing`);
   }
 
   // #1344 / #1343b / #1343a / #1345 — the SELECT cluster (#1329). Projected-surface moves, each pinned
@@ -9169,17 +9281,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const ibNfRef = ibNonFamilyTokens(iconButton);
   const ibNfDiverged = iconButtonFamily.filter((d) => ibNonFamilyTokens(d) !== ibNfRef).map((d) => d.id);
   ok(ibNfDiverged.length === 0, `#1225 the three icon-buttons share every NON-colour token byte-for-byte — square sizing, glyph rung, border-width, disabled (diverged: ${ibNfDiverged.join(', ') || 'none'})`);
-  // The colour tokens: each def binds ONLY its own family, and binds the full 13-key icon-only skin (not zero).
+  // The colour tokens: each def binds ONLY its own family, and binds the full 17-key icon-only skin (not zero).
   for (const d of iconButtonFamily) {
     const fam = IB_FAMILY_OF[d.id];
     const stray = Object.entries(d.tokens!).filter(([, v]) => IB_FAMILY_RE.test(v as string) && !(v as string).startsWith(`color.interactive.${fam}.`)).map(([k]) => k);
     ok(stray.length === 0, `#1225 ${d.id} binds ONLY interactive.${fam} — no cross-family paint leaked in (stray: ${stray.join(', ') || 'none'})`);
     const famCount = Object.values(d.tokens!).filter((v) => (v as string).startsWith(`color.interactive.${fam}.`)).length;
-    // 13 = filled 4 (fill + 2 states + on-fill) + outline 4 (border + 2 states + rest ink) + text 1 (rest ink)
-    // + overlay 4 (outline hover/pressed, text hover/pressed). Written, not derived from the def — counting
-    // the def's own keys to check the def's own keys is `docs/34` shape 1. This is Button's 20 MINUS the
-    // label keys an icon-only control has no slot for (and minus #1282's per-state outline ink, Button-only).
-    ok(famCount === 13, `#1225 ${d.id} carries its full interactive.${fam} icon-only skin — 13 bindings (got ${famCount})`);
+    // 17 = filled 4 (fill + 2 states + on-fill) + outline 6 (border + 2 border states + icon rest + 2 icon
+    // states) + text 3 (icon rest + 2 icon states) + overlay 4 (outline hover/pressed, text hover/pressed).
+    // Written, not derived from the def — counting the def's own keys to check the def's own keys is `docs/34`
+    // shape 1. #1427 added the four per-state ICON-ink keys (outline/text × hover/pressed), 13 → 17, so this
+    // is now cleanly Button's 24 MINUS the 7 label keys an icon-only control has no slot for.
+    ok(famCount === 17, `#1225 ${d.id} carries its full interactive.${fam} icon-only skin — 17 bindings (got ${famCount})`);
   }
   // The primary `icon-button` binds interactive.primary — the base is the primary/brand component, mirroring
   // Button (base = primary), and NOT neutral (which is now its own sibling despite being the most common).
@@ -12780,17 +12893,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // with itself. The 6 is the step to check — `states` declares SEVEN and the axis projects six, because
       // `inactive` is code-only. Re-deriving from `states.length` gives 63.
       const ibSet = figmaAnatomySet(iconButton, { swapTarget: 'FPO-default-icon' });
-      ok(ibSet.length === 108, `anatomy/icon-button: the set is 108 members — 3 appearance × 3 size × 2 shape × 6 state, #1225 split \`intent\` into siblings and #1353 added the shape axis (${ibSet.length})`);
-      ok(new Set(ibSet.map(planComponentName)).size === 108,
-        `anatomy/icon-button: every member carries a distinct coordinate (${new Set(ibSet.map(planComponentName)).size}/108)`);
-      // THREE axes, where Button has six — and read off a real emitted NAME rather than the declaration,
-      // which is the 189-vs-756 lesson: a count derived from a declaration cannot detect that the
-      // declaration is incomplete. This is also the assertion that would catch a slot axis (or the removed
-      // `intent` axis) appearing here by inheritance or by accident.
+      ok(ibSet.length === 216, `anatomy/icon-button: the set is 216 members — 3 appearance × 3 size × 2 shape × 2 surface × 6 state, #1225 split \`intent\` into siblings, #1353 added the shape axis and #1427 the surface axis (${ibSet.length})`);
+      ok(new Set(ibSet.map(planComponentName)).size === 216,
+        `anatomy/icon-button: every member carries a distinct coordinate (${new Set(ibSet.map(planComponentName)).size}/216)`);
+      // FOUR variant axes + state, where Button has appearance/size/surface + slots + state — and read off a
+      // real emitted NAME rather than the declaration, which is the 189-vs-756 lesson: a count derived from a
+      // declaration cannot detect that the declaration is incomplete. This is also the assertion that would
+      // catch a slot axis (or the removed `intent` axis) appearing here by inheritance or by accident.
       const ibEmitted = planComponentName(ibSet[0]).split(', ').map((kv) => kv.split('=')[0]);
       ok(ibEmitted.slice().sort().join(',') === figmaAxisNames(iconButton).slice().sort().join(','),
         `anatomy/icon-button: the DECLARED axes match the ones planComponentName emits (declared [${figmaAxisNames(iconButton).join(', ')}] vs emitted [${ibEmitted.join(', ')}])`);
-      ok(figmaAxisNames(iconButton).length === 4, `anatomy/icon-button: four axes (appearance, size, shape, state) — #1225 removed \`intent\`, #1353 added \`shape\` (${figmaAxisNames(iconButton).join(', ')})`);
+      ok(figmaAxisNames(iconButton).length === 5, `anatomy/icon-button: five axes (appearance, size, shape, surface, state) — #1225 removed \`intent\`, #1353 added \`shape\`, #1427 added \`surface\` (${figmaAxisNames(iconButton).join(', ')})`);
 
       // THE SLOT-FILL DIMENSION COLLAPSES TO 1, and this is the decision recorded as a gate rather than a
       // comment. Button's `slotAxes` exists because presence changes GEOMETRY (#326: `paddingLeft` reads
@@ -12827,21 +12940,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(/leading icon=true, trailing icon=false$/.test(planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon' }))),
         'anatomy/icon-button: Button still names both — the rule is "a coordinate iff the def declares the axis", not "no slot coordinates"');
 
-      // The GRID: 18 rows × 6 columns, `state` across. Hand-derived — 3 × 3 × 2 rows against 6 states —
+      // The GRID: 36 rows × 6 columns, `state` across. Hand-derived — 3 × 3 × 2 × 2 rows against 6 states —
       // not read back from `planSetLayout`, which is the subject. (Was 27 rows before #1225 split `intent`
-      // out of the row axis, 9 after #1225, and 18 after #1353 added the shape axis to the row product.)
+      // out of the row axis, 9 after #1225, 18 after #1353 added the shape axis, and 36 after #1427 added the
+      // surface axis to the row product.)
       const ibLayout = planSetLayout(ibSet, 'icon-button');
-      ok(ibLayout.rows === 18 && ibLayout.cols === 6,
-        `anatomy/icon-button: the grid is 18 rows (3 appearance × 3 size × 2 shape) × 6 state columns (${ibLayout.rows} × ${ibLayout.cols})`);
+      ok(ibLayout.rows === 36 && ibLayout.cols === 6,
+        `anatomy/icon-button: the grid is 36 rows (3 appearance × 3 size × 2 shape × 2 surface) × 6 state columns (${ibLayout.rows} × ${ibLayout.cols})`);
       ok(ibLayout.colKey === 'state', `anatomy/icon-button: \`state\` is the column axis — DECLARED via gridAxis, not inherited from cardinality (${ibLayout.colKey})`);
-      ok(new Set(ibLayout.cells.map((c) => `${c.row},${c.col}`)).size === 108,
+      ok(new Set(ibLayout.cells.map((c) => `${c.row},${c.col}`)).size === 216,
         'anatomy/icon-button: every member gets its own cell — combineAsVariants preserves positions, so a shared one stacks them invisibly');
       // Three footprint cohorts, one per size, and that is the whole point of the square: `state`,
-      // `appearance` and now `shape` must not move the box, and with no slot axes `size` is the only thing
-      // that may. #1353's shape axis changes the corner RADIUS, not the width/height, so it does NOT add a
-      // cohort — the count stays 3 (this is the box-level check that the shape axis is pure corner geometry).
+      // `appearance`, `shape` and now `surface` must not move the box, and with no slot axes `size` is the
+      // only thing that may. #1353's shape axis changes the corner RADIUS and #1427's surface axis only
+      // rewrites the colour refs — neither touches width/height — so neither adds a cohort; the count stays 3
+      // (this is the box-level check that shape is pure corner geometry and surface is pure re-inking).
       ok(new Set(ibLayout.cells.map((c) => c.group)).size === 3,
-        `anatomy/icon-button: three footprint cohorts, one per size — state, appearance and shape must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
+        `anatomy/icon-button: three footprint cohorts, one per size — state, appearance, shape and surface must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
 
       // ONE property, where Button has four ref parts. Derived from the nodes the plans BUILD, so this is
       // also the assertion that the required icon still materializes a swap: a slot that stopped producing
@@ -12854,12 +12969,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(ibLayout.refs.length === 1 && ibLayout.refs[0].part === 'icon',
         `anatomy/icon-button: one part is wired to it (${JSON.stringify(ibLayout.refs)})`);
 
-      // The RING appears on exactly the focus-visible column and nowhere else — 18 of 108, which is
-      // 108/6. Derived from the state coordinate rather than from a count, so it fails if the ring leaks
+      // The RING appears on exactly the focus-visible column and nowhere else — 36 of 216, which is
+      // 216/6. Derived from the state coordinate rather than from a count, so it fails if the ring leaks
       // into a neighbouring state as well as if it goes missing.
       const ringMembers = ibSet.filter((p) => planPartNames(p.root).includes('focusRing'));
-      ok(ringMembers.length === 18 && ringMembers.every((p) => /state=focus-visible/.test(planComponentName(p))),
-        `anatomy/icon-button: the focus ring materializes on the 18 focus-visible members and only those (${ringMembers.length})`);
+      ok(ringMembers.length === 36 && ringMembers.every((p) => /state=focus-visible/.test(planComponentName(p))),
+        `anatomy/icon-button: the focus ring materializes on the 36 focus-visible members and only those (${ringMembers.length})`);
 
       // Every member is SKINNED. A coordinate that resolved to no paints is the failure a name-only check
       // cannot see: the set builds, the axes are clean, and 162 identical grey squares come back.
@@ -12897,19 +13012,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // WAS 3 AT #1225 — a MEMBER-COUNT drop rather than a per-member or shell change: splitting `intent`
       // into sibling components took THIS def's set from 162 members to 54 (54 members at ~26 per chunk is 3).
       //
-      // NOW 5, AS OF #1353 — another MEMBER-COUNT move, in the other direction: the shape axis DOUBLES the set
-      // 54 → 108, so it packs into 5 chunks (~26 per chunk). This is the one number here that tracks the set
-      // SIZE rather than the per-member or shell byte cost, so it moves with an axis change while the "every
-      // chunk under budget" check below does not.
+      // WAS 5, AS OF #1353 — another MEMBER-COUNT move: the shape axis DOUBLES the set 54 → 108, packing into
+      // 5 chunks (~26 per chunk). NOW 10, AS OF #1427 — the surface axis DOUBLES it again 108 → 216, so it
+      // packs into 10 chunks. This is the one number here that tracks the set SIZE rather than the per-member
+      // or shell byte cost, so it moves with an axis change while the "every chunk under budget" check below
+      // does not.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 5, `anatomy/icon-button: the set packs into 5 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 10, `anatomy/icon-button: the set packs into 10 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
       // slice produces a set that is short with nothing reporting it.
       const packed = ibChunks.flatMap((c) => c.variants);
-      ok(packed.length === 108 && new Set(packed).size === 108,
-        `anatomy/icon-button: the chunks partition all 108 members exactly once (${packed.length} written, ${new Set(packed).size} distinct)`);
+      ok(packed.length === 216 && new Set(packed).size === 216,
+        `anatomy/icon-button: the chunks partition all 216 members exactly once (${packed.length} written, ${new Set(packed).size} distinct)`);
 
       // ---- the `nesting` relation (#681), and the SQUARE rules ------------------------------------
       // The field is REQUIRED on every part that points at another component, so the first assertion is

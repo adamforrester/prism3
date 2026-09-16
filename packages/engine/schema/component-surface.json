@@ -22,16 +22,16 @@
       "sha256": "70bb717da9d59a815a92223a63892c1eb1e17cae33eae6f3cd1ad2278e4cf779"
     },
     "icon-button": {
-      "members": 108,
-      "sha256": "38680710e4dcfa1dc65a84dd32cf05fa12a5d86217de23a92368cc6da188e46b"
+      "members": 216,
+      "sha256": "9916b827801e167c177d29a1868d132b6479696b6304ecc46d8b6fce31c57ad5"
     },
     "icon-button-destructive": {
-      "members": 108,
-      "sha256": "847468944cca74ebf30e0bafa6b01cdb438a0a50f5957dd647f0cec63e9fa15c"
+      "members": 216,
+      "sha256": "21b78faa177153e79d5095774a169108b3604b4e5b118bf72555b52dc646b2e4"
     },
     "icon-button-neutral": {
-      "members": 108,
-      "sha256": "c71aec508653afe066baf033b6bd46f060edc7fe01f8d56efdf29103d8f3cc32"
+      "members": 216,
+      "sha256": "75d4714af343f7c64430d63a72c302d3e14c86c96d036968ebc28440cc096203"
     },
     "field-label": {
       "members": 24,

@@ -2586,7 +2586,12 @@ ok(btnClobbered.length === 0,
 // so most of these members bind a thickness with nothing to draw — which is exactly the coordinate that
 // enters `claimDefaults`' unstroked branch and the only path into the gate the arm above depends on.
 const btnUnstroked = edgeMembers.filter((n) => ((n.strokes as unknown[]) ?? []).length === 0);
-ok(btnUnstroked.length > 0 && btnUnstroked.length < btnMembers.length,
+// `< edgeMembers.length`, NOT `< btnMembers.length`: `btnUnstroked` is filtered over the POOLED `edgeMembers`
+// (button + icon-button), so proving that BOTH kinds are present — some paint no border, some do — means "not
+// all of the pool are unstroked". Comparing the pooled unstroked count against button's total alone was a
+// latent off-by-subject that happened to hold only while icon-button's set was small; #1427 doubled it (108 →
+// 216), pushing the pooled no-border count to exactly button's 432 and exposing the wrong denominator.
+ok(btnUnstroked.length > 0 && btnUnstroked.length < edgeMembers.length,
   `#1278 reachable: the button sets span BOTH kinds of coordinate — ${btnUnstroked.length} of ${edgeMembers.length} members paint no border (filled/text) and the rest do (outline), so the arm above covers the unstroked path into the executor default as well as the stroked one`);
 
 // ── #1012: SEPARATE SLASH-GROUPED COMPONENTS, NOT A SET ─────────────────────────────────────────
