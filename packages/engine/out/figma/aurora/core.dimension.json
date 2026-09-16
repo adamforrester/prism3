@@ -157,6 +157,20 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "ads/core/dimension/18",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT",
+        "GAP",
+        "CORNER_RADIUS",
+        "STROKE_FLOAT"
+      ],
+      "description": "18px — dimension primitive",
+      "value": 18,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "ads/core/dimension/20",
       "resolvedType": "FLOAT",
       "scopes": [

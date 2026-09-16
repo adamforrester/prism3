@@ -65,15 +65,15 @@
     },
     "switch-control": {
       "members": 24,
-      "sha256": "76ce8021565ff31fd87c29ad60d4039c835db2c8284e468eb62aab5b9587c8ca"
+      "sha256": "fe7a5ca8ae32fa2fc56fdcf29bc2fc6fc7350f95dd66aad37e0253a7b61eea55"
     },
     "switch": {
       "members": 2,
-      "sha256": "b08a1cf375022c0821e8bb71daffb8e6dbe38219c873c6de7bd20d004f1d0d33"
+      "sha256": "cade70606d705e2cd94c2a8be474bfa02a98803d5ea2d5ba26d89b5e7dca1307"
     },
     "select": {
       "members": 16,
-      "sha256": "9d22a79588b7873fec11208066924bfd60524bc6d672924803ed3abe17738c49"
+      "sha256": "8e03d4d5a1876f94b2b253b0b9a0df9180a7241b7e7365825acdb85b17d740e9"
     },
     "veil": {
       "members": 6,

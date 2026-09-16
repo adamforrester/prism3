@@ -2505,6 +2505,72 @@
  * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
  */
 /**
+ * 0.93.0 — `switch-control` is SCALED to Prism 2's toggle proportions (#1425, owner-triaged `engine`+`a11y`,
+ * decision-free calibration). It was ~half Prism 2's scale — a 16px track at aurora's largest switch rung,
+ * a thumb half that, failing to read as a switch and leaning on the row for the whole hit target — because
+ * it BORROWED the square-control box (`control.size.*.height`) for its track and radio's `dot` for its thumb.
+ * The tier now carries the switch's OWN two fields, `track` (its cross-axis edge) and `thumb` (its traveling
+ * mark), a SEPARATE density-windowed ladder from the box: the default `md` is Prism 2's 32px track holding a
+ * 24px thumb (0.75), pill-cornered, 2px-bordered, at a 2:1 width. `switch-control` rebinds its track height to
+ * `.track`, its thumb to `.thumb`, and the glyph follows the (larger) thumb; the `switch` Row rebinds its
+ * nested-height pin to `.track` so the instance is not squashed back to the box height. `width` moved from
+ * `2× height` to `2× track` and `inset` from `(height − dot) / 2` to `(track − thumb) / 2` — both switch-only
+ * fields, so checkbox and radio (which read only `height`/`dot`) are untouched. ENGINE MINOR — emitted
+ * dimensions move, no code contract changes shape. 0.93.0 and not 0.88.0 because this merged onto post-#1426
+ * main, which had taken 0.88.0–0.92.0; this is the next free ENGINE integer above 0.92.0 (never lower).
+ *
+ * THE CONTRACT MOVES A MINOR (see CONTRACT 10.2.0): `track`/`thumb` are additive. The one trap #1425's first
+ * cut hit is that the `inset` re-derivation drops aurora's UNUSED `control.size.lg.inset` from 5→4, which would
+ * have DEMOTED `core.dimension.5` (aurora's only reference to it) — a MAJOR and a hard block at
+ * `lint-materialization-renames`. It is not avoidable by picking switch numbers (the density window ties
+ * compact-`lg` to comfortable-`md`, so 32 at `md` forces compact-`lg` to 32, inset 4, no 5). The fix keeps the
+ * grid's small-primitive floor stable: `buildDims` also feeds the box mark-clearance `(height − dot) / 2` (the
+ * quantity that WAS `inset` before #1425, aurora's 3/4/5), so `core.dimension.5` stays guaranteed exactly as on
+ * `main`. Surface stability, MINOR earned honestly — not a MAJOR papered over.
+ *
+ * BEHAVIOR mutation (docs/34): `test.ts`'s #1425 arms pin, per density, the switch `track` ladder (distinct,
+ * increasing, and TALLER than the box `height` at every rung — the undersize this fixes), `thumb = 0.75 × track`
+ * read off resolved px (so a `SWITCH_THUMB_RATIO` mutation fails by name), `inset = (track − thumb) / 2`, and
+ * `width = 2 × track`; the authored `EXPECTED_CONTROL` table pins comfortable-`md` at Prism 2's 32/24/64/4.
+ */
+/**
+ * 0.92.0 — #1426 `select` QA, all FOUR fixes, owner-decided (2026-09-15). ENGINE MINOR (the projected surface
+ * moves on all four) and — uniquely for this lane — a CONTRACT MINOR too (10.1.0, the one new emitted name in
+ * #1437). Serialized LAST behind the lanes that landed on main first — #1347 (0.89.0, checkbox-row rename),
+ * #1371 (0.90.0, control-shape off-ramps) and #1368 (0.91.0, face pin) — so this takes the next free integer
+ * above main's 0.91.0: 0.92.0.
+ *   (1) CARET PINNED RIGHT. The control's `justify` goes `start` → `space-between`, so the trailing chevron
+ *       sits at the field's right edge at every value length rather than tracking the value string
+ *       (`content` fills in code but hugs in Figma, #989). Projects `primaryAxisAlignItems: SPACE_BETWEEN`.
+ *   (2) `showMessage` BOOLEAN. A node-visibility boolean (#1412) that hides the composed FieldMessage
+ *       entirely — DEFAULT TRUE, and the FIRST use of the mechanism on a `nest` part. A component prop, not
+ *       a token; no CONTRACT move.
+ *   (3) 44px INTERACTIVE FLOOR (#1437). The control binds `size.md.min-height` = `max(size.md.height,
+ *       AAA_TARGET_PX)` — the md control height raised to the WCAG 2.5.5 enhanced 44px target wherever a
+ *       dense brand falls below it (a FLOOR: a spacious 56 stays 56; a compact 36 lifts to 44). This is the
+ *       one new emitted guaranteed name, so CONTRACT moves 10.0.0 → 10.1.0 (the MINOR is recorded under
+ *       CONTRACT_VERSION below). Placed inside the existing `size.md` group so the rung-iterating gates are
+ *       unaffected; `emit-figma-dims` emits it as a `size/md/min-height` variable on the height scopes.
+ *   (4) EXPOSE THE FIELD-LABEL (#1438). select's `label` nest goes `nest-fixed` → `nest-exposed`, exposing
+ *       field-label's size/emphasis/weight; marking the instance exposed also surfaces its label text and
+ *       `required` in Figma. A projected-surface change, no token move.
+ *
+ * ENGINE and not (only) CONTRACT on #1252's decision for (1),(2),(4): the projected component surface moves
+ * with no emitted token path. (3) additionally moves the guaranteed name surface, which is why THIS lane —
+ * unlike the select fixes that preceded it — carries a CONTRACT bump.
+ *
+ * NEW REFUSAL ARMS: none. All four use existing mechanisms (the `space-between` justify value, the #1412
+ * boolean projection, the `size.*` tier + a max, the #1330 nest-exposed relation), adding no schema field
+ * and no refusal — so only BEHAVIOR mutations are owed (docs/34). `test.ts`'s #1426/#1437/#1438 blocks carry
+ * them: the SPACE_BETWEEN projection (revert `justify`→`start` → `MIN`), the message boolean's every-member
+ * presence + shown-by-default-not-a-constant, the floor formula `max(md,44)` proven non-vacuous on the
+ * compact brand, select's binding to the floor, and the projected `nestExpose` marking (revert to
+ * nest-fixed drops it). The host-truth for the boolean and the exposure is `test-roundtrip` and the #1392
+ * payload gate (now provisioning select's full nest + swap set). `lint-component-surface` took a bump-gated
+ * `--accept` (select's plan moves: `primaryAxisAlignItems`, the `message` boolean, the `min-height` binding,
+ * the label's `nestExpose`); `paint-census` is unchanged (no paint moved).
+ */
+/**
  * 0.91.0 — a text CATEGORY may PIN a VERBATIM FACE per weight-role slot (#1368, owner-resolved the
  * three type-model forks 2026-09-15). `typography.faces.<category>.<weightRole> = { family, style }`
  * names the exact Figma face a slot binds, OVERRIDING the numeric-weight → style-name derivation, so a
@@ -2610,10 +2676,12 @@
  * end:0}`), mirroring `checkbox-group`'s own padding. A CONSTANT inset (the same 12 on both rows), not
  * size-scaled — Prism 2 uses 12 flat.
  *
- * CONTRACT STANDS at 10.0.0. `wrap`/`layoutGrow`/`textAutoResize`/`minWidth` are STRUCTURE (schema + plan +
- * projection), never emitted token NAMES; the padding binds EXISTING guaranteed names (`space.150`, `space.0`
- * both already emitted in every brand tier). No guaranteed token name is added, removed or retyped —
- * `token-contract.ts --check` confirms the guaranteed surface unchanged.
+ * CONTRACT STANDS at 10.2.0 — taken from main UNCHANGED, no further bump. `wrap`/`layoutGrow`/`textAutoResize`/
+ * `minWidth` are STRUCTURE (schema + plan + projection), never emitted token NAMES; the padding binds EXISTING
+ * guaranteed names (`space.150`, `space.0`, both already emitted in every brand tier). No guaranteed token name
+ * is added, removed or retyped, so on rebase this lane inherits main's 10.2.0 (#1426's `size.md.min-height` →
+ * 10.1.0, #1425's switch `track`/`thumb` + `core.dimension.{3,18}` → 10.2.0) with nothing to add —
+ * `token-contract.ts --check` confirms the guaranteed 586 unchanged.
  *
  * SAFETY NET (docs/34). #1424: `test.ts` reads the projected plan and pins label→(layoutGrow 1 + HEIGHT) /
  * control→fixed for both rows, with a mutation dropping `wrap` that flips it BY NAME, plus two refusal arms
@@ -2623,9 +2691,8 @@
  * error member and pins fill-stays-interactive / border-goes-danger for both atoms, with a mutation binding
  * the forbidden red fill that flips it BY NAME.
  *
- * 0.94.0 PROVISIONALLY — 0.92.0/0.93.0 are spoken for by in-flight select/switch lanes; the orchestrator
- * reassigns this to the true next-free integer on the pre-merge rebase relay. The next free ENGINE above the
- * lane floor (never lower).
+ * 0.94.0 — the next free ENGINE integer above main's 0.93.0. Rebased onto main after #1426 took 0.92.0
+ * (select QA) and #1425 took 0.93.0 (switch-control scaling); this lane sits above both, never lower.
  */
 export const ENGINE_VERSION = '0.94.0';
 
@@ -3026,8 +3093,41 @@ export const ENGINE_VERSION = '0.94.0';
  * counterparts for border's other seven roles, which land INSIDE a container that now exists. The
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
+ *
+ * 10.1.0 — ADD `size.md.min-height`, the interactive target-size floor (#1437, owner-decided 2026-09-15). ONE
+ * new guaranteed dimension path: `<root>.size.md.min-height` = `max(size.md.height, AAA_TARGET_PX)` = the `md`
+ * control height raised to the WCAG 2.2 SC 2.5.5 enhanced 44px target wherever a dense brand falls below it (a
+ * FLOOR, so a spacious 56 stays 56). Emitted unconditionally by every corpus brand, so it lands in the
+ * GUARANTEED intersection, not `brandDependent`. ADD, so MINOR — 10.0.0 → 10.1.0 (adding a path never forces a
+ * MAJOR; `brandDependent` is untouched; nothing is removed or retyped). Placed inside the existing `size.md`
+ * group rather than as a new top-level `size.*` key, so the rung-iterating gates are unaffected. Bound by
+ * `select` (#1426) so a field control meets the enhanced target at every density; the family generalization
+ * (text-field, the checkbox/switch rows) is tracked in #1437 and does not move the contract further (they
+ * would bind the same existing name). `token-contract.ts --accept` records it and refuses unless
+ * `CONTRACT_VERSION` was raised by exactly this MINOR first. (guaranteed +1)
+ *
+ * 10.2.0 — #1425 scales `switch-control` to Prism 2's toggle proportions, ADDING the switch's own two tier
+ * fields to the guaranteed surface: `control.size.{sm,md,lg}.track` (its cross-axis edge, a ladder distinct
+ * from the square box `height`) and `.thumb` (its traveling mark, 0.75× the track, distinct from radio's
+ * `dot`), plus the `core.dimension.{3,18}` primitives the new thumb/inset px promote into every brand's grid
+ * (`core.dimension.30`, from comfortable/spacious `lg` thumbs, joins brand-dependent — aurora never reaches it).
+ * Additions only — a clean MINOR, layered on main's 10.1.0 (#1426's `size.md.min-height`, which this keeps):
+ * 10.1.0 → 10.2.0. Checkbox and radio are untouched: they read only `height`/`dot`, whose values do not move.
+ *
+ * WHY THIS IS NOT A MAJOR — the `core.dimension.5` trap, recorded because the first cut of #1425 hit it. The
+ * switch's `inset` re-derives from `(height − dot) / 2` to `(track − thumb) / 2`, which drops aurora's UNUSED
+ * `control.size.lg.inset` from 5px to 4px — and that leaf was aurora's ONLY reference to `core.dimension.5`, so
+ * the primitive would have DEMOTED out of aurora's grid (a guaranteed-surface removal → MAJOR, and a hard block
+ * at `lint-materialization-renames`, which has no path for a non-rename deletion). It is not avoidable by
+ * choosing switch numbers: the density window makes compact-`lg` the same rung as comfortable-`md`, so pinning
+ * Prism 2's 32px at the default `md` forces compact-`lg` to 32 (inset 4, no 5). The fix is not to churn the
+ * grid's small-primitive floor for an unrelated tier's arithmetic: `buildDims` now also feeds the box
+ * mark-clearance `(height − dot) / 2` — the quantity that WAS `inset` before #1425, aurora's 3/4/5 — so
+ * `core.dimension.5` stays exactly as guaranteed as it was on `main`, sourced by a real geometric value rather
+ * than a phantom. The switch's own clearance is fed beside it. Surface stability kept, MINOR earned honestly.
+ * (#1425)
  */
-export const CONTRACT_VERSION = '10.0.0';
+export const CONTRACT_VERSION = '10.2.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

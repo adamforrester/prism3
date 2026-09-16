@@ -272,8 +272,10 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // select's `leading icon` is a node-visibility BOOLEAN component property since #1331 (not a variant
     // switch): it appears in componentProps, ordered `value` (TEXT) → `leading icon` (BOOLEAN) → swap, and
     // NO longer among the variant switches. Reverting it to a slot axis moves it back to `switches` and
-    // fails both assertions below by name.
-    select: { componentProps: ['value', 'leading icon', '↳ swap leading icon'], switches: [] },
+    // fails both assertions below by name. `message` is the SECOND node-visibility boolean (#1426, hiding
+    // the composed FieldMessage), so the panel shows `value` (TEXT) → `leading icon` → `message` (BOOLEANs)
+    // → `↳ swap leading icon` (SWAP); dropping the showMessage boolean removes `message` here BY NAME.
+    select: { componentProps: ['value', 'leading icon', 'message', '↳ swap leading icon'], switches: [] },
     'icon-button': { componentProps: ['swap icon'], switches: [] },
   };
   for (const [id, want] of Object.entries(CANON)) {

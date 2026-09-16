@@ -614,6 +614,13 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
   // the five rungs exist as grid entries because this line puts them there, `md` at the DEFAULT density
   // among them. Remove `c.inset` and the same thing happens as for `c.dot`: `controlLeaf` falls back to
   // a literal rather than dangling, so the switch still renders and the tier quietly stops aliasing.
+  //
+  // `track` + `thumb` (#1425) are the switch's own edge and mark, and both join this line for the same
+  // reason. `track` is a multiple of 8 (16/24/32/40/48) so every value is already on the base-4 grid —
+  // fed for uniformity, rescuing nothing today. `thumb` is `0.75 × track` (12/18/24/30/36), and 18 and
+  // 30 are on NEITHER the base-4 grid NOR the space extras — so this rescues two more px at the default
+  // baseUnit, `md`'s 24 already a grid member. `width` moved from `2× height` to `2× track` (#1425); its
+  // new values 32/48/64/80/96 are all multiples of 4, so the widened track still aliases by construction.
   const controls = controlSizes(density);
   return {
     // Icon px join the grid extras for the same reason space does (#274): at a non-default baseUnit
@@ -621,7 +628,15 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
     // would dangle. Feeding them in makes every icon alias resolve by construction. At baseUnit 4
     // they are already grid members, so committed out/* is unaffected.
     grid: dimensionGrid(baseUnit, 128, [...extras, ...space.map((s) => s.px), ...iconSizes().map((i) => i.px),
-      ...controls.flatMap((c) => [c.height, c.width, c.dot, c.inset])]),
+      // The box mark-clearance `(height − dot) / 2` — the gap a checkbox/radio mark has inside its box.
+      // It is fed even though NO token exposes it since #1425 (the tier's `inset` now carries the switch's
+      // `(track − thumb) / 2` instead). WHY IT STAYS: before #1425 this quantity WAS `inset`, and it is
+      // aurora's only source of `core.dimension.5` (compact box-clearances are 3/4/5). Dropping it would
+      // DEMOTE that guaranteed primitive out of aurora's grid — a contract removal the materialization gate
+      // blocks — for no consumer benefit (a raw primitive is never an alias target). Feeding it keeps the
+      // grid's small-primitive floor exactly what it was on `main`; the switch's own clearance is fed by
+      // `c.inset` beside it. See version.ts CONTRACT 10.1.0 and docs/00-progress (#1425).
+      ...controls.flatMap((c) => [c.height, c.width, c.dot, c.inset, c.track, c.thumb, (c.height - c.dot) / 2])]),
     space,
     radius: radiusScale(rScale, baseMd, 128, 999, hairline),
     sizes: componentSizes(density, spaceBase),

@@ -1170,13 +1170,19 @@ for (const b of brands) {
 // `CONTROL_RUNGS` and `DENSITY_START` are the subject; a table derived from either could not fail when
 // they move. This is the whole ladder, all three densities, as px:
 {
-  const EXPECTED_CONTROL: Record<string, Record<string, { height: number; width: number; dot: number }>> = {
-    compact:     { sm: { height: 12, width: 24, dot: 6 },  md: { height: 16, width: 32, dot: 8 },  lg: { height: 20, width: 40, dot: 10 } },
-    comfortable: { sm: { height: 16, width: 32, dot: 8 },  md: { height: 20, width: 40, dot: 10 }, lg: { height: 24, width: 48, dot: 12 } },
-    spacious:    { sm: { height: 20, width: 40, dot: 10 }, md: { height: 24, width: 48, dot: 12 }, lg: { height: 28, width: 56, dot: 14 } },
+  // #1425 added `track` + `thumb` (the switch's OWN track height and traveling thumb, DISTINCT from the
+  // square box `height`/`dot` a checkbox/radio reads) and rebased `width` onto `2× track` and `inset` onto
+  // `(track − thumb) / 2`. The whole ladder, all three densities, as px — box fields and switch fields
+  // side by side, authored here so a mutation of either ladder or any ratio fails against a table that
+  // could not have derived from it:
+  type ControlRow = { height: number; width: number; dot: number; track: number; thumb: number; inset: number };
+  const EXPECTED_CONTROL: Record<string, Record<string, ControlRow>> = {
+    compact:     { sm: { height: 12, dot: 6,  track: 16, thumb: 12, width: 32, inset: 2 }, md: { height: 16, dot: 8,  track: 24, thumb: 18, width: 48, inset: 3 }, lg: { height: 20, dot: 10, track: 32, thumb: 24, width: 64, inset: 4 } },
+    comfortable: { sm: { height: 16, dot: 8,  track: 24, thumb: 18, width: 48, inset: 3 }, md: { height: 20, dot: 10, track: 32, thumb: 24, width: 64, inset: 4 }, lg: { height: 24, dot: 12, track: 40, thumb: 30, width: 80, inset: 5 } },
+    spacious:    { sm: { height: 20, dot: 10, track: 32, thumb: 24, width: 64, inset: 4 }, md: { height: 24, dot: 12, track: 40, thumb: 30, width: 80, inset: 5 }, lg: { height: 28, dot: 14, track: 48, thumb: 36, width: 96, inset: 6 } },
   };
   const CONTROL_RUNG_NAMES = ['sm', 'md', 'lg'];
-  const CONTROL_FIELDS = ['height', 'width', 'dot'] as const;
+  const CONTROL_FIELDS = ['height', 'width', 'dot', 'track', 'thumb', 'inset'] as const;
   // Read a rung's resolved px DEFENSIVELY. Not politeness: with the tier authored as a leaf instead of
   // a group — the mutation this block's shape check exists for — a direct `grp[n].height.$extensions`
   // read throws, and a suite that CRASHES reports no failure by name at all. The shape assertion below
@@ -1229,10 +1235,18 @@ for (const b of brands) {
     // the card ramp that still could not scale with the box it corners. Unlike `inset` this one is not
     // derived from a sibling — it is derived from `height` and from `radius.sm`, a value from ANOTHER
     // group, which is why it is the first field here whose value is clamped rather than computed.
-    // A seventh field is still a decision someone takes.
+    //
+    // #1425 added the SEVENTH and EIGHTH, `track` + `thumb`, and the pin moving is again the checkpoint
+    // working rather than yielding — it fired on the first run of this change. The argument is that a
+    // switch is not a checkbox: its track holds a TRAVELLING thumb, so it needs its own cross-axis edge
+    // (`track`, Prism 2's 32px toggle) and its own mark (`thumb`, 0.75× the track), both larger than the
+    // square box `height`/`dot` a checkbox/radio reads and both density-windowed the same way. Housed on
+    // the SHARED rung so the switch stays inside the one control tier (its `width`/`inset` already lived
+    // here, switch-only), not as a separate group that would orphan those two. A ninth field is still a
+    // decision someone takes.
     const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
-    ok(fields.every((f) => f === 'dot+height+inset+line-box+radius+width'),
-      `#910/#1201/#997/#1015 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` + \`radius\` — no seventh field drifts in (got ${[...new Set(fields)].join(' / ')})`);
+    ok(fields.every((f) => f === 'dot+height+inset+line-box+radius+thumb+track+width'),
+      `#910/#1201/#997/#1015/#1425 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` + \`radius\` + \`track\` + \`thumb\` — no ninth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
     ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
@@ -1258,10 +1272,46 @@ for (const b of brands) {
     ok(new Set(heights).size === 3 && heights.every((h, i) => i === 0 || h > heights[i - 1]),
       `#900 ${density}: three DISTINCT, strictly increasing heights — the windowed ladder, not a clamped shift (${heights.join('/')})`);
 
-    // `width` is 2× `height`, read off the two RESOLVED px rather than off `CONTROL_TRACK_RATIO`.
-    const offRatio = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'width') !== (px(grp, n, 'height') ?? NaN) * 2);
-    ok(offRatio.length === 0, `#900 ${density}: every track \`width\` is exactly 2× its \`height\` — the one ratio the field converges on (Carbon 24×48, Ant 22×44, Fluent 20×40)`
+    // `width` is 2× `track` (#1425 rebased it off `height`), read off the two RESOLVED px rather than off
+    // `CONTROL_TRACK_RATIO`. The switch borrowed the box `height` for its track before #1425, which is why
+    // this once read `2× height`; now the track is its own field and the width doubles IT.
+    const offRatio = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'width') !== (px(grp, n, 'track') ?? NaN) * 2);
+    ok(offRatio.length === 0, `#900/#1425 ${density}: every track \`width\` is exactly 2× its \`track\` height — the one ratio the field converges on (Carbon 24×48, Ant 22×44, Fluent 20×40)`
       + (offRatio.length ? ` — OFF: ${offRatio.join(', ')}` : ''));
+
+    // #1425 — the SWITCH track ladder, its own edge distinct from the box `height`. Three DISTINCT,
+    // strictly increasing tracks at EVERY density (the same windowing/clamp check `height` gets, since the
+    // switch ladder is a second window over `SWITCH_TRACK_RUNGS` and the clamping bug is available here
+    // too), and — the property the issue turns on — every track is LARGER than the box `height` it
+    // replaced, at every rung and density. A track that came out equal to the box is the #1425 undersize
+    // regressed. Read off resolved px, independent of the ladder constants by construction.
+    const tracks = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'track') ?? NaN);
+    ok(new Set(tracks).size === 3 && tracks.every((t, i) => i === 0 || t > tracks[i - 1]),
+      `#1425 ${density}: three DISTINCT, strictly increasing switch tracks — the windowed ladder, not a clamped shift (${tracks.join('/')})`);
+    const notBigger = CONTROL_RUNG_NAMES.filter((n) => (px(grp, n, 'track') ?? NaN) <= (px(grp, n, 'height') ?? NaN));
+    ok(notBigger.length === 0, `#1425 ${density}: every switch \`track\` is TALLER than the square box \`height\` — a track that holds a traveling thumb is not a checkbox square (the undersize #1425 fixes)`
+      + (notBigger.length ? ` — NOT BIGGER: ${notBigger.join(', ')}` : ''));
+
+    // #1425 — `thumb` is 0.75× the TRACK (Prism 2's 24-in-32), the switch's own mark and a SEPARATE ratio
+    // from radio's `dot` (0.5× the box). Read off the two resolved px, so a mutation of `SWITCH_THUMB_RATIO`
+    // fails here by name. Integer at every rung (the multiples-of-8 track guarantees it) and — the
+    // proportion the issue names — strictly BETWEEN 0.5 (radio's) and 1.0, i.e. reads as a thumb.
+    const offThumb = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'thumb') !== (px(grp, n, 'track') ?? NaN) * 0.75);
+    ok(offThumb.length === 0, `#1425 ${density}: every switch \`thumb\` is exactly 0.75× its \`track\` — Prism 2's toggle proportion`
+      + (offThumb.length ? ` — OFF: ${offThumb.join(', ')}` : ''));
+    const thumbs = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'thumb') ?? NaN);
+    ok(thumbs.every((t) => Number.isInteger(t)), `#1425 ${density}: every switch \`thumb\` is a whole px — a half-px thumb cannot be centred on the grid (${thumbs.join('/')})`);
+    const thumbRatios = CONTROL_RUNG_NAMES.map((n) => (px(grp, n, 'thumb') ?? NaN) / (px(grp, n, 'track') ?? NaN));
+    ok(thumbRatios.every((r) => r > 0.5 && r < 1), `#1425 ${density}: the thumb-to-track proportion sits strictly between a radio dot (0.5) and the whole track — it reads as a traveling thumb (${thumbRatios.map((r) => r.toFixed(2)).join('/')})`);
+
+    // #1425 — `inset` is `(track − thumb) / 2` (the thumb centred in the track, its clearance at each
+    // end), rebased off `(height − dot) / 2`. Derived from the two SWITCH fields, so it cannot drift from
+    // them; integer at every rung by the same multiples-of-8 construction.
+    const offInset = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'inset') !== ((px(grp, n, 'track') ?? NaN) - (px(grp, n, 'thumb') ?? NaN)) / 2);
+    ok(offInset.length === 0, `#997/#1425 ${density}: every \`inset\` is exactly (track − thumb) ÷ 2 — the thumb centred in its track`
+      + (offInset.length ? ` — OFF: ${offInset.join(', ')}` : ''));
+    const insets = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'inset') ?? NaN);
+    ok(insets.every((v) => Number.isInteger(v) && v >= 2), `#997/#1425 ${density}: every \`inset\` is a whole px ≥ 2 — a switch thumb clears its track end by at least a 2px border's worth (${insets.join('/')})`);
 
     // `dot` is HALF the height, read off the two resolved px for the same reason. Deliberately NOT
     // described as field-convergent, because it is not and the reviewer was right to say so: M3 is
@@ -8749,6 +8799,138 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       '#1331 a boolean toggling a NON-optional part is refused BY NAME — the anatomy must allow the part to be hidden');
   }
 
+  // ---- #1426: select QA fixes — caret pinned right (space-between) + hideable message boolean ----
+  // The two decision-free fixes from the plugin-import QA, each pinned INDEPENDENTLY of the projector and
+  // gated by a docs/34 mutation that flips a NAMED assertion. (Two further #1426 items — the hit-target
+  // control height and exposing the composed FieldLabel's props — are held for the owner as design forks.)
+  {
+    const fp = select.figmaProperties!;
+    const ctrlOf = (d: ComponentDef): { primaryAxisAlignItems?: string } => {
+      const root = figmaAnatomyPlan(d, undefined, { status: 'default', state: 'rest' } as never).root;
+      const c = (root.children ?? []).find((x: { name?: string }) => x.name === 'control');
+      if (!c) throw new Error(`select projection has no 'control' child (got [${(root.children ?? []).map((x: { name?: string }) => x.name).join(', ')}])`);
+      return c as { primaryAxisAlignItems?: string };
+    };
+
+    // (1) CARET — the control distributes its two flow children with SPACE_BETWEEN, pinning the trailing
+    //     chevron to the field's right edge independent of the value width. Read off the projected plan's
+    //     `primaryAxisAlignItems`, never the def's own `justify` word (the JUSTIFY map is the thing under test).
+    ok(ctrlOf(select).primaryAxisAlignItems === 'SPACE_BETWEEN',
+      `#1426 select control pins the chevron right via space-between (primaryAxisAlignItems SPACE_BETWEEN) — got ${String(ctrlOf(select).primaryAxisAlignItems)}`);
+    //   MUTATION — reverting `justify` to 'start' projects MIN (the chevron tracks the value again), flipping
+    //   the assertion BY NAME.
+    const startCtrl = { ...select.anatomy!.parts.control, layout: { ...select.anatomy!.parts.control.layout!, justify: 'start' as const } };
+    const startJustify = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, control: startCtrl } } };
+    ok(ctrlOf(startJustify as ComponentDef).primaryAxisAlignItems === 'MIN',
+      `#1426 MUTATION: reverting control.justify to 'start' projects primaryAxisAlignItems MIN (got ${String(ctrlOf(startJustify as ComponentDef).primaryAxisAlignItems)}), flipping '#1426 select control pins the chevron right' BY NAME`);
+
+    // (2) showMessage BOOLEAN (#1412 on a `nest` part — a first). The composed `message` nest is emitted at
+    //     EVERY member, shown by default, its `visible` driven by the `message` boolean — the INVERSE
+    //     direction of the leading glyph (default true, like field-label's `required`).
+    const sset = figmaAnatomySet(select, { swapTarget: 'FPO-default-icon' });
+    const findMsg = (n: any): any => (n.name === 'message' ? n : (n.children ?? []).map(findMsg).find(Boolean));
+    const msgNodes = sset.map((p) => findMsg(p.root));
+    ok(msgNodes.length === sset.length && msgNodes.every(Boolean),
+      `#1426 the composed message nest is emitted at EVERY projected member (${msgNodes.filter(Boolean).length}/${sset.length})`);
+    ok(msgNodes.length > 0 && msgNodes.every((m) => m?.visibleProp === 'message' && (m?.visible ?? true) === true),
+      '#1426 every message node is shown by default (built visible — `visible` omitted per #1331\'s "carried only when false" rule) with its `visible` driven by the `message` boolean (inverse of the leading glyph, which defaults hidden)');
+    //   and the built visibility TRACKS the default rather than being a constant (docs/34 shape 4): flipping
+    //   the boolean default to false builds every message node `visible:false`.
+    const hiddenDefault = { ...select, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { part: 'message', figmaName: 'message', default: false } } } };
+    const hiddenMsgs = figmaAnatomySet(hiddenDefault as never, { swapTarget: 'FPO-default-icon' }).map((p) => findMsg(p.root));
+    ok(hiddenMsgs.length > 0 && hiddenMsgs.every((m) => m?.visible === false),
+      '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
+
+    // (3) the boolean does NOT multiply the set — still status(4) × state(4) = 16 members.
+    ok(sset.length === 16,
+      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 16 members (got ${sset.length})`);
+
+    // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
+    const props = planSetProperties(sset);
+    const msgProp = props.find((p) => p.name === 'message');
+    ok(!!msgProp && msgProp.type === 'BOOLEAN' && msgProp.default === true,
+      `#1426 planSetProperties declares 'message' as a BOOLEAN defaulting true (the built visibility) — got ${JSON.stringify(msgProp)}`);
+
+    // (5) BEHAVIOR MUTATION (docs/34) — the boolean is the message nest's SOLE presence mechanism now that it
+    //     is optional. Drop only the showMessage boolean (keep leadingIcon) and the message nest is DROPPED at
+    //     every member (present() returns !optional), flipping (2) BY NAME.
+    const noMsgBool = { ...select, figmaProperties: { ...fp, booleans: { leadingIcon: fp.booleans!.leadingIcon } } };
+    const noMsgSet = figmaAnatomySet(noMsgBool as never, { swapTarget: 'FPO-default-icon' });
+    ok(noMsgSet.every((p) => !findMsg(p.root)),
+      '#1426 MUTATION: dropping the showMessage boolean drops the (now-optional) message nest from every member — the boolean is its sole presence mechanism, flipping "#1426 the composed message nest is emitted at EVERY projected member" BY NAME');
+
+    // (6) the requireOptional half — the message nest is optional, and a boolean on a NON-optional nest is
+    //     refused BY NAME (the #1331 arm, pinned on select's own `message`).
+    ok(select.anatomy!.parts.message.optional === true,
+      '#1426 the message nest is optional — the anatomy half of the #1412 mechanism (the boolean toggles visibility, so the part must be allowed to be absent)');
+    const msgNotOptional = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, message: { ...select.anatomy!.parts.message, optional: undefined } } } };
+    ok(validateComponentDef(msgNotOptional as never).errors.some((e) => /booleans\.showMessage/.test(e) && /not optional/.test(e)),
+      '#1426 a boolean toggling a NON-optional message nest is refused BY NAME — the anatomy must allow the part to be hidden');
+
+    // (7) the def still validates clean with the second boolean added.
+    ok(validateComponentDef(select).errors.length === 0,
+      `#1426 select validates clean with the showMessage boolean added (${validateComponentDef(select).errors.join('; ')})`);
+  }
+
+  // ---- #1437: the 44px INTERACTIVE TARGET-SIZE FLOOR (owner-decided 2026-09-15) ----
+  // `size.md.min-height` = max(size.md.height, AAA_TARGET_PX). EXPECTED is that formula transcribed
+  // INDEPENDENTLY of the emitter (docs/34); ACTUAL is the emitted px. The compact brand is the load-bearing
+  // case — its md rung (36) is below the target, so the floor lifts it and `min-height ≠ height` proves the
+  // floor is doing work rather than measuring a constant (shape 4).
+  {
+    const brands: Array<[string, any]> = [
+      ['nb (comfortable)', nbTheme()],
+      ['aurora (compact)', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
+    ];
+    for (const [id, t] of brands) {
+      const tree = buildTree(t).tree as any;
+      const md = tree[Object.keys(tree)[0]].size.md;
+      const mdPx = md.height.$extensions.prism3.px as number;
+      const minPx = md['min-height'].$extensions.prism3.px as number;
+      // The emitter's `max` is under test: drop it (emit `mdStep.height`) and minPx becomes 36 on aurora,
+      // failing `minPx === max(mdPx, 44)` (36 ≠ 44) BY NAME.
+      ok(minPx === Math.max(mdPx, AAA_TARGET_PX),
+        `#1437 ${id}: size.md.min-height = max(size.md.height ${mdPx}, ${AAA_TARGET_PX}) = ${Math.max(mdPx, AAA_TARGET_PX)} (got ${minPx})`);
+      ok(minPx >= AAA_TARGET_PX,
+        `#1437 ${id}: size.md.min-height (${minPx}) meets the ${AAA_TARGET_PX}px enhanced target at this density`);
+    }
+    // NOT VACUOUS (docs/34 shape 4): on a compact brand the floor LIFTS the value, so min-height ≠ height.
+    const aMd = (buildTree(brands[1][1]).tree as any)[Object.keys(buildTree(brands[1][1]).tree)[0]].size.md;
+    ok(aMd.height.$extensions.prism3.px === 36 && aMd['min-height'].$extensions.prism3.px === 44,
+      `#1437 the floor DOES work: aurora (compact) size.md.height=${aMd.height.$extensions.prism3.px} is lifted to min-height=${aMd['min-height'].$extensions.prism3.px} (a constant would coincide)`);
+    // select binds the FLOOR, not the plain rung — the binding mutation. Reverting to `size.md.height`
+    // resolves the control to 36px on a compact brand (the fact below), below the enhanced target.
+    ok(select.tokens!['min-height'] === 'size.md.min-height',
+      `#1437 select's control binds size.md.min-height (the floor), not size.md.height (got ${select.tokens!['min-height']})`);
+    ok(aMd.height.$extensions.prism3.px < AAA_TARGET_PX,
+      `#1437 MUTATION basis: reverting select's binding to size.md.height would resolve ${aMd.height.$extensions.prism3.px}px on a compact brand — below the ${AAA_TARGET_PX}px target, the regression the floor binding prevents`);
+  }
+
+  // ---- #1438: the composed FieldLabel is NEST-EXPOSED (owner-decided 2026-09-15) ----
+  // The label nest exposes field-label's author axes; marking the instance exposed ALSO surfaces its label
+  // text + required in Figma (the host-truth for that lives in #1392, which now includes select, and in
+  // test-roundtrip). Here: the def declaration and the projected `nestExpose` marking, mutation-gated.
+  {
+    const labelPart = select.anatomy!.parts.label;
+    ok(labelPart.nesting?.kind === 'nest-exposed',
+      `#1438 select's label nest is nest-exposed (got ${labelPart.nesting?.kind})`);
+    ok(labelPart.nesting?.kind === 'nest-exposed'
+      && JSON.stringify([...labelPart.nesting.expose].sort()) === JSON.stringify(['emphasis', 'size', 'weight']),
+      `#1438 select exposes field-label's author axes [size, emphasis, weight] (got ${labelPart.nesting?.kind === 'nest-exposed' ? labelPart.nesting.expose.join(', ') : 'n/a'})`);
+    const findLabel = (n: any): any => (n.name === 'label' ? n : (n.children ?? []).map(findLabel).find(Boolean));
+    const labelNode = findLabel(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'rest' } as never).root);
+    ok(labelNode && Array.isArray(labelNode.nestExpose) && labelNode.nestExpose.length === 3,
+      `#1438 the projected label node carries nestExpose (${labelNode?.nestExpose?.join(', ') ?? 'MISSING'})`);
+    // MUTATION: reverting the label to nest-fixed drops nestExpose from the projected node BY NAME.
+    const fixedLabel = { ...select.anatomy!.parts.label, nesting: { kind: 'nest-fixed' as const, variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' } } };
+    const fixed = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, label: fixedLabel } } };
+    const fixedLabelNode = findLabel(figmaAnatomyPlan(fixed as ComponentDef, undefined, { status: 'default', state: 'rest' } as never).root);
+    ok(fixedLabelNode && fixedLabelNode.nestExpose === undefined,
+      `#1438 MUTATION: reverting the label nest to nest-fixed drops nestExpose from the projected node (got ${JSON.stringify(fixedLabelNode?.nestExpose)}), flipping '#1438 the projected label node carries nestExpose' BY NAME`);
+    ok(validateComponentDef(select).errors.length === 0,
+      `#1438 select validates clean as nest-exposed — expose ⊂ field-label's axes, disjoint from follow (${validateComponentDef(select).errors.join('; ')})`);
+  }
+
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
   // (Button = primary, Destructive Button, Neutral Button), built by one factory. Button carries NO
   // `intent` prop, and hierarchy is still the appearance axis (filled > outline > text).
@@ -11855,13 +12037,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // PER DEF: run the paste payload and read the exposure marking back off the built members.
         for (const def of nestExposedDefs) {
           const exposedPartNames = nestExposedPartsOf(def);
-          const plans = figmaAnatomySet(def);
+          // Nominate the swap target exactly as the real caller and the round-trip do (`SWAP_TARGET`): a def
+          // with a swap slot (select's leading glyph, #1426) leaves it unnominated otherwise and the executor
+          // builds a placeholder frame it then reports as a miss. select is the first nest-exposed def with a
+          // swap slot, so the gate now nominates one.
+          const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
           const opts: StubOpts = {
             vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
             styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
-            // The nested targets, resolved as plain COMPONENTs exactly as the round-trip's `planComps` hands
-            // the plugin shim (`test-roundtrip.ts`) — one instance of each takes its cell in every member.
-            comps: [...new Set(exposedPartNames.map((n) => def.anatomy?.parts[n]?.nests).filter((c): c is string => !!c))],
+            // EVERY component the def's plan references — swap targets AND nest targets, collected off the
+            // plan exactly as the round-trip's `planComps`/`fullFor` does, so one instance of each takes its
+            // cell in every member. select (#1438) is the first nest-exposed def that ALSO nests NON-exposed
+            // parts (`field-message`, `focus-ring`) and carries a swap slot; leaving either unprovisioned
+            // drops nodes — and a dropped `field-message` node orphans the `showMessage` visibility boolean
+            // (#1426). Provisioning both mirrors the real build (the plugin builds each nested component and
+            // the swap target first), where no node is dropped.
+            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c))],
           };
           // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
           // it is read off the PAGE the payload appended the combined set to. Returns every nested instance
@@ -12821,7 +13012,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `layout.justify` already put it. So the symptom is a switch whose thumb does not travel — visible
       // only by looking at two members of the set side by side, which no gate downstream does. Every rule
       // was deleted from `anatomyErrors` in turn and the matching line here confirmed to fail BY NAME.
-      // Patched onto `switch-control`, the def that carries the travelling thumb since #1354 (it moved
+      // Patched onto `switch-control`, the def that carries the traveling thumb since #1354 (it moved
       // off the `switch` ROW with the painted surface). The text-part arms below stay on the ROW's `label`,
       // the only text part in the family.
       const swPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(switchControl, part, patch);
@@ -12883,7 +13074,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // which reads in the def as though it had been.
       ibBroke('naming a position for only SOME values fails — the rest fall back to a field that does not mention this part', /names no position for \[on\]/, swPart('thumb', { positionWhen: { selection: { off: 'start' } } }));
       // ALL THE SAME POSITION is `layout.justify` wearing a condition's clothes — the one rule here whose
-      // symptom is a part that reads as travelling and projects as static.
+      // symptom is a part that reads as traveling and projects as static.
       ibBroke('the same position at every value fails as a no-op', /positions itself 'start' at every value of 'selection'/, swPart('thumb', { positionWhen: { selection: { off: 'start', on: 'start' } } }));
 
       // The NON-SQUARE BOX rules (#990). `width` is what a 2:1 track needs and `size` is what a square
@@ -15333,7 +15524,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // an empty set — `docs/34` shape 15, the same shape the CONTROL_DEFS scope above was widened for.
   const positionedDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.positionWhen));
-  // #1354 moved the travelling thumb to `switch-control`, so the def with a `positionWhen` part is the atom.
+  // #1354 moved the traveling thumb to `switch-control`, so the def with a `positionWhen` part is the atom.
   const POSITIONED_EXPECTED = ['switch-control'];
   ok(POSITIONED_EXPECTED.every((n) => positionedDefs.some((d) => d.id === n)) && positionedDefs.length === POSITIONED_EXPECTED.length,
     `#990 the positionWhen projection rule below covers exactly [${POSITIONED_EXPECTED.join(', ')}] — a def gaining a variant-positioned part must be represented here, and a def losing one is a stale claim (found: ${positionedDefs.map((d) => d.id).join(', ') || 'none'})`);
@@ -15413,7 +15604,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `#997 ${def.id}: '${parent}' pads BOTH main-axis ends with one variable at ${axis}=${v}, so '${name}' clears the end it is distributed to — an alignment has no offset, so padding is the only source of clearance and without it the part is flush (got ${mainEnds.map((e) => `${e}=${b[e] ?? 'unbound'}`).join(', ')})`);
 
         // …and the clearance is the RIGHT SIZE, resolved to px. A padding that exists but does not relate
-        // to the travelling part would satisfy the arm above while leaving the part cramped or overflowing.
+        // to the traveling part would satisfy the arm above while leaving the part cramped or overflowing.
         // The cross axis is the checkable one: the padded box must be exactly the part, or the part is not
         // centred in the track it slides along.
         const asPath = (figName?: string) => figName?.split('/').join('.');
@@ -15432,7 +15623,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // the same claim read out of the PROJECTION, which is where a projector that silently collapsed the
       // travel (a stale `JUSTIFY` lookup, a `??` reversed) would show up.
       ok(seen.size > 1,
-        `#990 ${def.id}: '${name}' occupies MORE THAN ONE place across '${axis}' — a projection that resolved every value to '${[...seen][0]}' is a part that reads as travelling and renders as static, and no node count, paint assignment or census can tell the difference (got ${seen.size} distinct: ${[...seen].join(', ')})`);
+        `#990 ${def.id}: '${name}' occupies MORE THAN ONE place across '${axis}' — a projection that resolved every value to '${[...seen][0]}' is a part that reads as traveling and renders as static, and no node count, paint assignment or census can tell the difference (got ${seen.size} distinct: ${[...seen].join(', ')})`);
       // THE UNSUPPLIED AXIS, the third direction the projected set cannot reach: a structure-only plan is
       // legal (the partial-coordinate guard throws only when SOME of a template's axes are missing), and it
       // must fall back to the parent's DECLARED justify rather than to the first entry of the map. Asserting
@@ -15788,12 +15979,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //      (`color.background.inverse.primary` → `color.appearance.…`); #1133 retired one and #1140 emptied
   //      the rest, because `replacedBy` follows the LIVE name by rule, so relocating the inverse marker
   //      gave each of those entries a role delta on top of the tier delta and they began projecting like
-  //      any other rename. #1148 REMOVES the segment, so its 243 entries are tier-only travelling the
+  //      any other rename. #1148 REMOVES the segment, so its 243 entries are tier-only traveling the
   //      other way (`color.appearance.background.primary` → `color.background.primary`).
   //      **SO THE PREDICATE IS TWO PREDICATES, AND WAS ONE UNTIL THIS CHANGE.** The arm read only
   //      `replacedBy === color.appearance.<path tail>` — #1013's direction — which #1148 leaves matching
   //      nothing at all while 243 live entries take the identical skip. A bucket asserted EMPTY by a
-  //      predicate aimed at a direction the data has stopped travelling in is `docs/34` shape 9 wearing a
+  //      predicate aimed at a direction the data has stopped traveling in is `docs/34` shape 9 wearing a
   //      green tick, and it would have shipped: the arm's other half, the constructed pair, still passes.
   //      The two halves are counted separately below (0 and 243) so neither can cover for the other, and
   //      the ADDING half keeps its constructed pair for exactly the reason it had one at zero.

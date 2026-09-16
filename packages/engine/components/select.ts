@@ -66,10 +66,27 @@
  *
  * ── ROLES REUSED, VERSION ────────────────────────────────────────────────────────────────────────
  *
- * Every binding is an EXISTING semantic role (`field.border.*`, `border.focus`, `border.danger`,
+ * Almost every binding is an EXISTING semantic role (`field.border.*`, `border.focus`, `border.danger`,
  * `field.fill`, `field.placeholder`, `text.primary`, `icon.primary`, `focus.ring.*`, the cross-cutting
- * `disabled.*`). No new emitted token name, so `CONTRACT_VERSION` stands at 10.0.0. `ENGINE_VERSION`
- * moves for the changed projected surface (#1252's case).
+ * `disabled.*`). The ONE new emitted name is `size.md.min-height` (#1437, below), so `CONTRACT_VERSION`
+ * moves to 10.1.0 (a MINOR add); `ENGINE_VERSION` moves for the changed projected surface (#1252's case).
+ *
+ * ── #1426 QA FIXES (2026-09-15, all four owner-decided) ──────────────────────────────────────────
+ *
+ * Four fixes from the plugin-import QA:
+ *   1. CARET PINNED RIGHT. The trailing chevron pins to the field's RIGHT EDGE via the control's
+ *      `space-between`, rather than tracking the value width (`content` fills in code but hugs in Figma,
+ *      #989 — see the `control` part). No token move.
+ *   2. `showMessage` BOOLEAN. A node-visibility boolean (#1412) that hides the composed FieldMessage
+ *      entirely (see `props`, the `message` part's `optional`, and `figmaProperties.booleans`). A component
+ *      prop, not a token — no CONTRACT move.
+ *   3. 44px INTERACTIVE FLOOR (#1437). The control binds `size.md.min-height` = `max(size.md.height, 44)`
+ *      instead of the plain `size.md.height` rung, so it meets the WCAG 2.5.5 enhanced target at every density
+ *      (the rung was 36px on a compact brand). `size.md.min-height` is a NEW guaranteed emitted name →
+ *      `CONTRACT_VERSION` 10.0.0 → 10.1.0 (MINOR add). See the `min-height` binding.
+ *   4. EXPOSE THE FIELD-LABEL (#1438). The nested `field-label` is now `nest-exposed`: its label text,
+ *      required marker and size/emphasis/weight surface on the select (see the `label` part). A projected-
+ *      surface change, no token move.
  *
  * ── LEADING GLYPH: A NODE-VISIBILITY BOOLEAN, NOT A VARIANT AXIS (#1331) ───────────────────────────
  *
@@ -120,6 +137,12 @@ export const select: ComponentDef = {
     // `status` by name (see the header). Values match field-message's status values exactly.
     { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. `error` swaps the control border to the danger boundary (border-only) and sets the nested message to its error status; `warning` / `success` are message-only (the border stays neutral, the message carries the status); `default` is neutral. The values align with FieldMessage\'s status axis, so this drives the nested message directly.' },
     { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success. For error, say what is wrong AND how to fix it (SC 3.3.3), never "Invalid".' },
+    // #1426 — a node-visibility boolean (the #1412 mechanism) that hides the composed FieldMessage
+    // entirely. Default ON (the message is part of the field), so a select that carries neither helper
+    // nor validation text can drop the whole part rather than reserve its space. The message node is
+    // emitted at every member and shown by default; turning this off toggles its `visible` in place, the
+    // same mechanism as the leading glyph — see `figmaProperties.booleans`.
+    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. ON — the default — renders the helper / validation message below the control; turning it off hides the message entirely (a select with no helper or validation text). Never hides a message the field needs: an error still sets aria-invalid and the message carries the reason, so hide it only when there is genuinely nothing to say.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value (a category or status mark), aria-hidden. Hidden by default; the file nominates the swap target. Signals the field\'s purpose; validation never mutates it.' },
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required; the FieldLabel marks the minority consistently within a form.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled — removed from tab order, not submitted, contrast-exempt. Reserve for a choice irrelevant in the current state.' },
@@ -165,9 +188,15 @@ export const select: ComponentDef = {
   tokens: {
     // ── GEOMETRY ─────────────────────────────────────────────────────────────────────────────────
     'radius': 'radius.sm',
-    // The control's single-line height (44 on nb) — bound as a fixed height, since the value is one
-    // ellipsized line (`text-field` binds the same rung for its medium control).
-    'min-height': 'size.md.height',
+    // The control's single-line height, bound as a fixed height (the value is one ellipsized line).
+    // #1437 (owner, 2026-09-15): bound to `size.md.min-height` — the INTERACTIVE TARGET-SIZE FLOOR, not the
+    // plain `size.md.height` rung — so the control meets the 44px WCAG 2.5.5 enhanced target at EVERY
+    // density. `size.md.height` is 44 on a comfortable brand but 36 on a compact one (the QA symptom),
+    // which clears SC 2.5.8 (24) but not the enhanced target; `size.md.min-height` = max(md, 44) lifts the
+    // sub-44 densities and leaves a spacious 56 alone. A field control IS the tap target, so it takes the
+    // floor; small buttons stay the knowing exception below it (owner). text-field keeps `size.md.height`
+    // for now — the family generalization is tracked in #1437.
+    'min-height': 'size.md.min-height',
     'pad-x': 'size.md.padding-x',
     'pad-y': 'size.md.padding-y',
     // The control's internal spacing (value ↔ chevron, and the leading glyph ↔ value).
@@ -240,8 +269,9 @@ export const select: ComponentDef = {
   //
   // container (column) → nested FieldLabel · control (the bordered box) · nested FieldMessage. The focus
   // ring is an absolute sibling of the control's contents, rings the control, and appears only on
-  // focus-visible. The control box holds a `content` wrapper (leading glyph + value text) that FILLS,
-  // pushing the trailing chevron to the field's end.
+  // focus-visible. The control box holds a `content` wrapper (leading glyph + value text) and a trailing
+  // chevron, distributed to the control's two ends by `space-between` (#1426), so the chevron pins to the
+  // right edge at every value length rather than tracking the text string.
   anatomy: {
     root: 'container',
     parts: {
@@ -253,18 +283,29 @@ export const select: ComponentDef = {
         gap: 'root-gap',
         children: ['label', 'control', 'message'],
       },
-      // THE NESTED LABEL (nest-fixed). An in-flow instance of `field-label`, fixed to Prism2's select
-      // label configuration — small, secondary, regular, rest. Its four projected axes (size, emphasis,
-      // weight, state) are all named in the coordinate, because `nestVariantMatch` requires the
-      // coordinate to account for EVERY axis the member name carries. NOT followed: field-label's `emphasis`
-      // (primary/secondary) and `state` (rest/disabled) are a different vocabulary from select's, so
-      // there is no value to pass through — the label reads at one fixed configuration in Figma, and the
-      // consumer's disabled dimming is a code concern (see codeOnly).
+      // THE NESTED LABEL (nest-exposed, #1438 — owner-decided 2026-09-15). An in-flow instance of
+      // `field-label`, whose properties the consumer drives FROM the select. All four field-label axes
+      // (size, emphasis, weight, state) are named in the `variant` coordinate — the DEFAULT the instance
+      // starts at (Prism2's select label: small / secondary / regular / rest), and `nestVariantMatch`
+      // requires the coordinate to account for EVERY axis the member name carries. `expose` surfaces the
+      // three AUTHOR axes (size / emphasis / weight) as consumer-driven exposed nested-instance properties;
+      // marking the instance exposed (`isExposedInstance`) ALSO surfaces field-label's `label` TEXT and
+      // `required` BOOLEAN in Figma — the "label text, required, etc." #1438 asks for, which the fixed nest
+      // could not reach (select had no text/boolean property for the label, so its text sat at field-label's
+      // default and `required` was unreachable). `state` is deliberately NOT exposed: it stays fixed at
+      // `rest`, and the disabled dim is code-driven from the field's context (a designer sets the whole
+      // field disabled, not the label alone — see codeOnly). NOT `follow`ed either: field-label's vocabulary
+      // is a different one from select's, so there is no host axis to pass through — exposure lets the
+      // consumer drive the child directly, which is the mechanism `follow` is not.
+      //
+      // GENERALIZES TO EVERY FIELD-LABEL COMPOSER (#1438): text-field and the checkbox/switch rows compose
+      // field-label the same way and would expose it identically. Scoped to select here per the owner; the
+      // family rollout is tracked in #1438.
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-fixed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' } },
-        note: 'The accessible name, composed rather than re-declared. Fixed to the select label configuration (small / secondary / regular); a fix to FieldLabel reaches here without a copy.',
+        nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts at the select default (small / secondary / regular).',
       },
       // THE CONTROL — the bordered, interactive box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill and border (`paintSlots`); fills the column width
@@ -273,7 +314,15 @@ export const select: ComponentDef = {
         kind: 'box',
         role: 'target',
         paintSlots: ['fill', 'border'],
-        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
+        // `space-between` PINS THE TRAILING CHEVRON TO THE FIELD'S RIGHT EDGE (#1426), independent of the
+        // value string's length. `content` fills the control in CODE (flexbox `flex:1` pushes the chevron
+        // right), but the engine projects `sizing: 'fill'` to AUTO/HUG (#989), so in Figma `content` HUGS
+        // its text and a `justify: 'start'` control let the chevron track the value width — the QA symptom.
+        // `space-between` distributes the two flow children (`content`, the absolute `focusRing` takes no
+        // cell) to the control's ends, so the chevron sits at the right edge at every value length on BOTH
+        // surfaces. `positionWhen` does not override this here (no traveling child), so the projected
+        // `primaryAxisAlignItems` is `SPACE_BETWEEN` at every member.
+        layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'fixed' } },
         height: 'min-height',
         // THE COMFORTABLE DEFAULT WIDTH (#1343a, #1345), a MIN-WIDTH not a fixed width. Prism 2's select
         // is `root width 320 · HUG` with its inner containers FILLing that width; the engine cannot
@@ -295,8 +344,8 @@ export const select: ComponentDef = {
         gap: 'gap',
         children: ['content', 'chevron', 'focusRing'],
       },
-      // THE VALUE ROW — leading glyph + value text, filling the control so the chevron is pushed to the
-      // end. Structure only.
+      // THE VALUE ROW — leading glyph + value text. Fills the control in code; in Figma it hugs (#989) and
+      // the control's `space-between` (#1426) is what pins the chevron to the right edge. Structure only.
       content: {
         kind: 'box',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
@@ -352,7 +401,15 @@ export const select: ComponentDef = {
         kind: 'nest',
         nests: 'field-message',
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows select\'s validation by name, so error / warning / success reach the message without a value mapping.',
+        // `optional: true` is the half of the #1412 node-visibility mechanism the anatomy owns (the other
+        // is the `showMessage` boolean in `figmaProperties.booleans`): a boolean toggles `visible`, so the
+        // part must be one the anatomy allows to be absent (`figmaPropertyErrors`' requireOptional arm).
+        // Built VISIBLE (the boolean defaults true — "as built"), hidden when the switch is turned off.
+        // The FIRST `nest` part to carry the mechanism (field-label's marker is a text part, select's
+        // leading glyph a slot); `present()` keeps any boolean-named part at every member regardless of
+        // kind, so the nested instance is emitted and toggled in place rather than dropped.
+        optional: true,
+        note: 'Helper or validation text, composed rather than re-declared. Its status follows select\'s validation by name, so error / warning / success reach the message without a value mapping. Shown by default; the `showMessage` boolean (#1426) hides the whole part where the field has nothing to say.',
       },
     },
     codeOnly: [
@@ -385,13 +442,23 @@ export const select: ComponentDef = {
     // placeholder is the copy every member ships, and a chosen-value string is what a designer types over it.
     // Projects FIRST in the panel (text → boolean → swap order, #1380/#1331) — the "text property at the top".
     texts: { value: { part: 'text', default: 'Placeholder' } },
-    // THE LEADING GLYPH'S PRESENCE (#1331) — a node-visibility boolean, not a variant axis. `leadingVisual`
-    // is emitted at every member with `visible: false` (hidden by default, matching the prop's "Hidden by
-    // default"), and the `leading icon` switch toggles it. Panel label `leading icon` (the #1380 canon,
-    // preserved from the retired slot axis); the code prop stays `leadingIcon`. It shares the `leadingVisual`
-    // node with the swap below — `visible` and `mainComponent` are different Figma fields — so the panel
-    // reads `leading icon` (present?) with `↳ swap leading icon` (which icon) beneath it, the canon nesting.
-    booleans: { leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false } },
+    // TWO NODE-VISIBILITY BOOLEANS (#1331/#1426), neither a variant axis — both toggle a part's `visible`
+    // in place, so neither multiplies the set (still 16 members).
+    //   · `leadingIcon` (#1331): `leadingVisual` is emitted at every member with `visible: false` (hidden by
+    //     default, matching the prop's "Hidden by default"), and the `leading icon` switch toggles it. Panel
+    //     label `leading icon` (the #1380 canon, preserved from the retired slot axis); the code prop stays
+    //     `leadingIcon`. It shares the `leadingVisual` node with the swap below — `visible` and `mainComponent`
+    //     are different Figma fields — so the panel reads `leading icon` (present?) with `↳ swap leading icon`
+    //     (which icon) beneath it, the canon nesting.
+    //   · `showMessage` (#1426): the composed `message` nest is emitted at every member with `visible: true`
+    //     (shown by default — the message is part of the field), and this switch hides the whole part. The
+    //     direction is the INVERSE of `leadingIcon` (default true, like field-label's `required`); the
+    //     mechanism is identical. Panel label `message` (a presence toggle, parallel to `leading icon`); the
+    //     code prop stays `showMessage`. FIRST use of the mechanism on a `nest` part.
+    booleans: {
+      leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false },
+      showMessage: { part: 'message', figmaName: 'message', default: true },
+    },
     // The leading glyph's CONTENT — orthogonal to its presence boolean above. `figmaName` gives it the canon
     // panel label `↳ swap leading icon` (#1380), nested beneath the `leading icon` switch; the code prop
     // stays `leadingIcon` (one prop, two Figma properties: a presence boolean and a content swap).
