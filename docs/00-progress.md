@@ -9,17 +9,17 @@
 
 ## (2026-09-16) — the 44px interactive hit-target floor, codified as policy + a by-name gate (#1443)
 
-**STATUS: PR open, do NOT merge (orchestrator verifies + merges). Branch `claude/fix-1443-hittarget-floor-gate` off main (ENGINE 0.96.0 / CONTRACT 10.2.0).** **NO ENGINE bump — docs + a new gate only; `lint-emission-version` reports 0 artifacts changed vs base, so no bump is owed (the #1396 executor/test-only precedent). CONTRACT stands at 10.2.0.** #1443 (owner-decided, from #1437): interactive controls adopt a 44px hit-target floor (WCAG 2.2 SC 2.5.5 Enhanced), about the TOUCH/hit area rather than the visual size, with the small button the one documented exception.
+**STATUS: PR #1454 open, do NOT merge (orchestrator verifies + merges). Branch `claude/fix-1443-hittarget-floor-gate` off main (ENGINE 0.96.0 / CONTRACT 10.2.0).** **NO ENGINE bump — docs + a new gate only; `lint-emission-version` reports 0 artifacts changed vs base, so no bump is owed (the #1396 executor/test-only precedent). CONTRACT stands at 10.2.0.** #1443 (owner-decided, from #1437): interactive controls adopt a 44px hit-target floor (WCAG 2.2 SC 2.5.5 Enhanced), about the TOUCH/hit area rather than the visual size.
 
-**WHAT SHIPPED.** (1) A policy note in `docs/28` (§4, beside the `touch-target-expansion` ceiling): the 44px floor, its rationale, how a control meets it (`size.md.min-height` = `max(size.md.height, 44)`, as `select` binds since #1426/#1437), and the small-button exception. (2) `packages/engine/lint-hit-target.ts`, wired into `verify.ts` + `ci.yml` + `CLAUDE.md` §4 + `CONTRIBUTING.md` §3 + the PR template (count 57 → 58; `lint-doc-gates` green, 58 vs 58 both directions).
+**THE MODEL (owner-decided, 2026-09-15 + a 2026-09-16 correction).** The floor governs the **comfortable and spacious** densities. At a control's default size the `md` rung is 44px (comfortable) / 56px (spacious), so a control meets the floor there by binding that rung; `select` also binds `size.md.min-height` = `max(size.md.height, 44)` (#1426/#1437). There are exactly **two permanent, owner-decided exceptions** and nothing else: (1) **small button** — knowingly below the floor; (2) **compact density** — a deliberate dense/desktop mode, allowed below the floor. The compact exception is scoped to compact ALONE — a control below 44 on comfortable or spacious is a real failure, not a density affordance. (The first cut of this lane, following the initial unblock, modeled the sub-44 controls as a TRACKED-GAP tier keyed to a filed issue #1453; the 2026-09-16 correction blessed compact density as a permanent exception, so those are not gaps and #1453 was closed by-design.)
 
-**THE GATE, AND WHY IT IS INDEPENDENT (docs/34).** EXPECTED is `FLOOR_PX = 44`, transcribed as a LITERAL and deliberately NOT `scale.ts`'s `AAA_TARGET_PX` — the emitter derives `select`'s `min-height` from that constant, so sharing it would assert `x >= x` (shape 2). ACTUAL is the px of the token each control ACTUALLY binds (read through `def.tokens[bindKey]`), resolved from a fresh tree per brand across nb/aurora/harbor, worst-case (min) taken — so a reverted binding drops below the floor and fails by name. **Mutation-proven:** reverting `select`'s binding from `size.md.min-height` to `size.md.height` resolves 36px on the compact brand (aurora) and the floor assertion fires by name (`select/(single) … is 36px, below the 44px floor, and is on no allowlist tier`); restored, green. **Representation, not count:** every def in `componentDefs` is measured or EXCLUDED with a stated reason (nested atoms whose target is the row above, the group whose rows are the targets, the fluid multi-line textarea, the non-interactive parts), so a new sub-44 control cannot arrive unseen.
+**WHAT SHIPPED.** (1) A policy note in `docs/28` (§4, beside the `touch-target-expansion` ceiling): the floor, its rationale, and BOTH exceptions. (2) `packages/engine/lint-hit-target.ts`, wired into `verify.ts` + `ci.yml` + `CLAUDE.md` §4 + `CONTRIBUTING.md` §3 + the PR template (count 57 → 58; `lint-doc-gates` green, 58 vs 58 both directions).
 
-**THE TWO-TIER ALLOWLIST (owner's #1443 unblock decision, 2026-09-16).** (a) PERMANENT = the small button (button / button-destructive / button-neutral at `small`), owner-sanctioned, self-justified: the entry ASSERTS the control is still `<44`, so a future lift to 44 fails by name rather than being silently kept. (b) TRACKED-GAP = every other sub-44 non-small-button control (button-medium, icon-button small+medium, text-field small+medium, switch small+medium, checkbox-row small+medium, radio small+medium — all family variants), filed under **#1453**, each also asserted still `<44` so a fix fails by name and prompts promotion to the floor. This LOCKS the floor going forward while documenting the current debt honestly, rather than allowlisting it away.
+**THE GATE, AND WHY IT IS INDEPENDENT (docs/34).** EXPECTED is `FLOOR_PX = 44`, a LITERAL, deliberately NOT `scale.ts`'s `AAA_TARGET_PX` — the emitter derives `select`'s `min-height` from that constant, so sharing it would assert `x >= x` (shape 2). ACTUAL is the px of the token each control ACTUALLY binds at its DEFAULT size (read through `def.tokens[bindKey]`), resolved from a fresh tree built at each density from one base brand input — so the floor is tested against the density LEVER the compact exception is scoped to. **Density scoping is asserted:** each build is asserted to be the density it claims, so a comfortable brand cannot be mislabeled compact and slip past the floor, and the compact measurement cannot be credited to a comfortable one. **Both exceptions self-justify:** small button and the compact `md` are each asserted to be actually BELOW 44, so a future lift fails by name rather than persisting. **Representation, not count:** every def in `componentDefs` is measured or EXCLUDED with a reason (nested atoms whose target is the row above, the group whose rows are the targets, the fluid multi-line textarea, the non-interactive parts). **Mutation-proven:** pointing `button`'s default (`size.medium.height`) at the smaller `size.sm.height` rung resolves 36px on the comfortable build and the floor assertion fires by name for all three button-family defs; restored, green.
 
-**WHAT THE MEASUREMENT FOUND (the reason this stopped to flag first).** Only `select` binds an emitted dimension meeting 44 at every density; every other interactive control binds the raw `size.{size}.height` rung (36px on a compact brand) or, for the labelled rows, a row `min-height` pointed at the same rung. `button` reaches 44 via a CSS `::before` overlay Figma cannot express and the engine does not emit; `switch`/`checkbox-row`/`radio` expect the labelled ROW to supply the hit area, but its own emitted floor is `size.md.height` and any expansion is an unbound per-consumer layout decision. Per the owner's rule, an unmeasurable or sub-44 wrapper does NOT satisfy the floor — hence the gaps are gaps, not "supplied-elsewhere". The family rollout that would close them (extend the #1437 `min-height` floor) is tracked in #1437 and #1453; it is an emitted-artifact change and out of this docs+gate lane.
+**MEASUREMENT (the reason this stopped to flag twice).** At default size, every interactive control clears 44 on comfortable (44) and spacious (56); on compact the `md` rung is 36 (now a blessed exception). Deliverable #3: `switch-control` does NOT have a 44px padding hit area — it is a nested-only 24–32px atom whose tap target is the `switch` row, and the row binds `size.md.height` (36 on compact). Surfaced to the owner rather than allowlisted; resolved by the compact-density exception (the row meets 44 on comfortable/spacious, and compact is a blessed dense mode). `textarea` is excluded (fluid multi-line height, no single-line dimension). No genuine comfortable/spacious gap exists, so no gap issues are filed and #1453 is closed by-design.
 
-**Traps for re-verifiers.** (1) The floor is a LITERAL 44, not `AAA_TARGET_PX` — do not "DRY" them together; that is the shape-2 collapse the header forbids. (2) The gate reads the token a control BINDS, not a rendered pixel — `button`'s CSS hit overlay and the rows' consumer padding are not emitted, so they are measured at what they emit and are gaps where that is <44 (issue, not gate defect). (3) The scope decision is per (control, size): "small button is the exception" is only expressible per-size, and per-size is what locks a future tiny variant. If the owner blesses compact density (or small variants) below-floor, reclassify the relevant `TRACKED_GAP` entries as permanent compact exceptions — a cheap follow-up, per the unblock note. (4) NO engine bump: `lint-emission-version` = 0 artifacts changed is the objective test; `regen --check` byte-identical (108 artifacts).
+**Traps for re-verifiers.** (1) The floor is a LITERAL 44, not `AAA_TARGET_PX` — do not "DRY" them together; that is the shape-2 collapse the header forbids. (2) The floor governs comfortable + spacious; compact is a PERMANENT exception, not a gap — do not file compact-density gap issues (that was the pre-correction model; #1453 is closed by-design). (3) The gate reads the token a control BINDS at its DEFAULT size, not a rendered pixel — `button`'s CSS `::before` hit overlay and the rows' consumer padding are not emitted. Non-default small variants sit at the same 36px `sm` rung as the small button on comfortable; whether to gate them too is a scope the owner has not extended (noted in `docs/28`). (4) NO engine bump: `lint-emission-version` = 0 artifacts changed is the objective test; `regen --check` byte-identical (108 artifacts).
 
 ## (2026-09-16) — emitted component SETS keep their variant-set frame (#1430)
 
@@ -41,11 +41,11 @@
 
 **THE DIAGNOSIS — a NODE-NAME COLLISION across a nested composition, NOT a variant-matrix bug.** `select` is the only def that COMPOSES two other components as in-flow instances: it nests `field-label` AND `field-message`. **Both of those defs have a part named `text`** (field-label's label text; field-message's caption) — the SAME name as select's own value node, also `text`. Both write executors (the plugin's `applyComponentPlan` and the engine's paste payload `PAYLOAD_WIRE_REFS`) re-find each part by name to wire its Figma reference — `member.findOne(x => x.name === 'text')` — and **Figma's `findOne` descends INTO nested instances.** So the lookup returned a `text` layer that lives *inside* the field-label (or field-message) instance — a sublayer of ANOTHER component, which cannot hold *this* set's reference. Figma refuses with "Could not create a new component property reference", and the `value` binding is dropped.
 
-**Why only `text`, and why the `(warning/hover)` framing is incidental.** `leadingVisual` has a UNIQUE name and `message` is matched on the nested-instance node ITSELF (a valid target), so neither ever collided — which is exactly why `message.visible` was never in the QA list. Only `text.characters` collides. The collision is **per-member and general** — every one of the 16 members' `text` read-back lands on the wrong node — so the warning/hover coordinates were simply where the live build's throw path happened to surface (the `leadingVisual` misses in the 0.87.0 log were the raw pre-#1337 detach with no recovery; #1337's recovery re-finds by name and so was itself defeated by this same collision for `text`). Reproduced offline: with the nested `text` modelled, **all 16 members** report the dropped `value` reference; 0 with the fix.
+**Why only `text`, and why the `(warning/hover)` framing is incidental.** `leadingVisual` has a UNIQUE name and `message` is matched on the nested-instance node ITSELF (a valid target), so neither ever collided — which is exactly why `message.visible` was never in the QA list. Only `text.characters` collides. The collision is **per-member and general** — every one of the 16 members' `text` read-back lands on the wrong node — so the warning/hover coordinates were simply where the live build's throw path happened to surface (the `leadingVisual` misses in the 0.87.0 log were the raw pre-#1337 detach with no recovery; #1337's recovery re-finds by name and so was itself defeated by this same collision for `text`). Reproduced offline: with the nested `text` modeled, **all 16 members** report the dropped `value` reference; 0 with the fix.
 
 **THE FIX — `findOwnPart`, in BOTH executors (they share the one-plan-two-executors contract).** A scoped re-find that matches a part by name WITHOUT descending into a nested INSTANCE (`apps/plugin/src/write-components.ts` for the plugin's recovery + ref/binding read-backs; the `PAYLOAD_WIRE_REFS` string in `packages/engine/anatomy-figma.ts` for the paste path's wire + read-back). A referenced part is ALWAYS the member's own layer — Figma forbids referencing a nested instance's internals — so skipping instance subtrees loses nothing and lands the lookup on the right node. The nested-instance node itself is still matched by name (select's swap slot and `message` nest are referenced ON the instance, not inside it). Still an independent re-query of the live tree (reads `children`), so the docs/34 read-back property is preserved — the search is scoped, not short-circuited. **The plan/projection is unchanged** — the fix is in the two EXECUTORS, so `lint-component-surface`'s `planStamp` and every emitted token tree are byte-identical; committed `out/` moves ONLY on the `engineVersion` stamp (8 files).
 
-**SAFETY NET — mutation-verified BY NAME (docs/34), one gate per executor.** The offline shims model nested instances as OPAQUE stubs, so both host-truth harnesses were blind to this by construction — the subject was under-modelled. Both now take an opt-in `nestedInstanceParts` that makes each nested instance carry a colliding `text` child whose `componentPropertyReferences` setter REFUSES the write, exactly as a sublayer of another component does. **`apps/plugin/test-roundtrip.ts`'s #1428 arm** drives select's PLUGIN executor; **`packages/engine/test.ts`'s #1428 arm** drives its PASTE payload. Each has a **reachability floor** (a naive descending `findOne` returns the flagged nested `text`, proving the collision materialized — not an empty-set silence) and then asserts select's `value` reference survives on every member. Reverting `findOwnPart` in either executor fails ITS named assertion — paste with the live host's own "Could not create a new component property reference", plugin read-back with `text.characters -> DISCARDED`. Verified by reverting each in turn: exactly the one #1428 arm goes red, by name.
+**SAFETY NET — mutation-verified BY NAME (docs/34), one gate per executor.** The offline shims model nested instances as OPAQUE stubs, so both host-truth harnesses were blind to this by construction — the subject was under-modeled. Both now take an opt-in `nestedInstanceParts` that makes each nested instance carry a colliding `text` child whose `componentPropertyReferences` setter REFUSES the write, exactly as a sublayer of another component does. **`apps/plugin/test-roundtrip.ts`'s #1428 arm** drives select's PLUGIN executor; **`packages/engine/test.ts`'s #1428 arm** drives its PASTE payload. Each has a **reachability floor** (a naive descending `findOne` returns the flagged nested `text`, proving the collision materialized — not an empty-set silence) and then asserts select's `value` reference survives on every member. Reverting `findOwnPart` in either executor fails ITS named assertion — paste with the live host's own "Could not create a new component property reference", plugin read-back with `text.characters -> DISCARDED`. Verified by reverting each in turn: exactly the one #1428 arm goes red, by name.
 
 **Versioning rationale (read before re-verifying the bump).** Neither emission gate FORCES this bump: `lint-emission-version` is blind to component payloads (not committed under `out/`) and `lint-component-surface` hashes the PLAN, which did not move (the fix is in the executors). The bump is owed by version.ts's surface rule — "what a consumer can OBSERVE" — because a consumer who pastes the payload or runs the plugin now gets select's `value` reference where it was silently dropped. Recorded in `version.ts` and here precisely because no red enforces it. CONTRACT holds: no guaranteed token NAME is added, removed or retyped.
 
@@ -357,7 +357,7 @@ A faithful, bindable line height would have to be a **per-size PIXEL** value = f
 
 **WHY THE FLOOR SITS ON THE CONTROL, and this is the load-bearing diagnosis.** Prism 2's select (`reference/Prism2/component-specs/select.json`) is `root width 320 · HUG` with its inner containers (`input`/`content`/`text`) `FILL`ing that width. The engine **cannot project a child that FILLs** — `sizing: 'fill'` maps to AUTO (#989/#990) — so a floor on the *container* would leave a hugging (narrow) control inside a 320 frame, which reads as broken. Flooring the *visible control* reproduces Prism 2's rendered geometry the one way projection allows: the control renders at ≥320, the hugging column inherits that width, and — because the control's sizing stays `'fill'` (→ AUTO, not FIXED) — the field **FLEXES above the floor** rather than being pinned. That flex IS #1345, riding on #1343a exactly as the owner framed it.
 
-**NO WIDTH-REFUSAL CHANGE, so no refusal mutation owed.** A min-width on the control avoids the row-oriented `width`-requires-`sizing.x`-fixed rule entirely (no `width` binding, no sizing change). The `PartDef.minWidth` validator refuses it on a non-box and on a layout-less box (Figma would silently drop it otherwise) — a wrong-kind rule modelled on `clipsContent`.
+**NO WIDTH-REFUSAL CHANGE, so no refusal mutation owed.** A min-width on the control avoids the row-oriented `width`-requires-`sizing.x`-fixed rule entirely (no `width` binding, no sizing change). The `PartDef.minWidth` validator refuses it on a non-box and on a layout-less box (Figma would silently drop it otherwise) — a wrong-kind rule modeled on `clipsContent`.
 
 **CONTRACT reasoning.** No guaranteed token NAME is added, removed or retyped (320 is a component geometry literal, not a token), so CONTRACT holds **10.0.0**; `token-contract --check` confirms the guaranteed **577 unchanged** and `--accept` refreshed only the baseline's informational `engineVersion` stamp. `ENGINE` is a MINOR (0.82.0 → 0.83.0): a new projected property moved the surface, so `lint-component-surface.ts` needed a bump-gated `--accept` (`select`'s `planStamp` moved; member count holds at **32**). `regen --check` in sync at **108 artifacts** (only the `$extensions.generator.version` stamp moved, one line each in the 8 `*.tokens.json`). paint-census unchanged — `minWidth` is geometry, not paint.
 
@@ -547,7 +547,7 @@ A faithful, bindable line height would have to be a **per-size PIXEL** value = f
 
 **The latent sibling, cleared — and #1290 predicted it verbatim.** `focus-ring.ts`'s #1290 note said, of the inherited nominal side: *"If a nested ring is ever found sitting at the md control height instead of its host's box, that is this binding surviving the resize, and the fix is in the host executor (clear the instance's inherited width/height before resizing), not here."* That is exactly F2's second symptom, and exactly this fix: the absolute loop now calls `setBoundVariable('width', null)`/`('height', null)` on the ring instance before the resize. Same binding surface as the radius work (the one host-executor loop that writes the nested ring's geometry), which is why #1388 scoped them together and this PR does not split them. `strokeWeight` — the ring's own brand stroke — is left bound; only the two dimensions the host overwrites are cleared.
 
-**The gate gap the audit flagged, now closed (docs/34).** No gate checked a resolved radius on a built node — `diffAnatomy` compares plan-to-host STRUCTURE and iterates the plan's fields, and the ring's radius is neither a plan field nor structure, so shape-4/shape-11 blindness applied. Fixed in all THREE offline shims (`test.ts`'s `makeFigmaStub`, `apps/plugin/component-shim.ts`, and `lint-unclaimed-defaults.ts`'s own stub — the last two surfaced only when the full `verify` ran, each needing `setBoundVariable(field, null)` to unbind): a per-corner radius (a bound corner reads back resolved, an unbound one reads what was written, default 0) and the ring instance's INHERITED nominal-side binding are now modelled. `test.ts`'s absolute-part execution block carries the gate, and its EXPECTED is INDEPENDENT of the concentric code — the host's own radius (set by the bind loop, read off the built host) plus the DECLARED inset, never read back from the ring-radius producer. A parity assertion pins the PLUGIN executor's radius to the paste path's (itself pinned to that oracle), so both executors are covered. Circle and radius-0 are REPRESENTED, not counted (a full-round host asserted to yield radius ≥ side/2; a radius-0 host asserted to yield exactly the inset), and the clear has a POSITIVE CONTROL (a fresh un-hosted ring instance must carry the inherited binding the host then removes).
+**The gate gap the audit flagged, now closed (docs/34).** No gate checked a resolved radius on a built node — `diffAnatomy` compares plan-to-host STRUCTURE and iterates the plan's fields, and the ring's radius is neither a plan field nor structure, so shape-4/shape-11 blindness applied. Fixed in all THREE offline shims (`test.ts`'s `makeFigmaStub`, `apps/plugin/component-shim.ts`, and `lint-unclaimed-defaults.ts`'s own stub — the last two surfaced only when the full `verify` ran, each needing `setBoundVariable(field, null)` to unbind): a per-corner radius (a bound corner reads back resolved, an unbound one reads what was written, default 0) and the ring instance's INHERITED nominal-side binding are now modeled. `test.ts`'s absolute-part execution block carries the gate, and its EXPECTED is INDEPENDENT of the concentric code — the host's own radius (set by the bind loop, read off the built host) plus the DECLARED inset, never read back from the ring-radius producer. A parity assertion pins the PLUGIN executor's radius to the paste path's (itself pinned to that oracle), so both executors are covered. Circle and radius-0 are REPRESENTED, not counted (a full-round host asserted to yield radius ≥ side/2; a radius-0 host asserted to yield exactly the inset), and the clear has a POSITIVE CONTROL (a fresh un-hosted ring instance must carry the inherited binding the host then removes).
 
 **Mutation-by-name (docs/34), run by commit-between-mutations (the checkout-restore trap, `git checkout --` reaches back to HEAD).** (a) Reverting the concentric four-corner write (ring stays radius 0) fails the named `anatomy/ring #1388: the ring's radius is CONCENTRIC` assertion AND both edge-case assertions, in both executors via the parity gate. (b) Dropping the `setBoundVariable(…, null)` clear fails the named `anatomy/ring #1388/#1290: the host CLEARS the ring instance's inherited width/height bindings` assertion, while its positive control stays green. Each restored, suite green again.
 
@@ -575,7 +575,7 @@ A faithful, bindable line height would have to be a **per-size PIXEL** value = f
 
 **THE GATE — run the payload, read the marking back off the built member.** A focused block in `test.ts`'s anatomy suite (beside the #487 parity gate, one stub two drivers) projects the one `nest-exposed` def — `checkbox`, whose Row nests `checkbox-control` and exposes its `selection`/`state` — to a set payload, runs it through the existing `runPayload`/`makeFigmaStub` harness, reads the combined set back off the page, and asserts every nested `control` instance comes back `isExposedInstance === true`. It is the payload string's OWN read-back, not a second copy of the plugin's round-trip.
 
-**WHY THE STUB HAD TO GROW A MODEL (docs/34).** `test.ts`'s payload stub modelled no `isExposedInstance` at all and `createComponentFromNode` was `(n) => n` — so the payload's exposure write landed on nothing and the read-back would have been vacuous. Both are now modelled in lockstep with `component-shim.ts` (the parity gate drives both executors against this one host): `isExposedInstance` starts a definite `false` (Figma's default) with a setter that REFUSES out of containment (Figma's message verbatim), and `createComponentFromNode` converts the root's type to `COMPONENT` in place — the two halves that make the deferred write meaningful. `=== true`, not truthiness (docs/34 shape 5): the default is a definite `false` and the payload's write is the only thing that moves it.
+**WHY THE STUB HAD TO GROW A MODEL (docs/34).** `test.ts`'s payload stub modeled no `isExposedInstance` at all and `createComponentFromNode` was `(n) => n` — so the payload's exposure write landed on nothing and the read-back would have been vacuous. Both are now modeled in lockstep with `component-shim.ts` (the parity gate drives both executors against this one host): `isExposedInstance` starts a definite `false` (Figma's default) with a setter that REFUSES out of containment (Figma's message verbatim), and `createComponentFromNode` converts the root's type to `COMPONENT` in place — the two halves that make the deferred write meaningful. `=== true`, not truthiness (docs/34 shape 5): the default is a definite `false` and the payload's write is the only thing that moves it.
 
 **MUTATION-BY-NAME (docs/34).** Deleting `__expose.push(node)` from `PAYLOAD_BUILD` fires exactly the new assertion, alone (1 failed of 3131), verbatim:
 
@@ -631,10 +631,10 @@ Correct, and then contradicted one line later: the write sat inside `build`, whi
 
 **WHY NO GATE CAUGHT IT, WHICH IS THE DURABLE PART.** `test-roundtrip` drives the real executor against `component-shim.ts` and went green on a write the real host rejects outright, for two compounding reasons — and the pair is the lesson, because each one hid the other:
 
-1. `isExposedInstance` was a plain settable field. The shim's own header states the rule it needed here — *"a shim that cannot refuse cannot witness a refusal"* — 15 lines above, about `textAlignVertical`. This field got 7 lines of comment asserting the containment precondition and modelled none of it.
-2. `createComponentFromNode` was `(n) => n` — the identity function. Returning the same object is right (Figma converts in place, which the executor's own trail bookkeeping depends on), but leaving the TYPE alone made the shim model a host where a converted frame never becomes a component. So even a correctly-modelled precondition could only ever have refused, and the fix would have looked like the bug.
+1. `isExposedInstance` was a plain settable field. The shim's own header states the rule it needed here — *"a shim that cannot refuse cannot witness a refusal"* — 15 lines above, about `textAlignVertical`. This field got 7 lines of comment asserting the containment precondition and modeled none of it.
+2. `createComponentFromNode` was `(n) => n` — the identity function. Returning the same object is right (Figma converts in place, which the executor's own trail bookkeeping depends on), but leaving the TYPE alone made the shim model a host where a converted frame never becomes a component. So even a correctly-modeled precondition could only ever have refused, and the fix would have looked like the bug.
 
-Both are now modelled. **The `nestExpose` predicate had been reporting `compared NOTHING` — a predicate with no subject** — because the build threw before reaching those nodes; it now walks 3. That counter is the only reason the hole was visible at all, and it earned its keep here exactly as its own comment predicted.
+Both are now modeled. **The `nestExpose` predicate had been reporting `compared NOTHING` — a predicate with no subject** — because the build threw before reaching those nodes; it now walks 3. That counter is the only reason the hole was visible at all, and it earned its keep here exactly as its own comment predicted.
 
 **A THIRD FINDING FELL OUT OF THE TYPE FLIP, and it is not collateral.** With the shim converting, 1,694 members diverged on `type`: plan `FRAME`, host `COMPONENT`. The host is right — a member root IS a component after conversion, on every member of every set, in every real file. `HOST_TYPE.FRAME = ['FRAME']` had been agreeing with the shim's failure to convert, so the readback would have been wrong the first time anyone pointed it at a live member root. Fixed with an `isRoot` flag threaded through `diffNode`, set `true` at exactly one call site, rather than by widening `FRAME` to accept `COMPONENT` everywhere — a stray component inside a member is a real defect shape and this predicate must keep noticing it.
 
@@ -648,7 +648,7 @@ Both are now modelled. **The `nestExpose` predicate had been reporting `compared
 
 The gate was built and confirmed failing *before* the fix, which is the strongest available order: the shim reproduced the live error message exactly, off a file it has never seen. 56/56 gates pass.
 
-**TRAP FOR WHOEVER RE-VERIFIES THIS.** Whether the marking survives `combineAsVariants` is **still unmeasured**. It is written after `createComponentFromNode` and before the combine, and #1279 has the combine dropping bindings, while the shim's detach-mode twin explicitly copies `isExposedInstance` across — i.e. combine-loses-it is a modelled possibility, not an idle worry. The per-node read-back would report a `DISCARDED` miss if the host dropped it at that point, so the failure is instrumented rather than silent, but nobody has watched it happen on a live host. **Do not read this PR's green suite as proof of that step.** Filed as **#1385**.
+**TRAP FOR WHOEVER RE-VERIFIES THIS.** Whether the marking survives `combineAsVariants` is **still unmeasured**. It is written after `createComponentFromNode` and before the combine, and #1279 has the combine dropping bindings, while the shim's detach-mode twin explicitly copies `isExposedInstance` across — i.e. combine-loses-it is a modeled possibility, not an idle worry. The per-node read-back would report a `DISCARDED` miss if the host dropped it at that point, so the failure is instrumented rather than silent, but nobody has watched it happen on a live host. **Do not read this PR's green suite as proof of that step.** Filed as **#1385**.
 
 **THE PAYLOAD HALF IS STILL UNGATED** in the sense #1377 meant: the fix is a code-read twin of the plugin's, and no harness drives the generated payload against a host. #1377 is closed because the shim gap it named is closed and the defect it would have caught is fixed; the standing asymmetry between the two executors is #1265's territory.
 
@@ -742,7 +742,7 @@ The gate was built and confirmed failing *before* the fix, which is the stronges
 
 **The problem (owner decision, settled 2026-09-09; implement both as OPT-IN levers, off by default).** Two fine-print sizes measured on the New Balance redesign have no engine representation. `caption` ships `md` (11px) and `lg` (12px); there is no 10px rung, even though 10 is the ladder floor — and 10px is NB's single highest-volume text size (1,073 nodes) (#1360). And 8px (`Body Copy/8`, 144 nodes at a literal 1:1 scale) is below the ladder floor entirely: `fontSizeLadder()` was a brand-invariant `[10, 11, 12, …]`, so 8px was unreachable by any brand input (#1363). Both were filed rather than fixed because adding a rung is a public-contract change; the owner has now decided to ship both, off by default so no corpus brand moves.
 
-**The change — two enumerated opt-in levers modelled on `titleFloor`** (set membership on one group, touching nothing else):
+**The change — two enumerated opt-in levers modeled on `titleFloor`** (set membership on one group, touching nothing else):
 - **`typography.captionFloor: 11 | 10`** (default 11). `10` adds `caption.sm` = 10px. 10 is already a ladder step, so this is pure set membership — the rung is pushed in `buildComposites` ahead of `caption.md`, through the same strictly-increasing ramp guard.
 - **`typography.sizeFloor: 10 | 8`** (default 10). `8` PREPENDS an 8px step to `fontSizeLadder` (which gains a `floor` arg; the rest of the ladder is byte-identical) and adds `caption.xs` = 8px. Threaded through both `fontSizeLadder` call sites in `buildTypography` (`sizesPx` and `buildComposites`), so the `modeLevers.typeSizes` ladder check and the fluid `mobileEndpoint` — both of which read `typography.sizesPx` — stay consistent for free. Caption is reading text (static, never fluid), so the "8px has nowhere to shrink on mobile" concern is moot.
 
@@ -921,7 +921,7 @@ and `paint-census` are byte-identical and neither ENGINE nor CONTRACT moves. The
 change — which is itself evidence the fast-path handle is the culprit.
 
 **The gate that was missing, and the mutation that proves it (docs/34).** No offline gate caught this
-class: the shims only ever threw "Could not FIND a component property" (unknown name), never modelled
+class: the shims only ever threw "Could not FIND a component property" (unknown name), never modeled
 Figma REFUSING a valid reference, and `test-roundtrip`/`test-write-components` were green on `field-label`
 throughout. So `component-shim.ts` gains an opt-in `detachPartsOnCombine` mode that models the one host
 behaviour the shim otherwise cannot reach — the combine detaching the pre-combine handles and handing the
@@ -1049,7 +1049,7 @@ on the live node now is, and one that genuinely cannot is still reported rather 
 
 **clipsContent — threaded, not hardcoded.** `FigmaNodePlan.clipsContent` (carried only when true, so every existing box's plan is byte-identical) is threaded to the sites both executors hardcoded to `false`: `anatomy-figma.ts`'s payload frame branch, `write-components.ts`'s box branch and its `claimDefaults` pass. `lint-unclaimed-defaults` already carries a `clipsContent` row (a #865 visually-significant property); the thread keeps it satisfied — the executor still WRITES the value, now from the plan.
 
-**DEFERRED (#1316 residue, owner-held).** The optional scrim/veil overlay (a wash for text over the image) and the play-circle video overlay both nest other components (`veil`, the `play-circle` glyph) and are NOT built here — this PR is the core empty-state aspect-locked frame. Named in the def's `codeOnly` and `notes.unverified`. The raster swap itself is a native Figma action (an image fill), not a modelled slot.
+**DEFERRED (#1316 residue, owner-held).** The optional scrim/veil overlay (a wash for text over the image) and the play-circle video overlay both nest other components (`veil`, the `play-circle` glyph) and are NOT built here — this PR is the core empty-state aspect-locked frame. Named in the def's `codeOnly` and `notes.unverified`. The raster swap itself is a native Figma action (an image fill), not a modeled slot.
 
 **Mutation tests (docs/34; a `wip:` commit preceded each so the `git checkout --` restore reached HEAD, per the CLAUDE.md pathspec trap):**
 - **(a) — flip a ratio in the def.** Changing `image-placeholder`'s `variants.ratio` `16:9` → `2:1` made `test-roundtrip.ts`'s aspect-lock block **fail by name** (`member ratio=2:1 is not an owner-decided ratio`), and `lint-axis-values` fail (the register set no longer matches). The generic plan-vs-built round-trip did NOT catch it (the plan followed the def) — which is exactly why the independent contract block exists. Restored.
@@ -1661,7 +1661,7 @@ still reports clean. The guard is auto-layout-POSITIVE in both — `&& node.layo
 'NONE'` — rather than the bare `!== 'NONE'`, because a non-auto-layout frame leaves `layoutMode` UNSET, and
 `undefined !== 'NONE'` is true: the bare form would fire the write on exactly the frame it must skip.
 
-**The offline-fidelity gap is closed in BOTH models.** Neither the plugin shim nor `test.ts`'s stub modelled
+**The offline-fidelity gap is closed in BOTH models.** Neither the plugin shim nor `test.ts`'s stub modeled
 the constraint — `strokesIncludedInLayout` was a plain settable boolean — so the crash class was a real-host
 rule the suites could not witness. Both now install it as a throwing accessor (a `_strokesInLayout` backing
 field plus a `defineProperty` getter/setter that throws unless `layoutMode` is `HORIZONTAL`/`VERTICAL`).
@@ -6568,7 +6568,7 @@ Everything downstream follows from holding that line. **All 113 inverse roles in
 four appearance modes and contrast contracts intact — they are what an inverse variant binds. So do the
 two-tier split (#1082, justified by appearance-independence and never by inverse), the brand namespace
 (#1097), the core fan-in, and every earlier §9 decision. The diff removes one mode and its plumbing.
-`apps/studio` is **comment-only** — Studio never modelled inverse as a mode, and the one thing that had to
+`apps/studio` is **comment-only** — Studio never modeled inverse as a mode, and the one thing that had to
 change there was a doc comment carrying two claims #1133 falsified while the code under it carried none.
 
 **`focus-ring` was already the template and was being recorded as an exception.** Its
@@ -10902,7 +10902,7 @@ excluded all 18 outright, because with the ground unrecorded they were not recom
 **1,296 ratios per run taken on trust**, in the one gate whose entire job is not taking ratios on
 trust. It now dispatches on the declared model and checks both shapes: **10,080 → 11,376**. Arm E
 asserts label and shape agree both directions, and runs BEFORE arm A uses the model to choose a
-recomputation, so a mislabelled role fails saying it is mislabelled rather than being measured the
+recomputation, so a mislabeled role fails saying it is mislabeled rather than being measured the
 wrong way and reported as a ratio error. That ordering is the direct application of #962's M3 lesson:
 an early skip or dispatch placed before the arm it would invalidate is how a gate goes quietly blind.
 
@@ -12244,7 +12244,7 @@ Independence: EXPECTED is the vocabulary, with `ICON_VIEWBOX` **re-parsed in the
 calls `viewBoxDims()`, so importing it would make both halves one derivation. **The duplicated parse is
 the gate.** ACTUAL is the submitted document, read back by parsing it. The ink is measured by the gate's
 own walker, which **flattens** curves rather than hull-bounding them (a cubic's hull is larger than the
-curve, and overstating ink lets an empty glyph pass on its handles) and **throws** on an unmodelled
+curve, and overstating ink lets an empty glyph pass on its handles) and **throws** on an unmodeled
 command, because both shortcuts err toward *measures nothing and calls it clean*.
 
 **Two defects in the gate itself, worth knowing before copying it.**
@@ -13957,7 +13957,7 @@ Filing them as one entry would have made both less useful.
 **ITS OWN FAMILY, AND THE SPLIT IS A TEST RATHER THAN A TAXONOMY CALL.** #820's remedy is *run the
 code*, and every member of that family fails to survive it. This instance survives it: `17/17` was
 asked of the code and the code answered correctly — the number was never in question, only its label
-was. No code run surfaces a mislabelled true number, because the defect sits in what the value is
+was. No code run surfaces a mislabeled true number, because the defect sits in what the value is
 offered as an answer to, not in the value. A value travels across a hand-off and its definition does
 not, which is why the remedy sits on the receiving side.
 
@@ -20137,7 +20137,7 @@ fix on top of it, because a shim that can reproduce a defect is worth having on 
 the fix arrives in the same week. #681 and #682 are the follow-up; #684 (chunking) belongs to someone
 else.
 
-**Three capabilities the component shim did not have.** It modelled a flat name→component map, so
+**Three capabilities the component shim did not have.** It modeled a flat name→component map, so
 every lookup was "found" or "not found" and nothing in between:
 
 - **`root.findAllWithCriteria` now HONORS its criteria.** It previously returned the same list whatever
@@ -22486,7 +22486,7 @@ exactly and confirmed neither number was a rendering-engine surprise, just the C
 **`.tf-addbtn` is not a free-floating value — it already has an established, correct pairing
 elsewhere.** It's also the "Add face" submit CTA on Primitives, sitting beside `.tf-in` (a text input:
 `padding:7px 9px`, `font-size:13px`), and that pairing already lands both at 36.1px — the comment above
-the rule even says it was modelled on that pairing (#405). So `.tf-addbtn`'s base values are correct for
+the rule even says it was modeled on that pairing (#405). So `.tf-addbtn`'s base values are correct for
 its OTHER usage; changing them globally to chase `.select.sm`'s 33.4px would have fixed this row and
 broken that one. `.select.sm` likewise is correct everywhere else it appears — always standalone, never
 previously paired with a button, so nothing else in the file validates or invalidates its height in a
@@ -23498,7 +23498,7 @@ whole suite green, and the failure would surface the day the lane was wired, ins
 `applyComponentPlan`, so the port is now proven exactly the way the three siblings are. Two mechanisms for
 one guarantee is one mechanism that stops being maintained.
 
-**THE SHIM'S OWN LESSON, arrived at from a fourth direction.** It is modelled on the engine's
+**THE SHIM'S OWN LESSON, arrived at from a fourth direction.** It is modeled on the engine's
 `figmaStub` deliberately — two executors judged by two *different* host models would be comparing the
 models. Which meant lifting `figmaStub` out of `runPayload` into `makeFigmaStub` so both drivers share
 it; nothing else about it moved. The behaviors that are load-bearing rather than decorative: non-constant
@@ -28777,7 +28777,7 @@ above should be settled as part of step 3, not before it.
 changed — this tier has none yet.
 
 #487 step 1, and it comes first for the reason the issue gives: **it is the whole design decision and
-it is gateable with no Figma file.** `component-schema.ts` modelled no Figma component properties at
+it is gateable with no Figma file.** `component-schema.ts` modeled no Figma component properties at
 all — zero occurrences of `BOOLEAN`, `INSTANCE_SWAP` or `componentProperty` across 366 lines. `props`
 and `variants` carried the information; nothing declared its Figma shape.
 
@@ -31188,7 +31188,7 @@ TWO rungs (title: `compact` at 18–24px, `snug` at 28–40px). `cozy` on title 
 `compact→cozy` (+1) or `snug→cozy` (+2)? — and binding the category to one rung would flatten the
 size-sensitivity the nudge exists to preserve.
 
-**The shape.** Signed delta in the select, resolved rung(s) on a line beneath, modelled on
+**The shape.** Signed delta in the select, resolved rung(s) on a line beneath, modeled on
 `.mtbl-worth` (the "what this resolves to" line #402 established for the per-mode table). The select
 now carries no word that is a rung name; the line carries the concreteness rung names would have had,
 and is honest for a two-band category in a way no single label can be.
@@ -31675,7 +31675,7 @@ visual treatment**, so that is all that changed — 13 lines. Reading the handle
 same thing, and I wrote the issue without doing either.
 
 - **`.adv-add` was left alone**, not restyled. Its breakpoint use is a genuine add-a-row, where the
-  dashed slot look is right. The add-face button gets its own `.tf-addbtn`, modelled on `.bm-load` —
+  dashed slot look is right. The add-face button gets its own `.tf-addbtn`, modeled on `.bm-load` —
   the app's existing inline solid CTA — rather than a new invented treatment.
 - **The `+` went with it.** A leading plus belongs to the same add-a-row vocabulary as the dashed
   border; a submit CTA reads better as just "Add face".
@@ -33056,7 +33056,7 @@ converted table beside unconverted card grids. All three tables now measure **ex
   now sits in the library bound to nothing. The copy is replaced, and `bindingOf()` distinguishes three
   states where the old code had two: bound here, bound only in another mode, and the new *staged*. The
   old fallback label for "no binding in this view" was `Bound by a mode override only`, which would have
-  confidently mislabelled every staged face.
+  confidently mislabeled every staged face.
 - **Three separate width failures, all the same root cause**, and none visible without measuring: an
   element's **intrinsic contribution**, not its declared `width`, sizes an auto-layout table column.
   `.mtbl-stick` declares `width:112px` with no `max-width`, so content wins.
@@ -36738,7 +36738,7 @@ To be posted on #105 for the TP agent.
 **STATUS: MERGED (#117)** — built on branch `claude/prism3-e2e-integration-8fwul4` (fresh from `main`, post-#116).
 Second brick of #105; the DTCG encoding is the one Token Press locked on #115 (closed).
 
-- **Italic modelled as an orthogonal modifier PAIRED with each weight** (`strong` + `strong-italic`),
+- **Italic modeled as an orthogonal modifier PAIRED with each weight** (`strong` + `strong-italic`),
   not a weight role. It's a hyphenated suffix on the weight, in a fixed order
   `type.<group>.<size>.<weight>[-italic][-link]`, so italic and link cross cleanly (a role that ships
   both gets bare / italic / link / italic-link). (`theme.ts` `buildComposites`.)
