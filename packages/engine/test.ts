@@ -8587,6 +8587,105 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(validateComponentDef(glyphPxNeg as ComponentDef).errors.some((e) => /declares glyphPx -1/.test(e) && /must be > 0/.test(e)),
       "#1340 a NEGATIVE glyphPx (-1) is refused BY NAME — a negative literal would invert the frame; the bound is `> 0`, not `!== 0`");
 
+    // ---- #1424: the labelled ROW wraps a long label instead of overflowing ----
+    // Prism 2's radio-button-row / checkbox-row let a long label WRAP to a second line with the control
+    // top-anchored (the description text is `layoutSizingHorizontal: FILL`). The engine expresses that as
+    // `PartDef.wrap` on the label → the plan carries `layoutGrow: 1` (fill the row's main axis, fixing the
+    // width) + `textAutoResize: 'HEIGHT'` (auto height, so the fixed-width box reflows), and the row carries
+    // a `minWidth` floor so the fill has something to resolve against. EXPECTED is the owner's decision
+    // (label fills + wraps, control fixed); ACTUAL is read off the emitted plan (host-facing), so a value
+    // move fails HERE. The round-trip host-truth block in `test-roundtrip.ts` reads the same two facts back
+    // off the built shim; this is the projection-side pin with its own by-name mutation (docs/34).
+    {
+      const wrapFind = (n: FigmaNodePlan, name: string): FigmaNodePlan | undefined =>
+        n.name === name ? n : (n.children ?? []).map((c) => wrapFind(c, name)).find(Boolean);
+      for (const def of [radio, checkboxRow] as ComponentDef[]) {
+        const p = figmaAnatomySet(def, {})[0];
+        const row = wrapFind(p.root, 'row');
+        const label = wrapFind(p.root, 'label');
+        const controlBox = wrapFind(p.root, 'controlBox');
+        // (a) THE LABEL FILLS AND WRAPS — the two facts together, since either alone does not wrap.
+        ok(label?.layoutGrow === 1 && label?.textAutoResize === 'HEIGHT',
+          `#1424 ${def.id}: the row label FILLS the main axis and WRAPS — layoutGrow=1 + textAutoResize=HEIGHT (got layoutGrow=${String(label?.layoutGrow)}, textAutoResize=${String(label?.textAutoResize)})`);
+        // (b) THE CONTROL STAYS FIXED — it does NOT grow (no layoutGrow) and its box keeps its fixed cross
+        //     axis, so a wrapping label never shrinks or stretches the control.
+        ok(controlBox?.layoutGrow === undefined && controlBox?.counterAxisSizingMode === 'FIXED',
+          `#1424 ${def.id}: the controlBox stays fixed/hug — it does not grow (layoutGrow ${String(controlBox?.layoutGrow)}) and its cross axis is FIXED (${String(controlBox?.counterAxisSizingMode)})`);
+        // (c) THE WIDTH FLOOR that makes the fill resolve (Prism 2's root width 320).
+        ok(row?.minWidth === 320,
+          `#1424 ${def.id}: the row carries the 320 min-width floor so the fill has space to resolve against (got ${String(row?.minWidth)})`);
+        //   MUTATION #1424 — revert the label to fixed/hug-no-wrap. Dropping `wrap` returns the label to a
+        //   hugging text node that overflows: the plan drops layoutGrow AND textAutoResize, flipping (a) BY NAME.
+        const noWrapLabel = { ...def.anatomy.parts.label, wrap: undefined };
+        const noWrap = { ...def, anatomy: { ...def.anatomy, parts: { ...def.anatomy.parts, label: noWrapLabel } } };
+        const mlabel = wrapFind(figmaAnatomySet(noWrap as ComponentDef, {})[0].root, 'label');
+        ok(mlabel?.layoutGrow === undefined && mlabel?.textAutoResize === undefined,
+          `#1424 ${def.id} MUTATION: removing 'wrap' drops layoutGrow (${String(mlabel?.layoutGrow)}) and textAutoResize (${String(mlabel?.textAutoResize)}) from the plan, flipping '#1424 ${def.id}: the row label FILLS the main axis and WRAPS' to failing`);
+      }
+      // ---- #1424: the two REFUSAL arms `PartDef.wrap` adds, each pinned BY NAME (docs/34) ----
+      // A PR's own new refusal owes its own by-name mutation, or an arm could be deleted from `anatomyErrors`
+      // with the suite green. The precedent is #1343a/#1340's wrong-kind and precondition arms above.
+      // (a) wrap on a NON-text part — `layoutGrow`/`textAutoResize` are the fill-and-reflow of a TEXT node; on a
+      //     box the projector would carry them onto a frame the readback never expects them on.
+      const wrapOnBox = { ...radio, anatomy: { ...radio.anatomy, parts: { ...radio.anatomy.parts, controlBox: { ...radio.anatomy.parts.controlBox, wrap: true } } } };
+      ok(validateComponentDef(wrapOnBox as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /only a 'text' part/.test(e)),
+        "#1424 'wrap' on a NON-text part is refused BY NAME — only a text part fills its row and reflows; on any other kind it would validate clean and reach the wrong branch");
+      // (b) wrap under a FLOORLESS parent — the #989 silent no-op: `layoutGrow` fills REMAINING space and a
+      //     hugging row has none, so the label hugs its glyphs and overflows though it validated. Stripping the
+      //     row's real `minWidth: 320` (keeping the label's `wrap`) fires this on exactly the row that carries
+      //     the floor — which is what makes the row's minWidth LOAD-BEARING rather than decorative.
+      const floorlessRow = { ...radio.anatomy.parts.row, minWidth: undefined };
+      const floorless = { ...radio, anatomy: { ...radio.anatomy, parts: { ...radio.anatomy.parts, row: floorlessRow } } };
+      ok(validateComponentDef(floorless as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /does not bound its main-axis width/.test(e)),
+        "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; removing the row's minWidth fires this, so the floor is load-bearing");
+    }
+
+    // ---- #1433a: under ERROR the selected inner fill stays on the INTERACTIVE role; only the border/ring
+    //      goes to status(danger) ----
+    // Owner-decided (#1433): error is signalled on the control's BORDER/RING (and the field-message), and the
+    // selected control's inner fill — the checkbox's filled box and check, the radio's inner dot — KEEPS the
+    // interactive color. It must NOT turn red, because color is not error's sole carrier. The atoms already
+    // satisfy this (no `checked.fill.error`/`checked.indicator.error` key, so error falls back to the
+    // interactive `checked.fill`/`checked.indicator`); this block LOCKS it. EXPECTED is the owner's decision;
+    // ACTUAL is read off the emitted plan (host-facing), and the mutation adds the red-fill key the decision
+    // forbids and confirms the assertion flips BY NAME (docs/34). The rows nest these atoms, so this is the
+    // error appearance of both the radio row and the checkbox row.
+    {
+      const errFind = (n: FigmaNodePlan, name: string): FigmaNodePlan | undefined =>
+        n.name === name ? n : (n.children ?? []).map((c) => errFind(c, name)).find(Boolean);
+      const memberAt = (def: ComponentDef, re: RegExp): FigmaNodePlan =>
+        figmaAnatomySet(def, {}).find((p) => re.test(planComponentName(p)))!.root;
+      const INTERACTIVE = 'color/interactive/primary/fill/selected';
+      const DANGER = 'color/border/danger';
+      for (const { def, fillPart, mutKey } of [
+        // The checkbox's inner fill is the filled BOX (`control`, fill slot); the radio's is the inner DOT
+        // (`dot`, indicator slot → `paints.fills`). The error border is the `control`'s stroke on both.
+        { def: checkboxControl, fillPart: 'control', mutKey: 'checked.fill.error' },
+        { def: radioControl, fillPart: 'dot', mutKey: 'checked.indicator.error' },
+      ] as { def: ComponentDef; fillPart: string; mutKey: string }[]) {
+        const rest = memberAt(def, /selection=checked, size=medium, state=rest/);
+        const error = memberAt(def, /selection=checked, size=medium, state=error/);
+        const restFill = errFind(rest, fillPart)?.paints?.fills;
+        const errorFill = errFind(error, fillPart)?.paints?.fills;
+        const restBorder = errFind(rest, 'control')?.paints?.strokes;
+        const errorBorder = errFind(error, 'control')?.paints?.strokes;
+        // (a) THE SELECTED INNER FILL IS UNCHANGED BY ERROR, and it is the INTERACTIVE role (not danger).
+        ok(errorFill === restFill && errorFill === INTERACTIVE,
+          `#1433a ${def.id}: the selected inner fill stays on the interactive role under error — error fill ${String(errorFill)} equals the rest fill ${String(restFill)} and is ${INTERACTIVE}, never ${DANGER}`);
+        // (b) ERROR IS SIGNALLED ON THE BORDER/RING — it DID move (rest → danger), so the fix is not "error
+        //     changes nothing".
+        ok(errorBorder === DANGER && errorBorder !== restBorder,
+          `#1433a ${def.id}: error signals on the control border/ring — it goes to ${DANGER} (was ${String(restBorder)} at rest), so the border moves while the inner fill does not`);
+        //   MUTATION #1433a — turn the error-state selected fill RED. Adding the `${mutKey}` → danger binding
+        //   the decision forbids makes the error member's inner fill resolve to danger, diverging from the rest
+        //   fill, flipping (a) BY NAME.
+        const mutated = { ...def, tokens: { ...def.tokens, [mutKey]: 'color.border.danger' } } as ComponentDef;
+        const mErrorFill = errFind(memberAt(mutated, /selection=checked, size=medium, state=error/), fillPart)?.paints?.fills;
+        ok(mErrorFill === DANGER && mErrorFill !== errorFill,
+          `#1433a ${def.id} MUTATION: binding ${mutKey}→danger turns the error selected fill ${String(mErrorFill)} (was ${String(errorFill)}), flipping '#1433a ${def.id}: the selected inner fill stays on the interactive role under error' to failing`);
+      }
+    }
+
     // ---- #1344: `empty` is NOT a projected state, but IS carried internally ----
     // NOTE the count moved with #1331: `leading` is no longer a slot ×2 axis (it is a node-visibility
     // boolean, `leading icon`), so the set is status × state, not status × state × leading. See the #1331

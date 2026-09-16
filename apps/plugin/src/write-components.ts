@@ -727,7 +727,9 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   // them rather than throwing, which is why these two need no applicability test while the parent-side
   // ones below do.
   set('layoutAlign', 'INHERIT');
-  set('layoutGrow', 0);
+  // DRIVEN BY THE PLAN (#1424), still an unconditional `set` so the #865 claim holds: a wrapping label
+  // fills its row's main axis (`layoutGrow: 1`); every other node keeps the `0` the neutralizer always wrote.
+  set('layoutGrow', n?.layoutGrow ?? 0);
   // Claimed by the PARENT for an absolute or centered part (`STRETCH` / `CENTER`), and by the glyph
   // branch for a drawn outline (`SCALE`) — all of which run after this, except the glyph one, which is
   // why an imported subtree skips it.
@@ -813,7 +815,9 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     // what caught it: the paste path had no neutralizer and still read CENTER.
     if (!n?.textAlignVertical) set('textAlignVertical', 'TOP');
     set('textAlignHorizontal', 'LEFT');
-    set('textAutoResize', 'WIDTH_AND_HEIGHT');
+    // DRIVEN BY THE PLAN (#1424), still an unconditional `set` so the #865 claim holds: a wrapping label
+    // asks for `'HEIGHT'` (fixed width, auto height); every other TEXT node keeps `'WIDTH_AND_HEIGHT'`.
+    set('textAutoResize', n?.textAutoResize ?? 'WIDTH_AND_HEIGHT');
     set('textTruncation', 'DISABLED');
     set('paragraphSpacing', 0);
     set('leadingTrim', 'NONE');

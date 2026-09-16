@@ -376,6 +376,19 @@ export type FigmaNodePlan = {
    *  `layoutMode` branch, where Figma accepts a minimum width. See `PartDef.minWidth` for why a `select`
    *  gets a min-width and not a bound `width`. */
   minWidth?: number;
+  /** For a `TEXT` node that WRAPS (#1424): `1` when the label should FILL its row's main axis and wrap to
+   *  multiple lines rather than hug its content and overflow. Figma's child-side `layoutGrow` (a 0/1 stretch
+   *  flag along the parent's PRIMARY axis). Carried ONLY when `1`, so every other node's plan is byte-identical
+   *  — both executors read `n.layoutGrow ?? 0`, the literal the neutralizer wrote before this field. Its
+   *  partner is `textAutoResize: 'HEIGHT'` below: filling the main axis fixes the WIDTH, and auto-height is
+   *  what lets the fixed-width text reflow. Set from `PartDef.wrap`. */
+  layoutGrow?: number;
+  /** For a `TEXT` node: how the text box resizes (#1424). `'HEIGHT'` = fixed width, auto height — the box
+   *  wraps. Carried ONLY when it diverges from the executor default `'WIDTH_AND_HEIGHT'` (hug both axes, the
+   *  overflow shape), so every other TEXT node's plan is byte-identical — both executors read
+   *  `n.textAutoResize ?? 'WIDTH_AND_HEIGHT'`. Paired with `layoutGrow: 1` for a wrapping label: the grow
+   *  fixes the width and this lets the height flow. Set from `PartDef.wrap`. */
+  textAutoResize?: 'WIDTH_AND_HEIGHT' | 'HEIGHT' | 'TRUNCATE' | 'NONE';
   /** For a `GLYPH`: the literal square px the glyph frame is built at (#1340). Carried ONLY when the def
    *  sets it, so every existing glyph's plan is byte-identical; the executor resizes the imported frame to
    *  it after the SVG import (the outline's SCALE constraints scale the drawn grid to fill), instead of
@@ -1421,6 +1434,12 @@ export const figmaAnatomyPlan = (
       // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
       // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
       ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: p.minWidth } : {}),
+      // THE WRAPPING LABEL (#1424), carried ONLY on a `text` part that opts in, so every other TEXT node's
+      // plan is byte-identical. `layoutGrow: 1` fills the row's main axis (fixing the width) and
+      // `textAutoResize: 'HEIGHT'` lets the fixed-width box reflow — the two facts that turn a hugging,
+      // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
+      // width (a `minWidth` floor or `fixed`), or the fill has nothing to resolve against (#989).
+      ...(p.kind === 'text' && p.wrap ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
       // The literal glyph size (#1340), carried ONLY when a vector sets it so every other glyph's plan is
       // byte-identical — a def-local literal the executor resizes the imported frame to (`PartDef.glyphPx`),
       // not a bound token. It replaces the `size` binding for a marker that must read at a proportion of a
@@ -2617,6 +2636,10 @@ const build=async(n)=>{
   // has no alignment field on either axis (#1009, measured against \`@figma/plugin-typings\`). Ordered
   // here anyway so the sequence reads the same as every other text write in this function.
   if(n.textAlignVertical)node.textAlignVertical=n.textAlignVertical;
+  // WRAPPING LABEL (#1424): auto-height lets a fixed-width text reflow. Written only when the plan carries
+  // it (a wrapping label), so every other TEXT node keeps Figma's WIDTH_AND_HEIGHT default via the plugin
+  // neutralizer; here the paste path sets it explicitly.
+  if(n.textAutoResize)node.textAutoResize=n.textAutoResize;
   if(n.effectStyle){
     const ef=effectByName.get(n.effectStyle);
     if(!ef)misses.push(n.name+'.effectStyle -> '+n.effectStyle);
@@ -2633,6 +2656,10 @@ const build=async(n)=>{
     // the same reason). Written only when the plan carries it, so every other frame is untouched.
     if(n.minWidth!==undefined)node.minWidth=n.minWidth;
   }
+  // WRAPPING LABEL (#1424), child-side: a text that FILLS its row's main axis so it reflows rather than
+  // overflowing. Settable on any node (outside an auto-layout parent Figma ignores it), written only when
+  // the plan carries it — the plugin neutralizer writes \`layoutGrow: 0\` on every other node.
+  if(n.layoutGrow)node.layoutGrow=n.layoutGrow;
   // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind
   // loop bind the SINGLE nominal dimension — Figma derives the other axis from the lock. Ordered after
   // layoutMode and before the bind loop for that reason: a lock captured from the resized box, and a
