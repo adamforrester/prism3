@@ -1514,7 +1514,7 @@
  * be a light step of the family's own palette (primary → brand.100, destructive → danger.100); family
  * identity on a dark band is carried by the outline/text ink and the on-fill ink, not by tinting the
  * filled surface. (2) #576 — the neutral outline BORDER now follows its text ink like every colour family
- * (near-black on the page, white on the inverse band), retiring the special-case mid-grey edge; reads
+ * (near-black on the page, white on the inverse band), retiring the special-case mid-gray edge; reads
  * deliberately LOUDER, contrast-safe by construction (the ink cleared the stricter text bar). Every mode's
  * contrast contract re-verified — no floor drops.
  *
@@ -2785,8 +2785,26 @@
  * WCAG-exempt fill. This moves emitted VALUES (every brand's field fill + light border) AND the projected
  * component surface (select's overlay paint), both ENGINE-version triggers (#1252). Provisional integer —
  * a rebase relay reassigns it to the true next-free above main before merge.
+ *
+ * 0.98.0 — #1384: WHITE is the DEFAULT inverse fill for every button family. The inverse REST fill was a
+ * brand-tinted neutral 050/850 step (#1208/#1389); the owner's QA read that as "not white", so the resting
+ * inverse fill is now the CRISP ABSOLUTE `core.palette.white` / `core.palette.black` literal-color sentinel
+ * (the #1341 mechanism — white already exists as a guaranteed primitive, now bound as a fill SOURCE). It is
+ * MODE-DRIVEN because the inverse band flips per family: white where the band is dark (light-family modes),
+ * black where the band is near-white (dark-family modes — a white fill there is degenerate and fails the 3:1
+ * non-text contract). Hover/pressed keep #1389's per-state feedback (they step the neutral ramp toward the
+ * band, byte-identical to before — only REST moves). Each family now carries its OWN ink on that fill: primary
+ * → the vivid action/brand step (#1244), DESTRUCTIVE → its DANGER step (the change — #1208/#1389 shipped a
+ * neutral ink here, deferred as #1253; the owner now decides destructive carries danger ink), neutral → the
+ * neutral extreme; every family's ink resolves ≥AA on white/black across the corpus. Emitted VALUES move
+ * (inverse fill.rest + on-fill across the corpus), an ENGINE trigger via `lint-emission-version`. Provisional
+ * integer — a rebase relay reassigns it to the true next-free above main before merge (provisional off main's
+ * 0.97.0). NO CONTRACT bump: `core.palette.white` is ALREADY guaranteed and no token NAME is added, removed or
+ * retyped (the inverse fills rebind a VALUE); the orchestrator's provisional 10.4.0 assumed white was a new
+ * name — it was not, so the contract stands at 10.3.0, settled by the empty `token-contract --accept` diff
+ * (the #1429 precedent: the objective gate result decides the bump, not the provisional guess).
  */
-export const ENGINE_VERSION = '0.97.0';
+export const ENGINE_VERSION = '0.98.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -2464,6 +2464,34 @@ const roleSourceSelect = (roleKey: string, palette: string, derivedStep: string)
     (step) => setFillOverride(roleKey, palette, step), contrastMark(roleKey, palette));
 };
 
+/** #1384 — the INVERSE FILL Source. Its "Auto" is now the CRISP ABSOLUTE: pure `white` on the dark inverse
+ *  band (light-family modes), pure `black` on the near-white band (dark-family modes) — the #1384 default,
+ *  a light-label CTA that reads crisp rather than brand-tinted. The override list offers WHITE + NEUTRAL as
+ *  pinnable sources alongside the assigned palette's own steps (owner: overridable to another palette / neutral
+ *  fill), each contrast-marked against the inverse ground (non-text 3:1) like every other picker. One select
+ *  spans two ramps by encoding the palette in the option value. White itself is the default (Auto), not a
+ *  stored override — the override layer stores (palette, step) pairs, and white is a bare primitive, so Auto
+ *  IS the white source and names it as such. */
+const invFillSourceSelect = (roleKey: string, assignedPalette: string, neutralPalette: string): HTMLSelectElement => {
+  const sel = selectEl('cap');
+  const curOv = brandState.overrides?.[currentMode]?.[roleKey];
+  const cur = typeof curOv?.step === 'string' ? `${curOv.palette}::${curOv.step}` : undefined;
+  const absName = baselineStepOf(roleKey);                 // 'white' (light family) / 'black' (dark family)
+  sel.append(optionEl('', `Auto · ${absName} (crisp)`, cur == null));
+  const addPalette = (pal: string): void => {
+    const mark = contrastMark(roleKey, pal);
+    for (const s of stepsOf(pal)) sel.append(optionEl(`${pal}::${s}`, `${pal} ${s}${mark?.(s) ?? ''}`, cur === `${pal}::${s}`));
+  };
+  addPalette(assignedPalette);
+  if (neutralPalette !== assignedPalette) addPalette(neutralPalette);
+  sel.onchange = () => {
+    if (sel.value === '') { setFillOverride(roleKey, assignedPalette, undefined); return; }
+    const [pal, step] = sel.value.split('::');
+    setFillOverride(roleKey, pal, step);
+  };
+  return sel;
+};
+
 /** Marks the steps that SATISFY a contrast-gated role, in the picker, before the pick is made.
  *
  *  Overrides apply-but-warn by design (`modes.ts`) — deliberately, since a UI that refused the option
@@ -2653,12 +2681,15 @@ const iRow = (o: { lead?: boolean; swatchBg?: string; label?: string; srcLabel?:
  *  `inverse` is a flag rather than part of `slot` because #1140 moved the marker OUT of the slot and to
  *  the front of the role: `inverse.interactive.<name>.<slot>`, where it used to be
  *  `interactive.<name>.inverse.<slot>` and a caller could spell it inside `slot` unaided. */
-const slotRow = (o: { name: string; slot: string; label: string; palette: string; desc: string; example: (roles: RoleMap) => HTMLElement; badgeRole?: string; states?: Array<[string, string]>; inverse?: boolean }): HTMLElement | null => {
+const slotRow = (o: { name: string; slot: string; label: string; palette: string; desc: string; example: (roles: RoleMap) => HTMLElement; badgeRole?: string; states?: Array<[string, string]>; inverse?: boolean; invFillSources?: boolean }): HTMLElement | null => {
   const roles = iRoles();
   const roleKey = `${o.inverse ? 'inverse.' : ''}interactive.${o.name}.${o.slot}`;
   const r = roles[roleKey]; if (!r) return null;
   return iRow({
-    swatchBg: r.hex, label: o.label, select: roleSourceSelect(roleKey, o.palette, baselineStepOf(roleKey)),
+    swatchBg: r.hex, label: o.label,
+    // #1384 — the inverse fill row offers white + neutral as pinnable sources; every other row keeps the
+    // single-palette override select.
+    select: o.invFillSources ? invFillSourceSelect(roleKey, o.palette, theme.roleToPalette.neutral) : roleSourceSelect(roleKey, o.palette, baselineStepOf(roleKey)),
     pill: colorPath(roleKey), desc: o.desc, example: iExample(o.example(roles), iBadge(roles[o.badgeRole ?? roleKey])),
     states: o.states ? iStates(roles, o.palette, o.states) : null,
   });
@@ -2793,8 +2824,8 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
   const P = col.palette, nm = col.name, inv = `inverse.interactive.${nm}`, nPal = theme.roleToPalette.neutral;
   const rows: Array<HTMLElement | null> = [
     fillRestRow(col),
-    slotRow({ name: nm, slot: 'fill.rest', inverse: true, label: 'Fill · inverse', palette: P,
-      desc: 'The button fill on a dark / inverse surface — a light fill. Derived, or pin a step.',
+    slotRow({ name: nm, slot: 'fill.rest', inverse: true, label: 'Fill · inverse', palette: P, invFillSources: true,
+      desc: 'The button fill on a dark / inverse surface — crisp white by default (#1384). Pin white, a neutral step, or a palette step; each is contrast-marked.',
       example: (rs) => exBtn(rs[`${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`${inv}.on-fill`]?.hex ?? '#000000', true, 'Button',
         rs[`${inv}.fill.hover`]?.hex, rs[`${inv}.fill.pressed`]?.hex),
       badgeRole: `${inv}.on-fill`,
