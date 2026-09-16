@@ -38,6 +38,9 @@ import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
 import { diffAnatomy, unclassifiedFields, fieldCoverage } from '@prism3/engine/anatomy-readback';
 import type { Divergence, HostNode, ReadPorts } from '@prism3/engine/anatomy-readback';
+import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
+import { nbTheme } from '@prism3/engine/nb-fixture';
+import { tailOf } from '@prism3/engine/figma-names';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim } from './component-shim';
 import type { Node, Page, ShimOpts } from './component-shim';
@@ -332,6 +335,49 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     "#1331 host-truth: every built leading glyph's `visible` is wired to the 'leading icon' boolean (componentPropertyReferences.visible)");
 }
 
+// ── #1428: A NESTED-INSTANCE PART-NAME COLLISION DOES NOT DROP THE HOST'S OWN REFERENCE — HOST-TRUTH ─
+//
+// select COMPOSES field-label AND field-message, and BOTH of those carry a part named `text` — the same
+// name as select's own value `text`. On the live host `member.findOne(x => x.name === 'text')` descends
+// INTO a nested instance and returns one of ITS `text` layers, a node that cannot hold this set's
+// component-property reference (it is a sublayer of ANOTHER component): Figma refuses the write with "Could
+// not create a new component property reference", so the `value` TEXT reference was reported dropped
+// (#1428, QA 2026-09-15). The QA surfaced it on the status=warning/hover coordinates a live build happened
+// to exercise via the throw path, but the collision is PER-MEMBER and general — every member's `text`
+// read-back lands on the wrong node. The fix scopes every re-find-by-name past nested instances
+// (`findOwnPart`, write-components.ts); `leadingVisual` (a unique name) and `message` (matched on the
+// nested-instance node ITSELF, a valid target) never collided, which is exactly why only `text.characters`
+// failed while `message.visible` never did.
+//
+// The corpus loop above uses OPAQUE nested-instance stubs, so it is blind to this by construction (docs/34:
+// the gate's subject was under-modelled). Drive select through a shim whose nested instances carry their
+// own `text` part (`nestedInstanceParts`), each refusing a reference write exactly as a sublayer of another
+// component does, and assert the host holds select's OWN `value` reference on every member. Mutation-by-name
+// (docs/34): revert the `findOwnPart` scoping and every member reports `text.characters -> DISCARDED`,
+// failing the SECOND assertion below by name. The reachability floor (first assertion) proves the collision
+// actually materialised — a naive descending `findOne` returns the nested-instance `text`, not select's own
+// — so a green here is the reference surviving a REAL collision, not a fixture that never built one.
+{
+  const def = componentDefs.find((d) => d.id === 'select')!;
+  const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(plans), page, nestedInstanceParts: ['text'] });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const res = await applyComponentPlan(plans, shim as any, {});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's members
+  const members = (page.children[0]?.children ?? []) as any[];
+  // REACHABILITY FLOOR — the collision materialised: the SAME descending `findOne` the pre-fix code used
+  // returns a node INSIDE a nested instance (flagged by the shim), not select's own value text. Without
+  // this, the miss-count assertion below could pass because the fixture never built the colliding node.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim
+  const naive = members[0]?.findOne?.((x: any) => x.name === 'text');
+  ok(members.length === 16 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
+    `#1428 reachability: a naive descending findOne on a built select member returns a nested-instance \`text\` (the wrong node the fix defends against) — collision materialised (${members.length} members)`);
+  const textRefMisses = res.misses.filter((m) => /\btext\.characters\b/.test(m));
+  ok(res.wiredMembers === plans.length && textRefMisses.length === 0,
+    `#1428: select's own \`value\` TEXT reference is created on every member despite the nested field-label/field-message \`text\` collision — 0 dropped (${textRefMisses.length ? textRefMisses.slice(0, 2).join(' | ') : 'none'}; wiredMembers=${res.wiredMembers}/${plans.length})`);
+}
+
 // ── STROKE-WEIGHT PER-SIDE READ-BACK (#1332) — HOST-TRUTH ──────────────────────────────────────
 //
 // The 2026-09-09 host-truth Figma-console audit established that `setBoundVariable('strokeWeight', v)`
@@ -393,15 +439,15 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // `combineAsVariants` creates them and the host reads them back as `type === 'COMPONENT_SET'` (asserted
 // below), so this is NOT a projection-model defect. What #865 then did was BLANK the fill, purple dashed
 // border and 5px radius Figma dresses a set with, so an emitted set read as a bare frame — the #1430
-// canvas-scanning defect. The fix PRESERVES that framing (`write-components.ts`' `isSet` branches). The
-// shared shim now models the framing `combineAsVariants` applies (`component-shim.ts`), so this reads it
+// canvas-scanning defect. The fix PRESERVES the border (`write-components.ts`' `isSet` branches). The
+// shared shim now models the border `combineAsVariants` applies (`component-shim.ts`), so this reads it
 // back off the BUILT set and fails BY NAME if the executor blanked it.
 //
-// The oracle — "a real ComponentSetNode carrying a non-empty dashed stroke, a set-shaped radius and a
-// fill" — is authored HERE, not derived from the executor (docs/34): revert either `isSet` branch to the
-// #865 blank and every emitted set trips the positive arm. The framing VALUES are Figma's and cannot be
-// pinned offline (there is no live host); what IS checkable offline — and what the defect was — is whether
-// the executor DESTROYS a framing the host supplied. The negative arm proves the check is not vacuous.
+// The oracle — "a real ComponentSetNode carrying a non-empty dashed stroke and a set-shaped radius" — is
+// authored HERE, not derived from the executor (docs/34): revert either `isSet` branch to the #865 blank
+// and every emitted set trips the positive arm. The framing VALUES are Figma's and cannot be pinned
+// offline (there is no live host); what IS checkable offline — and what the defect was — is whether the
+// executor DESTROYS a border the host supplied. The negative arm proves the check is not vacuous.
 {
   const framed = (set: Record<string, unknown> | undefined): string[] => {
     const problems: string[] = [];
@@ -445,6 +491,168 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const bareProblems = framed(bareSet);
   ok(bareProblems.length > 0,
     `#1430 mutation: a set stripped of its stroke/dash is reported by name (${bareProblems.join('; ') || 'NOT REPORTED — the check went silent'})`);
+}
+
+// ── OVERLAY-WASH: BOUND ON container.fills AND RESOLVED BY THE EMITTED BRAND (#1429) ────────────
+//
+// THE QA FINDING (2026-09-15, ENGINE 0.87.0): all button families reported 96 misses and all
+// icon-button families 24, of the form `container.fills -> color/interactive/<c>/overlay/{hover,pressed}`
+// — read as "the hover/pressed overlay wash is not being bound on the container across the corpus".
+//
+// THE DIAGNOSIS IS (b), A TELEMETRY READING — NOT A DROPPED WASH, and the evidence is below in this very
+// block. The `container` box declares `paintSlots: ['overlay','fill','border']` (button.ts / icon-button.ts),
+// so on an outline/text hover/pressed coordinate the projection binds `interactive.<c>.overlay.<state>`
+// (the translucent wash) onto `container.fills` — measured here as 96 bindings per button family and 12 per
+// icon-button family, exactly where the QA said nothing landed. On every brand that USES the wash
+// (`outlineInteraction: 'overlay-neutral'`, the default and the whole committed corpus) that variable IS
+// emitted and the binding RESOLVES: 0 dangling. The 96/24 QA misses came from a brand built with
+// `outlineInteraction: 'none'` (the `minimal-levers` corpus member), which DELIBERATELY does not emit the
+// wash; the brand-agnostic component binds it regardless, so the paste's name-resolution channel reports a
+// miss and #1387 already neutralizes the visual to transparent (never Figma's white). So counting that as a
+// corpus-wide defect was the false positive.
+//
+// WHY THIS BLOCK EXISTS, and why the corpus loop above could never have caught it (docs/34 shape 11): that
+// loop stocks its shim's variable catalogue FROM THE PLAN (`fullFor`), so a bound paint ALWAYS resolves and
+// a wash that the engine never emits — or emits under a drifted name — round-trips green. The only witness
+// is an INDEPENDENT ORACLE: the token layer the engine actually emits, a code path (`emit-figma-color` /
+// `modes.ts`) entirely separate from the projection (`anatomy-figma`). This block reads the container's
+// bound wash off the HOST (what the executor wrote) and checks it against that emitted brand — so a wash
+// dropped from the PROJECTION fails the reachability floor by name, and a wash dropped from (or renamed in)
+// the EMISSION fails the resolution check by name. Neither is derivable from the other.
+{
+  // THE INDEPENDENT ORACLE — an overlay-neutral brand's emitted color-variable tails. `nbTheme()` is a real
+  // brand on the default `overlay-neutral`, measured 0-dangling; its variables come from the emitter, never
+  // from any plan, which is the whole point (docs/34 shape 11). Tail space because a plan binds root-relative
+  // and every emitted variable is `<root>/<tail>` — the same `tailOf` the paste executor keys `byName` on.
+  const { palette, color } = buildFigmaColor(nbTheme());
+  const emittedTails = new Set<string>();
+  for (const c of [palette, ...color]) for (const v of c.variables ?? []) emittedTails.add(tailOf(v.name));
+  ok(emittedTails.size > 0, `#1429 the overlay-neutral oracle emitted color variables (independent-oracle floor: ${emittedTails.size})`);
+
+  // A wash tail is `…/interactive/<family>/overlay/<hover|pressed>` — page (`color/interactive/…`) and inverse
+  // (`color/inverse/interactive/…`) both end this way; `selected` is not a button/icon-button state and is not
+  // matched. This is the SAME shape the QA quoted, so a match here is a binding on exactly the coordinate it named.
+  const washTail = /(^|\/)interactive\/[a-z-]+\/overlay\/(hover|pressed)$/;
+  // The families the QA named — button + its two intent siblings, icon-button + its two — read off `componentDefs`
+  // rather than listed, so a new intent sibling is covered without editing this gate.
+  const FAMILIES = componentDefs.filter((d) => /^(button|icon-button)(-|$)/.test(d.id)).map((d) => d.id);
+
+  let washBindings = 0;                       // container members whose fills bind a hover/pressed wash
+  const washNames = new Set<string>();        // the distinct wash tails the containers bind
+  const perFamily: string[] = [];
+  const emptyFamilies: string[] = [];         // families binding NO wash — a per-family representation gap
+  const dangling: string[] = [];              // wash bindings the emitted brand does NOT resolve
+  for (const id of FAMILIES) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    let n = 0;
+    for (const m of members) {
+      const arr = (m as { fills?: unknown }).fills;
+      const first = Array.isArray(arr) ? (arr[0] as { boundVariables?: Record<string, { id?: unknown }> } | undefined) : undefined;
+      const boundId = first?.boundVariables?.color?.id;
+      if (typeof boundId !== 'string') continue;
+      const tail = boundId.replace(/^V:/, '');   // the shim ids variables `V:<tail>` (component-shim `mkVar`)
+      if (!washTail.test(tail)) continue;
+      n++; washBindings++; washNames.add(tail);
+      if (!emittedTails.has(tail)) dangling.push(`${id}: ${String(m.name)} -> ${tail}`);
+    }
+    perFamily.push(`${id}=${n}`);
+    if (n === 0) emptyFamilies.push(id);
+  }
+
+  // (1) THE WASH LANDS ON container.fills IN EVERY NAMED FAMILY — representation, not a corpus count
+  //     (docs/34): a wash dropped on ONE family (the button factory is shared, but icon-button is a
+  //     separate def) still binds the wash from the others, so a corpus-wide `> 0` floor would pass on a
+  //     real per-family drop. Asserting each family is represented is what fires BY NAME on the defect the
+  //     issue scopes to "button / button-destructive / button-neutral / icon-button (+ its variants)".
+  ok(FAMILIES.length > 0 && emptyFamilies.length === 0,
+    `#1429 the hover/pressed overlay wash IS bound on container.fills in every named family (${washBindings} bindings — ${perFamily.join(', ')})${emptyFamilies.length ? ` — DROPPED IN: ${emptyFamilies.join(', ')}` : ''}`);
+  // (2) EVERY bound wash RESOLVES against the INDEPENDENT emitted overlay-neutral brand — 0 dangling. This is
+  //     the QA's `container.fills -> …/overlay/{hover,pressed}` "miss", proven ABSENT for a brand that uses the
+  //     wash: the 96/24 misses were an `outlineInteraction: 'none'` brand opting out (#1387), not a drop.
+  ok(dangling.length === 0,
+    `#1429 every container overlay-wash binding resolves against the emitted overlay-neutral brand — 0 dangling (${dangling.length ? dangling.slice(0, 4).join('; ') : 'none'})`);
+  // (3) THE RIGHT TOKENS, not merely "some overlay" (docs/34 shape 5): the exact names the QA quoted are bound.
+  for (const want of ['color/interactive/primary/overlay/hover', 'color/interactive/primary/overlay/pressed'])
+    ok(washNames.has(want), `#1429 the container binds ${want} at its state coordinate (host truth)`);
+
+  // ── NEGATIVE CONTROLS — the two directions of a genuinely-dropped wash, proving neither check is vacuous.
+  //
+  // (a) PROJECTION DROP. Rebuild button, clear the wash off its containers (models the projection not binding
+  //     the overlay), and confirm the reachability floor (1) would then read 0 — so a dropped wash fires it.
+  {
+    const def = componentDefs.find((d) => d.id === 'button')!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const countWash = (): number => members.reduce((a, m) => {
+      const id = (m as { fills?: { boundVariables?: Record<string, { id?: unknown }> }[] }).fills?.[0]?.boundVariables?.color?.id;
+      return a + (typeof id === 'string' && washTail.test(id.replace(/^V:/, '')) ? 1 : 0);
+    }, 0);
+    const before = countWash();
+    for (const m of members) {
+      const id = (m as { fills?: { boundVariables?: Record<string, { id?: unknown }> }[] }).fills?.[0]?.boundVariables?.color?.id;
+      if (typeof id === 'string' && washTail.test(id.replace(/^V:/, ''))) (m as { fills: unknown[] }).fills = [];
+    }
+    ok(before > 0 && countWash() === 0,
+      `#1429 mutation (projection drop): clearing the wash off button containers drives the count ${before} → 0, so floor (1) fires by name`);
+  }
+  // (b) EMISSION DROP. Remove the wash tails from the oracle (models `modes.ts` no longer emitting the wash,
+  //     or renaming it) and confirm EVERY container wash binding is then reported dangling — so check (2) fires.
+  {
+    const oracleNoWash = new Set([...emittedTails].filter((t) => !washTail.test(t)));
+    const nowDangling = [...washNames].filter((t) => !oracleNoWash.has(t));
+    ok(washNames.size > 0 && nowDangling.length === washNames.size,
+      `#1429 mutation (emission drop): with the wash removed from the oracle, all ${washNames.size} bound wash name(s) are reported dangling, so check (2) fires by name (dangling ${nowDangling.length})`);
+  }
+}
+
+// ── #1424: THE WRAPPING LABEL, READ BACK OFF THE BUILT NODE — HOST-TRUTH ────────────────────────
+//
+// The row's label must FILL its main axis and WRAP (Prism 2's radio-button-row / checkbox-row), and the
+// control must stay FIXED so a wrapping label never shrinks or stretches it. The generic diff above already
+// checks each of these plan fields against the built node (plan-as-oracle: `layoutGrow`/`textAutoResize`
+// classified in `anatomy-readback.ts`), which catches an executor that fails to write them. What it CANNOT
+// catch is a def that silently STOPS wrapping — drop `wrap` and the plan no longer carries the fields, so
+// plan-vs-built still agrees on their absence. This block closes that with an oracle authored HERE and
+// nowhere else — the owner-decided fact that these two rows wrap — so a `wrap` removed from either def
+// diverges from this and fails BY NAME (docs/34). It builds through the shared shim exactly as the corpus
+// loop does, then reads each row's label and controlBox back off the host.
+{
+  const WRAPS = ['radio', 'checkbox-row'];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+  const findByName = (n: any, name: string): any => (n?.name === name ? n : (n?.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+  for (const id of WRAPS) {
+    const def = componentDefs.find((d) => d.id === id);
+    ok(!!def, `#1424 host-truth: the ${id} def is registered and projects`);
+    if (!def) continue;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const labels = members.map((m) => findByName(m, 'label'));
+    const controlBoxes = members.map((m) => findByName(m, 'controlBox'));
+    // SCOPE FLOOR — a label was built into every member, or "they all wrap" is a statement about an empty set.
+    ok(members.length > 0 && labels.every(Boolean),
+      `#1424 host-truth: ${id} builds a label into every member (${labels.filter(Boolean).length}/${members.length})`);
+    // THE LABEL FILLS AND WRAPS — read back off the built node (both facts, since either alone does not wrap).
+    ok(labels.length > 0 && labels.every((l) => l.layoutGrow === 1 && l.textAutoResize === 'HEIGHT'),
+      `#1424 host-truth: every ${id} label reads back layoutGrow=1 + textAutoResize=HEIGHT — it fills the row and wraps (e.g. layoutGrow=${String(labels[0]?.layoutGrow)}, textAutoResize=${String(labels[0]?.textAutoResize)})`);
+    // THE CONTROL STAYS FIXED — it does not grow (layoutGrow 0) and its cross axis is FIXED, so the wrapping
+    // label never shrinks or stretches it.
+    ok(controlBoxes.length > 0 && controlBoxes.every((c) => c && c.layoutGrow !== 1 && c.counterAxisSizingMode === 'FIXED'),
+      `#1424 host-truth: every ${id} controlBox reads back fixed/hug — layoutGrow≠1 (${String(controlBoxes[0]?.layoutGrow)}) and counterAxisSizingMode=FIXED (${String(controlBoxes[0]?.counterAxisSizingMode)})`);
+  }
 }
 
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');

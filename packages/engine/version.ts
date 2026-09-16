@@ -2505,7 +2505,7 @@
  * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
  */
 /**
- * 0.98.0 — emitted COMPONENT SETS keep their variant-set FRAME so they read as sets on the canvas (#1430,
+ * 0.96.0 — emitted COMPONENT SETS keep their variant-set FRAME so they read as sets on the canvas (#1430,
  * owner-triaged quality-of-life; the first question was correctness and the answer clears it). DIAGNOSIS,
  * with evidence (the (a)-vs-(b) fork the issue posed): the emitted sets ARE real `ComponentSetNode`s —
  * `write-components.ts` builds them with `figma.combineAsVariants` and the host reads them back as
@@ -2529,23 +2529,60 @@
  * executors now agree on the set's frame as well.
  *
  * PLUGIN-SIDE — no `out/**` diff comes from the logic itself (the set frame is a live Figma object, not an
- * emitted artifact), so `lint-emission-version` does not compel this bump. But the built set is a consumer-
- * OBSERVABLE change and `ENGINE_VERSION` is the "what code produced this" answer (and the MCP
- * `serverInfo.version`), so it moves; the only `out/**` churn is the re-stamped `generator.version`.
- * 0.98.0 because 0.94.0–0.97.0 are spoken for by in-flight lanes — the next free ENGINE integer above 0.93.0
- * (never lower); a rebase may relay it to the true next-free integer before merge.
+ * emitted artifact), so `lint-emission-version` does not compel this bump (it reports 0 moved artifacts —
+ * executor-only, the #1429/#1428 shape). But the built set is a consumer-OBSERVABLE change and
+ * `ENGINE_VERSION` is the "what code produced this" answer (and the MCP `serverInfo.version`), so it moves;
+ * the only `out/**` churn is the re-stamped `generator.version`.
+ * 0.96.0 and not 0.94.0 because this merged onto post-#1424/#1433/#1428 main: 0.94.0 was the radio/checkbox
+ * row QA bundle and 0.95.0 the #1428 select ref-wiring scope fix; #1429 was gate-only and consumed no
+ * integer, so 0.96.0 is the next free ENGINE integer above 0.95.0 (never lower). The provisional first cut
+ * was 0.98.0 off 0.93.0 main.
  *
  * CONTRACT STANDS at 10.2.0. No guaranteed token NAME is added, removed or retyped — this is node-type
- * styling, not tokens — so `token-contract.ts --check` confirms the guaranteed surface unchanged and
+ * styling, not tokens — so `token-contract.ts --check` confirms the guaranteed surface unchanged (586) and
  * `--accept` refreshes only the informational `engineVersion` stamp.
  *
  * SAFETY NET (docs/34): the set-ness and the frame are HOST-OBSERVABLE, so they are asserted by name in
  * `test-roundtrip.ts` (#1430): the shared `component-shim` now models the frame `combineAsVariants` applies
  * (a bare `COMPONENT_SET` could not tell the fix from the #865 blank — shape 4), and the gate reads back off
- * every emitted set that it is a real `ComponentSetNode` carrying a non-empty dashed stroke, a set radius and
- * a fill. The oracle is authored in the gate, not derived from the executor; reverting either `isSet` branch
- * to the #865 blank trips it by name, and a negative arm (a set stripped of its stroke IS reported) proves
- * the check is not vacuous. It runs over the whole projected corpus, since the strip affected every set.
+ * every emitted set that it is a real `ComponentSetNode` carrying a non-empty dashed stroke and a set radius.
+ * The oracle is authored in the gate, not derived from the executor; reverting either `isSet` branch to the
+ * #865 blank trips it by name, and a negative arm (a set stripped of its stroke IS reported) proves the
+ * check is not vacuous. It runs over the whole projected corpus, since the strip affected every set.
+ */
+/**
+ * 0.95.0 — the component ref-wiring re-find SCOPES PAST NESTED INSTANCES (#1428, host-truth binding fix, no
+ * design decision). `select` COMPOSES field-label AND field-message, and both carry a part named `text` —
+ * the same name as select's own value `text`. Both executors re-find each part by name to wire its Figma
+ * component-property reference (the paste payload's `PAYLOAD_WIRE_REFS`, the plugin's read-back/recovery),
+ * and `findOne` descends INTO a nested instance: on the live host it returned one of the instance's own
+ * `text` layers — a sublayer of ANOTHER component, which cannot hold this set's reference — so Figma refused
+ * with "Could not create a new component property reference" and select's `value` reference was dropped
+ * (QA 2026-09-15). `leadingVisual` (a unique name) and `message` (matched on the nested-instance node
+ * ITSELF, a valid target) never collided, which is why only `value` failed. Both executors now use a scoped
+ * `findOwnPart` that matches a part by name without descending into a nested instance; a referenced part is
+ * always the member's own layer, so the scope loses nothing.
+ *
+ * ENGINE and not CONTRACT. A consumer who pastes the payload or runs the plugin now gets select's `value`
+ * property reference where it was silently dropped — an observable change in the engine's output — so the
+ * bump is owed by the surface rule (version.ts's "what a consumer can OBSERVE"). It adds, removes and
+ * retypes NO guaranteed token name, so CONTRACT STANDS at 10.2.0 (`token-contract.ts --check` confirms the
+ * guaranteed surface unchanged). The projected component SURFACE digest does not move either — the fix is in
+ * the two EXECUTORS, not in `figmaAnatomySet`, so `lint-component-surface`'s `planStamp` is byte-identical
+ * and `lint-emission-version` is blind to payloads by construction (both facts stated above). Committed
+ * `out/` therefore moves ONLY on the `engineVersion` stamp, the same shape as the 0.90.0 control-shape entry
+ * below. Recorded here because neither emission gate forces this bump — it is owed by policy, not by a red.
+ *
+ * BEHAVIOR mutation (docs/34): `test-roundtrip.ts`'s #1428 arm drives select's PLUGIN executor, and
+ * `test.ts`'s #1428 arm its PASTE payload, each through a stub whose nested instances carry a colliding
+ * `text` part that refuses a reference write exactly as a sublayer of another component does. Each has a
+ * reachability floor proving the collision materialised, then asserts select's `value` reference survives on
+ * every member. Revert `findOwnPart` in either executor and its arm fails BY NAME with the live host's own
+ * "Could not create a new component property reference" (paste) / `DISCARDED` (plugin read-back) message.
+ *
+ * 0.95.0 and not 0.94.0 because this rebased onto post-#1424/#1433 main, which took 0.94.0 (the radio/checkbox
+ * row QA bundle); #1429 (the button-overlay gate) was gate-only and consumed no integer, so 0.95.0 is the next
+ * free ENGINE integer above 0.94.0 (never lower). The provisional first cut was 0.96.0 off 0.93.0 main.
  */
 /**
  * 0.93.0 — `switch-control` is SCALED to Prism 2's toggle proportions (#1425, owner-triaged `engine`+`a11y`,
@@ -2692,7 +2729,52 @@
  * 0.90.0 and not 0.89.0 because this merged post-#1347 main, which took 0.89.0 for the checkbox-row rename +
  * checkbox-group build — the next free ENGINE above it (never lower).
  */
-export const ENGINE_VERSION = '0.98.0';
+/**
+ * 0.94.0 — the radio/checkbox ROW QA bundle (#1424 + #1433), two owner-approved fixes on the two row defs.
+ *
+ * #1424 — LONG LABELS WRAP INSTEAD OF OVERFLOWING. Prism 2's radio-button-row / checkbox-row let a long
+ * label wrap to a second line (its description text is `layoutSizingHorizontal: FILL`); the engine had no way
+ * to express "fill the main axis and reflow" — `sizing: 'fill'` maps to AUTO (#989), so a text node hugged
+ * its glyphs and ran off the row. New `PartDef.wrap` (text-only) projects the two Figma facts that wrap a
+ * label: `layoutGrow: 1` (fill the row's main axis, fixing the WIDTH) + `textAutoResize: 'HEIGHT'` (auto
+ * height, so the fixed-width box reflows), carried on two new `FigmaNodePlan` fields threaded through BOTH
+ * executors (`write-components.ts`'s neutralizer, driven off the plan; the emitted payload) and classified in
+ * `anatomy-readback.ts`. Each row's `row` gets `minWidth: 320` (Prism 2's root width — a def-local literal,
+ * the `select` #1345 precedent, NOT a token), because `layoutGrow` fills REMAINING space and a hugging row has
+ * none; `anatomyErrors` refuses a `wrap` label under a floorless parent, which makes that floor load-bearing.
+ *
+ * #1433a — ERROR-STATE FILL. Owner-decided: signal error on the control BORDER/RING (and the field-message),
+ * and KEEP the selected control's inner fill (the checkbox's box + check, the radio's dot) on the INTERACTIVE
+ * color — never red, since color is not error's sole carrier. The atoms already satisfied this (no
+ * `checked.fill.error`/`checked.indicator.error` key, so error falls back to the interactive `checked.fill`/
+ * `checked.indicator`); this bundle LOCKS it with a by-name gate that a red-fill mutation flips (docs/34).
+ * No code change to the atoms — the deliverable is the enforcement.
+ *
+ * #1433b — ROW TOP/BOTTOM PADDING. Prism 2's rows sit their content in `padding {top:12, bottom:12}`; the
+ * engine's rows had none. Both rows now bind `pad-y → space.150` (= 12px on nb, the nearest existing spacing
+ * step and an EXACT match — no new rung minted) and `pad-x → space.0` (inline zero, Prism 2's `{start:0,
+ * end:0}`), mirroring `checkbox-group`'s own padding. A CONSTANT inset (the same 12 on both rows), not
+ * size-scaled — Prism 2 uses 12 flat.
+ *
+ * CONTRACT STANDS at 10.2.0 — taken from main UNCHANGED, no further bump. `wrap`/`layoutGrow`/`textAutoResize`/
+ * `minWidth` are STRUCTURE (schema + plan + projection), never emitted token NAMES; the padding binds EXISTING
+ * guaranteed names (`space.150`, `space.0`, both already emitted in every brand tier). No guaranteed token name
+ * is added, removed or retyped, so on rebase this lane inherits main's 10.2.0 (#1426's `size.md.min-height` →
+ * 10.1.0, #1425's switch `track`/`thumb` + `core.dimension.{3,18}` → 10.2.0) with nothing to add —
+ * `token-contract.ts --check` confirms the guaranteed 586 unchanged.
+ *
+ * SAFETY NET (docs/34). #1424: `test.ts` reads the projected plan and pins label→(layoutGrow 1 + HEIGHT) /
+ * control→fixed for both rows, with a mutation dropping `wrap` that flips it BY NAME, plus two refusal arms
+ * (wrap on a non-text kind; wrap under a floorless row) each with a by-name mutation; `test-roundtrip.ts`
+ * reads the same two facts back off the built shim with an oracle authored there (a def that stops wrapping
+ * fails there though the generic plan-vs-host diff would still agree). #1433a: `test.ts` reads the projected
+ * error member and pins fill-stays-interactive / border-goes-danger for both atoms, with a mutation binding
+ * the forbidden red fill that flips it BY NAME.
+ *
+ * 0.94.0 — the next free ENGINE integer above main's 0.93.0. Rebased onto main after #1426 took 0.92.0
+ * (select QA) and #1425 took 0.93.0 (switch-control scaling); this lane sits above both, never lower.
+ */
+export const ENGINE_VERSION = '0.96.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

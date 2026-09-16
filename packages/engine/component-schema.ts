@@ -313,6 +313,23 @@ export type PartDef = {
    *  PARENT's `layout.align`, and no value of this field reaches it — see `checkbox.ts`'s `row`. The two
    *  were filed as one observation and are two properties on two different nodes. */
   verticalAlign?: 'top' | 'center' | 'bottom';
+  /** For a `text` part: FILL the parent row's main axis and WRAP to multiple lines, rather than hug the
+   *  glyphs and OVERFLOW (#1424). A long option/consent label is the case: today it grows the row
+   *  horizontally off the edge; Prism 2 wraps it to a second line with the control top-anchored
+   *  (`reference/Prism2/component-specs/{radio-button,checkbox}-row.json` — the description text is
+   *  `layoutSizingHorizontal: FILL`, which is what makes it wrap).
+   *
+   *  PROJECTS TWO FIGMA FACTS, because wrapping needs both: `layoutGrow: 1` (fill the parent's main axis, so
+   *  the text's WIDTH is the remaining row width rather than its own content) and `textAutoResize: 'HEIGHT'`
+   *  (fixed width, auto height, so the fixed-width box reflows). Either alone does not wrap — a filled box
+   *  with `WIDTH_AND_HEIGHT` still hugs, and an auto-height box with no fixed width has nothing to wrap to.
+   *
+   *  ITS PRECONDITION, asserted by `anatomyErrors` rather than trusted: the parent must BOUND its main-axis
+   *  width — a `minWidth` floor or `sizing.x: 'fixed'` — because `layoutGrow` fills REMAINING space, and a
+   *  hugging parent is exactly as wide as its children, leaving none. That is the #989 silent no-op (a
+   *  `'fill'`/`'hug'` main axis projects to AUTO), so a `wrap` label under a floorless row is refused, which
+   *  is what makes the row's `minWidth` load-bearing rather than decorative. `boolean`; absent means hug. */
+  wrap?: boolean;
   /** For `box` parts: WHICH paint slots this box takes, in precedence order (#933). Absent means the
    *  box paints nothing — it is structure, and `field-label`'s and `field-message`'s boxes are exactly
    *  that. The words must come from `BOX_PAINT_SLOTS`.
@@ -2943,6 +2960,24 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' binds 'width' but its main-axis sizing is '${p.layout.sizing.x}' — a bound dimension needs 'fixed', or the content decides the length and the binding is overridden ('fill' projects to AUTO as well, #989)`);
     if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined))
       e.push(`anatomy part '${n}' is kind '${p.kind}' but carries layout/padding/gap — only a 'box' lays out`);
+    // ---- THE WRAPPING LABEL (#1424) ----
+    // `wrap` fills the parent's main axis and reflows (`layoutGrow: 1` + `textAutoResize: 'HEIGHT'`), which
+    // is a TEXT-only capability — a box sizes with `sizing`, a slot/vector by its artboard.
+    if (p.wrap !== undefined && p.kind !== 'text')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'wrap' — only a 'text' part fills its row and reflows; a box sizes with 'sizing' and a slot/vector by its artboard`);
+    // ITS PRECONDITION, asserted rather than trusted (the #990/#989 shape from the child's side): the parent
+    // must BOUND its main-axis width — a `minWidth` floor or `sizing.x: 'fixed'` — because `layoutGrow` fills
+    // REMAINING main-axis space and a hugging parent (sizing.x 'hug'/'fill' → AUTO, #989) is exactly as wide
+    // as its children, leaving none. A `wrap` label under a floorless row validates, projects a real
+    // `layoutGrow`, and STILL hugs its glyphs and overflows — the silent no-op this catches. It is also what
+    // makes the row's `minWidth` load-bearing: remove it and this fires by name.
+    if (p.wrap) {
+      const parent = claimed.get(n);
+      const pp = parent ? parts[parent] : undefined;
+      const boundedMain = !!pp?.layout && (pp.minWidth !== undefined || pp.layout.sizing.x === 'fixed');
+      if (!boundedMain)
+        e.push(`anatomy part '${n}' declares 'wrap' but its parent '${parent ?? '(none)'}' does not bound its main-axis width (minWidth ${pp?.minWidth ?? 'unset'}, sizing.x '${pp?.layout?.sizing.x ?? 'n/a'}') — 'layoutGrow' fills the REMAINING main-axis space and a hugging parent has none, so the label would hug its glyphs and overflow ('fill'/'hug' project to AUTO, #989). Give the parent a 'minWidth' floor or a fixed main axis`);
+    }
     // `inset` is the absolute kind's own geometry and means nothing anywhere else: on a flow part it
     // reads as though the part were offset from its cell, which no projection does. Checked as its own
     // rule rather than folded into the loop above because the layout rule is about what LAYS OUT

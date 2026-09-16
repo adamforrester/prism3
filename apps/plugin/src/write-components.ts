@@ -210,6 +210,11 @@ export interface CompNode {
   appendChild?(child: CompNode): void;
   findAll?(predicate?: (node: CompNode) => boolean): unknown[];
   findOne?(predicate: (node: CompNode) => boolean): unknown;
+  /** The node's parent, walked by `findOwnPart` (#1428) to reject a name-match that lives INSIDE a nested
+   *  instance. Optional and `| null`-tolerant like every field here: the real `figma` types it as a
+   *  `(BaseNode & ChildrenMixin) | null`, which structurally satisfies `CompNode`, and a detached node has
+   *  none. */
+  readonly parent?: CompNode | null;
   /** `| null` is not an option the executor uses — it is what makes the real `figma` satisfy this port.
    *  Figma's `setBoundVariable` is OVERLOADED (`variableId: string | null` and `variable: Variable |
    *  null`), and a port omitting the `null` matches neither overload. */
@@ -610,6 +615,41 @@ const boundPaint = (arr: unknown): boolean => {
   return !!(first && first.boundVariables && first.boundVariables.color);
 };
 
+/** Is `node` INSIDE a nested instance, walking ancestors up to (not including) `stop`? A node whose
+ *  ancestry crosses an INSTANCE is a sublayer of ANOTHER component and cannot hold this set's reference.
+ *  The node ITSELF being an instance does not count — select's `leadingVisual` swap slot and `message`
+ *  nest are instances that ARE referenced parts; only a match nested INSIDE one is excluded (#1428). */
+const insideNestedInstance = (node: CompNode, stop: CompNode): boolean => {
+  for (let p = node.parent; p && p !== stop; p = p.parent)
+    if (p.type === 'INSTANCE') return true;
+  return false;
+};
+
+/**
+ * Find a member's OWN part by name, EXCLUDING any node INSIDE a nested INSTANCE (#1428).
+ *
+ * `member.findOne` traverses INTO nested instances, so on a def that COMPOSES other components it can
+ * return a node that belongs to one of them. Select nests `field-label` AND `field-message`, and BOTH
+ * carry a part named `text` — colliding with select's own value `text` — so a bare
+ * `member.findOne(x => x.name === 'text')` returns the field-label instance's `text`, a node INSIDE a
+ * nested instance. A host component-property reference cannot sit on such a node: Figma refuses the write
+ * with "Could not create a new component property reference" (it is a sublayer of ANOTHER component, not
+ * of this set). That is #1428 — the reference was reported dropped on the coordinates a live build
+ * happened to exercise. `leadingVisual` (a unique name) and `message` (matched on the nested instance
+ * node ITSELF, which is a valid target) never collide, which is exactly why only `text.characters` failed
+ * while `message.visible` never did.
+ *
+ * Every re-find by name — the wire-loop recovery, the ref read-back and the binding read-back below — must
+ * therefore exclude instance internals. A referenced part is ALWAYS one of the member's own layers (Figma
+ * forbids referencing a node inside a nested instance), so rejecting an instance-internal match can only
+ * ever drop the WRONG node. Still routed THROUGH `findOne` — the predicate rejects the wrong node by
+ * ancestry rather than the search being replaced — so it remains an independent re-query of the live tree
+ * (the docs/34 property the read-backs rest on) AND still crosses the host boundary the #701 search-count
+ * gate measures, one call per lookup exactly as before.
+ */
+const findOwnPart = (member: CompNode | undefined, name: string): CompNode | undefined =>
+  (member?.findOne?.((x) => x.name === name && !insideNestedInstance(x, member)) as CompNode | null | undefined) ?? undefined;
+
 // ── CLAIM THE DEFAULTS (#865) ──────────────────────────────────────────────────────────────────
 //
 // Every write above this point sets what a plan DECLARES. Nothing set what a plan is silent about, and a
@@ -705,7 +745,9 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   // them rather than throwing, which is why these two need no applicability test while the parent-side
   // ones below do.
   set('layoutAlign', 'INHERIT');
-  set('layoutGrow', 0);
+  // DRIVEN BY THE PLAN (#1424), still an unconditional `set` so the #865 claim holds: a wrapping label
+  // fills its row's main axis (`layoutGrow: 1`); every other node keeps the `0` the neutralizer always wrote.
+  set('layoutGrow', n?.layoutGrow ?? 0);
   // Claimed by the PARENT for an absolute or centered part (`STRETCH` / `CENTER`), and by the glyph
   // branch for a drawn outline (`SCALE`) — all of which run after this, except the glyph one, which is
   // why an imported subtree skips it.
@@ -812,7 +854,9 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     // what caught it: the paste path had no neutralizer and still read CENTER.
     if (!n?.textAlignVertical) set('textAlignVertical', 'TOP');
     set('textAlignHorizontal', 'LEFT');
-    set('textAutoResize', 'WIDTH_AND_HEIGHT');
+    // DRIVEN BY THE PLAN (#1424), still an unconditional `set` so the #865 claim holds: a wrapping label
+    // asks for `'HEIGHT'` (fixed width, auto height); every other TEXT node keeps `'WIDTH_AND_HEIGHT'`.
+    set('textAutoResize', n?.textAutoResize ?? 'WIDTH_AND_HEIGHT');
     set('textTruncation', 'DISABLED');
     set('paragraphSpacing', 0);
     set('leadingTrim', 'NONE');
@@ -1944,7 +1988,7 @@ const writeComponentSet = async (
       const kept = builtFor?.get(r.part);
       let node: CompNode | null | undefined;
       if (builtFor) { node = kept; if (kept) refsRetained++; else refsKnownAbsent++; }
-      else { node = member.findOne?.((x) => x.name === r.part) as CompNode | null | undefined; refsSearched++; }
+      else { node = findOwnPart(member, r.part); refsSearched++; }   // #1428: scope past nested instances
       // An optional part absent from THIS variant builds no node, so there is nothing to wire — the
       // legitimate case. `planSetProperties` only declares a property some node references.
       if (!node) continue;
@@ -1993,7 +2037,7 @@ const writeComponentSet = async (
         // fires only after a throw, only re-tries a node that is NOT the one that threw, and offline the #874
         // shim keeps one node object across combine (`makeShim({ detachPartsOnCombine })` is the one mode that
         // detaches, added for #1337's gate) so on every other run no handle detaches and this path is dead.
-        const live = member.findOne?.((x) => x.name === r.part) as CompNode | null | undefined;
+        const live = findOwnPart(member, r.part);   // #1428: the live twin among the member's OWN layers
         let recovered = false;
         if (live && live !== node) {
           try {
@@ -2024,7 +2068,7 @@ const writeComponentSet = async (
   // `refsRepaired` is declared before the wire loop (#1337 increments it there too — see the wire catch).
   for (const [mName, part, field, id, written] of wiredRefs) {
     const member = members.find((c) => c.name === mName);
-    const node = member?.findOne?.((x) => x.name === part) as CompNode | null | undefined;
+    const node = findOwnPart(member, part);   // #1428: read back the member's OWN part, not a nested twin
     const held = (node?.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
     if (held?.[field] === id) continue;   // retained — the common case, nothing to do
     // The reference did not read back. #866 CAUSE-INDEPENDENT HARDENING: if the node the wire loop wrote
@@ -2043,7 +2087,7 @@ const writeComponentSet = async (
       try {
         wr(node).componentPropertyReferences = Object.assign({}, (node.componentPropertyReferences ?? {}) as object, { [field]: id });
       } catch { /* the re-wire itself threw — fall through to the miss below */ }
-      const reNode = member?.findOne?.((x) => x.name === part) as CompNode | null | undefined;
+      const reNode = findOwnPart(member, part);   // #1428
       const reHeld = (reNode?.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
       if (reHeld?.[field] === id) { refsRepaired++; continue; }
     }
@@ -2104,7 +2148,7 @@ const writeComponentSet = async (
       // root binding takes the `!live` continue below and never reaches the id compare.
       const written = builtFor.get(part);
       boundSearched++;
-      const live = member.findOne?.((x) => x.name === part) as CompNode | null | undefined;
+      const live = findOwnPart(member, part);   // #1428: the member's OWN part, not a nested-instance twin
       if (!live) continue;
       const got = (live.boundVariables ?? {}) as Record<string, unknown>;
       for (const [field, varName] of Object.entries(bound)) {
@@ -2114,7 +2158,7 @@ const writeComponentSet = async (
         if (written && written.id != null && live.id != null && live.id !== written.id) {
           try { live.setBoundVariable?.(field, v); } catch { /* the re-bind itself threw — fall through */ }
           boundSearched++;
-          const reNode = member.findOne?.((x) => x.name === part) as CompNode | null | undefined;
+          const reNode = findOwnPart(member, part);   // #1428
           if (weightHeld((reNode?.boundVariables as Record<string, unknown> | undefined) ?? {}, field)) { boundRepaired++; continue; }
         }
         misses.push(`bound ${mName}/${part}.${field} -> DISCARDED (set ${varName}, not retained on the live node)`);
