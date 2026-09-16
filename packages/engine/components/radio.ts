@@ -141,6 +141,16 @@ export const radio: ComponentDef = {
     'label': 'color.text.primary',
     'disabled.label': 'color.disabled.text',
 
+    // ── THE ROW'S TOP/BOTTOM PADDING (#1433b). Prism 2's radio-button-row root sits its content in
+    // `padding {top: 12, bottom: 12, start: 0, end: 0}` (`reference/Prism2/component-specs/radio-button-row.json`),
+    // a CONSTANT block inset (the same 12 on the 48-tall checkbox row and the 56-tall radio row — it does
+    // not scale with `size`), so `pad-y` binds `space.150` (= 12px on nb, the nearest existing spacing step
+    // and an EXACT match — no new scale rung minted, CONTRACT holds). The INLINE sides are zero — Prism 2's
+    // `{start: 0, end: 0}` — so `pad-x` binds `space.0` (0px, emitted in every brand tier): `PaddingDef.inlineLabel`
+    // is REQUIRED, so a literal-zero slot rather than an omission, exactly as `checkbox-group` binds its own.
+    'pad-y': 'space.150',
+    'pad-x': 'space.0',
+
     // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. `min-height` is the code projection's floor; Figma
     // has no floor, so the row hugs its children and the key stays bound only for code (see `codeOnly`).
     'size.small.gap': 'size.sm.gap',
@@ -201,6 +211,16 @@ export const radio: ComponentDef = {
         role: 'target',
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
+        // TOP/BOTTOM PADDING (#1433b) from Prism 2's row (`space.150` = 12px on nb); inline sides zero
+        // (`space.0`). See the `pad-y`/`pad-x` tokens above for the source and why inline is a literal zero.
+        padding: { block: 'pad-y', inlineLabel: 'pad-x' },
+        // THE WIDTH FLOOR THAT LETS THE LABEL WRAP (#1424). A hugging row is exactly as wide as its
+        // children, so a `layoutGrow` label would have no remaining space to fill and would hug its own
+        // text and overflow. `minWidth` gives the row a comfortable floor — Prism 2's radio-button-row
+        // `root width 320` — so the label FILLS the remainder and WRAPS (the `select` precedent, #1345:
+        // a literal projection floor, not a bound token, so CONTRACT holds). The row still HUGS above the
+        // floor, so a short option stays compact. Real-host wrap is offline-unverified (see notes).
+        minWidth: 320,
         children: ['controlBox', 'label'],
       },
       // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). One line of the label tall
@@ -245,7 +265,12 @@ export const radio: ComponentDef = {
       label: {
         kind: 'text',
         type: 'size.{size}.text',
-        note: 'The accessible name AND the second half of the hit target. Rich content in code; a plain text node in Figma. Note that the accessible name of the CHOICE is the group\'s label, which no part here can carry — an option label alone announces "radio button, 1 of 3" with no indication of what is being chosen.',
+        // WRAPS rather than overflows (#1424). Long option labels are the design intent (`content.labelPattern`
+        // says wrap, not ellipsis), so the label FILLS the row's main axis and reflows while the top-aligned
+        // row holds the control on the first line (#1201). The row's `minWidth` floor is what gives the fill
+        // something to resolve against — `anatomyErrors` requires it.
+        wrap: true,
+        note: 'The accessible name AND the second half of the hit target. Rich content in code; a plain text node in Figma. It WRAPS to a second line rather than overflowing (#1424) — it fills the row\'s main axis and reflows. Note that the accessible name of the CHOICE is the group\'s label, which no part here can carry — an option label alone announces "radio button, 1 of 3" with no indication of what is being chosen.',
       },
     },
     codeOnly: [

@@ -387,5 +387,45 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #1424: THE WRAPPING LABEL, READ BACK OFF THE BUILT NODE — HOST-TRUTH ────────────────────────
+//
+// The row's label must FILL its main axis and WRAP (Prism 2's radio-button-row / checkbox-row), and the
+// control must stay FIXED so a wrapping label never shrinks or stretches it. The generic diff above already
+// checks each of these plan fields against the built node (plan-as-oracle: `layoutGrow`/`textAutoResize`
+// classified in `anatomy-readback.ts`), which catches an executor that fails to write them. What it CANNOT
+// catch is a def that silently STOPS wrapping — drop `wrap` and the plan no longer carries the fields, so
+// plan-vs-built still agrees on their absence. This block closes that with an oracle authored HERE and
+// nowhere else — the owner-decided fact that these two rows wrap — so a `wrap` removed from either def
+// diverges from this and fails BY NAME (docs/34). It builds through the shared shim exactly as the corpus
+// loop does, then reads each row's label and controlBox back off the host.
+{
+  const WRAPS = ['radio', 'checkbox-row'];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+  const findByName = (n: any, name: string): any => (n?.name === name ? n : (n?.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+  for (const id of WRAPS) {
+    const def = componentDefs.find((d) => d.id === id);
+    ok(!!def, `#1424 host-truth: the ${id} def is registered and projects`);
+    if (!def) continue;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const labels = members.map((m) => findByName(m, 'label'));
+    const controlBoxes = members.map((m) => findByName(m, 'controlBox'));
+    // SCOPE FLOOR — a label was built into every member, or "they all wrap" is a statement about an empty set.
+    ok(members.length > 0 && labels.every(Boolean),
+      `#1424 host-truth: ${id} builds a label into every member (${labels.filter(Boolean).length}/${members.length})`);
+    // THE LABEL FILLS AND WRAPS — read back off the built node (both facts, since either alone does not wrap).
+    ok(labels.length > 0 && labels.every((l) => l.layoutGrow === 1 && l.textAutoResize === 'HEIGHT'),
+      `#1424 host-truth: every ${id} label reads back layoutGrow=1 + textAutoResize=HEIGHT — it fills the row and wraps (e.g. layoutGrow=${String(labels[0]?.layoutGrow)}, textAutoResize=${String(labels[0]?.textAutoResize)})`);
+    // THE CONTROL STAYS FIXED — it does not grow (layoutGrow 0) and its cross axis is FIXED, so the wrapping
+    // label never shrinks or stretches it.
+    ok(controlBoxes.length > 0 && controlBoxes.every((c) => c && c.layoutGrow !== 1 && c.counterAxisSizingMode === 'FIXED'),
+      `#1424 host-truth: every ${id} controlBox reads back fixed/hug — layoutGrow≠1 (${String(controlBoxes[0]?.layoutGrow)}) and counterAxisSizingMode=FIXED (${String(controlBoxes[0]?.counterAxisSizingMode)})`);
+  }
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);
