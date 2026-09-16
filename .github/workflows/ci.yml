@@ -728,6 +728,16 @@ jobs:
       - name: The component nesting graph resolves and is acyclic
         run: npx --yes tsx@4 packages/engine/lint-nesting.ts
 
+      # #1443: every interactive control presents a >=44px hit target (WCAG 2.5.5), or is on one of two
+      # named allowlist tiers — the one PERMANENT exception (small button, owner-decided) or the
+      # TRACKED-GAP tier (sub-44 controls filed under #1453). EXPECTED is the 44 floor as a literal (NOT
+      # scale.ts's AAA_TARGET_PX, which the emitter uses — that would be x>=x); ACTUAL is the px of the
+      # token each control actually binds, resolved from a fresh tree per brand, so a reverted binding
+      # drops below the floor and fails BY NAME. Every def is represented (measured or excluded with a
+      # reason), so a new sub-44 control cannot arrive unseen, and a fixed gap fails by name.
+      - name: Interactive controls meet the 44px hit-target floor
+        run: npx --yes tsx@4 packages/engine/lint-hit-target.ts
+
       # THE SECOND DIRECTION (#865). Every write the component executor makes is verified by a read-back
       # — set the value, read it, report a miss if the host did not keep it. Nothing verified what it did
       # NOT write, and a Figma node is never silent: a property no def mentioned kept Figma's own default

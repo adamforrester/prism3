@@ -817,6 +817,17 @@ npx tsx packages/engine/lint-nesting.ts             # the component NESTING grap
                                                     # nothing. NOT an ORDER gate — index.ts's array order
                                                     # has no consumer (#1226 PR-A item 3), so acyclicity
                                                     # is the real invariant, pinning no one order.
+npx tsx packages/engine/lint-hit-target.ts          # every interactive control presents a >=44px hit
+                                                    # target (WCAG 2.5.5, #1443), or is on one of two
+                                                    # named allowlist tiers: the PERMANENT exception
+                                                    # (small button, owner-decided) or the TRACKED-GAP
+                                                    # tier (sub-44 controls filed under #1453). EXPECTED
+                                                    # is 44 as a LITERAL, not scale.ts's AAA_TARGET_PX
+                                                    # (which the emitter uses — that would be x>=x);
+                                                    # ACTUAL is the px of the token each control binds,
+                                                    # so a reverted binding fails BY NAME. Every def is
+                                                    # represented (measured or excluded with a reason);
+                                                    # a fixed gap or lifted exception fails by name.
 npx tsx packages/engine/lint-advisory-expiry.ts     # a stated advisory window, once it closes, fails
                                                     # the build. The one gate here whose ORACLE IS THE
                                                     # CLOCK: no API, no issue state, no network, and

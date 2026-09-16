@@ -190,6 +190,34 @@ The `code-only` list is the component-tier version of the ceilings discipline `1
 for tokens: some anatomy provably will not survive the Figma leg, and the schema must say so
 **explicitly** rather than lose it silently.
 
+### The 44px interactive hit-target floor (#1443)
+
+An interactive control presents a hit target of at least **44px** — WCAG 2.2 Success Criterion
+2.5.5 (Enhanced) Target Size. The floor is about the **touch/hit area**, not the visual size: a
+control may look smaller than 44px as long as the area that responds to a tap or click clears the
+floor. This is the same optical-box-versus-hit-box distinction the `touch-target-expansion` entry
+above records — the hit area is decoupled from the paint, and the floor is a claim about the hit
+area alone.
+
+A control meets the floor by binding `size.md.min-height` = `max(size.md.height, 44)` on its
+hit-target part, rather than the raw `size.md.height` rung. The rung tracks brand density and reads
+36px on a compact brand — enough for SC 2.5.8's 24px, short of the 2.5.5 enhanced target. `select`
+adopted this first (#1426/#1437); the field-and-row family rollout is tracked in #1437.
+
+**The one documented exception is the small button** (owner, 2026-09-15). A small button knowingly
+sits below the floor, because its density is the reason to reach for it; a consumer choosing it is
+choosing the smaller target. Nothing else is exempt. Interactive controls that read below 44px today
+and are not the small button are **tracked gaps**, filed under #1453 — debt to close, not sanctioned
+exceptions.
+
+`packages/engine/lint-hit-target.ts` enforces this. It measures the token each interactive control
+actually binds, resolves it against a fresh tree per brand, and holds it to a `44` floor written
+independently of the emitter's own constant. Every control is represented — measured, or excluded
+with a stated reason (a nested atom whose target is the row above it, a group whose rows are the
+targets, the fluid multi-line textarea, or a non-interactive part) — so a new control below the floor
+cannot arrive unseen, and the small-button exception and each tracked gap are asserted to still be
+below the floor, so a fix or a lift fails by name rather than staying on the list.
+
 ### 4.1 `nesting` — how a part relates to the component it points at (#681)
 
 The schema above says *which* component a part points at (`nests`, or nothing at all for a
