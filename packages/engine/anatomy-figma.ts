@@ -1465,7 +1465,7 @@ export const figmaAnatomyPlan = (
       ...(p.layout
         ? {
             layoutMode: p.layout.direction === 'row' ? ('HORIZONTAL' as const) : ('VERTICAL' as const),
-            // A travelling child's declared position OVERRIDES the parent's own justify at this
+            // A traveling child's declared position OVERRIDES the parent's own justify at this
             // coordinate (#990) — see `positionOf`. Absent one, the def's justify is projected unchanged,
             // so every existing plan is byte-identical.
             primaryAxisAlignItems: JUSTIFY[positionOf(childNames) ?? p.layout.justify],

@@ -2509,7 +2509,7 @@
  * decision-free calibration). It was ~half Prism 2's scale — a 16px track at aurora's largest switch rung,
  * a thumb half that, failing to read as a switch and leaning on the row for the whole hit target — because
  * it BORROWED the square-control box (`control.size.*.height`) for its track and radio's `dot` for its thumb.
- * The tier now carries the switch's OWN two fields, `track` (its cross-axis edge) and `thumb` (its travelling
+ * The tier now carries the switch's OWN two fields, `track` (its cross-axis edge) and `thumb` (its traveling
  * mark), a SEPARATE density-windowed ladder from the box: the default `md` is Prism 2's 32px track holding a
  * 24px thumb (0.75), pill-cornered, 2px-bordered, at a 2:1 width. `switch-control` rebinds its track height to
  * `.track`, its thumb to `.thumb`, and the glyph follows the (larger) thumb; the `switch` Row rebinds its
@@ -3063,7 +3063,7 @@ export const ENGINE_VERSION = '0.93.0';
  *
  * 10.2.0 — #1425 scales `switch-control` to Prism 2's toggle proportions, ADDING the switch's own two tier
  * fields to the guaranteed surface: `control.size.{sm,md,lg}.track` (its cross-axis edge, a ladder distinct
- * from the square box `height`) and `.thumb` (its travelling mark, 0.75× the track, distinct from radio's
+ * from the square box `height`) and `.thumb` (its traveling mark, 0.75× the track, distinct from radio's
  * `dot`), plus the `core.dimension.{3,18}` primitives the new thumb/inset px promote into every brand's grid
  * (`core.dimension.30`, from comfortable/spacious `lg` thumbs, joins brand-dependent — aurora never reaches it).
  * Additions only — a clean MINOR, layered on main's 10.1.0 (#1426's `size.md.min-height`, which this keeps):

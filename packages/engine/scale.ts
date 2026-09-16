@@ -306,7 +306,7 @@ export const iconSizes = (): IconSizeStep[] => ICON_SIZES.map((s) => ({ ...s }))
 //     clears that floor: 24 at comfortable `lg`, 24/28 at spacious.
 //   · `track` is the SWITCH's own cross-axis edge (#1425), a SEPARATE ladder from the box `height`
 //     above (16/24/32 windowed vs 12/16/20). The switch used to borrow `height` for its track, which is
-//     the undersize #1425 corrects: a track that holds a travelling thumb has to be bigger than a
+//     the undersize #1425 corrects: a track that holds a traveling thumb has to be bigger than a
 //     checkbox square. `md` at the default density is 32 — Prism 2's `toggle-switch.json` track — and
 //     the multiples-of-8 ladder is what keeps the 0.75 thumb and centred inset integer (see the ratio
 //     constants below).
@@ -315,7 +315,7 @@ export const iconSizes = (): IconSizeStep[] => ICON_SIZES.map((s) => ({ ...s }))
 //     all exactly 2:1 — and doubling an on-grid track stays on-grid by construction. It is NOT a brand
 //     lever: a `control.track-ratio` token was the named hedge if #900 had gone the other way, and it
 //     did not. Only the switch reads `width`; a checkbox/radio square uses `height` on both axes.
-//   · `thumb` is 0.75 x `track` (#1425), the switch's own travelling mark — Prism 2's 24-in-32. It is a
+//   · `thumb` is 0.75 x `track` (#1425), the switch's own traveling mark — Prism 2's 24-in-32. It is a
 //     SEPARATE ratio from `dot` (radio's), the split the #997 inset header flagged as deferred.
 //   · `dot` is HALF `height`, and the field does NOT converge on that — the honest reading of the
 //     evidence is the reason to state it as a ratio anyway. Three shipping radios: Material 3 at
@@ -345,7 +345,7 @@ const CONTROL_TRACK_RATIO = 2;
 /** The inner mark's share of the box — `dot` = this x `height`. NOT field-convergent (see above): it
  *  is the ratio whose every rung stays an integer, keeps the ladder's floor legible, and puts the
  *  resulting GAP inside the range the field does agree on. Read by RADIO (its dot); the switch's own
- *  travelling mark is `thumb`, a separate, larger ratio (see `SWITCH_THUMB_RATIO`). */
+ *  traveling mark is `thumb`, a separate, larger ratio (see `SWITCH_THUMB_RATIO`). */
 const CONTROL_DOT_RATIO = 0.5;
 
 /** THE SWITCH TRACK HEIGHT ladder (#1425) — the switch's own cross-axis edge, DISTINCT from the box
@@ -408,7 +408,7 @@ export type ControlSizeStep = { name: string; height: number; width: number; dot
  *  (12–28 windowed, dot = half). `track`/`thumb`/`width`/`inset` are the switch's non-square TRACK
  *  (16–48 windowed, thumb = 0.75, width = 2× track, inset centres the thumb). They share a rung name and
  *  a density window and nothing else — a switch is bigger than a checkbox because a track that holds a
- *  travelling thumb has to be, which is the whole of #1425. */
+ *  traveling thumb has to be, which is the whole of #1425. */
 export const controlSizes = (density: Density): ControlSizeStep[] =>
   CONTROL_NAMES.map((name, i) => {
     const height = CONTROL_RUNGS[DENSITY_START[density] + i];

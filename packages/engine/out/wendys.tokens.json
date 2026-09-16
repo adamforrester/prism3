@@ -20553,7 +20553,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.8}",
-            "$description": "control.size.sm dot — 8px inner mark for a RADIO's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's travelling thumb reads `thumb` instead.",
+            "$description": "control.size.sm dot — 8px inner mark for a RADIO's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -20579,7 +20579,7 @@
           "track": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.24}",
-            "$description": "control.size.sm track — 24px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a travelling thumb. A checkbox/radio does not read it.",
+            "$description": "control.size.sm track — 24px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -20592,7 +20592,7 @@
           "thumb": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.18}",
-            "$description": "control.size.sm thumb — 18px travelling thumb for a switch (0.75 × the 24px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$description": "control.size.sm thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -20658,7 +20658,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.10}",
-            "$description": "control.size.md dot — 10px inner mark for a RADIO's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's travelling thumb reads `thumb` instead.",
+            "$description": "control.size.md dot — 10px inner mark for a RADIO's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -20684,7 +20684,7 @@
           "track": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.32}",
-            "$description": "control.size.md track — 32px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a travelling thumb. A checkbox/radio does not read it.",
+            "$description": "control.size.md track — 32px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -20697,7 +20697,7 @@
           "thumb": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.24}",
-            "$description": "control.size.md thumb — 24px travelling thumb for a switch (0.75 × the 32px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$description": "control.size.md thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -20763,7 +20763,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.12}",
-            "$description": "control.size.lg dot — 12px inner mark for a RADIO's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's travelling thumb reads `thumb` instead.",
+            "$description": "control.size.lg dot — 12px inner mark for a RADIO's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -20789,7 +20789,7 @@
           "track": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.40}",
-            "$description": "control.size.lg track — 40px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a travelling thumb. A checkbox/radio does not read it.",
+            "$description": "control.size.lg track — 40px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -20802,7 +20802,7 @@
           "thumb": {
             "$type": "dimension",
             "$value": "{wds.core.dimension.30}",
-            "$description": "control.size.lg thumb — 30px travelling thumb for a switch (0.75 × the 40px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$description": "control.size.lg thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",

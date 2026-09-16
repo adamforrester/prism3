@@ -758,16 +758,16 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.track}px \`track\` height, the field-convergent 2:1 track ratio). A square control uses \`height\` on both axes and does not read this.`);
     // The INNER mark, half the box edge (#910). Read by RADIO — its dot. A checkbox does not read it: its
     // mark is a `vector` whose optical inset is already inside the glyph artboard, so it draws full
-    // bleed at `height` and a second dimension would inset it twice. A switch's travelling mark is
+    // bleed at `height` and a second dimension would inset it twice. A switch's traveling mark is
     // `thumb`, a separate, larger ratio (#1425) — a switch is not a radio scaled down.
-    const dotLeaf = controlLeaf(c.dot, `control.size.${c.name} dot — ${c.dot}px inner mark for a RADIO's dot (half the ${c.height}px box edge, leaving a ${(c.height - c.dot) / 2}px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at \`height\`; a switch's travelling thumb reads \`thumb\` instead.`);
+    const dotLeaf = controlLeaf(c.dot, `control.size.${c.name} dot — ${c.dot}px inner mark for a RADIO's dot (half the ${c.height}px box edge, leaving a ${(c.height - c.dot) / 2}px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at \`height\`; a switch's traveling thumb reads \`thumb\` instead.`);
     // THE SWITCH TRACK HEIGHT (#1425) — the switch's own cross-axis edge, DISTINCT from the square box
     // `height` above. Grounded on Prism 2's `toggle-switch.json` (a 32px track at the default `md`), so a
-    // track that holds a travelling thumb is sized as a track rather than borrowed from a checkbox square.
-    const trackLeaf = controlLeaf(c.track, `control.size.${c.name} track — ${c.track}px track HEIGHT for a switch (Prism 2's 32px toggle at the default \`md\`; density: ${theme.dims.density}). The switch's own cross-axis edge, larger than the ${c.height}px square-control \`height\` because a track holds a travelling thumb. A checkbox/radio does not read it.`);
-    // THE SWITCH THUMB (#1425) — the travelling mark, 0.75 × the track (Prism 2's 24-in-32), a SEPARATE
+    // track that holds a traveling thumb is sized as a track rather than borrowed from a checkbox square.
+    const trackLeaf = controlLeaf(c.track, `control.size.${c.name} track — ${c.track}px track HEIGHT for a switch (Prism 2's 32px toggle at the default \`md\`; density: ${theme.dims.density}). The switch's own cross-axis edge, larger than the ${c.height}px square-control \`height\` because a track holds a traveling thumb. A checkbox/radio does not read it.`);
+    // THE SWITCH THUMB (#1425) — the traveling mark, 0.75 × the track (Prism 2's 24-in-32), a SEPARATE
     // ratio from radio's `dot` (0.5). This is the split the #997 inset header flagged as deferred.
-    const thumbLeaf = controlLeaf(c.thumb, `control.size.${c.name} thumb — ${c.thumb}px travelling thumb for a switch (0.75 × the ${c.track}px \`track\`, Prism 2's toggle proportion). Larger than a radio's \`dot\` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.`);
+    const thumbLeaf = controlLeaf(c.thumb, `control.size.${c.name} thumb — ${c.thumb}px traveling thumb for a switch (0.75 × the ${c.track}px \`track\`, Prism 2's toggle proportion). Larger than a radio's \`dot\` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.`);
     // The GAP between the thumb and the track's boundary (#997), and the field that stops a switch's
     // thumb sitting FLUSH at both ends of its track. The thumb is a flow child of a fixed-size track
     // positioned by `positionWhen` onto the track's main-axis distribution, so MIN and MAX put its edge

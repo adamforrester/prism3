@@ -1170,7 +1170,7 @@ for (const b of brands) {
 // `CONTROL_RUNGS` and `DENSITY_START` are the subject; a table derived from either could not fail when
 // they move. This is the whole ladder, all three densities, as px:
 {
-  // #1425 added `track` + `thumb` (the switch's OWN track height and travelling thumb, DISTINCT from the
+  // #1425 added `track` + `thumb` (the switch's OWN track height and traveling thumb, DISTINCT from the
   // square box `height`/`dot` a checkbox/radio reads) and rebased `width` onto `2× track` and `inset` onto
   // `(track − thumb) / 2`. The whole ladder, all three densities, as px — box fields and switch fields
   // side by side, authored here so a mutation of either ladder or any ratio fails against a table that
@@ -1289,7 +1289,7 @@ for (const b of brands) {
     ok(new Set(tracks).size === 3 && tracks.every((t, i) => i === 0 || t > tracks[i - 1]),
       `#1425 ${density}: three DISTINCT, strictly increasing switch tracks — the windowed ladder, not a clamped shift (${tracks.join('/')})`);
     const notBigger = CONTROL_RUNG_NAMES.filter((n) => (px(grp, n, 'track') ?? NaN) <= (px(grp, n, 'height') ?? NaN));
-    ok(notBigger.length === 0, `#1425 ${density}: every switch \`track\` is TALLER than the square box \`height\` — a track that holds a travelling thumb is not a checkbox square (the undersize #1425 fixes)`
+    ok(notBigger.length === 0, `#1425 ${density}: every switch \`track\` is TALLER than the square box \`height\` — a track that holds a traveling thumb is not a checkbox square (the undersize #1425 fixes)`
       + (notBigger.length ? ` — NOT BIGGER: ${notBigger.join(', ')}` : ''));
 
     // #1425 — `thumb` is 0.75× the TRACK (Prism 2's 24-in-32), the switch's own mark and a SEPARATE ratio
@@ -1302,7 +1302,7 @@ for (const b of brands) {
     const thumbs = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'thumb') ?? NaN);
     ok(thumbs.every((t) => Number.isInteger(t)), `#1425 ${density}: every switch \`thumb\` is a whole px — a half-px thumb cannot be centred on the grid (${thumbs.join('/')})`);
     const thumbRatios = CONTROL_RUNG_NAMES.map((n) => (px(grp, n, 'thumb') ?? NaN) / (px(grp, n, 'track') ?? NaN));
-    ok(thumbRatios.every((r) => r > 0.5 && r < 1), `#1425 ${density}: the thumb-to-track proportion sits strictly between a radio dot (0.5) and the whole track — it reads as a travelling thumb (${thumbRatios.map((r) => r.toFixed(2)).join('/')})`);
+    ok(thumbRatios.every((r) => r > 0.5 && r < 1), `#1425 ${density}: the thumb-to-track proportion sits strictly between a radio dot (0.5) and the whole track — it reads as a traveling thumb (${thumbRatios.map((r) => r.toFixed(2)).join('/')})`);
 
     // #1425 — `inset` is `(track − thumb) / 2` (the thumb centred in the track, its clearance at each
     // end), rebased off `(height − dot) / 2`. Derived from the two SWITCH fields, so it cannot drift from
@@ -12913,7 +12913,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `layout.justify` already put it. So the symptom is a switch whose thumb does not travel — visible
       // only by looking at two members of the set side by side, which no gate downstream does. Every rule
       // was deleted from `anatomyErrors` in turn and the matching line here confirmed to fail BY NAME.
-      // Patched onto `switch-control`, the def that carries the travelling thumb since #1354 (it moved
+      // Patched onto `switch-control`, the def that carries the traveling thumb since #1354 (it moved
       // off the `switch` ROW with the painted surface). The text-part arms below stay on the ROW's `label`,
       // the only text part in the family.
       const swPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(switchControl, part, patch);
@@ -12975,7 +12975,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // which reads in the def as though it had been.
       ibBroke('naming a position for only SOME values fails — the rest fall back to a field that does not mention this part', /names no position for \[on\]/, swPart('thumb', { positionWhen: { selection: { off: 'start' } } }));
       // ALL THE SAME POSITION is `layout.justify` wearing a condition's clothes — the one rule here whose
-      // symptom is a part that reads as travelling and projects as static.
+      // symptom is a part that reads as traveling and projects as static.
       ibBroke('the same position at every value fails as a no-op', /positions itself 'start' at every value of 'selection'/, swPart('thumb', { positionWhen: { selection: { off: 'start', on: 'start' } } }));
 
       // The NON-SQUARE BOX rules (#990). `width` is what a 2:1 track needs and `size` is what a square
@@ -15425,7 +15425,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // an empty set — `docs/34` shape 15, the same shape the CONTROL_DEFS scope above was widened for.
   const positionedDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.positionWhen));
-  // #1354 moved the travelling thumb to `switch-control`, so the def with a `positionWhen` part is the atom.
+  // #1354 moved the traveling thumb to `switch-control`, so the def with a `positionWhen` part is the atom.
   const POSITIONED_EXPECTED = ['switch-control'];
   ok(POSITIONED_EXPECTED.every((n) => positionedDefs.some((d) => d.id === n)) && positionedDefs.length === POSITIONED_EXPECTED.length,
     `#990 the positionWhen projection rule below covers exactly [${POSITIONED_EXPECTED.join(', ')}] — a def gaining a variant-positioned part must be represented here, and a def losing one is a stale claim (found: ${positionedDefs.map((d) => d.id).join(', ') || 'none'})`);
@@ -15505,7 +15505,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `#997 ${def.id}: '${parent}' pads BOTH main-axis ends with one variable at ${axis}=${v}, so '${name}' clears the end it is distributed to — an alignment has no offset, so padding is the only source of clearance and without it the part is flush (got ${mainEnds.map((e) => `${e}=${b[e] ?? 'unbound'}`).join(', ')})`);
 
         // …and the clearance is the RIGHT SIZE, resolved to px. A padding that exists but does not relate
-        // to the travelling part would satisfy the arm above while leaving the part cramped or overflowing.
+        // to the traveling part would satisfy the arm above while leaving the part cramped or overflowing.
         // The cross axis is the checkable one: the padded box must be exactly the part, or the part is not
         // centred in the track it slides along.
         const asPath = (figName?: string) => figName?.split('/').join('.');
@@ -15524,7 +15524,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // the same claim read out of the PROJECTION, which is where a projector that silently collapsed the
       // travel (a stale `JUSTIFY` lookup, a `??` reversed) would show up.
       ok(seen.size > 1,
-        `#990 ${def.id}: '${name}' occupies MORE THAN ONE place across '${axis}' — a projection that resolved every value to '${[...seen][0]}' is a part that reads as travelling and renders as static, and no node count, paint assignment or census can tell the difference (got ${seen.size} distinct: ${[...seen].join(', ')})`);
+        `#990 ${def.id}: '${name}' occupies MORE THAN ONE place across '${axis}' — a projection that resolved every value to '${[...seen][0]}' is a part that reads as traveling and renders as static, and no node count, paint assignment or census can tell the difference (got ${seen.size} distinct: ${[...seen].join(', ')})`);
       // THE UNSUPPLIED AXIS, the third direction the projected set cannot reach: a structure-only plan is
       // legal (the partial-coordinate guard throws only when SOME of a template's axes are missing), and it
       // must fall back to the parent's DECLARED justify rather than to the first entry of the map. Asserting
@@ -15880,12 +15880,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //      (`color.background.inverse.primary` → `color.appearance.…`); #1133 retired one and #1140 emptied
   //      the rest, because `replacedBy` follows the LIVE name by rule, so relocating the inverse marker
   //      gave each of those entries a role delta on top of the tier delta and they began projecting like
-  //      any other rename. #1148 REMOVES the segment, so its 243 entries are tier-only travelling the
+  //      any other rename. #1148 REMOVES the segment, so its 243 entries are tier-only traveling the
   //      other way (`color.appearance.background.primary` → `color.background.primary`).
   //      **SO THE PREDICATE IS TWO PREDICATES, AND WAS ONE UNTIL THIS CHANGE.** The arm read only
   //      `replacedBy === color.appearance.<path tail>` — #1013's direction — which #1148 leaves matching
   //      nothing at all while 243 live entries take the identical skip. A bucket asserted EMPTY by a
-  //      predicate aimed at a direction the data has stopped travelling in is `docs/34` shape 9 wearing a
+  //      predicate aimed at a direction the data has stopped traveling in is `docs/34` shape 9 wearing a
   //      green tick, and it would have shipped: the arm's other half, the constructed pair, still passes.
   //      The two halves are counted separately below (0 and 243) so neither can cover for the other, and
   //      the ADDING half keeps its constructed pair for exactly the reason it had one at zero.

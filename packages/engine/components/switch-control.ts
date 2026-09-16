@@ -1,6 +1,6 @@
 /**
  * Switch.Control — the ATOMIC track-and-thumb (#1354, the #1226/#1330 mechanism a third time). The
- * painted pill, its travelling thumb, the state glyph in that thumb, and the focus ring — extracted
+ * painted pill, its traveling thumb, the state glyph in that thumb, and the focus ring — extracted
  * from `switch` so the labelled Row NESTS it rather than redraws it, exactly as `checkbox` nests
  * `checkbox-control`. A fix to the track (its border weight, its fill grammar) or the thumb (its
  * travel, its glyph) now propagates to the Row by single-sourcing rather than by a copy kept in step
@@ -19,7 +19,7 @@
  *
  * ── WHAT MOVED HERE, AND WHY THE ROW STILL EXISTS ──────────────────────────────────────────────────
  *
- * Everything that PAINTS the control: the track (fill + border), the thumb (the travelling indicator
+ * Everything that PAINTS the control: the track (fill + border), the thumb (the traveling indicator
  * disc) and the focus ring, rooted at `track`. The Row keeps what is the Row's — the label, the
  * label-to-control gap, the row's floor, and the `trackBox` line-box wrapper that centers the control
  * against the first line of a wrapping label (#1201). This atom knows nothing about labels or hit
@@ -98,7 +98,7 @@ export const switchControl: ComponentDef = {
   category: 'form',
   status: 'draft',
   description:
-    'The atomic switch control — the painted pill track, its travelling thumb, the X/checkmark state glyph in that thumb, and the focus ring, and nothing else. Nested by the labelled Switch row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the two-value selection axis (off / on) whose thumb POSITION is the part that varies, the off-track border that is load-bearing for WCAG 1.4.11, and the 2px control border.',
+    'The atomic switch control — the painted pill track, its traveling thumb, the X/checkmark state glyph in that thumb, and the focus ring, and nothing else. Nested by the labelled Switch row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the two-value selection axis (off / on) whose thumb POSITION is the part that varies, the off-track border that is load-bearing for WCAG 1.4.11, and the 2px control border.',
 
   // The atom's surface, not the field's. No `label`, no `description`, no form wiring — those are the
   // Row's. `showStateLabel` lives here because it gates a part of this atom (the thumb glyph); the Row
@@ -214,7 +214,7 @@ export const switchControl: ComponentDef = {
   // varies (`positionWhen`), not two parts that take turns — a code projection reads one element that
   // translates. The thumb carries the state glyph (a check at on, an X at off) as children, which travel
   // with it. The focus ring is an absolute sibling nesting the shared `focus-ring`, on the TRACK (a ring
-  // travelling with the thumb would read as two indicators).
+  // traveling with the thumb would read as two indicators).
   anatomy: {
     root: 'track',
     parts: {
@@ -320,7 +320,7 @@ export const switchControl: ComponentDef = {
       '4.1.2 Name Role Value (carried by the host; this atom is presentational when nested)',
     ],
     keyboard: 'None of its own — the atom is not a tab stop. Focus, Space-to-toggle and the tab order belong to the host input; the ring here renders the host\'s `:focus-visible` state.',
-    focus: 'The nested focus ring surrounds the TRACK on `:focus-visible`, never the thumb (the thumb moves, so a ring travelling with it reads as two indicators). Offset, keyboard traversal only.',
+    focus: 'The nested focus ring surrounds the TRACK on `:focus-visible`, never the thumb (the thumb moves, so a ring traveling with it reads as two indicators). Offset, keyboard traversal only.',
     aria: 'When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `switch`, announced "on"/"off"; putting `aria-pressed` on it corrupts the announcement (that is a toggle button). The glyph is decorative (`aria-hidden`) — the role+state already carries on/off.',
   },
 
@@ -347,7 +347,7 @@ export const switchControl: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'Render the atomic switch control — the painted pill, its travelling thumb, the X/checkmark state glyph and the focus ring — for a host row to nest.',
+    primaryPurpose: 'Render the atomic switch control — the painted pill, its traveling thumb, the X/checkmark state glyph and the focus ring — for a host row to nest.',
     whenToUse: 'Nested by the labelled Switch row (the common case), or standalone only for a control with an external label and its own aria wiring.',
     avoidWhen: 'You want the labelled case (that is Switch), a staged binary submitted with a form (Checkbox / Checkbox.Control), or a mutually-exclusive one-of-many (Radio). Never place a bare track as the clickable element — the hit target is the labelled row.',
     commonPartners: ['switch', 'focus-ring'],

@@ -320,7 +320,7 @@ export const select: ComponentDef = {
         // its text and a `justify: 'start'` control let the chevron track the value width — the QA symptom.
         // `space-between` distributes the two flow children (`content`, the absolute `focusRing` takes no
         // cell) to the control's ends, so the chevron sits at the right edge at every value length on BOTH
-        // surfaces. `positionWhen` does not override this here (no travelling child), so the projected
+        // surfaces. `positionWhen` does not override this here (no traveling child), so the projected
         // `primaryAxisAlignItems` is `SPACE_BETWEEN` at every member.
         layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'fixed' } },
         height: 'min-height',
