@@ -2786,6 +2786,42 @@
  * component surface (select's overlay paint), both ENGINE-version triggers (#1252). Provisional integer —
  * a rebase relay reassigns it to the true next-free above main before merge.
  *
+ * 0.99.0 — #1427: icon-button follows Button 1:1 apart from the `shape` axis — a new `surface` axis + the
+ * glyph ink walking state. TWO decision-free fixes from the Figma-import QA (2026-09-15), across all three
+ * families (icon-button / -destructive / -neutral, the shared `makeIconButton` factory): (1) the GLYPH INK
+ * now walks state on `outline`/`text` (it was pinned to `.rest` while the container's edge/overlay moved —
+ * Button's #1282/#1351 change reaching the icon-only control; the roles `iText` already emits, three keys
+ * per appearance were missing), and (2) a new `surface` variant axis (default/inverse), APPENDED after
+ * `shape` so the three axes Button shares keep their order and `shape` stays the icon-button-specific one.
+ * The inverse members inherit #1384's white-inverse model 1:1 with the ICON as the "ink": the projector's
+ * `color.* → color.inverse.*` rewrite (keyed on the `surface` axis by NAME) binds the SHARED
+ * `inverse.interactive.<family>.fill` role #1384 made white, so an inverse icon-button is white fill + a
+ * per-family icon-ink (the inverse on-fill, which #1384 GATE B floors ≥4.5 on white) — inherited, NOT
+ * re-minted. NO hover-wash on the inverse fill: #1384 made it FLAT and deferred the wash as a separate
+ * OWNER decision (still pending), so the inverse icon-button fill is flat too, matching #1384's buttons.
+ * Each set doubles 108 → 216. Provisional integer — a rebase relay reassigns it to the true next-free
+ * above main before merge (provisional off main's 0.98.0). ENGINE trigger: the projected component surface
+ * moves (a new variant axis + per-state glyph ink), a `lint-component-surface` #1252 trigger; `out/**` is
+ * stamp-only.
+ *
+ * CONTRACT STANDS at 10.3.0 (NOT the orchestrator's provisional 10.4.0). A variant axis is a
+ * component-PROJECTION change, not a token EMISSION change: it adds no guaranteed token NAME (the inverse
+ * roles it binds — `color.inverse.interactive.<family>.*` — already ship, bound by Button since #1134). So
+ * `token-contract.ts --check` shows guaranteed 587 unchanged and "no guaranteed path moved — no version bump
+ * required"; `--accept` refreshes only the informational `engineVersion` stamp (0.98.0 → 0.99.0). The
+ * objective gate result settles the bump, not the provisional guess (the #1384/#1429 precedent), and it is
+ * the exact #1353 shape-axis precedent (adding a variant axis kept CONTRACT put). `lint-component-surface`
+ * and `paint-census` re-accept at the forward bump (icon-button's set grows and its per-state ink coordinates
+ * move).
+ *
+ * SAFETY NET (docs/34): `test.ts`'s #1427 block pins the axis vocabulary/default, the ×2 surface partition,
+ * the white-inverse fill/on-fill inheritance BY the shared role name (connecting the projection to #1384 GATE
+ * A/B), the per-state glyph ink over 3 families × {outline,text} × {hover,pressed}, and the focus-ring's
+ * `follow: ['surface']`. Two mutation arms flip a NAMED assertion on the SUBJECT: ARM A pins outline.icon.hover
+ * back to text.rest (the ink goes static → the per-state assertion fails), ARM B drops the surface axis (no
+ * surface=inverse member enumerated → the doubling assertion fails). The #1384 GATE A/B stay valid unchanged
+ * — they assert the shared token roles icon-button now binds, so they cover it by construction.
+ *
  * 0.98.0 — #1384: WHITE is the DEFAULT inverse fill for every button family. The inverse REST fill was a
  * brand-tinted neutral 050/850 step (#1208/#1389); the owner's QA read that as "not white", so the resting
  * inverse fill is now the CRISP ABSOLUTE `core.palette.white` / `core.palette.black` literal-color sentinel
@@ -2804,7 +2840,7 @@
  * name — it was not, so the contract stands at 10.3.0, settled by the empty `token-contract --accept` diff
  * (the #1429 precedent: the objective gate result decides the bump, not the provisional guess).
  */
-export const ENGINE_VERSION = '0.98.0';
+export const ENGINE_VERSION = '0.99.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

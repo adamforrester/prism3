@@ -17,7 +17,8 @@
  * shared anatomy. This is the icon-only counterpart of #1223/#1224's split of Button: intent used to be a
  * variant axis crossing appearance × size × state; splitting it gives three sets whose only difference is the
  * `interactive.<family>` color binding (each was 54 members at #1225, doubled to 108 once #1353 added the
- * `shape` axis — see `figmaProperties`). Appearance is STILL
+ * `shape` axis, and doubled again to 216 once #1427 added the `surface` axis — see `figmaProperties`).
+ * Appearance is STILL
  * the emphasis axis within each component (filled > outline > text). `icon-button` keeps its id and is the
  * primary component; `icon-button-destructive` and `icon-button-neutral` are its siblings. `lint-axis-values.ts`
  * had scoped its `intent` register entry to `['icon-button']` alone, provisionally, naming this exact open
@@ -45,9 +46,9 @@ type IntentFamily = 'primary' | 'neutral' | 'destructive';
  * The keys drop the intent segment the grammar used to lead with. With intent FIXED per component it is no
  * longer a coordinate, so `paintKeys` is `{appearance}.{slot}.{state}` / `{appearance}.{slot}` and these keys
  * match it. This is Button's `intentTokens` MINUS the label — an icon-only control has no `label` slot, so
- * there are no `filled.label` / `outline.label.*` / `text.label` keys, and the outline ink is bound at REST
- * only (this def never carried #1282's per-state outline ink, which was a Button-only change; the split
- * preserves that exactly rather than aligning the two). `disabled.*` is cross-cutting (intent-independent,
+ * there are no `filled.label` / `outline.label.*` / `text.label` keys; the glyph ink now carries state on
+ * `outline`/`text` exactly as Button's label/icon does (#1427 — the icon-only control had held it at
+ * `.rest`, the QA-found gap this closes). `disabled.*` is cross-cutting (intent-independent,
  * docs/20 §7) and lives in the shared token block, not here — its identity across all three components is
  * the whole reason the split loses no coverage.
  */
@@ -58,15 +59,27 @@ const iconButtonIntentTokens = (family: IntentFamily): Record<string, string> =>
   'filled.fill.pressed': `color.interactive.${family}.fill.pressed`,
   'filled.icon': `color.interactive.${family}.on-fill`,
   // outline — the EDGE carries state (#576), so all three rather than letting hover/pressed fall to rest.
-  // The glyph ink is bound at REST only, deliberately: unlike Button (#1282), this def never gave the ink
-  // per-state bindings, and the split PRESERVES that rather than adding them (a separate question, #1282's
-  // reasoning is Button-specific — its ink had to track a moving border it surrounds).
   'outline.border': `color.interactive.${family}.border.rest`,
   'outline.border.hover': `color.interactive.${family}.border.hover`,
   'outline.border.pressed': `color.interactive.${family}.border.pressed`,
+  // THE GLYPH INK CARRIES STATE TOO (#1427), reversing the icon-button-only pin that held it at `.rest`.
+  // This is Button's #1282/#1351 change reaching the icon-only control: the QA (2026-09-15) found the icon
+  // ink static across states for `outline`/`text` while the container's edge and overlay wash moved, so an
+  // outline icon-button's border stepped on hover/pressed while its glyph did not, and a text icon-button's
+  // glyph sat unchanged while the overlay wash lightened the ground beneath it — the same composited-contrast
+  // collapse Button measured (#1351). The roles were already there — `iText` emits `text.{rest,hover,pressed}`
+  // (#576), the very candidates `border` above consumes by value — so the glyph now walks the SAME three
+  // steps the label does on Button: nothing new in the token tier, three keys per appearance were missing
+  // here. Neutral's ink is `walkable: false`, so its three states collapse onto rest exactly as the border
+  // does — no change to a neutral icon-button.
   'outline.icon': `color.interactive.${family}.text.rest`,
-  // text — ink only; hover/pressed are the translucent overlay wash on the container.
+  'outline.icon.hover': `color.interactive.${family}.text.hover`,
+  'outline.icon.pressed': `color.interactive.${family}.text.pressed`,
+  // text — the glyph ink walks state (#1427, as `outline` above); hover/pressed also carry the translucent
+  // overlay wash on the container.
   'text.icon': `color.interactive.${family}.text.rest`,
+  'text.icon.hover': `color.interactive.${family}.text.hover`,
+  'text.icon.pressed': `color.interactive.${family}.text.pressed`,
   // outline/text hover is the overlay wash — a fill on the target node, because neither appearance has a
   // fill to change. Both states keyed, or a pressed member falls back to rest and projects identical to it.
   'outline.overlay.hover': `color.interactive.${family}.overlay.hover`,
@@ -101,6 +114,7 @@ const makeIconButton = (id: string, name: string, description: string, family: I
     { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'text', required: false, description: 'Default text — icon-only actions usually sit in toolbars, not as filled CTAs. Emphasis is the appearance axis; the color is the COMPONENT (IconButton / Destructive IconButton / Neutral IconButton).' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Square control; height drives both dimensions.' },
     { name: 'shape', type: "enum: 'square' | 'circular'", values: ['square', 'circular'], default: 'square', required: false, description: 'The corner silhouette — PURE GEOMETRY (#1353, owner-decided 2026-09-10). `square` is the button\'s normal rounded rectangle (`radius.md`); `circular` is full-round (`radius.round`), the tap target read as a disc. NO color, state, or token difference between the two — only the corner radius — which is why it is a clean 2-value axis and not a component split (contrast #1225, where each intent carried a different `interactive.<family>` binding). Both stay square in dimension (height drives width); shape rounds the corners, it does not change the box.' },
+    { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the icon-button sits on (#1427 — following Button 1:1). `default` for a normal page; `inverse` for a dark or brand-filled band, where the control binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon-button inherits #1384\'s white-inverse model with the ICON as the ink: white fill + a per-family icon-ink derived to clear AA on white. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Inherited — swap the icon for a spinner, keep focus, announce busy.' },
     { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Inherited — focusable disabled for relevant-but-blocked actions.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Inherited — native disabled, reserved for irrelevant controls.' },
@@ -120,6 +134,17 @@ const makeIconButton = (id: string, name: string, description: string, family: I
     // pre-#1353 geometry), and the order here MUST match `figmaProperties.variantAxes` and the
     // `lint-axis-values.ts` register entry.
     shape: ['square', 'circular'],
+    // #1427 — THE INVERSE GROUND, following Button 1:1 (the axis it always lacked; `button` has carried
+    // `surface` since #1134). Like Button, the inverse bindings are NOT in `tokens` below — the projector
+    // rewrites each resolved `color.*` ref to its `color.inverse.*` counterpart at any coordinate where
+    // `surface=inverse` (`anatomy-figma.ts`, keyed on the axis by NAME). So this def declares the axis and
+    // binds only default-ground roles; the transform supplies the inverse half, and the shared
+    // `inverse.interactive.<family>.fill` role #1384 made white is inherited for free — an inverse
+    // icon-button gets a white fill with a per-family icon-ink that clears AA on white. `default` leads
+    // because it is the rest coordinate the inverse rewrite falls through to. APPENDED after `shape` so the
+    // three axes Button shares (appearance/size/surface) keep their relative order and `shape` stays the
+    // one icon-button-specific axis.
+    surface: ['default', 'inverse'],
   },
   // NO `modifiers` AXIS (#845). It held `['pending']` — an axis of one, whose single value is already a
   // value on the state axis, so it modelled one coordinate twice and enumerated no alternatives at all.
@@ -278,14 +303,16 @@ const makeIconButton = (id: string, name: string, description: string, family: I
         // Identical to Button's, and for the identical reason (#801) — the ring's inside-drawn stroke
         // consumes the offset, so the gap needs both numbers. See `PartDef.strokeInset`.
         strokeInset: 'ring-width',
-        // `nest-fixed` at `surface=default` (#681, #1134). NOT inherited from the ring set's default,
-        // which is its first child and therefore an artifact of creation order — #656's inherit-vs-choose
-        // error one layer out. FIXED, not `follow`ed: icon-button has no `surface` axis of its own yet (it
-        // is a later member of the bounded inverse set, docs/20 §9.8), so there is no host coordinate to
-        // pass through — every icon-button nests the default-ground ring. The ring's axis is `surface`
-        // (renamed from `color`, #1134); when icon-button gains its own `surface` axis this becomes
-        // `follow: ['surface']`, the same one line Button carries.
-        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
+        // `nest-fixed` with `follow: ['surface']` (#681, #1134, #1427). The ring's `surface` FOLLOWS this
+        // icon-button's `surface`: a `surface=inverse` member nests the `surface=inverse` ring, so a control
+        // on a dark band gets the ring tuned for that band — which is what its own 3:1 contract needs
+        // (1.4.11, the reason the ring has the axis). `variant: { surface: 'default' }` is the fallback,
+        // reached only where the host member does not carry `surface` (a structure-only plan). NAMING the
+        // variant is still #681 — the def CHOOSES rather than inheriting the ring set's first child
+        // (creation-order, #656's error one layer out); `follow` only makes the choice per member. This is
+        // the exact one line Button carries — #1427 added icon-button's own `surface` axis, closing the
+        // "icon-button has no surface axis of its own yet" gap this note used to record (docs/20 §9.8).
+        nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['surface'] },
         note: 'The same absolutely-positioned sibling nesting the same shared `focus-ring` as Button, at the same bound offset. Its own stroke is the point: an icon-only control is the most likely to be `appearance=outline` in a dense toolbar, and a ring drawn on the target would have to win that border\'s single stroke away from it.',
       },
     },
@@ -370,16 +397,17 @@ const makeIconButton = (id: string, name: string, description: string, family: I
   //
   // #1225 — `intent` is NO LONGER an axis here. Each of the three icon-button components fixes one family;
   // the former single intent-crossing set is now three per-family sets (IconButton / Destructive IconButton /
-  // Neutral IconButton). #1353 then adds the `shape` axis, so each set is appearance(3) × size(3) × shape(2)
-  // × state(6) = 108 members (54 before the shape axis).
+  // Neutral IconButton). #1353 then adds the `shape` axis and #1427 the `surface` axis, so each set is
+  // appearance(3) × size(3) × shape(2) × surface(2) × state(6) = 216 members (108 before the surface axis,
+  // 54 before the shape axis).
   figmaProperties: {
     // #1353 — `shape` PROJECTS as a variant axis, so a designer picks square/circular in the Figma set the
     // same way they pick appearance/size. Appended after `size` (declaration order is the order Figma shows
-    // the properties and `planComponentName` writes them), so the set is now appearance(3) × size(3) ×
-    // shape(2) × state(6) = 108 members per icon-button component (was 54, so the axis exactly DOUBLES it).
-    // The order MUST match `variants`
-    // and the `lint-axis-values.ts` register.
-    variantAxes: ['appearance', 'size', 'shape'],
+    // the properties and `planComponentName` writes them). #1427 then APPENDS `surface` (default/inverse),
+    // following Button 1:1, so the set is now appearance(3) × size(3) × shape(2) × surface(2) × state(6) =
+    // 216 members per icon-button component (was 108 before the surface axis, so it exactly DOUBLES again).
+    // The order MUST match `variants` and the `lint-axis-values.ts` register.
+    variantAxes: ['appearance', 'size', 'shape', 'surface'],
     // Six of the seven states, exactly as Button — `inactive` is admitted in `codeOnly` above rather
     // than dropped. Seven remains right for `states` (the def's truth); six is right for the
     // projection (what a variant can carry).

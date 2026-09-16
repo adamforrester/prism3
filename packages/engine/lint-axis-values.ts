@@ -345,13 +345,17 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'surface',
     values: ['default', 'inverse'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'focus-ring'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'focus-ring'],
     relation: 'sole',
     reason:
       'The ground a control sits on (#1134): `default` the page, `inverse` a dark or brand-filled band. THE '
       + 'ONE name the bounded inverse set uses (docs/20 §9.11), so a host and a component it nests share it '
       + 'by name and can pass it through — `button` carries `surface` and its nested `focus-ring` carries '
-      + '`surface`, which is what lets `button`\'s `follow: [\'surface\']` drive the ring\'s coordinate. '
+      + '`surface`, which is what lets `button`\'s `follow: [\'surface\']` drive the ring\'s coordinate. The '
+      + 'icon-button siblings (`icon-button`, `icon-button-destructive`, `icon-button-neutral`) join the set '
+      + 'in #1427, following `button` 1:1 apart from the `shape` axis — each carries `surface` and drives its '
+      + 'nested `focus-ring` by the same `follow: [\'surface\']`, and its inverse fill inherits the shared '
+      + '`inverse.interactive.<family>.fill` role #1384 made white. '
       + '`focus-ring`\'s axis was `color` until #1134 renamed it here; the two are one entry now because they '
       + 'are one distinction. ORDER matters as everywhere here: `default` is the rest coordinate the '
       + 'projector\'s inverse rewrite falls through to (an `inverse` coordinate binds `color.inverse.*`, a '
