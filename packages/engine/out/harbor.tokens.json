@@ -11265,7 +11265,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white}",
-                "$description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
+                "$description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -11311,34 +11311,34 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "primary interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.100}",
+                "$description": "primary interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.100",
+                    "contrast": 14.05,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 16.7,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.100}",
+                        "aliasOf": "hds.core.palette.neutral.100",
+                        "contrast": 15.2,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 17.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -11358,34 +11358,34 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "primary interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.200}",
+                "$description": "primary interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.200",
+                    "contrast": 10.79,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 12.96,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.200}",
+                        "aliasOf": "hds.core.palette.neutral.200",
+                        "contrast": 11.67,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 13.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -11405,34 +11405,34 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "primary interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.100}",
+                "$description": "primary interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.100",
+                    "contrast": 14.05,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 16.7,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.100}",
+                        "aliasOf": "hds.core.palette.neutral.100",
+                        "contrast": 15.2,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 17.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -11452,34 +11452,34 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "primary interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.200}",
+                "$description": "primary interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.200",
+                    "contrast": 10.79,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 12.96,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.200}",
+                        "aliasOf": "hds.core.palette.neutral.200",
+                        "contrast": 11.67,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 13.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12004,7 +12004,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white}",
-                "$description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
+                "$description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -12050,34 +12050,34 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "destructive interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.100}",
+                "$description": "destructive interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.100",
+                    "contrast": 14.05,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 16.7,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.100}",
+                        "aliasOf": "hds.core.palette.neutral.100",
+                        "contrast": 15.2,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 17.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12097,34 +12097,34 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "destructive interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.200}",
+                "$description": "destructive interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.200",
+                    "contrast": 10.79,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 12.96,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.200}",
+                        "aliasOf": "hds.core.palette.neutral.200",
+                        "contrast": 11.67,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 13.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12144,34 +12144,34 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "destructive interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.100}",
+                "$description": "destructive interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.100",
+                    "contrast": 14.05,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 16.7,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.100}",
+                        "aliasOf": "hds.core.palette.neutral.100",
+                        "contrast": 15.2,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 17.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12191,34 +12191,34 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "destructive interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.200}",
+                "$description": "destructive interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.200",
+                    "contrast": 10.79,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 12.96,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.200}",
+                        "aliasOf": "hds.core.palette.neutral.200",
+                        "contrast": 11.67,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 13.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12743,7 +12743,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white}",
-                "$description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
+                "$description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -12789,34 +12789,34 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "neutral interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.100}",
+                "$description": "neutral interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.100",
+                    "contrast": 14.05,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 16.7,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.100}",
+                        "aliasOf": "hds.core.palette.neutral.100",
+                        "contrast": 15.2,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 17.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12836,34 +12836,34 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "neutral interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.200}",
+                "$description": "neutral interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.200",
+                    "contrast": 10.79,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 12.96,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.200}",
+                        "aliasOf": "hds.core.palette.neutral.200",
+                        "contrast": 11.67,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 13.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12883,34 +12883,34 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "neutral interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.100}",
+                "$description": "neutral interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.100",
+                    "contrast": 14.05,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 16.7,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.100}",
+                        "aliasOf": "hds.core.palette.neutral.100",
+                        "contrast": 15.2,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.900}",
+                        "aliasOf": "hds.core.palette.neutral.900",
+                        "contrast": 17.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12930,34 +12930,34 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{hds.core.palette.white}",
-                "$description": "neutral interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
+                "$value": "{hds.core.palette.neutral.200}",
+                "$description": "neutral interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.white",
-                    "contrast": 19.42,
+                    "aliasOf": "hds.core.palette.neutral.200",
+                    "contrast": 10.79,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 19.59,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 12.96,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{hds.core.palette.white}",
-                        "aliasOf": "hds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.200}",
+                        "aliasOf": "hds.core.palette.neutral.200",
+                        "contrast": 11.67,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{hds.core.palette.black}",
-                        "aliasOf": "hds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{hds.core.palette.neutral.800}",
+                        "aliasOf": "hds.core.palette.neutral.800",
+                        "contrast": 13.9,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -20009,7 +20009,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.99.0",
+      "version": "0.100.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

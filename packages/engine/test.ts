@@ -736,25 +736,31 @@ for (const b of brands) {
       + (notVivid.length ? ` — TOO FAR: ${notVivid.join('; ')}` : ''));
   }
 
-  // (d3) #1389 (F3, owner decision B4a) RECONCILED BY #1384 — the INVERSE fill and its per-family on-fill.
-  // #1384 made the resting inverse fill the crisp `white`/`black` literal-color sentinel (was the neutral
-  // 050/850 step) and gave DESTRUCTIVE its own danger ink (was neutral); #1389's per-state STEP feedback and
-  // the primary lever are kept. Two independent things are asserted here, both by name, both designed to fail
-  // on a revert (docs/34):
+  // (d3) #1389 (F3, owner decision B4a) → #1384 → RECONCILED BY #1456 — the INVERSE fill and its per-family
+  // on-fill. #1384 made the resting inverse fill the crisp `white`/`black` literal-color sentinel and FLAT
+  // across states; #1456 (owner) REVERSES the flatness and RESTORES per-state feedback: REST keeps the crisp
+  // absolute, but hover/pressed (and their focused/selected twins) now STEP 2 neutral rungs per state AWAY
+  // FROM THE EXTREME the absolute sits at — mirroring the page fill's 050 → 150 → 250 walk. Two independent
+  // things are asserted here, both by name, both designed to fail on a revert (docs/34):
   //
-  //   GATE A — EVERY inverse fill state is the crisp absolute, FLAT and UNIFORM. The absolute is derived
-  //   INDEPENDENTLY of the producer, from the MODE NAME: a light-family mode's inverse band is dark, so the
-  //   crisp fill is WHITE; a dark-family mode's band is near-white, so BLACK. #1389's per-state STEP is
-  //   superseded — a pure absolute has no rung to walk to, and keeping the step measured a real dark-mode a11y
-  //   failure (see modes.ts). Reverting any state to the neutral 050/850 step, or splitting the families apart,
-  //   fails HERE by name. Represented across every family, brand, mode and state.
+  //   GATE A — the inverse fill is the crisp absolute AT REST and a 2-rung-per-state STEP on hover/pressed,
+  //   in the correct DIRECTION, UNIFORM across families. Every expectation is derived INDEPENDENTLY of the
+  //   producer, from the MODE NAME: a light-family mode's inverse band is dark, so REST is WHITE and the fill
+  //   steps DARKER — hover = neutral.100, pressed = neutral.200; a dark-family mode's band is near-white, so
+  //   REST is BLACK and it steps LIGHTER — hover = neutral.900, pressed = neutral.800. FLATTENING the fill
+  //   (any non-rest state back to the absolute), stepping the WRONG DIRECTION (inverting the mode-mirror), or
+  //   splitting the families apart, each fails HERE by name. Represented across every family, brand, mode and
+  //   state.
   //
   //   GATE B — PER-FAMILY on-fill provenance + the on-fill floor + the `strictInteractiveContrast` lever.
   //   primary → its brand/action ramp, DESTRUCTIVE → its DANGER ramp (the #1384 change — #1208/#1389 shipped a
-  //   neutral here), neutral → the neutral extreme; each clears a HARD 4.5 REST floor on the crisp fill. The
-  //   lever (primary only) is proven real: OFF keeps primary on the BRAND ramp, ON swaps it to the NEUTRAL
-  //   extreme AND that extreme clears 4.5 at every state. All ratios are recomputed from emitted hexes, never
-  //   read off the role's own `ratio`.
+  //   neutral here), neutral → the neutral extreme; each clears a HARD 4.5 floor on the crisp REST fill —
+  //   REST ONLY (#1456): hover/pressed are transient states EXEMPT from the on-fill ink contract, so a stepped
+  //   hover/pressed fill whose ink dips below AA is BY DESIGN and is not gated here (nor by the per-mode
+  //   contract — on-fill is a single role gated only against `fill.rest`). The lever (primary only) is proven
+  //   real: OFF keeps primary on the BRAND ramp, ON swaps it to the NEUTRAL extreme AND that extreme clears
+  //   4.5 at every state (the lever OPTS IN to all-state strictness; it survives the step). All ratios are
+  //   recomputed from emitted hexes, never read off the role's own `ratio`.
   {
     const CORPUS: Array<[string, any]> = [
       ['nb', nbTheme()],
@@ -787,50 +793,77 @@ for (const b of brands) {
       return undefined;
     };
 
-    // ---- GATE A: the inverse fill is the crisp absolute, FLAT across states + UNIFORM across families (#1384) ----
-    // #1384 moved the inverse fill from the neutral 050/850 STEP (#1389) to the `white` / `black` literal-color
-    // SENTINEL, and it is FLAT: every state (rest/hover/pressed/focused/selected) is that same absolute. A pure
-    // absolute cannot walk a ramp (no rung is "whiter than white"), so #1389's per-state step is superseded for
-    // this fill — and keeping it measured a real failure (dark-mode hover dropped the ink to 1.78:1, under the
-    // studio 2:1 floor). The absolute is derived INDEPENDENTLY of the producer, from the MODE NAME: a light-
-    // family mode's band is dark → WHITE; a dark-family mode's band is near-white → BLACK (a white fill there is
-    // degenerate). Reverting any state to the neutral step, or splitting the families apart, fails HERE by name.
-    const notAbsolute: string[] = [], restNotUniform: string[] = [];
+    // ---- GATE A: crisp absolute AT REST, a 2-rung STEP on hover/pressed AWAY FROM THE EXTREME, UNIFORM (#1456) ----
+    // #1456 REVERSES #1384's flat fill: REST is still the `white`/`black` literal-color SENTINEL, but the
+    // engaged states now STEP into the neutral ramp — 2 rungs per state, away from the extreme the absolute
+    // sits at (the page fill's 050 → 150 → 250 interval, mirrored). Every expectation is derived from the MODE
+    // NAME, never the producer (docs/34 shape 2): a light-family band is dark → REST WHITE, stepping DARKER
+    // (hover neutral.100, pressed neutral.200); a dark-family band is near-white → REST BLACK, stepping LIGHTER
+    // (hover neutral.900, pressed neutral.800). focused rides hover's rung, selected rides pressed's. The
+    // neutral PALETTE NAME is read off the brand's `roleToPalette` (brand config, not the fill logic); the
+    // RUNGS are the owner's named steps. FLATTENING any non-rest state back to the absolute, INVERTING the
+    // mode-mirror (wrong direction), or splitting the families apart each fails HERE by name.
+    const wrongFill: string[] = [], notStepped: string[] = [], wrongDir: string[] = [], stateNotUniform: string[] = [];
     const famsSeen = new Set<string>(), brandsSeen = new Set<string>();
     let cells = 0;
+    // Expected, from the mode NAME + the state + the brand's neutral palette — independent of `walk`/`dir`.
+    const rungFor = (mode: string, st: string): number => (st === 'hover' || st === 'focused')
+      ? (lightFamily(mode) ? 100 : 900)   // hover/focused: 2 rungs off the extreme
+      : (lightFamily(mode) ? 200 : 800);  // pressed/selected: 2 more
+    const expectedFill = (neutralPal: string, mode: string, st: string): string =>
+      st === 'rest' ? `.palette.${lightFamily(mode) ? 'white' : 'black'}`
+                    : `.palette.${neutralPal}.${rungFor(mode, st)}`;
     for (const [id, th] of CORPUS) {
+      const neutralPal = (th as any).roleToPalette.neutral as string;
       const built = buildTree(th).tree as any;
       const tree = built[Object.keys(built)[0]];
-      const restByFam: Record<string, Record<string, string | undefined>> = {};
+      const byFam: Record<string, Record<string, Record<string, string | undefined>>> = {};
       for (const fam of ['primary', 'neutral', 'destructive']) {
-        restByFam[fam] = {};
+        byFam[fam] = {};
         for (const mode of MODES) {
-          // The crisp absolute expected from the MODE NAME, not from the producer (docs/34 shape 2): light
-          // family → the band is dark → WHITE; dark family → the band is near-white → BLACK.
-          const wantAbs = lightFamily(mode) ? 'white' : 'black';
+          byFam[fam][mode] = {};
           for (const st of STATES) {
-            const alias = aliasAt(tree, `color.inverse.interactive.${fam}.fill.${st}`, mode);
-            if (st === 'rest') restByFam[fam][mode] = alias;
+            const alias = (aliasAt(tree, `color.inverse.interactive.${fam}.fill.${st}`, mode) ?? '').replace(/[{}]/g, '');
+            byFam[fam][mode][st] = alias;
             cells++; famsSeen.add(fam); brandsSeen.add(id);
-            if (!(alias ?? '').replace(/[{}]/g, '').endsWith(`.palette.${wantAbs}`))
-              notAbsolute.push(`${id}/${mode}/${fam}/${st}: ${alias} expected core.palette.${wantAbs}`);
+            if (!alias.endsWith(expectedFill(neutralPal, mode, st)))
+              wrongFill.push(`${id}/${mode}/${fam}/${st}: ${alias} expected …${expectedFill(neutralPal, mode, st)}`);
+            // STEP, not FLAT: every engaged state must be OFF the resting absolute.
+            if (st !== 'rest' && alias === byFam[fam][mode]['rest'])
+              notStepped.push(`${id}/${mode}/${fam}/${st}: still the rest absolute (${alias})`);
+          }
+          // DIRECTION: the pressed rung is 2 further from the extreme than hover, on the correct side. A light
+          // band steps to HIGHER neutral numbers (darker), a dark band to LOWER (lighter) — recomputed from the
+          // emitted rung integers so an inverted mode-mirror (e.g. light stepping to 900/800) fails HERE.
+          const rung = (st: string): number | null => { const m = /\.neutral\.(\d+)$/.exec(byFam[fam][mode][st] ?? ''); return m ? +m[1] : null; };
+          const [h, p] = [rung('hover'), rung('pressed')];
+          if (h !== null && p !== null) {
+            const ascends = lightFamily(mode) ? (h < p && h > 0) : (h > p);
+            if (!ascends) wrongDir.push(`${id}/${mode}/${fam}: hover ${h} → pressed ${p} steps the WRONG way for a ${lightFamily(mode) ? 'light' : 'dark'} band`);
           }
         }
       }
-      // UNIFORM across families: primary / neutral / destructive share the same fill in each mode.
-      for (const mode of MODES) {
-        const vals = ['primary', 'neutral', 'destructive'].map((f) => restByFam[f][mode]);
-        if (new Set(vals).size !== 1) restNotUniform.push(`${id}/${mode}: ${vals.join(' / ')}`);
-      }
+      // UNIFORM across families: primary / neutral / destructive share the same fill at EVERY state + mode.
+      for (const mode of MODES)
+        for (const st of STATES) {
+          const vals = ['primary', 'neutral', 'destructive'].map((f) => byFam[f][mode][st]);
+          if (new Set(vals).size !== 1) stateNotUniform.push(`${id}/${mode}/${st}: ${vals.join(' / ')}`);
+        }
     }
     ok(cells >= 4 * 4 * 3 * STATES.length && famsSeen.size === 3 && brandsSeen.size === 4,
-      `#1384 GATE A represented: every fill state was compared across all 3 families, 4 brands and 4 modes (${cells} cells, fams=${[...famsSeen].sort().join('/')}, brands=${brandsSeen.size})`);
-    ok(notAbsolute.length === 0,
-      '#1384 GATE A: EVERY inverse fill state is the crisp `white` (light-family) / `black` (dark-family) literal-color sentinel — flat across states; reverting any state to the neutral 050/850 STEP fails HERE'
-      + (notAbsolute.length ? ` — NOT ABSOLUTE: ${notAbsolute.slice(0, 4).join('; ')}` : ''));
-    ok(restNotUniform.length === 0,
-      '#1384 GATE A: …and that fill is UNIFORM across primary/neutral/destructive in every mode'
-      + (restNotUniform.length ? ` — NOT UNIFORM: ${restNotUniform.slice(0, 4).join('; ')}` : ''));
+      `#1456 GATE A represented: every fill state was compared across all 3 families, 4 brands and 4 modes (${cells} cells, fams=${[...famsSeen].sort().join('/')}, brands=${brandsSeen.size})`);
+    ok(wrongFill.length === 0,
+      '#1456 GATE A: the inverse fill is the crisp `white`/`black` sentinel AT REST and the 2-rung neutral STEP on hover(100/900)/pressed(200/800) away from the extreme; flattening a state to the absolute OR moving a rung fails HERE'
+      + (wrongFill.length ? ` — WRONG: ${wrongFill.slice(0, 4).join('; ')}` : ''));
+    ok(notStepped.length === 0,
+      '#1456 GATE A: every hover/pressed/focused/selected state STEPS off the resting absolute (reverting to the #1384 FLAT fill fails HERE)'
+      + (notStepped.length ? ` — FLAT: ${notStepped.slice(0, 4).join('; ')}` : ''));
+    ok(wrongDir.length === 0,
+      '#1456 GATE A: the step goes AWAY from the extreme — a light band darkens (100 → 200), a dark band lightens (900 → 800); inverting the mode-mirror fails HERE'
+      + (wrongDir.length ? ` — ${wrongDir.slice(0, 4).join('; ')}` : ''));
+    ok(stateNotUniform.length === 0,
+      '#1456 GATE A: …and that fill is UNIFORM across primary/neutral/destructive at every state and mode'
+      + (stateNotUniform.length ? ` — NOT UNIFORM: ${stateNotUniform.slice(0, 4).join('; ')}` : ''));
 
     // ---- GATE B: PER-FAMILY on-fill ink on the crisp fill (#1384) + the strictInteractiveContrast lever ----
     const FLOOR = 4.5;
@@ -4876,12 +4909,13 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // toward their anchors (#352 item 2). Scoped by each role's own `against` rather than by name, so
   // a newly added `on-*` role inherits the carve-out without anyone remembering to list it.
   const isOnFill = (r: any) => /^foreground\./.test(r.against ?? '') || /\.fill\./.test(r.against ?? '');
-  // #1384 — the INVERSE INTERACTIVE FILL is the crisp absolute, FLAT across states: pure WHITE on the dark
-  // inverse band (light-family modes), pure BLACK on the near-white inverse band (dark-family modes). A
-  // pure-black FILLED button on a light band is the owner-decided high-contrast CTA — the exact mirror of the
-  // pure-white button on the dark band — not the canvas harshness this rule guards. Carved out by ROLE KEY (a
-  // filled surface, not ink on the page) for every fill STATE, and still held to its own min below so the
-  // carve-out stays honest, not a hole.
+  // #1384/#1456 — the INVERSE INTERACTIVE FILL is the crisp absolute AT REST (pure WHITE on the dark inverse
+  // band in light-family modes, pure BLACK on the near-white band in dark-family modes) and a 2-rung neutral
+  // STEP on hover/pressed (#1456 — neutral.100/200 or .900/.800, never a pure extreme). A pure-black FILLED
+  // button on a light band is the owner-decided high-contrast CTA — the exact mirror of the pure-white button
+  // on the dark band — not the canvas harshness this rule guards. Carved out by ROLE KEY (a filled surface,
+  // not ink on the page) for every fill STATE — the stepped states are never black/white so only REST exercises
+  // the carve, and it is still held to its own min below so the carve-out stays honest, not a hole.
   const isInverseFill = (k: string) => /^inverse\.interactive\..*\.fill\.(rest|hover|pressed|focused|selected)$/.test(k);
   const blackOk = (k: string, r: any) => isOnFill(r) || isInverseFill(k);
   for (const m of ['light', 'dark'] as const) {

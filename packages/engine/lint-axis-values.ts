@@ -355,7 +355,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'icon-button siblings (`icon-button`, `icon-button-destructive`, `icon-button-neutral`) join the set '
       + 'in #1427, following `button` 1:1 apart from the `shape` axis — each carries `surface` and drives its '
       + 'nested `focus-ring` by the same `follow: [\'surface\']`, and its inverse fill inherits the shared '
-      + '`inverse.interactive.<family>.fill` role #1384 made white. '
+      + '`inverse.interactive.<family>.fill` role (white/black at rest since #1384, stepped 2 rungs per state since #1456). '
       + '`focus-ring`\'s axis was `color` until #1134 renamed it here; the two are one entry now because they '
       + 'are one distinction. ORDER matters as everywhere here: `default` is the rest coordinate the '
       + 'projector\'s inverse rewrite falls through to (an `inverse` coordinate binds `color.inverse.*`, a '
