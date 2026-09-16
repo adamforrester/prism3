@@ -672,6 +672,24 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   const t = node.type;
   if (t === 'INSTANCE' || t === 'COMPONENT') return;
 
+  // #1430 — THE SET KEEPS ITS OWN FRAME. `combineAsVariants` returns a container Figma dresses as a
+  // variant set: a 5px radius, a purple dashed border and a fill. That dashed outline is how a designer
+  // PICKS THE SET OUT on a canvas full of ordinary frames — and #865 neutralized it to a bare box, so an
+  // emitted set read as a plain group, indistinguishable from anything else on the canvas (#1430). For
+  // the SET, and ONLY the set (`claimDefaults` is called with `n === null` on nothing else — every member
+  // node carries a plan), the framing properties are still CLAIMED per #865, but claimed by PRESERVING
+  // what the host gave a set rather than by blanking it. Preserve rather than re-write a literal because
+  // the exact values (the purple, the dash rhythm) are Figma's own and are recorded nowhere offline to
+  // re-assert — echoing the host is what keeps an emitted set pixel-identical to a native one, which is
+  // the whole of the ask. Every OTHER default below still neutralizes normally. `keep` falls back to the
+  // old neutral value when the host gave none, so a set with no framing degrades to the pre-#1430 bare
+  // box rather than ever writing `undefined` onto the node.
+  const isSet = n === null;
+  const keep = (prop: keyof CompNode, fallback: unknown): void => {
+    const cur = (node as Record<string, unknown>)[prop as string];
+    set(prop, cur === undefined ? fallback : Array.isArray(cur) ? [...cur] : cur);
+  };
+
   // Universal — every node type Figma lets us create carries all five, on SceneNodeMixin, BlendMixin
   // and LayoutMixin. `n.visible` is `false` only for a NODE-VISIBILITY BOOLEAN part built hidden-by-default
   // (#1331); its `leading icon` switch (wired below) toggles it. Still a #865 CLAIM either way — the value
@@ -698,40 +716,61 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   // is NOT an imported node in this sense: it is a wrapper, it carries the white, and it arrives here
   // as the `created` node of its GLYPH plan.
   if (mode === 'created') {
-    if (t === 'TEXT') {
-      // NO NEUTRAL VALUE EXISTS for a text fill: `[]` is invisible text, which is a worse defect than
-      // an unclaimed one and would be found by eye just as late. So an unpainted label is REPORTED.
-      if (!n?.paints?.fills) misses.push(`${where}.fills -> UNCLAIMED on a TEXT node (a label with no paint is invisible, so this is reported rather than neutralized — the def must declare a text paint) — #865`);
-    } else if (!n?.paints?.fills) set('fills', []);
-    if (!n?.paints?.strokes) {
-      set('strokes', []);
-      // Both are set by the paints branch when it strokes; neutralized together with `strokes` so the
-      // three never disagree. Figma's own defaults, and invisible without a stroke to draw.
+    if (isSet) {
+      // #1430: the set's dashed BORDER and its weight/align/dash rhythm, CLAIMED by preserving
+      // combineAsVariants' own values (see the note above the `keep` helper). Blanking these — which is
+      // what #865 did — is exactly what stripped the dashed outline that marks a set on the canvas. Forked
+      // off the member path below because that path NEUTRALIZES these to a bare box; the set keeps its own.
       //
-      // THE WEIGHT IS GATED ON THE PLAN'S BINDING (#1228), the corner idiom below applied one branch
-      // earlier, and it is load-bearing rather than symmetric. This function runs AFTER the bind loop, so
-      // a literal write here UNBINDS a variable `setBoundVariable` already attached — and a live unbind
-      // reports no miss, so the build would look clean and ship the wrong weight. It became reachable the
-      // moment a def bound `strokeWidth` at a coordinate with NO stroke paint, which is exactly what the
-      // three selection controls do: checkbox at `checked`/`indeterminate` and switch at `on` bind a
-      // thickness and paint no border. `strokeAlign` needs no gate — no def can bind it, and INSIDE here
-      // agrees with the two sites that write it beside a stroke.
-      if (!('strokeWeight' in (n?.bound ?? {}))) set('strokeWeight', 1);
-      set('strokeAlign', 'INSIDE');
+      // THE FILL STAYS NEUTRAL (transparent), NOT preserved. `combineAsVariants` hands the set an OPAQUE
+      // fill, and keeping that would (a) put a solid box behind whatever a designer arranges around the set
+      // and (b) trip #1387's "no built node keeps an opaque white default" rule. The identifying mark of a
+      // set on the canvas is the dashed PURPLE BORDER, not a fill — a transparent set framed by that border
+      // reads exactly as a native one — so only the border/radius are preserved and the fill is cleared.
+      set('fills', []);
+      keep('strokes', []);
+      keep('strokeWeight', 1);
+      keep('strokeAlign', 'INSIDE');
+      keep('dashPattern', []);
+    } else {
+      if (t === 'TEXT') {
+        // NO NEUTRAL VALUE EXISTS for a text fill: `[]` is invisible text, which is a worse defect than
+        // an unclaimed one and would be found by eye just as late. So an unpainted label is REPORTED.
+        if (!n?.paints?.fills) misses.push(`${where}.fills -> UNCLAIMED on a TEXT node (a label with no paint is invisible, so this is reported rather than neutralized — the def must declare a text paint) — #865`);
+      } else if (!n?.paints?.fills) set('fills', []);
+      if (!n?.paints?.strokes) {
+        set('strokes', []);
+        // Both are set by the paints branch when it strokes; neutralized together with `strokes` so the
+        // three never disagree. Figma's own defaults, and invisible without a stroke to draw.
+        //
+        // THE WEIGHT IS GATED ON THE PLAN'S BINDING (#1228), the corner idiom below applied one branch
+        // earlier, and it is load-bearing rather than symmetric. This function runs AFTER the bind loop, so
+        // a literal write here UNBINDS a variable `setBoundVariable` already attached — and a live unbind
+        // reports no miss, so the build would look clean and ship the wrong weight. It became reachable the
+        // moment a def bound `strokeWidth` at a coordinate with NO stroke paint, which is exactly what the
+        // three selection controls do: checkbox at `checked`/`indeterminate` and switch at `on` bind a
+        // thickness and paint no border. `strokeAlign` needs no gate — no def can bind it, and INSIDE here
+        // agrees with the two sites that write it beside a stroke.
+        if (!('strokeWeight' in (n?.bound ?? {}))) set('strokeWeight', 1);
+        set('strokeAlign', 'INSIDE');
+      }
+      set('dashPattern', []);
     }
-    set('dashPattern', []);
   }
 
   // FRAME-SHAPED — a COMPONENT_SET included, and that inclusion is half the fix. `ComponentSetNode
   // extends BaseFrameMixin`, which carries GeometryMixin, CornerMixin, BlendMixin and AutoLayoutMixin,
   // so a set has every one of these and `combineAsVariants` sets three of them to values nobody chose.
+  // #1430: on the SET those values ARE the choice — the 5px radius is part of the variant-set frame — so
+  // its corners are CLAIMED by preservation, not zeroed. Only a member FRAME neutralizes to 0.
   if (t === 'FRAME' || t === 'COMPONENT_SET') {
     // The four corners individually rather than `cornerRadius`, because that is what the plan binds and
     // the two must be compared on the same footing: a def binding `topLeftRadius` has claimed the
     // corner, and neutralizing the shorthand would undo it.
     const bound = n?.bound ?? {};
     for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const)
-      if (!(corner in bound)) set(corner as keyof CompNode, 0);
+      if (isSet) keep(corner as keyof CompNode, 0);
+      else if (!(corner in bound)) set(corner as keyof CompNode, 0);
     // THREADED FROM THE PLAN (#1316), default false. Still a `set` — the value is DECIDED by this
     // executor either way, so `lint-unclaimed-defaults`'s `clipsContent` row stays satisfied; what
     // changed is that the decision now comes from the def rather than a hardcoded literal.
@@ -1738,13 +1777,17 @@ const writeComponentSet = async (
     for (const c of fresh) trail.loose.delete(c);
     trail.loose.add(set);
     wr(set).name = component;
-    // #865 ON THE SET, which is the half a per-node fix cannot reach. `combineAsVariants` does not return
-    // a neutral container: it returns one with a 5px corner radius, a purple dashed border and an opaque
-    // white fill, none of which any def mentions and all of which a designer sees framing the grid. There
-    // is no plan node for a set, so `null` — every visual property on it is unclaimed by construction.
+    // #865 ON THE SET, which is the half a per-node fix cannot reach. `combineAsVariants` returns a
+    // container Figma dresses as a variant set — a 5px corner radius, a purple dashed border and an opaque
+    // fill, none of which any def mentions. `null` — there is no plan node for a set. #865 originally
+    // BLANKED all of it to a bare frame; #1430 corrected that for the BORDER (dashed stroke + radius): it is
+    // still CLAIMED per #865, but by PRESERVING what a set is dressed with, because that dashed outline is
+    // precisely how a designer picks the emitted set out of the canvas (`claimDefaults`, the `isSet`
+    // branches). The opaque fill stays cleared (a set's identity is its border, not a solid box); every
+    // other non-framing default on the set is still neutralized.
     //
     // ONLY THE FRESH SET. The `else` branch below appends into a set the FILE already had, and that one
-    // is the designer's: its fill and its radius are their decisions, and neutralizing them would be this
+    // is the designer's: its fill and its radius are their decisions, and touching them would be this
     // executor reaching outside what it built to normalize someone else's work.
     claimDefaults(wr(set), null, misses, 'created');
   } else for (const c of fresh) {

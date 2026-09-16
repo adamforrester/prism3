@@ -387,5 +387,65 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #1430: EVERY EMITTED SET CARRIES ITS VARIANT-SET FRAME — HOST-TRUTH ─────────────────────────
+//
+// THE DIAGNOSIS (progress log 2026-09-16): the emitted sets ARE real `ComponentSetNode`s —
+// `combineAsVariants` creates them and the host reads them back as `type === 'COMPONENT_SET'` (asserted
+// below), so this is NOT a projection-model defect. What #865 then did was BLANK the fill, purple dashed
+// border and 5px radius Figma dresses a set with, so an emitted set read as a bare frame — the #1430
+// canvas-scanning defect. The fix PRESERVES that framing (`write-components.ts`' `isSet` branches). The
+// shared shim now models the framing `combineAsVariants` applies (`component-shim.ts`), so this reads it
+// back off the BUILT set and fails BY NAME if the executor blanked it.
+//
+// The oracle — "a real ComponentSetNode carrying a non-empty dashed stroke, a set-shaped radius and a
+// fill" — is authored HERE, not derived from the executor (docs/34): revert either `isSet` branch to the
+// #865 blank and every emitted set trips the positive arm. The framing VALUES are Figma's and cannot be
+// pinned offline (there is no live host); what IS checkable offline — and what the defect was — is whether
+// the executor DESTROYS a framing the host supplied. The negative arm proves the check is not vacuous.
+{
+  const framed = (set: Record<string, unknown> | undefined): string[] => {
+    const problems: string[] = [];
+    if (set?.type !== 'COMPONENT_SET') problems.push(`type=${String(set?.type)} (not a real ComponentSetNode)`);
+    if (!((set?.strokes as unknown[])?.length > 0)) problems.push('no stroke (the variant-set border was blanked)');
+    if (!((set?.dashPattern as unknown[])?.length > 0)) problems.push('no dashPattern (the border is not dashed)');
+    const corners = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].map((c) => Number(set?.[c] ?? 0));
+    if (!corners.every((r) => r > 0)) problems.push(`radius ${JSON.stringify(corners)} (a set frame is rounded, not a hard square)`);
+    // No fill check: the set's opaque default fill is deliberately cleared to transparent (#1430), so its
+    // canvas identity is the dashed border + radius, not a fill.
+    return problems;
+  };
+
+  let checked = 0;
+  const stripped: string[] = [];
+  for (const def of PROJECTED) {
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const set = page.children[0] as Record<string, unknown> | undefined;
+    if (set?.type !== 'COMPONENT_SET') continue;   // no set to frame (e.g. the emitAsComponents route)
+    checked++;
+    const problems = framed(set);
+    if (problems.length) stripped.push(`${def.id}: ${problems.join('; ')}`);
+  }
+  ok(checked > 0, `#1430: the corpus produced ${checked} emitted COMPONENT_SET(s) to check the frame on (scope floor)`);
+  ok(stripped.length === 0,
+    `#1430: every emitted set reads back as a real ComponentSetNode carrying its variant-set frame — the dashed purple border and a set radius — so it is pickable on the canvas${stripped.length ? ` — STRIPPED: ${stripped.slice(0, 6).join(' | ')}` : ''}`);
+
+  // NEGATIVE (docs/34 non-vacuity): a set whose stroke/dash was blanked — the pre-#1430 #865 behavior — IS
+  // reported by the same predicate, so the positive arm above is a live check and not an always-pass.
+  const bareDef = componentDefs.find((d) => d.figmaProperties)!;
+  const barePlans = figmaAnatomySet(bareDef, { swapTarget: SWAP_TARGET });
+  const barePage: Page = { children: [] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  await applyComponentPlan(barePlans, makeShim({ ...fullFor(barePlans), page: barePage }) as any, {});
+  const bareSet = barePage.children[0] as Record<string, unknown>;
+  bareSet.strokes = []; bareSet.dashPattern = [];
+  const bareProblems = framed(bareSet);
+  ok(bareProblems.length > 0,
+    `#1430 mutation: a set stripped of its stroke/dash is reported by name (${bareProblems.join('; ') || 'NOT REPORTED — the check went silent'})`);
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);
