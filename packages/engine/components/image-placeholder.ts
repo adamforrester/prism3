@@ -98,9 +98,10 @@ export const imagePlaceholder: ComponentDef = {
     // build is a media-shaped rectangle rather than Figma's 100x100 default frame, which is what
     // `lint-standalone-floor.ts` refuses — a designer resizes it over their layout.
     'nominal-side': 'container.narrow',
-    // THE MARKER GLYPH ARTBOARD — `icon.size.lg`, the largest icon rung, so the "no image" marker reads
-    // as a prominent empty-state affordance rather than a stray small icon in a large frame.
-    'glyph-size': 'icon.size.lg',
+    // No `glyph-size` token: the marker sizes off a def-local literal (`glyphPx`, #1340), not a bound rung.
+    // The old `icon.size.lg` (32px) read as a stray small icon against the 720px frame — the owner's #1340
+    // complaint. No icon rung reaches a marker-of-the-frame proportion (they top out at `xl` = 40px) and
+    // minting a token for it would move CONTRACT, so the size is a literal on the marker part below.
   },
 
   // ── ANATOMY — A CLIPPING BOX WITH A CENTERED MARKER ─────────────────────────────────────────────
@@ -135,10 +136,19 @@ export const imagePlaceholder: ComponentDef = {
         // The "no image" glyph (#1316's `image` icon — a mountain-and-sun placeholder). Decorative; the
         // frame carries the accessible role.
         glyph: 'image',
-        // A SQUARE ARTBOARD. `size` binds both axes to one key (the glyph is square), legal on a NON-root
-        // vector — this def IS the host and the glyph node IS its slot, so the size is the def's to state.
-        size: 'glyph-size',
-        note: 'The centered "no image" marker — a muted glyph shown until a photograph is dropped in.',
+        // A LITERAL 180px SQUARE (#1340), not a bound icon rung. The marker reads as a PROPORTION of the
+        // large media frame: 180px is Prism 2's own centered-glyph-to-shorter-side ratio in this exact
+        // frame family — its `playCircleLine` is 160px on the 480px-tall 4:3 frame (160/480 = 1/3), and
+        // 1/3 of prism3's 4:3 nominal shorter side (540) is 180. Held FIXED across the three ratios, as
+        // Prism 2 holds its centered glyph fixed. At the 720px nominal frame that is 25% of the width, 1/3
+        // of the 4:3 shorter side, 44% of the 16:9 shorter side (matching Prism 2's play-circle proportion
+        // there). A def-local literal, so no token is minted and CONTRACT stands. It is a FIXED floor, not
+        // a size that tracks the frame's flexing extent on resize — true resize-tracking needs a Figma
+        // scale-constraint projection the engine does not have (see `notes.unverified`), filed for a
+        // follow-up. `glyphPx` is legal on a NON-root vector — this def IS the host and the glyph node IS
+        // its slot, so the size is the def's to state.
+        glyphPx: 180,
+        note: 'The centered "no image" marker — a muted glyph shown until a photograph is dropped in, sized to read as a proportion of the media frame.',
       },
     },
     codeOnly: [
@@ -221,6 +231,7 @@ export const imagePlaceholder: ComponentDef = {
       'THE PASTE-TIME DERIVE IS FIGMA-DOCUMENTED FOR RESIZE, NOT PROVEN FOR A BOUND VARIABLE. `lockAspectRatio()` derives the second dimension when a locked node is resized on one axis, and `targetAspectRatio` is read-only. Binding a variable on the single axis SETS that dimension, which is a resize — so the derive should hold — but that a `setBoundVariable` triggers it at paste time is a live-file behavior no offline host can witness, the same class as accept-and-discard. The offline gates prove the lock is captured with the right ratio (read back as `targetAspectRatio`); the derive-on-paste is filed for the real-host round-trip arm. If a pasted placeholder is ever found NOT deriving its height, the fallback is Option C — a nominal square plus the ratio carried in code/AI metadata only — and this note is the record that A was chosen on Figma\'s documented lock contract rather than on a live paste.',
       'THE OVERLAYS ARE DEFERRED (#1316). A legibility scrim/veil over the image and a play-circle video affordance both nest other components and are owner-held for a follow-up. Named here and in `codeOnly` so the absence reads as a deferral rather than a gap.',
       'THE NOMINAL WIDTH IS A PLACEHOLDER, NOT A MEASUREMENT (the veil/focus-ring idiom). `container.narrow` (720px) makes the standalone build a media-shaped rectangle; the frame has no intrinsic size, so nobody has decided 720px is RIGHT — it is a legible placeholder a designer resizes over their layout, and the ratio, not the width, is the fixed fact.',
+      'THE MARKER SIZE IS A FIXED FLOOR (180px), NOT A SIZE THAT TRACKS THE FRAME ON RESIZE (#1340). The owner asked to make the marker larger and, ideally, to scale it with the frame. A larger FIXED size grounded in Prism 2 (180px, its centered-glyph proportion, `glyphPx` on `marker`) is what shipped. TRUE proportional scaling — the marker tracking the frame\'s actual flexing extent as a designer resizes it — would need a Figma scale-constraint / percentage-size projection the engine does not have: the fluid `100%` container is skipped for exactly this reason (Figma has no percentage FLOAT primitive), and a per-ratio glyph would still be three fixed sizes, not resize-tracking. Filed as a follow-up mechanism question; the fixed floor is the deliverable, and 180px already reads as a proportion of the frame at every ratio (25% / 33% / 44% of the shorter side at 1:1 / 4:3 / 16:9), so the marker is no longer the stray 32px icon #1340 named.',
     ],
   },
 };

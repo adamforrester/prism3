@@ -225,7 +225,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'focus-ring': 'a ring is sized by the control it surrounds, not by its own axis — its offset and width are bound, never enumerated',
   'field-message': 'validation copy takes one type role; its axis is `status`, and size follows the field it belongs to',
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
-  'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a fixed `icon.size.lg`; there is no size ladder to compare against the tier (#1316)',
+  'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a def-local literal (`glyphPx`, #1340), not a rung; there is no size ladder to compare against the tier (#1316)',
   'select': 'Prism2\'s select is single-size, so there is no size axis and no `size.{size}.*` ladder — the control binds the `md` rung of the field geometry FLATLY (`min-height` → size.md.height, `pad-x`/`pad-y`, `gap`, `icon-size`), one value each rather than an enum, so there is no rung set to compare against the tier',
 };
 
@@ -252,7 +252,7 @@ const LADDER_STATED_ONCE: Record<string, string> = {
  * The scope floor. `docs/34`: a gate with a scope asserts each promised surface is REPRESENTED, never
  * merely counts. Every def carrying a size axis today.
  */
-const MUST_COVER = ['icon', 'button', 'icon-button', 'field-label', 'text-field', 'textarea', 'checkbox', 'radio', 'switch'];
+const MUST_COVER = ['icon', 'button', 'icon-button', 'field-label', 'text-field', 'textarea', 'checkbox-row', 'checkbox-group', 'radio', 'switch'];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */
 const tierPaths = (tree: Record<string, unknown>): Set<string> => {

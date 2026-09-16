@@ -199,16 +199,15 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'name, and a status-colored one would be the validation signal `field-message` already owns via '
       + 'its `status` axis.',
   },
-  {
-    axis: 'indicator',
-    values: ['none', 'required', 'optional'],
-    defs: ['field-label'],
-    relation: 'sole',
-    reason:
-      'A three-way choice whose most important value is ABSENCE, which is why `none` is declared rather '
-      + 'than left implicit — the def\'s own notes record that this is exactly what stops the axis being '
-      + 'projected to Figma, since a member with the marker still drawn would be a coordinate that lies.',
-  },
+  // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
+  // the same shape the `intent` note below records. field-label carried a three-way
+  // `[none/required/optional]` axis whose most important value was ABSENCE, which is exactly why it never
+  // projected to Figma. The owner decision (2026-09-13) reconciled it into Prism 2's `Required` BOOLEAN
+  // (default true) — a node-visibility toggle, not a variant axis — so no def declares `indicator` as a
+  // variant axis any more, and a register entry no def uses is what ARM B fails as stale. Removed, the
+  // register is true again; the marker's presence now lives on `figmaProperties.booleans`, which this
+  // register (a VARIANT-axis census) does not cover.
+  //
   // `intent` IS GONE FROM THE REGISTER (#1225), and its absence is the point rather than an omission.
   // #1223 made Button's intents three COMPONENTS and left `icon-button` carrying `intent` as an axis of
   // its own, with the entry here scoped to `['icon-button']` alone and its reason naming the open sibling
@@ -263,18 +262,23 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unchecked', 'checked'],
-    defs: ['radio'],
+    // Since #1348 the `selection` axis lives on `radio-control` (the painted circle/dot), not the `radio`
+    // ROW (which exposes it). The row no longer declares it — the atom does.
+    defs: ['radio-control'],
     relation: 'subset',
     reason:
       'Checkbox\'s vocabulary minus `indeterminate`, which a mutually-exclusive choice does not have — '
-      + '`radio.ts` argues it from the brief\'s own `no-indeterminate` line, and notes that an ABSENCE is '
-      + 'not a value you can declare. The cheapest kind of divergence: every value it does carry means '
-      + 'exactly what it means in canonical, so the two line up without a translation.',
+      + '`radio-control.ts` (the atom that carries the axis since #1348) argues it from the brief\'s own '
+      + '`no-indeterminate` line, and notes that an ABSENCE is not a value you can declare. The cheapest '
+      + 'kind of divergence: every value it does carry means exactly what it means in canonical, so the '
+      + 'two line up without a translation.',
   },
   {
     axis: 'selection',
     values: ['off', 'on'],
-    defs: ['switch'],
+    // Since #1354 the `selection` axis lives on `switch-control` (the painted track/thumb), not the
+    // `switch` ROW (which exposes it). The row no longer declares it — the atom does.
+    defs: ['switch-control'],
     relation: 'disjoint',
     reason:
       'Argued and correct (#930), and the reason this gate is a register rather than a uniformity rule. '
@@ -288,7 +292,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'checkbox', 'radio', 'field-label'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio', 'field-label'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — ten of the defs with a size axis, the '
@@ -299,7 +303,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium'],
-    defs: ['switch'],
+    // The `switch` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
+    // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
+    defs: ['switch', 'switch-control'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form: a switch above medium stops reading '
@@ -308,6 +314,23 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'this entry until #872 and now takes the full three: the reason given for its shortness ("a label '
       + 'tracks the field it labels rather than setting its own scale") turned out to be the argument FOR '
       + 'three, since `text-field` and `textarea` have declared three rungs since tranche 1.',
+  },
+  {
+    axis: 'shape',
+    values: ['square', 'circular'],
+    defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'],
+    relation: 'sole',
+    reason:
+      'The icon button\'s CORNER SILHOUETTE (#1353, owner-decided) — `square` a rounded rectangle at the '
+      + 'button\'s normal radius (`radius.md`), `circular` a full-round disc (`radius.round`). PURE GEOMETRY: '
+      + 'the two values differ only in the container\'s corner radius and are token-identical in colour, state '
+      + 'and every other binding, which is why it is a 2-value AXIS and not a component split (the #1225 '
+      + 'contrast — intent became components because each carried a different colour binding; shape carries '
+      + 'none). `square` LEADS because it is the default and the byte-identical pre-#1353 geometry. `sole`, '
+      + 'and shared by the three icon-button components BY DESIGN — one shared anatomy through `makeIconButton`, '
+      + 'so the three carry identical values and this one entry records all three. Distinct from `size` (a '
+      + 'scale rung), `ratio` (a width-to-height proportion) and `style` (a line treatment) — argued in '
+      + '`VARIANT_AXES`.',
   },
   {
     axis: 'style',

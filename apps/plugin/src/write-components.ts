@@ -154,6 +154,9 @@ export interface CompNode {
   counterAxisAlignItems?: unknown;
   primaryAxisSizingMode?: unknown;
   counterAxisSizingMode?: unknown;
+  /** #1343a/#1345 — the auto-layout minimum width. Written only where the plan carries it (`select`'s
+   *  control), inside the `layoutMode` branch; Figma accepts it only on an auto-layout frame. */
+  minWidth?: unknown;
   layoutPositioning?: unknown;
   constraints?: unknown;
   componentPropertyReferences?: unknown;
@@ -670,8 +673,10 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   if (t === 'INSTANCE' || t === 'COMPONENT') return;
 
   // Universal — every node type Figma lets us create carries all five, on SceneNodeMixin, BlendMixin
-  // and LayoutMixin.
-  set('visible', true);
+  // and LayoutMixin. `n.visible` is `false` only for a NODE-VISIBILITY BOOLEAN part built hidden-by-default
+  // (#1331); its `leading icon` switch (wired below) toggles it. Still a #865 CLAIM either way — the value
+  // is decided here, not left to Figma's default.
+  set('visible', n?.visible ?? true);
   // `zeroOpacity` is applied by the PARENT after this returns, so writing 1 here would be overwritten
   // anyway. Skipped rather than relied on: a claim the plan makes should not depend on write order.
   if (!n?.zeroOpacity) set('opacity', 1);
@@ -682,7 +687,9 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   // them rather than throwing, which is why these two need no applicability test while the parent-side
   // ones below do.
   set('layoutAlign', 'INHERIT');
-  set('layoutGrow', 0);
+  // DRIVEN BY THE PLAN (#1424), still an unconditional `set` so the #865 claim holds: a wrapping label
+  // fills its row's main axis (`layoutGrow: 1`); every other node keeps the `0` the neutralizer always wrote.
+  set('layoutGrow', n?.layoutGrow ?? 0);
   // Claimed by the PARENT for an absolute or centered part (`STRETCH` / `CENTER`), and by the glyph
   // branch for a drawn outline (`SCALE`) — all of which run after this, except the glyph one, which is
   // why an imported subtree skips it.
@@ -768,7 +775,9 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     // what caught it: the paste path had no neutralizer and still read CENTER.
     if (!n?.textAlignVertical) set('textAlignVertical', 'TOP');
     set('textAlignHorizontal', 'LEFT');
-    set('textAutoResize', 'WIDTH_AND_HEIGHT');
+    // DRIVEN BY THE PLAN (#1424), still an unconditional `set` so the #865 claim holds: a wrapping label
+    // asks for `'HEIGHT'` (fixed width, auto height); every other TEXT node keeps `'WIDTH_AND_HEIGHT'`.
+    set('textAutoResize', n?.textAutoResize ?? 'WIDTH_AND_HEIGHT');
     set('textTruncation', 'DISABLED');
     set('paragraphSpacing', 0);
     set('leadingTrim', 'NONE');
@@ -993,11 +1002,14 @@ const writeComponentSet = async (
    * `planComponentName` for the same reason `stampByMember` is: every name derivation goes through it,
    * so the key agrees with the member's name by construction.
    */
+  // Keyed by part + FIELD (#1331), not part alone: one part can carry both a swap and a node-visibility
+  // boolean, so a part-only key would collapse the two to whichever was walked last and hand the wire loop
+  // the wrong field. For every single-property part this is a unique-ified part key.
   const refByMember = new Map<string, Map<string, { field: string; prop: string }>>();
   for (const plan of plans) {
     const perPart = new Map<string, { field: string; prop: string }>();
     const walk = (n: { name: string; propertyRef?: { field: string; prop: string }; children: unknown[] }): void => {
-      if (n.propertyRef) perPart.set(n.name, n.propertyRef);
+      if (n.propertyRef) perPart.set(`${n.name}|${n.propertyRef.field}`, n.propertyRef);
       for (const c of n.children as (typeof n)[]) walk(c);
     };
     walk(plan.root as unknown as Parameters<typeof walk>[0]);
@@ -1183,6 +1195,13 @@ const writeComponentSet = async (
       // 24px it was drawn at, so a 16px instance would show the glyph's top-left corner. This is the one
       // property of the import that gets overridden, which is why it is the only write in this branch.
       for (const v of drawn) wr(v as CompNode).constraints = { horizontal: 'SCALE', vertical: 'SCALE' };
+      // THE LITERAL GLYPH SIZE (#1340). A non-root glyph whose def states `glyphPx` binds no `size` variable
+      // and is not sized by an instancing host, so it stays at its 24px import — a stray small mark in a
+      // large frame. Resize it to the literal here, AFTER the artboard read-back above (which reads the
+      // import's own 24px) and BEFORE the bind loop below (this node binds no dimension, so the resize is
+      // never cleared). The outline's SCALE constraints, just set, scale the drawn grid to fill it. Twin of
+      // the `figma_execute` payload's own glyph resize (`anatomy-figma.ts`).
+      if (n.glyphPx) node.resize?.(n.glyphPx, n.glyphPx);
     } else {
       node = wr(api.createFrame());
       // THREADED FROM THE PLAN (#1316), default false — unchanged for every existing box, which omits the
@@ -1194,6 +1213,12 @@ const writeComponentSet = async (
     // and every line below this one can throw.
     trail.loose.add(node);
     node.name = n.name;
+    // NODE-VISIBILITY BOOLEAN (#1331): a hidden-by-default part is BUILT hidden; its `leading icon` switch
+    // (wired below) toggles it. Applied HERE, in the shared build path, rather than in `claimDefaults` —
+    // that helper returns early for an INSTANCE (a slot's node is an INSTANCE, and it must not neutralize
+    // one), yet a boolean legitimately hides an instance. Carried only when false, so every other node is
+    // unchanged. `claimDefaults` still makes the #865 `visible` CLAIM on the non-instance nodes it reaches.
+    if (n?.visible === false) node.visible = false;
     // Before ANY dimension binding — see the header note. Unconditional, unlike the
     // `constrainProportions` form this replaced: that needed an `in` guard because it lives on
     // `LayoutMixin`, which not every node type has. `unlockAspectRatio` is on `AspectRatioLockMixin`,
@@ -1247,6 +1272,10 @@ const writeComponentSet = async (
       node.counterAxisAlignItems = n.counterAxisAlignItems;
       node.primaryAxisSizingMode = n.primaryAxisSizingMode;
       node.counterAxisSizingMode = n.counterAxisSizingMode;
+      // THE MIN-WIDTH FLOOR (#1343a, #1345). Inside the `layoutMode` branch because Figma accepts a
+      // minimum width only on an auto-layout frame (the schema refuses `minWidth` on a layout-less box).
+      // Written only when the plan carries it, so every other frame is untouched.
+      if (n.minWidth !== undefined) node.minWidth = n.minWidth;
     }
 
     // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind
@@ -1895,7 +1924,7 @@ const writeComponentSet = async (
       // and a second copy of that rule here would be a second thing to get wrong (`docs/34` shape 8).
       // `refs` keeps its job — WHICH PARTS to visit, deduped, so the #701 fast route is untouched — and
       // only the property it names is now per member.
-      const own = refByMember.get(String(member.name))?.get(r.part);
+      const own = refByMember.get(String(member.name))?.get(`${r.part}|${r.field}`);
       const field = own?.field ?? r.field;
       const id = propIds.get(own?.prop ?? r.prop);
       if (!id) continue;   // the property itself failed above and reported its own cause

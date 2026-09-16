@@ -201,14 +201,17 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // per leaf; height aliases dimension, padding aliases space.
   const sizeVars: FigmaVar[] = [];
   for (const t of Object.keys(brand.size)) {
-    for (const prop of ['height', 'padding-x', 'padding-x-visual', 'padding-y', 'gap']) {
+    // `min-height` (#1437) is the interactive target-size floor, present on `md` only; the `if (!leaf)`
+    // guard skips it on the other rungs. It is a HEIGHT (aliases the dimension grid), so it takes the
+    // height scopes, not the padding ones.
+    for (const prop of ['height', 'min-height', 'padding-x', 'padding-x-visual', 'padding-y', 'gap']) {
       const leaf = brand.size[t][prop];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       sizeVars.push({
         name: ns(`size/${t}/${prop}`),
         resolvedType: 'FLOAT',
-        scopes: prop === 'height' ? SIZE_HEIGHT_SCOPES : SIZE_PADDING_SCOPES,
+        scopes: prop === 'height' || prop === 'min-height' ? SIZE_HEIGHT_SCOPES : SIZE_PADDING_SCOPES,
         description: desc(leaf),
         value: pxFromValue(tree, leaf.$value),
         alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
@@ -248,7 +251,12 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     // `radius` with #1015, and it is the field this list exists for: checkbox's box binds its CORNER to
     // it, so a client file without the variable renders the corner unbound — the DTCG tier carrying the
     // value would not help, because nothing in Figma reads DTCG.
-    for (const field of ['height', 'width', 'dot', 'line-box', 'inset', 'radius']) {
+    // `track` + `thumb` with #1425 — the switch's own track height and traveling thumb. `switch-control`
+    // binds both as variables (the track's `height`, the thumb's `size`), so a client file lacking them
+    // would render the switch unbound; both are WIDTH_HEIGHT dimensions like `height`/`dot`. This list
+    // caught them exactly as it caught `inset`: the exporter gate reported the six new paths as prism3-only
+    // on the first run, which is this authored list's stated purpose working as designed.
+    for (const field of ['height', 'width', 'dot', 'line-box', 'inset', 'radius', 'track', 'thumb']) {
       const leaf = brand.control.size[rung][field];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);

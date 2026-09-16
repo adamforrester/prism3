@@ -7795,6 +7795,7 @@
         "border-width.thick",
         "control.size.lg.radius",
         "control.size.md.radius",
+        "control.size.sm.inset",
         "control.size.sm.radius",
         "focus.ring.offset",
         "focus.ring.width",
@@ -7808,7 +7809,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "control.size.sm.inset"
+        "control.size.md.inset"
       ]
     },
     "core.dimension.4": {
@@ -7818,7 +7819,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "border-width.heavy",
-        "control.size.md.inset",
+        "control.size.lg.inset",
         "radius.sm",
         "size.sm.gap",
         "size.sm.padding-y",
@@ -7830,10 +7831,7 @@
       "$description": "5px — dimension primitive",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token.",
-      "aliased_by": [
-        "control.size.lg.inset"
-      ]
+      "consume": "Private primitive — prefer a semantic token."
     },
     "core.dimension.6": {
       "$description": "6px — dimension primitive",
@@ -7881,6 +7879,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "control.size.sm.height",
+        "control.size.sm.thumb",
         "radius.lg",
         "size.lg.padding-x-visual",
         "size.md.padding-x-visual",
@@ -7895,6 +7894,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "control.size.md.height",
+        "control.size.sm.track",
         "grid.sm.gutter",
         "grid.xs.gutter",
         "grid.xs.margin",
@@ -7903,6 +7903,15 @@
         "size.md.padding-x",
         "size.xl.padding-x-visual",
         "space.200"
+      ]
+    },
+    "core.dimension.18": {
+      "$description": "18px — dimension primitive",
+      "meaning": "core primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "control.size.md.thumb"
       ]
     },
     "core.dimension.20": {
@@ -7922,7 +7931,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "control.size.sm.width",
+        "control.size.lg.thumb",
+        "control.size.md.track",
         "grid.lg.gutter",
         "grid.md.gutter",
         "grid.md.margin",
@@ -7948,7 +7958,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "control.size.md.width",
+        "control.size.lg.track",
+        "control.size.sm.width",
         "grid.2xl.gutter",
         "grid.lg.margin",
         "grid.xl.gutter",
@@ -7971,7 +7982,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "control.size.lg.width",
         "icon.size.xl",
         "space.500"
       ]
@@ -7982,7 +7992,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "size.lg.height"
+        "size.lg.height",
+        "size.md.min-height"
       ]
     },
     "core.dimension.48": {
@@ -7991,6 +8002,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "control.size.md.width",
         "grid.2xl.margin",
         "grid.xl.margin",
         "space.600"
@@ -8024,6 +8036,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "control.size.lg.width",
         "space.800"
       ]
     },

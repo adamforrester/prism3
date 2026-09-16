@@ -4176,7 +4176,7 @@ const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 's
     // controlShape is a GLOBAL brand lever (not per-mode) — `csLeverStack([…], false)` renders the plain
     // enum select. It sits beside corner softness on purpose: both shape the corner, but orthogonally
     // (softness scales the ramp; pill overrides it with height ÷ 2 for pill-able controls).
-    { title: 'Control shape', sub: 'Corner shape for pill-able controls (button, icon-button). Rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.', controls: csLeverStack(['controlShape'], false), paint: paintControlShapePreview },
+    { title: 'Control shape', sub: 'Corner shape for pill-able controls (button, icon-button). Boxed is sharp; hairline is a fixed 1px edge; rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.', controls: csLeverStack(['controlShape'], false), paint: paintControlShapePreview },
     { title: 'Density & size', sub: 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
     // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
     // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
@@ -6648,11 +6648,12 @@ const paintRadiusPreview = (into: HTMLElement): void => {
   into.append(list);
 };
 
-/** The controlShape specimen: two control silhouettes — a ROUNDED bar at the current `radius.md`, and a
- *  PILL bar at height ÷ 2 — with the brand's current choice marked. Reuses the `.rad-*` scaffold and the
- *  `.rad-sw` swatch (widened inline into a control bar), so the shape difference reads without new CSS. The
- *  lever is global across pill-able controls (button + icon-button today); the button is the representative
- *  silhouette because it is the control a designer pictures when they say "pill". */
+/** The controlShape specimen: four control silhouettes — BOXED (sharp), HAIRLINE (1px), ROUNDED (the
+ *  current `radius.md`) and PILL (height ÷ 2) — with the brand's current choice marked. Each names a
+ *  RELATIONSHIP to a rung, not a raw radius (#1371). Reuses the `.rad-*` scaffold and the `.rad-sw` swatch
+ *  (widened inline into a control bar), so the shape difference reads without new CSS. The lever is global
+ *  across pill-able controls (button + icon-button today); the button is the representative silhouette
+ *  because it is the control a designer pictures when they say "pill". */
 const paintControlShapePreview = (into: HTMLElement): void => {
   into.innerHTML = '';
   const cur = String(getPath(brandState, 'controlShape') ?? 'rounded');
@@ -6662,8 +6663,13 @@ const paintControlShapePreview = (into: HTMLElement): void => {
   // the caption's px. A shorter bar would clamp a soft-brand corner (a 24px radius on a 32px bar reads as a
   // near-pill) and the label would then contradict the shape (the nit on the first cut of this preview).
   // `pill` draws at 999 — the capsule sentinel — which clamps to half the bar and reads as a full pill;
-  // the caption names the rung, not the number.
+  // the caption names the rung, not the number. `boxed` is a fixed 0px (radius.none, always present) and
+  // `hairline` a fixed 1px (radius.hairline, the #1362 sentinel), so both are drawn from constants rather
+  // than `rp.dims` — neither is bound by a preview-spec component, so `rp.dims` would fall through to 0
+  // (the #1177 trap `lint-ramp-steps.ts` gates a STEPS list against; this shape list is not one).
   const shapes = [
+    { key: 'boxed', label: 'Boxed', radiusPx: 0, ref: 'radius.none', note: 'radius.none · 0px, sharp' },
+    { key: 'hairline', label: 'Hairline', radiusPx: 1, ref: 'radius.hairline', note: 'radius.hairline · 1px, fixed' },
     { key: 'rounded', label: 'Rounded', radiusPx: roundedPx, ref: 'radius.md', note: `radius.md · ${roundedPx}px` },
     { key: 'pill', label: 'Pill', radiusPx: 999, ref: 'radius.capsule', note: 'radius.capsule · height ÷ 2, any height' },
   ];

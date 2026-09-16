@@ -41,9 +41,40 @@
  * is the label ink), so its `paintKeys` are just `['{slot}']`.
  *
  * The grammar and the fill decisions are unchanged from the pre-split `checkbox` and their reasoning is
- * not restated here — see `checkbox.ts` history for `#1011` (no structural fill on an empty box, no
+ * not restated here — see `checkbox-row.ts` / `checkbox-control.ts` history for `#1011` (no structural fill on an empty box, no
  * structural border on a filled one), `#1015` (the per-rung clamped corner) and `#1228` (the 2px control
  * border). This def is a verbatim extraction of that box, not a redesign of it.
+ *
+ * ── THE INNER-GLYPH INSET (#1346): 0.80 OF THE BOX, MEASURED FROM PRISM 2 ───────────────────────────
+ *
+ * QA read the check/dash as slightly too large. Before this change the `mark`/`dash` frames bound
+ * `size.{size}.control` (the FULL box) and drew the artwork's own ~71% grid inset — so the check ink
+ * spanned 70.7% of the box width. Prism 2's checkbox sizes it smaller: `reference/Prism2/component-
+ * specs/checkboxes.json` pins `checkFill` (and `subtractFill`) at 16×16, and its control SQUARE is 20×20
+ * — derived from the focus frame, which is 28×28 at offset −4, so box = 28 − 2×4 = 20 (the ring frame is
+ * the 28, the box is the 20). Cross-checked: Prism 2's `cornerRadius` 2 on a 20px box is the engine's own
+ * `edge ÷ 8` control corner, which only lands on 20. So Prism 2's mark-to-box ratio is 16/20 = **0.80**.
+ *
+ * THE NET BINDING, reconciled against the artwork inset both systems share. Prism 2's `checkFill` and the
+ * engine's `check` are the same Remix-lineage glyph, so both carry the ~71% grid inset INSIDE the mark
+ * frame; that inset is common and cancels. What differs is the FRAME: Prism 2's is 0.80 of the box, the
+ * engine's was 1.0. Applying the raw 0.80 as a second inset on top of the ~71% would inset the ink twice
+ * (→ ~57% × 0.80 again); the correct move is to bring the FRAME to 0.80, leaving the artwork inset alone.
+ * Rendered check ink then goes 70.7% → 0.80 × 70.7% = **56.6%** of box width, and the dash 58.3% → 46.6%,
+ * which is Prism 2's proportion. NOT an arbitrary nudge — the 0.80 is Prism 2's measured mark ratio.
+ *
+ * WHY A PADDED ARTBOARD (`glyphScale: 0.8`) AND NOT A SMALLER FRAME. Shrinking the frame needs the mark
+ * to bind a variable worth 0.80 × box at every rung and density — and the only sub-box control token,
+ * `control.size.*.dot`, is 0.5 (the radio dot). A new `control.size.*.mark` token would track correctly
+ * but is a GUARANTEED name (every corpus brand emits `control.size.*`, so it is in the contract's 577),
+ * which forces a CONTRACT MINOR bump — the exact class #910's `dot` and #997's `inset` each bumped for.
+ * The plan is brand-agnostic (a frame binds a variable, never a per-brand literal), so there is no
+ * value-only way to shrink the frame. Instead `glyphScale` pads the emitted glyph DOCUMENT's artboard to
+ * `grid ÷ 0.8` centred (the path `d` and the shared vocabulary untouched), so the host's existing box
+ * binding renders the grid at 0.80. That is a def-local literal, not a token: ENGINE bumps for the moved
+ * geometry, CONTRACT holds at 10.0.0 (`token-contract.ts --check` confirms the guaranteed 577 unchanged).
+ * Switch's own thumb glyph keeps its full-frame inset — Prism 2 sizes that differently (16/24 in the
+ * handle), and this is checkbox's calibration alone (#1346), not a corpus-wide re-inset.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -88,6 +119,14 @@ export const checkboxControl: ComponentDef = {
     // ── THE UNCHECKED BOX — the form-field substrate's chrome; an empty checkbox is a small empty
     // field. No fill (#1011): an empty checkbox is a BORDER on the page, not a filled square. `pressed`
     // is unbound (the field border ladder emits rest/hover only), falling through to the rest border.
+    //
+    // THE PRESSED BORDER REUSES REST, BY DECISION (#1346, owner 2026-09-13) — not by omission. There is
+    // no `color.field.border.pressed` role in the tier (the field border ladder emits `rest`/`hover`
+    // only), so the pressed unchecked box takes `unchecked.border` (rest). The owner declined to mint a
+    // `field/border/pressed` role, consistent with #1342's no-new-`field/fill/hover` call: the field
+    // family stays lean, `pressed` is transient, and the check-fill already signals activation (a press
+    // that commits flips the box to `checked`, whose own `.pressed` fill IS bound). So the binding here
+    // is deliberate and correct — a reader must not "fix" it by adding a pressed border token.
     'unchecked.border': 'color.field.border.rest',
     'unchecked.border.hover': 'color.field.border.hover',
     'unchecked.border.error': 'color.border.danger',
@@ -168,24 +207,29 @@ export const checkboxControl: ComponentDef = {
         children: ['mark', 'dash', 'focusRing'],
         note: 'The control square AND the nominal hit-target marker. The real hit target is the whole labelled ROW, which lives on `checkbox`; this square is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part carries.',
       },
-      // THE CHECK. Sized from the CONTROL'S OWN key rather than a mark ladder of its own: the optical
-      // inset is already in the artboard (`check` draws ~71% of a full grid), so a second ladder would
-      // inset it twice.
+      // THE CHECK. The FRAME is bound to the control box (`size.{size}.control`), and `glyphScale: 0.8`
+      // (#1346) pads the emitted artboard so the drawn grid — and the ~71% of it the `check` artwork
+      // draws — renders at 0.8 of that box, matching Prism 2's `checkFill` (16) sitting at 0.80 of its
+      // 20px control square (see the header for the measurement and why the frame is NOT shrunk).
       mark: {
         kind: 'vector',
         glyph: 'check',
         size: 'size.{size}.control',
+        glyphScale: 0.8,
         presentWhen: { selection: ['checked'] },
-        note: 'The check. Its ink is `checked.icon` (`descendantFills`, never a fill on the artboard — #864), and its micro-motion has no expression in this schema (see `codeOnly`).',
+        note: 'The check, inset to 0.8 of the box (#1346, Prism 2\'s 16/20 mark ratio) via a padded artboard rather than a shrunk frame. Its ink is `checked.icon` (`descendantFills`, never a fill on the artboard — #864), and its micro-motion has no expression in this schema (see `codeOnly`).',
       },
-      // THE DASH. Same geometry, same reason; only the outline differs, which is the whole of what
-      // separates `indeterminate` from `checked` in this def's tokens.
+      // THE DASH. Same geometry and the same `glyphScale: 0.8` inset; only the outline differs, which is
+      // the whole of what separates `indeterminate` from `checked` in this def's tokens. Prism 2 sizes
+      // its `subtractFill` identically to `checkFill` (both 16 in the 20px box), so the dash takes the
+      // same 0.80 ratio as the check.
       dash: {
         kind: 'vector',
         glyph: 'minus',
         size: 'size.{size}.control',
+        glyphScale: 0.8,
         presentWhen: { selection: ['indeterminate'] },
-        note: 'The mixed-state dash. Never the sole signal — `aria-checked="mixed"` carries it to assistive tech, which the host row sets.',
+        note: 'The mixed-state dash, inset to 0.8 of the box (#1346), the same as the check. Never the sole signal — `aria-checked="mixed"` carries it to assistive tech, which the host row sets.',
       },
       // The focus ring, verbatim from the pre-split checkbox: on the control, offset 2 (`focus.ring.offset`,
       // not the field\'s flush 0), the offsets summing to site the ring at -(2+2) = -4 (#801).
@@ -206,7 +250,7 @@ export const checkboxControl: ComponentDef = {
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
       'read-only — deliberately not a state of this atom. It is the field/row-level concern the brief calls "the awkward one" (static text over a styled locked control), so there is no box treatment to project and the state is absent rather than admitted-and-unbound. The Row and the Group decide it.',
       'The check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). Neither the def schema nor a Figma variant carries motion, so the two glyph parts are static outlines at every coordinate.',
-      'The whole-row hit target. A bare control square is a 12-24px box that fails SC 2.5.8 in isolation; the accessible target is the labelled ROW, which is `checkbox` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
+      'The whole-row hit target. A bare control square is a 12-24px box that fails SC 2.5.8 in isolation; the accessible target is the labelled ROW, which is `checkbox-row` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
     ],
   },
 
@@ -234,7 +278,7 @@ export const checkboxControl: ComponentDef = {
   },
 
   content: {
-    labelPattern: 'None — the atom carries no label. The consent line and its rules live on the Checkbox row (`checkbox`).',
+    labelPattern: 'None — the atom carries no label. The consent line and its rules live on the Checkbox row (`checkbox-row`).',
     errorPattern: 'None of its own — an error boundary is a color treatment the host coordinate selects; the message is the Group\'s (`checkbox-group`).',
   },
 
@@ -257,7 +301,7 @@ export const checkboxControl: ComponentDef = {
     primaryPurpose: 'Render the atomic checkbox control — the painted square with its check or dash glyph and focus ring — for a host row to nest.',
     whenToUse: 'Nested by the labelled Checkbox row (the common case), or standalone only for a control with an external label and its own aria wiring.',
     avoidWhen: 'You want the labelled ~90% case (that is Checkbox), a mutually-exclusive one-of-many (Radio.Control), or an immediate-effect toggle (Switch). Never place a bare control square as the clickable element — the hit target is the labelled row.',
-    commonPartners: ['checkbox', 'focus-ring', 'checkbox-group'],
+    commonPartners: ['checkbox-row', 'focus-ring', 'checkbox-group'],
     triggerKeywords: ['checkbox control', 'checkbox box', 'check box atom', 'checkbox square'],
     generationPriority: 3,
   },
@@ -280,6 +324,7 @@ export const checkboxControl: ComponentDef = {
       'NESTED-INSTANCE SIZING IS UNVERIFIED ON A REAL HOST. No def used `kind: nest` in flow before #1226 step 2, so an in-flow nested control has never been built in Figma. The control instance must HUG (sit at its own square) rather than FILL the row\'s line-box wrapper — it binds `size` on the nest part so its own square is pinned, and the wrapper centres it — but whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centred within it.',
       'THE INHERITED FOCUS-RING BINDING, now two layers deep (#1280). The ring binds a nominal square side and an instance inherits its main component\'s bindings; #1280 left it open whether that nominal side survives `resize()` when inherited through an instance. After this split the ring is nested inside the control and the control inside the row, so an inherited dimension binding would have to be cleared twice. Batches with #1290. The symptom: a nested ring sitting at the md control height instead of hugging its host\'s box.',
       'RADIO AND SWITCH ARE NOT SPLIT HERE. This is checkbox step 2 only; `radio-control` is the mirror (one `dot` box, no dash) and is filed as the next in the sequence. `switch` stays out of scope — its thumb moves between selection values, an unsolved positioning wall that splitting would inherit without addressing.',
+      'THE PADDED-ARTBOARD GLYPH INSET IS UNVERIFIED ON A REAL HOST (#1346). `glyphScale: 0.8` emits the mark/dash on an artboard padded to `grid ÷ 0.8` with a NEGATIVE viewBox origin (`-3 -3 30 30`) so the same path centres in the larger canvas. The offline model asserts the document, the read-back box (`glyphViewBox` = the padded dims) and the ink-fit; what it cannot see is whether `figma.createNodeFromSvg` positions a negative-origin viewBox as centred and whether the imported vector holds 0.80 through the frame\'s subsequent resize to the box. Same posture as the nest-sizing note above. The symptom to look for: a check that renders full-bleed (the pad was ignored) or off-centre toward the top-left (the negative origin was dropped).',
     ],
   },
 };

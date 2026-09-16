@@ -11,31 +11,31 @@
     },
     "button": {
       "members": 432,
-      "sha256": "799424febcfa152523c3e64c4c732295bfa7d5764d9ddbd1bc5cea2e972b8255"
+      "sha256": "0301e0b4f80901a38c368a52428eddd1b983eb604e41da92776aa7805ea7b5d3"
     },
     "button-destructive": {
       "members": 432,
-      "sha256": "4db2e5e8be4d3aa9bb6b6ef8c5c7e182f814f7ca87704ad92d9ebfd5b18ad341"
+      "sha256": "560f587eeb2e04e08a12c5dd8ed52482750cfcdd522d1984c10cf635c5706517"
     },
     "button-neutral": {
       "members": 432,
-      "sha256": "21af0019d11b0e072fe4388f859e223841ad0df68d62f276b60e0b2610d0482d"
+      "sha256": "70bb717da9d59a815a92223a63892c1eb1e17cae33eae6f3cd1ad2278e4cf779"
     },
     "icon-button": {
-      "members": 54,
-      "sha256": "e4a75ee14e8e39e15c5b3ebcbba92a4f55dae866867b90cede15ac8e19ef4b8f"
+      "members": 108,
+      "sha256": "38680710e4dcfa1dc65a84dd32cf05fa12a5d86217de23a92368cc6da188e46b"
     },
     "icon-button-destructive": {
-      "members": 54,
-      "sha256": "6c598c40629276a0f2a32f30957db81bddff288a6bdc3d6628414a6dca9cf2e0"
+      "members": 108,
+      "sha256": "847468944cca74ebf30e0bafa6b01cdb438a0a50f5957dd647f0cec63e9fa15c"
     },
     "icon-button-neutral": {
-      "members": 54,
-      "sha256": "6db305d878fa0ff61197a4b31d9565d48180bf4dc431b51e8b5e09ecfc3ea751"
+      "members": 108,
+      "sha256": "c71aec508653afe066baf033b6bd46f060edc7fe01f8d56efdf29103d8f3cc32"
     },
     "field-label": {
       "members": 24,
-      "sha256": "12c849081b462da846b116c08cbb798f43c9695174299e5348c2c3ff40cebd17"
+      "sha256": "4d95785c70e11ccfcab25f9f28fc39dd23a0a5af2e862b7023cb81e5fe9e4414"
     },
     "field-message": {
       "members": 4,
@@ -45,23 +45,35 @@
     "textarea": null,
     "checkbox-control": {
       "members": 54,
-      "sha256": "1a5a7abd356f0b3b7d567138cfbdb017e6a8b783d57a2b4530adf83d4412db49"
+      "sha256": "9aac7591932de37db065a04616393cd984af90ccf3a482211ea31f9c62df456d"
     },
-    "checkbox": {
+    "checkbox-row": {
       "members": 3,
-      "sha256": "8289636c8171a964798f4f314b0713427ffdf45076e8f13c05d825a073c6c330"
+      "sha256": "b948e9b7a3667e1e9a2a4f0e5f0df2da9cef44d21f8971f095eea0a75d85abf7"
+    },
+    "checkbox-group": {
+      "members": 3,
+      "sha256": "2be437e5bcbda520b5fc7b24de6d8352d14f142cc7ab1527ba42c7e8e77960ec"
+    },
+    "radio-control": {
+      "members": 36,
+      "sha256": "0e9436694cd653fb30a89e7267175e8e7933408c9d29907ed526e60d0e76b062"
     },
     "radio": {
-      "members": 36,
-      "sha256": "902d92b070f68239dda9d4bd39927abf5545c665fe91313be36d48630fb47c2b"
+      "members": 3,
+      "sha256": "782126f5d753e19ce98a7858cbc960d9de77c690d2c6aa1d6b5318cdf8184c7a"
+    },
+    "switch-control": {
+      "members": 24,
+      "sha256": "fe7a5ca8ae32fa2fc56fdcf29bc2fc6fc7350f95dd66aad37e0253a7b61eea55"
     },
     "switch": {
-      "members": 24,
-      "sha256": "5dc1c84017c0fce3fbae20bcf902364986689b516957873d3a3e36e7dc813a60"
+      "members": 2,
+      "sha256": "cade70606d705e2cd94c2a8be474bfa02a98803d5ea2d5ba26d89b5e7dca1307"
     },
     "select": {
-      "members": 40,
-      "sha256": "9c09ab21af05c102e79beacf25eb787947266d2a92e69728e1cf53fe70720c35"
+      "members": 16,
+      "sha256": "8e03d4d5a1876f94b2b253b0b9a0df9180a7241b7e7365825acdb85b17d740e9"
     },
     "veil": {
       "members": 6,
@@ -69,7 +81,7 @@
     },
     "image-placeholder": {
       "members": 3,
-      "sha256": "bae4bc994dcb54a3d040c9726de6e081a0aad4596bea9a27f664a2fa84787feb"
+      "sha256": "568a4177d1744fcf9aea24edc84e32f88edd94f7c06cf5402e32cb1c8bc8998a"
     }
   }
 }

@@ -15,8 +15,9 @@
  * The three semantic intents are now three COMPONENTS — `IconButton` (primary/brand),
  * `Destructive IconButton`, `Neutral IconButton` — built by the `makeIconButton` factory below from one
  * shared anatomy. This is the icon-only counterpart of #1223/#1224's split of Button: intent used to be a
- * variant axis crossing appearance × size × state (one 162-member set); splitting it gives three
- * 54-member sets whose only difference is the `interactive.<family>` color binding. Appearance is STILL
+ * variant axis crossing appearance × size × state; splitting it gives three sets whose only difference is the
+ * `interactive.<family>` color binding (each was 54 members at #1225, doubled to 108 once #1353 added the
+ * `shape` axis — see `figmaProperties`). Appearance is STILL
  * the emphasis axis within each component (filled > outline > text). `icon-button` keeps its id and is the
  * primary component; `icon-button-destructive` and `icon-button-neutral` are its siblings. `lint-axis-values.ts`
  * had scoped its `intent` register entry to `['icon-button']` alone, provisionally, naming this exact open
@@ -99,6 +100,7 @@ const makeIconButton = (id: string, name: string, description: string, family: I
     { name: 'aria-label', type: 'string', required: true, description: 'REQUIRED accessible name (there is no visible text). A verb naming the action ("Close", "More actions"). Enforced at the TYPE LEVEL — a missing name is a compile error, not merely a runtime warning; that type-level requirement is the entire reason IconButton is a separate component.' },
     { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'text', required: false, description: 'Default text — icon-only actions usually sit in toolbars, not as filled CTAs. Emphasis is the appearance axis; the color is the COMPONENT (IconButton / Destructive IconButton / Neutral IconButton).' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Square control; height drives both dimensions.' },
+    { name: 'shape', type: "enum: 'square' | 'circular'", values: ['square', 'circular'], default: 'square', required: false, description: 'The corner silhouette — PURE GEOMETRY (#1353, owner-decided 2026-09-10). `square` is the button\'s normal rounded rectangle (`radius.md`); `circular` is full-round (`radius.round`), the tap target read as a disc. NO color, state, or token difference between the two — only the corner radius — which is why it is a clean 2-value axis and not a component split (contrast #1225, where each intent carried a different `interactive.<family>` binding). Both stay square in dimension (height drives width); shape rounds the corners, it does not change the box.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Inherited — swap the icon for a spinner, keep focus, announce busy.' },
     { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Inherited — focusable disabled for relevant-but-blocked actions.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Inherited — native disabled, reserved for irrelevant controls.' },
@@ -110,6 +112,14 @@ const makeIconButton = (id: string, name: string, description: string, family: I
     // `size` the rung.
     appearance: ['filled', 'outline', 'text'],
     size: ['small', 'medium', 'large'],
+    // #1353 — SHAPE is pure geometry (owner-decided 2026-09-10). `square` (default) is the button's normal
+    // radius (`radius.md`); `circular` is full-round (`radius.round`). The two values differ ONLY in the
+    // container's corner radius and are token-identical everywhere else, so this is a 2-value axis and NOT a
+    // component split (the #1225 contrast: intent split into components because each carried a different
+    // color binding; shape carries none). `square` leads because it is the default (the byte-identical
+    // pre-#1353 geometry), and the order here MUST match `figmaProperties.variantAxes` and the
+    // `lint-axis-values.ts` register entry.
+    shape: ['square', 'circular'],
   },
   // NO `modifiers` AXIS (#845). It held `['pending']` — an axis of one, whose single value is already a
   // value on the state axis, so it modelled one coordinate twice and enumerated no alternatives at all.
@@ -127,14 +137,24 @@ const makeIconButton = (id: string, name: string, description: string, family: I
   // Same paint grammar as the substrate (#758), and stated rather than inherited: `inherits` records
   // the API delta, not the skin, and `paintOf` reads this def's own field. Repeating two lines is the
   // cheaper error than a lookup that walks `inherits` and resolves to a grammar nobody reading this
-  // file can see — the 54-member set's color would then depend on a file it does not name.
+  // file can see — the set's color would then depend on a file it does not name.
   //
   // #1225 dropped the leading `{intent}` segment: intent is the component now, so the family is fixed per
   // def (supplied by `iconButtonIntentTokens(family)` above) and no longer a coordinate the key carries.
   paintKeys: ['{appearance}.{slot}.{state}', '{appearance}.{slot}'],
 
   tokens: {
-    'radius': 'radius.md',
+    // #1353 — THE PER-SHAPE CORNER RUNG. `shape=square` binds the button's normal rounded rung (`radius.md`,
+    // the byte-identical pre-#1353 value); `shape=circular` binds the full-round rung (`radius.round`). The
+    // container resolves `radius.{shape}` (below), so these two keys ARE the shape axis's whole geometry
+    // footprint — there is no bare `radius` key any more. The `controlShape: pill` BRAND lever repoints the
+    // ROUNDED rung (`radius.md` → `radius.capsule`) and LEAVES the intrinsic round rung (`radius.round`), so
+    // under a pill brand the square shape becomes a capsule (a circle, since the control is square) while the
+    // circular shape stays on its own round rung — the exact rule the lever already applies to switch/radio's
+    // intrinsic `radius.round` (`applyControlShape`'s header). Square's pill behavior is therefore unchanged
+    // from before this axis existed.
+    'radius.square': 'radius.md',
+    'radius.circular': 'radius.round',
     // THE OUTLINE BORDER'S THICKNESS (#1278, #1300) — 1px, and it does not move; only its PROVENANCE does.
     // The number used to be the executors' `if (!node.strokeWeight) … = 1` fallback, the right figure
     // with nothing behind it, so a brand re-runging its border floor moved every other bordered part in
@@ -226,7 +246,12 @@ const makeIconButton = (id: string, name: string, description: string, family: I
         // key cannot drift from itself, so "square" is a fact the def states rather than an invariant
         // nobody checks. See `PartDef.size`.
         size: 'size.{size}.side',
-        radius: 'radius',
+        // #1353 — the corner radius now VARIES by the `shape` axis, resolved through `radius.{shape}` the same
+        // way `size.{size}.side` varies by `size`. `varOf` fills `{shape}` from the member's coordinate and
+        // looks up `tokens['radius.square'|'radius.circular']` — so `square` → `radius.md`, `circular` →
+        // `radius.round`. This is the ONLY node the shape axis touches; everything else is token-identical
+        // across the two values (the #1353 pins in `test.ts` assert exactly that).
+        radius: 'radius.{shape}',
         // The EDGE's thickness (#1278, #1300) — names this def's own key, like `radius` and `size` above.
         // See `border-width` in `tokens` for the figure and why it is stated here rather than inherited.
         strokeWidth: 'border-width',
@@ -265,7 +290,14 @@ const makeIconButton = (id: string, name: string, description: string, family: I
       },
     },
     derived: {
-      'pill-radius': 'height ÷ 2 — the square case of Button\'s rule, and here it is a CIRCLE: with width = height, half the height is the radius that rounds a square into one',
+      // KEPT so `isPillable` stays true and icon-button remains in the `controlShape: pill` brand-lever set
+      // (#1163). The lever repoints the ROUNDED rung — the `shape=square` binding (`radius.md`) — to
+      // `radius.capsule`, which clamps to height ÷ 2 on this square control and reads as a CIRCLE; the
+      // `shape=circular` binding (`radius.round`) is the intrinsic round rung the lever leaves alone, exactly
+      // as it leaves switch/radio. So a pill brand rounds the square shape off (unchanged from before #1353)
+      // and the circular shape is already round — the two coincide under pill, which is what a brand-wide
+      // "everything is a pill" choice means.
+      'pill-radius': 'height ÷ 2 — the pill lever repoints the square shape\'s rounded rung to radius.capsule, which on this width = height control is a CIRCLE; the circular shape is already full-round (radius.round)',
     },
     codeOnly: [
       'touch-target-expansion — the same decoupling of the optical box from the hit box Button records, and the one component where it matters MOST: `size=small` is a 32px (aurora) / 40px (nb, wendys) square, so the optical box is at or below the Apple HIG 44×44 floor at every brand and below it at one. Figma has no concept of a hit area larger than the frame, so the expansion cannot project and the emitted small square is the optical size only. A designer measuring it in Figma is reading the wrong box.',
@@ -280,7 +312,7 @@ const makeIconButton = (id: string, name: string, description: string, family: I
       // a builtin reached any other way. This comment observes the same rule it explains — the plugin
       // build does not minify, so a comment naming the literal would trip the check it documents.
       'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. So `focus-ring` and `ring-width` are bound in `tokens` and neither reaches a Figma node — the engine verifies that a ring is nominated, which variant, and where it sits, and nothing about its color or weight. Accepted on the same terms as Button, and for the same reason — the ring is one shared thing.',
-      'aria-label — the REQUIRED accessible name, and the def\'s entire reason for existing (§10). A Figma component property could carry a string, but it would be a string with no relationship to anything Figma reads: no exported frame, no prototype, no handoff surface consumes it, and a TEXT property named `aria-label` sitting empty on all 54 members would read as a name that had been provided. The requirement is a TYPE-LEVEL one in the code projection, which is where it can actually fail a build; Figma cannot hold "required" at all.',
+      'aria-label — the REQUIRED accessible name, and the def\'s entire reason for existing (§10). A Figma component property could carry a string, but it would be a string with no relationship to anything Figma reads: no exported frame, no prototype, no handoff surface consumes it, and a TEXT property named `aria-label` sitting empty on every member would read as a name that had been provided. The requirement is a TYPE-LEVEL one in the code projection, which is where it can actually fail a build; Figma cannot hold "required" at all.',
       // The `modifiers` admission is GONE, with the axis it admitted (#845). Keeping it would have left
       // an entry admitting an axis this def no longer declares — an exemption with nothing to exempt,
       // which `figmaPropertyErrors` cannot detect in either direction and which reads to the next author
@@ -336,11 +368,18 @@ const makeIconButton = (id: string, name: string, description: string, family: I
   // names) is the honest fix and is a REFACTOR of a type three call sites read, on the critical path
   // of a component that does not need it. Recorded as the deliberate cost, not discovered later.
   //
-  // #1225 — `intent` is NO LONGER an axis here. Each of the three icon-button components fixes one family,
-  // so its set is appearance(3) × size(3) × state(6) = 54 members; the former single 162-member set is now
-  // three 54-member sets (IconButton / Destructive IconButton / Neutral IconButton).
+  // #1225 — `intent` is NO LONGER an axis here. Each of the three icon-button components fixes one family;
+  // the former single intent-crossing set is now three per-family sets (IconButton / Destructive IconButton /
+  // Neutral IconButton). #1353 then adds the `shape` axis, so each set is appearance(3) × size(3) × shape(2)
+  // × state(6) = 108 members (54 before the shape axis).
   figmaProperties: {
-    variantAxes: ['appearance', 'size'],
+    // #1353 — `shape` PROJECTS as a variant axis, so a designer picks square/circular in the Figma set the
+    // same way they pick appearance/size. Appended after `size` (declaration order is the order Figma shows
+    // the properties and `planComponentName` writes them), so the set is now appearance(3) × size(3) ×
+    // shape(2) × state(6) = 108 members per icon-button component (was 54, so the axis exactly DOUBLES it).
+    // The order MUST match `variants`
+    // and the `lint-axis-values.ts` register.
+    variantAxes: ['appearance', 'size', 'shape'],
     // Six of the seven states, exactly as Button — `inactive` is admitted in `codeOnly` above rather
     // than dropped. Seven remains right for `states` (the def's truth); six is right for the
     // projection (what a variant can carry).

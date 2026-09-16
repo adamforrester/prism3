@@ -256,6 +256,36 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `clipsContent ${String(p)}`,
     check: (p, n) => (n.clipsContent === p ? null : str(n.clipsContent)),
   },
+  // ── auto-layout width floor (#1343a, #1345) ────────────────────────────────────────────────────
+  // A literal min-width the executor sets on an auto-layout frame; the host echoes it back on the same
+  // property, so this compares directly. Only `select`'s control carries it today.
+  minWidth: {
+    show: (p) => `minWidth ${String(p)}`,
+    check: (p, n) => (n.minWidth === p ? null : str(n.minWidth)),
+  },
+  // ── wrapping label (#1424) ─────────────────────────────────────────────────────────────────────
+  // Two child/text-side properties the executor sets so a long label FILLS its row and reflows instead of
+  // overflowing. Both are plain properties the host echoes verbatim, so this compares directly. Carried onto
+  // the plan ONLY for a wrapping label (the row's `label`), so `diffNode` reaches these predicates on that
+  // node alone and every other node is byte-identical. `radio` and `checkbox-row` carry them today.
+  layoutGrow: {
+    show: (p) => `layoutGrow ${String(p)}`,
+    check: (p, n) => (n.layoutGrow === p ? null : str(n.layoutGrow)),
+  },
+  textAutoResize: {
+    show: (p) => `textAutoResize ${String(p)}`,
+    check: (p, n) => (n.textAutoResize === p ? null : str(n.textAutoResize)),
+  },
+
+  // ── literal glyph size (#1340) ─────────────────────────────────────────────────────────────────
+  // Unlike `glyphViewBox` (below, ignored because the executor MEASURES the import and this reader has no
+  // second opinion), `glyphPx` is a size the executor SETS to an exact literal — so the reader DOES have
+  // an opinion: the built glyph frame's own `width` must come back as that literal. Only
+  // `image-placeholder`'s marker carries it today.
+  glyphPx: {
+    show: (p) => `glyphPx ${String(p)}`,
+    check: (p, n) => (n.width === p ? null : str(n.width)),
+  },
 
   // ── positioning ──────────────────────────────────────────────────────────────────────────────
   absoluteInset: {
@@ -295,6 +325,27 @@ export const FIELDS: Record<string, FieldCheck> = {
       if (got === undefined || got === null) return `${want.field} → DISCARDED (host holds ${refs ? JSON.stringify(refs) : 'no references'})`;
       const stem = String(got).split('#')[0];
       return stem === want.prop ? null : `${want.field} → ${String(got)}`;
+    },
+  },
+
+  // ── node-visibility boolean (#1331) ────────────────────────────────────────────────────────────
+  // The part is BUILT with this visibility (false = hidden by default), read back off the host: an
+  // executor that dropped the write, or a shim that ignored it, reads back `true` and fails here. Only
+  // present on a boolean-driven node built hidden; every other node omits it and is not checked.
+  visible: {
+    show: (p) => `visible=${String(p)}`,
+    check: (p, n) => (n.visible === p ? null : `visible=${str(n.visible)} — the built node did not keep the plan's visibility`),
+  },
+  // The Figma BOOLEAN property whose value drives `visible`, wired as `componentPropertyReferences.visible`
+  // — the same host shape `propertyRef` reads, on the `visible` field, compared on the STEM for the same
+  // `#<id>`-suffix reason. The two coexist on one node (a swap + a boolean); this is the `visible` half.
+  visibleProp: {
+    show: (p) => `visible ← ${String(p)}`,
+    check: (p, n) => {
+      const refs = n.componentPropertyReferences as Record<string, unknown> | null | undefined;
+      const got = refs?.visible;
+      if (got === undefined || got === null) return `visible → DISCARDED (host holds ${refs ? JSON.stringify(refs) : 'no references'})`;
+      return String(got).split('#')[0] === p ? null : `visible → ${String(got)}`;
     },
   },
 

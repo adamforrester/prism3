@@ -313,6 +313,23 @@ export type PartDef = {
    *  PARENT's `layout.align`, and no value of this field reaches it — see `checkbox.ts`'s `row`. The two
    *  were filed as one observation and are two properties on two different nodes. */
   verticalAlign?: 'top' | 'center' | 'bottom';
+  /** For a `text` part: FILL the parent row's main axis and WRAP to multiple lines, rather than hug the
+   *  glyphs and OVERFLOW (#1424). A long option/consent label is the case: today it grows the row
+   *  horizontally off the edge; Prism 2 wraps it to a second line with the control top-anchored
+   *  (`reference/Prism2/component-specs/{radio-button,checkbox}-row.json` — the description text is
+   *  `layoutSizingHorizontal: FILL`, which is what makes it wrap).
+   *
+   *  PROJECTS TWO FIGMA FACTS, because wrapping needs both: `layoutGrow: 1` (fill the parent's main axis, so
+   *  the text's WIDTH is the remaining row width rather than its own content) and `textAutoResize: 'HEIGHT'`
+   *  (fixed width, auto height, so the fixed-width box reflows). Either alone does not wrap — a filled box
+   *  with `WIDTH_AND_HEIGHT` still hugs, and an auto-height box with no fixed width has nothing to wrap to.
+   *
+   *  ITS PRECONDITION, asserted by `anatomyErrors` rather than trusted: the parent must BOUND its main-axis
+   *  width — a `minWidth` floor or `sizing.x: 'fixed'` — because `layoutGrow` fills REMAINING space, and a
+   *  hugging parent is exactly as wide as its children, leaving none. That is the #989 silent no-op (a
+   *  `'fill'`/`'hug'` main axis projects to AUTO), so a `wrap` label under a floorless row is refused, which
+   *  is what makes the row's `minWidth` load-bearing rather than decorative. `boolean`; absent means hug. */
+  wrap?: boolean;
   /** For `box` parts: WHICH paint slots this box takes, in precedence order (#933). Absent means the
    *  box paints nothing — it is structure, and `field-label`'s and `field-message`'s boxes are exactly
    *  that. The words must come from `BOX_PAINT_SLOTS`.
@@ -351,6 +368,26 @@ export type PartDef = {
    *  reason: only the frame-creating branch reads it, so on a text/vector/slot it would validate clean
    *  and reach no node. */
   clipsContent?: boolean;
+  /** For `box` parts: a LITERAL minimum horizontal width in px — Figma's auto-layout `minWidth` (#1343a,
+   *  #1345). A COMFORTABLE PROJECTION FLOOR, not a token: 320 is where `select` sits by default so the
+   *  field reads at a usable width in Figma, chosen in 8px increments — and the owner's #1343 decision was
+   *  explicit that this is NOT a semantic value that earns a `field.width` role (the same posture as the
+   *  #1346 glyph-inset literal). So it is a raw number the def states, never a `tokens` key resolved to a
+   *  variable, and it does not touch the guaranteed token-NAME surface: `CONTRACT_VERSION` does not move.
+   *
+   *  WHY A MIN-WIDTH AND NOT A BOUND `width`. Prism 2's select is `root width 320 · HUG` with its inner
+   *  containers `FILL`ing that width (`reference/Prism2/component-specs/select.json`). The engine cannot
+   *  project a child that FILLs — `sizing: 'fill'` maps to AUTO (#989/#990), so a `fill` control HUGS its
+   *  content rather than stretching to a floored parent. A `minWidth` on the visible `control` reproduces
+   *  Prism 2's rendered geometry the one way projection allows: the control renders at ≥320, the hugging
+   *  column inherits that width, and — because the sizing is still AUTO, not FIXED — the field FLEXES above
+   *  the floor rather than being pinned to a hard size (the responsive half, #1345). A bound `width` would
+   *  instead need `sizing.x: 'fixed'` (the row-oriented width rule), pinning the field and losing the flex.
+   *
+   *  Refused on a non-`box` kind, and on a `box` with no `layout`: Figma applies `minWidth` only to an
+   *  auto-layout frame, so a floor on a layout-less box would be silently dropped (or throw on the real
+   *  host) — the silent-loss shape the width and sizing rules exist to catch. */
+  minWidth?: number;
   /** For `box` parts: the name of a VARIANT axis whose values are `W:H` ratio strings, from which the
    *  box's aspect-ratio LOCK is derived per member (#1316). image-placeholder declares `aspectRatio:
    *  'ratio'` and a `ratio` axis of `['1:1', '4:3', '16:9']`; the projector parses the member's own
@@ -394,6 +431,44 @@ export type PartDef = {
    *  naming a glyph that survives the swap is untouched, and every def naming one that does not fails at
    *  projection instead of building an empty square. */
   glyph?: string;
+  /** THE FRACTION OF ITS ARTBOARD A `vector`'s DRAWN GRID OCCUPIES (#1346). A glyph's 24-unit source grid
+   *  fills its artboard by default (`glyphScale` absent ≡ `1`): the frame is bound to its host size and the
+   *  ink renders at whatever proportion the artwork itself draws (`check` draws ~71% of the grid). A control
+   *  whose reference sits its glyph SMALLER than the box needs a second, optical inset ON TOP of that
+   *  artwork inset — and expressing it by SHRINKING THE FRAME would mint a per-rung control token (a
+   *  guaranteed name, a CONTRACT bump), because the plan is brand-agnostic and a frame binds a VARIABLE.
+   *  So the inset is baked into the emitted glyph DOCUMENT instead: the projector pads the artboard to
+   *  `grid / glyphScale` (centred, so the path `d` and the shared vocabulary are untouched), and the
+   *  same host binding renders the grid at `glyphScale` of the frame. A def-local literal, not a token —
+   *  `token-contract.ts --check` stays put. Prism 2's checkbox is the motivating case: its `checkFill`
+   *  (16) sits at 0.80 of its control box (20 = focus frame 28 − 2×4), so `mark`/`dash` carry
+   *  `glyphScale: 0.8`. `0 < glyphScale ≤ 1`; `1` is the no-op default and is not authored. `lint-glyph-
+   *  geometry.ts` re-derives the padded artboard from a scale it declares independently, so a value moving
+   *  in either file fails by name; the Figma import of a padded (negative-origin) artboard is a real-host
+   *  fact this offline model cannot verify, recorded in the def's `notes.unverified`. */
+  glyphScale?: number;
+  /** For a NON-ROOT `vector`: a LITERAL square px the glyph frame is BUILT at, instead of binding a token
+   *  via `size` (#1340). A def-local literal (the `minWidth`/`glyphScale` precedent), so it mints no
+   *  emitted token name and `token-contract.ts --check` stays put — the point over a token binding here.
+   *
+   *  WHY A LITERAL RATHER THAN A `size` BINDING. `image-placeholder`'s empty-state marker must read as a
+   *  PROPORTION of its large media frame (720px nominal, #1316), not as a stray small icon — a size no icon
+   *  rung reaches (they top out at `icon.size.xl` = 40px) and that no other semantic dimension names near
+   *  it. Minting a token for it would move CONTRACT and hand a brand a knob nobody should re-theme; a
+   *  glyph proportion of a component's own frame is component STRUCTURE, like the aspect lock and the
+   *  nominal width, not a brand value. So the frame is resized to this literal after the SVG import, with
+   *  the drawn grid scaling to fill it (the vector's SCALE constraints), and no variable is bound.
+   *
+   *  This is a FIXED size, held constant across the def's variants — the FLOOR the owner asked for, not a
+   *  size that tracks the frame's flexing extent on resize. True resize-tracking would need a Figma
+   *  scale-constraint / percentage-size projection the engine does not have (the fluid `100%` container is
+   *  skipped for exactly this reason — Figma has no percentage FLOAT primitive), filed as a follow-up.
+   *
+   *  MUTUALLY EXCLUSIVE with `size` (stating the glyph's size twice), and refused on any non-`vector` kind
+   *  and on the anatomy ROOT (a root glyph's size comes from the host that instances it — the same reason
+   *  `size` is refused on a root vector). `> 0`. `test.ts` pins the built size independently of the
+   *  projector, and reverting it to the old rung fails a NAMED assertion. */
+  glyphPx?: number;
   /** A slot that need not be present. `false`/absent means required. */
   optional?: boolean;
   /** VARIANT-GATED PRESENCE (#910): axis → the values at which this part exists. AND-composed across
@@ -663,7 +738,9 @@ export type AnatomyDef = {
  *  - TEXT           — a string on one text node.
  *  - BOOLEAN        — drives one node's `visible`, and nothing else. It cannot touch an ancestor's
  *                     `paddingLeft`, which is the whole reason #326's split inline padding cannot
- *                     ride on a boolean.
+ *                     ride on a boolean. But it CAN sit on a node that already carries a swap or a
+ *                     text property — `visible` is a distinct field from `mainComponent`/`characters`,
+ *                     so a leading glyph is a `visible` toggle AND a `mainComponent` swap at once (#1331).
  */
 export type FigmaProperties = {
   /** Which `variants` axes become VARIANT properties, in the order Figma should show them. An axis
@@ -761,10 +838,28 @@ export type FigmaProperties = {
    *  where nothing structurally varies is a blanket, and the second def to need this for a different
    *  reason should have to change the check rather than inherit a hole. */
   footprintVaries?: string[];
-  /** prop name → part name. BOOLEAN property; drives that one part's `visible`. An empty object is
-   *  a meaningful statement — "considered, and none survive" — and is preferred to omitting the
-   *  field: a schema that lists booleans it cannot honor is worse than one that admits there are none. */
-  booleans?: Record<string, string>;
+  /** prop name → the part whose `visible` this BOOLEAN drives (#1331). A NODE-VISIBILITY toggle: the
+   *  part is EMITTED at every member and its `visible` is driven by the boolean — NOT a variant axis that
+   *  multiplies the set (that is `slotAxes`, which #326's padding forces), and NOT `presentWhen`, which
+   *  DROPS the node at the gated-out coordinates of a variant it multiplies over. One member, one node,
+   *  visibility flipped in place; the set does not grow.
+   *
+   *  THE OBJECT FORM mirrors `swaps`/`texts` (#1380). A bare string is `prop → part` and defaults the
+   *  part VISIBLE (Figma's own default for a built node); the object carries `default` — the BUILT
+   *  visibility, which is also the boolean's own default value (`planSetProperties` reads it off the node,
+   *  "as built") — and `figmaName`, the panel LABEL decoupled from the code prop KEY. `select`'s leading
+   *  glyph is `{ part: 'leadingVisual', default: false, figmaName: 'leading icon' }`: hidden by default,
+   *  shown when the designer flips the switch.
+   *
+   *  COEXISTS WITH A SWAP OR TEXT ON THE SAME NODE. `visible` is a different Figma property FIELD from
+   *  `mainComponent` (swap) and `characters` (text), so one node legitimately carries both — a select's
+   *  leading glyph is a boolean `leading icon` (present?) AND a swap `↳ swap leading icon` (which icon),
+   *  the #1380 canon. The one-property-per-node rule below is keyed on the FIELD for exactly this reason.
+   *
+   *  An empty object is a meaningful statement — "considered, and none survive" — and is preferred to
+   *  omitting the field: a schema that lists booleans it cannot honor is worse than one that admits there
+   *  are none. */
+  booleans?: Record<string, string | { part: string; default?: boolean; figmaName?: string }>;
   /** prop name → the `kind: 'text'` part it drives, plus the PLACEHOLDER the component ships with.
    *
    *  THE ODD SHAPE OUT, and deliberately so: `booleans` and `swaps` are bare part names because
@@ -1216,6 +1311,17 @@ export const swapFigmaName = (prop: string, v: string | { part: string; figmaNam
 /** A `texts` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
 export const textFigmaName = (prop: string, t: { figmaName?: string }): string => t.figmaName ?? prop;
 
+/** The part whose `visible` a `booleans` entry drives — bare string or `{ part }` object (#1331). */
+export const booleanPart = (v: string | { part: string; default?: boolean; figmaName?: string }): string =>
+  typeof v === 'string' ? v : v.part;
+/** A `booleans` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
+export const booleanFigmaName = (prop: string, v: string | { part: string; default?: boolean; figmaName?: string }): string =>
+  typeof v === 'string' ? prop : v.figmaName ?? prop;
+/** A `booleans` entry's BUILT visibility (#1331) — the value the part is created with AND the boolean's own
+ *  default. Bare string defaults VISIBLE (Figma's own default for a built node); the object states otherwise. */
+export const booleanDefault = (v: string | { part: string; default?: boolean; figmaName?: string }): boolean =>
+  typeof v === 'string' ? true : v.default ?? true;
+
 /**
  * Which axis belongs across the COLUMNS (#656) — the declared preference, else the widest axis.
  *
@@ -1375,11 +1481,16 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
 
   // ---- the part-targeting maps ----
   const propNames = new Set((def.props ?? []).map((p) => p.name));
-  const claimed = new Map<string, string>();
-  // Takes `prop → part name`. `texts` carries a second field and is normalized to this shape by its
-  // caller below, rather than this helper learning two shapes — the relational checks are identical
-  // for all three maps and the difference is one field, so the narrower helper is the honest one.
-  const checkMap = (label: string, map: Record<string, string> | undefined, kind?: PartKind, requireOptional = false): void => {
+  // part → the Figma property FIELDS already claimed on it, each with its source. Keyed by FIELD, not by
+  // part, because one node legitimately carries more than one property so long as each uses a DIFFERENT
+  // Figma field: `characters` (text), `mainComponent` (swap) and `visible` (boolean) are three fields, and
+  // a select's leading glyph is a `visible` toggle AND a `mainComponent` swap at once (#1331/#1380). What
+  // is unresolvable is two claims on the SAME field — two swaps, or two booleans, pointed at one node.
+  const claimed = new Map<string, Map<string, string>>();
+  // Takes `prop → part name` and the Figma FIELD the property drives. `texts`/`swaps`/`booleans` each carry
+  // a richer shape, normalized to `prop → part` by the callers below rather than this helper learning three
+  // shapes — the relational checks are identical for all three and the difference is one field.
+  const checkMap = (label: string, map: Record<string, string> | undefined, field: string, kind?: PartKind, requireOptional = false): void => {
     for (const [prop, part] of Object.entries(map ?? {})) {
       if (!propNames.has(prop)) e.push(`figmaProperties.${label}: '${prop}' is not a declared prop`);
       const p = parts[part];
@@ -1388,19 +1499,36 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       // A BOOLEAN drives `visible`, so its target must be a part the anatomy already says may be
       // absent. Toggling a required part off produces a component whose own anatomy forbids it.
       if (requireOptional && !p.optional) e.push(`figmaProperties.${label}.${prop} → part '${part}' is not optional; a BOOLEAN toggles visibility, so the anatomy must allow the part to be absent`);
-      const owner = claimed.get(part);
-      // One node, one property kind. A part driven as both a TEXT and an INSTANCE_SWAP is two
-      // different Figma property types pointed at the same node — unresolvable at creation.
-      if (owner) e.push(`part '${part}' is targeted by both ${owner} and ${label}.${prop} — a node carries at most one property kind`);
-      claimed.set(part, `${label}.${prop}`);
+      const byField = claimed.get(part) ?? new Map<string, string>();
+      const owner = byField.get(field);
+      // One node, one property PER FIELD. Two claims on the same Figma field pointed at one node (two
+      // swaps, two booleans) are unresolvable at creation; DIFFERENT fields (a swap + a boolean) coexist.
+      if (owner) e.push(`part '${part}' is targeted by both ${owner} and ${label}.${prop} — a node carries at most one '${field}' property`);
+      byField.set(field, `${label}.${prop}`);
+      claimed.set(part, byField);
     }
   };
-  checkMap('texts', Object.fromEntries(Object.entries(fp.texts ?? {}).map(([p, t]) => [p, t.part])), 'text');
+  checkMap('texts', Object.fromEntries(Object.entries(fp.texts ?? {}).map(([p, t]) => [p, t.part])), 'characters', 'text');
   // `swaps` may carry the #1380 object form `{ part, figmaName }`; normalized to `prop → part` here so
-  // the relational checks (prop is a declared prop, part exists and is a slot, one property kind per part)
-  // are identical for the string and object forms — the display name is a Figma label, checked below.
-  checkMap('swaps', Object.fromEntries(Object.entries(fp.swaps ?? {}).map(([p, v]) => [p, swapPart(v)])), 'slot');
-  checkMap('booleans', fp.booleans, undefined, true);
+  // the relational checks (prop is a declared prop, part exists and is a slot, one property per field) are
+  // identical for the string and object forms — the display name is a Figma label, checked below.
+  checkMap('swaps', Object.fromEntries(Object.entries(fp.swaps ?? {}).map(([p, v]) => [p, swapPart(v)])), 'mainComponent', 'slot');
+  // `booleans` normalizes the same way (#1331). No `kind` — a `visible` toggle sits on any node type — and
+  // `requireOptional`, because the anatomy must allow the part to be hidden.
+  checkMap('booleans', Object.fromEntries(Object.entries(fp.booleans ?? {}).map(([p, v]) => [p, booleanPart(v)])), 'visible', undefined, true);
+
+  // A BOOLEAN is the SOLE presence mechanism on its part (#1331): the part is emitted at every member and
+  // its `visible` is toggled in place. A part that is ALSO `presentWhen`-gated (a variant it multiplies
+  // over) or `when`-gated (an overlay/absolute state) has a SECOND, conflicting presence mechanism that
+  // would DROP the node at some coordinates — leaving the boolean nothing to toggle there — so the
+  // combination is refused rather than given an undefined composition. The clean cases the mechanism is
+  // for (select's leading glyph, field-label's marker) gate presence on neither.
+  for (const [prop, v] of Object.entries(fp.booleans ?? {})) {
+    const part = booleanPart(v);
+    const p = parts[part];
+    if (p && (p.presentWhen || p.when))
+      e.push(`figmaProperties.booleans.${prop} → part '${part}' also declares ${p.presentWhen ? 'presentWhen' : 'when'} — a boolean toggles the part's visibility at every member, so a variant/state presence gate on the same part is a second presence mechanism the boolean cannot compose with`);
+  }
 
   // ZERO-WIDTH characters are stripped before the "does it render" test, not just whitespace — see the
   // fuller note on the placeholder loop below, where this same predicate gates an empty TEXT default.
@@ -1429,6 +1557,7 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   for (const s of fp.slotAxes ?? []) claimPanel(slotAxisFigmaName(s), `slotAxes.${s.name}`);
   for (const [prop, t] of Object.entries(fp.texts ?? {})) claimPanel(textFigmaName(prop, t), `texts.${prop}`);
   for (const [prop, v] of Object.entries(fp.swaps ?? {})) claimPanel(swapFigmaName(prop, v), `swaps.${prop}`);
+  for (const [prop, v] of Object.entries(fp.booleans ?? {})) claimPanel(booleanFigmaName(prop, v), `booleans.${prop}`);
 
   // The placeholder is REQUIRED to say something. An empty default is exactly what Figma accepts and
   // what #510 shipped — 21 variants with nothing readable in them — so a def that declares a TEXT
@@ -2037,12 +2166,34 @@ export type State = (typeof STATES)[number];
  * adding: two precise names replace one overloaded one on three defs, `tone` narrows to its one honest
  * use, and the bar is unchanged. `emitAsComponents` still needs exactly one `variantAxes` entry, so a
  * def cannot smuggle two of these onto one Figma set.
+ *
+ * ── `shape`: THE EIGHTEENTH NAME, FOR THE ICON BUTTON'S CORNER SILHOUETTE (#1353) ──────────────────
+ *
+ * `shape` (`square | circular`) is the CORNER GEOMETRY a control takes — a rounded rectangle or a full
+ * disc — the owner-decided axis for `icon-button` (and its two siblings), held to this list's bar the
+ * same way `ratio` and the veil's two were. It is PURE GEOMETRY: the two values differ only in the
+ * container's corner radius (`square` → `radius.md`, `circular` → `radius.round`) and are token-identical
+ * in color, state and every other binding, which is exactly why the owner made it an AXIS and not a
+ * component split (contrast #1225, where each intent carried a different `interactive.<family>` binding
+ * and so became its own component). The three nearest names are defeated: `size` is a scale RUNG (how big,
+ * on a named ladder a brand re-derives), `ratio` is a width-to-height PROPORTION the frame holds while its
+ * dimensions flex (#1316), and `style` is a LINE treatment (`outline`, the field substrate's stroke) —
+ * none is a corner silhouette. Naming it `size` would put a shape into a scale axis whose values are
+ * dimension tokens; `ratio` fixes a proportion, not a corner; `style` is about the edge's stroke, not its
+ * rounding. `lint-axis-values.ts` carries `['square', 'circular']` as a `sole` set with this reason.
+ *
+ * IT DOES NOT COLLIDE WITH THE `controlShape` BRAND LEVER (#1163, #1371), which is a distinct mechanism at a
+ * distinct layer: `controlShape` is a per-BRAND `rounded | pill | boxed | hairline` choice applied to a def
+ * BEFORE projection (`applyControlShape`), while `shape` is a per-INSTANCE variant a designer picks within
+ * one set. They compose — under a non-`rounded` brand the lever repoints the `square` shape's rounded rung
+ * to the shape's rung (capsule/none/hairline) and leaves the `circular` shape's intrinsic round rung, the
+ * same rule it applies to switch/radio.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis',
+  'status', 'emphasis', 'shape',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -2510,8 +2661,18 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     const p = parts[n];
     if (p.kind !== 'box' || !(p.paintSlots ?? []).includes('indicator')) continue;
     const drawn = (p.children ?? []).filter((c) => parts[c] && (parts[c].kind === 'vector' || parts[c].kind === 'text'));
-    if (drawn.length)
-      e.push(`anatomy part '${n}' declares paintSlots 'indicator' and has ${parts[drawn[0]].kind} child${drawn.length > 1 ? 'ren' : ''} [${drawn.join(', ')}] — a box may take an ink slot only when it DRAWS the mark itself, or the fill lands behind the node that does (#864). Move the ink to the drawing part's own slot.`);
+    // A `size`+`radius` DISC is the one shape allowed to parent a glyph (#1354, the switch thumb). #864's
+    // case was an SVG WRAPPER FRAME — a box with no shape of its own — whose fill landed as an incidental
+    // SQUARE behind the glyph; the fix was "move the ink to the drawing part's slot". A Prism 2 switch
+    // thumb is the opposite: a deliberately-shaped round filled mark (bound `size` AND `radius`) that
+    // legitimately carries a check/X, the round disc behind the glyph being the INTENDED visual (Prism 2's
+    // filled handle). So the refusal is narrowed with a stated reason rather than dodged with a wrapper
+    // node that would reproduce the exact fill-behind-glyph #864 exists to prevent. A wrapper frame binds
+    // neither `size` nor `radius`, so it stays refused; `checkbox-control`'s filled `control` box already
+    // parents its `mark` the same way, using `fill` (never refused).
+    const isShapedDisc = p.size !== undefined && p.radius !== undefined;
+    if (drawn.length && !isShapedDisc)
+      e.push(`anatomy part '${n}' declares paintSlots 'indicator' and has ${parts[drawn[0]].kind} child${drawn.length > 1 ? 'ren' : ''} [${drawn.join(', ')}] — a box may take an ink slot only when it DRAWS the mark itself, the fill lands behind the node that does (#864), or it is a deliberately-shaped filled mark (binds 'size' AND 'radius', e.g. the switch thumb carrying a state glyph — #1354). Move the ink to the drawing part's own slot, or shape the box.`);
   }
 
   // Every binding key anatomy names must be a slot the component actually binds, AT EVERY COORDINATE
@@ -2799,6 +2960,24 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' binds 'width' but its main-axis sizing is '${p.layout.sizing.x}' — a bound dimension needs 'fixed', or the content decides the length and the binding is overridden ('fill' projects to AUTO as well, #989)`);
     if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined))
       e.push(`anatomy part '${n}' is kind '${p.kind}' but carries layout/padding/gap — only a 'box' lays out`);
+    // ---- THE WRAPPING LABEL (#1424) ----
+    // `wrap` fills the parent's main axis and reflows (`layoutGrow: 1` + `textAutoResize: 'HEIGHT'`), which
+    // is a TEXT-only capability — a box sizes with `sizing`, a slot/vector by its artboard.
+    if (p.wrap !== undefined && p.kind !== 'text')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'wrap' — only a 'text' part fills its row and reflows; a box sizes with 'sizing' and a slot/vector by its artboard`);
+    // ITS PRECONDITION, asserted rather than trusted (the #990/#989 shape from the child's side): the parent
+    // must BOUND its main-axis width — a `minWidth` floor or `sizing.x: 'fixed'` — because `layoutGrow` fills
+    // REMAINING main-axis space and a hugging parent (sizing.x 'hug'/'fill' → AUTO, #989) is exactly as wide
+    // as its children, leaving none. A `wrap` label under a floorless row validates, projects a real
+    // `layoutGrow`, and STILL hugs its glyphs and overflows — the silent no-op this catches. It is also what
+    // makes the row's `minWidth` load-bearing: remove it and this fires by name.
+    if (p.wrap) {
+      const parent = claimed.get(n);
+      const pp = parent ? parts[parent] : undefined;
+      const boundedMain = !!pp?.layout && (pp.minWidth !== undefined || pp.layout.sizing.x === 'fixed');
+      if (!boundedMain)
+        e.push(`anatomy part '${n}' declares 'wrap' but its parent '${parent ?? '(none)'}' does not bound its main-axis width (minWidth ${pp?.minWidth ?? 'unset'}, sizing.x '${pp?.layout?.sizing.x ?? 'n/a'}') — 'layoutGrow' fills the REMAINING main-axis space and a hugging parent has none, so the label would hug its glyphs and overflow ('fill'/'hug' project to AUTO, #989). Give the parent a 'minWidth' floor or a fixed main axis`);
+    }
     // `inset` is the absolute kind's own geometry and means nothing anywhere else: on a flow part it
     // reads as though the part were offset from its cell, which no projection does. Checked as its own
     // rule rather than folded into the loop above because the layout rule is about what LAYS OUT
@@ -2817,6 +2996,18 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // belongs to the component it instantiates — so what a stroke would mean there is a decision.
     if (p.kind !== 'box' && p.strokeWidth !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'strokeWidth' — only a 'box' projects a bound strokeWeight, so this would resolve, validate, and reach no node`);
+    // `height` is the last field of this family (#1305), and its split is one kind wider than
+    // `strokeWidth`'s: TWO kinds project a bound height — a `box` (which fixes both axes) and a `nest`
+    // (#1299, whose own height is the whole of what that issue added). On every OTHER kind the projector
+    // reads nothing into the height axis, so a bound `height` resolves, validates, and reaches no node —
+    // the silent-drop shape this pass exists to catch. `vector` is refused separately below with its own
+    // reason (a glyph's artboard is square), so it is excluded here to leave that message the one an icon
+    // author sees; the kinds this catches are `slot`, `overlay`, `text` and `absolute`. That last one is
+    // why the rule is NOT scoped to the three the filing named: `absolute` already refuses `size` outright
+    // (it is sized by its parent's bounds grown by `inset`) and dropped `height` just as silently — the
+    // same posture mismatch #1305 records, one kind past where the issue looked.
+    if (p.kind !== 'box' && p.kind !== 'nest' && p.kind !== 'vector' && p.height !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'height' — only a 'box' (which fixes both axes) or a 'nest' (#1299) projects a bound height; a slot/overlay takes the size of the content swapped into it, a text is sized by its own content, and an absolute by its parent's bounds — so this would resolve, validate, and reach no node`);
     if (p.kind !== 'absolute' && p.kind !== 'nest' && p.nests !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'nests' — only an 'absolute' (out-of-flow) or a 'nest' (in-flow) part materializes as an instance of another component`);
     // A `nest` (#1226 PR-A) is the in-flow twin of `absolute`: it MUST name what it nests, and its
@@ -2974,6 +3165,14 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // it, so on any other kind it validates clean, is silently ignored, and reaches no node.
     if (p.kind !== 'box' && p.clipsContent !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'clipsContent' — only a 'box' becomes a frame that can crop its overflow; every other kind is a leaf whose content is its own`);
+    // ---- `minWidth`, the BOX kind's auto-layout width FLOOR (#1343a, #1345) ----
+    // Figma applies `minWidth` only to an auto-layout frame, so it is refused on a non-box and on a box
+    // with no `layout`: either way the executor would not carry it onto an auto-layout frame, and the
+    // floor would be silently dropped (or throw on the real host) — the silent-loss shape.
+    if (p.minWidth !== undefined && p.kind !== 'box')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidth' — only a 'box' becomes an auto-layout frame that can carry a minimum width; every other kind is sized by its content or its artboard`);
+    if (p.minWidth !== undefined && p.kind === 'box' && !p.layout)
+      e.push(`anatomy part '${n}' declares 'minWidth' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so a floor on a layout-less box would be silently dropped`);
     // ---- `aspectRatio`, the BOX kind's proportion LOCK (#1316) ----
     // A ratio-locked box binds ONE nominal dimension and lets Figma's aspect lock derive the other. Every
     // rule here is a way the field would validate and then leave a member unlocked or evicted — the
@@ -3021,6 +3220,17 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // leaves an author believing the part draws something.
     if (p.kind !== 'vector' && p.glyph !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but names a 'glyph' — only a 'vector' part carries geometry. A slot's content is whatever the consumer swaps in, which is a component and not a path`);
+    // `glyphScale` (#1346) is read only by the vector branch's glyph-document emitter, so it is the
+    // same wrong-kind-silently-ignored shape as `glyph` above and refused the same way. And its RANGE is
+    // load-bearing: the projector pads the artboard to `grid / glyphScale`, so `0` divides and a value
+    // `> 1` shrinks the artboard BELOW the grid and clips the ink — both project a broken glyph rather
+    // than fail here, so the bound is stated where the author writes the value.
+    if (p.glyphScale !== undefined) {
+      if (p.kind !== 'vector')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'glyphScale' — only a 'vector' part carries a glyph artboard to pad, so on any other kind it validates clean, is ignored, and leaves an author believing the mark is inset`);
+      else if (!(p.glyphScale > 0 && p.glyphScale <= 1))
+        e.push(`anatomy part '${n}' declares glyphScale ${p.glyphScale} — the drawn grid occupies this fraction of its artboard, so it must be in (0, 1]; 0 divides at emit and a value above 1 pads the artboard SMALLER than the grid and clips the outline`);
+    }
     // A `{...}`-TEMPLATED GLYPH must name an axis this def has, the same rule `paintKeyErrors` applies to
     // a paint template and for the same reason: `glyph: '{nmae}'` is unfillable, and the projector's throw
     // arrives per-coordinate at emission rather than here at authoring time. `size` is admissible on top
@@ -3059,6 +3269,22 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is kind 'vector' but binds 'height' — a glyph's artboard is square, so binding one axis alone states a shape the icon set does not draw; use 'size', which binds both`);
     if (p.kind === 'vector' && p.size && n === a.root)
       e.push(`anatomy part '${n}' is kind 'vector', binds 'size' and is the anatomy ROOT — a root glyph's rendered size comes from the host that instances it (a host binds \`size.{size}.icon\` onto its own slot), so binding it here states the same square a third time and the three can disagree with nothing noticing`);
+    // `glyphPx` (#1340) is a def-local LITERAL square px the glyph frame is built at, read only by the
+    // vector branch's GLYPH executor — the same wrong-kind-silently-ignored shape as `glyph`/`glyphScale`
+    // above, refused on every non-vector kind. It is refused on the anatomy ROOT for the same reason a
+    // root `size` binding is (a root glyph's size is the instancing host's), and it is mutually exclusive
+    // with `size`: a part stating its size by both a token binding AND a literal would keep whichever the
+    // projector read last with nothing noticing. `> 0`, or the frame builds at a zero/negative square.
+    if (p.glyphPx !== undefined) {
+      if (p.kind !== 'vector')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'glyphPx' — only a 'vector' part is a glyph frame the executor resizes to a literal, so on any other kind it validates clean, is ignored, and leaves an author believing the part was sized`);
+      else if (n === a.root)
+        e.push(`anatomy part '${n}' is kind 'vector', declares 'glyphPx' and is the anatomy ROOT — a root glyph's rendered size comes from the host that instances it, so a literal here fixes a size the host is meant to give and the two can disagree with nothing noticing`);
+      else if (p.size !== undefined)
+        e.push(`anatomy part '${n}' declares BOTH 'size' and 'glyphPx' — that states the glyph's square twice, once as a token binding and once as a literal, and the projection would keep whichever it read last; a glyph frame states its size ONE way`);
+      else if (!(p.glyphPx > 0))
+        e.push(`anatomy part '${n}' declares glyphPx ${p.glyphPx} — the glyph frame is resized to this square, so it must be > 0; a zero or negative literal builds a collapsed or inverted frame`);
+    }
   }
 
   return e;

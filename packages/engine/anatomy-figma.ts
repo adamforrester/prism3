@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, figmaVariantCount, figmaAxisNames } from './component-schema';
+import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames } from './component-schema';
 import type { ControlShape } from './scale';
 // The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
@@ -139,6 +139,21 @@ export type FigmaNodePlan = {
    *  differs on every paste, so a plan holding one would not be brand-invariant — the same argument
    *  `bound` holds names rather than `VariableID:*`. The payload maps name → returned id. */
   propertyRef?: { field: 'characters' | 'mainComponent' | 'visible'; prop: string };
+  /** NODE-VISIBILITY BOOLEAN (#1331). Two fields, kept apart from `propertyRef` because the boolean
+   *  coexists on a node that ALSO carries a swap or text `propertyRef` (a select's leading glyph is a
+   *  `visible` toggle AND a `mainComponent` swap), and `propertyRef` is singular by design.
+   *
+   *  `visibleProp` — the Figma BOOLEAN property NAME whose value drives this node's `visible`. Present only
+   *  on a node a `figmaProperties.booleans` entry targets; the property is declared once on the set
+   *  (`planSetProperties`) and wired per member through the same ref machinery a swap uses (keyed by
+   *  part+field, so both refs on one part survive).
+   *
+   *  `visible` — the node's BUILT visibility, carried ONLY when `false` so every existing plan stays
+   *  byte-identical (both executors read `n.visible ?? true`). It is also the boolean property's own
+   *  DEFAULT value: `planSetProperties` reads it off the node "as built", so a hidden-by-default leading
+   *  glyph both renders hidden and defaults its switch to off. */
+  visibleProp?: string;
+  visible?: boolean;
   /** For an `INSTANCE_SWAP` node: the paint for VECTOR descendants INSIDE the instance.
    *
    *  Its own field because the instance's own `fills` would paint a background square behind the
@@ -356,6 +371,29 @@ export type FigmaNodePlan = {
    *  Carried onto the plan ONLY when `true`, so every existing box's plan is byte-identical (both
    *  executors read `n.clipsContent ?? false`, which is the literal they hardcoded before this field). */
   clipsContent?: boolean;
+  /** For a `box`: the literal auto-layout `minWidth` floor in px (#1343a, #1345). Carried ONLY when the
+   *  def sets it, so every existing box's plan is byte-identical; both executors write it inside the
+   *  `layoutMode` branch, where Figma accepts a minimum width. See `PartDef.minWidth` for why a `select`
+   *  gets a min-width and not a bound `width`. */
+  minWidth?: number;
+  /** For a `TEXT` node that WRAPS (#1424): `1` when the label should FILL its row's main axis and wrap to
+   *  multiple lines rather than hug its content and overflow. Figma's child-side `layoutGrow` (a 0/1 stretch
+   *  flag along the parent's PRIMARY axis). Carried ONLY when `1`, so every other node's plan is byte-identical
+   *  — both executors read `n.layoutGrow ?? 0`, the literal the neutralizer wrote before this field. Its
+   *  partner is `textAutoResize: 'HEIGHT'` below: filling the main axis fixes the WIDTH, and auto-height is
+   *  what lets the fixed-width text reflow. Set from `PartDef.wrap`. */
+  layoutGrow?: number;
+  /** For a `TEXT` node: how the text box resizes (#1424). `'HEIGHT'` = fixed width, auto height — the box
+   *  wraps. Carried ONLY when it diverges from the executor default `'WIDTH_AND_HEIGHT'` (hug both axes, the
+   *  overflow shape), so every other TEXT node's plan is byte-identical — both executors read
+   *  `n.textAutoResize ?? 'WIDTH_AND_HEIGHT'`. Paired with `layoutGrow: 1` for a wrapping label: the grow
+   *  fixes the width and this lets the height flow. Set from `PartDef.wrap`. */
+  textAutoResize?: 'WIDTH_AND_HEIGHT' | 'HEIGHT' | 'TRUNCATE' | 'NONE';
+  /** For a `GLYPH`: the literal square px the glyph frame is built at (#1340). Carried ONLY when the def
+   *  sets it, so every existing glyph's plan is byte-identical; the executor resizes the imported frame to
+   *  it after the SVG import (the outline's SCALE constraints scale the drawn grid to fill), instead of
+   *  binding a token via `size`. See `PartDef.glyphPx` for why a literal and not a bound size. */
+  glyphPx?: number;
   children: FigmaNodePlan[];
 };
 
@@ -620,19 +658,47 @@ const viewBoxDims = (): [number, number] => {
  * inside, from `descendantFills`. Carrying it anyway keeps this document identical to the source file,
  * which is what makes `emit-icons.ts`'s assertions about the source assertions about this too.
  */
-const glyphDocument = (path: string, fillRule?: string): string =>
-  `<svg width="${viewBoxDims()[0]}" height="${viewBoxDims()[1]}" viewBox="${ICON_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg">` +
+/**
+ * THE ARTBOARD a glyph document declares, PADDED by `glyphScale` (#1346). Absent (or `1`) is the set's
+ * own square untouched; a scale in `(0, 1)` pads the artboard to `grid / scale` and shifts its origin so
+ * the SAME drawn path is CENTRED in the larger canvas — the ink then occupies `scale` of the frame, and
+ * the host's existing size binding renders it at `scale` of the box with the path `d` and the shared
+ * vocabulary byte-unchanged. Shrinking the FRAME instead would mint a per-rung control token (the plan
+ * is brand-agnostic, a frame binds a variable, a new emitted name is a CONTRACT bump); padding the
+ * DOCUMENT is a def-local literal, so `token-contract.ts --check` stays put. Returns the `viewBox`
+ * string and the `[w, h]` the built frame must come back as — one derivation for both, so the document
+ * and its read-back cannot disagree; `lint-glyph-geometry.ts` re-derives this independently from a scale
+ * it declares itself, which is what makes the padding falsifiable rather than self-consistent. */
+const glyphArtboard = (scale?: number): { viewBox: string; dims: [number, number] } => {
+  const [w, h] = viewBoxDims();
+  if (scale === undefined || scale === 1) return { viewBox: ICON_VIEWBOX, dims: [w, h] };
+  // Rounded to a 4-decimal grid so `24 / 0.8` is the clean 30 the artboard wants rather than the
+  // 29.999999999999996 IEEE division hands back — a stray tail would ship in the emitted document and
+  // in the frame's read-back box. `lint-glyph-geometry.ts` re-derives with the SAME rounding (stated in
+  // its header), independently, so the two agree by construction rather than by sharing this code.
+  const r = (v: number): number => Math.round(v * 1e4) / 1e4;
+  const [minX, minY] = ICON_VIEWBOX.split(/\s+/).map(Number);
+  const padW = r(w / scale), padH = r(h / scale);          // the drawn grid is `scale` of the padded box
+  const offX = r(minX - (padW - w) / 2), offY = r(minY - (padH - h) / 2);  // centre the SAME path, `d` unshifted
+  return { viewBox: `${offX} ${offY} ${padW} ${padH}`, dims: [padW, padH] };
+};
+
+const glyphDocument = (path: string, fillRule?: string, scale?: number): string => {
+  const ab = glyphArtboard(scale);
+  return `<svg width="${ab.dims[0]}" height="${ab.dims[1]}" viewBox="${ab.viewBox}" fill="none" xmlns="http://www.w3.org/2000/svg">` +
   // `fill-rule` is written only when the source declared a non-default one (#1012). It sits BEFORE `d`
   // the way the source authored it, and it is the attribute that keeps a lettered disc's counters cut
   // OUT rather than filled solid — Figma's importer honours it, so a glyph that stored `evenodd` renders
   // as drawn. Absent means `nonzero`, the default both SVG and Figma already assume, so the string is
   // byte-identical to before for every glyph that needs no rule.
   `<path ${fillRule ? `fill-rule="${fillRule}" ` : ''}d="${path}" fill="currentColor"/></svg>`;
+};
 
 /** `glyphDocument` for a resolved glyph NAME — looks its path and (sparse) winding rule up together, so
- *  the two lookups stay in one place and the caller passes a name rather than re-deriving both (#1012). */
-const glyphSvgFor = (defId: string, part: string, glyph: string | undefined): string =>
-  glyphDocument(glyphPath(defId, part, glyph), glyph ? ICON_FILL_RULES[glyph as keyof typeof ICON_PATHS] : undefined);
+ *  the two lookups stay in one place and the caller passes a name rather than re-deriving both (#1012).
+ *  `scale` pads the artboard per `glyphScale` (#1346); absent leaves the set's own square untouched. */
+const glyphSvgFor = (defId: string, part: string, glyph: string | undefined, scale?: number): string =>
+  glyphDocument(glyphPath(defId, part, glyph), glyph ? ICON_FILL_RULES[glyph as keyof typeof ICON_PATHS] : undefined, scale);
 
 const ALIGN: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'> = {
   start: 'MIN', center: 'CENTER', end: 'MAX', baseline: 'BASELINE',
@@ -696,6 +762,13 @@ export const figmaAnatomyPlan = (
   const leading = slots.leading ?? false;
   const trailing = slots.trailing ?? false;
   const { state } = slots;
+  // NODE-VISIBILITY BOOLEANS (#1331), part name → the Figma property that drives its `visible` and the
+  // BUILT visibility (also the property's default). Computed HERE, above `present()`, because a
+  // boolean-driven part must stay in the tree at every member — the boolean toggles its `visible` in place
+  // rather than a variant/slot axis dropping the node — so `present()` has to know which parts these are.
+  const booleanParts = new Map<string, { prop: string; visible: boolean }>();
+  for (const [prop, v] of Object.entries(def.figmaProperties?.booleans ?? {}))
+    booleanParts.set(booleanPart(v), { prop: booleanFigmaName(prop, v), visible: booleanDefault(v) });
   // An axis coordinate read off `slots` is a string or it is absent — `leading`/`trailing` share the
   // index signature but are not coordinates, and a def is free to declare an axis named either.
   const axisValue = (axis: string): string | undefined => {
@@ -994,6 +1067,12 @@ export const figmaAnatomyPlan = (
   const overlaidPart = activeOverlay && !replacedByOverlay ? activeOverlay[1].overlaysWhenAbsent : undefined;
 
   const present = (name: string): boolean => {
+    // A NODE-VISIBILITY BOOLEAN part (#1331) is EMITTED at every member — the boolean flips its `visible`
+    // in place, so the node has to exist for there to be anything to toggle. This leads `present()` because
+    // the part is also `optional` (the mechanism requires it) and may be one of the hardcoded slot names,
+    // both of which the lines below would otherwise DROP it on. `figmaPropertyErrors` refuses a boolean on
+    // a `presentWhen`/`when`-gated part, so no second presence mechanism contends here.
+    if (booleanParts.has(name)) return true;
     // The replaced part yields its cell — one node in one position, not two fighting for it. Figma
     // builds every variant as its own tree, so there is nothing to hide: the `pending` variant simply
     // has a spinner where the leading visual would otherwise be.
@@ -1108,7 +1187,9 @@ export const figmaAnatomyPlan = (
     textDefaults.set(t.part, t.default);
   }
   for (const [prop, v] of Object.entries(fp?.swaps ?? {})) drivenBy.set(swapPart(v), { field: 'mainComponent', prop: swapFigmaName(prop, v) });
-  for (const [prop, part] of Object.entries(fp?.booleans ?? {})) drivenBy.set(part, { field: 'visible', prop });
+  // `booleans` does NOT ride `drivenBy`/`propertyRef` (#1331): a boolean's `visible` field coexists with a
+  // swap or text on the same node, and `propertyRef` is singular. The boolean's plan carrier is
+  // `visibleProp`/`visible`, computed above in `booleanParts` and emitted on the node below.
 
   const node = (name: string, p: PartDef): FigmaNodePlan => {
     const bound: Record<string, string> = {};
@@ -1337,8 +1418,10 @@ export const figmaAnatomyPlan = (
       // but which the field's grammar allows — resolves instead of throwing on an axis that is in fact known.
       ...(p.kind === 'vector'
         ? {
-            glyphSvg: glyphSvgFor(def.id, name, resolveGlyph(def.id, name, p.glyph, paintCoord)),
-            glyphViewBox: viewBoxDims(),
+            glyphSvg: glyphSvgFor(def.id, name, resolveGlyph(def.id, name, p.glyph, paintCoord), p.glyphScale),
+            // The artboard PADDED by `glyphScale` (#1346), not the set's bare square: the two come from
+            // one `glyphArtboard` call so the document and the box its executor reads back cannot disagree.
+            glyphViewBox: glyphArtboard(p.glyphScale).dims,
           }
         : {}),
       // THE ASPECT-RATIO LOCK (#1316), carried as the numeric proportion so each executor can resize the
@@ -1348,6 +1431,20 @@ export const figmaAnatomyPlan = (
       // The crop flag (#1316), carried ONLY when true so every existing box's plan is byte-identical —
       // both executors read `n.clipsContent ?? false`, which is the literal `false` they hardcoded before.
       ...(p.kind === 'box' && p.clipsContent ? { clipsContent: true as const } : {}),
+      // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
+      // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
+      ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: p.minWidth } : {}),
+      // THE WRAPPING LABEL (#1424), carried ONLY on a `text` part that opts in, so every other TEXT node's
+      // plan is byte-identical. `layoutGrow: 1` fills the row's main axis (fixing the width) and
+      // `textAutoResize: 'HEIGHT'` lets the fixed-width box reflow — the two facts that turn a hugging,
+      // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
+      // width (a `minWidth` floor or `fixed`), or the fill has nothing to resolve against (#989).
+      ...(p.kind === 'text' && p.wrap ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
+      // The literal glyph size (#1340), carried ONLY when a vector sets it so every other glyph's plan is
+      // byte-identical — a def-local literal the executor resizes the imported frame to (`PartDef.glyphPx`),
+      // not a bound token. It replaces the `size` binding for a marker that must read at a proportion of a
+      // large frame, past every icon rung and CONTRACT-free (no token minted).
+      ...(p.kind === 'vector' && p.glyphPx !== undefined ? { glyphPx: p.glyphPx } : {}),
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nests ? { nestTarget: p.nests } : {}),
       // The def's chosen coordinate — the member the instance starts at. Projected for BOTH `nest-fixed`
       // (the def's final choice) and `nest-exposed` (the DEFAULT, from which the consumer drives the
@@ -1371,6 +1468,12 @@ export const figmaAnatomyPlan = (
       ...(chars !== undefined ? { characters: chars } : {}),
       ...(textDef !== undefined && textDef !== chars ? { textDefault: textDef } : {}),
       ...(propertyRef ? { propertyRef } : {}),
+      // NODE-VISIBILITY BOOLEAN (#1331). `visibleProp` names the property; `visible: false` is carried ONLY
+      // for a hidden-by-default part so every existing plan stays byte-identical (executors read
+      // `n.visible ?? true`). A boolean part is present at every member (see `present()`), so this rides
+      // the tree, not a variant coordinate.
+      ...(booleanParts.has(name) ? { visibleProp: booleanParts.get(name)!.prop } : {}),
+      ...(booleanParts.get(name)?.visible === false ? { visible: false as const } : {}),
       ...(textStyle ? { textStyle } : {}),
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
       // here and nowhere else, so this line IS the rule #1009 asked to be located.
@@ -1381,7 +1484,7 @@ export const figmaAnatomyPlan = (
       ...(p.layout
         ? {
             layoutMode: p.layout.direction === 'row' ? ('HORIZONTAL' as const) : ('VERTICAL' as const),
-            // A travelling child's declared position OVERRIDES the parent's own justify at this
+            // A traveling child's declared position OVERRIDES the parent's own justify at this
             // coordinate (#990) — see `positionOf`. Absent one, the def's justify is projected unchanged,
             // so every existing plan is byte-identical.
             primaryAxisAlignItems: JUSTIFY[positionOf(childNames) ?? p.layout.justify],
@@ -1455,6 +1558,27 @@ export const PILL_RADIUS_DERIVATION = 'pill-radius';
  *  bound to a radius corner, not a height variable bound across Figma's scope boundary. */
 export const PILL_RADIUS_RUNG = 'radius.capsule';
 
+/** The rung a pill-able control binds under `controlShape: boxed` (#1371) — a fixed 0px / sharp corner.
+ *  `radius.none` is ALWAYS emitted (it is the ramp's floor, `RADIUS_LADDER`'s `factor: 0`), so `boxed`
+ *  carries no rung dependency: unlike `hairline` it is valid for every brand with nothing to provision. */
+export const BOXED_RADIUS_RUNG = 'radius.none';
+
+/** The rung a pill-able control binds under `controlShape: hairline` (#1371) — the fixed 1px sentinel
+ *  (#1362). `radius.hairline` is OPT-IN: it exists only when the brand's `radiusHairline` lever is on, so
+ *  selecting `controlShape: hairline` IMPLIES that rung — `brandTheme` provisions `radius.hairline`
+ *  whenever the control shape needs it (theme.ts), which is what keeps this rewrite always resolvable
+ *  rather than dangling against a brand that never opted in. */
+export const HAIRLINE_RADIUS_RUNG = 'radius.hairline';
+
+/** The rung each shape repoints the ROUNDED rung (`radius.md`) to on a pill-able def. `rounded` is `null`
+ *  — the IDENTITY, no rewrite — which is what makes the default plan byte-identical (acceptance #1). */
+export const CONTROL_SHAPE_RUNG: Record<ControlShape, string | null> = {
+  rounded: null,
+  pill: PILL_RADIUS_RUNG,
+  boxed: BOXED_RADIUS_RUNG,
+  hairline: HAIRLINE_RADIUS_RUNG,
+};
+
 /** True when `def` is a pill-able control — it declares the `pill-radius` derivation. */
 export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[PILL_RADIUS_DERIVATION];
 
@@ -1468,20 +1592,45 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  * projector a brand input, the caller that knows the brand rewrites the DEF first and hands the projector a
  * def as before. The projector stays a pure function of its def; the brand-specificity lives here.
  *
- * What it does: under `pill`, a pill-able control's `radius` binding key is repointed from its rounded rung
- * (`radius.md`) to the shared pill rung (`radius.round`). `varOf` still resolves `radius` through
- * `def.tokens` exactly as before — only the ref it finds there has moved — so no binding is bypassed and no
- * per-component token is introduced. Under `rounded` (default) and for any def that is not pill-able, this
- * is the IDENTITY: it returns the same object, which is what makes `rounded` reproduce every plan
- * byte-identically (acceptance #1, the no-op-default independence check).
+ * What it does: for a non-`rounded` shape, a pill-able control's ROUNDED rung — every `tokens` entry whose
+ * ref is `radius.md` — is repointed to that shape's rung (`CONTROL_SHAPE_RUNG`): `pill` → `radius.capsule`
+ * (height ÷ 2), `boxed` → `radius.none` (sharp), `hairline` → `radius.hairline` (1px). `varOf` still resolves
+ * each binding through `def.tokens` exactly as before — only the ref it finds there has moved — so no binding
+ * is bypassed and no per-component token is introduced. Under `rounded` (default) and for any def that is not
+ * pill-able, this is the IDENTITY: it returns the same object, which is what makes `rounded` reproduce every
+ * plan byte-identically (acceptance #1, the no-op-default independence check).
  *
- * NARROW BY CONSTRUCTION: it rewrites ONLY the `radius` key and ONLY for pill-able defs. `switch`/`radio`
- * carry no `pill-radius` derivation, so `isPillable` is false and they pass through untouched — the lever
- * cannot reach the one binding (`radius.round`) that already gives them their intrinsic pill/circle.
+ * EACH SHAPE NAMES A RELATIONSHIP, NOT A RAW RADIUS (#1371). The four values are one selector reaching four
+ * rungs by ref: `rounded` tracks the softness ramp, `pill` is the unconditional height ÷ 2, `boxed` is the
+ * always-present sharp floor, and `hairline` is the opt-in 1px sentinel. `boxed`'s `radius.none` always
+ * exists, so it is valid for any brand; `hairline`'s `radius.hairline` is provisioned by `brandTheme`
+ * whenever `controlShape: hairline` is chosen (see `HAIRLINE_RADIUS_RUNG`), so this rewrite never dangles.
+ *
+ * WHY IT KEYS ON THE ROUNDED RUNG (`radius.md`) RATHER THAN THE LITERAL KEY `radius` (#1353). Before the
+ * icon-button `shape` axis, both pill-able defs bound their corner radius through a token key spelled
+ * `radius`, so the lever could rewrite that key by name. #1353 splits icon-button's corner into a per-shape
+ * pair — `radius.square` → `radius.md`, `radius.circular` → `radius.round` — so there is no bare `radius`
+ * key on it any more, and a key-name rewrite would silently no-op the lever for icon-button. Keying on the
+ * REF instead follows the geometry rather than the spelling: the `square` shape (`radius.md`) is the rounded
+ * rung a pill rounds off, so it is repointed; the `circular` shape (`radius.round`) is an INTRINSIC round
+ * rung the lever leaves alone — the exact rule it already applies to switch/radio's own `radius.round`. So
+ * under a pill brand a square icon-button becomes a capsule (a circle, on a width = height control) and a
+ * circular one stays circular, and `button` (which still binds `radius.md` under the key `radius`) is
+ * repointed exactly as before — its default plan is byte-identical.
+ *
+ * NARROW BY CONSTRUCTION: it rewrites ONLY refs equal to the rounded rung and ONLY for pill-able defs.
+ * `switch`/`radio` carry no `pill-radius` derivation, so `isPillable` is false and they pass through
+ * untouched — and even were they pill-able, their `radius.round` ref is not the rounded rung, so the lever
+ * cannot reach the one binding that already gives them their intrinsic pill/circle.
  */
+export const ROUNDED_RADIUS_RUNG = 'radius.md';
 export const applyControlShape = (def: ComponentDef, shape: ControlShape): ComponentDef => {
-  if (shape !== 'pill' || !isPillable(def)) return def;
-  return { ...def, tokens: { ...def.tokens, radius: PILL_RADIUS_RUNG } };
+  const target = CONTROL_SHAPE_RUNG[shape];
+  if (target === null || !isPillable(def)) return def;
+  const tokens = Object.fromEntries(
+    Object.entries(def.tokens).map(([k, ref]) => [k, ref === ROUNDED_RADIUS_RUNG ? target : ref]),
+  );
+  return { ...def, tokens };
 };
 
 /**
@@ -1638,6 +1787,12 @@ export const planPaintVars = (n: FigmaNodePlan): string[] =>
 const refNodes = (n: FigmaNodePlan): FigmaNodePlan[] =>
   [...(n.propertyRef ? [n] : []), ...n.children.flatMap(refNodes)];
 
+/** Every node driven by a NODE-VISIBILITY BOOLEAN (#1331), depth-first. Its own walker rather than folding
+ *  into `refNodes` because the boolean rides `visibleProp` (not `propertyRef`) so it can coexist on a node
+ *  that already carries a swap or text ref. */
+const visibleRefNodes = (n: FigmaNodePlan): FigmaNodePlan[] =>
+  [...(n.visibleProp ? [n] : []), ...n.children.flatMap(visibleRefNodes)];
+
 /**
  * The COMPONENT PROPERTIES to declare on a set — derived from the nodes the plans actually BUILD,
  * not from the def's declaration.
@@ -1679,8 +1834,8 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
         if (!n.swapTarget) continue;
         prop = { name: ref.prop, type: 'INSTANCE_SWAP', swapTarget: n.swapTarget };
       } else {
-        // The node EXISTS in this plan, so the part is present — an absent optional part builds no
-        // node and therefore no reference. `true` is read off that fact, not assumed.
+        // A propertyRef-carried boolean (legacy shape); node-visibility booleans come through the
+        // `visibleProp` walk below since #1331. `true` is read off the fact the node exists, not assumed.
         prop = { name: ref.prop, type: 'BOOLEAN', default: true };
       }
       const prev = byName.get(prop.name);
@@ -1688,17 +1843,26 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
         throw new Error(`planSetProperties: '${prop.name}' is declared two different ways across the set — ${JSON.stringify(prev)} vs ${JSON.stringify(prop)}`);
       byName.set(prop.name, prop);
     }
+    // NODE-VISIBILITY BOOLEANS (#1331). A separate walk because these ride `visibleProp`, not `propertyRef`
+    // (so the boolean can share a node with a swap). The property's DEFAULT is the node's BUILT visibility
+    // — `n.visible ?? true`, read "as built" — so a hidden-by-default leading glyph defaults its switch off.
+    for (const n of visibleRefNodes(plan.root)) {
+      const prop: FigmaPropertyPlan = { name: n.visibleProp!, type: 'BOOLEAN', default: n.visible ?? true };
+      const prev = byName.get(prop.name);
+      if (prev && JSON.stringify(prev) !== JSON.stringify(prop))
+        throw new Error(`planSetProperties: '${prop.name}' is declared two different ways across the set — ${JSON.stringify(prev)} vs ${JSON.stringify(prop)}`);
+      byName.set(prop.name, prop);
+    }
   }
-  // ORDERED text → swap → boolean (#1380), which is the property CREATION order the executor applies and
-  // therefore the order Figma shows the component (non-variant) properties in. The icon-property canon
-  // puts `label` at the TOP, above the per-slot swaps — a TEXT before the INSTANCE_SWAPs — and the swaps
-  // keep their by-part insertion order (leading before trailing). Variant switches (`leading icon`) come
-  // from the member NAMES and are a separate panel group Figma renders from the coordinate, not from this
-  // list — the panel INTERLEAVE of the two groups is host-rendered (see `version.ts`'s note that panel
-  // order is "the owner's Figma check, not ours"); what this controls, and what the round-trip gates, is
-  // that `label` is created before any swap. A stable sort by kind rank preserves insertion order within a
-  // kind, so no def with a single property kind moves.
-  const KIND_RANK: Record<FigmaPropertyPlan['type'], number> = { TEXT: 0, INSTANCE_SWAP: 1, BOOLEAN: 2 };
+  // ORDERED text → boolean → swap (#1380, #1331), which is the property CREATION order the executor applies
+  // and therefore the order Figma shows the component (non-variant) properties in. The icon-property canon
+  // puts `value`/`label` at the TOP (a TEXT), then a slot's PRESENCE boolean (`leading icon`) immediately
+  // above the swap it gates (`↳ swap leading icon`) — the `↳` reads as nested beneath the toggle only when
+  // the toggle is created first. So BOOLEAN ranks ABOVE INSTANCE_SWAP. No existing def is reordered: every
+  // boolean in the corpus was stated-empty until select (#1331), and a def with only TEXT + SWAP keeps
+  // TEXT(0) before SWAP(2) exactly as before. A stable sort by kind rank preserves insertion order within a
+  // kind, so a def's swaps keep their by-part order.
+  const KIND_RANK: Record<FigmaPropertyPlan['type'], number> = { TEXT: 0, BOOLEAN: 1, INSTANCE_SWAP: 2 };
   return [...byName.values()].map((p, i) => ({ p, i })).sort((a, b) => KIND_RANK[a.p.type] - KIND_RANK[b.p.type] || a.i - b.i).map((x) => x.p);
 };
 
@@ -2431,9 +2595,19 @@ const build=async(n)=>{
     // Figma's MIN/MIN constraint keeps the 24px it was drawn at, so a 16px instance would show the
     // top-left corner of the glyph. This is the one property of the import we override.
     for(const v of drawn)v.constraints={horizontal:'SCALE',vertical:'SCALE'};
+    // THE LITERAL GLYPH SIZE (#1340). A non-root glyph whose def states \`glyphPx\` is not sized by an
+    // instancing host and binds no \`size\` variable, so the frame stays at its 24px import — a stray small
+    // mark in a large frame. Resize it to the literal here, AFTER the artboard read-back above (which sees
+    // the import's own 24px) and BEFORE the bind loop below (this node binds no dimension, so the resize is
+    // never cleared — resize-then-bind, the #500 order the anatomy gate checks). The outline's SCALE
+    // constraints, just set, scale the drawn grid to fill the resized frame.
+    if(n.glyphPx)node.resize(n.glyphPx,n.glyphPx);
   }
   else{node=figma.createFrame();node.clipsContent=n.clipsContent===true;}
   node.name=n.name;
+  // NODE-VISIBILITY BOOLEAN (#1331): a hidden-by-default part is BUILT hidden, and its \`leading icon\`
+  // switch (wired below) toggles it. Carried only when false, so every other node keeps Figma's default.
+  if(n.visible===false)node.visible=false;
   // Before ANY dimension binding. See the header note — a locked node keeps only the last of the two.
   node.unlockAspectRatio();
   if(n.textStyle){
@@ -2462,6 +2636,10 @@ const build=async(n)=>{
   // has no alignment field on either axis (#1009, measured against \`@figma/plugin-typings\`). Ordered
   // here anyway so the sequence reads the same as every other text write in this function.
   if(n.textAlignVertical)node.textAlignVertical=n.textAlignVertical;
+  // WRAPPING LABEL (#1424): auto-height lets a fixed-width text reflow. Written only when the plan carries
+  // it (a wrapping label), so every other TEXT node keeps Figma's WIDTH_AND_HEIGHT default via the plugin
+  // neutralizer; here the paste path sets it explicitly.
+  if(n.textAutoResize)node.textAutoResize=n.textAutoResize;
   if(n.effectStyle){
     const ef=effectByName.get(n.effectStyle);
     if(!ef)misses.push(n.name+'.effectStyle -> '+n.effectStyle);
@@ -2473,7 +2651,15 @@ const build=async(n)=>{
     node.counterAxisAlignItems=n.counterAxisAlignItems;
     node.primaryAxisSizingMode=n.primaryAxisSizingMode;
     node.counterAxisSizingMode=n.counterAxisSizingMode;
+    // THE MIN-WIDTH FLOOR (#1343a, #1345). Inside the \`layoutMode\` branch because Figma accepts a
+    // minimum width only on an auto-layout frame (the schema refuses \`minWidth\` on a layout-less box for
+    // the same reason). Written only when the plan carries it, so every other frame is untouched.
+    if(n.minWidth!==undefined)node.minWidth=n.minWidth;
   }
+  // WRAPPING LABEL (#1424), child-side: a text that FILLS its row's main axis so it reflows rather than
+  // overflowing. Settable on any node (outside an auto-layout parent Figma ignores it), written only when
+  // the plan carries it — the plugin neutralizer writes \`layoutGrow: 0\` on every other node.
+  if(n.layoutGrow)node.layoutGrow=n.layoutGrow;
   // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind
   // loop bind the SINGLE nominal dimension — Figma derives the other axis from the lock. Ordered after
   // layoutMode and before the bind loop for that reason: a lock captured from the resized box, and a
@@ -2733,7 +2919,9 @@ const PAYLOAD_WIRE_REFS = `// WIRE the references, per MEMBER. They do NOT propa
 // where one exists. This is the paste-path half of #1202, which fixed \`applyComponentPlan\` the same way
 // (its \`refByMember\`); the two executors now wire the same property, gated at the parity gate.
 const refOv=new Map();
-for(const o of REF_OVERRIDES){let m=refOv.get(o.member);if(!m){m=new Map();refOv.set(o.member,m);}m.set(o.part,o);}
+// Keyed member -> part+field (#1331): one part can carry two refs (a swap + a node-visibility boolean), so
+// a part-only key would hand the visible ref the swap's override and vice versa.
+for(const o of REF_OVERRIDES){let m=refOv.get(o.member);if(!m){m=new Map();refOv.set(o.member,m);}m.set(o.part+'|'+o.field,o);}
 const wiredRefs=[];
 for(const member of set.children){
   const own=refOv.get(member.name);
@@ -2744,7 +2932,7 @@ for(const member of set.children){
     // references, so a part missing everywhere would leave the property undeclared instead.
     if(!node)continue;
     // The member's own prop/field where it diverges from the deduped entry, else the deduped one.
-    const o=own&&own.get(r.part);
+    const o=own&&own.get(r.part+'|'+r.field);
     const field=o?o.field:r.field;
     const prop=o?o.prop:r.prop;
     const id=propIds.get(prop);
@@ -2955,10 +3143,22 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // member carries the same anatomy — the payload loops members, so a per-plan list would wire each
   // node twenty-one times over.
   const props = planSetProperties(plans);
+  // Keyed by PART + FIELD, not by part alone (#1331): one node can carry both a swap (`mainComponent`) and
+  // a node-visibility boolean (`visible`) — select's leading glyph — so a part-only key would collapse the
+  // two to whichever was walked last. `field` is the Figma property field, so distinct-field refs on one
+  // part coexist while a genuine same-field duplicate still collapses. For every single-property part this
+  // is a unique-ified part key and the wire is byte-identical.
+  const refKey = (part: string, field: string): string => `${part}|${field}`;
   const refs = new Map<string, { part: string; field: string; prop: string }>();
   for (const plan of plans)
     for (const n of refNodes(plan.root))
-      if (props.some((p) => p.name === n.propertyRef!.prop)) refs.set(n.name, { part: n.name, ...n.propertyRef! });
+      if (props.some((p) => p.name === n.propertyRef!.prop)) refs.set(refKey(n.name, n.propertyRef!.field), { part: n.name, ...n.propertyRef! });
+  // NODE-VISIBILITY BOOLEANS (#1331) contribute a `visible` ref on top of any swap/text ref the same part
+  // carries, so the executor wires both fields. Uniform across the set (unlike a spinner's per-member swap),
+  // so they need no `refOverrides` entry below.
+  for (const plan of plans)
+    for (const n of visibleRefNodes(plan.root))
+      if (props.some((p) => p.name === n.visibleProp)) refs.set(refKey(n.name, 'visible'), { part: n.name, field: 'visible', prop: n.visibleProp! });
 
   // THE PER-MEMBER OVERRIDES the deduped `refs` above collapses (#1203, the paste-path half of #1202).
   // `refs` keys by PART on the premise the comment states — "every member carries the same anatomy" —
@@ -2975,7 +3175,7 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   const refOverrides: { member: string; part: string; field: string; prop: string }[] = [];
   for (const plan of plans)
     for (const n of refNodes(plan.root)) {
-      const ded = refs.get(n.name);
+      const ded = refs.get(refKey(n.name, n.propertyRef!.field));
       if (ded && (ded.prop !== n.propertyRef!.prop || ded.field !== n.propertyRef!.field))
         refOverrides.push({ member: planComponentName(plan), part: n.name, ...n.propertyRef! });
     }

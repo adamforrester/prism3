@@ -272,7 +272,13 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 {
   const CANON: Record<string, { componentProps: string[]; switches: string[] }> = {
     button: { componentProps: ['label', '↳ swap leading icon', '↳ swap trailing icon'], switches: ['leading icon', 'trailing icon'] },
-    select: { componentProps: ['value', '↳ swap leading icon'], switches: ['leading icon'] },
+    // select's `leading icon` is a node-visibility BOOLEAN component property since #1331 (not a variant
+    // switch): it appears in componentProps, ordered `value` (TEXT) → `leading icon` (BOOLEAN) → swap, and
+    // NO longer among the variant switches. Reverting it to a slot axis moves it back to `switches` and
+    // fails both assertions below by name. `message` is the SECOND node-visibility boolean (#1426, hiding
+    // the composed FieldMessage), so the panel shows `value` (TEXT) → `leading icon` → `message` (BOOLEANs)
+    // → `↳ swap leading icon` (SWAP); dropping the showMessage boolean removes `message` here BY NAME.
+    select: { componentProps: ['value', 'leading icon', 'message', '↳ swap leading icon'], switches: [] },
     'icon-button': { componentProps: ['swap icon'], switches: [] },
   };
   for (const [id, want] of Object.entries(CANON)) {
@@ -292,6 +298,41 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     ok(want.switches.every((s) => variantNames.includes(s)) && (want.switches.length > 0 || !variantNames.some((v) => / icon$/.test(v))),
       `panel switches (#1380): ${id} carries the ${JSON.stringify(want.switches)} true/false variant switch(es) as decoupled Figma names (host holds ${JSON.stringify(variantNames)})`);
   }
+}
+
+// ── #1331: THE NODE-VISIBILITY BOOLEAN, READ BACK OFF THE BUILT NODE — HOST-TRUTH ───────────────
+//
+// The mechanism's host truth, the two facts a property DEFINITION alone cannot show (the panel-order block
+// above pins that `leading icon` is a BOOLEAN, not a variant switch): the leading glyph node is BUILT into
+// EVERY member with `visible=false` (hidden by default, present-and-toggled rather than dropped), and its
+// `visible` field is WIRED to the `leading icon` boolean via `componentPropertyReferences.visible`. The
+// executor writes both; the host echoes them; this reads them back. Reverting `leading` to a variant slot
+// axis drops the node in the false members (no node to read) and moves `leading icon` to a variant switch
+// (no BOOLEAN property to wire), flipping these BY NAME.
+{
+  const def = componentDefs.find((d) => d.id === 'select')!;
+  const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(plans), page });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  await applyComponentPlan(plans, shim as any, {});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's set
+  const set = page.children[0] as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's members
+  const members = (set?.children ?? []) as any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+  const findByName = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+  const defs = set.componentPropertyDefinitions as Record<string, { type: string }>;
+  const liKey = Object.keys(defs).find((k) => k.split('#')[0] === 'leading icon');
+  ok(!!liKey && defs[liKey!].type === 'BOOLEAN',
+    `#1331 host-truth: the built set carries a 'leading icon' BOOLEAN property (host holds ${liKey})`);
+  const lvs = members.map((m) => findByName(m, 'leadingVisual'));
+  ok(members.length === 16 && lvs.every(Boolean),
+    `#1331 host-truth: the leading glyph node is built into EVERY member (${lvs.filter(Boolean).length}/${members.length})`);
+  ok(lvs.length > 0 && lvs.every((lv) => lv.visible === false),
+    '#1331 host-truth: every built leading glyph reads back `visible=false` — built hidden by default, not dropped');
+  ok(lvs.length > 0 && lvs.every((lv) => (lv.componentPropertyReferences ?? {}).visible === liKey),
+    "#1331 host-truth: every built leading glyph's `visible` is wired to the 'leading icon' boolean (componentPropertyReferences.visible)");
 }
 
 // ── STROKE-WEIGHT PER-SIDE READ-BACK (#1332) — HOST-TRUTH ──────────────────────────────────────
@@ -468,6 +509,46 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const nowDangling = [...washNames].filter((t) => !oracleNoWash.has(t));
     ok(washNames.size > 0 && nowDangling.length === washNames.size,
       `#1429 mutation (emission drop): with the wash removed from the oracle, all ${washNames.size} bound wash name(s) are reported dangling, so check (2) fires by name (dangling ${nowDangling.length})`);
+  }
+}
+
+// ── #1424: THE WRAPPING LABEL, READ BACK OFF THE BUILT NODE — HOST-TRUTH ────────────────────────
+//
+// The row's label must FILL its main axis and WRAP (Prism 2's radio-button-row / checkbox-row), and the
+// control must stay FIXED so a wrapping label never shrinks or stretches it. The generic diff above already
+// checks each of these plan fields against the built node (plan-as-oracle: `layoutGrow`/`textAutoResize`
+// classified in `anatomy-readback.ts`), which catches an executor that fails to write them. What it CANNOT
+// catch is a def that silently STOPS wrapping — drop `wrap` and the plan no longer carries the fields, so
+// plan-vs-built still agrees on their absence. This block closes that with an oracle authored HERE and
+// nowhere else — the owner-decided fact that these two rows wrap — so a `wrap` removed from either def
+// diverges from this and fails BY NAME (docs/34). It builds through the shared shim exactly as the corpus
+// loop does, then reads each row's label and controlBox back off the host.
+{
+  const WRAPS = ['radio', 'checkbox-row'];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+  const findByName = (n: any, name: string): any => (n?.name === name ? n : (n?.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+  for (const id of WRAPS) {
+    const def = componentDefs.find((d) => d.id === id);
+    ok(!!def, `#1424 host-truth: the ${id} def is registered and projects`);
+    if (!def) continue;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const labels = members.map((m) => findByName(m, 'label'));
+    const controlBoxes = members.map((m) => findByName(m, 'controlBox'));
+    // SCOPE FLOOR — a label was built into every member, or "they all wrap" is a statement about an empty set.
+    ok(members.length > 0 && labels.every(Boolean),
+      `#1424 host-truth: ${id} builds a label into every member (${labels.filter(Boolean).length}/${members.length})`);
+    // THE LABEL FILLS AND WRAPS — read back off the built node (both facts, since either alone does not wrap).
+    ok(labels.length > 0 && labels.every((l) => l.layoutGrow === 1 && l.textAutoResize === 'HEIGHT'),
+      `#1424 host-truth: every ${id} label reads back layoutGrow=1 + textAutoResize=HEIGHT — it fills the row and wraps (e.g. layoutGrow=${String(labels[0]?.layoutGrow)}, textAutoResize=${String(labels[0]?.textAutoResize)})`);
+    // THE CONTROL STAYS FIXED — it does not grow (layoutGrow 0) and its cross axis is FIXED, so the wrapping
+    // label never shrinks or stretches it.
+    ok(controlBoxes.length > 0 && controlBoxes.every((c) => c && c.layoutGrow !== 1 && c.counterAxisSizingMode === 'FIXED'),
+      `#1424 host-truth: every ${id} controlBox reads back fixed/hug — layoutGrow≠1 (${String(controlBoxes[0]?.layoutGrow)}) and counterAxisSizingMode=FIXED (${String(controlBoxes[0]?.counterAxisSizingMode)})`);
   }
 }
 

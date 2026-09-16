@@ -2216,14 +2216,16 @@ const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: Bo
   return { rows, misses: r.misses, members: r.variants };
 };
 
-ok(!!byId('checkbox-control') && !!byId('radio') && !!byId('switch'),
-  '#1011 reachable: all three selection controls resolve from their ids');
-// #1226 step 2 — the painted box moved off `checkbox` (now the Row, which nests it) into the atomic
-// `checkbox-control`, so the box these arms read off the built node is the atom's. radio/switch still
-// inline theirs. The atom's box is its member ROOT (see the fallback in `readBoxes`).
+ok(!!byId('checkbox-control') && !!byId('radio-control') && !!byId('switch-control'),
+  '#1011 reachable: all three selection-control ATOMS resolve from their ids');
+// #1226 step 2 / #1354 / #1348 — the painted box moved off `checkbox`/`switch`/`radio` (now Rows that nest
+// it) into the atomic `checkbox-control`/`switch-control`/`radio-control`, so the box these arms read off
+// the built node is the atom's. The atom's box is its member ROOT (see the fallback in `readBoxes`):
+// `checkbox-control`'s `control`, `switch-control`'s `track` and `radio-control`'s `control` are each
+// their def's anatomy root.
 const cb = await readBoxes(byId('checkbox-control')!, 'control');
-const rb = await readBoxes(byId('radio')!, 'control');
-const sw = await readBoxes(byId('switch')!, 'track');
+const rb = await readBoxes(byId('radio-control')!, 'control');
+const sw = await readBoxes(byId('switch-control')!, 'track');
 // PIN THE INPUT, same discipline as the Button block: every claim below is vacuously true over zero rows.
 ok(cb.rows.length === 54 && rb.rows.length === 36 && sw.rows.length === 24,
   `#1011 reachable: the built boxes were found on every member (checkbox ${cb.rows.length}/54, radio ${rb.rows.length}/36, switch ${sw.rows.length}/24)`);
@@ -2245,11 +2247,14 @@ ok(empty.every((r) => r.stroke !== null),
 // ---- FINDING 3: the filled box has NO second edge, and the relationship is what is asserted ----
 // The two-value form of this check — `fill === X && border === Y` — passes on exactly the configuration
 // that shipped, so it is the CO-OCCURRENCE that is asserted here, not either value.
-const filled = [...cb.rows, ...rb.rows, ...sw.rows].filter((r) => !['unchecked', 'off'].includes(r.selection));
-// 36 (checkbox: `checked` + `indeterminate`, 3 sizes × 6 states) + 18 (radio) + 12 (switch `on`, which
-// has a two-rung size ladder rather than three).
-ok(filled.length === 36 + 18 + 12, `#1011 reachable: there are selected members to inspect (${filled.length})`);
-ok(filled.every((r) => r.fill !== null), '#1011 every selected box binds a fill');
+// #1348: radio's selected RING is OUTLINED (the Prism 2 visual — constant WEIGHT, inner dot; it recolors on
+// select per #1423 but never fills), so it is NOT a filled selected box and is asserted separately below. This finding is checkbox's checked/
+// indeterminate + switch's ON, the two controls that fill on select.
+const filled = [...cb.rows, ...sw.rows].filter((r) => !['unchecked', 'off'].includes(r.selection));
+// 36 (checkbox: `checked` + `indeterminate`, 3 sizes × 6 states) + 12 (switch `on`, which has a two-rung
+// size ladder rather than three). Radio left this set at #1348 — its selected ring is not filled.
+ok(filled.length === 36 + 12, `#1011 reachable: there are selected (filled) members to inspect (${filled.length})`);
+ok(filled.every((r) => r.fill !== null), '#1011 every selected box (checkbox, switch) binds a fill');
 const strokedNotError = filled.filter((r) => r.state !== 'error' && r.stroke !== null);
 ok(strokedNotError.length === 0,
   `#1011 no selected box binds BOTH a fill and a stroke outside \`error\` (${strokedNotError.map((r) => `${r.def} ${r.member} -> ${r.fill} + ${r.stroke}`).slice(0, 3).join('; ') || 'none does'})`);
@@ -2259,6 +2264,48 @@ const errored = filled.filter((r) => r.state === 'error');
 ok(errored.length > 0 && errored.every((r) => r.stroke === 'color/border/danger' && r.fill !== null),
   `#1011 ...and every selected box at \`error\` still binds the danger rim over its fill (${errored.length} member(s))`);
 
+// ---- #1348/#1423: RADIO'S RING — outlined, constant WEIGHT, RECOLORS on select, read off the BUILT node --
+// The owner's decision (#1348): the outer ring's border WEIGHT stays constant across states (it was the
+// filled disc reading as a thickened border that was the defect), and selection shows an inner filled
+// circle inside the ring (the dot — a separate box, its presence pinned in the engine suite's #1348 block,
+// not here). So the RING binds NO fill at ANY member and a 2px border at every non-error member, unchecked
+// and checked ALIKE — that WEIGHT constancy is the surviving half of "the border does not change on select".
+// #1423 then rebound the ring to RECOLOR on select (constant weight, brand COLOR when checked, matching
+// Prism 2 literally); the recolor is pinned in the selection loop just below. Reverting to the pre-split
+// filled disc (a `checked.fill`, no `checked.border`) fails these by name: a filled checked ring trips the
+// no-fill arm, and a checked ring with no border trips the constant-weight arm.
+ok(rb.rows.length === 36, `#1348 reachable: radio-control built every member (${rb.rows.length}/36)`);
+ok(rb.rows.every((r) => r.fill === null),
+  `#1348 radio's ring binds NO fill at any member — the Prism 2 outlined model, not a filled disc (${rb.rows.filter((r) => r.fill !== null).map((r) => `${r.member} -> ${r.fill}`).slice(0, 3).join('; ') || 'none does'})`);
+ok(rb.rows.filter((r) => r.state !== 'error').every((r) => r.stroke !== null && r.weight === 'border-width/thick'),
+  `#1348 radio's ring binds a CONSTANT 2px border (\`border-width/thick\`) at every non-error member, unchecked and checked alike — the border weight does not change on select (${rb.rows.filter((r) => r.state !== 'error' && r.weight !== 'border-width/thick').map((r) => `${r.member} -> ${r.weight}`).slice(0, 3).join('; ') || 'all thick'})`);
+// RECOLORS ACROSS SELECTION (#1423), read off the BUILT node — the sharpest form of the rebind: at each
+// interactive non-error state the UNCHECKED ring resolves the neutral field-border edge and the CHECKED
+// ring the interactive brand edge, so the two DIFFER. Only the stroke COLOR moves; the WEIGHT is constant
+// (asserted above). Keyed off the built members by state × selection, so reverting `checked.border.*` back
+// to `color.field.border.*` (the pre-#1423 constant-colour ring, now the fork the atom documents) collapses
+// the two families back to one and fails these by name — the host-truth mirror of the engine suite's #1423 arm.
+for (const st of ['rest', 'hover', 'pressed', 'focus-visible']) {
+  const uStrokes = new Set(rb.rows.filter((r) => r.state === st && r.selection === 'unchecked').map((r) => r.stroke));
+  const cStrokes = new Set(rb.rows.filter((r) => r.state === st && r.selection === 'checked').map((r) => r.stroke));
+  const u = [...uStrokes][0], c = [...cStrokes][0];
+  ok(uStrokes.size === 1 && cStrokes.size === 1
+     && !!u && u.startsWith('color/field/border')
+     && !!c && c.startsWith('color/interactive/primary/border')
+     && u !== c,
+    `#1423 radio's ring RECOLORS across selection at \`${st}\` — unchecked resolves the field-border edge and checked the interactive brand edge, differing (unchecked ${u ?? 'none'}, checked ${c ?? 'none'})`);
+}
+// At `disabled` the two selections still share the contrast-exempt disabled skin, so the ring is CONSTANT
+// across selection there — one stroke, unchecked and checked alike (the recolor is an interactive-state
+// affordance, not a disabled one).
+const disRows = rb.rows.filter((r) => r.state === 'disabled');
+const disStrokes = new Set(disRows.map((r) => r.stroke));
+ok(disRows.length > 0 && disStrokes.size === 1,
+  `#1348 radio's ring is CONSTANT across selection at \`disabled\` — the shared disabled skin (${[...disStrokes].join(', ') || 'none'})`);
+const rErrored = rb.rows.filter((r) => r.state === 'error');
+ok(rErrored.length > 0 && rErrored.every((r) => r.stroke === 'color/border/danger'),
+  `#1348 ...and the danger rim survives at \`error\` on the unfilled ring (${rErrored.length} member(s))`);
+
 // THE ONE PLACE A SAME-FAMILY FILL AND BORDER LEGITIMATELY CO-OCCUR, asserted in BOTH directions so the
 // exception is exercised rather than merely tolerated. Switch's OFF track keeps its rim because no
 // neutral fill clears 3:1 against the page at any brand — that rim is the only edge the track has, and a
@@ -2266,8 +2313,8 @@ ok(errored.length > 0 && errored.every((r) => r.stroke === 'color/border/danger'
 const sameFamily = [...cb.rows, ...rb.rows, ...sw.rows]
   .filter((r) => r.fill && r.stroke && famOf(r.fill) !== null && famOf(r.fill) === famOf(r.stroke));
 ok(sameFamily.length > 0, `#1011 reachable: some built box does bind a same-family fill and stroke (${sameFamily.length})`);
-ok(sameFamily.every((r) => r.def === 'switch' && r.selection === 'off'),
-  `#1011 ...and switch's OFF track is the ONLY one (${[...new Set(sameFamily.map((r) => `${r.def}/${r.selection}`))].join(', ')})`);
+ok(sameFamily.every((r) => r.def === 'switch-control' && r.selection === 'off'),
+  `#1011 ...and switch-control's OFF track is the ONLY one (${[...new Set(sameFamily.map((r) => `${r.def}/${r.selection}`))].join(', ')})`);
 ok(sw.rows.filter((r) => r.selection === 'off' && r.state !== 'error').every((r) => r.fill !== null && r.stroke !== null),
   '#1011 ...and it binds both on every non-error member, so the exception above is a fact about this build and not a hole');
 
@@ -2436,12 +2483,15 @@ const clobbered = borderRows.filter((r) => r.weightPx !== 0);
 ok(clobbered.length === 0,
   `#1228 ...and nothing wrote a literal weight over it, which live would unbind (${clobbered.length ? clobbered.slice(0, 4).map((r) => `${r.def}/${r.member} -> ${String(r.weightPx)}`).join('; ') : 'every member at 0'})`);
 // THE ARM ABOVE NEEDS THE UNSTROKED COORDINATES TO EXIST or it never reaches the gate that fixes it.
-// `claimDefaults`'s branch is entered only when the plan paints NO stroke, which is exactly where Prism 2
-// writes `strokeWidth: null`: checkbox and radio at `checked`/`indeterminate`, switch at `on`. Those
-// members bind a thickness with no stroke to draw — invisible, and the reason the clobber went unseen.
+// `claimDefaults`'s branch is entered only when the plan paints NO stroke, which is where a FILLED box
+// binds a thickness with no stroke to draw: checkbox at `checked`/`indeterminate` and switch at `on`.
+// #1348 REMOVED radio from this set — its Prism 2 ring is OUTLINED at every selection (a stroke at both
+// unchecked and checked), so radio never enters the unstroked branch now; checkbox and switch still do,
+// which is what keeps the clobber gate above reachable. Asserting radio's ABSENCE here is the same #1348
+// fact as the no-fill arm earlier, from the border side.
 const unstroked = borderRows.filter((r) => r.stroke === null);
-ok(unstroked.length > 0 && new Set(unstroked.map((r) => r.def)).size === 3,
-  `#1228 reachable: the arm above spans members that paint NO border, which is the only path into the executor default it gates (${unstroked.length} of ${borderRows.length} rows, defs ${[...new Set(unstroked.map((r) => r.def))].join(', ')})`);
+ok(unstroked.length > 0 && new Set(unstroked.map((r) => r.def)).size === 2 && !unstroked.some((r) => r.def === 'radio-control'),
+  `#1228 reachable: the arm above spans members that paint NO border — checkbox's filled boxes and switch's ON track, the only path into the executor default it gates; radio's outlined ring is NOT among them (#1348) (${unstroked.length} of ${borderRows.length} rows, defs ${[...new Set(unstroked.map((r) => r.def))].join(', ')})`);
 // THE NEGATIVE CONTROL, #1266's, applied to a box rather than a ring: the cheapest way to pass both arms
 // is to delete the 1px default outright, which would leave every unbound border at Figma's 0 and paint
 // nothing at all. Stripped from the switch's track on BOTH kinds of coordinate — one that paints a border
@@ -2452,14 +2502,17 @@ ok(unstroked.length > 0 && new Set(unstroked.map((r) => r.def)).size === 3,
 // what a negative control is for.
 type BoundNode = { bound?: Record<string, string>; children?: BoundNode[] };
 const stripWeight = (n: BoundNode): void => { delete n.bound?.strokeWeight; (n.children ?? []).forEach(stripWeight); };
-const swPlansNoWeight = (JSON.parse(JSON.stringify(figmaAnatomySet(byId('switch')!, {}))) as AnatomyPlan[]);
+const swPlansNoWeight = (JSON.parse(JSON.stringify(figmaAnatomySet(byId('switch-control')!, {}))) as AnatomyPlan[]);
 for (const p of swPlansNoWeight) stripWeight(p.root as unknown as BoundNode);
 const swPage: Page = { children: [] };
 await run(swPlansNoWeight, { ...fullFor(swPlansNoWeight), page: swPage });
 const swTracks = ((swPage.children.find((n) => n.type === 'COMPONENT_SET')?.children) as Node[] | undefined) ?? [];
-const noWeight = swTracks.map((m) => allNodes(m).find((n) => n.name === 'track')).filter((n): n is Node => !!n);
+// Since #1354 `track` IS switch-control's anatomy root, so it materializes as the member frame itself
+// (named by the coordinate, not 'track') — fall back to the member when the named child is not found, the
+// same root-is-the-box shape `readBoxes` handles for `checkbox-control`.
+const noWeight = swTracks.map((m) => allNodes(m).find((n) => n.name === 'track') ?? m).filter((n): n is Node => !!n);
 ok(noWeight.length === swPlansNoWeight.length,
-  `#1228 reachable: the binding-stripped switch built a track on every member (${noWeight.length}/${swPlansNoWeight.length})`);
+  `#1228 reachable: the binding-stripped switch-control built a track on every member (${noWeight.length}/${swPlansNoWeight.length})`);
 ok(noWeight.every((n) => !((n.boundVariables as Record<string, unknown>) ?? {}).strokeWeight && n.strokeWeight === 1),
   `#1228 ...and with nothing bound the 1px fallback STILL fires on both the stroked and unstroked coordinates, so the gate gates the default rather than removing it (${[...new Set(noWeight.map((n) => String(n.strokeWeight)))].join(', ')})`);
 // AND THE SCOPE, asserted on the OTHER side rather than left to the comment above — TWO TOKENS, NOT ONE

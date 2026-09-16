@@ -146,6 +146,19 @@
       }
     },
     {
+      "name": "ads/size/md/min-height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height 36, 44) = 44px",
+      "value": 44,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/dimension/44"
+      }
+    },
+    {
       "name": "ads/size/md/padding-x",
       "resolvedType": "FLOAT",
       "scopes": [

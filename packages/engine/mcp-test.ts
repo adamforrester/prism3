@@ -171,6 +171,7 @@ await new Promise((r) => setTimeout(r, 3000));
     'conformance: every tool name matches the allowed character set and length');
   ok((list.tools ?? []).every((t: any) => t.title && t.annotations), 'conformance: every tool carries a title + annotations');
   // The size ceiling that keeps discovery affordable — the schema must be inlined once, not per tool.
+  // A new lever fits by COMPRESSION, not by raising this (#1368 `faces`); kept in lockstep with test.ts.
   const listChars = JSON.stringify(list.tools ?? []).length;
   ok(listChars < 60_000, `conformance: tools/list stays affordable to fetch (${listChars.toLocaleString()} chars)`);
 

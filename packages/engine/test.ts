@@ -51,7 +51,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radio, switchDef } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioControl, radio, switchControl, switchDef, select } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -239,6 +239,67 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
       ok(false, `every-example-compiles: ${file} builds cleanly — ${(e as Error).message}`);
     }
   }
+}
+
+// ── #1368 — VERBATIM FACE PIN (typography.faces) ──────────────────────────────────────
+// A (category, weight-role) slot may name the exact Figma face { family, style } it binds, OVERRIDING
+// the numeric-weight → style-name derivation, so a WIDTH cut the weight axis can't reach (NB's ITC
+// Garamond Std *Light Condensed*) binds from a brand input. This block is the mechanism's regression.
+// Independence (docs/34): the oracle is the engine's own build — the emitted Figma Text Style and the
+// host-truth write-plan row (exactly what materialise-to-figma feeds `fontName = {family, style}`), not
+// a recorded number — so deleting the mechanism, or any one refusal guard, fails HERE by NAME.
+{
+  const pinBase: BrandInput = {
+    id: 'facepin', primary: { l: 0.55, c: 0.16, h: 25 }, neutral: { hue: 25, chroma: 0.01 }, modes: ['light'],
+    typography: {
+      families: { display: 'ITC Garamond Std', title: 'ITC Garamond Std' },
+      weights: { display: ['subtle'], title: ['subtle'] },
+      faces: { display: { subtle: { family: 'ITC Garamond Std', style: 'Light Condensed' } } },
+    },
+  };
+  const theme = brandTheme(pinBase);
+  // (a) EMISSION — the DTCG composite carries the pin; the Figma Text Style bakes the pinned STYLE.
+  const tree = buildTree(theme).tree as any;
+  const root = Object.keys(tree)[0];
+  const dispLeaf = tree[root].type.display.md.subtle;   // a display/subtle composite
+  ok(dispLeaf?.$extensions?.prism3?.facePin?.style === 'Light Condensed'
+    && dispLeaf?.$extensions?.prism3?.facePin?.family === 'ITC Garamond Std',
+    `#1368(a): the pinned display composite carries facePin {family,style} (got ${JSON.stringify(dispLeaf?.$extensions?.prism3?.facePin)})`);
+  const styles = buildFigmaTextStyles(theme).styles;
+  const dispStyle = styles.find((s) => s.name === 'display/md/subtle');
+  ok((dispStyle?.properties.fontStyle as any)?.value === 'Light Condensed',
+    `#1368(a): the display/md/subtle Text Style bakes fontStyle='Light Condensed' (got ${JSON.stringify((dispStyle?.properties.fontStyle as any)?.value)})`);
+  // (b) HOST-TRUTH — the write-plan row is what the plugin loads/sets as fontName. family comes FROM the
+  // bound font/family/* variable, so pin.family reaching the host proves the family-match invariant too.
+  const rows = buildTextStylePlan(theme);
+  const dispRow = rows.find((r) => r.name === 'display/md/subtle');
+  ok(dispRow?.fontStyle === 'Light Condensed' && dispRow?.fontFamilyPrimary === 'ITC Garamond Std',
+    `#1368(b): host-truth row = {family:'ITC Garamond Std', style:'Light Condensed'} (got {family:${JSON.stringify(dispRow?.fontFamilyPrimary)}, style:${JSON.stringify(dispRow?.fontStyle)}})`);
+  // (c) TRUTHFUL NUMERIC — the slot still binds its weight-role numeric (Light = subtle = 300); the pin
+  // moves the STYLE only, never the weight.
+  ok(/font\/weight-role\/subtle$/.test(dispRow?.fontWeightVar ?? ''),
+    `#1368(c): the pinned slot still binds the subtle weight-role numeric, untouched (got ${dispRow?.fontWeightVar})`);
+  // (d) SLOT-SCOPED — an UNPINNED category derives its style from the weight as before (not pinned).
+  ok((styles.find((s) => s.name === 'title/md/subtle')?.properties.fontStyle as any)?.value === 'Light',
+    `#1368(d): an unpinned category (title) still derives fontStyle from the weight ('Light'), proving the pin is per-slot`);
+  // (e) NB seed EMITS it — the real brand that motivated #1368 now binds the condensed cut engine-side.
+  {
+    const nb = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input);
+    const nbRow = buildTextStylePlan(nb).find((r) => /^display\/.+\/subtle$/.test(r.name));
+    ok(nbRow?.fontStyle === 'Light Condensed' && nbRow?.fontFamilyPrimary === 'ITC Garamond Std',
+      `#1368(e): nb-redesign display/subtle emits ITC Garamond Std / Light Condensed (got {${JSON.stringify(nbRow?.fontFamilyPrimary)}, ${JSON.stringify(nbRow?.fontStyle)}})`);
+  }
+  // (f) REFUSALS — each is a NAMED throw with its own mutation (docs/34: mutate the subject, confirm the
+  // guard fires by name). Delete a guard and its assertion goes red.
+  const threwPin = (t: BrandInput['typography']): string => { try { brandTheme({ ...pinBase, typography: t }); return ''; } catch (e) { return (e as Error).message; } };
+  ok(/must match the category's bound family/.test(threwPin({ ...pinBase.typography, faces: { display: { subtle: { family: 'Wrong Family', style: 'Light Condensed' } } } })),
+    '#1368(f): a pin whose family diverges from the category family is REFUSED');
+  ok(/does not ship the 'strong' weight role/.test(threwPin({ ...pinBase.typography, faces: { display: { strong: { family: 'ITC Garamond Std', style: 'Bold Condensed' } } } })),
+    '#1368(f): a pin on a weight-role the category does not ship is REFUSED');
+  ok(/not a category this brand binds a face for/.test(threwPin({ families: { display: 'ITC Garamond Std', code: null }, weights: { display: ['subtle'] }, faces: { code: { subtle: { family: 'X', style: 'Y' } } } } as BrandInput['typography'])),
+    '#1368(f): a pin on an unbound category (code: null) is REFUSED');
+  ok(/needs a non-empty \{ family, style \}/.test(threwPin({ ...pinBase.typography, faces: { display: { subtle: { family: 'ITC Garamond Std', style: '' } } } })),
+    '#1368(f): a malformed pin (empty style) is REFUSED');
 }
 
 
@@ -1109,13 +1170,19 @@ for (const b of brands) {
 // `CONTROL_RUNGS` and `DENSITY_START` are the subject; a table derived from either could not fail when
 // they move. This is the whole ladder, all three densities, as px:
 {
-  const EXPECTED_CONTROL: Record<string, Record<string, { height: number; width: number; dot: number }>> = {
-    compact:     { sm: { height: 12, width: 24, dot: 6 },  md: { height: 16, width: 32, dot: 8 },  lg: { height: 20, width: 40, dot: 10 } },
-    comfortable: { sm: { height: 16, width: 32, dot: 8 },  md: { height: 20, width: 40, dot: 10 }, lg: { height: 24, width: 48, dot: 12 } },
-    spacious:    { sm: { height: 20, width: 40, dot: 10 }, md: { height: 24, width: 48, dot: 12 }, lg: { height: 28, width: 56, dot: 14 } },
+  // #1425 added `track` + `thumb` (the switch's OWN track height and traveling thumb, DISTINCT from the
+  // square box `height`/`dot` a checkbox/radio reads) and rebased `width` onto `2× track` and `inset` onto
+  // `(track − thumb) / 2`. The whole ladder, all three densities, as px — box fields and switch fields
+  // side by side, authored here so a mutation of either ladder or any ratio fails against a table that
+  // could not have derived from it:
+  type ControlRow = { height: number; width: number; dot: number; track: number; thumb: number; inset: number };
+  const EXPECTED_CONTROL: Record<string, Record<string, ControlRow>> = {
+    compact:     { sm: { height: 12, dot: 6,  track: 16, thumb: 12, width: 32, inset: 2 }, md: { height: 16, dot: 8,  track: 24, thumb: 18, width: 48, inset: 3 }, lg: { height: 20, dot: 10, track: 32, thumb: 24, width: 64, inset: 4 } },
+    comfortable: { sm: { height: 16, dot: 8,  track: 24, thumb: 18, width: 48, inset: 3 }, md: { height: 20, dot: 10, track: 32, thumb: 24, width: 64, inset: 4 }, lg: { height: 24, dot: 12, track: 40, thumb: 30, width: 80, inset: 5 } },
+    spacious:    { sm: { height: 20, dot: 10, track: 32, thumb: 24, width: 64, inset: 4 }, md: { height: 24, dot: 12, track: 40, thumb: 30, width: 80, inset: 5 }, lg: { height: 28, dot: 14, track: 48, thumb: 36, width: 96, inset: 6 } },
   };
   const CONTROL_RUNG_NAMES = ['sm', 'md', 'lg'];
-  const CONTROL_FIELDS = ['height', 'width', 'dot'] as const;
+  const CONTROL_FIELDS = ['height', 'width', 'dot', 'track', 'thumb', 'inset'] as const;
   // Read a rung's resolved px DEFENSIVELY. Not politeness: with the tier authored as a leaf instead of
   // a group — the mutation this block's shape check exists for — a direct `grp[n].height.$extensions`
   // read throws, and a suite that CRASHES reports no failure by name at all. The shape assertion below
@@ -1168,10 +1235,18 @@ for (const b of brands) {
     // the card ramp that still could not scale with the box it corners. Unlike `inset` this one is not
     // derived from a sibling — it is derived from `height` and from `radius.sm`, a value from ANOTHER
     // group, which is why it is the first field here whose value is clamped rather than computed.
-    // A seventh field is still a decision someone takes.
+    //
+    // #1425 added the SEVENTH and EIGHTH, `track` + `thumb`, and the pin moving is again the checkpoint
+    // working rather than yielding — it fired on the first run of this change. The argument is that a
+    // switch is not a checkbox: its track holds a TRAVELLING thumb, so it needs its own cross-axis edge
+    // (`track`, Prism 2's 32px toggle) and its own mark (`thumb`, 0.75× the track), both larger than the
+    // square box `height`/`dot` a checkbox/radio reads and both density-windowed the same way. Housed on
+    // the SHARED rung so the switch stays inside the one control tier (its `width`/`inset` already lived
+    // here, switch-only), not as a separate group that would orphan those two. A ninth field is still a
+    // decision someone takes.
     const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
-    ok(fields.every((f) => f === 'dot+height+inset+line-box+radius+width'),
-      `#910/#1201/#997/#1015 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` + \`radius\` — no seventh field drifts in (got ${[...new Set(fields)].join(' / ')})`);
+    ok(fields.every((f) => f === 'dot+height+inset+line-box+radius+thumb+track+width'),
+      `#910/#1201/#997/#1015/#1425 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` + \`radius\` + \`track\` + \`thumb\` — no ninth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
     ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
@@ -1197,10 +1272,46 @@ for (const b of brands) {
     ok(new Set(heights).size === 3 && heights.every((h, i) => i === 0 || h > heights[i - 1]),
       `#900 ${density}: three DISTINCT, strictly increasing heights — the windowed ladder, not a clamped shift (${heights.join('/')})`);
 
-    // `width` is 2× `height`, read off the two RESOLVED px rather than off `CONTROL_TRACK_RATIO`.
-    const offRatio = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'width') !== (px(grp, n, 'height') ?? NaN) * 2);
-    ok(offRatio.length === 0, `#900 ${density}: every track \`width\` is exactly 2× its \`height\` — the one ratio the field converges on (Carbon 24×48, Ant 22×44, Fluent 20×40)`
+    // `width` is 2× `track` (#1425 rebased it off `height`), read off the two RESOLVED px rather than off
+    // `CONTROL_TRACK_RATIO`. The switch borrowed the box `height` for its track before #1425, which is why
+    // this once read `2× height`; now the track is its own field and the width doubles IT.
+    const offRatio = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'width') !== (px(grp, n, 'track') ?? NaN) * 2);
+    ok(offRatio.length === 0, `#900/#1425 ${density}: every track \`width\` is exactly 2× its \`track\` height — the one ratio the field converges on (Carbon 24×48, Ant 22×44, Fluent 20×40)`
       + (offRatio.length ? ` — OFF: ${offRatio.join(', ')}` : ''));
+
+    // #1425 — the SWITCH track ladder, its own edge distinct from the box `height`. Three DISTINCT,
+    // strictly increasing tracks at EVERY density (the same windowing/clamp check `height` gets, since the
+    // switch ladder is a second window over `SWITCH_TRACK_RUNGS` and the clamping bug is available here
+    // too), and — the property the issue turns on — every track is LARGER than the box `height` it
+    // replaced, at every rung and density. A track that came out equal to the box is the #1425 undersize
+    // regressed. Read off resolved px, independent of the ladder constants by construction.
+    const tracks = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'track') ?? NaN);
+    ok(new Set(tracks).size === 3 && tracks.every((t, i) => i === 0 || t > tracks[i - 1]),
+      `#1425 ${density}: three DISTINCT, strictly increasing switch tracks — the windowed ladder, not a clamped shift (${tracks.join('/')})`);
+    const notBigger = CONTROL_RUNG_NAMES.filter((n) => (px(grp, n, 'track') ?? NaN) <= (px(grp, n, 'height') ?? NaN));
+    ok(notBigger.length === 0, `#1425 ${density}: every switch \`track\` is TALLER than the square box \`height\` — a track that holds a traveling thumb is not a checkbox square (the undersize #1425 fixes)`
+      + (notBigger.length ? ` — NOT BIGGER: ${notBigger.join(', ')}` : ''));
+
+    // #1425 — `thumb` is 0.75× the TRACK (Prism 2's 24-in-32), the switch's own mark and a SEPARATE ratio
+    // from radio's `dot` (0.5× the box). Read off the two resolved px, so a mutation of `SWITCH_THUMB_RATIO`
+    // fails here by name. Integer at every rung (the multiples-of-8 track guarantees it) and — the
+    // proportion the issue names — strictly BETWEEN 0.5 (radio's) and 1.0, i.e. reads as a thumb.
+    const offThumb = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'thumb') !== (px(grp, n, 'track') ?? NaN) * 0.75);
+    ok(offThumb.length === 0, `#1425 ${density}: every switch \`thumb\` is exactly 0.75× its \`track\` — Prism 2's toggle proportion`
+      + (offThumb.length ? ` — OFF: ${offThumb.join(', ')}` : ''));
+    const thumbs = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'thumb') ?? NaN);
+    ok(thumbs.every((t) => Number.isInteger(t)), `#1425 ${density}: every switch \`thumb\` is a whole px — a half-px thumb cannot be centred on the grid (${thumbs.join('/')})`);
+    const thumbRatios = CONTROL_RUNG_NAMES.map((n) => (px(grp, n, 'thumb') ?? NaN) / (px(grp, n, 'track') ?? NaN));
+    ok(thumbRatios.every((r) => r > 0.5 && r < 1), `#1425 ${density}: the thumb-to-track proportion sits strictly between a radio dot (0.5) and the whole track — it reads as a traveling thumb (${thumbRatios.map((r) => r.toFixed(2)).join('/')})`);
+
+    // #1425 — `inset` is `(track − thumb) / 2` (the thumb centred in the track, its clearance at each
+    // end), rebased off `(height − dot) / 2`. Derived from the two SWITCH fields, so it cannot drift from
+    // them; integer at every rung by the same multiples-of-8 construction.
+    const offInset = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'inset') !== ((px(grp, n, 'track') ?? NaN) - (px(grp, n, 'thumb') ?? NaN)) / 2);
+    ok(offInset.length === 0, `#997/#1425 ${density}: every \`inset\` is exactly (track − thumb) ÷ 2 — the thumb centred in its track`
+      + (offInset.length ? ` — OFF: ${offInset.join(', ')}` : ''));
+    const insets = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'inset') ?? NaN);
+    ok(insets.every((v) => Number.isInteger(v) && v >= 2), `#997/#1425 ${density}: every \`inset\` is a whole px ≥ 2 — a switch thumb clears its track end by at least a 2px border's worth (${insets.join('/')})`);
 
     // `dot` is HALF the height, read off the two resolved px for the same reason. Deliberately NOT
     // described as field-convergent, because it is not and the reviewer was right to say so: M3 is
@@ -1345,7 +1456,12 @@ for (const b of brands) {
     // binding too — the nest pins the nested control's own square through it — so both read the varying
     // family and both belong here; the property this arm checks (px differs by brand) holds for the atom
     // and for the Row's pin alike.
-    const CONTROL_DEFS = ['checkbox-control', 'checkbox', 'radio', 'switch'];
+    // #1354 split `switch` into `switch-control` (the track/thumb, binding control/track/dot/inset) and the
+    // `switch` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's height) —
+    // so both read the varying family and both belong here, exactly as checkbox + checkbox-control do.
+    // #1348 split `radio` the same way: `radio-control` (the circle/dot, binding control+dot) and the
+    // `radio` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's square).
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio', 'switch-control', 'switch'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -7645,8 +7761,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `MCP: export_theme is the ONLY non-read-only tool (got: ${writers.join(',') || 'none'})`);
   ok(tools.find((t) => t.name === 'export_theme')?.annotations?.readOnlyHint === false,
     'MCP: export_theme states readOnlyHint:false explicitly rather than omitting it');
-  // The 52KB brand schema is inlined ONCE. Two copies made tools/list ~91,500 chars (~23k tokens) to
-  // discover three tools, and the second copy told a client nothing the first had not.
+  // The brand schema is inlined ONCE. Two copies made tools/list ~91,500 chars (~23k tokens) to
+  // discover three tools, and the second copy told a client nothing the first had not. The 60k ceiling
+  // keeps the MCP surface lean for clients; a new lever fits by COMPRESSION, not by raising it (#1368
+  // `faces`: open keys + a terse description + a `{family, style}` leaf, no schema bloat).
   const listChars = JSON.stringify(tools).length;
   ok(listChars < 60_000, `MCP: tools/list stays under 60,000 chars — the schema is inlined once (${listChars.toLocaleString()})`);
 
@@ -8101,30 +8219,60 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // for arbitrary-height controls (999px clamps to a pill up to ~1998px, where round's 128 stops at 256),
   // and does so WITHOUT touching the rung switch/radio bind — the intrinsic pills stay on `radius.round`.
   {
-    const radioDef = componentDefs.find((d) => d.id === 'radio')!;
     const pillable = componentDefs.filter(isPillable).map((d) => d.id).sort();
     ok(pillable.includes('button') && pillable.includes('icon-button'),
       `controlShape: button + icon-button are the pill-able set — they declare the \`${PILL_RADIUS_DERIVATION}\` derivation (${pillable.join(', ')})`);
-    // THE EXCLUSION, asserted so the lever can never square them off. switch + radio declare no derivation,
-    // so `isPillable` is false and `applyControlShape(_, 'pill')` is the identity on them.
-    ok(!isPillable(switchDef) && !isPillable(radioDef),
-      'controlShape: switch + radio are NOT pill-able — their pill/circle is intrinsic (radius.round), not a brand choice');
+    // THE EXCLUSION, asserted so the lever can never square them off. The intrinsic-pill controls declare
+    // no derivation, so `isPillable` is false and `applyControlShape(_, 'pill')` is the identity on them.
+    // Since #1354/#1348 both switch's and radio's intrinsic pill/circle live on their ATOMS
+    // (`switch-control`'s track, `radio-control`'s disc, both `radius.round`); the ROWs declare no radius
+    // at all. So this half of the check reads the two atoms, not the rows.
+    ok(!isPillable(switchControl) && !isPillable(radioControl),
+      'controlShape: switch-control + radio-control are NOT pill-able — their pill/circle is intrinsic (radius.round), not a brand choice');
     // The pill lever's rung is NOT the intrinsic-pill rung — raising one can never move the other.
-    ok(PILL_RADIUS_RUNG === 'radius.capsule' && switchDef.tokens['radius'] === 'radius.round' && PILL_RADIUS_RUNG !== switchDef.tokens['radius'],
-      `controlShape: the lever repoints to a rung DISTINCT from switch/radio's intrinsic pill (${PILL_RADIUS_RUNG} ≠ ${switchDef.tokens['radius']})`);
+    ok(PILL_RADIUS_RUNG === 'radius.capsule' && switchControl.tokens['radius'] === 'radius.round' && radioControl.tokens['radius'] === 'radius.round' && PILL_RADIUS_RUNG !== switchControl.tokens['radius'],
+      `controlShape: the lever repoints to a rung DISTINCT from switch-control/radio-control's intrinsic pill (${PILL_RADIUS_RUNG} ≠ ${switchControl.tokens['radius']})`);
 
-    const radiusBindings = (d: ComponentDef, size: string): string[] =>
-      [...new Set(planBoundVars(figmaAnatomyPlan(d, size, {}).root).filter((v) => v.startsWith('radius/')))].sort();
+    const radiusBindings = (d: ComponentDef, size: string, slots: Record<string, string> = {}): string[] =>
+      [...new Set(planBoundVars(figmaAnatomyPlan(d, size, slots as never).root).filter((v) => v.startsWith('radius/')))].sort();
 
-    for (const id of ['button', 'icon-button']) {
+    // THE SQUARE (ROUNDED-RUNG) CASE. `button` has no shape axis; `icon-button`'s `shape=square` (#1353) IS
+    // its rounded rung. Both bind `radius/md` under `rounded` and are repointed to `radius/capsule` under
+    // `pill` — the generalized `applyControlShape` keys on the ref (`radius.md`), so it reaches button's
+    // `radius` key and icon-button's `radius.square` key alike.
+    const squareCases: { id: string; slots: Record<string, string> }[] = [
+      { id: 'button', slots: {} },
+      { id: 'icon-button', slots: { shape: 'square' } },
+    ];
+    for (const { id, slots } of squareCases) {
       const d = componentDefs.find((x) => x.id === id)!;
+      const tag = slots.shape ? `/${slots.shape}` : '';
       for (const size of d.variants?.size ?? []) {
-        const rounded = radiusBindings(applyControlShape(d, 'rounded'), size);
-        const pill = radiusBindings(applyControlShape(d, 'pill'), size);
+        const rounded = radiusBindings(applyControlShape(d, 'rounded'), size, slots);
+        const pill = radiusBindings(applyControlShape(d, 'pill'), size, slots);
         ok(rounded.length === 1 && rounded[0] === 'radius/md',
-          `controlShape: ${id}@${size} rounded binds radius/md (${rounded.join(', ') || 'none'})`);
+          `controlShape: ${id}@${size}${tag} rounded binds radius/md (${rounded.join(', ') || 'none'})`);
         ok(pill.length === 1 && pill[0] === 'radius/capsule',
-          `controlShape: ${id}@${size} pill binds radius/capsule — the unconditional height ÷ 2 pill selected BY NAME (${pill.join(', ') || 'none'})`);
+          `controlShape: ${id}@${size}${tag} pill binds radius/capsule — the unconditional height ÷ 2 pill selected BY NAME (${pill.join(', ') || 'none'})`);
+      }
+    }
+
+    // #1353 — icon-button's `shape=circular` is an INTRINSIC round rung (`radius.round`), so the pill lever
+    // LEAVES it, exactly as it leaves switch/radio's intrinsic circle. Under BOTH rounded and pill it stays
+    // radius/round. This is the by-name proof that the generalized lever (repoint the rounded rung BY REF,
+    // not by the literal key `radius`) rounds only the square shape and cannot reach the circular one —
+    // reverting `applyControlShape` to a key-name rewrite makes the SQUARE `pill binds radius/capsule` arm
+    // above fail (icon-button loses its bare `radius` key at #1353), and reverting `radius.circular` to
+    // `radius.md` in the def makes THIS arm's `radius/round` fail.
+    {
+      const ib = componentDefs.find((x) => x.id === 'icon-button')!;
+      for (const size of ib.variants?.size ?? []) {
+        const rounded = radiusBindings(applyControlShape(ib, 'rounded'), size, { shape: 'circular' });
+        const pill = radiusBindings(applyControlShape(ib, 'pill'), size, { shape: 'circular' });
+        ok(rounded.length === 1 && rounded[0] === 'radius/round',
+          `controlShape: icon-button@${size}/circular rounded binds radius/round (${rounded.join(', ') || 'none'})`);
+        ok(pill.length === 1 && pill[0] === 'radius/round',
+          `controlShape: icon-button@${size}/circular stays radius/round under pill — the intrinsic round rung the lever cannot reach (${pill.join(', ') || 'none'})`);
       }
     }
 
@@ -8132,22 +8280,655 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // excluded set — the same object back, not a rebuilt equal one, which is the strongest form of "unchanged".
     ok(applyControlShape(button, 'rounded') === button && applyControlShape(iconButton, 'rounded') === iconButton,
       'controlShape: rounded is the IDENTITY on pill-able defs — the same object, so the default plan is byte-identical');
-    ok(applyControlShape(switchDef, 'pill') === switchDef && applyControlShape(radioDef, 'pill') === radioDef,
-      'controlShape: pill is the IDENTITY on switch + radio — the excluded set cannot move');
-    for (const size of switchDef.variants?.size ?? [])
-      ok(radiusBindings(applyControlShape(switchDef, 'pill'), size).every((v) => v === 'radius/round'),
-        `controlShape: switch@${size} stays radius/round under pill — untouched by the capsule rung`);
+    ok(applyControlShape(switchControl, 'pill') === switchControl && applyControlShape(radioControl, 'pill') === radioControl,
+      'controlShape: pill is the IDENTITY on switch-control + radio-control — the excluded set cannot move');
+    for (const atom of [switchControl, radioControl])
+      for (const size of atom.variants?.size ?? [])
+        ok(radiusBindings(applyControlShape(atom, 'pill'), size).every((v) => v === 'radius/round') && radiusBindings(atom, size).length > 0,
+          `controlShape: ${atom.id}@${size} stays radius/round under pill — untouched by the capsule rung`);
 
     // NARROW: under pill, ONLY the radius binding moves. Every OTHER bound variable is identical between the
     // rounded and pill plans, so the lever selects a derivation and changes nothing else about the component.
     for (const id of ['button', 'icon-button']) {
       const d = componentDefs.find((x) => x.id === id)!;
       const size = (d.variants?.size ?? [])[0];
-      const nonRadius = (shape: ControlShape) => planBoundVars(figmaAnatomyPlan(applyControlShape(d, shape), size, {}).root)
+      // icon-button now needs a shape coordinate to plan (`radius.{shape}`); button ignores an undeclared one.
+      const slots: Record<string, string> = d.variants?.shape ? { shape: 'square' } : {};
+      const nonRadius = (shape: ControlShape) => planBoundVars(figmaAnatomyPlan(applyControlShape(d, shape), size, slots as never).root)
         .filter((v) => !v.startsWith('radius/')).sort();
       ok(JSON.stringify(nonRadius('rounded')) === JSON.stringify(nonRadius('pill')),
         `controlShape: ${id} pill moves ONLY the radius binding — every other bound var is identical to rounded`);
     }
+
+    // (#1371) THE TWO FIXED OFF-RAMPS — `boxed` (radius.none, a sharp 0px corner) and `hairline`
+    // (radius.hairline, the 1px sentinel #1362). Each names a RELATIONSHIP, not a raw radius, and rides the
+    // SAME generalized mechanism as `pill`: `applyControlShape` repoints the ROUNDED rung BY REF, so a shape
+    // reaches button's `radius` key and icon-button's `radius.square` key alike and LEAVES the intrinsic
+    // `circular` round rung. The SUBJECT is the exported `CONTROL_SHAPE_RUNG` map; the ORACLE is the
+    // projected plan (`radiusBindings`), derived independently of the map (docs/34) — so a wrong or reverted
+    // map entry surfaces as a wrong bound var by name, not as silence.
+    ok(CONTROL_SHAPE_RUNG.rounded === null && CONTROL_SHAPE_RUNG.pill === PILL_RADIUS_RUNG
+      && CONTROL_SHAPE_RUNG.boxed === BOXED_RADIUS_RUNG && BOXED_RADIUS_RUNG === 'radius.none'
+      && CONTROL_SHAPE_RUNG.hairline === HAIRLINE_RADIUS_RUNG && HAIRLINE_RADIUS_RUNG === 'radius.hairline'
+      && ROUNDED_RADIUS_RUNG === 'radius.md',
+      'controlShape: CONTROL_SHAPE_RUNG maps rounded→identity, pill→capsule, boxed→none, hairline→hairline (all off the rounded rung radius.md)');
+    const OFFRAMP: { shape: ControlShape; varName: string }[] = [
+      { shape: 'boxed', varName: 'radius/none' },
+      { shape: 'hairline', varName: 'radius/hairline' },
+    ];
+    for (const { shape, varName } of OFFRAMP) {
+      // THE SQUARE (ROUNDED-RUNG) CASE — button and icon-button's `shape=square` both repoint to the off-ramp.
+      for (const { id, slots } of squareCases) {
+        const d = componentDefs.find((x) => x.id === id)!;
+        const tag = slots.shape ? `/${slots.shape}` : '';
+        for (const size of d.variants?.size ?? []) {
+          const bound = radiusBindings(applyControlShape(d, shape), size, slots);
+          ok(bound.length === 1 && bound[0] === varName,
+            `controlShape: ${id}@${size}${tag} ${shape} binds ${varName} — the fixed off-ramp rung selected BY NAME (${bound.join(', ') || 'none'})`);
+        }
+      }
+      // icon-button's `shape=circular` is an INTRINSIC round rung — the off-ramp leaves it, exactly as pill does.
+      {
+        const ib = componentDefs.find((x) => x.id === 'icon-button')!;
+        for (const size of ib.variants?.size ?? []) {
+          const circ = radiusBindings(applyControlShape(ib, shape), size, { shape: 'circular' });
+          ok(circ.length === 1 && circ[0] === 'radius/round',
+            `controlShape: icon-button@${size}/circular stays radius/round under ${shape} — the intrinsic round rung no shape can reach (${circ.join(', ') || 'none'})`);
+        }
+      }
+      // IDENTITY on the excluded set (switch/radio carry no derivation → the same object back).
+      ok(applyControlShape(switchControl, shape) === switchControl && applyControlShape(radioControl, shape) === radioControl,
+        `controlShape: ${shape} is the IDENTITY on switch-control + radio-control — the excluded set cannot move`);
+      // NARROW: under the off-ramp, ONLY the radius binding moves; every other bound var equals rounded.
+      for (const id of ['button', 'icon-button']) {
+        const d = componentDefs.find((x) => x.id === id)!;
+        const size = (d.variants?.size ?? [])[0];
+        const slots: Record<string, string> = d.variants?.shape ? { shape: 'square' } : {};
+        const nonRadius = (sh: ControlShape) => planBoundVars(figmaAnatomyPlan(applyControlShape(d, sh), size, slots as never).root)
+          .filter((v) => !v.startsWith('radius/')).sort();
+        ok(JSON.stringify(nonRadius('rounded')) === JSON.stringify(nonRadius(shape)),
+          `controlShape: ${id} ${shape} moves ONLY the radius binding — every other bound var is identical to rounded`);
+      }
+    }
+
+    // THE HAIRLINE↔RUNG COUPLING (#1371). `hairline` repoints a control's corner to `radius.hairline` — an
+    // OPT-IN rung (#1362) that exists only with `radiusHairline` on — so choosing the shape must PROVISION
+    // the rung, or the projected `radius/hairline` binding dangles against a brand that never opted in.
+    // `brandTheme` couples them: `controlShape: hairline` IMPLIES the rung. Read the EMITTED tree (the
+    // contract a consumer sees), so this is independent of `applyControlShape`. `boxed`'s `radius.none` is
+    // always present, so it provisions NOTHING — the asymmetry is the point.
+    {
+      const seedHue = { primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } };
+      const radiusOf = (input: object) => { const t = buildTree(brandTheme(input as unknown as BrandInput)).tree; return (t as any)[Object.keys(t)[0]].radius; };
+      const hairShape = radiusOf({ id: 'cshair', ...seedHue, controlShape: 'hairline' });
+      ok(hairShape.hairline?.$extensions?.prism3?.px === 1 && /\.core\.dimension\.1}$/.test(hairShape.hairline?.$value ?? ''),
+        `controlShape: hairline IMPLIES the hairline rung — a brand setting ONLY controlShape:hairline (radiusHairline unset) still emits radius.hairline = 1px (got ${hairShape.hairline?.$value})`);
+      const boxedShape = radiusOf({ id: 'csbox', ...seedHue, controlShape: 'boxed' });
+      ok(boxedShape.hairline === undefined && boxedShape.none?.$extensions?.prism3?.px === 0,
+        `controlShape: boxed provisions NOTHING — radius.none is always emitted (0px) and no hairline rung appears (got hairline=${JSON.stringify(boxedShape.hairline)})`);
+      // The enum values are ACCEPTED by the schema (both halves gate the theme-schema/enumLevers edits): a
+      // valid off-ramp validates clean, and garbage is still rejected — so reverting the enum widening fails
+      // the acceptance arm by name rather than silently narrowing what a brand may write.
+      const seed = { id: 'csval', ...seedHue } as unknown as BrandInput;
+      ok(validateBrandInput({ ...seed, controlShape: 'boxed' } as any).length === 0
+        && validateBrandInput({ ...seed, controlShape: 'hairline' } as any).length === 0,
+        'controlShape: boxed + hairline are ACCEPTED by the schema (the enum was widened)');
+      ok(validateBrandInput({ ...seed, controlShape: 'nope' } as any).length > 0,
+        'controlShape: an unknown shape is still REJECTED — the enum widened, it did not open');
+    }
+  }
+
+  // #1353 — THE `shape` VARIANT AXIS (square | circular, square default), owner-decided 2026-09-10. Pure
+  // GEOMETRY: the two values differ ONLY in the container's corner radius and are token-identical everywhere
+  // else, which is what makes it a 2-value AXIS and not a component split. Every pin below is derived
+  // INDEPENDENTLY of the projector (docs/34): the axis vocabulary + default off the def, the multiplier by a
+  // straight product against the enumeration, the "differ only in radius" by comparing the two projected
+  // members' bound/paint vars, and the radius rungs read off the plan. A mutation arm reverts the geometry
+  // (circular → the square rung, and the default flipped) and confirms a NAMED assertion flips.
+  {
+    const A = iconButton.variants?.appearance?.length ?? 0;
+    const S = iconButton.variants?.size?.length ?? 0;
+    const shapeVals = iconButton.variants?.shape ?? [];
+    const St = iconButton.figmaProperties?.stateAxis?.values.length ?? 0;
+
+    // (0) THE AXIS IS EXACTLY {square, circular}, and square is the DEFAULT.
+    ok(JSON.stringify([...shapeVals].sort()) === JSON.stringify(['circular', 'square']),
+      `#1353 shape axis is EXACTLY {circular, square} (got [${shapeVals.join(', ')}])`);
+    ok(shapeVals[0] === 'square',
+      `#1353 shape values LEAD with the default 'square' (got '${shapeVals[0]}')`);
+    ok(iconButton.props.find((p) => p.name === 'shape')?.default === 'square',
+      "#1353 the shape PROP defaults to 'square'");
+    ok((iconButton.figmaProperties?.variantAxes ?? []).includes('shape'),
+      '#1353 shape PROJECTS — it is declared in figmaProperties.variantAxes');
+    // The three icon-button components declare it identically (one shared factory).
+    ok([iconButton, iconButtonDestructive, iconButtonNeutral].every(
+      (d) => JSON.stringify(d.variants?.shape) === JSON.stringify(shapeVals)),
+      '#1353 all three icon-button components declare the shape axis identically');
+
+    // (1) THE AXIS MULTIPLIES THE SET BY EXACTLY 2 — the product of declared cardinalities against the real
+    // enumeration, then a partition proving each shape value spans exactly half (independent of the product).
+    const set = figmaAnatomySet(iconButton);
+    ok(shapeVals.length === 2 && set.length === A * S * shapeVals.length * St,
+      `#1353 shape DOUBLES the set: appearance(${A})×size(${S})×shape(${shapeVals.length})×state(${St}) = ${set.length}`);
+    const square = set.filter((p) => planComponentName(p).includes('shape=square')).length;
+    const circular = set.filter((p) => planComponentName(p).includes('shape=circular')).length;
+    ok(square === set.length / 2 && circular === set.length / 2 && square === A * S * St,
+      `#1353 each shape value spans exactly half the set (square ${square}, circular ${circular} of ${set.length})`);
+
+    // (2) THE CRUX — the two shapes differ ONLY in the container's corner radius, and the rungs are exactly
+    // radius/md (square) and radius/round (circular), across EVERY appearance × size × state. Read off the
+    // projected plan (bound + paint vars), never off def.tokens.
+    const radiusOf = (shape: string, appearance: string, size: string, state: string): string[] =>
+      [...new Set(planBoundVars(figmaAnatomyPlan(iconButton, size, { appearance, state, shape }).root)
+        .filter((v) => v.startsWith('radius/')))].sort();
+    const nonRadiusOf = (shape: string, appearance: string, size: string, state: string): string =>
+      JSON.stringify(planBoundVars(figmaAnatomyPlan(iconButton, size, { appearance, state, shape }).root)
+        .filter((v) => !v.startsWith('radius/')).sort());
+    const paintOf = (shape: string, appearance: string, size: string, state: string): string =>
+      JSON.stringify(planPaintVars(figmaAnatomyPlan(iconButton, size, { appearance, state, shape }).root).sort());
+    let geomChecked = 0;
+    for (const appearance of iconButton.variants!.appearance!)
+      for (const size of iconButton.variants!.size!)
+        for (const state of iconButton.figmaProperties!.stateAxis!.values) {
+          geomChecked++;
+          ok(paintOf('square', appearance, size, state) === paintOf('circular', appearance, size, state),
+            `#1353 no colour/state difference between shapes @ ${appearance}/${size}/${state} — paint vars identical`);
+          ok(nonRadiusOf('square', appearance, size, state) === nonRadiusOf('circular', appearance, size, state),
+            `#1353 shapes differ ONLY in radius @ ${appearance}/${size}/${state} — every non-radius bound var identical`);
+          const sq = radiusOf('square', appearance, size, state);
+          const ci = radiusOf('circular', appearance, size, state);
+          ok(sq.length === 1 && sq[0] === 'radius/md',
+            `#1353 square binds radius/md @ ${appearance}/${size}/${state} (got ${sq.join(', ') || 'none'})`);
+          ok(ci.length === 1 && ci[0] === 'radius/round',
+            `#1353 circular binds radius/round @ ${appearance}/${size}/${state} (got ${ci.join(', ') || 'none'})`);
+        }
+    ok(geomChecked === A * S * St, `#1353 the geometry pin ran over the full appearance×size×state grid (${geomChecked})`);
+
+    // (3) MUTATION-BY-NAME (docs/34). Both arms flip an invariant true→false on the SUBJECT (the def), and
+    // the NAMED assertion that would fire in the suite is stated for each.
+    //   ARM A — revert the geometry: bind circular to the SQUARE rung. The projected circular member then
+    //   binds radius/md, so the `#1353 circular binds radius/round …` assertion above would FAIL BY NAME.
+    const geomMutant = { ...iconButton, tokens: { ...iconButton.tokens, 'radius.circular': 'radius.md' } };
+    const mutCircular = [...new Set(planBoundVars(figmaAnatomyPlan(geomMutant, 'medium', { appearance: 'filled', state: 'rest', shape: 'circular' }).root)
+      .filter((v) => v.startsWith('radius/')))];
+    ok(mutCircular.length === 1 && mutCircular[0] === 'radius/md',
+      `#1353 MUTATION ARM A: binding radius.circular → radius.md makes circular project radius/md, which flips '#1353 circular binds radius/round' to failing (got ${mutCircular.join(', ')})`);
+    //   ARM B — flip the default: reorder the values so circular leads. The `#1353 shape values LEAD with the
+    //   default 'square'` assertion reads `values[0]`, so a circular-first order flips it BY NAME.
+    const defaultMutant = { ...iconButton, variants: { ...iconButton.variants, shape: ['circular', 'square'] } };
+    ok(defaultMutant.variants.shape[0] === 'circular',
+      "#1353 MUTATION ARM B: reordering shape to ['circular', 'square'] makes values[0] = 'circular', which flips '#1353 shape values LEAD with the default square' to failing");
+  }
+
+  // #1344 / #1343b / #1343a / #1345 — the SELECT cluster (#1329). Projected-surface moves, each pinned
+  // INDEPENDENTLY of the projector (docs/34): EXPECTED is the role name / cardinality / literal authored
+  // here, ACTUAL is read off the emitted plan or the def declaration. Each carries a mutation arm that
+  // flips a NAMED assertion true→false on the SUBJECT (the def).
+  {
+    // ---- #1343b: the icon ink is PRIMARY on BOTH glyphs (trailing chevron + leading swap) ----
+    // The one `icon` key paints the chevron's vector and the leading swap's descendants; both must come
+    // back `color/icon/primary`, matching the value text. EXPECTED is the authored role, ACTUAL the pixel.
+    const iconInk = (leading: boolean): string[] =>
+      [...new Set(planPaintVars(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'rest', leading, swapTarget: 'FPO-default-icon' } as never).root)
+        .filter((v) => v.startsWith('color/icon/')))].sort();
+    ok(JSON.stringify(iconInk(true)) === JSON.stringify(['color/icon/primary']),
+      `#1343 select icon ink is PRIMARY on every glyph (chevron + leading), never secondary (got ${iconInk(true).join(', ') || 'none'})`);
+    ok(iconInk(false).length === 1 && iconInk(false)[0] === 'color/icon/primary',
+      `#1343 select chevron ink is PRIMARY with no leading glyph present (got ${iconInk(false).join(', ') || 'none'})`);
+    //   MUTATION: revert `icon` → secondary. Both glyphs then project `color/icon/secondary`, flipping the
+    //   two assertions above BY NAME.
+    const inkMutant = { ...select, tokens: { ...select.tokens, icon: 'color.icon.secondary' } };
+    const mutInk = [...new Set(planPaintVars(figmaAnatomyPlan(inkMutant as ComponentDef, undefined, { status: 'default', state: 'rest', leading: true, swapTarget: 'FPO-default-icon' } as never).root)
+      .filter((v) => v.startsWith('color/icon/')))];
+    ok(JSON.stringify(mutInk) === JSON.stringify(['color/icon/secondary']),
+      `#1343 MUTATION: reverting select.icon → color.icon.secondary makes both glyphs project color/icon/secondary, flipping '#1343 select icon ink is PRIMARY' to failing (got ${mutInk.join(', ') || 'none'})`);
+
+    // ---- #1343a / #1345: the DEFAULT WIDTH is a 320 MIN-WIDTH on the control, and the field FLEXES ----
+    // The floor sits on the CONTROL, not the container: Prism 2 gives its select `root width 320` with the
+    // inner containers FILLing it, but the engine cannot project a child that FILLs (`sizing: 'fill'` →
+    // AUTO, #989/#990), so a container-only floor would leave a hugging (narrow) control inside a 320
+    // frame. Flooring the visible control renders it at ≥320 and the hugging column inherits that width —
+    // Prism 2's rendered geometry, the one way projection allows. EXPECTED is the authored literal 320 and
+    // the responsive contract; ACTUAL is read off the emitted plan.
+    const controlOf = (d: ComponentDef): AnatomyPlan['root'] => {
+      const root = figmaAnatomyPlan(d, undefined, { status: 'default', state: 'rest', leading: false } as never).root;
+      const ctrl = (root.children ?? []).find((c) => c.name === 'control');
+      if (!ctrl) throw new Error(`select projection has no 'control' child (got [${(root.children ?? []).map((c) => c.name).join(', ')}])`);
+      return ctrl;
+    };
+    // #1343a — the control carries the 320 floor. A literal on the plan, not a bound token.
+    ok(controlOf(select).minWidth === 320,
+      `#1343a select control carries the 320 min-width floor (got ${String(controlOf(select).minWidth)})`);
+    // #1345 — and the field FLEXES above that floor rather than being pinned: the control's main-axis
+    // (horizontal, it is a row) sizing is AUTO, not FIXED — Prism 2's `fill` as far as projection can carry
+    // it (#989/#990). A hard-fixed width would read as FIXED here.
+    ok(controlOf(select).primaryAxisSizingMode === 'AUTO',
+      `#1345 select control FLEXES above the floor (primaryAxisSizingMode AUTO, not a hard-fixed width) — got ${String(controlOf(select).primaryAxisSizingMode)}`);
+    //   MUTATION #1343a — remove the floor. The plan drops `control.minWidth`, flipping '#1343a select
+    //   control carries the 320 min-width floor' BY NAME.
+    const noFloor = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, control: { ...select.anatomy.parts.control, minWidth: undefined } } } };
+    ok(controlOf(noFloor as ComponentDef).minWidth === undefined,
+      `#1343a MUTATION: removing control.minWidth drops the 320 floor from the plan (got ${String(controlOf(noFloor as ComponentDef).minWidth)}), flipping '#1343a select control carries the 320 min-width floor' to failing`);
+    //   MUTATION #1345 — pin the width. Flipping the control's main-axis sizing 'fill' → 'fixed' turns its
+    //   primaryAxisSizingMode AUTO → FIXED, so the field sits at a hard size, flipping '#1345 select control
+    //   FLEXES' BY NAME.
+    const pinnedCtrl = { ...select.anatomy.parts.control, layout: { ...select.anatomy.parts.control.layout!, sizing: { x: 'fixed' as const, y: 'fixed' as const } } };
+    const pinned = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, control: pinnedCtrl } } };
+    ok(controlOf(pinned as ComponentDef).primaryAxisSizingMode === 'FIXED',
+      `#1345 MUTATION: fixing the control's main-axis sizing turns primaryAxisSizingMode FIXED (got ${String(controlOf(pinned as ComponentDef).primaryAxisSizingMode)}), flipping '#1345 select control FLEXES' to failing`);
+
+    // ---- #1343a: the two REFUSAL arms `PartDef.minWidth` adds, each pinned BY NAME (docs/34) ----
+    // A PR's own new refusal owes its own by-name mutation: without these, either arm of the validator
+    // could be deleted from `anatomyErrors` and the whole suite stays green. The precedent is `verticalAlign`'s
+    // wrong-kind test (this def cites it). EXPECTED is the authored message shape; the SUBJECT is the mutated def.
+    // (a) minWidth on a NON-BOX part — Figma applies a minimum width only to an auto-layout frame, so a floor
+    // on the text node would resolve, validate, and reach no node. `text` is select's only non-box, non-nest part.
+    const minWidthOnText = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, text: { ...select.anatomy.parts.text, minWidth: 320 } } } };
+    ok(validateComponentDef(minWidthOnText as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /kind 'text'/.test(e) && /only a 'box'/.test(e)),
+      "#1343a a NON-box part declaring minWidth is refused BY NAME — otherwise a min-width on a leaf validates clean and reaches no node (the wrong-kind rule modelled on clipsContent/verticalAlign)");
+    // (b) minWidth on a BOX with NO layout — Figma would silently drop the floor on a non-auto-layout frame.
+    // Strip the control's own `layout` while keeping its real `minWidth: 320`, so this arm fires on exactly the box that carries the floor.
+    const minWidthNoLayout = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, control: { ...select.anatomy.parts.control, layout: undefined } } } };
+    ok(validateComponentDef(minWidthNoLayout as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /binds no 'layout'/.test(e)),
+      "#1343a a BOX declaring minWidth with NO layout is refused BY NAME — Figma applies a minimum width only to an auto-layout frame, so a layout-less floor is silently dropped");
+
+    // ---- #1340: image-placeholder's marker sizes off a LITERAL glyphPx, not an icon rung ----
+    // The empty-state marker was a bound `icon.size.lg` (32px) that read as a stray small icon against the
+    // 720px frame (#1340). It is now a def-local literal 180px — Prism 2's centered-glyph proportion for
+    // this frame family (`playCircleLine` 160/480 = 1/3 of the 4:3 shorter side; 1/3 of prism3's 540px 4:3
+    // nominal shorter side = 180). EXPECTED is the grounded literal; ACTUAL is read off the emitted plan,
+    // independent of the projector, so a value move fails HERE and not only in the round-trip.
+    const imgPlaceholder = componentDefs.find((d) => d.id === 'image-placeholder')!;
+    const markerOf = (d: ComponentDef): FigmaNodePlan => {
+      const root = figmaAnatomyPlan(d, undefined, { ratio: '4:3' } as never).root;
+      const m = (root.children ?? []).find((c) => c.type === 'GLYPH');
+      if (!m) throw new Error(`image-placeholder projection has no GLYPH marker (got [${(root.children ?? []).map((c) => `${c.name}:${c.type}`).join(', ')}])`);
+      return m;
+    };
+    // (a) the plan carries the literal, and it is a REAL enlargement past every icon rung (xl = 40) — a
+    // rung binding could never reach it, which is why it is a literal and not a token.
+    ok(markerOf(imgPlaceholder).glyphPx === 180,
+      `#1340 image-placeholder marker carries the 180px literal glyph size (got ${String(markerOf(imgPlaceholder).glyphPx)})`);
+    ok((markerOf(imgPlaceholder).glyphPx ?? 0) > 40 && Object.keys(markerOf(imgPlaceholder).bound).length === 0,
+      `#1340 the marker's size is a LITERAL past every icon rung (>40) and binds NO dimension variable (bound ${JSON.stringify(markerOf(imgPlaceholder).bound)}) — a rung could not reach 180`);
+    //   MUTATION #1340 — revert to the old rung. Restore the `size: 'glyph-size'` token binding and drop
+    //   `glyphPx`, exactly as before this PR: the marker re-binds width/height to the 32px icon variable and
+    //   carries NO glyphPx, flipping '#1340 image-placeholder marker carries the 180px literal glyph size'
+    //   BY NAME.
+    const marker = imgPlaceholder.anatomy.parts.marker;
+    const revertedMarker = { ...marker, glyphPx: undefined, size: 'glyph-size' };
+    const reverted = { ...imgPlaceholder, tokens: { ...imgPlaceholder.tokens, 'glyph-size': 'icon.size.lg' }, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, marker: revertedMarker } } };
+    const revertedMarkerPlan = markerOf(reverted as ComponentDef);
+    ok(revertedMarkerPlan.glyphPx === undefined && !!revertedMarkerPlan.bound.width,
+      `#1340 MUTATION: reverting to the icon.size.lg binding drops glyphPx (got ${String(revertedMarkerPlan.glyphPx)}) and re-binds the size variable (bound.width ${String(revertedMarkerPlan.bound.width)}), flipping '#1340 image-placeholder marker carries the 180px literal glyph size' to failing`);
+
+    // ---- #1340: the three REFUSAL arms `PartDef.glyphPx` adds, each pinned BY NAME (docs/34) ----
+    // A PR's own new refusal owes its own by-name mutation, or an arm could be deleted from `anatomyErrors`
+    // with the suite green. EXPECTED is the authored message shape; the SUBJECT is the mutated def.
+    // (a) glyphPx AND size on one part — the glyph's square stated twice; the projection keeps whichever it read last.
+    const glyphPxAndSize = { ...imgPlaceholder, tokens: { ...imgPlaceholder.tokens, 'glyph-size': 'icon.size.lg' }, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, marker: { ...marker, size: 'glyph-size' } } } };
+    ok(validateComponentDef(glyphPxAndSize as ComponentDef).errors.some((e) => /declares BOTH 'size' and 'glyphPx'/.test(e)),
+      "#1340 a part declaring BOTH size and glyphPx is refused BY NAME — the glyph's square stated twice (a binding and a literal) would keep whichever the projection read last");
+    // (b) glyphPx on a NON-vector — read only by the GLYPH executor, so on any other kind it validates clean and reaches no node.
+    const glyphPxOnBox = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, frame: { ...imgPlaceholder.anatomy.parts.frame, glyphPx: 180 } } } };
+    ok(validateComponentDef(glyphPxOnBox as ComponentDef).errors.some((e) => /declares 'glyphPx'/.test(e) && /kind 'box'/.test(e) && /only a 'vector'/.test(e)),
+      "#1340 glyphPx on a NON-vector part is refused BY NAME — only a vector is a glyph frame the executor resizes, so on any other kind it validates clean, is ignored, and leaves the author believing the part was sized");
+    // (c) glyphPx on the ROOT vector — a root glyph's size is the instancing host's, so a literal fixes a size the host is meant to give.
+    const rootGlyphDef = { id: 'x', name: 'X', category: 'media', status: 'draft', description: 'x', props: [], states: [], variants: {}, paintKeys: ['{slot}'], tokens: {}, anatomy: { root: 'g', parts: { g: { kind: 'vector' as const, role: 'target' as const, glyph: 'image', glyphPx: 180 } } }, figmaProperties: { variantAxes: [], booleans: {} }, accessibility: { role: 'img', wcag: [], focus: 'n', aria: 'n' }, content: { labelPattern: 'n' }, docs: { usage: 'n', do: [], dont: [], contentGuidelines: 'n' }, ai: { primaryPurpose: 'n', whenToUse: 'n', avoidWhen: 'n', commonPartners: [], triggerKeywords: [], generationPriority: 3 }, composition: { composesWith: [], alternativeTo: [], supersedes: [], supersededBy: [] } };
+    ok(validateComponentDef(rootGlyphDef as unknown as ComponentDef).errors.some((e) => /declares 'glyphPx' and is the anatomy ROOT/.test(e)),
+      "#1340 glyphPx on the ROOT vector is refused BY NAME — a root glyph's rendered size comes from the host that instances it, so a literal here fixes a size the host is meant to give");
+    // (d) glyphPx NON-POSITIVE — the frame is resized to this square, so a 0 or negative literal builds a
+    // collapsed or inverted frame. Patch the real marker (a non-root vector with `size` removed) to `0`, and
+    // also a negative, so the `> 0` bound (not merely `!== 0`) is what is pinned.
+    const glyphPxZero = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, marker: { ...marker, glyphPx: 0 } } } };
+    ok(validateComponentDef(glyphPxZero as ComponentDef).errors.some((e) => /declares glyphPx 0/.test(e) && /must be > 0/.test(e)),
+      "#1340 a NON-POSITIVE glyphPx (0) is refused BY NAME — the glyph frame is resized to the literal, so a zero builds a collapsed frame; without this arm disabling the `>0` check leaves the suite green");
+    const glyphPxNeg = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, marker: { ...marker, glyphPx: -1 } } } };
+    ok(validateComponentDef(glyphPxNeg as ComponentDef).errors.some((e) => /declares glyphPx -1/.test(e) && /must be > 0/.test(e)),
+      "#1340 a NEGATIVE glyphPx (-1) is refused BY NAME — a negative literal would invert the frame; the bound is `> 0`, not `!== 0`");
+
+    // ---- #1424: the labelled ROW wraps a long label instead of overflowing ----
+    // Prism 2's radio-button-row / checkbox-row let a long label WRAP to a second line with the control
+    // top-anchored (the description text is `layoutSizingHorizontal: FILL`). The engine expresses that as
+    // `PartDef.wrap` on the label → the plan carries `layoutGrow: 1` (fill the row's main axis, fixing the
+    // width) + `textAutoResize: 'HEIGHT'` (auto height, so the fixed-width box reflows), and the row carries
+    // a `minWidth` floor so the fill has something to resolve against. EXPECTED is the owner's decision
+    // (label fills + wraps, control fixed); ACTUAL is read off the emitted plan (host-facing), so a value
+    // move fails HERE. The round-trip host-truth block in `test-roundtrip.ts` reads the same two facts back
+    // off the built shim; this is the projection-side pin with its own by-name mutation (docs/34).
+    {
+      const wrapFind = (n: FigmaNodePlan, name: string): FigmaNodePlan | undefined =>
+        n.name === name ? n : (n.children ?? []).map((c) => wrapFind(c, name)).find(Boolean);
+      for (const def of [radio, checkboxRow] as ComponentDef[]) {
+        const p = figmaAnatomySet(def, {})[0];
+        const row = wrapFind(p.root, 'row');
+        const label = wrapFind(p.root, 'label');
+        const controlBox = wrapFind(p.root, 'controlBox');
+        // (a) THE LABEL FILLS AND WRAPS — the two facts together, since either alone does not wrap.
+        ok(label?.layoutGrow === 1 && label?.textAutoResize === 'HEIGHT',
+          `#1424 ${def.id}: the row label FILLS the main axis and WRAPS — layoutGrow=1 + textAutoResize=HEIGHT (got layoutGrow=${String(label?.layoutGrow)}, textAutoResize=${String(label?.textAutoResize)})`);
+        // (b) THE CONTROL STAYS FIXED — it does NOT grow (no layoutGrow) and its box keeps its fixed cross
+        //     axis, so a wrapping label never shrinks or stretches the control.
+        ok(controlBox?.layoutGrow === undefined && controlBox?.counterAxisSizingMode === 'FIXED',
+          `#1424 ${def.id}: the controlBox stays fixed/hug — it does not grow (layoutGrow ${String(controlBox?.layoutGrow)}) and its cross axis is FIXED (${String(controlBox?.counterAxisSizingMode)})`);
+        // (c) THE WIDTH FLOOR that makes the fill resolve (Prism 2's root width 320).
+        ok(row?.minWidth === 320,
+          `#1424 ${def.id}: the row carries the 320 min-width floor so the fill has space to resolve against (got ${String(row?.minWidth)})`);
+        //   MUTATION #1424 — revert the label to fixed/hug-no-wrap. Dropping `wrap` returns the label to a
+        //   hugging text node that overflows: the plan drops layoutGrow AND textAutoResize, flipping (a) BY NAME.
+        const noWrapLabel = { ...def.anatomy.parts.label, wrap: undefined };
+        const noWrap = { ...def, anatomy: { ...def.anatomy, parts: { ...def.anatomy.parts, label: noWrapLabel } } };
+        const mlabel = wrapFind(figmaAnatomySet(noWrap as ComponentDef, {})[0].root, 'label');
+        ok(mlabel?.layoutGrow === undefined && mlabel?.textAutoResize === undefined,
+          `#1424 ${def.id} MUTATION: removing 'wrap' drops layoutGrow (${String(mlabel?.layoutGrow)}) and textAutoResize (${String(mlabel?.textAutoResize)}) from the plan, flipping '#1424 ${def.id}: the row label FILLS the main axis and WRAPS' to failing`);
+      }
+      // ---- #1424: the two REFUSAL arms `PartDef.wrap` adds, each pinned BY NAME (docs/34) ----
+      // A PR's own new refusal owes its own by-name mutation, or an arm could be deleted from `anatomyErrors`
+      // with the suite green. The precedent is #1343a/#1340's wrong-kind and precondition arms above.
+      // (a) wrap on a NON-text part — `layoutGrow`/`textAutoResize` are the fill-and-reflow of a TEXT node; on a
+      //     box the projector would carry them onto a frame the readback never expects them on.
+      const wrapOnBox = { ...radio, anatomy: { ...radio.anatomy, parts: { ...radio.anatomy.parts, controlBox: { ...radio.anatomy.parts.controlBox, wrap: true } } } };
+      ok(validateComponentDef(wrapOnBox as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /only a 'text' part/.test(e)),
+        "#1424 'wrap' on a NON-text part is refused BY NAME — only a text part fills its row and reflows; on any other kind it would validate clean and reach the wrong branch");
+      // (b) wrap under a FLOORLESS parent — the #989 silent no-op: `layoutGrow` fills REMAINING space and a
+      //     hugging row has none, so the label hugs its glyphs and overflows though it validated. Stripping the
+      //     row's real `minWidth: 320` (keeping the label's `wrap`) fires this on exactly the row that carries
+      //     the floor — which is what makes the row's minWidth LOAD-BEARING rather than decorative.
+      const floorlessRow = { ...radio.anatomy.parts.row, minWidth: undefined };
+      const floorless = { ...radio, anatomy: { ...radio.anatomy, parts: { ...radio.anatomy.parts, row: floorlessRow } } };
+      ok(validateComponentDef(floorless as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /does not bound its main-axis width/.test(e)),
+        "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; removing the row's minWidth fires this, so the floor is load-bearing");
+    }
+
+    // ---- #1433a: under ERROR the selected inner fill stays on the INTERACTIVE role; only the border/ring
+    //      goes to status(danger) ----
+    // Owner-decided (#1433): error is signalled on the control's BORDER/RING (and the field-message), and the
+    // selected control's inner fill — the checkbox's filled box and check, the radio's inner dot — KEEPS the
+    // interactive color. It must NOT turn red, because color is not error's sole carrier. The atoms already
+    // satisfy this (no `checked.fill.error`/`checked.indicator.error` key, so error falls back to the
+    // interactive `checked.fill`/`checked.indicator`); this block LOCKS it. EXPECTED is the owner's decision;
+    // ACTUAL is read off the emitted plan (host-facing), and the mutation adds the red-fill key the decision
+    // forbids and confirms the assertion flips BY NAME (docs/34). The rows nest these atoms, so this is the
+    // error appearance of both the radio row and the checkbox row.
+    {
+      const errFind = (n: FigmaNodePlan, name: string): FigmaNodePlan | undefined =>
+        n.name === name ? n : (n.children ?? []).map((c) => errFind(c, name)).find(Boolean);
+      const memberAt = (def: ComponentDef, re: RegExp): FigmaNodePlan =>
+        figmaAnatomySet(def, {}).find((p) => re.test(planComponentName(p)))!.root;
+      const INTERACTIVE = 'color/interactive/primary/fill/selected';
+      const DANGER = 'color/border/danger';
+      for (const { def, fillPart, mutKey } of [
+        // The checkbox's inner fill is the filled BOX (`control`, fill slot); the radio's is the inner DOT
+        // (`dot`, indicator slot → `paints.fills`). The error border is the `control`'s stroke on both.
+        { def: checkboxControl, fillPart: 'control', mutKey: 'checked.fill.error' },
+        { def: radioControl, fillPart: 'dot', mutKey: 'checked.indicator.error' },
+      ] as { def: ComponentDef; fillPart: string; mutKey: string }[]) {
+        const rest = memberAt(def, /selection=checked, size=medium, state=rest/);
+        const error = memberAt(def, /selection=checked, size=medium, state=error/);
+        const restFill = errFind(rest, fillPart)?.paints?.fills;
+        const errorFill = errFind(error, fillPart)?.paints?.fills;
+        const restBorder = errFind(rest, 'control')?.paints?.strokes;
+        const errorBorder = errFind(error, 'control')?.paints?.strokes;
+        // (a) THE SELECTED INNER FILL IS UNCHANGED BY ERROR, and it is the INTERACTIVE role (not danger).
+        ok(errorFill === restFill && errorFill === INTERACTIVE,
+          `#1433a ${def.id}: the selected inner fill stays on the interactive role under error — error fill ${String(errorFill)} equals the rest fill ${String(restFill)} and is ${INTERACTIVE}, never ${DANGER}`);
+        // (b) ERROR IS SIGNALLED ON THE BORDER/RING — it DID move (rest → danger), so the fix is not "error
+        //     changes nothing".
+        ok(errorBorder === DANGER && errorBorder !== restBorder,
+          `#1433a ${def.id}: error signals on the control border/ring — it goes to ${DANGER} (was ${String(restBorder)} at rest), so the border moves while the inner fill does not`);
+        //   MUTATION #1433a — turn the error-state selected fill RED. Adding the `${mutKey}` → danger binding
+        //   the decision forbids makes the error member's inner fill resolve to danger, diverging from the rest
+        //   fill, flipping (a) BY NAME.
+        const mutated = { ...def, tokens: { ...def.tokens, [mutKey]: 'color.border.danger' } } as ComponentDef;
+        const mErrorFill = errFind(memberAt(mutated, /selection=checked, size=medium, state=error/), fillPart)?.paints?.fills;
+        ok(mErrorFill === DANGER && mErrorFill !== errorFill,
+          `#1433a ${def.id} MUTATION: binding ${mutKey}→danger turns the error selected fill ${String(mErrorFill)} (was ${String(errorFill)}), flipping '#1433a ${def.id}: the selected inner fill stays on the interactive role under error' to failing`);
+      }
+    }
+
+    // ---- #1344: `empty` is NOT a projected state, but IS carried internally ----
+    // NOTE the count moved with #1331: `leading` is no longer a slot ×2 axis (it is a node-visibility
+    // boolean, `leading icon`), so the set is status × state, not status × state × leading. See the #1331
+    // block below for the halving.
+    const projStates = select.figmaProperties!.stateAxis!.values;
+    const V = select.variants!.status!.length;                 // status: 4
+    const St = projStates.length;                               // rest/hover/focus-visible/disabled: 4
+    const set = figmaAnatomySet(select);
+    // (a) empty is absent from the PROJECTED axis, and the enumeration matches the product WITHOUT it.
+    ok(!projStates.includes('empty'),
+      `#1344 'empty' is NOT a projected Figma state (stateAxis = [${projStates.join(', ')}])`);
+    ok(set.length === V * St && set.length === 16,
+      `#1344 select projects status(${V})×state(${St}) = ${V * St} members (was 20 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
+    ok(!set.some((p) => planComponentName(p).includes('empty')),
+      '#1344 no projected member names the empty state');
+    // (b) empty IS still a real state — the placeholder-vs-value ink distinction is carried internally, and
+    // the placeholder ink is REACHED at the empty coordinate of the declared grid (what lint-paint walks).
+    ok(select.states.includes('empty'),
+      "#1344 'empty' stays in `states` — the placeholder-vs-value ink is carried internally, not dropped");
+    ok(select.tokens!['label.empty'] === 'color.field.placeholder',
+      "#1344 the placeholder ink `label.empty` → color.field.placeholder is still bound");
+    const emptyInk = planPaintVars(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'empty' } as never).root)
+      .filter((v) => v === 'color/field/placeholder');
+    ok(emptyInk.length === 1,
+      '#1344 the placeholder ink is reached at the declared empty coordinate (text paints color/field/placeholder)');
+    //   MUTATION A — restore `empty` to the projected axis. The set rebuilds the empty column (16 → 20) and
+    //   a member names it, flipping '#1344 select projects … 16 members' and '#1344 no projected member
+    //   names the empty state' BY NAME.
+    const projMutant = { ...select, figmaProperties: { ...select.figmaProperties!, stateAxis: { name: 'state', values: [...projStates, 'empty'] } } };
+    const mutSet = figmaAnatomySet(projMutant as ComponentDef);
+    ok(mutSet.length === 20 && mutSet.some((p) => planComponentName(p).includes('empty')),
+      `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 16 members' to failing`);
+    //   MUTATION B — drop `empty` from `states`. `label.empty` / `error.border.empty` then name a state the
+    //   def no longer declares, so `validateComponentDef` reports them as unreachable paint keys — the
+    //   internal carry is load-bearing, and this flips '#1344 empty stays in states' BY NAME.
+    const carryMutant = { ...select, states: select.states.filter((s) => s !== 'empty') };
+    const carryErrors = validateComponentDef(carryMutant as ComponentDef).errors;
+    ok(carryErrors.some((e) => e.includes("'label.empty'")),
+      `#1344 MUTATION B: dropping 'empty' from states makes label.empty an undeclared-state paint key — validation fails (${carryErrors.length} error(s)), proving the internal carry is real`);
+  }
+
+  // ---- #1331: the leading glyph is a NODE-VISIBILITY BOOLEAN, not a variant axis ----
+  // The foundational mechanism (a boolean drives a part's `visible`), pinned INDEPENDENTLY of the projector:
+  // EXPECTED is the authored contract — the node is emitted at EVERY member, hidden by default, its
+  // visibility driven by a boolean, so the set HALVES rather than doubling — and ACTUAL is read off the
+  // emitted plan / planSetProperties. This is the docs/34 behavior net for the mechanism.
+  {
+    const fp = select.figmaProperties!;
+    const sset = figmaAnatomySet(select, { swapTarget: 'FPO-default-icon' });
+    const findLV = (n: any): any => (n.name === 'leadingVisual' ? n : (n.children ?? []).map(findLV).find(Boolean));
+
+    // (1) `leading` is NOT a slot/variant axis — it does not multiply the set, and no member name carries it.
+    ok(!(fp.slotAxes ?? []).some((s) => s.name === 'leading') && !(fp.variantAxes ?? []).includes('leading'),
+      '#1331 select `leading` is NOT a slot/variant axis — presence is a node-visibility boolean');
+    ok(!sset.some((p) => /leading/.test(planComponentName(p))),
+      '#1331 no projected member name carries a `leading` coordinate — the boolean does not multiply the set');
+
+    // (2) THE MECHANISM: the leading glyph node is EMITTED at EVERY member, hidden by default, its `visible`
+    //     driven by the boolean — present-and-toggled, NOT present-in-some/absent-in-others as a variant.
+    const lvNodes = sset.map((p) => findLV(p.root));
+    ok(lvNodes.length === sset.length && lvNodes.every((lv) => !!lv),
+      `#1331 the leading glyph node is emitted at EVERY projected member (${lvNodes.filter(Boolean).length}/${sset.length})`);
+    ok(lvNodes.length > 0 && lvNodes.every((lv) => lv?.visibleProp === 'leading icon' && lv?.visible === false),
+      '#1331 every leading glyph node is hidden by default (`visible:false`) with its `visible` driven by the `leading icon` boolean');
+    ok(lvNodes.length > 0 && lvNodes.every((lv) => lv?.swapTarget === 'FPO-default-icon'),
+      '#1331 the leading glyph node carries the content swap AND the visibility boolean on ONE node (mainComponent + visible)');
+
+    // (3) the set HALVES: status(4) × state(4) = 16, from 32 while `leading` was a ×2 axis.
+    ok(sset.length === 16,
+      `#1331 select projects 16 members (was 32 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
+
+    // (4) planSetProperties declares `leading icon` as a BOOLEAN defaulting to the built (hidden) visibility,
+    //     ordered ABOVE the swap it gates (the #1380 `leading icon` → `↳ swap leading icon` panel nesting).
+    const props = planSetProperties(sset);
+    const li = props.find((p) => p.name === 'leading icon');
+    ok(!!li && li.type === 'BOOLEAN' && li.default === false,
+      `#1331 planSetProperties declares 'leading icon' as a BOOLEAN defaulting false (the built visibility) — got ${JSON.stringify(li)}`);
+    const iLi = props.findIndex((p) => p.name === 'leading icon');
+    const iSwap = props.findIndex((p) => p.name === '↳ swap leading icon');
+    ok(iLi >= 0 && iSwap >= 0 && iLi < iSwap,
+      `#1331 the 'leading icon' boolean is created before its '↳ swap leading icon' swap (panel order) — got [${props.map((p) => p.name).join(', ')}]`);
+
+    // (5) BEHAVIOR MUTATION (docs/34) — the boolean is what keeps the node present. Drop it and the optional
+    //     leadingVisual is DROPPED at every member (present() returns !optional), flipping (2) BY NAME.
+    const noBool = { ...select, figmaProperties: { ...fp, booleans: {} } };
+    const noBoolSet = figmaAnatomySet(noBool as never, { swapTarget: 'FPO-default-icon' });
+    ok(noBoolSet.every((p) => !findLV(p.root)),
+      '#1331 MUTATION: dropping the boolean drops the (optional) leading glyph from every member — the boolean is what keeps it present, flipping "#1331 the leading glyph node is emitted at EVERY projected member" BY NAME');
+
+    // (6) BEHAVIOR MUTATION — reverting `leading` to a VARIANT SLOT AXIS re-doubles the set to 32 and re-drops
+    //     the node in the leading=false members (present-in-some/absent-in-others), the exact multiplication the
+    //     boolean replaced. Flips "#1331 select projects 16 members" BY NAME.
+    const asAxis = { ...select, figmaProperties: { ...fp, booleans: {}, slotAxes: [{ name: 'leading', part: 'leadingVisual', figmaName: 'leading icon' }] } };
+    const asAxisSet = figmaAnatomySet(asAxis as never, { swapTarget: 'FPO-default-icon' });
+    ok(asAxisSet.length === 32 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
+      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 32 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
+
+    // (7) VALIDATOR ARMS (new refusals, by-name).
+    //   (a) the LOOSENING is real: select's leadingVisual carries a swap AND a boolean and validates clean
+    //       (visible and mainComponent are different Figma fields).
+    ok(validateComponentDef(select).errors.length === 0,
+      `#1331 a swap + a boolean on ONE node (select's leading glyph) validates clean (${validateComponentDef(select).errors.join('; ')})`);
+    //   (b) NEW REFUSAL — a boolean on a `presentWhen`-gated part is refused (two presence mechanisms).
+    const boolAndGate = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, leadingVisual: { ...select.anatomy!.parts.leadingVisual, presentWhen: { status: ['error'] } } } } };
+    ok(validateComponentDef(boolAndGate as never).errors.some((e) => /booleans\.leadingIcon/.test(e) && /also declares presentWhen/.test(e)),
+      '#1331 a boolean on a presentWhen-gated part is refused BY NAME — the boolean is the sole presence mechanism, a variant gate would drop the node it toggles');
+    //   (c) requireOptional — a boolean toggling a NON-optional part is refused (the anatomy must allow the
+    //       part to be hidden). Pinned on select's own required `text` node.
+    const boolOnRequired = { ...select, figmaProperties: { ...fp, booleans: { required: 'text' } } };
+    ok(validateComponentDef(boolOnRequired as never).errors.some((e) => /booleans\.required/.test(e) && /not optional/.test(e)),
+      '#1331 a boolean toggling a NON-optional part is refused BY NAME — the anatomy must allow the part to be hidden');
+  }
+
+  // ---- #1426: select QA fixes — caret pinned right (space-between) + hideable message boolean ----
+  // The two decision-free fixes from the plugin-import QA, each pinned INDEPENDENTLY of the projector and
+  // gated by a docs/34 mutation that flips a NAMED assertion. (Two further #1426 items — the hit-target
+  // control height and exposing the composed FieldLabel's props — are held for the owner as design forks.)
+  {
+    const fp = select.figmaProperties!;
+    const ctrlOf = (d: ComponentDef): { primaryAxisAlignItems?: string } => {
+      const root = figmaAnatomyPlan(d, undefined, { status: 'default', state: 'rest' } as never).root;
+      const c = (root.children ?? []).find((x: { name?: string }) => x.name === 'control');
+      if (!c) throw new Error(`select projection has no 'control' child (got [${(root.children ?? []).map((x: { name?: string }) => x.name).join(', ')}])`);
+      return c as { primaryAxisAlignItems?: string };
+    };
+
+    // (1) CARET — the control distributes its two flow children with SPACE_BETWEEN, pinning the trailing
+    //     chevron to the field's right edge independent of the value width. Read off the projected plan's
+    //     `primaryAxisAlignItems`, never the def's own `justify` word (the JUSTIFY map is the thing under test).
+    ok(ctrlOf(select).primaryAxisAlignItems === 'SPACE_BETWEEN',
+      `#1426 select control pins the chevron right via space-between (primaryAxisAlignItems SPACE_BETWEEN) — got ${String(ctrlOf(select).primaryAxisAlignItems)}`);
+    //   MUTATION — reverting `justify` to 'start' projects MIN (the chevron tracks the value again), flipping
+    //   the assertion BY NAME.
+    const startCtrl = { ...select.anatomy!.parts.control, layout: { ...select.anatomy!.parts.control.layout!, justify: 'start' as const } };
+    const startJustify = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, control: startCtrl } } };
+    ok(ctrlOf(startJustify as ComponentDef).primaryAxisAlignItems === 'MIN',
+      `#1426 MUTATION: reverting control.justify to 'start' projects primaryAxisAlignItems MIN (got ${String(ctrlOf(startJustify as ComponentDef).primaryAxisAlignItems)}), flipping '#1426 select control pins the chevron right' BY NAME`);
+
+    // (2) showMessage BOOLEAN (#1412 on a `nest` part — a first). The composed `message` nest is emitted at
+    //     EVERY member, shown by default, its `visible` driven by the `message` boolean — the INVERSE
+    //     direction of the leading glyph (default true, like field-label's `required`).
+    const sset = figmaAnatomySet(select, { swapTarget: 'FPO-default-icon' });
+    const findMsg = (n: any): any => (n.name === 'message' ? n : (n.children ?? []).map(findMsg).find(Boolean));
+    const msgNodes = sset.map((p) => findMsg(p.root));
+    ok(msgNodes.length === sset.length && msgNodes.every(Boolean),
+      `#1426 the composed message nest is emitted at EVERY projected member (${msgNodes.filter(Boolean).length}/${sset.length})`);
+    ok(msgNodes.length > 0 && msgNodes.every((m) => m?.visibleProp === 'message' && (m?.visible ?? true) === true),
+      '#1426 every message node is shown by default (built visible — `visible` omitted per #1331\'s "carried only when false" rule) with its `visible` driven by the `message` boolean (inverse of the leading glyph, which defaults hidden)');
+    //   and the built visibility TRACKS the default rather than being a constant (docs/34 shape 4): flipping
+    //   the boolean default to false builds every message node `visible:false`.
+    const hiddenDefault = { ...select, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { part: 'message', figmaName: 'message', default: false } } } };
+    const hiddenMsgs = figmaAnatomySet(hiddenDefault as never, { swapTarget: 'FPO-default-icon' }).map((p) => findMsg(p.root));
+    ok(hiddenMsgs.length > 0 && hiddenMsgs.every((m) => m?.visible === false),
+      '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
+
+    // (3) the boolean does NOT multiply the set — still status(4) × state(4) = 16 members.
+    ok(sset.length === 16,
+      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 16 members (got ${sset.length})`);
+
+    // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
+    const props = planSetProperties(sset);
+    const msgProp = props.find((p) => p.name === 'message');
+    ok(!!msgProp && msgProp.type === 'BOOLEAN' && msgProp.default === true,
+      `#1426 planSetProperties declares 'message' as a BOOLEAN defaulting true (the built visibility) — got ${JSON.stringify(msgProp)}`);
+
+    // (5) BEHAVIOR MUTATION (docs/34) — the boolean is the message nest's SOLE presence mechanism now that it
+    //     is optional. Drop only the showMessage boolean (keep leadingIcon) and the message nest is DROPPED at
+    //     every member (present() returns !optional), flipping (2) BY NAME.
+    const noMsgBool = { ...select, figmaProperties: { ...fp, booleans: { leadingIcon: fp.booleans!.leadingIcon } } };
+    const noMsgSet = figmaAnatomySet(noMsgBool as never, { swapTarget: 'FPO-default-icon' });
+    ok(noMsgSet.every((p) => !findMsg(p.root)),
+      '#1426 MUTATION: dropping the showMessage boolean drops the (now-optional) message nest from every member — the boolean is its sole presence mechanism, flipping "#1426 the composed message nest is emitted at EVERY projected member" BY NAME');
+
+    // (6) the requireOptional half — the message nest is optional, and a boolean on a NON-optional nest is
+    //     refused BY NAME (the #1331 arm, pinned on select's own `message`).
+    ok(select.anatomy!.parts.message.optional === true,
+      '#1426 the message nest is optional — the anatomy half of the #1412 mechanism (the boolean toggles visibility, so the part must be allowed to be absent)');
+    const msgNotOptional = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, message: { ...select.anatomy!.parts.message, optional: undefined } } } };
+    ok(validateComponentDef(msgNotOptional as never).errors.some((e) => /booleans\.showMessage/.test(e) && /not optional/.test(e)),
+      '#1426 a boolean toggling a NON-optional message nest is refused BY NAME — the anatomy must allow the part to be hidden');
+
+    // (7) the def still validates clean with the second boolean added.
+    ok(validateComponentDef(select).errors.length === 0,
+      `#1426 select validates clean with the showMessage boolean added (${validateComponentDef(select).errors.join('; ')})`);
+  }
+
+  // ---- #1437: the 44px INTERACTIVE TARGET-SIZE FLOOR (owner-decided 2026-09-15) ----
+  // `size.md.min-height` = max(size.md.height, AAA_TARGET_PX). EXPECTED is that formula transcribed
+  // INDEPENDENTLY of the emitter (docs/34); ACTUAL is the emitted px. The compact brand is the load-bearing
+  // case — its md rung (36) is below the target, so the floor lifts it and `min-height ≠ height` proves the
+  // floor is doing work rather than measuring a constant (shape 4).
+  {
+    const brands: Array<[string, any]> = [
+      ['nb (comfortable)', nbTheme()],
+      ['aurora (compact)', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
+    ];
+    for (const [id, t] of brands) {
+      const tree = buildTree(t).tree as any;
+      const md = tree[Object.keys(tree)[0]].size.md;
+      const mdPx = md.height.$extensions.prism3.px as number;
+      const minPx = md['min-height'].$extensions.prism3.px as number;
+      // The emitter's `max` is under test: drop it (emit `mdStep.height`) and minPx becomes 36 on aurora,
+      // failing `minPx === max(mdPx, 44)` (36 ≠ 44) BY NAME.
+      ok(minPx === Math.max(mdPx, AAA_TARGET_PX),
+        `#1437 ${id}: size.md.min-height = max(size.md.height ${mdPx}, ${AAA_TARGET_PX}) = ${Math.max(mdPx, AAA_TARGET_PX)} (got ${minPx})`);
+      ok(minPx >= AAA_TARGET_PX,
+        `#1437 ${id}: size.md.min-height (${minPx}) meets the ${AAA_TARGET_PX}px enhanced target at this density`);
+    }
+    // NOT VACUOUS (docs/34 shape 4): on a compact brand the floor LIFTS the value, so min-height ≠ height.
+    const aMd = (buildTree(brands[1][1]).tree as any)[Object.keys(buildTree(brands[1][1]).tree)[0]].size.md;
+    ok(aMd.height.$extensions.prism3.px === 36 && aMd['min-height'].$extensions.prism3.px === 44,
+      `#1437 the floor DOES work: aurora (compact) size.md.height=${aMd.height.$extensions.prism3.px} is lifted to min-height=${aMd['min-height'].$extensions.prism3.px} (a constant would coincide)`);
+    // select binds the FLOOR, not the plain rung — the binding mutation. Reverting to `size.md.height`
+    // resolves the control to 36px on a compact brand (the fact below), below the enhanced target.
+    ok(select.tokens!['min-height'] === 'size.md.min-height',
+      `#1437 select's control binds size.md.min-height (the floor), not size.md.height (got ${select.tokens!['min-height']})`);
+    ok(aMd.height.$extensions.prism3.px < AAA_TARGET_PX,
+      `#1437 MUTATION basis: reverting select's binding to size.md.height would resolve ${aMd.height.$extensions.prism3.px}px on a compact brand — below the ${AAA_TARGET_PX}px target, the regression the floor binding prevents`);
+  }
+
+  // ---- #1438: the composed FieldLabel is NEST-EXPOSED (owner-decided 2026-09-15) ----
+  // The label nest exposes field-label's author axes; marking the instance exposed ALSO surfaces its label
+  // text + required in Figma (the host-truth for that lives in #1392, which now includes select, and in
+  // test-roundtrip). Here: the def declaration and the projected `nestExpose` marking, mutation-gated.
+  {
+    const labelPart = select.anatomy!.parts.label;
+    ok(labelPart.nesting?.kind === 'nest-exposed',
+      `#1438 select's label nest is nest-exposed (got ${labelPart.nesting?.kind})`);
+    ok(labelPart.nesting?.kind === 'nest-exposed'
+      && JSON.stringify([...labelPart.nesting.expose].sort()) === JSON.stringify(['emphasis', 'size', 'weight']),
+      `#1438 select exposes field-label's author axes [size, emphasis, weight] (got ${labelPart.nesting?.kind === 'nest-exposed' ? labelPart.nesting.expose.join(', ') : 'n/a'})`);
+    const findLabel = (n: any): any => (n.name === 'label' ? n : (n.children ?? []).map(findLabel).find(Boolean));
+    const labelNode = findLabel(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'rest' } as never).root);
+    ok(labelNode && Array.isArray(labelNode.nestExpose) && labelNode.nestExpose.length === 3,
+      `#1438 the projected label node carries nestExpose (${labelNode?.nestExpose?.join(', ') ?? 'MISSING'})`);
+    // MUTATION: reverting the label to nest-fixed drops nestExpose from the projected node BY NAME.
+    const fixedLabel = { ...select.anatomy!.parts.label, nesting: { kind: 'nest-fixed' as const, variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' } } };
+    const fixed = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, label: fixedLabel } } };
+    const fixedLabelNode = findLabel(figmaAnatomyPlan(fixed as ComponentDef, undefined, { status: 'default', state: 'rest' } as never).root);
+    ok(fixedLabelNode && fixedLabelNode.nestExpose === undefined,
+      `#1438 MUTATION: reverting the label nest to nest-fixed drops nestExpose from the projected node (got ${JSON.stringify(fixedLabelNode?.nestExpose)}), flipping '#1438 the projected label node carries nestExpose' BY NAME`);
+    ok(validateComponentDef(select).errors.length === 0,
+      `#1438 select validates clean as nest-exposed — expose ⊂ field-label's axes, disjoint from follow (${validateComponentDef(select).errors.join('; ')})`);
   }
 
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
@@ -8304,6 +9085,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // coord — asserted against the EMITTED name, so re-introducing an intent axis fails here too.
   const ibFirstMember = planComponentName(figmaAnatomyPlan(iconButton, iconButton.variants.size[0], {
     swapTarget: 'FPO-default-icon', appearance: iconButton.variants.appearance[0], state: 'rest',
+    shape: iconButton.variants.shape![0],
   }));
   ok(!/intent=/.test(ibFirstMember),
     `#1225: the IconButton set's members carry no intent coord (${ibFirstMember})`);
@@ -8396,6 +9178,121 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     && fieldLabel.props.find((p) => p.name === 'weight')?.default === 'regular'
     && fieldLabel.tokens['size.medium.regular.text'] === 'type.body.md.default',
     'component: FieldLabel\'s default size x weight resolves to the `md` rung at `default` (#756 arm 3, #1248)');
+
+  // ---- #1338: the required marker is a NODE-VISIBILITY BOOLEAN, reconciling away the `indicator` axis ----
+  // The SECOND consumer of the #1412 mechanism (after select's leading glyph), and the FIRST that defaults
+  // the part VISIBLE — Prism 2's `Required` default-true. EXPECTED is the authored contract (the marker is
+  // emitted at every member, shown by default, toggled by the boolean, and its presence is NOT a variant
+  // axis so the set does not grow); ACTUAL is read off the emitted plan / planSetProperties. docs/34 net.
+  {
+    const fp = fieldLabel.figmaProperties!;
+    const set = figmaAnatomySet(fieldLabel);
+    const findInd = (n: any): any => (n.name === 'indicator' ? n : (n.children ?? []).map(findInd).find(Boolean));
+
+    // (1) `indicator` is GONE as a variant axis — the def, the projected member names, and the axis-values
+    //     register no longer carry it. Pinned as hand-written literals so reverting the reconciliation fails
+    //     here by name (alongside lint-axis-values' register, which fails a stale entry independently).
+    ok(fieldLabel.variants.indicator === undefined && !fieldLabel.props.some((p) => p.name === 'indicator'),
+      '#1338 the 3-value `indicator` axis + prop are gone from field-label (reconciled into the `required` boolean)');
+    ok(!set.some((p) => /indicator|required/.test(planComponentName(p))),
+      '#1338 no projected member name carries an `indicator`/`required` coordinate — presence is a boolean, not an axis');
+
+    // (2) THE MECHANISM: the marker node is EMITTED at EVERY member, VISIBLE by default (required defaults
+    //     true — Prism 2's model), its `visible` driven by the `required` boolean. `visible` is omitted on a
+    //     built-visible node (both executors read `n.visible ?? true`), so "built visible" is `visible !== false`.
+    const indNodes = set.map((p) => findInd(p.root));
+    ok(indNodes.length === set.length && indNodes.every((n) => !!n),
+      `#1338 the required marker node is emitted at EVERY projected member (${indNodes.filter(Boolean).length}/${set.length})`);
+    ok(indNodes.length > 0 && indNodes.every((n) => n?.visibleProp === 'required' && n?.visible !== false),
+      '#1338 every required marker node is VISIBLE by default (built visible) with its `visible` driven by the `required` boolean (Prism 2 default-true)');
+    ok(indNodes.length > 0 && indNodes.every((n) => n?.characters === '*'),
+      '#1338 the required marker carries its `*` content (`characters`) AND its visibility boolean on ONE node — the #798 non-empty rule holds under the boolean');
+
+    // (3) the set does NOT grow: size(3) × emphasis(2) × weight(2) × state(2) = 24, unchanged by the boolean.
+    ok(set.length === 24,
+      `#1338 field-label projects 24 members — the boolean toggles a part in place and does not multiply the grid (got ${set.length})`);
+
+    // (4) planSetProperties declares `required` as a BOOLEAN defaulting TRUE (the built visibility), beside
+    //     its `required marker` TEXT sibling (one prop, two Figma properties on one node).
+    const props = planSetProperties(set);
+    const req = props.find((p) => p.name === 'required');
+    ok(!!req && req.type === 'BOOLEAN' && req.default === true,
+      `#1338 planSetProperties declares 'required' as a BOOLEAN defaulting true (the built, Prism-2-default visibility) — got ${JSON.stringify(req)}`);
+    ok(props.some((p) => p.name === 'required marker' && p.type === 'TEXT' && p.default === '*'),
+      '#1338 the marker TEXT projects as `required marker` defaulting `*` (Prism 2\'s `_Form label` required content)');
+
+    // (5) BEHAVIOR MUTATION (docs/34) — the boolean is what keeps the marker present. Drop it and the
+    //     (optional) marker is DROPPED at every member (present() returns !optional), flipping (2) BY NAME.
+    const noBool = { ...fieldLabel, figmaProperties: { ...fp, booleans: {} } };
+    const noBoolSet = figmaAnatomySet(noBool as never);
+    ok(noBoolSet.every((p) => !findInd(p.root)),
+      '#1338 MUTATION: dropping the boolean drops the (optional) required marker from every member — the boolean is what keeps it present, flipping "#1338 the required marker node is emitted at EVERY projected member" BY NAME');
+
+    // (6) BEHAVIOR MUTATION — flip the built visibility (required default false). The marker then builds
+    //     HIDDEN (`visible:false`) and the boolean defaults false, flipping "VISIBLE by default" BY NAME —
+    //     this is the on-shows/off-hides direction, and it proves the default is load-bearing not incidental.
+    const offByDefault = { ...fieldLabel, figmaProperties: { ...fp, booleans: { required: { part: 'indicator', default: false } } } };
+    const offSet = figmaAnatomySet(offByDefault as never);
+    const offNodes = offSet.map((p) => findInd(p.root));
+    ok(offNodes.every((n) => n?.visible === false) && planSetProperties(offSet).find((p) => p.name === 'required')?.default === false,
+      '#1338 MUTATION: required default false builds the marker HIDDEN (`visible:false`, boolean defaults false) — flipping "VISIBLE by default" BY NAME (the on-shows/off-hides direction)');
+
+    // (7) BEHAVIOR MUTATION — reverting `indicator` to a VARIANT AXIS re-multiplies the set and re-names the
+    //     members, the exact multiplication the boolean replaced. Flips "#1338 field-label projects 24" and
+    //     "no projected member name carries indicator" BY NAME.
+    const asAxis = { ...fieldLabel, variants: { ...fieldLabel.variants, indicator: ['required', 'optional'] } };
+    const asAxisSet = figmaAnatomySet({ ...asAxis, figmaProperties: { ...fp, variantAxes: [...(fp.variantAxes ?? []), 'indicator'], booleans: {} } } as never);
+    ok(asAxisSet.length === 48 && asAxisSet.some((p) => /indicator/.test(planComponentName(p))),
+      `#1338 MUTATION: reverting indicator to a variant axis re-multiplies the set (24 -> ${asAxisSet.length}) and re-names the members — the multiplication the boolean replaced`);
+  }
+
+  // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
+  // The label dims when its field is disabled, carried by the `disabled` STATE (a paint change projected as a
+  // Figma variant), with NO duplicating `disabled` prop. EXPECTED is the authored contract; ACTUAL is the
+  // resolved paint at the disabled coordinate and the def's own surface. docs/34 net for the collapse.
+  {
+    // (1) the duplication is COLLAPSED: `disabled` is a STATE (and projects), and there is NO `disabled` prop.
+    ok(fieldLabel.states.includes('disabled') && fieldLabel.figmaProperties!.stateAxis!.values.includes('disabled'),
+      '#1339 `disabled` is a projected STATE (the single dim mechanism)');
+    ok(!fieldLabel.props.some((p) => p.name === 'disabled'),
+      '#1339 field-label has NO `disabled` prop — the state axis and the code prop are collapsed to ONE mechanism');
+
+    // (2) THE DIM IS REAL: rest paints the full-contrast ink, disabled paints the dimmed disabled ink — on
+    //     BOTH text nodes (label + marker). A consequence (the ink CHANGES), not just a resolvable key.
+    const restPaint = planPaintVars(figmaAnatomyPlan(fieldLabel, 'medium', { emphasis: 'primary', weight: 'regular', state: 'rest' } as never).root);
+    const disPaint = planPaintVars(figmaAnatomyPlan(fieldLabel, 'medium', { emphasis: 'primary', weight: 'regular', state: 'disabled' } as never).root);
+    ok(restPaint.every((v) => v === 'color/text/primary') && restPaint.length === 2,
+      `#1339 at rest both text nodes paint full-contrast color/text/primary (${JSON.stringify(restPaint)})`);
+    ok(disPaint.every((v) => v === 'color/disabled/text') && disPaint.length === 2,
+      `#1339 when disabled both text nodes DIM to color/disabled/text — the label dims with its field (${JSON.stringify(disPaint)})`);
+
+    // (3) CONTRAST FLOOR (#1339's "kept above the contrast floor"): the disabled ink clears >=3:1 in every
+    //     mode AND is genuinely dimmer than the rest ink — dimmed but legible, not vanished. Resolved on a
+    //     real brand across all four modes (independent of the def: `resolveAllModes`, not the token keys).
+    const seed = { id: 'fl', root: 'prism', modes: ['light', 'dark', 'hc-light', 'hc-dark'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } } as never;
+    const modes = resolveAllModes(brandTheme(seed));
+    let worstDisabled = Infinity, everDimmer = true, sawMode = 0;
+    for (const m of modes) {
+      const dis: any = (m.roles as any)['disabled.text'];
+      const pri: any = (m.roles as any)['text.primary'];
+      if (!dis || !pri) continue;
+      sawMode++;
+      worstDisabled = Math.min(worstDisabled, dis.ratio ?? 0);
+      if (!((dis.ratio ?? 0) < (pri.ratio ?? 0))) everDimmer = false;
+    }
+    ok(sawMode === 4 && worstDisabled >= 3,
+      `#1339 the dimmed label ink (color.disabled.text) clears the >=3:1 contrast floor in all ${sawMode} modes (worst ${worstDisabled.toFixed(2)}:1) — dimmed but legible`);
+    ok(everDimmer,
+      '#1339 the disabled label ink is genuinely DIMMER than the rest ink in every mode — the dim is a real change, not a same-ink no-op');
+
+    // (4) BEHAVIOR MUTATION (docs/34) — drop `disabled` from `states`. `disabled.label` / `disabled.indicator`
+    //     then name a state the def no longer declares, so validateComponentDef reports them as unreachable
+    //     paint keys — proving the STATE is what carries the dim, and flipping (1) BY NAME.
+    const noState = { ...fieldLabel, states: fieldLabel.states.filter((s) => s !== 'disabled') };
+    const noStateErrors = validateComponentDef(noState as never).errors;
+    ok(noStateErrors.some((e) => e.includes("'disabled.label'")),
+      `#1339 MUTATION: dropping 'disabled' from states makes disabled.label an undeclared-state paint key — validation fails (${noStateErrors.length} error(s)), proving the STATE carries the dim`);
+  }
 
   // The drift gate bites: a broken def is caught (missing avoid_when + an unresolvable binding).
   const broken = { ...button, ai: { ...button.ai, avoidWhen: '' }, tokens: { ...button.tokens, bogus: 'color.nope.nope' } } as ComponentDef;
@@ -8716,7 +9613,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       { def: button, part: 'label', axes: { size: 2 } },
       { def: buttonDestructive, part: 'label', axes: { size: 2 } },
       { def: buttonNeutral, part: 'label', axes: { size: 2 } },
-      { def: checkbox, part: 'label', axes: { size: 3 } },
+      { def: checkboxRow, part: 'label', axes: { size: 3 } },
       { def: radio, part: 'label', axes: { size: 3 } },
       // TWO, and not a collapse: `switch` declares `size: [small, medium]` only, on its brief's own
       // words ("switches rarely warrant a large"). Two values, two styles — full discrimination over
@@ -8987,6 +9884,38 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(!disText.box.fills && !disText.box.strokes, 'anatomy/paint: `text` disabled stays unpainted — no gray box on a ghost button (bug 3 of 3)');
     ok(disText.ink.fills === figmaVarName(button.tokens['disabled.label']) && disText.icon === figmaVarName(button.tokens['disabled.icon']),
       'anatomy/paint: disabled INK is unconditional — every appearance has ink even when it has no structure');
+
+    // THE DISABLED EDGE TRACKS THE DISABLED INK (#1349), pinned BY NAME independently of the projector.
+    // The paint tests above read `button.tokens['disabled.border']` dynamically, so they follow whatever
+    // the binding is and cannot notice a revert to the old darker `color.disabled.border` role. These
+    // three assertions are the behavior pin (docs/34): on each of the three families the disabled BORDER
+    // role must EQUAL the disabled ICON role (the graphical-object ink) AND must NOT be `color.disabled.border`
+    // (the muted, `min: 0`, fill-matched neutral it used to bind, darker than the ink on an inverse band).
+    // A mutation reverting line ~317 of button.ts to `color.disabled.border` fails the named assertion below,
+    // rather than the border silently going heavy again. `disabled.icon` (not `.text`) is the peer named
+    // because a border is a non-text graphical object, though the two roles resolve identically.
+    for (const def of [button, buttonDestructive, buttonNeutral]) {
+      ok(def.tokens['disabled.border'] === def.tokens['disabled.icon'],
+        `#1349 disabled edge: ${def.id} border role (${def.tokens['disabled.border']}) tracks the disabled icon ink (${def.tokens['disabled.icon']})`);
+      ok(def.tokens['disabled.border'] !== 'color.disabled.border',
+        `#1349 disabled edge: ${def.id} border is rebound off the old darker \`color.disabled.border\` (fill-matched, min:0), not reverted to it`);
+    }
+    // …and the rebound edge clears the SC 1.4.11 3:1 graphical-object bar. The `outline` disabled border is
+    // the only appearance that paints it (STRUCTURAL, no fill) and it sits on the page, which is exactly the
+    // ground `disabled.icon` is gated against — so the role's own measured ratio IS the border-vs-page ratio.
+    // Measured live via resolveAllModes (independent of the button def), across the example brands × every mode
+    // (aurora, harbor — the two shipped as brand-input JSON; nb 3.16 / aurora 3.16 / harbor 3.32 in the report).
+    const borderInkRole = button.tokens['disabled.border'].replace(/^color\./, '');
+    let checkedRatios = 0;
+    for (const id of EXAMPLE_IDS) {
+      for (const M of resolveAllModes(brandTheme(exampleBrands()[id] as BrandInput))) {
+        const role = (M.roles as Record<string, { ratio?: number; min?: number } | undefined>)[borderInkRole];
+        ok(!!role && typeof role.ratio === 'number' && role.ratio >= 3,
+          `#1349 disabled edge: ${id}/${M.mode} rebound border (${borderInkRole}) clears 3:1 as a graphical object (ratio ${role?.ratio})`);
+        checkedRatios++;
+      }
+    }
+    ok(checkedRatios >= EXAMPLE_IDS.length, `#1349 disabled edge: the 3:1 sweep actually ran (measured ${checkedRatios} brand×mode ratios, not an empty set)`);
 
     // Paints resolve against the SAME variable namespace as `bound`, so they must ride
     // `planBoundVars` — anything else silently exempts every paint from the emit cross-check above.
@@ -10300,24 +11229,39 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // rather than the loop assuming one: the whole content of #1278's scope claim is that these two
       // rungs are DIFFERENT (`hairline` for a button's edge, `thick` for a selection control's), so a loop
       // with one expected name baked in would have to be widened by whoever swept them together.
-      for (const { def, part, want, atRoot, opts } of [
+      for (const { def, part, want, atRoot, opts, expectUnstroked } of [
         // #1226 step 2 moved checkbox's painted `control` box to `checkbox-control`, so the border-width
         // binding this arm executes lives on the ATOM now — `checkbox` itself nests it and paints no box.
         // `atRoot: true` because `control` IS the atom's anatomy root (the same trap `container` is for
         // button), so it arrives as the member frame itself and `deepFind` for a child would miss it.
-        { def: checkboxControl, part: 'control', want: 'V:border-width/thick', atRoot: true, opts: {} },
-        { def: radio, part: 'control', want: 'V:border-width/thick', atRoot: false, opts: {} },
-        { def: switchDef, part: 'track', want: 'V:border-width/thick', atRoot: false, opts: {} },
+        // `expectUnstroked` because its `checked`/`indeterminate` boxes are filled with NO border — the
+        // executor-default path this block gates.
+        { def: checkboxControl, part: 'control', want: 'V:border-width/thick', atRoot: true, opts: {}, expectUnstroked: true },
+        // #1348 moved radio's painted `control` disc to `radio-control`, the same way #1226 moved
+        // checkbox's box — so the border-width binding lives on the ATOM now, and `atRoot: true` because
+        // `control` IS the atom's anatomy root (the member frame itself). `expectUnstroked: false` is the
+        // ONE exception in this loop and it is the whole of the Prism 2 visual (#1348): radio's ring is
+        // OUTLINED at EVERY selection (a 2px border, constant), so it has NO stroke-less coordinate — it
+        // never reaches the executor default the others exercise. Its border-width binding is still
+        // executed and confirmed below, at a stroked coordinate (`set[0]`); it simply does not — and must
+        // not — contribute the unstroked path. A revert to the filled disc would restore an unstroked
+        // `checked` coordinate here, which is the regression the #1348 block above pins from the token side.
+        { def: radioControl, part: 'control', want: 'V:border-width/thick', atRoot: true, opts: {}, expectUnstroked: false },
+        // #1354 moved switch's painted `track` to `switch-control`, the same way #1226 moved checkbox's
+        // box — so the border-width binding lives on the ATOM now, and `atRoot: true` because `track` IS
+        // the atom's anatomy root (the member frame itself). The switch ROW nests it and paints no box.
+        // `expectUnstroked` because its `on` track is filled with no border.
+        { def: switchControl, part: 'track', want: 'V:border-width/thick', atRoot: true, opts: {}, expectUnstroked: true },
         // …with the swap target NOMINATED, which the three controls need no equivalent of: button is
         // the only def here with `swap` slots, and an un-nominated one pastes as a placeholder and reports
         // four misses — real, correct, and nothing to do with the stroke this block is about.
-        { def: button, part: 'container', want: 'V:border-width/hairline', atRoot: true, opts: { swapTarget: 'FPO-default-icon' } },
+        { def: button, part: 'container', want: 'V:border-width/hairline', atRoot: true, opts: { swapTarget: 'FPO-default-icon' }, expectUnstroked: true },
         // …and `icon-button`, which is a SEPARATE def with its own 162-member set. `inherits: 'button'`
         // is prose — nothing in the projector resolves through it — so the factory binding reaches it
         // not at all, and an arm covering only `button` would have reported a clean scope over a def
         // still on the executors' literal. Same rung, same reason: Prism 2 draws both at 1px.
-        { def: iconButton, part: 'container', want: 'V:border-width/hairline', atRoot: true, opts: { swapTarget: 'FPO-default-icon' } },
-      ] as { def: ComponentDef; part: string; want: string; atRoot: boolean; opts: Record<string, unknown> }[]) {
+        { def: iconButton, part: 'container', want: 'V:border-width/hairline', atRoot: true, opts: { swapTarget: 'FPO-default-icon' }, expectUnstroked: true },
+      ] as { def: ComponentDef; part: string; want: string; atRoot: boolean; opts: Record<string, unknown>; expectUnstroked: boolean }[]) {
         // ONE COORDINATE PER DEF, not the whole set: the payload is executed here, and 54 + 36 + 24 pastes
         // would pay a lot of run time for the same two facts. The coordinate is chosen to be the UNSTROKED
         // one where the def has it — `checked` / `on` — because that is the path through the executor the
@@ -10328,8 +11272,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           const box = (p.root as unknown as Record<string, unknown>) && partOf(p.root as unknown as Record<string, unknown>);
           return box && !((box.paints as { strokes?: string } | undefined)?.strokes);
         });
-        ok(unstroked.length > 0,
-          `anatomy/${def.id} #1228 reachable: the def projects at least one coordinate that binds a thickness and paints NO border — the only path into the executor default this gates (${unstroked.length} of ${set.length})`);
+        // The unstroked-executor-default path is reachable for every control that fills on select — asserted
+        // so the border-width execution below is not vacuously over the already-gated stroked path. #1348's
+        // radio-control is the ONE exception (`expectUnstroked: false`): its ring is outlined at every
+        // selection, so it has no stroke-less coordinate; it executes its border-width binding at a stroked
+        // coordinate (`set[0]` below) instead. Asserting radio's ABSENCE from this path by name is the same
+        // #1348 fact the token-side block pins — a filled-disc revert would restore an unstroked coordinate.
+        if (expectUnstroked)
+          ok(unstroked.length > 0,
+            `anatomy/${def.id} #1228 reachable: the def projects at least one coordinate that binds a thickness and paints NO border — the only path into the executor default this gates (${unstroked.length} of ${set.length})`);
+        else
+          ok(unstroked.length === 0,
+            `anatomy/${def.id} #1348: the outlined ring binds a thickness and paints a border at EVERY coordinate — no stroke-less path, the Prism 2 constant-border visual (${unstroked.length} unstroked of ${set.length})`);
         const p = unstroked[0] ?? set[0];
         const at = planComponentName(p);
         const page: StubPage = { children: [] };
@@ -10786,13 +11740,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       };
       const boolRun = await runPayload(planSetToPluginJs(boolGrid), boolOpts);
       ok(boolRun.misses.length === 0, `set properties: a set carrying a BOOLEAN runs CLEAN end to end${boolRun.misses.length ? ` — ${JSON.stringify(boolRun.misses)}` : ''}`);
-      ok(JSON.stringify([...(boolRun.properties ?? [])].sort()) === JSON.stringify(['fullWidth:BOOLEAN', 'label:TEXT', '↳ swap leading icon:INSTANCE_SWAP']),
-        `set properties: the BOOLEAN comes back alongside the other two, the swap under its canon panel label (#1380) — got ${JSON.stringify(boolRun.properties)}`);
+      // FOUR properties, and the trailing swap is the point (#1331): `fullWidth` toggles `trailingVisual`'s
+      // `visible`, and that node ALSO carries `↳ swap trailing icon`. Before booleans rode their own plan
+      // field, the boolean CLOBBERED the swap on that node (both took the singular `propertyRef`, last write
+      // won) and the trailing swap vanished; now `visible` and `mainComponent` coexist on one node, so the
+      // set comes back carrying BOTH.
+      ok(JSON.stringify([...(boolRun.properties ?? [])].sort()) === JSON.stringify(['fullWidth:BOOLEAN', 'label:TEXT', '↳ swap leading icon:INSTANCE_SWAP', '↳ swap trailing icon:INSTANCE_SWAP']),
+        `set properties: the BOOLEAN comes back alongside the text and BOTH swaps — trailingVisual carries visible + mainComponent at once (#1331) — got ${JSON.stringify(boolRun.properties)}`);
       // SPREAD, for the same reason as the 21-member assertion: a `visible` reference does not propagate
       // to siblings any more than `characters` does, so a set wired once shows the toggle working on
-      // whichever variant a designer opens first and doing nothing on the rest.
-      ok(boolRun.wiredMembers === 2 && boolRun.refs === 6,
-        `set properties: all three refs are wired on every member — ${boolRun.wiredMembers}/2 distinct members across ${boolRun.refs} writes (3 each)`);
+      // whichever variant a designer opens first and doing nothing on the rest. FOUR refs per member now
+      // (label, both swaps, and the boolean's `visible` sharing trailingVisual's node) × 2 members = 8.
+      ok(boolRun.wiredMembers === 2 && boolRun.refs === 8,
+        `set properties: all four refs are wired on every member — ${boolRun.wiredMembers}/2 distinct members across ${boolRun.refs} writes (4 each)`);
       // The `REFUSED` branch, which nothing reached until now. `addComponentProperty` throws when the
       // default does not match the type, and the payload catches it into `misses` rather than letting the
       // whole paste die — a set missing one property is recoverable, a payload that threw at byte 12781
@@ -11000,58 +11960,139 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           /footprint -> .*appearance=outline.* measures \d+x\d+ but .*appearance=filled.* measures \d+x\d+/);
       }
 
-      // ---- #1377: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, read back off the built member ---------
+      // ---- #1377 / #1392: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, over EVERY nest-exposed def -------
       // `nest-exposed` (#1330) has TWO executors that write `isExposedInstance = true` after
       // `createComponentFromNode`: the plugin's `applyComponentPlan` (gated host-truth by
-      // `apps/plugin/test-roundtrip.ts`), and THIS one — `PAYLOAD_BUILD`'s `__expose[]` queue, filled by
-      // `__expose.push(node)` in the NESTED_INSTANCE branch and drained by `__exposeNow(member)`. #1386's
-      // independent review found the payload half UNGATED: on `main`, deleting `__expose.push(node)` from
-      // the payload path leaves `test.ts`, `regen --check` and `mcp-test` all GREEN, because
-      // `test:roundtrip` drives only the plugin executor and every other assertion in this block reads the
-      // payload as TEXT — a substring probe over a string that documents itself (docs/34 shape 12). So this
-      // gate RUNS the payload for the one `nest-exposed` def (`checkbox`, whose Row nests `checkbox-control`
-      // and exposes its `selection`/`state`) against the stub, which models `isExposedInstance` and its
-      // containment refusal in lockstep with the plugin shim, and READS THE MARKING BACK off the built
-      // member. It is the payload string's OWN read-back, not a second copy of the plugin's round-trip.
+      // `apps/plugin/test-roundtrip.ts`, which iterates ALL projected defs), and THIS one —
+      // `PAYLOAD_BUILD`'s `__expose[]` queue, filled by `__expose.push(node)` in the NESTED_INSTANCE branch
+      // and drained by `__exposeNow(member)`. #1386's independent review found the payload half UNGATED: on
+      // `main`, deleting `__expose.push(node)` from the payload path leaves `test.ts`, `regen --check` and
+      // `mcp-test` all GREEN, because `test:roundtrip` drives only the plugin executor and every other
+      // assertion in this block reads the payload as TEXT — a substring probe over a string that documents
+      // itself (docs/34 shape 12). So this gate RUNS the payload against the stub — which models
+      // `isExposedInstance` and its containment refusal in lockstep with the plugin shim — and READS THE
+      // MARKING BACK off the built members. It is the payload string's OWN read-back, not a second copy of
+      // the plugin's round-trip.
+      //
+      // #1392: the SUBJECT SET is DERIVED from the registry, not the literal `checkbox`. A def is
+      // nest-exposed when any anatomy part declares a `nest-exposed` nesting relation — the same def-data
+      // flag that drives the projection's `nestExpose` (anatomy-figma) and both executors' exposure write.
+      // `checkbox` is the only such def today, but `radio`/`switch` are slated (checkbox's header, #1330):
+      // keying on the relation means the day one lands, this payload gate covers it with NO edit — closing
+      // the smaller reprise of the #1377 gap #1386's review named (a second nest-exposed def caught on the
+      // plugin side by `test-roundtrip`, silently ungated here). docs/34 represented-not-counted: the
+      // derived set comes from the def data independently of the executor under test, and the self-check
+      // below proves the derivation is LIVE — a second such def is picked up — rather than pinned to checkbox.
       {
-        const cbPlans = figmaAnatomySet(checkbox);
-        const cbOpts: StubOpts = {
-          vars: [...new Set(cbPlans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
-          styles: [...new Set(cbPlans.flatMap((p) => planTextStyles(p.root)))],
-          // The nested target, resolved as a plain COMPONENT exactly as the round-trip's `planComps` hands
-          // the plugin shim (`test-roundtrip.ts`) — one instance of it takes the control cell in each member.
-          comps: ['checkbox-control'],
-        };
-        // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so it
-        // is read off the PAGE the payload appended the combined set to. Returns every nested `control`
-        // instance across the set's members.
-        const exposedControls = (page: StubPage): Record<string, unknown>[] => {
-          const set = page.children.find((c) => (c as { type?: string }).type === 'COMPONENT_SET') as { children?: Record<string, unknown>[] } | undefined;
-          const out: Record<string, unknown>[] = [];
-          const dive = (n: Record<string, unknown>): void => {
-            if (n.type === 'INSTANCE' && n.name === 'control') out.push(n);
-            for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c);
+        // THE DERIVATION. `nestExposedPartsOf` is driven BOTH by the real subject set here and by the
+        // self-check below — one function, so a mutation that broke it (e.g. hard-coding `checkbox`) fails
+        // the self-check's negative case BY NAME. That the two callers share it is the FIX, not the docs/34
+        // shape-2 defect: they are the gate's derivation and its fixture, not a gate and its subject
+        // (docs/34 §2, the #387 note — "ask which two things the gate compares, not whether code is shared").
+        const nestExposedPartsOf = (def: ComponentDef): string[] =>
+          Object.entries(def.anatomy?.parts ?? {}).filter(([, p]) => p.nesting?.kind === 'nest-exposed').map(([n]) => n);
+        const nestExposedDefs = componentDefs.filter((d) => nestExposedPartsOf(d).length > 0);
+
+        // NON-EMPTY FLOOR (#1392, docs/34): an empty derived set would make the per-def loop below vacuous —
+        // every assertion true because there is nothing to assert over. A registry that declares no
+        // nest-exposed def at all is a red here, not a silent green.
+        ok(nestExposedDefs.length > 0,
+          `#1392 the registry declares at least one nest-exposed def to gate (derived ${nestExposedDefs.length}) — an empty set would make this block vacuous (docs/34 non-empty floor)`);
+        // REPRESENTATION, not a count: checkbox — the one nest-exposed def today — must be IN the derived
+        // set. Pins the guarantee the old hard-coded gate gave (checkbox IS covered) without re-hardcoding
+        // it, so the day another def joins, coverage widens instead of this line going stale.
+        ok(nestExposedDefs.some((d) => d.id === 'checkbox-row'),
+          `#1392 the derived nest-exposed set REPRESENTS checkbox-row (got [${nestExposedDefs.map((d) => d.id).join(', ')}])`);
+
+        // docs/34 represented-not-counted SELF-CHECK: prove the derivation keys on the nest-exposed
+        // RELATION in the def data, so a SECOND def adopting it (radio/switch, slated) is auto-covered — and
+        // cannot silently collapse to `[checkbox]`. Flip a nest part's relation and the derivation follows:
+        // `nest-exposed` in, `nest-fixed` out. Fabricated defs, NOT in the registry, so this measures the
+        // predicate rather than re-reading checkbox.
+        const synth = (kind: 'nest-fixed' | 'nest-exposed'): ComponentDef => ({
+          ...checkboxRow,
+          id: `synthetic-${kind}`,
+          anatomy: {
+            ...checkboxRow.anatomy,
+            parts: {
+              ...checkboxRow.anatomy.parts,
+              control: {
+                ...checkboxRow.anatomy.parts.control,
+                nesting: kind === 'nest-exposed'
+                  ? { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest' }, expose: ['selection', 'state'], follow: ['size'] }
+                  : { kind: 'nest-fixed', variant: { selection: 'unchecked', state: 'rest' }, follow: ['size'] },
+              },
+            },
+          },
+        } as ComponentDef);
+        ok(nestExposedPartsOf(synth('nest-exposed')).includes('control'),
+          '#1392 the derivation INCLUDES a def whose part declares nest-exposed — a second such def (radio/switch slated) is covered with no gate edit (represented, not counted)');
+        ok(nestExposedPartsOf(synth('nest-fixed')).length === 0,
+          '#1392 the derivation EXCLUDES the same def when its part is nest-fixed — it keys on the RELATION, not the def id, so it cannot silently collapse to [checkbox-row]');
+
+        // A tiny walker over a plan's node tree, for the offline half of the reachability floor below.
+        type PlanNode = AnatomyPlan['root'];
+        const walkPlan = (n: PlanNode): PlanNode[] => [n, ...n.children.flatMap(walkPlan)];
+
+        // PER DEF: run the paste payload and read the exposure marking back off the built members.
+        for (const def of nestExposedDefs) {
+          const exposedPartNames = nestExposedPartsOf(def);
+          // Nominate the swap target exactly as the real caller and the round-trip do (`SWAP_TARGET`): a def
+          // with a swap slot (select's leading glyph, #1426) leaves it unnominated otherwise and the executor
+          // builds a placeholder frame it then reports as a miss. select is the first nest-exposed def with a
+          // swap slot, so the gate now nominates one.
+          const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+          const opts: StubOpts = {
+            vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+            styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+            // EVERY component the def's plan references — swap targets AND nest targets, collected off the
+            // plan exactly as the round-trip's `planComps`/`fullFor` does, so one instance of each takes its
+            // cell in every member. select (#1438) is the first nest-exposed def that ALSO nests NON-exposed
+            // parts (`field-message`, `focus-ring`) and carries a swap slot; leaving either unprovisioned
+            // drops nodes — and a dropped `field-message` node orphans the `showMessage` visibility boolean
+            // (#1426). Provisioning both mirrors the real build (the plugin builds each nested component and
+            // the swap target first), where no node is dropped.
+            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c))],
           };
-          for (const m of set?.children ?? []) dive(m);
-          return out;
-        };
-        const cbPage: StubPage = { children: [] };
-        const cbRun = await runPayload(planSetToPluginJs(cbPlans), { ...cbOpts, page: cbPage });
-        ok(cbRun.misses.length === 0,
-          `#1377 the checkbox set runs CLEAN through the paste payload${cbRun.misses.length ? ` — ${JSON.stringify(cbRun.misses)}` : ''}`);
-        // FLOOR / reachability, both halves of docs/34's "the fixture DOES carry it": the payload built the
-        // nested control in every member, so the read-back below has subjects. A run that resolved no
-        // `control` instance would make every exposure assertion vacuously true — the empty-set silence.
-        const controls = exposedControls(cbPage);
-        ok(controls.length === cbPlans.length && cbPlans.length === 3,
-          `#1377 reachable: the payload built the nested control in all ${cbPlans.length} checkbox members (found ${controls.length})`);
-        // THE READ-BACK THE GAP IS ABOUT. Every nested control comes back `isExposedInstance === true`.
-        // Delete `__expose.push(node)` from `PAYLOAD_BUILD` and `__exposeNow` marks nothing, so each control
-        // reads the stub's default `false` and this FAILS BY NAME. `=== true`, not truthiness: the default is
-        // a definite `false` and the payload's write is the only thing that moves it (docs/34 shape 5).
-        const unexposed = controls.filter((n) => n.isExposedInstance !== true);
-        ok(unexposed.length === 0,
-          `#1377 the paste payload marks every nested control isExposedInstance=true — the payload executor's exposure write, UNGATED until now per #1386's review (${controls.length - unexposed.length}/${controls.length} exposed)`);
+          // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
+          // it is read off the PAGE the payload appended the combined set to. Returns every nested instance
+          // whose name is a nest-exposed part — the built node's `name` IS the part name (anatomy-figma's
+          // `node.name = n.name`), which is why the part-name set is the right key across any def.
+          const exposedInstances = (page: StubPage): Record<string, unknown>[] => {
+            const set = page.children.find((c) => (c as { type?: string }).type === 'COMPONENT_SET') as { children?: Record<string, unknown>[] } | undefined;
+            const out: Record<string, unknown>[] = [];
+            const dive = (n: Record<string, unknown>): void => {
+              if (n.type === 'INSTANCE' && exposedPartNames.includes(String(n.name))) out.push(n);
+              for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c);
+            };
+            for (const m of set?.children ?? []) dive(m);
+            return out;
+          };
+          const page: StubPage = { children: [] };
+          const run = await runPayload(planSetToPluginJs(plans), { ...opts, page });
+          ok(run.misses.length === 0,
+            `#1392 the ${def.id} set runs CLEAN through the paste payload${run.misses.length ? ` — ${JSON.stringify(run.misses)}` : ''}`);
+
+          // FLOOR / reachability, both halves of docs/34's "the fixture DOES carry it". The EXPECTED count
+          // is the number of nodes the OFFLINE projection marked `nestExpose` across the set — derived from
+          // the plans, independent of the executor's read-back (plans are the projection; the page is the
+          // host build). A run that resolved no exposed instance would make every marking assertion
+          // vacuously true (the empty-set silence); a count mismatch means the executor built fewer (or
+          // more) than the plan asked for.
+          const expected = plans.flatMap((p) => walkPlan(p.root)).filter((n) => n.nestExpose !== undefined).length;
+          const instances = exposedInstances(page);
+          ok(expected > 0 && instances.length === expected,
+            `#1392 reachable: the payload built every nest-exposed instance the ${def.id} projection declared (${instances.length} built / ${expected} projected)`);
+
+          // THE READ-BACK THE GAP IS ABOUT. Every nest-exposed instance comes back `isExposedInstance ===
+          // true`. Delete `__expose.push(node)` from `PAYLOAD_BUILD` and `__exposeNow` marks nothing, so
+          // each reads the stub's default `false` and this FAILS BY NAME. `=== true`, not truthiness: the
+          // default is a definite `false` and the payload's write is the only thing that moves it (docs/34
+          // shape 5).
+          const unexposed = instances.filter((n) => n.isExposedInstance !== true);
+          ok(unexposed.length === 0,
+            `#1392 the paste payload marks every ${def.id} nest-exposed instance isExposedInstance=true — the payload executor's exposure write, UNGATED until #1386's review (${instances.length - unexposed.length}/${instances.length} exposed)`);
+        }
       }
 
       // ---- AXIS PARITY between the two write paths (#487 step 5) --------------------------------
@@ -11490,7 +12531,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // Read from the projection and compared against the def's TOKEN MAP, which are two different
       // things: a projection that dropped one axis would satisfy an assertion derived from the def alone.
       const ibPlan = (size: string, o: Record<string, unknown> = {}) =>
-        figmaAnatomyPlan(iconButton, size, { swapTarget: 'FPO-default-icon', appearance: 'text', state: 'rest', ...o });
+        figmaAnatomyPlan(iconButton, size, { swapTarget: 'FPO-default-icon', appearance: 'text', state: 'rest', shape: 'square', ...o });
       const sq = ibPlan('medium');
       const sideVar = figmaVarName(iconButton.tokens['size.medium.side']);
       ok(sq.root.bound.width === sideVar && sq.root.bound.height === sideVar,
@@ -11564,9 +12605,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // with itself. The 6 is the step to check — `states` declares SEVEN and the axis projects six, because
       // `inactive` is code-only. Re-deriving from `states.length` gives 63.
       const ibSet = figmaAnatomySet(iconButton, { swapTarget: 'FPO-default-icon' });
-      ok(ibSet.length === 54, `anatomy/icon-button: the set is 54 members — 3 appearance × 3 size × 6 state, #1225 split \`intent\` into sibling components (${ibSet.length})`);
-      ok(new Set(ibSet.map(planComponentName)).size === 54,
-        `anatomy/icon-button: every member carries a distinct coordinate (${new Set(ibSet.map(planComponentName)).size}/54)`);
+      ok(ibSet.length === 108, `anatomy/icon-button: the set is 108 members — 3 appearance × 3 size × 2 shape × 6 state, #1225 split \`intent\` into siblings and #1353 added the shape axis (${ibSet.length})`);
+      ok(new Set(ibSet.map(planComponentName)).size === 108,
+        `anatomy/icon-button: every member carries a distinct coordinate (${new Set(ibSet.map(planComponentName)).size}/108)`);
       // THREE axes, where Button has six — and read off a real emitted NAME rather than the declaration,
       // which is the 189-vs-756 lesson: a count derived from a declaration cannot detect that the
       // declaration is incomplete. This is also the assertion that would catch a slot axis (or the removed
@@ -11574,7 +12615,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const ibEmitted = planComponentName(ibSet[0]).split(', ').map((kv) => kv.split('=')[0]);
       ok(ibEmitted.slice().sort().join(',') === figmaAxisNames(iconButton).slice().sort().join(','),
         `anatomy/icon-button: the DECLARED axes match the ones planComponentName emits (declared [${figmaAxisNames(iconButton).join(', ')}] vs emitted [${ibEmitted.join(', ')}])`);
-      ok(figmaAxisNames(iconButton).length === 3, `anatomy/icon-button: three axes (appearance, size, state), where Button has six and #1225 removed \`intent\` (${figmaAxisNames(iconButton).join(', ')})`);
+      ok(figmaAxisNames(iconButton).length === 4, `anatomy/icon-button: four axes (appearance, size, shape, state) — #1225 removed \`intent\`, #1353 added \`shape\` (${figmaAxisNames(iconButton).join(', ')})`);
 
       // THE SLOT-FILL DIMENSION COLLAPSES TO 1, and this is the decision recorded as a gate rather than a
       // comment. Button's `slotAxes` exists because presence changes GEOMETRY (#326: `paddingLeft` reads
@@ -11591,7 +12632,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `[false]` on both, so the two coordinates are constants and `planSetLayout` gives a dimension only
       // to axes that VARY. That much was the original decision and it stands.
       ok(ibSet.every((p) => p.slots.leading === false && p.slots.trailing === false),
-        'anatomy/icon-button: both slot coordinates are constant false across all 54 members — the collapse, observed on the plans');
+        'anatomy/icon-button: both slot coordinates are constant false across every member — the collapse, observed on the plans');
       // WHAT THE ORIGINAL DECISION GOT WRONG, and the reason the emitter moved rather than this gate: a
       // constant coordinate is free in the LAYOUT and is not free in the NAME. `combineAsVariants` derives
       // a set's properties from its members' names, so `leading=false` on all 162 becomes a real
@@ -11611,19 +12652,21 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(/leading icon=true, trailing icon=false$/.test(planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon' }))),
         'anatomy/icon-button: Button still names both — the rule is "a coordinate iff the def declares the axis", not "no slot coordinates"');
 
-      // The GRID: 9 rows × 6 columns, `state` across. Hand-derived — 3 × 3 rows against 6 states —
+      // The GRID: 18 rows × 6 columns, `state` across. Hand-derived — 3 × 3 × 2 rows against 6 states —
       // not read back from `planSetLayout`, which is the subject. (Was 27 rows before #1225 split `intent`
-      // out of the row axis into sibling components.)
+      // out of the row axis, 9 after #1225, and 18 after #1353 added the shape axis to the row product.)
       const ibLayout = planSetLayout(ibSet, 'icon-button');
-      ok(ibLayout.rows === 9 && ibLayout.cols === 6,
-        `anatomy/icon-button: the grid is 9 rows (3 appearance × 3 size) × 6 state columns (${ibLayout.rows} × ${ibLayout.cols})`);
+      ok(ibLayout.rows === 18 && ibLayout.cols === 6,
+        `anatomy/icon-button: the grid is 18 rows (3 appearance × 3 size × 2 shape) × 6 state columns (${ibLayout.rows} × ${ibLayout.cols})`);
       ok(ibLayout.colKey === 'state', `anatomy/icon-button: \`state\` is the column axis — DECLARED via gridAxis, not inherited from cardinality (${ibLayout.colKey})`);
-      ok(new Set(ibLayout.cells.map((c) => `${c.row},${c.col}`)).size === 54,
+      ok(new Set(ibLayout.cells.map((c) => `${c.row},${c.col}`)).size === 108,
         'anatomy/icon-button: every member gets its own cell — combineAsVariants preserves positions, so a shared one stacks them invisibly');
-      // Three footprint cohorts, one per size, and that is the whole point of the square: `state` and
-      // `appearance` must not move the box, and with no slot axes `size` is the only thing that may.
+      // Three footprint cohorts, one per size, and that is the whole point of the square: `state`,
+      // `appearance` and now `shape` must not move the box, and with no slot axes `size` is the only thing
+      // that may. #1353's shape axis changes the corner RADIUS, not the width/height, so it does NOT add a
+      // cohort — the count stays 3 (this is the box-level check that the shape axis is pure corner geometry).
       ok(new Set(ibLayout.cells.map((c) => c.group)).size === 3,
-        `anatomy/icon-button: three footprint cohorts, one per size — state and appearance must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
+        `anatomy/icon-button: three footprint cohorts, one per size — state, appearance and shape must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
 
       // ONE property, where Button has four ref parts. Derived from the nodes the plans BUILD, so this is
       // also the assertion that the required icon still materializes a swap: a slot that stopped producing
@@ -11636,12 +12679,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(ibLayout.refs.length === 1 && ibLayout.refs[0].part === 'icon',
         `anatomy/icon-button: one part is wired to it (${JSON.stringify(ibLayout.refs)})`);
 
-      // The RING appears on exactly the focus-visible column and nowhere else — 9 of 54, which is
-      // 54/6. Derived from the state coordinate rather than from a count, so it fails if the ring leaks
+      // The RING appears on exactly the focus-visible column and nowhere else — 18 of 108, which is
+      // 108/6. Derived from the state coordinate rather than from a count, so it fails if the ring leaks
       // into a neighbouring state as well as if it goes missing.
       const ringMembers = ibSet.filter((p) => planPartNames(p.root).includes('focusRing'));
-      ok(ringMembers.length === 9 && ringMembers.every((p) => /state=focus-visible/.test(planComponentName(p))),
-        `anatomy/icon-button: the focus ring materializes on the 9 focus-visible members and only those (${ringMembers.length})`);
+      ok(ringMembers.length === 18 && ringMembers.every((p) => /state=focus-visible/.test(planComponentName(p))),
+        `anatomy/icon-button: the focus ring materializes on the 18 focus-visible members and only those (${ringMembers.length})`);
 
       // Every member is SKINNED. A coordinate that resolved to no paints is the failure a name-only check
       // cannot see: the set builds, the axes are clean, and 162 identical grey squares come back.
@@ -11676,20 +12719,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // instruction rather than worked around. The cause was a PER-MEMBER growth: `container` gained a bound
       // `strokeWeight`, so every member carried one more binding.
       //
-      // NOW 3, AS OF #1225 — a MEMBER-COUNT drop rather than a per-member or shell change: splitting `intent`
-      // into sibling components takes THIS def's set from 162 members to 54 (the other 108 moved to the two
-      // new sibling defs, which pack their own chunks). Fewer members, fewer chunks — 54 members at ~26 per
-      // chunk is 3. This is the one number here that tracks the set SIZE rather than the per-member or shell
-      // byte cost, so it moved with the split while the "every chunk under budget" check below did not.
+      // WAS 3 AT #1225 — a MEMBER-COUNT drop rather than a per-member or shell change: splitting `intent`
+      // into sibling components took THIS def's set from 162 members to 54 (54 members at ~26 per chunk is 3).
+      //
+      // NOW 5, AS OF #1353 — another MEMBER-COUNT move, in the other direction: the shape axis DOUBLES the set
+      // 54 → 108, so it packs into 5 chunks (~26 per chunk). This is the one number here that tracks the set
+      // SIZE rather than the per-member or shell byte cost, so it moves with an axis change while the "every
+      // chunk under budget" check below does not.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 3, `anatomy/icon-button: the set packs into 3 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 5, `anatomy/icon-button: the set packs into 5 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
       // slice produces a set that is short with nothing reporting it.
       const packed = ibChunks.flatMap((c) => c.variants);
-      ok(packed.length === 54 && new Set(packed).size === 54,
-        `anatomy/icon-button: the chunks partition all 54 members exactly once (${packed.length} written, ${new Set(packed).size} distinct)`);
+      ok(packed.length === 108 && new Set(packed).size === 108,
+        `anatomy/icon-button: the chunks partition all 108 members exactly once (${packed.length} written, ${new Set(packed).size} distinct)`);
 
       // ---- the `nesting` relation (#681), and the SQUARE rules ------------------------------------
       // The field is REQUIRED on every part that points at another component, so the first assertion is
@@ -11786,14 +12831,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         ok(inflowErrs.length === 0, `#1226 an in-flow \`nest\` validates clean${inflowErrs.length ? ' — ' + inflowErrs.join('; ') : ''}`);
         const findNode = (n: { name?: string; children?: unknown[] }, name: string): any => // eslint-disable-line @typescript-eslint/no-explicit-any
           n.name === name ? n : (n.children ?? []).map((c) => findNode(c as { name?: string; children?: unknown[] }, name)).find(Boolean);
-        const ring = findNode(figmaAnatomyPlan(inflow, iconButton.variants.size[0], {}).root, 'focusRing');
+        const ring = findNode(figmaAnatomyPlan(inflow, iconButton.variants.size[0], { shape: 'square' }).root, 'focusRing');
         ok(ring?.type === 'NESTED_INSTANCE' && ring?.nestTarget === 'focus-ring',
           `#1226 an in-flow nest projects a NESTED_INSTANCE naming its target (${ring?.type} -> ${ring?.nestTarget})`);
         ok(ring?.nestVariant && ring.nestVariant.surface !== undefined,
           `#1226 ...carrying its nest-fixed coordinate, resolved by nestVariantOf (${JSON.stringify(ring?.nestVariant)})`);
         ok(ring?.absoluteInset === undefined,
           `#1226 ...and IN the flow — no absoluteInset (${JSON.stringify(ring?.absoluteInset)})`);
-        const absRing = findNode(figmaAnatomyPlan(iconButton, iconButton.variants.size[0], { state: 'focus-visible' }).root, 'focusRing');
+        const absRing = findNode(figmaAnatomyPlan(iconButton, iconButton.variants.size[0], { state: 'focus-visible', shape: 'square' }).root, 'focusRing');
         ok(absRing?.type === 'NESTED_INSTANCE' && absRing?.absoluteInset !== undefined,
           `#1226 ...where the SAME def's unpatched absolute ring is the same NESTED_INSTANCE but WITH absoluteInset — the flow is the only difference (${JSON.stringify(absRing?.absoluteInset)})`);
       }
@@ -11889,13 +12934,38 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         const sq = findPart(figmaAnatomyPlan(square, 'medium', { appearance: 'filled', surface: 'default' }).root, 'focusRing');
         ok(sq?.bound?.width === wantVar && sq?.bound?.height === wantVar,
           `#1299 a nest binding 'size' still binds both axes to one variable (${String(sq?.bound?.width)} / ${String(sq?.bound?.height)})`);
-        // THE SCOPE, stated as a measurement rather than as prose. `slot`/`overlay`/`text` still drop a
-        // `height` silently — one concern per PR, so it is FILED (#1305) rather than fixed here. This line
-        // fails when that lands, by design, which is what keeps the filed issue from being the only record.
-        const slotTall = patched(button, 'leadingVisual', { height: 'size.{size}.height', size: undefined });
-        const st = findPart(figmaAnatomyPlan(slotTall, 'medium', { appearance: 'filled', surface: 'default', leading: true }).root, 'leadingVisual');
-        ok(st !== undefined && st.bound?.height === undefined,
-          `#1299 scope: a 'height' on a \`slot\` is STILL dropped — filed as #1305, not fixed here. Fails when it lands, by design (${JSON.stringify(st?.bound)})`);
+      }
+
+      // ---- #1305: A `height` ON A KIND THAT CANNOT HONOR IT IS REFUSED ----
+      // The other half of #1299's silence, now closed. `node()` projects a bound `height` on exactly two
+      // kinds — a `box` and (since #1299) a `nest`. On every other kind it reached no node, and #1299
+      // filed the remainder as #1305 rather than folding it in. Refused BY NAME here, one arm per affected
+      // kind, because the rule is a disjunction over kinds and a narrowing to any single kind passes the
+      // others. `size` is stripped from the parts that carry one, so each arm ISOLATES the new rule: with
+      // `size` left on, the pre-existing "binds both 'size' and 'height'" rule fires too, and an arm that
+      // passes on either error is not evidence about the one it names (the discipline the `strokeWidth` and
+      // vector arms state in full). Each regex is written from the RULE ("kind X but binds 'height'"), not
+      // read back off the validator's output, so the expectation is independent of the message's wording.
+      ibBroke('a `slot` binding `height` is refused (#1305)', /is kind 'slot' but binds 'height'/, patched(button, 'leadingVisual', { height: 'size.{size}.height', size: undefined }));
+      ibBroke('an `overlay` binding `height` is refused (#1305)', /is kind 'overlay' but binds 'height'/, patched(button, 'spinner', { height: 'size.{size}.height', size: undefined }));
+      ibBroke('a `text` binding `height` is refused (#1305)', /is kind 'text' but binds 'height'/, patched(button, 'label', { height: 'size.{size}.height' }));
+      // The FOURTH kind, and the reason this rule is not scoped to the three #1305 named. `absolute` refuses
+      // `size` outright (it is sized by its parent's bounds grown by `inset`) yet dropped `height` just as
+      // silently — the same posture mismatch #1305 records, one kind past where the filing looked. Measured
+      // on the current engine before the fix: an absolute part binding `height` validated clean and reached
+      // no node, exactly like the three. Caught here rather than left as a fresh latent hole.
+      ibBroke('an `absolute` binding `height` is refused (#1305) — the kind the filing looked past', /is kind 'absolute' but binds 'height'/, patched(button, 'focusRing', { height: 'size.{size}.height' }));
+      // NEGATIVE CONTROLS, in both directions, so the four arms above are not a rule that fires on
+      // everything. (a) The honoring kinds report nothing: the `nest` block above binds `height` clean, and
+      // `button.container` is a real `box` that binds `height` in the shipped corpus — so an UNPATCHED
+      // button draws no height refusal. (b) The same slot WITHOUT a `height` draws none either, which pins
+      // the arms to the FIELD rather than to the part or the stripped `size`.
+      {
+        const boxErrs = validateComponentDef(button, nbTree, nbT.root).errors.filter((x) => /binds 'height'/.test(x));
+        ok(boxErrs.length === 0, `#1305 negative control: a shipped 'box' (button.container) binding 'height' is NOT refused — the rule excludes the kinds that honor it${boxErrs.length ? ' — ' + boxErrs.join('; ') : ''}`);
+        const slotNoH = patched(button, 'leadingVisual', { size: undefined });
+        const slotNoHErrs = validateComponentDef(slotNoH, nbTree, nbT.root).errors.filter((x) => /is kind 'slot' but binds 'height'/.test(x));
+        ok(slotNoHErrs.length === 0, `#1305 negative control: the same slot WITHOUT a 'height' draws no height refusal — the arms fire on the field, not the part${slotNoHErrs.length ? ' — ' + slotNoHErrs.join('; ') : ''}`);
       }
 
       // The SQUARE rules. `size` and `height` both drive the height axis, so a part binding both states
@@ -11929,7 +12999,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `tone` rather than an invented name, because axis NAMES are closed (VARIANT_AXES) and a made-up one
       // fails on that rule instead — which would leave this line green on somebody else's error.
       ibBroke('gating on an axis the def declares but does not PROJECT fails', /gates presence on 'tone', which figmaProperties\.variantAxes does not project/,
-        { ...checkbox, variants: { ...checkbox.variants, tone: ['neutral', 'danger'] }, anatomy: { ...checkbox.anatomy!, parts: { ...checkbox.anatomy!.parts, mark: { ...checkbox.anatomy!.parts.mark, presentWhen: { tone: ['danger'] } } } } } as ComponentDef);
+        { ...checkboxRow, variants: { ...checkboxRow.variants, tone: ['neutral', 'danger'] }, anatomy: { ...checkboxRow.anatomy!, parts: { ...checkboxRow.anatomy!.parts, mark: { ...checkboxRow.anatomy!.parts.mark, presentWhen: { tone: ['danger'] } } } } } as ComponentDef);
       ibBroke('an empty value list fails — satisfied by nothing, so absent everywhere', /gates presence on 'selection' with no values/, cbPart('mark', { presentWhen: { selection: [] } }));
       ibBroke('an undeclared VALUE fails — the coordinate it names does not exist', /gates presence on selection='mixed'/, cbPart('mark', { presentWhen: { selection: ['mixed'] } }));
       // A gate naming every value is a no-op wearing a condition's clothes: it reads as conditional to
@@ -11942,21 +13012,26 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `layout.justify` already put it. So the symptom is a switch whose thumb does not travel — visible
       // only by looking at two members of the set side by side, which no gate downstream does. Every rule
       // was deleted from `anatomyErrors` in turn and the matching line here confirmed to fail BY NAME.
-      // Patched onto `switch`, the only def that uses the field.
-      const swPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(switchDef, part, patch);
+      // Patched onto `switch-control`, the def that carries the traveling thumb since #1354 (it moved
+      // off the `switch` ROW with the painted surface). The text-part arms below stay on the ROW's `label`,
+      // the only text part in the family.
+      const swPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(switchControl, part, patch);
       ibBroke('an EMPTY positionWhen fails — a position keyed on no axis is a claim with nothing in it', /declares an EMPTY 'positionWhen'/, swPart('thumb', { positionWhen: {} }));
       // The rule `presentWhen` does NOT have, and the reason the two fields could not be one: presence
       // AND-composes across axes (absent on any gate ⇒ absent), a position cannot — two axes name two
       // different places for one part and the projector writes whichever it reaches first.
       ibBroke('positioning on TWO axes fails — a position does not AND-compose', /declares 'positionWhen' on 2 axes/,
-        { ...switchDef, variants: { ...switchDef.variants, tone: ['neutral', 'danger'] },
-          anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts, thumb: { ...switchDef.anatomy!.parts.thumb, positionWhen: { selection: { off: 'start', on: 'end' }, tone: { neutral: 'start', danger: 'end' } } } } } } as ComponentDef);
-      ibBroke('positioning the anatomy ROOT fails — the position projects onto a parent the root has not got', /is the anatomy ROOT and declares 'positionWhen'/, swPart('row', { positionWhen: { selection: { off: 'start', on: 'end' } } }));
+        { ...switchControl, variants: { ...switchControl.variants, tone: ['neutral', 'danger'] },
+          anatomy: { ...switchControl.anatomy!, parts: { ...switchControl.anatomy!.parts, thumb: { ...switchControl.anatomy!.parts.thumb, positionWhen: { selection: { off: 'start', on: 'end' }, tone: { neutral: 'start', danger: 'end' } } } } } } as ComponentDef);
+      // The ROOT (now `track`, since #1354 the atom's root) has no parent, so there is no frame whose
+      // distribution could carry it.
+      ibBroke('positioning the anatomy ROOT fails — the position projects onto a parent the root has not got', /is the anatomy ROOT and declares 'positionWhen'/, swPart('track', { positionWhen: { selection: { off: 'start', on: 'end' } } }));
       // The root's SIBLING case: a part nobody lists as a child. Separate from the root rule because the
       // root legitimately has no parent while this is a dangling part, and the fix for each is different.
+      // Orphaning the thumb (it keeps its positionWhen) drops it from `track.children`.
       ibBroke('positioning a part nobody claims as a child fails', /declares 'positionWhen' but is not a child of any part/,
-        { ...switchDef, anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts,
-          track: { ...switchDef.anatomy!.parts.track, children: ['focusRing'] } } } } as ComponentDef);
+        { ...switchControl, anatomy: { ...switchControl.anatomy!, parts: { ...switchControl.anatomy!.parts,
+          track: { ...switchControl.anatomy!.parts.track, children: ['focusRing'] } } } } as ComponentDef);
       // A parent with no layout at all is not an auto-layout frame, so it has no `primaryAxisAlignItems` for
       // the position to be written to — distinct from the sizing precondition, which is about a frame that
       // exists and cannot distribute.
@@ -11968,16 +13043,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // CENTER and MAX are the same coordinate. `sizingMode` maps 'hug' AND 'fill' to AUTO (#989), so
       // 'fill' is refused too and the message says so.
       ibBroke('a parent that HUGS its main axis fails — start/center/end collide, so the travel is a no-op', /has main-axis sizing 'hug'/,
-        swPart('track', { layout: { ...switchDef.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } }, width: undefined }));
+        swPart('track', { layout: { ...switchControl.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } }, width: undefined }));
       ibBroke("…and 'fill' fails the same way, BY NAME — it projects to AUTO as well (#989)", /has main-axis sizing 'fill'/,
-        swPart('track', { layout: { ...switchDef.anatomy!.parts.track.layout!, sizing: { x: 'fill', y: 'fixed' } }, width: undefined }));
+        swPart('track', { layout: { ...switchControl.anatomy!.parts.track.layout!, sizing: { x: 'fill', y: 'fixed' } }, width: undefined }));
       // (b) `primaryAxisAlignItems` distributes the WHOLE group, so a part sharing the flow with a sibling
       // has its place decided by where the sibling sits. `absolute`/`overlay` are not flow children, which
       // is the carve-out that lets `focusRing` sit inside the track alongside the thumb — asserted by the
-      // clean-validation line at the end of this block rather than assumed.
+      // clean-validation line at the end of this block rather than assumed. A synthetic box sibling gives
+      // the thumb a flow neighbour under the track (the glyphs are the thumb's own children, not siblings).
       ibBroke('a positioned part sharing its parent\'s flow with a sibling fails', /has 2 flow children/,
-        { ...switchDef, anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts,
-          track: { ...switchDef.anatomy!.parts.track, children: ['thumb', 'focusRing', 'label'] } } } } as ComponentDef);
+        { ...switchControl, anatomy: { ...switchControl.anatomy!, parts: { ...switchControl.anatomy!.parts,
+          track: { ...switchControl.anatomy!.parts.track, children: ['thumb', 'sibling', 'focusRing'] },
+          sibling: { kind: 'box', role: 'presentation', layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } } } } } } as ComponentDef);
       // A part OUTSIDE the flow cannot be distributed at all, so the two mechanisms are refused together.
       ibBroke('an `absolute` declaring positionWhen fails — it is placed against bounds, not distributed', /is kind 'absolute' and declares 'positionWhen'/, swPart('focusRing', { positionWhen: { selection: { off: 'start', on: 'end' } } }));
       // The AXIS rules, the same three `presentWhen` needs, for the same reasons — an axis the projector
@@ -11987,8 +13064,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `tone` rather than an invented name: axis NAMES are closed, so a made-up one fails on that rule and
       // would leave this line green on somebody else's error.
       ibBroke('keying on an axis the def declares but does not PROJECT fails', /keys its position on 'tone', which figmaProperties\.variantAxes does not project/,
-        { ...switchDef, variants: { ...switchDef.variants, tone: ['neutral', 'danger'] },
-          anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts, thumb: { ...switchDef.anatomy!.parts.thumb, positionWhen: { tone: { neutral: 'start', danger: 'end' } } } } } } as ComponentDef);
+        { ...switchControl, variants: { ...switchControl.variants, tone: ['neutral', 'danger'] },
+          anatomy: { ...switchControl.anatomy!, parts: { ...switchControl.anatomy!.parts, thumb: { ...switchControl.anatomy!.parts.thumb, positionWhen: { tone: { neutral: 'start', danger: 'end' } } } } } } as ComponentDef);
       ibBroke('an empty value map fails — a map from nothing positions nothing', /keys its position on 'selection' with no values/, swPart('thumb', { positionWhen: { selection: {} } }));
       ibBroke('an undeclared VALUE fails — the coordinate it names does not exist', /positions itself at selection='mixed'/, swPart('thumb', { positionWhen: { selection: { off: 'start', on: 'end', mixed: 'center' } } }));
       ibBroke('a position outside start/center/end fails — the JUSTIFY map returns undefined for it', /positions itself 'middle' at selection='off'/, swPart('thumb', { positionWhen: { selection: { off: 'middle', on: 'end' } } }));
@@ -11997,19 +13074,21 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // which reads in the def as though it had been.
       ibBroke('naming a position for only SOME values fails — the rest fall back to a field that does not mention this part', /names no position for \[on\]/, swPart('thumb', { positionWhen: { selection: { off: 'start' } } }));
       // ALL THE SAME POSITION is `layout.justify` wearing a condition's clothes — the one rule here whose
-      // symptom is a part that reads as travelling and projects as static.
+      // symptom is a part that reads as traveling and projects as static.
       ibBroke('the same position at every value fails as a no-op', /positions itself 'start' at every value of 'selection'/, swPart('thumb', { positionWhen: { selection: { off: 'start', on: 'start' } } }));
 
       // The NON-SQUARE BOX rules (#990). `width` is what a 2:1 track needs and `size` is what a square
       // needs; each is refused where the other belongs, and every arm is a binding silently discarded.
-      ibBroke('a non-box binding `width` fails', /is kind 'text' but binds 'width'/, swPart('label', { width: 'size.{size}.track' }));
+      // The text-part arm stays on the ROW's `label` — the only text part in the family (switch-control
+      // has none). The token is one `switch` binds, so the kind rule fires, not a missing-slot error.
+      ibBroke('a non-box binding `width` fails', /is kind 'text' but binds 'width'/, patched(switchDef, 'label', { width: 'size.{size}.text' }));
       ibBroke('binding both `size` and `width` fails — one of the two is silently discarded', /binds both 'size' and 'width'/, swPart('thumb', { width: 'size.{size}.dot' }));
       // The same FIXED precondition as the square's, from the box's own side rather than the child's — a
       // track may bind a width with nothing positioned inside it.
       ibBroke('a box binding `width` while hugging its main axis fails', /binds 'width' but its main-axis sizing is 'hug'/,
-        swPart('track', { layout: { ...switchDef.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } } }));
-      ok(validateComponentDef(switchDef, nbTree, nbT.root).errors.length === 0,
-        `nesting gate: and the mechanism VALIDATES as authored — a thumb positioned per selection inside a fixed-width track that also holds an absolute focus ring is clean, which is the whole of what #990 added (got [${validateComponentDef(switchDef, nbTree, nbT.root).errors.join('; ')}])`);
+        swPart('track', { layout: { ...switchControl.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } } }));
+      ok(validateComponentDef(switchControl, nbTree, nbT.root).errors.length === 0,
+        `nesting gate: and the mechanism VALIDATES as authored — a thumb positioned per selection inside a fixed-width track that also holds an absolute focus ring (and carries the state glyph) is clean, which is the whole of what #990 added and #1354 extended (got [${validateComponentDef(switchControl, nbTree, nbT.root).errors.join('; ')}])`);
 
       // The STROKE-WIDTH kind rule (#1266; the missing arm was filed as #1275 and this is it). Same shape
       // as `width` above, for a sharper reason: only the `box` branch of the projector reads `strokeWidth`,
@@ -12018,7 +13097,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // the `width` arm above uses, deliberately: a key that is not a slot trips the binding resolver too,
       // and an arm that fires on either of two errors is not evidence about the one it names — with a real
       // slot the mutation leaves EXACTLY this arm red.
-      ibBroke('a non-box binding `strokeWidth` fails — only a box projects a bound strokeWeight', /is kind 'text' but binds 'strokeWidth'/, swPart('label', { strokeWidth: 'size.{size}.track' }));
+      ibBroke('a non-box binding `strokeWidth` fails — only a box projects a bound strokeWeight', /is kind 'text' but binds 'strokeWidth'/, patched(switchDef, 'label', { strokeWidth: 'size.{size}.text' }));
 
       // The VECTOR-SIZE split (#910). The old rule refused `size` on any vector, with the reason "its
       // rendered size comes from the host that instances it" — true of a def's ROOT glyph, where a host
@@ -12034,8 +13113,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // pre-existing "binds both 'size' and 'height'" rule as well, and an assertion that passes on either
       // of two errors is not evidence about the one it names.
       ibBroke('a vector binding `height` fails on EITHER axis alone — a glyph artboard is square', /is kind 'vector' but binds 'height'/, cbPart('mark', { size: undefined, height: 'size.{size}.control' }));
-      ok(validateComponentDef(checkbox, nbTree, nbT.root).errors.length === 0,
-        `nesting gate: and the relaxation is real — a NON-root vector binding 'size' validates clean, which is the whole of what #910 changed here (got [${validateComponentDef(checkbox, nbTree, nbT.root).errors.join('; ')}])`);
+      ok(validateComponentDef(checkboxRow, nbTree, nbT.root).errors.length === 0,
+        `nesting gate: and the relaxation is real — a NON-root vector binding 'size' validates clean, which is the whole of what #910 changed here (got [${validateComponentDef(checkboxRow, nbTree, nbT.root).errors.join('; ')}])`);
     }
 
     // ---- can the spike actually RUN? (#342) ---------------------------------------------------
@@ -12442,7 +13521,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     brokeFp('a property pointed at a part that does not exist fails', /does not exist in anatomy.parts/, { texts: { label: { part: 'ghost', default: 'Button' } } });
     brokeFp('a property keyed on an undeclared prop fails', /is not a declared prop/, { texts: { notAProp: { part: 'label', default: 'Button' } } });
     brokeFp('a BOOLEAN toggling a REQUIRED part fails', /anatomy must allow the part to be absent/, { booleans: { fullWidth: 'label' } });
-    brokeFp('two property kinds on one node fails', /carries at most one property kind/, { texts: { label: { part: 'label', default: 'Button' } }, booleans: { fullWidth: 'label' } });
+    // The one-property-per-node rule is FIELD-based since #1331 (a swap + a boolean coexist on one node —
+    // different Figma fields). Two claims on the SAME field still collide: two booleans (both `visible`) on
+    // one part. (The loosening — swap + boolean coexisting — is proven on the real `select` def in #1331.)
+    brokeFp('two BOOLEANs on one node fails (same `visible` field)', /at most one 'visible' property/, { booleans: { fullWidth: 'leadingVisual', isPending: 'leadingVisual' } });
     // The PLACEHOLDER is required to say something. Figma accepts `''` and #510's set is what that
     // produces: 21 variants, every binding resolved, nothing readable in any of them.
     brokeFp('a TEXT property with an empty default fails', /no placeholder/, { texts: { label: { part: 'label', default: '' } } });
@@ -13605,8 +14687,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // consumer's, the tier's four rungs are the engine's, and the REF THE DEF ITSELF BINDS is what joins
   // them. So the check reads `icon.tokens` instead of rebuilding a path, which is the only version that
   // survives the two halves being spelled differently.
-  // READ FROM THE PROP, not from `variants` (#864). `icon`'s Figma grid is now the 40-glyph `name` axis
-  // and a def cannot declare a `variants` axis it does not project, so `variants.size` is gone and the
+  // READ FROM THE PROP, not from `variants` (#864). `icon`'s Figma grid is now the `name` axis (one member
+  // per glyph in the vocabulary) and a def cannot declare a `variants` axis it does not project, so `variants.size` is gone and the
   // ladder lives in `props.size` plus `tokens` — the two halves this block compares anyway. That absence
   // is admitted by name in `lint-rung-names.ts`'s `LADDER_STATED_ONCE` rather than skipped, so it costs a
   // decision rather than silently deleting the comparison.
@@ -13676,7 +14758,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // The message is built OUTSIDE the template that reports it — `ok(...)`'s argument evaluates eagerly,
   // so a null-safe condition with an unguarded message string still crashes (the second half of M14).
   ok(iconSetThrow === '', `icon: the def PROJECTS — every anatomy binding key resolves in tokens${iconSetThrow ? ` (threw: ${iconSetThrow})` : ''}`);
-  // ONE MEMBER PER GLYPH, and the count is read from the VOCABULARY rather than written as 40 — the set
+  // ONE MEMBER PER GLYPH, and the count is read from the VOCABULARY rather than written as a literal — the set
   // grows the day a `.svg` lands in `icons/`, and a literal here would fail for the wrong reason.
   ok(iconSet.length === ICON_NAMES.length,
     `icon: projects one member per glyph in the set — ${ICON_NAMES.length} (#864; it used to project four members, one per size rung, and every one of them was empty)`);
@@ -13721,7 +14803,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // The plan no longer carries the bare path: `createNodeFromSvg` takes a DOCUMENT, so the assertion is
     // that the document submitted to Figma's importer contains this glyph's `d`, on the declared viewBox.
     ok((onePlan.root.glyphSvg ?? '').includes(`d="${ICON_PATHS.check}"`),
-      `icon: the member named 'check' carries the CHECK geometry from the set (${ICON_PATHS.check.length} chars) — #864 was four members carrying none, and templating \`glyph: '{name}'\` wrong is 40 members carrying one`);
+      `icon: the member named 'check' carries the CHECK geometry from the set (${ICON_PATHS.check.length} chars) — #864 was four members carrying none, and templating \`glyph: '{name}'\` wrong is ${ICON_NAMES.length} members carrying one`);
     ok((onePlan.root.glyphSvg ?? '').includes(`viewBox="${ICON_VIEWBOX}"`),
       `icon: the glyph document declares the set's viewBox ('${ICON_VIEWBOX}') — a path drawn on a 24-unit grid inside a document that claims another one imports at the wrong scale, which builds fine and renders wrong`);
     // AND THE READ-BACK EXPECTATION the executors compare the imported frame against. Parsed here from
@@ -13759,9 +14841,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     //
     // WHAT THIS STILL FAILS ON, unchanged in spirit from the old line: it names the ROLE rather than
     // counting, so re-pointing the floor at a different role fails here by name, and so does dropping the
-    // `{slot}` key — which returns all 40 members to the unbound black this ticket exists to remove.
+    // `{slot}` key — which returns every member to the unbound black this ticket exists to remove.
     ok(planPaintVars(onePlan.root).join(',') === 'color/icon/primary',
-      `icon: every projected member carries the DEFAULT INK (#1211) — no member has a \`tone\` coordinate, so \`tone.{tone}\` is unfillable and the \`{slot}\` floor answers instead; asserted at zero until #1211, which is what left 40 glyphs unbound and rendering as Figma's resolution of fill="currentColor" (got [${planPaintVars(onePlan.root).join(', ')}])`);
+      `icon: every projected member carries the DEFAULT INK (#1211) — no member has a \`tone\` coordinate, so \`tone.{tone}\` is unfillable and the \`{slot}\` floor answers instead; asserted at zero until #1211, which is what left every glyph unbound and rendering as Figma's resolution of fill="currentColor" (got [${planPaintVars(onePlan.root).join(', ')}])`);
     // AND IT IS THE VECTOR THAT CARRIES IT, not the frame — the distinction the floor would be worthless
     // without, since a fill on the artboard paints a coloured square with the glyph invisible inside it.
     ok(onePlan.root.descendantFills === 'color/icon/primary' && !onePlan.root.paints?.fills,
@@ -13778,6 +14860,46 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // made the suite crash here with "icon: 'md' is not a declared size".
     ok(planPaintVars(figmaAnatomyPlan(icon, undefined, { name: 'check', tone: 'danger' } as never).root).join(',') === 'color/icon/danger',
       'icon: the SAME def paints correctly at a coordinate that carries a tone — the ceiling is the set, not the grammar (#784)');
+  }
+
+  // ---- icon: the TWO-CHUNK paste (#1323) --------------------------------------------------------
+  // #1316 grew the vocabulary until the set no longer fits ONE `figma_execute` payload, and nothing
+  // noticed: the only chunk-count assertion in this suite was `icon-button`'s, so the icon set crossed
+  // silently from one paste chunk to two and left `icon.ts`'s "40 members in ONE paste chunk" comment
+  // stale and unmeasured. This block is the check that was missing — and it derives its expectation from
+  // the BYTE THRESHOLD (`SET_CHUNK_BYTES`), never from `planSetChunks`'s own output, so a broken packer
+  // cannot make its own count look right. It also deliberately does NOT pin a literal chunk count (the
+  // #1323 anti-pattern): it asserts the PROPERTIES a correct multi-chunk split must have.
+  if (iconSet.length) {
+    // WHY IT MUST CHUNK, measured against the threshold and independent of the packer: the single-shot
+    // payload — the one `planSetToPluginJs` would ship in a single paste — is over `SET_CHUNK_BYTES`, so
+    // the set CANNOT go in one chunk. A packer that returned one chunk anyway would breach the budget
+    // (asserted below) and be rejected by the transport after nothing, or half the set, had landed.
+    const iconSingleShot = planSetToPluginJs(iconSet).length;
+    ok(iconSingleShot > SET_CHUNK_BYTES,
+      `icon: the whole set does not fit ONE paste payload — single-shot is ${iconSingleShot}B against the ${SET_CHUNK_BYTES}B budget, which is WHY it chunks (#1316 grew it past the threshold)`);
+    const iconChunks = planSetChunks(iconSet);
+    // MORE THAN ONE, which is the crossing #1316 made and this block exists to keep tested. Not pinned at
+    // two: the count is a measured property of the set against the budget, and the day a member tips it
+    // into a third chunk is a real, visible change here rather than a stale comment.
+    ok(iconChunks.length > 1,
+      `icon: the set packs into MORE THAN ONE paste chunk — ${iconChunks.length} (${iconChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES}); it was one until #1316`);
+    // THE BUDGET, which is the whole point of chunking: an over-budget chunk is rejected AFTER its
+    // predecessors have landed, leaving a half-built set. Asserted on the MEASURED `bytes` the packer
+    // reports, because that is the string that ships. A packer that stopped splitting fails HERE by name.
+    const iconOver = iconChunks.filter((c) => c.bytes > SET_CHUNK_BYTES);
+    ok(iconOver.length === 0,
+      `icon: every paste chunk is inside the byte budget${iconOver.length ? ` — OVER: ${iconOver.map((c) => `#${c.index + 1}=${c.bytes}`).join(', ')}` : ` (largest ${Math.max(...iconChunks.map((c) => c.bytes))}/${SET_CHUNK_BYTES})`}`);
+    // FILLS rather than pads — every chunk but the last is >90% of budget, so the split is minimal and the
+    // count is not padded up. This is what makes "more than one" the RIGHT shape without pinning a number.
+    ok(iconChunks.slice(0, -1).every((c) => c.bytes > SET_CHUNK_BYTES * 0.9),
+      `icon: packing FILLS each paste payload rather than padding to a count — ${iconChunks.map((c) => `${c.variants.length}v/${c.bytes}B`).join(' ')}`);
+    // PARTITIONS the set — every glyph packed exactly once, no drop, no duplicate. Derived from
+    // `ICON_NAMES.length`, not from a literal: a packer that lost a slice produces a set short by that
+    // slice with nothing else reporting it, and a duplicate name is the one input that POISONS the set.
+    const iconPacked = iconChunks.flatMap((c) => c.variants);
+    ok(iconPacked.length === ICON_NAMES.length && new Set(iconPacked).size === ICON_NAMES.length,
+      `icon: the chunks partition all ${ICON_NAMES.length} glyphs exactly once (${iconPacked.length} placed, ${new Set(iconPacked).size} distinct)`);
   }
 
   // ---- glyph-shape: RENDER EQUIVALENCE, proved on constructed inputs first (#917) ----
@@ -14208,6 +15330,31 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(cbGlyphs({}) === 'neither',
     `checkbox-control: and with neither axis supplied — the structure-only plan a consumer asking "what parts does this def have" gets (got '${cbGlyphs({})}')`);
 
+  // #1346 — THE INNER GLYPH IS INSET TO PRISM 2's 0.80 MARK-TO-BOX RATIO, pinned on the PROJECTED
+  // artboard rather than on the def's `glyphScale` field, so a revert to the old full-bleed mark fails
+  // HERE by name, not only in the projector that produced it. EXPECTED is authored from the Prism 2
+  // MEASUREMENT — `checkFill` 16 inside a 20px control box (the focus frame is 28 at offset −4, so the
+  // box is 28 − 2×4 = 20), giving 16/20 = 0.80, `reference/Prism2/component-specs/checkboxes.json` —
+  // independent of the engine. ACTUAL is the drawn grid's fraction of its artboard, read back from the
+  // plan: the mark FRAME binds the control box (asserted first), and the emitter pads the artboard to
+  // `grid / scale`, so the rendered mark is `grid / artboard` of the box. A mutation setting `glyphScale`
+  // back to 1 pads to the bare 24 grid, makes the ratio 1.0, and fails these by name. Not "it resolves"
+  // (docs/34 shape 5) — the VALUE 0.80 is asserted, transcribed from Prism 2, not read off the def.
+  const PRISM2_MARK_TO_BOX = 0.8;                                   // checkFill 16 / control box 20
+  const grid = Number(ICON_VIEWBOX.split(/\s+/)[2]);                // the 24-unit source grid, parsed
+  const glyphNode = (part: string, selection: string) => {
+    const f = (n: any): any => (n.name === part ? n : (n.children ?? []).map(f).find(Boolean));
+    return f(figmaAnatomyPlan(checkboxControl, 'medium', { selection, state: 'rest' } as never).root);
+  };
+  ok((checkboxControl.anatomy!.parts.mark as any).size === 'size.{size}.control',
+    `checkbox-control: the mark FRAME binds the control box ('size.{size}.control'), so the padded artboard is what insets the ink and the ratio below is box-relative (got size='${(checkboxControl.anatomy!.parts.mark as any).size}')`);
+  const markRatio = grid / (glyphNode('mark', 'checked').glyphViewBox as [number, number])[0];
+  ok(Math.abs(markRatio - PRISM2_MARK_TO_BOX) < 1e-9,
+    `checkbox-control: the check renders at Prism 2's ${PRISM2_MARK_TO_BOX} of the box — the 24-grid fills ${markRatio.toFixed(4)} of its ${(glyphNode('mark', 'checked').glyphViewBox as [number, number])[0]}px artboard, and the frame is box-bound, so a revert to a full-bleed 24px artboard (ratio 1.0) restores the oversized mark #1346 shrank (got ${markRatio.toFixed(4)})`);
+  const dashRatio = grid / (glyphNode('dash', 'indeterminate').glyphViewBox as [number, number])[0];
+  ok(Math.abs(dashRatio - PRISM2_MARK_TO_BOX) < 1e-9,
+    `checkbox-control: the dash renders at the same ${PRISM2_MARK_TO_BOX} of the box as the check (Prism 2 sizes subtractFill identically to checkFill), pinned separately so a change to one part cannot pass on the other's ratio (got ${dashRatio.toFixed(4)})`);
+
   // ---- the same three directions as a RULE over every gated part, because the block above is
   // ---- CHECKBOX-SHAPED and the second def to use the mechanism does not fit it (#910) -------------
   // The arms above name `mark` and `dash`. `lint-glyph-geometry.ts`, cited above as covering the
@@ -14235,7 +15382,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // assignments and the census cannot see it either.
   const gatedDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.presentWhen));
-  const GATED_EXPECTED = ['field-message', 'checkbox-control', 'radio'];
+  // #1354: `switch-control` gates its two state glyphs (check/X) on `selection` via `presentWhen`, joining
+  // the set (the old `switch` used `positionWhen`, not `presentWhen` — that arm is below).
+  // #1348: the radio ROW dropped its `presentWhen` part — the selection-gated dot moved to `radio-control`
+  // with the painted disc — so `radio` LEAVES this set and `radio-control` joins it, the same swap #1330
+  // made for checkbox → checkbox-control.
+  const GATED_EXPECTED = ['field-message', 'checkbox-control', 'radio-control', 'switch-control'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -14313,7 +15465,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // per-part loop, so `image-placeholder` is not dragged in and asked for a height it deliberately omits.
   const widthDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.width && !p.aspectRatio));
-  const WIDTH_EXPECTED = ['switch'];
+  // #1354 moved the non-square track to `switch-control`, so the def binding `width` is the atom now.
+  const WIDTH_EXPECTED = ['switch-control'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -14371,7 +15524,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // an empty set — `docs/34` shape 15, the same shape the CONTROL_DEFS scope above was widened for.
   const positionedDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.positionWhen));
-  const POSITIONED_EXPECTED = ['switch'];
+  // #1354 moved the traveling thumb to `switch-control`, so the def with a `positionWhen` part is the atom.
+  const POSITIONED_EXPECTED = ['switch-control'];
   ok(POSITIONED_EXPECTED.every((n) => positionedDefs.some((d) => d.id === n)) && positionedDefs.length === POSITIONED_EXPECTED.length,
     `#990 the positionWhen projection rule below covers exactly [${POSITIONED_EXPECTED.join(', ')}] — a def gaining a variant-positioned part must be represented here, and a def losing one is a stale claim (found: ${positionedDefs.map((d) => d.id).join(', ') || 'none'})`);
   const JUSTIFY_EXPECT: Record<string, string> = { start: 'MIN', center: 'CENTER', end: 'MAX' };
@@ -14450,7 +15604,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `#997 ${def.id}: '${parent}' pads BOTH main-axis ends with one variable at ${axis}=${v}, so '${name}' clears the end it is distributed to — an alignment has no offset, so padding is the only source of clearance and without it the part is flush (got ${mainEnds.map((e) => `${e}=${b[e] ?? 'unbound'}`).join(', ')})`);
 
         // …and the clearance is the RIGHT SIZE, resolved to px. A padding that exists but does not relate
-        // to the travelling part would satisfy the arm above while leaving the part cramped or overflowing.
+        // to the traveling part would satisfy the arm above while leaving the part cramped or overflowing.
         // The cross axis is the checkable one: the padded box must be exactly the part, or the part is not
         // centred in the track it slides along.
         const asPath = (figName?: string) => figName?.split('/').join('.');
@@ -14469,7 +15623,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // the same claim read out of the PROJECTION, which is where a projector that silently collapsed the
       // travel (a stale `JUSTIFY` lookup, a `??` reversed) would show up.
       ok(seen.size > 1,
-        `#990 ${def.id}: '${name}' occupies MORE THAN ONE place across '${axis}' — a projection that resolved every value to '${[...seen][0]}' is a part that reads as travelling and renders as static, and no node count, paint assignment or census can tell the difference (got ${seen.size} distinct: ${[...seen].join(', ')})`);
+        `#990 ${def.id}: '${name}' occupies MORE THAN ONE place across '${axis}' — a projection that resolved every value to '${[...seen][0]}' is a part that reads as traveling and renders as static, and no node count, paint assignment or census can tell the difference (got ${seen.size} distinct: ${[...seen].join(', ')})`);
       // THE UNSUPPLIED AXIS, the third direction the projected set cannot reach: a structure-only plan is
       // legal (the partial-coordinate guard throws only when SOME of a template's axes are missing), and it
       // must fall back to the parent's DECLARED justify rather than to the first entry of the map. Asserting
@@ -14825,12 +15979,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //      (`color.background.inverse.primary` → `color.appearance.…`); #1133 retired one and #1140 emptied
   //      the rest, because `replacedBy` follows the LIVE name by rule, so relocating the inverse marker
   //      gave each of those entries a role delta on top of the tier delta and they began projecting like
-  //      any other rename. #1148 REMOVES the segment, so its 243 entries are tier-only travelling the
+  //      any other rename. #1148 REMOVES the segment, so its 243 entries are tier-only traveling the
   //      other way (`color.appearance.background.primary` → `color.background.primary`).
   //      **SO THE PREDICATE IS TWO PREDICATES, AND WAS ONE UNTIL THIS CHANGE.** The arm read only
   //      `replacedBy === color.appearance.<path tail>` — #1013's direction — which #1148 leaves matching
   //      nothing at all while 243 live entries take the identical skip. A bucket asserted EMPTY by a
-  //      predicate aimed at a direction the data has stopped travelling in is `docs/34` shape 9 wearing a
+  //      predicate aimed at a direction the data has stopped traveling in is `docs/34` shape 9 wearing a
   //      green tick, and it would have shipped: the arm's other half, the constructed pair, still passes.
   //      The two halves are counted separately below (0 and 243) so neither can cover for the other, and
   //      the ADDING half keeps its constructed pair for exactly the reason it had one at zero.
@@ -15482,10 +16636,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // THE OVERRIDE EXISTS AND WORKS, exercised on a synthesised part rather than waiting for `textarea`'s
   // anatomy. An opt-out that ships after the default is an opt-out nobody could have used, so it has to
   // be exercised in the change that introduces the default.
-  const parts = checkbox.anatomy!.parts;
+  const parts = checkboxRow.anatomy!.parts;
   const withPart = (name: string, patch: Record<string, unknown>): ComponentDef => ({
-    ...checkbox,
-    anatomy: { ...checkbox.anatomy!, parts: { ...parts, [name]: { ...parts[name], ...patch } } },
+    ...checkboxRow,
+    anatomy: { ...checkboxRow.anatomy!, parts: { ...parts, [name]: { ...parts[name], ...patch } } },
   } as ComponentDef);
 
   let sawTop = 0, sawCenter = 0;
@@ -15584,16 +16738,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // halves are needed: without this, deleting the box and its wrapper leaves the row-not-centred gate green
 // while the control silently returns to cap height.
 {
-  const selection = componentDefs.filter((d) => ['checkbox', 'radio', 'switch'].includes(d.id));
+  const selection = componentDefs.filter((d) => ['checkbox-row', 'radio', 'switch'].includes(d.id));
   ok(selection.length === 3, `#1201: the three selection controls are present to check (got ${selection.map((d) => d.id).join(', ')})`);
   for (const def of selection) {
     const ps = def.anatomy!.parts;
     const rootRow = ps[def.anatomy!.root];
-    // The control-bearing part is one of two shapes now (#1226 step 2). radio/switch INLINE the painted
-    // box (a box carrying the 'fill' paintSlot — the square/disc or the track). checkbox DECOMPOSED it:
-    // the painted box moved to `checkbox-control` and the row holds a `kind: 'nest'` of it instead. The
-    // #1201 guarantee is the same for both — the control sits one level below the row, wrapped by the
-    // line-box box — so this arm accepts either and then checks the extra invariant the nest introduces.
+    // The control-bearing part is one of two shapes now (#1226 step 2, #1354). RADIO still INLINES the
+    // painted box (a box carrying the 'fill' paintSlot — the disc). checkbox AND switch DECOMPOSED it: the
+    // painted box/track moved to `checkbox-control`/`switch-control` and the row holds a `kind: 'nest'` of
+    // it instead. The #1201 guarantee is the same for all three — the control sits one level below the row,
+    // wrapped by the line-box box — so this arm accepts either and then checks the invariant the nest adds.
     const ctrlName = Object.keys(ps).find((n) =>
       (ps[n].kind === 'box' && (ps[n].paintSlots ?? []).includes('fill'))
       || (ps[n].kind === 'nest' && (ps[n].nests ?? '').endsWith('-control')));
@@ -15607,17 +16761,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       `#1201 ${def.id}: the control sits in a line-box wrapper — height→'…control-box', cross-axis centred (got '${boxName}' height='${box?.height}' align='${box?.layout?.align}')`);
     ok(rootRow.layout?.align === 'start',
       `#1201 ${def.id}: and the row itself stays top-aligned (align='${rootRow.layout?.align}') — the centring lives in the box, never the row`);
-    // #1226 step 2 — THE NESTED CONTROL DOES NOT STRETCH TO THE LINE BOX. A nested instance in an
+    // #1226 step 2 / #1354 — THE NESTED CONTROL DOES NOT STRETCH TO THE LINE BOX. A nested instance in an
     // auto-layout cell can be made to FILL the counter axis; the decided shape forbids it. The nest pins
-    // its OWN square (`size`→'…control' = `control.size.*.height`, 16/20/24 on nb), which is strictly
-    // SHORTER than the wrapper's '…control-box' line box (21/24/27) it centres within. Binding the line
-    // box on the nest instead — the one plausible mutation that would stretch the control — flips the
-    // second clause and fails THIS assertion by name; the nb token check below proves the two keys
-    // resolve to different heights, so `…control ≠ …control-box` is the whole of "does not stretch".
+    // its OWN height to `control.size.*.height` (16/20/24 on nb), strictly SHORTER than the wrapper's
+    // '…control-box' line box (21/24/27) it centres within. checkbox (a SQUARE control) pins via `size`
+    // (both axes from one key); switch (a NON-SQUARE track, `width` = 2× the height) pins via `height`
+    // alone — a nest cannot bind `width`, and the control's own variant carries its 2:1 width. Either way
+    // the bound key is '…control', never '…control-box'; binding the line box instead — the one plausible
+    // mutation that would stretch the control — fails THIS assertion by name, and the nb token check below
+    // proves the two keys resolve to different heights, so `…control ≠ …control-box` is all of "no stretch".
     if (ps[ctrlName!].kind === 'nest') {
-      const sz = ps[ctrlName!].size ?? '';
-      ok(sz.includes('.control') && !sz.includes('control-box'),
-        `#1201 ${def.id}: the nested control pins its OWN square via 'size'→'…control' (the shorter control height), never the wrapper's '…control-box' line box — a nest bound to the line box would stretch the control to fill the taller cell instead of centring within it (got size='${sz}')`);
+      const pin = ps[ctrlName!].size ?? ps[ctrlName!].height ?? '';
+      ok(pin.includes('.control') && !pin.includes('control-box'),
+        `#1201 ${def.id}: the nested control pins its OWN extent via 'size'/'height'→'…control' (the shorter control height), never the wrapper's '…control-box' line box — a nest bound to the line box would stretch the control to fill the taller cell instead of centring within it (got '${pin}')`);
     }
   }
   // MEASURED (nb): a line-box is strictly TALLER than the control at every rung, so "centre within" is a
@@ -15630,6 +16786,280 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(pxOf(nbCtl[rung]['line-box']) > pxOf(nbCtl[rung].height),
       `#1201 nb: control.size.${rung}.line-box (${pxOf(nbCtl[rung]['line-box'])}px) is taller than the control (${pxOf(nbCtl[rung].height)}px), so centring within it is a real first-line inset`);
   }
+}
+
+// ---- #1347: THE CHECKBOX GROUP composes via the ALREADY-COLLAPSED Row, not the atom ----------------
+//
+// #1347 renamed `checkbox` → `checkbox-row` and built `checkbox-group` as a `field-label` above a stack
+// of `checkbox-row`s. The load-bearing property the brief named is that the group nests the ROW (size-only
+// since #1330), never `checkbox-control` (the 54-member atom) directly, and does not re-expose the rows'
+// selection into its OWN matrix — so it inherits the Row's collapse rather than the atom's explosion. Each
+// expected value is derived independently of the projector: the nest targets are read off the anatomy, the
+// member count is a straight multiply of the declared `size` cardinality, and the four-deep chain is walked
+// by `nests`. A mutation that repoints a row nest to the atom, flips it to nest-exposed, or grows the group
+// a new axis fails the NAMED assertion here rather than agreeing with it.
+{
+  const g = componentDefs.find((d) => d.id === 'checkbox-group');
+  ok(!!g, '#1347: checkbox-group is registered in componentDefs');
+  const parts = g!.anatomy!.parts;
+  const rowNests = Object.entries(parts).filter(([, p]) => p.kind === 'nest' && p.nests === 'checkbox-row');
+  ok(rowNests.length >= 2, `#1347: the group nests MULTIPLE checkbox-row instances — a stack (got ${rowNests.length})`);
+  ok(rowNests.every(([, p]) => p.nesting?.kind === 'nest-fixed'),
+    '#1347: every row nest is nest-FIXED — the group does NOT re-expose the rows\' selection as its own properties, which would re-enumerate the matrix the Row collapsed');
+  ok(!Object.values(parts).some((p) => p.kind === 'nest' && p.nests === 'checkbox-control'),
+    '#1347: the group nests checkbox-row, NEVER checkbox-control directly — it composes the collapsed Row so it does not inherit the 54-member atom set');
+  ok(Object.values(parts).filter((p) => p.kind === 'nest' && p.nests === 'field-label').length === 1,
+    '#1347: the group nests exactly one field-label (its heading)');
+  // MEMBER COUNT = product of the declared variant-axis cardinalities (size only), computed here rather
+  // than read off the projector, so a re-exposed child axis or a new group axis moves ACTUAL away from it.
+  const expected = g!.figmaProperties!.variantAxes.reduce((n, a) => n * ((g!.variants as Record<string, string[] | undefined>)[a]?.length ?? 1), 1);
+  const actual = figmaAnatomySet(g!, { swapTarget: 'FPO-default-icon' }).length;
+  ok(expected === 3 && actual === expected,
+    `#1347: the group projects a size-only ${expected}-member set (the Row's collapse inherited, not the atom's explosion) — got ${actual}`);
+  // The nest chain is FOUR deep — group → checkbox-row → checkbox-control → focus-ring — walked by `nests`.
+  const byId = (id: string) => componentDefs.find((d) => d.id === id)!;
+  const nestsOf = (d: ComponentDef): string[] =>
+    Object.values(d.anatomy?.parts ?? {}).filter((p) => p.kind === 'nest' || p.kind === 'absolute').map((p) => p.nests ?? '').filter(Boolean);
+  ok(nestsOf(byId('checkbox-row')).includes('checkbox-control'), '#1347: checkbox-row nests checkbox-control (chain link 2 of the four-deep nest)');
+  ok(nestsOf(byId('checkbox-control')).includes('focus-ring'), '#1347: checkbox-control nests focus-ring (chain link 1) — the group→row→control→ring chain is the corpus\'s deepest');
+}
+
+// ---- #1354: THE SWITCH DECOMPOSITION — four invariants, each pinned independently of the producer ----
+//
+// The switch split into `switch-control` (the painted track/thumb/glyph, carrying selection+size+state) +
+// the `switch` Row (size-only, nest-exposed), the #1226/#1330 mechanism a third time. This block pins the
+// four things #1354 is: the nest-exposed wiring, the 24→2 member collapse, the X/checkmark thumb
+// affordance, and the Prism 2 track styling. Each expectation is derived INDEPENDENTLY of the projector —
+// a straight multiply of declared cardinalities, the OTHER token the value must equal, a node walk for
+// presence, the bound-variable wire — so reverting the subject fails the NAMED assertion rather than
+// agreeing with it. Selection-control alignment, contrast and the roundtrip/host-truth checks cover the
+// shared surface corpus-wide; this is the switch-specific net.
+{
+  const sc = componentDefs.find((d) => d.id === 'switch-control')!;
+  type PNode = { name?: string; children?: PNode[] };
+  const names = (n: PNode): string[] => [n.name ?? '', ...((n.children ?? []) as PNode[]).flatMap(names)];
+  const planNames = (selection: string): string[] =>
+    names(figmaAnatomyPlan(sc, 'medium', { selection, state: 'rest' }).root as unknown as PNode);
+
+  // (1) THE NEST-EXPOSED SPLIT. The Row nests switch-control as nest-exposed, exposing the control's
+  // consumer axes and following size. A revert to nest-fixed, or dropping an exposed axis, fails here.
+  const ctrl = switchDef.anatomy!.parts.control;
+  const rel = ctrl?.nesting as { kind?: string; expose?: readonly string[]; follow?: readonly string[] } | undefined;
+  ok(ctrl?.kind === 'nest' && ctrl.nests === 'switch-control' && rel?.kind === 'nest-exposed'
+    && ['selection', 'state', 'showStateLabel'].every((a) => rel!.expose?.includes(a)) && !!rel.follow?.includes('size'),
+    `#1354 the switch ROW nests switch-control nest-exposed, exposing selection+state+showStateLabel and following size (kind=${ctrl?.kind}, nests=${ctrl?.nests}, rel=${rel?.kind}, expose=[${rel?.expose?.join(', ')}], follow=[${rel?.follow?.join(', ')}])`);
+
+  // (2) THE MEMBER COLLAPSE, a multiply INDEPENDENT of the enumeration. The Row is size-only; the atom
+  // carries selection×size×state. 24 → 2.
+  const rowN = figmaAnatomySet(switchDef).length;
+  const ctlN = figmaAnatomySet(sc).length;
+  const ctlProduct = sc.variants!.selection!.length * sc.variants!.size!.length * sc.figmaProperties!.stateAxis!.values.length;
+  ok(rowN === switchDef.variants!.size!.length && rowN === 2,
+    `#1354 the switch ROW projects SIZE-ONLY — ${rowN} members (its one axis), the 24→2 collapse against the atom's set`);
+  ok(ctlN === ctlProduct && ctlProduct === 24,
+    `#1354 switch-control carries the 24 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
+
+  // (3) THE X/CHECKMARK AFFORDANCE is present (read off the PROJECTED PLAN) and bound to the inverse-of-
+  // thumb ink. The glyph's ink is the SAME selection's TRACK fill — derived from the track token, NOT read
+  // off the glyph's own binding — which is what makes a dark check read on the light on-thumb and a light X
+  // on the dark off-thumb. Deleting a glyph, or miswiring its ink, fails here.
+  ok(planNames('on').includes('onGlyph') && !planNames('on').includes('offGlyph'),
+    `#1354 the ON member draws the check in the thumb and not the X (plan nodes: ${planNames('on').join(',')})`);
+  ok(planNames('off').includes('offGlyph') && !planNames('off').includes('onGlyph'),
+    `#1354 the OFF member draws the X in the thumb and not the check (plan nodes: ${planNames('off').join(',')})`);
+  ok(sc.anatomy!.parts.onGlyph?.glyph === 'check' && sc.anatomy!.parts.offGlyph?.glyph === 'close',
+    `#1354 the affordance glyphs are a check (on) and a close/X (off) — Prism 2's checkLine/closeLine (on=${sc.anatomy!.parts.onGlyph?.glyph}, off=${sc.anatomy!.parts.offGlyph?.glyph})`);
+  ok(sc.tokens['on.icon'] === sc.tokens['on.fill'] && sc.tokens['off.icon'] === sc.tokens['off.fill']
+    && sc.tokens['on.icon'] !== sc.tokens['on.indicator'],
+    `#1354 each glyph's ink is its own selection's TRACK fill (the inverse of the thumb) — on.icon=${sc.tokens['on.icon']} vs on.fill=${sc.tokens['on.fill']}; off.icon=${sc.tokens['off.icon']} vs off.fill=${sc.tokens['off.fill']}; and distinct from the thumb it sits on (on.indicator=${sc.tokens['on.indicator']})`);
+
+  // (4) THE PRISM 2 TRACK STYLING, read off the PROJECTED PLAN's bound variables: a 2px inside border
+  // (`border-width/thick`, Prism 2's strokeWeight 2) and a full pill (`radius/round`, its cornerRadius 999).
+  const trackVars = planBoundVars(figmaAnatomyPlan(sc, 'medium', { selection: 'off', state: 'rest' }).root);
+  ok(trackVars.includes('border-width/thick') && trackVars.includes('radius/round'),
+    `#1354 the track binds Prism 2's 2px inside border and full pill (${trackVars.filter((v) => v.startsWith('border-width') || v.startsWith('radius')).join(', ') || 'neither present'})`);
+
+  // MUTATION-BY-NAME (docs/34): with the glyph parts removed from the atom, the projection carries NO thumb
+  // glyph at either coordinate — so arm (3)'s presence arms gate the real parts rather than restating the
+  // def. The subject is the def (mutated inline), the oracle is the projection.
+  const noGlyphs = { ...sc, anatomy: { ...sc.anatomy!, parts: Object.fromEntries(
+    Object.entries(sc.anatomy!.parts)
+      .filter(([n]) => n !== 'onGlyph' && n !== 'offGlyph')
+      .map(([n, p]) => [n, n === 'thumb' ? { ...p, children: [] } : p])) } } as typeof sc;
+  const mutNames = names(figmaAnatomyPlan(noGlyphs, 'medium', { selection: 'on', state: 'rest' }).root as unknown as PNode);
+  ok(!mutNames.includes('onGlyph') && !mutNames.includes('offGlyph'),
+    `#1354 MUTATION: with the glyph parts removed the projection carries no thumb glyph — the presence arms above gate the real parts, not the def text (mutant plan nodes: ${mutNames.join(',')})`);
+
+  // THE #864/#910 INDICATOR-RULE WIDENING, PINNED (docs/34). This PR LOOSENED a safety refusal —
+  // `anatomyErrors` refused an `indicator` box that parents a glyph (#864's fill-behind-a-glyph square),
+  // now exempting a box that binds `size` AND `radius` (a deliberately-shaped filled disc — the switch
+  // thumb). A loosened refusal MUST be pinned by a by-name mutation, or the exemption could silently grow
+  // to "always on". The rule's message is the oracle (`INDICATOR_REFUSAL`), and each arm drives
+  // `validateComponentDef` over a patched thumb and checks whether THAT named refusal is among the errors
+  // — not the failure count (docs/34 §corollary 4).
+  const INDICATOR_REFUSAL = /declares paintSlots 'indicator' and has .* child/;
+  const patchThumb = (patch: Record<string, unknown>): ComponentDef =>
+    ({ ...sc, anatomy: { ...sc.anatomy!, parts: { ...sc.anatomy!.parts,
+      thumb: { ...sc.anatomy!.parts.thumb, ...patch } } } } as ComponentDef);
+  // (a) POSITIVE — the authored thumb (an indicator disc binding size AND radius, parenting the state
+  // glyph) draws NO indicator refusal. Reverting the widening (`!isShapedDisc` → always refuse) fails THIS
+  // arm by name, which is what makes it the pin on the loosening rather than on some unrelated shape.
+  ok(!validateComponentDef(sc).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 the authored thumb — an indicator disc binding size+radius, parenting the check/X — is NOT refused; the #864/#910 widening permits exactly this (errors: ${validateComponentDef(sc).errors.filter((e) => INDICATOR_REFUSAL.test(e)).join('; ') || 'none match'})`);
+  // (b) NON-EXEMPT still refuses — the ORIGINAL #864 case (an indicator box parenting a glyph while
+  // binding NEITHER size nor radius, the SVG-wrapper shape whose fill is an incidental square) stays
+  // refused BY NAME. A wrapper frame binds neither, so #864 is intact.
+  ok(validateComponentDef(patchThumb({ size: undefined, radius: undefined })).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 MUTATION: an indicator box parenting a glyph while binding NEITHER size nor radius is STILL refused — the original #864 shape is unchanged`);
+  // (c) the exemption keys on BOTH conditions, not accidentally always-on: dropping radius (keeping size),
+  // or dropping size (keeping radius), re-triggers the refusal BY NAME. Proves `isShapedDisc` reads the
+  // real `size && radius`, not a constant.
+  ok(validateComponentDef(patchThumb({ radius: undefined })).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 MUTATION: the thumb WITHOUT radius (size only) is refused — the exemption keys on radius, not size alone`);
+  ok(validateComponentDef(patchThumb({ size: undefined })).errors.some((e) => INDICATOR_REFUSAL.test(e)),
+    `#1354 MUTATION: the thumb WITHOUT size (radius only) is refused — the exemption keys on size, not radius alone`);
+}
+
+// ---- #1348: THE RADIO DECOMPOSITION — five invariants, each pinned independently of the producer -----
+//
+// The radio split into `radio-control` (the painted circle/dot + focus ring, carrying selection+size+state)
+// + the `radio` Row (size-only, nest-exposed), the #1226/#1330 mechanism a fourth time. This block pins the
+// five things #1348 is: the composition/nesting precondition, the nest-exposed wiring, the 36→3 member
+// collapse, the Prism 2 constant-border/inner-circle-on-select visual, and the F2 circular-focus-ring
+// confirmation. Each expectation is derived INDEPENDENTLY of the projector — a registry composition walk,
+// the nest relation fields, a straight multiply of declared cardinalities, token equality/absence, a node
+// walk for presence, the full-round-host condition — so reverting the subject fails the NAMED assertion
+// rather than agreeing with it. Selection-control alignment, contrast and the roundtrip/host-truth checks
+// cover the shared surface corpus-wide; this is the radio-specific net. NOTE this PR touches NO schema
+// refusal (radio's dot is a childless `indicator` box, so the #1354 indicator widening is untouched), so
+// unlike the switch block there are no refusal-loosening mutation arms to carry.
+{
+  const rc = componentDefs.find((d) => d.id === 'radio-control')!;
+  type PNode = { name?: string; children?: PNode[] };
+  const nodeNames = (n: PNode): string[] => [n.name ?? '', ...((n.children ?? []) as PNode[]).flatMap(nodeNames)];
+  const planNames = (selection: string): string[] =>
+    nodeNames(figmaAnatomyPlan(rc, 'medium', { selection, state: 'rest' }).root as unknown as PNode);
+
+  // (0) THE COMPOSITION / NESTING PRECONDITION (#1348, the owner's flat requirement — confirm the Row
+  // NESTS a control before building the split). The radio Row must nest EXACTLY ONE control, and it must be
+  // `radio-control`, nest-exposed — a registry composition walk over the Row's anatomy, not a trust of the
+  // header. Zero or two nested controls, or one not named `radio-control`, would mean the split was forced
+  // rather than genuine, and this fails.
+  const rowNestParts = Object.entries(radio.anatomy!.parts)
+    .filter(([, p]) => p.kind === 'nest' && (p.nests ?? '').endsWith('-control'));
+  ok(rowNestParts.length === 1 && rowNestParts[0][1].nests === 'radio-control'
+     && rowNestParts[0][1].nesting?.kind === 'nest-exposed',
+    `#1348 the radio ROW nests EXACTLY ONE control and it is radio-control, nest-exposed — the composition precondition (nested: [${rowNestParts.map(([n, p]) => `${n}→${p.nests}/${p.nesting?.kind}`).join(', ') || 'none'}])`);
+
+  // (1) THE NEST-EXPOSED SPLIT. The Row nests radio-control as nest-exposed, exposing selection+state and
+  // following size. A revert to nest-fixed, or dropping an exposed axis, fails here by name.
+  const ctrl = radio.anatomy!.parts.control;
+  const rel = ctrl?.nesting as { kind?: string; expose?: readonly string[]; follow?: readonly string[] } | undefined;
+  ok(ctrl?.kind === 'nest' && ctrl.nests === 'radio-control' && rel?.kind === 'nest-exposed'
+    && ['selection', 'state'].every((a) => rel!.expose?.includes(a)) && !!rel.follow?.includes('size'),
+    `#1348 the radio ROW nests radio-control nest-exposed, exposing selection+state and following size (kind=${ctrl?.kind}, nests=${ctrl?.nests}, rel=${rel?.kind}, expose=[${rel?.expose?.join(', ')}], follow=[${rel?.follow?.join(', ')}])`);
+
+  // (2) THE MEMBER COLLAPSE, a multiply INDEPENDENT of the enumeration. The Row is size-only; the atom
+  // carries selection×size×state. 36 → 3.
+  const rowN = figmaAnatomySet(radio).length;
+  const ctlN = figmaAnatomySet(rc).length;
+  const ctlProduct = rc.variants!.selection!.length * rc.variants!.size!.length * rc.figmaProperties!.stateAxis!.values.length;
+  ok(rowN === radio.variants!.size!.length && rowN === 3,
+    `#1348 the radio ROW projects SIZE-ONLY — ${rowN} members (its one axis), the 36→3 collapse against the atom's set`);
+  ok(ctlN === ctlProduct && ctlProduct === 36,
+    `#1348 radio-control carries the 36 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
+
+  // (3) THE PRISM 2 VISUAL — CONSTANT-WEIGHT OUTLINED RING + INNER CIRCLE ON SELECT (#1348 point 2), read
+  // four ways, each independent of the producer. Since #1423 the ring RECOLORS on select (constant WEIGHT,
+  // brand COLOR when checked); the recolor itself is pinned in the #1423 block just below arm (3d).
+  //   (a) the INNER CIRCLE appears on select and ONLY on select — read off the PROJECTED PLAN's nodes.
+  ok(planNames('checked').includes('dot') && !planNames('unchecked').includes('dot'),
+    `#1348 the CHECKED member draws the inner dot and the UNCHECKED member does not (checked: ${planNames('checked').join(',')}; unchecked: ${planNames('unchecked').join(',')})`);
+  //   (b) the ring is OUTLINED — NO fill at either selection (not the pre-split filled disc). The fill's
+  //   ABSENCE is the binding "no fill" (#1011), and the control part carries no `fill` slot.
+  ok(rc.tokens['checked.fill'] === undefined && rc.tokens['unchecked.fill'] === undefined
+     && !(rc.anatomy!.parts.control.paintSlots ?? []).includes('fill'),
+    `#1348 radio-control's ring binds NO fill at either selection — the outlined model, not a filled disc (checked.fill=${rc.tokens['checked.fill']}, unchecked.fill=${rc.tokens['unchecked.fill']}, control.paintSlots=[${(rc.anatomy!.parts.control.paintSlots ?? []).join(', ')}])`);
+  //   (c) the BORDER WEIGHT is CONSTANT across selection — one `border-width.thick` (2px) key on the
+  //   `control`, no per-selection weight binding, so selection never THICKENS the ring (the pre-split
+  //   filled-disc cue). #1423 made the ring RECOLOR on select (pinned separately below), but its WEIGHT
+  //   still does not move — a border-thickening cue on select would add a per-selection weight key and
+  //   break this by name. This is the half of #1348's "constant border" that survives #1423.
+  ok(rc.tokens['border-width'] === 'border-width.thick'
+     && rc.tokens['checked.border-width'] === undefined && rc.tokens['unchecked.border-width'] === undefined
+     && rc.anatomy!.parts.control.strokeWidth === 'border-width',
+    `#1348 radio-control's ring WEIGHT is constant across selection — one 2px key (${rc.tokens['border-width']}) named by the control's strokeWidth, no per-selection thickening (checked=${rc.tokens['checked.border-width']}, unchecked=${rc.tokens['unchecked.border-width']})`);
+  //   (d) the inner dot's ink is the brand fill AGAINST THE PAGE (the ring is unfilled) — the same token the
+  //   pre-split filled disc used, now read as a dot on the page (measured 3:1-clearing there).
+  ok(rc.tokens['checked.indicator'] === 'color.interactive.primary.fill.selected',
+    `#1348 the inner dot's ink is the brand fill on the page (${rc.tokens['checked.indicator']})`);
+
+  // ---- #1423: THE RING RECOLORS ON SELECT — the CHECKED ring binds the INTERACTIVE family, NOT field-border.
+  // Pinned BY NAME independently of the projector, the same shape as #1349's disabled-edge rebind. arm (3c)
+  // above dropped its color-equality clause (it now pins WEIGHT only), so this is the arm that gates the
+  // recolor: reverting `checked.border.*` back to `color.field.border.*` (the pre-#1423 fully-constant-color
+  // ring, still the named fork in notes.contested) fails the NAMED assertions below rather than the ring
+  // silently going grey again. The UNCHECKED ring must STAY neutral (Prism 2 ships its `selected=false` ring
+  // grey, #82899D), so this also pins that the two selections DIFFER — a rebind of BOTH selections to
+  // interactive would erase Prism 2's neutral unchecked edge and is not what #1423 asks for.
+  ok(rc.tokens['checked.border'] === 'color.interactive.primary.border.rest'
+     && rc.tokens['checked.border.hover'] === 'color.interactive.primary.border.hover'
+     && rc.tokens['checked.border.pressed'] === 'color.interactive.primary.border.pressed',
+    `#1423 radio-control's CHECKED ring binds the INTERACTIVE family per-state (rest=${rc.tokens['checked.border']}, hover=${rc.tokens['checked.border.hover']}, pressed=${rc.tokens['checked.border.pressed']})`);
+  ok(rc.tokens['checked.border'] !== 'color.field.border.rest'
+     && rc.tokens['checked.border.hover'] !== 'color.field.border.hover'
+     && rc.tokens['checked.border'] !== rc.tokens['unchecked.border'],
+    `#1423 radio-control's CHECKED ring is NOT the field-border role and DIFFERS from the unchecked ring (checked=${rc.tokens['checked.border']}, unchecked=${rc.tokens['unchecked.border']}) — the recolor, not a fully-constant-color ring`);
+  ok(rc.tokens['unchecked.border'] === 'color.field.border.rest'
+     && rc.tokens['unchecked.border.hover'] === 'color.field.border.hover',
+    `#1423 radio-control's UNCHECKED ring STAYS the neutral field-border edge (rest=${rc.tokens['unchecked.border']}, hover=${rc.tokens['unchecked.border.hover']}) — Prism 2's grey selected=false ring`);
+  // …and the recolored CHECKED ring keeps a live SC 1.4.11 3:1 contract as a graphical object on the page.
+  // The interactive border role is gated against `background.primary` at `nonTextMin` (modes.ts `iBorder`,
+  // rated to clear it), so the role's own measured ratio IS the ring-vs-page ratio. Measured live via
+  // resolveAllModes (independent of the def) across the example brands × every mode — the same sweep #1349 uses.
+  // Read defensively — a mutation reverting the rebind may DROP the `pressed` key entirely (the pre-#1423
+  // field-border ring had none), and this sweep must not crash on it: the by-name EQUALS/NOT assertions
+  // above are what fire on the revert (docs/34 rule 4), while this sweep proves the bound roles clear 3:1.
+  const ringInkRoles = ['checked.border', 'checked.border.hover', 'checked.border.pressed']
+    .map((k) => rc.tokens[k])
+    .filter((v): v is string => v !== undefined)
+    .map((v) => v.replace(/^color\./, ''));
+  let ringRatios = 0;
+  for (const id of EXAMPLE_IDS) {
+    for (const M of resolveAllModes(brandTheme(exampleBrands()[id] as BrandInput))) {
+      for (const roleName of ringInkRoles) {
+        const role = (M.roles as Record<string, { ratio?: number; min?: number } | undefined>)[roleName];
+        ok(!!role && typeof role.ratio === 'number' && role.ratio >= 3,
+          `#1423 radio-control: ${id}/${M.mode} recolored checked ring (${roleName}) clears 3:1 as a graphical object (ratio ${role?.ratio})`);
+        ringRatios++;
+      }
+    }
+  }
+  // Floor is the FULL expected shape (3 checked-ring states × every brand × every mode), a literal 3 rather
+  // than `ringInkRoles.length` so a revert that drops the `pressed` rung fails this by name too — an empty or
+  // short sweep is not a quiet pass (docs/34 shape 9).
+  ok(ringInkRoles.length === 3 && ringRatios >= EXAMPLE_IDS.length * 3,
+    `#1423 radio-control: the 3:1 ring sweep ran over all 3 checked-ring states × every brand×mode (roles ${ringInkRoles.length}, measured ${ringRatios} ratios, not an empty or short set)`);
+
+  // MUTATION-BY-NAME (docs/34): reverting to the pre-split FILLED DISC — a checked.fill binding plus the
+  // fill slot back on the control — is the exact regression #1348 undoes. With the def mutated inline to
+  // that model, the projected checked ring carries a fill and arm (3b)'s "no fill" reading flips. The
+  // subject is the def (mutated), the oracle is the projected plan.
+  const filledDisc = { ...rc, tokens: { ...rc.tokens, 'checked.fill': 'color.interactive.primary.fill.selected' },
+    anatomy: { ...rc.anatomy!, parts: { ...rc.anatomy!.parts,
+      control: { ...rc.anatomy!.parts.control, paintSlots: ['fill', 'border'] } } } } as typeof rc;
+  const mutFillVars = planBoundVars(figmaAnatomyPlan(filledDisc, 'medium', { selection: 'checked', state: 'rest' }).root);
+  ok(mutFillVars.some((v) => v.startsWith('color/interactive/primary/fill')),
+    `#1348 MUTATION: with a filled-disc checked.fill restored the checked ring DOES paint a fill — arm (3b)'s no-fill reading gates the real outlined ring, not the def text (fill vars: ${mutFillVars.filter((v) => v.includes('fill')).join(', ') || 'none'})`);
+
+  // (4) THE F2 CIRCULAR FOCUS RING (#1348 point 3), CONFIRMED not re-derived. F2 (#1388) derives the ring
+  // radius concentrically off the host at paste; a full-round host (radius ≥ half its side) yields a
+  // circular ring. This arm confirms radio-control IS a full-round host — its control binds `radius.round`
+  // — so the #1388 execution block's full-round-host → circular-ring derivation applies to radio. The
+  // derivation itself is gated in that block (`anatomy/ring #1388`); this is the confirmation the owner asked for.
+  ok(rc.tokens['radius'] === 'radius.round' && rc.anatomy!.parts.control.radius === 'radius'
+     && rc.anatomy!.parts.focusRing?.nests === 'focus-ring',
+    `#1348 radio-control's control is a FULL-ROUND host (radius→${rc.tokens['radius']}) nesting focus-ring, so F2/#1388 yields a CIRCULAR focus ring by construction — confirmed, not re-derived`);
 }
 
 // ---- #1039: MATERIALIZATION RENAMES — check 2, and the table that proves check 1's shape ----------

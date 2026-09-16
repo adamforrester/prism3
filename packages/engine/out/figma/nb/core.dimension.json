@@ -45,6 +45,20 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "nbds/core/dimension/3",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT",
+        "GAP",
+        "CORNER_RADIUS",
+        "STROKE_FLOAT"
+      ],
+      "description": "3px — dimension primitive",
+      "value": 3,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "nbds/core/dimension/4",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -143,6 +157,20 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "nbds/core/dimension/18",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT",
+        "GAP",
+        "CORNER_RADIUS",
+        "STROKE_FLOAT"
+      ],
+      "description": "18px — dimension primitive",
+      "value": 18,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "nbds/core/dimension/20",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -181,6 +209,20 @@
       ],
       "description": "28px — dimension primitive",
       "value": 28,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "nbds/core/dimension/30",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT",
+        "GAP",
+        "CORNER_RADIUS",
+        "STROKE_FLOAT"
+      ],
+      "description": "30px — dimension primitive",
+      "value": 30,
       "alias": null,
       "hiddenFromPublishing": true
     },

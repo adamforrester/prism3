@@ -1,491 +1,175 @@
 /**
- * Switch — the control that CLOSES the selection-control decomposition arc, and closes it by
- * SUBTRACTING (KB `components/switch.md`, `docs/40` §7). A binary on/off setting that takes effect
- * immediately: no save, no submit, the flip IS the input and the execution command.
+ * Switch — the labelled ROW that NESTS `switch-control` (#1354, the #1226/#1330 decomposition a third
+ * time). A binary on/off setting that takes effect IMMEDIATELY: no save, no submit, the flip IS the
+ * input and the execution command. The painted track-and-thumb moved to `switch-control`; this def is
+ * the labelled row that nests one instance of it in flow, `nest-exposed`, and paints the label.
  *
- * The brief's framing, and everything below follows from one word: *"a switch applies its change the
- * instant you flip it, and everything contested about the component — the async model, the ARIA role,
- * the motion, even the label — follows from taking `immediate` seriously."* The boundary with checkbox
- * is therefore TOPOLOGICAL rather than visual: if a Save/Submit button sits anywhere in the flow the
- * change is staged and it is a Checkbox; if the change is live the instant you toggle, it is this.
+ * The boundary with checkbox is TOPOLOGICAL rather than visual: if a Save/Submit button sits anywhere
+ * in the flow the change is staged and it is a Checkbox; if the change is live the instant you toggle,
+ * it is this.
+ *
+ * ── THE DECOMPOSITION, AND THE COMPOSITION CHECK #1354 REQUIRED ────────────────────────────────────
+ *
+ * #1354 (owner, 2026-09-10) decomposes switch into a nest-exposed control primitive + the atom,
+ * consistent with checkbox (#1330) and radio, with one precondition: confirm something actually NESTS a
+ * switch-control before building the split. It does — the switch was ALREADY a row that contains a
+ * control subtree (`row → trackBox → track → {thumb, focusRing}`), the exact shape checkbox had before
+ * #1226 split it, so the split produces a genuine nester: this Row nests ONE `switch-control`, and the
+ * atom has a consumer. The full composition reasoning is in `switch-control.ts`.
+ *
+ * The Row projects a SIZE-ONLY Figma set (2 members). `selection` (off/on) and `state` live on the
+ * nested `switch-control` and are EXPOSED from it — surfaced as the consumer's properties on the Row
+ * (Figma exposed nested-instance properties; React props; `.ai.json` options) — so the consumer drives
+ * them from the parent instead of the Row re-enumerating them into its OWN variant matrix. Before #1354
+ * the switch declared `variantAxes: ['selection', 'size']` + a 6-value `stateAxis` and authored the
+ * track/thumb in place: 2 × 2 × 6 = 24 members. The collapse is 24 → 2; the atom carries the 24.
+ *
+ * ── THE X / CHECKMARK IN THE THUMB (#1354) ─────────────────────────────────────────────────────────
+ *
+ * Prism 2 ships a glyph inside the handle (`checkLine` on, `closeLine` off). #1354 adds it as the state
+ * affordance — a cue beyond track color and thumb position — wired via the existing `showStateLabel`
+ * prop. It lives on `switch-control` (a `check`/`close` vector in the thumb, gated on `selection`), and
+ * the Row exposes `showStateLabel` alongside `selection` and `state`. The full treatment, and why it is
+ * a code-gate rather than a variant axis, is in `switch-control.ts`.
  *
  * ── THERE IS NO `SwitchGroup`, AND THAT ABSENCE IS THE ARC'S CLOSING MOVE ────────────────────────
  *
- * `checkbox` filed the group as a separate component (#901) and could afford to leave it there.
- * `radio` could not — name-grouping is what makes a radio a radio — and said so at length. **Switch
- * removes the group entirely**, and both of the brief's research passes confirmed that without
- * hesitation. So the three defs read: checkbox OPTIONAL group, radio MANDATORY, switch NONE.
+ * Checkbox filed the group as a separate component (#901); radio's is mandatory; switch removes it
+ * entirely. A settings panel of switches (Email / SMS / Push) is a List of rows — layout — not a
+ * selection group: each switch fires its own distinct instant mutation and owns its own boolean.
+ * Shipping a `SwitchGroup` would invite the anti-pattern of compiling a multi-select array, which is
+ * checkbox's job. This is the one place in the family where an omission is the decision.
  *
- * This is the one place in the family where an omission is a decision that needed making rather than
- * a def that is missing a piece. A settings panel of switches (Email / SMS / Push) is a **List of
- * rows** — layout — and not a selection group: each switch fires its own distinct instant mutation
- * and owns its own independent boolean. Shipping a `SwitchGroup` would actively INVITE the
- * anti-pattern of using switches to compile a multi-select array, which is checkbox's job. #901 is
- * therefore narrowed rather than widened by this def: it covers checkbox's and radio's groups, and
- * switch adds nothing to it.
+ * ── `[off, on]`, `inherits`, AND THE REST OF THE FAMILY DECISIONS ──────────────────────────────────
  *
- * ── `selection: [off, on]` — A DECISION TAKEN, NOT A DEFAULT INHERITED (#910) ────────────────────
+ * The `selection` values are `[off, on]`, a decision taken against #910's ARIA recommendation and
+ * argued at length in `VARIANT_AXES`'s header and `notes.contested`: the values describe what is on
+ * SCREEN and appear in no ARIA tree; `role="switch"` is ANNOUNCED "on"/"off"; and `checked` is the word
+ * that carries this component's most common misuse. They now live on `switch-control` (the def that
+ * carries the `selection` axis), and the Row exposes them. `inherits: 'checkbox-row'` (renamed from
+ * `checkbox`, #1347) is prose for a human (nothing in the engine resolves it): the form-field substrate
+ * reaches this def through the checkbox Row.
  *
- * #910 settled the axis NAME for the family and deliberately left the VALUES open, with the
- * recommendation that they follow ARIA — `aria-checked` covers `checkbox`, `radio` **and**
- * `role="switch"` — and with the instruction that *"a switch spelling its axis `[off, on]` should be
- * a decision somebody takes rather than a default nobody noticed."* Taking it: **`[off, on]`**,
- * against the recommendation, on three grounds that are about what the values are FOR.
+ * ── THE LABEL LEADS, WHICH IS THE FAMILY'S ONE STRUCTURAL DIVERGENCE ────────────────────────────────
  *
- *   1. **The values are the paint-key vocabulary, and paint keys describe what is on screen.** These
- *      strings appear nowhere in an ARIA tree — they lead `off.fill`, `on.fill.hover`, and they are
- *      read by a designer looking at a Figma variant and by `paintOf` resolving a coordinate. What
- *      `aria-checked` is spelled in the DOM is a fact about the implementation, and this def already
- *      records it in `accessibility.role` where it is checkable prose. The two do not have to agree
- *      because they answer different questions, and #910's own asymmetry — *names close, values stay
- *      open* — is precisely the room to say so.
- *   2. **`role="switch"` is announced "ON" and "OFF", not "checked" and "unchecked."** That is the
- *      whole reason the role exists rather than reusing `role="checkbox"`, and the brief calls the
- *      distinction *"the whole game"*. So ARIA's *property* is `aria-checked` while ARIA's *output*
- *      is on/off — and following the recommendation to the letter would make the def's vocabulary
- *      disagree with what a screen-reader user actually hears.
- *   3. **`checked` is the word that carries the misuse.** Reaching for a switch when the change is
- *      staged is this component's most common defect (the brief's progressive-disclosure trap), and
- *      it is a checkbox that a consumer wanted. A def whose axis is spelled `[unchecked, checked]`
- *      reads as a checkbox with a different skin, which is exactly the 2016-era mistake §13 says the
- *      field spent a decade correcting.
+ * Brief §3: the label LEADS and the control TRAILS, because a switch's habitat is a settings row where
+ * the eye expects the toggle at the trailing edge — the opposite of checkbox and radio. It is a PROP
+ * (`labelPosition`, default `leading`) and not a `variants` axis: it reverses a row's child order and
+ * paints nothing, so it is an anatomy concern. The anatomy states the default (`row.children` is
+ * `[label, control]`); the flipped order stays in `codeOnly`.
  *
- * **What this costs, stated because it is the reason #910 asked for a decision rather than a
- * preference.** The family's three defs now spell one axis two ways — `[unchecked, checked,
- * indeterminate]`, `[unchecked, checked]`, `[off, on]` — and **nothing in the engine checks that, or
- * can.** `VARIANT_AXES` closes NAMES; there is no cross-def values census anywhere (measured: the
- * only census in the corpus is the authored prose table in `component-schema.ts`, and it counts DEFS
- * per axis, not values). So this divergence is invisible to every gate and is held by the schema's
- * census paragraph and this header alone. If the family should have one vocabulary, `[off, on]` is
- * the entry to delete — and the argument above is what has to be defeated, not the count.
+ * ── `pending` AND `error` ARE THE ROW'S, AND `error` IS AN OUTCOME ─────────────────────────────────
  *
- * ── `inherits`, AND THE SAME TWO-LINK CHAIN RADIO COULD NOT WRITE DOWN ──────────────────────────
- *
- * `inherits: 'checkbox'`. Brief §15 states `inherits: [text-field, checkbox]` — a chain — and
- * `ComponentDef.inherits` is a single string. So the nearest parent is named and the rest is this
- * sentence: the form-field substrate (`description`/helper, `error`, the `aria-describedby` wiring,
- * `id`/`disabled`/`readOnly`) reaches this def THROUGH `checkbox`, along with checkbox's own row
- * shape — the rich-content label that doubles as the hit target, and native DOM naming.
- *
- * As on `textarea`, `checkbox` and `radio`, **nothing in the engine resolves `inherits`**: it is prose
- * for a human, `props` is the delta a human reads, and `states`/`variants`/`tokens`/`paintKeys` are
- * authored locally in full because all four have machinery behind them.
- *
- * ── THE LABEL SIDE IS THE FIRST DIVERGENCE FROM ITS TWO SIBLINGS, AND IT IS NOT AN AXIS ─────────
- *
- * Brief §3 is emphatic that this is switch's structural divergence: the label LEADS and the control
- * TRAILS, because a switch's habitat is a settings row where the eye expects the toggle at the
- * trailing edge — the opposite of checkbox and radio, where the control leads. The brief exposes it
- * as a `labelPosition` prop and defaults it to `leading`.
- *
- * **It is a PROP here and not a `variants` axis, deliberately.** `variants` is what the projector
- * crosses into coordinates and what `paintOf` resolves against, and label side changes no ink at any
- * coordinate — it reverses a row's `direction`. That makes it an ANATOMY concern, and the anatomy
- * block states the DEFAULT (`row.children` is `[label, track]`) while the flipped order stays out of
- * reach: a prop is not a coordinate, and a row has one child order. Declaring it as an axis would
- * double every paint coordinate for a distinction that paints nothing: #758's shape, a member that
- * projects and has no color to carry. `notes.unverified` carries what is still missing, RTL included.
- *
- * ── `pending` IS DECLARED, AND IT IS THE ONLY DEF IN THE FAMILY THAT DECLARES IT ────────────────
- *
- * Brief §4 calls loading/pending *"first-class here — the state that exists BECAUSE immediacy meets
- * latency"*, and §3 makes the async contract the load-bearing switch-specific API: optimistic by
- * default (immediacy is the point), revert-and-message on failure, plus a first-class `pending` lock
- * for high-latency or critical toggles where an inconsistent intermediate is genuinely harmful.
- *
- * `pending` is already in `STATES` (#843 put it there for `button`, and `text-field`/`textarea` carry
- * it), so this costs no vocabulary change. **It binds no paint**, and that is measured rather than
- * assumed: the tier emits no pending ink, and `button` — which has declared `pending` since #843 —
- * binds nothing for it either (grepped: zero `pending` keys across all ten existing defs). What the
- * pending state actually changes is the THUMB's content (a spinner replaces it) and the track's
- * interactivity. The first of those is now expressible — `button`'s `overlay` part is exactly that
- * shape (#848) — and is deliberately not expressed: it is admitted in `anatomy.codeOnly` rather than
- * authored, because a spinner part is a second concern in a PR whose subject is the travel. So the
- * state is declared because the coordinate is real and a consumer must implement it, and the notes say
- * the ink is absent rather than letting a reader infer the state is decorative.
- *
- * ── `error` IS AN OUTCOME, NOT A VALIDATION — THE SHARPEST STATE DIFFERENCE FROM CHECKBOX ───────
- *
- * Brief §4: *"an optimistic update FAILED — revert the thumb, error-color the track, link a message
- * via aria-describedby; this is OUTCOME error (the toggle didn't take), not validation error."* Same
- * coordinate name as checkbox's and radio's, opposite semantics — theirs fires when a form is
- * submitted with a required box unticked, this one fires when the network refused. The binding is
- * identical (`color.border.danger` on the track) and the CONTENT rule is not, which is why
- * `content.errorPattern` says what didn't happen and that it reverted, rather than what to fix.
- *
- * ── THE PAINT GRAMMAR IS AXIS-LED, INHERITED, AND ADDS NO EXEMPTION ─────────────────────────────
- *
- * `['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}']` — checkbox's grammar exactly, as
- * radio's is. **`radio`'s header predicted this def would do the same and it does**, which is worth
- * saying because the prediction is the point of having recorded it: the exemption that makes an
- * axis-led `selection` legal is declared ONCE, per AXIS, in `lint-paint.ts`'s `NON_FAMILY_AXES`, and
- * this is the third def to inherit it for free. Checkbox paid ~20 renames, once, after first shipping
- * slot-led and being corrected in review against the house rule — *a false positive is fixed by
- * adding to the exemption list, never by narrowing a scan.*
- *
- * **Whether switch's arithmetic changes that, with the number rather than the impression** (#910's
- * table is the model). Counted from the defs rather than estimated:
- *
- *     checkbox   26 color bindings, 20 selection-keyed
- *     radio      18 color bindings, 12 selection-keyed
- *     switch     22 color bindings, 16 selection-keyed
- *
- * So switch sits between its two siblings and the tradeoff moves in the same direction as checkbox's
- * without reaching it. Had the exemption been per-KEY rather than per-AXIS, this def would have added
- * **16 more entries** to a register whose entire value is being short enough that someone reads it —
- * on top of checkbox's 20 and radio's 12, for 48 across the family. That is the saving #910 bought by
- * declaring it once per axis, and nothing here re-opens it. Worth noting that #910's PR body estimated
- * checkbox's own cost at "~16 entries" and the measured figure is 20; the direction of its argument is
- * unaffected, and the correction is here because the estimate is the number a reader would reuse.
- *
- * Know the cost before reading the grammar as covered: **arm 1 fires only on a key whose LEADING
- * segment is a declared axis value, and `selection` is exempt from it per-axis** — so none of these
- * 16 bindings is checked by arm 1, and nothing else checks them either (#916). The gate PRINTS that
- * per axis on every run, which is the whole difference from the slot-led shape.
- *
- * ── THE RUNG OFFSET, AND WHY THERE ARE ONLY TWO RUNGS (#756, `docs/40` §7 step 2) ───────────────
- *
- * `size: [small, medium]` — brief §15, verbatim: *"switches rarely warrant a large."* This is the
- * first divergence from checkbox's and radio's three, and **`field-label` is the precedent** rather
- * than this def inventing a shape: two rungs is an established vocabulary in the corpus.
- *
- * `size.small.gap → size.sm.gap`, `size.medium.gap → size.md.gap`, same for `min-height → height`.
- * The def's enum is the CONSUMER's vocabulary and the ref is the ENGINE's tier; the engine's names
- * win. `medium → md` satisfies #756's default rule. Recorded here because the rule is that the author
- * records it where they MEET it, and *"the three defs before me already did"* is how the next def
- * stops doing so.
- *
- * ── #900's THIRD INSTANCE, NOW BOUND — AND IT IS THE INSTANCE THAT SHAPED THE FAMILY ────────────
- *
- * **The track and the thumb are bound, and the field they read exists because of this def.** When
- * this def first landed, all three dimensions were unbound for checkbox's and radio's reason:
- * `icon.size.*` has values that are exactly right (16 / 20 / 24, identical in all four brands) and a
- * meaning that is not — it is the GLYPH ARTBOARD ladder — so binding it resolves, typechecks and
- * passes every gate while measuring the wrong thing (#708's shape).
- *
- * **What this instance added was the constraint the first two could not supply: a switch's track is
- * not square.** A single `control.size.*` rung satisfies checkbox and radio and does nothing here, so
- * the question #900 had to answer was not *"what rung"* but *"how many dimensions does a control-size
- * family carry"*. The answer is three: `height` (16/20/24 comfortable, 12/16/20 compact), `width` (2x
- * the height — the ratio the field converges on), and `dot` (half the height, added for radio). This
- * def binds all three, and **`width` had been emitted and bound by nothing at all until now** — its
- * own description in the emitted tree names the consumer it was waiting for: *"track width for a
- * two-position control, i.e. a switch."*
- *
- * Two facts survive the binding rather than being closed by it, and both are in `notes.unverified`
- * because they are the ones a reader should check first. **The brief specifies no numeric track width,
- * track height or thumb diameter anywhere** — §4 gives "thumb position + stark track-color contrast",
- * §8 gives durations, §15's schema carries no dimension — so these bindings satisfy the TIER's stated
- * intent and no brief-supplied target. And `dot` at half the height was decided for a dot inside a
- * ring; on a thumb it is the low end of what the field ships, and nobody has built one and looked.
- *
- * ── THE THUMB TRAVELS, AND THAT COST THE SCHEMA A MECHANISM (#990) ───────────────────────────────
- *
- * A switch is the first component in the corpus where **a part's POSITION is a function of a variant
- * axis**, and nothing in `PartDef` could say so. The anatomy block below is what closed it, with the
- * thumb declaring `positionWhen: { selection: { off: 'start', on: 'end' } }` — one part, two places.
- *
- * The alternative was two parts gated by `presentWhen`, `thumb-off` and `thumb-on`, which needed no
- * new mechanism and was rejected: it is a modelling lie a code projection inherits (two elements
- * toggled, where every real switch is one element that translates), it duplicates every binding on
- * the moving part with nothing catching divergence, and it is #933's shape — a field doing a second
- * job in place of the second concept being named.
- *
- * **The mechanism's limit, stated because it is the projection's and not this def's.** Figma auto
- * layout offers no per-child main-axis offset: `layoutAlign`'s MIN/CENTER/MAX are deprecated by Figma
- * and are the counter axis anyway, and `layoutGrow` is a 0/1 stretch flag. Main-axis distribution
- * exists only on the frame, as `primaryAxisAlignItems` — so the travel projects onto the TRACK, which
- * is why the track must be `fixed` along that axis and why the thumb must be its only flow child.
- * Three positions is therefore the ceiling: a 2- or 3-value axis travels, and a slider's continuous
- * thumb or a four-segment indicator does not.
- *
- * ── THE OFF-STATE TRACK NEEDS A BORDER, AND THIS IS MEASURED RATHER THAN INHERITED ──────────────
- *
- * Brief §6 puts it in the WCAG list explicitly: *"the off-state track must be distinguishable from
- * the background"* (1.4.11). Measured across all four brands at the emitted values, the off track's
- * FILL cannot do that at any brand:
- *
- *     off track fill  `color.interactive.neutral.fill.rest` vs page   1.29 – 1.58 : 1
- *     off track fill  `color.field.fill`                    vs page   1.14 – 1.22 : 1
- *     off track BORDER `color.interactive.neutral.border.rest` vs page  3.20 – 3.28 : 1  ✓
- *
- * So the border is load-bearing rather than decorative here, exactly as it is on checkbox's empty box
- * — and the fill choice follows from a second measurement rather than from matching checkbox: the
- * track binds `color.interactive.neutral.fill.rest` (the interactive family) where checkbox and radio
- * bind `color.field.fill` (the form-field family). **The reason is the thumb.** A white thumb on
- * `color.field.fill` is 1.14 – 1.22:1 and invisible; on `interactive.neutral.fill.rest` it is
- * 1.57 – 1.58:1 and still invisible. Neither works, so the off thumb takes the DARK ink
- * (`interactive.neutral.on-fill`) at **12.33 – 12.36:1** against the interactive fill, and that
- * pairing exists only in the interactive family. This is also the honest reading of the brief's
- * §6 rule — *thumb POSITION distinguishes on/off, not track color alone* — since a boundary the eye
- * cannot find is a position it cannot read.
- *
- * **The thumb is therefore SELECTION-KEYED, which no sibling's glyph is, and it had to be.** Measured:
- * no single ink in the emitted tier clears 3:1 against BOTH tracks. The best candidate,
- * `interactive.primary.border.pressed`, reaches 4.36:1 on the off track and **1.00:1** on the on
- * track — the two tracks sit on opposite sides of the luminance range, so one ink cannot bound both.
- * `off.icon` takes the dark ink and `on.icon` takes `primary.on-fill` (6.85 – 9.96:1 on the on
- * track). That is a structural consequence of a two-position control rather than a styling choice,
- * and it is the measurement a reader should check before "simplifying" the two keys into one.
- *
- * ── `read-only` IS DECLARED AND BINDS NOTHING, FOR A MEASURED REASON THIS TIME ──────────────────
- *
- * Brief §4 SUPPORTS read-only against its own first instinct, on the external pass's admin-review
- * argument: `aria-readonly="true"`, focusable, in the tab order, at **full contrast** (unlike
- * disabled), and visually distinct from disabled. The state is declared for that reason.
- *
- * It binds nothing, and unlike checkbox's and radio's — where the answer was simply that no ink
- * exists — here a candidate exists and was **measured and rejected**: `text-field` binds
- * `border.read-only: 'color.border.secondary'`, and `color.border.secondary` resolves to the SAME
- * palette step as `color.interactive.neutral.border.rest` in all four brands (nb `neutral.400`,
- * harbor `neutral.450`, wendys/aurora `neutral.400`). Binding it would produce a read-only switch
- * pixel-identical to a rest switch while reading in the def as though the brief's *"visually distinct
- * from disabled"* requirement had been met. The brief's own answer is a **lock affordance** — a
- * glyph, not an ink — which is anatomy. So nothing is bound and `notes.unverified` carries the
- * measurement, because "no token exists" and "the token that exists is the same color" are different
- * facts and only one of them is true here.
+ * `pending` (brief §4, first-class here) locks input, swaps the thumb for a spinner and announces
+ * `aria-busy`. `error` is an OUTCOME failure (the optimistic update did not take, revert the thumb,
+ * error-color the track), not a validation failure — same coordinate name as checkbox's, opposite
+ * semantics. Both are in `states` for the code projection; the Figma set is size-only, so neither
+ * enumerates (the nested control's `state` is exposed and the consumer drives it).
  */
 import { ComponentDef } from '../component-schema';
 
 export const switchDef: ComponentDef = {
   id: 'switch',
   name: 'Switch',
-  // The brief's aliases (§10), plus `switch-group` for the reason `radio` keeps `radio-group`: an
-  // agent reaching for a group should land on the nearest thing that exists and read why there is no
-  // group, rather than matching nothing at all. Here that is sharper than on radio — the group does
-  // not exist and is not coming, so the alias routes to a decision rather than to a pending def.
+  // The brief's aliases (§10), plus `switch-group` so an agent reaching for a group lands on the
+  // nearest thing that exists and reads why there is none, rather than matching nothing.
   aliases: ['toggle', 'toggle-switch', 'on-off', 'switch-group'],
   category: 'form',
   status: 'draft',
-  inherits: 'checkbox',
+  inherits: 'checkbox-row',
   description:
-    'A control for a binary on/off setting that takes effect IMMEDIATELY — no save, no submit; the flip is both the input and the execution command. Independent by definition: there is NO SwitchGroup, which closes the selection-control decomposition arc (checkbox has an optional group, radio a mandatory one, switch none). A settings list of switches is a list of rows, not a selection group. Not a staged binary submitted with a form (Checkbox — if a submit button sits anywhere in the flow, it is a Checkbox), not an action or view-mode toggle (ToggleButton, aria-pressed), not a one-of-two exclusive labelled choice (Radio, Segmented Control).',
+    'A control for a binary on/off setting that takes effect IMMEDIATELY — no save, no submit; the flip is both the input and the execution command. The labelled ROW: it nests a Switch.Control (the track, thumb and state glyph) and carries the setting label, with the whole row as the hit target and the control at the trailing edge. Independent by definition: there is NO SwitchGroup, which closes the selection-control decomposition arc (checkbox has an optional group, radio a mandatory one, switch none). A settings list of switches is a list of rows, not a selection group. Not a staged binary submitted with a form (Checkbox — if a submit button sits anywhere in the flow, it is a Checkbox), not an action or view-mode toggle (ToggleButton, aria-pressed), not a one-of-two exclusive labelled choice (Radio, Segmented Control).',
 
   // THE DELTA ONLY. The field substrate reaches this def through `checkbox` and is not restated.
-  // `name` is absent for a different reason than on radio: radio's belongs to the group, switch's is
-  // simply the field substrate's, unchanged.
   props: [
-    { name: 'checked', type: 'boolean', required: false, description: 'The binary, with `defaultChecked` for the uncontrolled form — native naming (Material\'s `selected` is the field\'s outlier). `onChange` is expected to apply the effect IMMEDIATELY: that expectation is the component\'s contract, not a convention, and a switch whose change is committed by a later Save button is a Checkbox. For an async effect the controlled value is the SERVER-CONFIRMED source of truth with optimistic local state layered over it; checkbox\'s controlled/uncontrolled traps apply unchanged (a controlled `checked` with no `onChange` is a frozen thumb).' },
+    { name: 'checked', type: 'boolean', required: false, description: 'The binary, with `defaultChecked` for the uncontrolled form — native naming. `onChange` is expected to apply the effect IMMEDIATELY: that expectation is the component\'s contract, and a switch whose change is committed by a later Save button is a Checkbox. For an async effect the controlled value is the SERVER-CONFIRMED source of truth with optimistic local state layered over it.' },
     { name: 'label', type: 'node', required: false, description: 'Rich content, and part of the hit target — checkbox\'s label model, inherited. Names the SETTING as a stable noun or adjective phrase ("Airplane Mode"), never the state ("Airplane Mode is On") and never an action ("Turn on Airplane Mode"). It does NOT change on toggle: a label that flips Enable/Disable is disorienting and is a common bug.' },
     { name: 'description', type: 'node', required: false, description: 'Helper beneath the label, describedby-wired. Where the consequence of the setting goes — what turning it on will actually do.' },
-    { name: 'labelPosition', type: "enum: 'leading' | 'trailing'", values: ['leading', 'trailing'], default: 'leading', required: false, description: 'THE STRUCTURAL DIVERGENCE FROM CHECKBOX AND RADIO, where the control always leads. Defaults to label-LEADING because a switch\'s habitat is the settings row, with the toggle at the row\'s trailing edge where the eye expects it; flip to control-leading when a switch sits inline among other form controls, for sibling alignment. A PROP and not a variants axis: it changes a row\'s direction and no ink at any coordinate, so it is an anatomy concern (see the header).' },
-    { name: 'isPending', type: 'boolean', required: false, default: 'false', description: 'FIRST-CLASS HERE, and the state that exists because immediacy meets latency. Locks input, swaps the thumb for a spinner and announces `aria-busy`. The practice ships optimistic-by-default — flip instantly, revert and message on failure — with this as the alternative for high-latency or critical toggles where an inconsistent intermediate is genuinely harmful. Mandating optimism universally puts the orchestration burden on every consumer; mandating the lock kills the immediacy that is the whole component.' },
-    { name: 'readOnly', type: 'boolean', required: false, default: 'false', description: 'SUPPORTED, which is not obvious for a toggle. Enterprise dashboards need users to review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers. So: `aria-readonly="true"`, focusable and IN the tab order, at full WCAG contrast (unlike disabled), and visually distinct from disabled. No clean native readonly exists for a checkbox input — implement via `aria-readonly` plus a prevented toggle.' },
-    { name: 'showStateLabel', type: 'boolean', required: false, default: 'false', description: 'The on/off affordance — an inner-track checkmark or I/O icons, OFF by default, since thumb position plus track color carries the state. Add only where state legibility genuinely demands it. This is NOT hardcoded "On"/"Off" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output ("Airplane Mode On, switch, on"), and does not localize or expand cleanly.' },
-    { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'TWO RUNGS, not three — "switches rarely warrant a large" (brief §15), which is the first size divergence in the family; `field-label` is the corpus precedent for a two-rung ladder. Scales the row: the label-to-control gap, the row\'s minimum height, the label\'s type, the TRACK\'s height and length, and the THUMB\'s diameter. All three control dimensions read `control.size.*`, which moves a full rung with brand density — `icon.size.*` would resolve and measure the wrong thing (see the header) — and the track reads TWO of them, `height` and `width`, because a track is not square. Re-declared rather than inherited because the ladder is read by the machinery (`lint-rung-names.ts` arm 2).' },
+    { name: 'labelPosition', type: "enum: 'leading' | 'trailing'", values: ['leading', 'trailing'], default: 'leading', required: false, description: 'THE STRUCTURAL DIVERGENCE FROM CHECKBOX AND RADIO, where the control always leads. Defaults to label-LEADING because a switch\'s habitat is the settings row, with the toggle at the row\'s trailing edge where the eye expects it; flip to control-leading when a switch sits inline among other form controls. A PROP and not a variants axis: it changes a row\'s direction and no ink at any coordinate, so it is an anatomy concern (see the header).' },
+    { name: 'isPending', type: 'boolean', required: false, default: 'false', description: 'FIRST-CLASS HERE, and the state that exists because immediacy meets latency. Locks input, swaps the thumb for a spinner and announces `aria-busy`. The practice ships optimistic-by-default — flip instantly, revert and message on failure — with this as the alternative for high-latency or critical toggles where an inconsistent intermediate is genuinely harmful.' },
+    { name: 'readOnly', type: 'boolean', required: false, default: 'false', description: 'SUPPORTED, which is not obvious for a toggle. Enterprise dashboards need users to review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers. So: `aria-readonly="true"`, focusable and IN the tab order, at full WCAG contrast (unlike disabled), and visually distinct from disabled.' },
+    { name: 'showStateLabel', type: 'boolean', required: false, default: 'false', description: 'The on/off affordance — a checkmark in the thumb when on, an X when off (Prism 2\'s `checkLine`/`closeLine`), OFF by default since thumb position plus track color carries the state. Add only where state legibility genuinely demands it. Exposed from the nested Switch.Control, which carries the glyph. This is NOT hardcoded "On"/"Off" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output, and does not localize.' },
+    { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'TWO RUNGS, not three — "switches rarely warrant a large" (brief §15); `field-label` is the corpus precedent for a two-rung ladder. Scales the row: the label-to-control gap, the row\'s minimum height, the label\'s type, and — passed through to the nested control by `follow` — the track\'s height and length and the thumb\'s diameter. Re-declared rather than inherited because the ladder is read by the machinery (`lint-rung-names.ts` arm 2).' },
   ],
 
-  // Checkbox's seven, MINUS nothing and PLUS `pending` — the one state addition in the family, and
-  // the brief calls it first-class rather than optional. `error` is declared with the same name and
-  // the opposite meaning: an OUTCOME failure (the toggle didn't take), not a validation failure. See
-  // the header for both.
+  // Checkbox's seven PLUS `pending`. These drive the CODE projection (a disabled Row dims its label);
+  // the Figma set is size-only (the nested control's `state` is exposed). `error` is an OUTCOME failure
+  // here, not a validation failure (see the header). `read-only` and `pending` are admitted in `codeOnly`.
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only', 'pending', 'error'],
 
-  // `[off, on]` is a DECISION, argued at length in the header, and it diverges from checkbox's and
-  // radio's `[unchecked, checked]` on purpose. No indeterminate — `role="switch"` has no
-  // `aria-checked="mixed"` (it coerces to false) and a switch is uncompromisingly binary.
-  //
-  // `label-side` and `affordance` are in brief §15's variants block and are NOT axes here:
-  // `labelPosition` is a prop because it paints nothing (header), and `affordance` selects the thumb's
-  // CONTENT, which is anatomy. Neither is a color dimension, and an axis that paints nothing doubles
-  // every coordinate for no ink.
+  // `size` ONLY since #1354 (the decomposition). `selection` LEFT the Row's variant matrix — it is now
+  // EXPOSED from the nested `switch-control` (the consumer drives it from the parent). `size` STAYS the
+  // Row's own axis: it scales the label's type ramp, the gap and the row's min-height — things the nested
+  // control does not touch — so it is not merely the control's axis. No surface/inverse axis (#871).
   variants: {
     size: ['small', 'medium'],
-    selection: ['off', 'on'],
   },
 
-  // Checkbox's and radio's grammar, unchanged. See the header for the binding arithmetic and for what
-  // arm 1 does and does not check here.
-  paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
+  // ONE KEY GROUP since #1354: the painted track/thumb moved to `switch-control`, so the Row's whole
+  // color surface is the label ink (the bare slot). The `{selection}`-led templates went with the
+  // track; keeping them here with nothing selection-dependent left to resolve would be unreachable keys.
+  paintKeys: ['{slot}'],
 
   tokens: {
-    // ── THE OFF TRACK — the INTERACTIVE-neutral family, where checkbox and radio take the FORM-FIELD
-    // family for their empty box. That is a real divergence and it is forced by the thumb, not chosen:
-    // a white thumb is 1.14–1.22:1 on `color.field.fill` and 1.57–1.58:1 on this fill, so the off
-    // thumb has to take the DARK ink — and `interactive.neutral.on-fill` (12.33–12.36:1 against this
-    // fill) exists only in this family. Full measurements in the header.
-    //
-    // The BORDER is load-bearing rather than decorative: brief §6 requires the off track be
-    // distinguishable from the background (1.4.11), and no fill in the tier clears 3:1 against the
-    // page at any brand — this border clears it at all four (3.20–3.28:1).
-    'off.fill': 'color.interactive.neutral.fill.rest',
-    'off.fill.hover': 'color.interactive.neutral.fill.hover',
-    'off.fill.pressed': 'color.interactive.neutral.fill.pressed',
-    'off.border': 'color.interactive.neutral.border.rest',
-    'off.border.hover': 'color.interactive.neutral.border.hover',
-    'off.border.pressed': 'color.interactive.neutral.border.pressed',
-    'off.border.error': 'color.border.danger',
-    // The OFF thumb, dark on a light track. Keyed by selection because no single ink bounds both
-    // tracks — the best candidate reaches 4.36:1 off and 1.00:1 on. See the header before merging
-    // these two keys.
-    //
-    // THE SLOT IS `indicator`, NOT `icon`, and that follows from the thumb being a BOX rather than a
-    // glyph — radio's dot took the same rename for the same reason (#910). `paintOf` dispatches on the
-    // slot alone (#933), so a box in the `icon` slot resolves nothing and projects unpainted: the whole
-    // thumb, invisible, at every coordinate. The keys were authored `off.icon`/`on.icon` before this def
-    // had an anatomy to say what kind of node the thumb is; the anatomy is what decides the slot.
-    'off.indicator': 'color.interactive.neutral.on-fill',
-
-    // ── THE ON TRACK — the brief's "stark track-color contrast", and the pairing the tier gates:
-    // `on-fill` is contract-checked against the fill the ink sits on, which is what makes a filled
-    // track the safe treatment here for the reason radio's filled disc was chosen over an outlined
-    // ring. 8.20–8.29:1 against the page on three brands, 6.85:1 on aurora.
-    //
-    // NO STRUCTURAL BORDER, and this def is where #1011's third finding is most worth reading, because
-    // its two halves go OPPOSITE ways on one node. The finding was filed on checkbox; radio and switch
-    // inherited the pairing, and the fix is NOT the same fix three times. The off track KEEPS its border
-    // — the comment above already says why, and said so before the rule existed: no neutral fill clears
-    // 3:1 against the page at any brand, so that rim is the only edge the track has and dropping it
-    // would break 1.4.11 rather than tidy it. The ON track loses its border, because the number above is
-    // the whole argument: a fill at 6.85–8.29:1 IS the boundary, so a same-family border beside it can
-    // only agree invisibly or — as shipped, `fill.SELECTED` beside `border.REST`, a rung the border
-    // ladder does not have — disagree visibly.
-    //
-    // That asymmetry is the reason arm 4's rule asks about the FILL and not about the two bindings. The
-    // framings that would have been simpler are all false HERE first: "a selection control never paints
-    // both slots" and "same family, never both" each delete this def's off-track rim, and
-    // `contrast(border, fill) >= 3` flags it as a failure. Only "is the fill already a boundary"
-    // separates the two coordinates of one node correctly.
-    'on.fill': 'color.interactive.primary.fill.selected',
-    'on.fill.hover': 'color.interactive.primary.fill.hover',
-    'on.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'on.border.error': 'color.border.danger',
-    // The ON thumb — light on a dark track, 6.85–9.96:1. `indicator` for the reason above.
-    'on.indicator': 'color.interactive.primary.on-fill',
-
-    // ── THE ROW'S LABEL — one ink at every coordinate, so it is the bare slot. Page text beside the
-    // control, which is why its disabled ink is `disabled.text` and not `disabled.on-fill`.
+    // ── THE ROW'S OWN PAINT IS ONE INK: THE LABEL. Every color binding for the track, thumb, glyphs,
+    // focus ring and borders MOVED to `switch-control` with the painted surface itself. The label sits
+    // BESIDE the control rather than on its fill, which is why its disabled ink is `disabled.text`
+    // (field-label's pairing) and not `disabled.on-fill`.
     'label': 'color.text.primary',
-
-    // ── FOCUS RING — on the TRACK, never the thumb (brief §4), and the CONTROL ring
-    // (`focus.ring.offset`) rather than a field's flush one. 4.56–5.88:1 against the page.
-    'focus-ring': 'color.border.focus',
-    'ring-width': 'focus.ring.width',
-    'ring-offset': 'focus.ring.offset',
-
-    // ── DISABLED SKIN (contrast-exempt, 1.4.3), the shared cross-cutting family. `indicator.on-fill` is
-    // the thumb: the disabled branch appends its own ground, and `on-fill` is the only one it appends.
-    // The thumb sits ON the track's fill, so it is the on-fill pairing the tier gates rather than the
-    // page one — the label, beside the track, takes `disabled.text` instead.
-    'disabled.fill': 'color.disabled.fill',
-    'disabled.border': 'color.disabled.border',
-    'disabled.indicator.on-fill': 'color.disabled.on-fill',
     'disabled.label': 'color.disabled.text',
 
-    // ── GEOMETRY. `radius.round` gives the pill, resolving to `dimension.128` in all four brands —
-    // the same token radio uses for its circle, which is correct rather than a coincidence: a pill and
-    // a circle are both "round as the shape allows", and the tier expresses that as one very large
-    // radius rather than two shapes.
-    'radius': 'radius.round',
+    // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. `min-height` is the code projection's floor; Figma
+    // has no floor, so the row hugs its children and the key stays bound only for code (see `codeOnly`).
     'size.small.gap': 'size.sm.gap',
     'size.medium.gap': 'size.md.gap',
     'size.small.min-height': 'size.sm.height',
     'size.medium.min-height': 'size.md.height',
 
-    // ── THE BORDER'S THICKNESS (#1228), and this def has the strongest claim on it of the three, because
-    // here the border is load-bearing (see the `track` part): it is the ONLY thing that makes an off
-    // track distinguishable from the page, so drawing it at 1px was drawing the whole 1.4.11 argument at
-    // half weight. Prism 2 ships the track at `strokeWeight: 2` / `strokeAlign: INSIDE`
-    // (`reference/Prism2/component-specs/toggle-switch.json`). The flat-2px call and the ratio caution it
-    // overrides are recorded once, in `checkbox.ts`.
-    //
-    // ONE MEASURED CONSEQUENCE, worth stating because nothing asserts it: a Figma INSIDE stroke on an
-    // auto-layout frame with `strokesIncludedInLayout = false` — which both executors set — draws OVER the
-    // padding rather than consuming it, so the thumb's visible clearance is `inset − 2`. The inset ladder
-    // is 3/4/5 at compact, 4/5/6 at comfortable, 5/6/7 at spacious, so the tightest rung in the corpus
-    // (compact `small`, a 12px track) keeps 1px of gap where Prism 2's own 32px/padding-4 track keeps 2px.
-    // It stays a visible gap at every rung, and only on the OFF track: the ON coordinate paints no border
-    // at all (its fill clears 6.85–8.29:1 and IS the boundary), so the thumb travels into full clearance.
-    'border-width': 'border-width.thick',
-
-    // ── THE TRACK'S TWO DIMENSIONS AND THE THUMB'S ONE — #900's third instance, now BOUND. The tier
-    // already carried all three fields: #951 emitted `control.size.<rung>` with `height` and `width`,
-    // and #910 added `dot` for radio. `width` had been emitted and bound by NOTHING until here, and its
-    // own description says why it exists — *"track width for a two-position control, i.e. a switch (2x
-    // the height, the field-convergent track ratio)"*. This def is the consumer it was emitted for.
-    //
-    // `control.size.*` AND NOT `icon.size.*`, the substitution the whole family warns about: `icon.size`
-    // is 16/20/24 in ALL FOUR brands, so binding it would hold the track rigid against exactly the brand
-    // density this family exists to move (aurora is a full rung smaller). Resolves either way and is
-    // checked by property rather than by spelling — see `test.ts`'s consumer-half arm.
-    //
-    // `control` is the HEIGHT and `track` is the WIDTH, which is the naming checkbox and radio set:
-    // `size.*.control` is "this control's own dimension", read on both axes by a square and on one here.
-    // A switch is the def that made the second field necessary — a track is 2:1, so one rung cannot
-    // describe it, and that is the constraint this instance added to #900 rather than confirming.
-    'size.small.control': 'control.size.sm.height',
-    'size.medium.control': 'control.size.md.height',
-
-    // ── THE ALIGNMENT BOX (#1201, building #1009's filed fix). One line of the LABEL tall, per rung —
-    // the baked `body.{rung}` line-box. The track centres inside a box this tall while the ROW stays
-    // top-aligned, so a single-line label reads centred and a wrapping one holds the first line. No
-    // `large` rung: this def is `size: [small, medium]` only. The track centres within its OWN box, never
-    // the row — `test.ts` #1009 half-1.
+    // ── THE ALIGNMENT BOX (#1201). One line of the LABEL tall, per rung — `control.size.*.line-box` is
+    // the baked `body.{rung}` line-box. The nested control centers inside a box this tall while the ROW
+    // stays top-aligned, so on a single line the control reads centered and on a WRAPPING label it holds
+    // the first line instead of floating to the paragraph's middle.
     'size.small.control-box': 'control.size.sm.line-box',
     'size.medium.control-box': 'control.size.md.line-box',
-    'size.small.track': 'control.size.sm.width',
-    'size.medium.track': 'control.size.md.width',
-    // The THUMB's diameter, half the track's height by the tier's construction. The tier anticipated this
-    // consumer by name — *"a control whose mark is a filled shape, i.e. a radio's dot"*, and its comment
-    // says "a switch's thumb when it lands". What the ratio means for a THUMB rather than a dot is in
-    // `notes.unverified`: half is the low end of what the field ships, and nobody has looked at one.
-    'size.small.dot': 'control.size.sm.dot',
-    'size.medium.dot': 'control.size.md.dot',
-    // THE THUMB'S CLEARANCE FROM THE TRACK'S ENDS (#997), read as the track's UNIFORM padding. Without
-    // it the thumb is a flow child of a fixed track distributed MIN/MAX, so its edge lands exactly on
-    // the track's at both extremes — flush, which no shipped switch does. The tier derives it as
-    // `(height − dot) / 2`, so it cannot disagree with the thumb it clears: at every rung the padded
-    // inner box is exactly one thumb TALL, and one thumb short of the track's length, which is the
-    // travel. Prism 2 sites its own thumb the same way — `toggle-switch.json` gives the TRACK
-    // `padding: 4` around a 24px thumb in a 32px track — and the RELATIONSHIP is what transfers; its
-    // literal 4 follows from a 0.75 thumb ratio this tier does not share (see the header).
-    'size.small.inset': 'control.size.sm.inset',
-    'size.medium.inset': 'control.size.md.inset',
-    // The LABEL's type ramp, two rungs where radio has three. `type.body.*` rather than `type.label.*`
-    // for radio's reason — a switch's label is a setting NAME beside a control, not a form field's label
-    // announcing one above it — and it is the only family in the tier carrying every rung anyway.
+
+    // ── THE NESTED CONTROL'S OWN HEIGHT (#1299-style pin). The `control` nest part binds this as its
+    // `height` so the nested instance is PINNED to the switch TRACK height — 24/32 on nb, 16/24 on aurora
+    // (#1425) — and does NOT stretch to fill the `control-box` line box it is centered within. The pin
+    // agrees with the atom's own intrinsic track height (both read `control.size.*.track`), so it fixes
+    // the height without resizing the control. The control is NON-SQUARE (a track is 2:1), so the Row pins
+    // the HEIGHT only; the width is the control's own (`control.size.*.width`, 2× the track), carried by
+    // its variant. `control.size.*.track` and NOT `control.size.*.height` (the smaller square-control box)
+    // and NOT `icon.size.*` — the switch's track is its own tier field (#1425), density-windowed where the
+    // glyph grid is fixed. The atom binds the identical key on its own root.
+    'size.small.control': 'control.size.sm.track',
+    'size.medium.control': 'control.size.md.track',
+
+    // ── THE ROW'S TYPE. `type.body.*` and not `type.label.*` — semantically this is a setting name
+    // sitting BESIDE a control (a settings-row label), not a form field's label announcing one above it,
+    // and `type.body.*` is the only family in the tier carrying every rung. Two rungs, no `large`.
     'size.small.text': 'type.body.sm.default',
     'size.medium.text': 'type.body.md.default',
   },
 
-  // ── ANATOMY (#990) ──────────────────────────────────────────────────────────────────────────────
+  // ── ANATOMY — THE LABELLED ROW THAT NESTS THE CONTROL (#1354) ───────────────────────────────────
   //
-  // Radio's decomposition with ONE structural mutation, and it is the mutation the whole family had been
-  // deferring: **the thumb MOVES.** Four parts — the ROW is the hit target, the TRACK owns the ink
-  // (#933), the THUMB is the mark, an absolute focus ring sits on the track — plus a text label. Every
-  // part but the thumb is radio's, adapted only in its `note`.
+  // Three parts now, not five: the whole ROW is the hit target, `trackBox` is the #1201 line-box
+  // wrapper, and its CHILD is a `nest` of `switch-control` where the track, thumb, glyphs and focus ring
+  // used to be authored in place. The atom paints itself and moves its own thumb; the Row paints the
+  // label. The Row is LABEL-FIRST — the family's one structural divergence — because a switch's habitat
+  // is the settings row with the toggle at the trailing edge.
   //
-  // THE THUMB IS ONE PART IN TWO PLACES, which is what `positionWhen` exists for (#990). The rejected
-  // alternative was two parts, `thumb-off` and `thumb-on`, each gated to one value of `selection` by
-  // `presentWhen`. That shape validates and would have needed no mechanism at all, and it is a modelling
-  // lie in three separate ways: a code projection reading it emits two elements and toggles them, where
-  // every real switch is ONE element that translates; every binding on the thumb exists twice with
-  // nothing in the schema noticing when the copies diverge; and it is #933's shape again — a field made
-  // to do a second job instead of the second concept being named. A position is not an absence.
-  //
-  // WHY THE TRACK BINDS `width` AND IS `fixed` ON BOTH AXES. The travel projects as the TRACK's
-  // `primaryAxisAlignItems` (Figma has no per-child main-axis offset inside auto layout — see
-  // `positionWhen`'s note for the API measurement), and a HUGGING track is exactly as wide as its thumb,
-  // which makes `start` and `end` the same place. So the track's length has to be stated, and #951's
-  // `control.size.*.width` is the number that states it. `anatomyErrors` asserts both halves rather than
-  // trusting this paragraph: a hugging or filling parent, or a second flow child beside the thumb, is
-  // refused at authoring time.
-  //
-  // THE ROW IS LABEL-FIRST, which is the family's one structural divergence: `labelPosition` defaults to
-  // `leading` because a switch's habitat is the settings row with the toggle where the eye expects it.
-  // Checkbox and radio put the control first. The prop is a PROP and not an axis (it paints nothing), so
-  // this order is the default and the flipped one is the code projection's to build.
+  // THE ROW MUST NOT CENTRE. This def's content rules say long labels wrap while the fixed-width track
+  // does not shrink, so `align: center` here would float the control to the middle of a two-line label
+  // (the wrong repair `test.ts` #1009 half-1 forbids). The row stays top-aligned (`align: start`) and
+  // the centering lives one level down, in `trackBox`, which is one line-box tall.
   anatomy: {
     root: 'row',
     parts: {
-      // THE HIT TARGET, and nothing else. No `paintSlots` (#933): this def keys no row-level fill or
-      // border for one to name. `align: 'start'` on the cross axis, and the ROW must NOT centre — this
-      // def's content rules say long labels wrap while the fixed-width track does not shrink, so
-      // `align: center` here would float the track to the middle of a two-line label (the wrong repair
-      // `test.ts` #1009 half-1 forbids). Centring the track against its label happens one level down,
-      // inside `trackBox`, which is one line-box tall; top-aligning it here lands the track on the first
-      // line (#1201). Its extent comes from its children; `min-height` is the row's FLOOR and is in
-      // `codeOnly`, because Figma has no floor.
+      // THE HIT TARGET, and nothing else. No `paintSlots` (#933): this box is structure, and the def keys
+      // no row-level fill or border for it to name. LABEL-FIRST: `children` is `[label, trackBox]`, the
+      // switch's structural divergence. Its extent comes from its children; `min-height` is the row's
+      // FLOOR and is in `codeOnly`, because Figma has no floor.
       row: {
         kind: 'box',
         role: 'target',
@@ -493,127 +177,83 @@ export const switchDef: ComponentDef = {
         gap: 'size.{size}.gap',
         children: ['label', 'trackBox'],
       },
-      // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). One line of the label tall
-      // (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the track on its cross
-      // axis. Draws nothing — it gives the track a line-tall box to centre within, so the top-aligned row
-      // holds it on the FIRST line of a wrapping label. Height FIXED; width HUGs the (2:1) track.
+      // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
+      // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the track's fill
+      // and not on it. LEADS the control.
+      label: {
+        kind: 'text',
+        type: 'size.{size}.text',
+        note: 'The accessible name AND the second half of the hit target. Names the SETTING as a stable noun phrase and does not change on toggle — a label flipping between Enable and Disable is this component\'s most common copy bug. Rich content in code; a plain text node in Figma. Must NOT become hardcoded "On"/"Off" text beside the name, which duplicates the screen-reader output and does not localize.',
+      },
+      // THE ALIGNMENT BOX (#1201). One line of the label tall (`size.{size}.control-box` → the baked
+      // `body.{rung}` line-box), centering the control on its cross axis. Draws nothing — it gives the
+      // control a line-tall box to center within, so the top-aligned row holds it on the FIRST line of a
+      // wrapping label. Height FIXED; width HUGs the (2:1) control.
       trackBox: {
         kind: 'box',
         role: 'presentation',
         height: 'size.{size}.control-box',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
-        children: ['track'],
+        children: ['control'],
       },
-      // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
-      // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the track's fill
-      // and not on it.
-      label: {
-        kind: 'text',
-        type: 'size.{size}.text',
-        note: 'The accessible name AND the second half of the hit target. Names the SETTING as a stable noun phrase and does not change on toggle — a label flipping between Enable and Disable is this component\'s most common copy bug. Rich content in code; a plain text node in Figma. Note what this part must NOT become: hardcoded "On"/"Off" text beside the name, which duplicates the screen-reader output ("Airplane mode On, switch, on") and does not localize.',
-      },
-      // THE PAINTED TRACK — the pill, and the only part that carries `fill` and `border`. NOT SQUARE, and
-      // it is the first part in the corpus that is not: `height` is the control rung and `width` is twice
-      // it (`control.size.*.width`). FIXED on both axes, which the thumb's travel requires and
-      // `anatomyErrors` checks from both sides. `radius` resolves to `radius.round`, giving a pill at any
-      // rung by the same token that gives radio a circle — one very large radius rather than two shapes.
+      // THE NESTED CONTROL (#1354). Where the track, thumb, glyphs and focus ring used to be authored in
+      // place, the Row now nests ONE instance of `switch-control` — an in-flow `kind: 'nest'`, the twin of
+      // the `absolute` focus ring but taking a cell. A fix to the track (its border weight, its fill
+      // grammar) or the thumb (its travel, its glyph) reaches here without being copied.
       //
-      // The BORDER is load-bearing rather than decorative: brief §6 requires the off track be
-      // distinguishable from the page (1.4.11) and no fill in the tier clears 3:1 at any brand, while this
-      // border clears it at all four (3.20–3.28:1).
-      track: {
-        kind: 'box',
-        role: 'presentation',
-        paintSlots: ['fill', 'border'],
+      // IT IS `nest-exposed` (#1330's mechanism). The control's `selection`, `state` and `showStateLabel`
+      // are EXPOSED — surfaced as the consumer's properties on the Row rather than re-enumerated into the
+      // Row's OWN variant matrix — so the Row projects SIZE-ONLY (2 members) instead of 2 selections × 2
+      // sizes × 6 states = 24 that merely mirror the atom. `follow: ['size']` passes the Row's own size
+      // rung into the nested control; `variant` is the DEFAULT the instance starts at (`selection=off,
+      // state=rest`), the member the exposed properties drive FROM.
+      //
+      // IT PINS ITS OWN HEIGHT and does NOT stretch. `height: 'size.{size}.control'` (→ control.size.*.height,
+      // the track height) binds the instance's height, which is SHORTER than the `control-box` line box it
+      // is centered within — so the control reads centered on the first line rather than filling the taller
+      // box (#1299's nest-height mechanism; the control is non-square, so the Row pins height only and the
+      // control's own variant carries the 2× width).
+      control: {
+        kind: 'nest',
+        nests: 'switch-control',
         height: 'size.{size}.control',
-        width: 'size.{size}.track',
-        radius: 'radius',
-        // 2px, from the token — the load-bearing border drawn at the weight it was measured at. See
-        // `border-width` in `tokens` for the measurement and the thumb-clearance consequence.
-        strokeWidth: 'border-width',
-        // THE THUMB'S CLEARANCE (#997), and it belongs to the TRACK rather than the thumb. The thumb is
-        // distributed to MIN or MAX by `positionWhen`; an alignment has no offset to give, so the only
-        // place a gap at BOTH extremes can come from is the container's padding. Uniform on all four
-        // sides — one token in both fields of `PaddingDef` — because the inset is `(height − dot) / 2`
-        // on the cross axis by derivation, and Prism 2 sites the same thumb with a uniform `padding: 4`
-        // rather than an end-only one. Equal padding also keeps the two endpoints symmetric, which is
-        // what `positionWhen`'s pair of positions assumes and nothing else asserts.
-        padding: { block: 'size.{size}.inset', inlineLabel: 'size.{size}.inset' },
-        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
-        children: ['thumb', 'focusRing'],
-        note: 'The pill. Its `justify` is the FALLBACK the thumb overrides per coordinate (`positionWhen`), so it reads `start` here and is projected `MAX` at `selection=on` — a structure-only plan with no selection supplied keeps `start`, which is the conservative answer rather than a position asserted on no evidence. Its two dimensions are two decisions: 2:1 is the ratio the field converges on, and it is the tier\'s, not this def\'s.',
-      },
-      // THE THUMB. A `box`, like radio's dot and for the same reason — there is no filled circle in the
-      // engine's glyph vocabulary and minting one would put a primitive shape into a set whose membership
-      // rule is that an entry carries meaning. `size` (the square, both axes from one variable) plus round
-      // radius is a circle at any rung.
-      thumb: {
-        kind: 'box',
-        role: 'presentation',
-        // `indicator`, NOT `fill` — the track already owns `fill`, and #933's rule is that two boxes
-        // naming one slot both take the SAME variable rather than dividing it. Radio's dot took this slot
-        // first; the #864 condition that admits a box into an ink slot is satisfied here for radio's
-        // reason too, which is that this part has NO children to be painted behind.
-        paintSlots: ['indicator'],
-        size: 'size.{size}.dot',
-        radius: 'radius',
-        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
-        // THE TRAVEL (#990). Two values, two positions, one part. Projected onto the TRACK's main-axis
-        // distribution, because that is the only main-axis placement Figma's auto layout offers.
-        positionWhen: { selection: { off: 'start', on: 'end' } },
-        note: 'The thumb — ONE part whose position varies, not two parts that take turns. Its ink is selection-keyed and had to be: measured, no single ink in the tier clears 3:1 against both tracks (the best candidate reaches 4.36:1 off and 1.00:1 on, since the two tracks sit on opposite sides of the luminance range), so it takes `off.indicator` (12.33–12.36:1 on the off track) and `on.indicator` (6.85–9.96:1 on the on track). Check that measurement before "simplifying" the two keys into one. It CLEARS the track\'s ends at both extremes (#997): the track carries `size.{size}.inset` as uniform padding, so the padded inner box is exactly one thumb tall and one thumb short of the track\'s length. Its slide is motion and has no expression here; what this schema carries is the two endpoints.',
-      },
-      // Radio's ring, verbatim, on the TRACK rather than the row or the thumb — `accessibility.focus` is
-      // explicit that a ring travelling with the thumb reads as two indicators. The two insets SUM in the
-      // executor, siting the ring at -(2+2) = -4 so the visible gap is a full 2px (#801: the ring's own
-      // inside-drawn stroke eats the offset unless compensated). Being `absolute`, it is outside the flow
-      // and so does not count as a second flow child beside the thumb — which is what lets the travel
-      // work at all.
-      focusRing: {
-        kind: 'absolute',
-        when: 'focus-visible',
-        nests: 'focus-ring',
-        inset: 'ring-offset',
-        strokeInset: 'ring-width',
-        // FIXED at `surface=default` (#1134): this def has no `surface` axis of its own, so there is no host
-        // coordinate to pass through. The ring's axis was renamed `color` -> `surface`; a `follow` here
-        // would be rejected, since `follow` names a host axis and this def declares none.
-        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component, inset from the TRACK so the ring surrounds the pill. On the track and never the thumb: the thumb moves, and an indicator that moves with it competes with the one thing that signals state. Its INSTANT-appearance requirement (no transition on the ring, unlike the thumb) is not expressible here.',
+        nesting: { kind: 'nest-exposed', variant: { selection: 'off', state: 'rest' }, expose: ['selection', 'state', 'showStateLabel'], follow: ['size'] },
+        note: 'An in-flow instance of `switch-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection, state and showStateLabel (the consumer drives them from the Row), follows the Row\'s size, and pins its own height so it is centered within the taller wrapper rather than stretched to fill it.',
       },
     },
     codeOnly: [
-      // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word, so a
-      // passing mention inside an entry about something else does not count (#563).
-      'read-only — declared in `states` and carried by no Figma member, and here the reason is a MEASURED rejection rather than an absent token. `text-field` binds `border.read-only: color.border.secondary`, and that role resolves to the same palette step as `color.interactive.neutral.border.rest` in all four brands (nb neutral.400, harbor neutral.450, wendys/aurora neutral.400) — so binding it would produce a read-only switch pixel-identical to a rest switch while reading in the def as though the brief\'s "visually distinct from disabled" requirement had been met. The brief\'s own answer is a LOCK AFFORDANCE, a glyph rather than an ink, which would be a fifth part nobody has designed.',
-      'pending — first-class in `props` and absent from the set, because it is a THUMB SWAP and not a skin: the brief locks input, replaces the thumb with a spinner and announces `aria-busy`. Button expresses exactly that with an `overlay` part (#848), so the mechanism exists and the part does not; adding it here would be a second concern in a PR whose subject is the travel. What the set would show without it is 24 members with a static thumb, which is what it shows.',
-      'min-height — `size.*.min-height` is the ROW\'S FLOOR and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it on the row would state the wrong quantity and clip a wrapping label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection, where `min-height` is the property they name.',
-      'THE THUMB\'S TRAVEL AS MOTION. What this anatomy carries is the two ENDPOINTS — `positionWhen` names a position per coordinate, and a Figma variant is a still frame. The slide between them (brief §8: roughly 150-200ms, ease-out, with the track color crossfading over the same interval, and `prefers-reduced-motion` collapsing it to an instant jump) has no expression in this schema at all, and it is the animation the component is most recognized by. A designer reading the set sees a thumb at each end and nothing about how it gets there.',
-      'THE INNER-TRACK AFFORDANCE (`showStateLabel`) — an on/off checkmark or I/O glyph inside the track, off by default. A fifth part, gated on `selection` the way checkbox\'s two marks are, for a prop that is off at every default coordinate; adding it would double the members for content the guidance says to use only where legibility genuinely demands it.',
-      'THE FULL-WIDTH SETTINGS ROW, which is this component\'s actual habitat and is layout rather than anatomy. The row HUGS its children here, so `label` and `track` sit adjacent with the gap between them; a settings panel stretches the row and pins the track to the trailing edge, and `justify` on a hugging row cannot express that. `labelPosition: trailing` — the control-leading order for a switch sitting among other form controls — is the same kind of fact: a prop that reorders this row, and the reordered form is the code projection\'s.',
-      'The `description` prop — helper text beneath the label, describedby-wired, where the CONSEQUENCE of the setting goes. A second text part under `label` rather than beside it, which would change the row\'s vertical shape at all 24 members for content that is optional at every one of them.',
+      // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
+      'read-only — a `states` value the Figma set does not carry. Since #1354 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `switch-control` and the consumer drives it from the Row, so no state is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code: the brief recommends a lock affordance over a styled locked control, and the one candidate token resolves to the same step as the rest border in all four brands.',
+      'pending — first-class in `props` and carried by no Figma member. It is a THUMB SWAP (a spinner replaces the thumb) on the nested control plus an `aria-busy` lock, not a row skin; `button`\'s `overlay` part (#848) is the mechanism, unauthored on the control here. The Row\'s own per-state LABEL treatment (`disabled.label` dimming the text) is the CODE projection\'s, not Figma\'s — `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code while the Figma SET collapses to size-only.',
+      'states — the documented cost of collapsing 24 members to 2 (the #1354 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state.',
+      'showStateLabel — the X/checkmark affordance is exposed from the nested `switch-control` as a consumer property (React prop, `.ai.json` option, Figma exposed property) and gated IN CODE; the glyph is present in the control\'s Figma set at every member (Prism 2\'s `icon`-prop model), so the Row carries no boolean axis for it. See `switch-control.ts`.',
+      'min-height — `size.*.min-height` is the row\'s FLOOR and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it on the row would clip a wrapping label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection.',
+      'THE FULL-WIDTH SETTINGS ROW, this component\'s actual habitat and layout rather than anatomy. The row HUGS its children here, so `label` and the control sit adjacent with the gap between them; a settings panel stretches the row and pins the control to the trailing edge, and `justify` on a hugging row cannot express that. `labelPosition: trailing` — the control-leading order for a switch among other form controls — is the same kind of fact: a prop that reorders this row, and the reordered form is the code projection\'s.',
+      'The `description` prop — helper text beneath the label, describedby-wired, where the CONSEQUENCE of the setting goes. A second text part under `label` rather than beside it, which would change the row\'s vertical shape for content that is optional at every member.',
+      'RTL — the label-leading row mirrors AND the thumb travel flips (`on` sits at the inline-END). Logical properties make that automatic in CSS; a Figma projection would need it stated, and nothing does.',
     ],
   },
 
   figmaProperties: {
-    // BOTH axes, and `selection` is not optional: the thumb's `positionWhen` is keyed on it, so an
-    // unprojected `selection` would build every member with the thumb at the track's declared `justify`
-    // — a set of 24 switches that all read as off. `anatomyErrors` refuses that combination rather than
-    // leaving it to be found in a Figma file.
-    variantAxes: ['selection', 'size'],
-    // Six of the EIGHT states — `read-only` and `pending` are both admitted in `codeOnly` above, with
-    // different reasons. 2 selections x 2 sizes x 6 states = 24 members, radio's 36 less the third rung.
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'error'] },
+    // SIZE ONLY since #1354 (the decomposition). `selection`, `state` and `showStateLabel` are EXPOSED
+    // from the nested `switch-control` (see the `control` part), so the Row no longer enumerates them —
+    // it projects 2 size members where it used to project 2 selections × 2 sizes × 6 states = 24 that only
+    // mirrored the atom. The `control` nest `follow`s `size` (the one axis this def projects) and exposes
+    // the rest; `#1298`'s reachability check confirms `size` is projectable, and the exposed axes are the
+    // child's — checked against the atom at projection (`nestVariantMatch`) and round-trip, not here.
+    variantAxes: ['size'],
+    // NO `stateAxis` (#1354). The control's `state` is exposed, not multiplied into the Row's set — the
+    // Row's own `states` list (above) still drives the CODE projection (a disabled Row dims its label),
+    // and `lint-paint` arm 2 reads `def.states` for reachability so `disabled.label` stays reachable; it
+    // is the FIGMA set that collapses.
     texts: {
       // A REAL SETTING, not "Label" — #798's finding is that a text part with no TEXT property projects a
-      // blank node, and the corollary is that this default is the only copy anyone reviewing the set will
-      // see. The brief's canonical example, in the sentence case this def's own content rule requires,
-      // which also demonstrates the rule that the label names the setting and never the state.
+      // blank node, and the corollary is that this default is the only copy anyone reviewing the set sees.
+      // The brief's canonical example, in the sentence case this def's content rule requires.
       label: { part: 'label', default: 'Airplane mode' },
     },
-    // No `swaps` — the thumb is geometry this def owns, not a glyph a consumer nominates. No `slotAxes`:
-    // the thumb is not gated by presence at all, it MOVES, which is the distinction this def added to the
-    // schema.
+    // No `swaps` — the Row nests `switch-control` and exposes its properties (the def picks the control,
+    // the consumer drives it). No `slotAxes`.
     booleans: {},
   },
 
@@ -621,18 +261,18 @@ export const switchDef: ComponentDef = {
     role: 'switch (native <input type="checkbox" role="switch">), with aria-checked true/false — announced "on"/"off", NOT "checked"',
     wcag: [
       '4.1.2 Name Role Value (the switch role and aria-checked doing the work)',
-      '1.4.1 Use of Color (thumb POSITION distinguishes on from off, never track color alone)',
+      '1.4.1 Use of Color (thumb POSITION distinguishes on from off, never track color alone; the thumb glyph is a legibility aid on top of that)',
       '1.4.11 Non-text Contrast (the off-state track must be distinguishable from the background) / 2.4.13 Focus Appearance',
       '2.5.8 Target Size (the whole row, as checkbox)',
       '4.1.3 Status Messages (the async outcome or error of an immediate change)',
     ],
-    keyboard: 'Each switch is its OWN tab stop — like checkbox, unlike radio, and there is no group to traverse. SPACE toggles, which is the canonical W3C activation; some systems also accept Enter on the grounds that the effect is action-like, which is a defensible addition and Space is the safe default. Nothing else: no arrow keys, because a switch is never one of a mutually-related set.',
-    focus: ':focus-visible ring on the TRACK, never the thumb — the thumb moves, and a ring that travels with it reads as two indicators. Offset, at least 3:1, keyboard traversal only. A read-only switch STAYS in the tab order and stays focusable, which is the whole reason read-only is supported rather than folded into disabled; a disabled one is removed from it.',
-    aria: 'THE ROLE IS THE HEADLINE, and the three-way distinction is the whole game: checkbox is role="checkbox" (announced "checked"), switch is role="switch" (announced "ON"/"OFF"), and a toggle button is role="button" + aria-pressed (announced "pressed"). Putting aria-pressed on a switch is a recurring and severe error that CORRUPTS the announcement and violates the spec. Prefer the styled native input — <input type="checkbox" role="switch"> keeps focus, activation and the a11y tree for free. role="switch" is well supported in modern AT but is newer than checkbox, so verify on the matrix and keep a checkbox fallback as the conservative hedge. ANNOUNCE THE IMMEDIATE EFFECT: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome or failure politely (4.1.3), so a screen-reader user knows the live change took; and if toggling changes the page layout by revealing a sub-form, an aria-live region announces the contextual change — though that case is usually a Checkbox misuse (see docs.dont). TWO IMPLEMENTATION TRAPS: the IA2 quirk, where both aria-pressed buttons and role="switch" map internally to IA2_ROLE_TOGGLE_BUTTON — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native <label> does NOT associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly or ship an unlabelled control.',
+    keyboard: 'Each switch is its OWN tab stop — like checkbox, unlike radio, and there is no group to traverse. SPACE toggles, which is the canonical W3C activation; some systems also accept Enter. Nothing else: no arrow keys, because a switch is never one of a mutually-related set.',
+    focus: ':focus-visible ring on the TRACK, never the thumb — the thumb moves, and a ring that travels with it reads as two indicators. Offset, at least 3:1, keyboard traversal only. A read-only switch STAYS in the tab order and stays focusable; a disabled one is removed from it.',
+    aria: 'THE ROLE IS THE HEADLINE, and the three-way distinction is the whole game: checkbox is role="checkbox" (announced "checked"), switch is role="switch" (announced "ON"/"OFF"), and a toggle button is role="button" + aria-pressed (announced "pressed"). Putting aria-pressed on a switch is a recurring and severe error that CORRUPTS the announcement. Prefer the styled native input — <input type="checkbox" role="switch"> keeps focus, activation and the a11y tree for free. ANNOUNCE THE IMMEDIATE EFFECT: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3). The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. TWO IMPLEMENTATION TRAPS: the IA2 quirk, where both aria-pressed buttons and role="switch" map internally to IA2_ROLE_TOGGLE_BUTTON — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native <label> does NOT associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly.',
   },
 
   content: {
-    labelPattern: 'Names the SETTING, not the state and not the action — "Airplane Mode", "Location Services"; not "Airplane Mode is On" and not "Turn on Airplane Mode". A stable noun or adjective phrase that does NOT change on toggle: a label flipping between Enable and Disable is disorienting and is a common bug. Avoid verbs, which blur "current state" against "action on click". Positive framing is mandatory — the on state is the affirmative, so off never means a double negative. Sentence case, no terminal punctuation. Long labels wrap; the fixed-width track does not shrink. AND REJECT HARDCODED ADJACENT "On"/"Off" TEXT, which is the label rule this control has and its siblings do not: it competes with the track state, produces duplicative screen-reader output ("Airplane Mode On, switch, on"), and does not localize or expand cleanly. The track plus the role="switch" announcement already carries it; where legibility genuinely demands more, use the inner-track affordance rather than words.',
+    labelPattern: 'Names the SETTING, not the state and not the action — "Airplane Mode", "Location Services"; not "Airplane Mode is On" and not "Turn on Airplane Mode". A stable noun or adjective phrase that does NOT change on toggle: a label flipping between Enable and Disable is disorienting and is a common bug. Positive framing is mandatory — the on state is the affirmative, so off never means a double negative. Sentence case, no terminal punctuation. Long labels wrap; the fixed-width track does not shrink. AND REJECT HARDCODED ADJACENT "On"/"Off" TEXT, which is the label rule this control has and its siblings do not: it competes with the track state, produces duplicative screen-reader output, and does not localize. The track plus the role="switch" announcement already carries it; where legibility genuinely demands more, use the thumb glyph affordance (`showStateLabel`) rather than words.',
     errorPattern: 'An OUTCOME failure, not a validation failure: say what did not happen and that it reverted — "Couldn\'t turn on notifications. Try again." Near the control, as a status message rather than a field error. Never "Invalid input"; there was no input to invalidate.',
   },
 
@@ -643,35 +283,34 @@ export const switchDef: ComponentDef = {
       'Put the label first and the switch at the row\'s trailing edge; flip to control-leading only when a switch sits inline among other form controls',
       'Name the setting, not the state, and keep the label the same on and off',
       'Default to optimistic: flip immediately, then revert and say what failed if the effect did not take',
-      'Guard the re-toggle race — lock input on the first interaction until the effect resolves, or coordinate a pending state internally',
+      'Guard the re-toggle race — lock input on the first interaction until the effect resolves',
       'Support read-only for settings a user may review but not change: focusable, in the tab order, at full contrast',
-      'Let thumb POSITION carry the state, so the control still reads without color',
+      'Let thumb POSITION carry the state, and add the thumb glyph (`showStateLabel`) where legibility demands a cue beyond color',
     ],
     dont: [
       'Use a switch for a binary that is submitted with a form — if a Save button sits anywhere in the flow it is a Checkbox, and Apple rejects App Store submissions over exactly this',
       'Use a switch whose toggle reveals a sub-form that must be filled before the data is valid — that is progressive disclosure, not an immediate mutation, and it is the most common real misuse',
-      'Put aria-pressed on a switch — it corrupts the announcement; aria-pressed is a toggle BUTTON, performing an action or setting a view mode',
-      'Reach for a SwitchGroup — there is none, deliberately: a settings list is a list of rows, and compiling a multi-select array is Checkbox\'s job',
-      'Hardcode "On"/"Off" text beside the label — redundant, duplicative for screen readers, and it does not localize',
+      'Put aria-pressed on a switch — it corrupts the announcement; aria-pressed is a toggle BUTTON',
+      'Reach for a SwitchGroup — there is none, deliberately: a settings list is a list of rows',
+      'Hardcode "On"/"Off" text beside the label — use the thumb glyph affordance instead',
       'Add a third or indeterminate state — role="switch" coerces aria-checked="mixed" to false',
-      'Switch on something consequential or hard to reverse without confirmation, or where the user cannot perceive that the effect happened',
       'Put the focus ring on the thumb — it moves, so the indicator would travel with it',
     ],
     contentGuidelines: 'The label names the setting and never changes. The description says what turning it on will do. Async failures say what did not happen and that it reverted.',
   },
 
   ai: {
-    primaryPurpose: 'Set a binary on/off value that takes effect immediately, with no save step.',
+    primaryPurpose: 'Set a binary on/off value that takes effect immediately, with no save step, via a labelled row that nests the track-and-thumb control.',
     whenToUse: 'A single independent setting that applies the moment it is flipped — a notification preference, dark mode, a feature flag — usually in a settings row or list with the label leading.',
-    avoidWhen: 'The change is staged and committed by a Save or Submit button (Checkbox — the presence of that button anywhere in the flow is the tell), the toggle reveals a sub-form that must be completed for the data to be valid (Checkbox again; this is the most common misuse), it is a single consent or agreement (Checkbox), it performs an action or sets a view mode rather than holding a setting (ToggleButton with aria-pressed), it is a one-of-two exclusive labelled choice or the off state is ambiguous (Radio or Segmented Control), or a third indeterminate state is needed (Checkbox). Also do not reach for this def expecting a group: there is no SwitchGroup by decision, and a settings panel is a list of rows.',
-    commonPartners: ['field-label', 'field-message', 'focus-ring', 'icon', 'card'],
+    avoidWhen: 'The change is staged and committed by a Save or Submit button (Checkbox — the presence of that button anywhere in the flow is the tell), the toggle reveals a sub-form that must be completed for the data to be valid (Checkbox again; the most common misuse), it is a single consent or agreement (Checkbox), it performs an action or sets a view mode rather than holding a setting (ToggleButton with aria-pressed), it is a one-of-two exclusive labelled choice (Radio or Segmented Control), or a third indeterminate state is needed (Checkbox). Also do not reach for this def expecting a group: there is no SwitchGroup by decision.',
+    commonPartners: ['switch-control', 'field-label', 'field-message', 'focus-ring', 'icon', 'card'],
     triggerKeywords: ['switch', 'toggle', 'toggle switch', 'on off', 'on/off', 'enable', 'setting', 'immediate', 'feature flag', 'dark mode'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'focus-ring', 'icon'],
-    alternativeTo: ['checkbox', 'toggle-button', 'radio', 'segmented-control'],
+    composesWith: ['switch-control', 'field-label', 'field-message', 'focus-ring', 'icon'],
+    alternativeTo: ['checkbox-row', 'toggle-button', 'radio', 'segmented-control'],
     supersedes: [
       'a checkbox misused for an immediate-effect setting',
       'two radios standing in for an obvious binary on/off',
@@ -684,25 +323,19 @@ export const switchDef: ComponentDef = {
 
   notes: {
     contested: [
-      'THE TRACK IS DELIBERATELY ASYMMETRIC ABOUT ITS RIM: `off` paints a fill AND a border, `on` paints a fill only. It looks like an oversight and it is the opposite — it is the one place in the selection family where the border survived #1011, and the reason is measured. A rim is redundant when the fill it sits inside already bounds the box against the page; `interactive.primary.fill.selected` does (4.94-14.17:1 across 5 brands x 4 modes), so the ON track drops its border like checkbox and radio did. `interactive.neutral.fill.rest` does NOT (1.21-1.58:1, and 1.39-1.81 at hover, 1.64-2.09 pressed) — nowhere near SC 1.4.11\'s 3:1 on any brand — so the OFF track\'s rim is the only edge it has, and deleting it would leave an unbounded gray slab on a light page. THIS IS THE TRAP: `off.border` reads as the leftover of a pattern the other two defs abandoned, and removing it "for consistency" breaks 1.4.11 on all five brands at once. It is also load-bearing for the GATE — `lint-paint.ts` arm 4 measures the same-family fill+border pairs in the corpus, and after #1011 this track is the ONLY def that still contributes any, so stripping it empties arm 4\'s scope entirely (verified by mutation: the arm reports "0 pairs measured of 16" and fails on its zero-scope guard rather than passing over nothing). The asymmetry is also WHY arm 4\'s rule is phrased about the fill\'s own contrast rather than comparing the two bindings to each other: a rule of the form "fill and border must agree" would flag this track, correctly-built, on every brand. Full reasoning and the byte-identical-ladder measurement: `checkbox.ts` `notes.contested`.',
-      'THE `selection` VALUES ARE `[off, on]`, DIVERGING FROM checkbox\'s AND radio\'s `[unchecked, checked]`. #910 settled the axis NAME for the family and left the values open with an ARIA recommendation (`aria-checked` covers all three controls), so this is a decision taken against that recommendation rather than a default. Three grounds, argued in the header: paint-key values describe what is on SCREEN and appear in no ARIA tree; `role="switch"` is announced "on"/"off", so ARIA\'s own OUTPUT is on/off even though its PROPERTY is aria-checked; and `checked` is the word that carries this component\'s most common misuse, since a def spelled `[unchecked, checked]` reads as a checkbox with a different skin. The cost is real and unchecked by anything: the family now spells one axis two ways, there is no cross-def values census in the engine and none is possible from `VARIANT_AXES` (which closes names only), so this divergence is held by prose alone. If the family should have one vocabulary, this is the entry to delete.',
-      'THE OFF TRACK TAKES THE INTERACTIVE-NEUTRAL FAMILY where checkbox and radio take the form-field family for their empty box. Forced by the thumb rather than chosen: measured across all four brands, a white thumb is 1.14-1.22:1 on `color.field.fill` and 1.57-1.58:1 on `interactive.neutral.fill.rest`, so the off thumb must take the dark ink, and `interactive.neutral.on-fill` (12.33-12.36:1) exists only in the interactive family. The NAMED ALTERNATIVE is to match the siblings on `color.field.fill` and accept an off thumb with no boundary, which several shipped systems do by relying on a thumb shadow — an effect the token tier does emit but which this def has no field to bind, and which would put a 1.2:1 boundary behind a decorative token.',
-      'THE THUMB IS SELECTION-KEYED (`off.indicator` dark, `on.indicator` light), which no sibling\'s glyph is — checkbox and radio each have ONE icon ink. Measured: no single ink in the tier clears 3:1 against both tracks, and the closest candidate (`interactive.primary.border.pressed`) is 4.36:1 off and 1.00:1 on, because the two tracks sit on opposite sides of the luminance range. So this is structural to a two-position control rather than a styling choice, and the two keys cannot be collapsed into one.',
-      'THE ASYNC MODEL SHIPS BOTH STANCES — optimistic-by-default with revert-and-message, plus a first-class `pending` lock. The field genuinely splits here (Carbon and Base Web optimistic-only; Primer\'s `loading`/`loadingLabel` and Atlassian\'s `busy` locking), and the brief\'s reconciliation is deliberate: mandating optimism universally puts the whole orchestration burden on every consumer, and mandating the lock kills the immediacy that is the entire component. Recorded as contested because a system that picks one would read this def as indecisive, and the two-stance answer is the position rather than an absence of one.',
-      'READ-ONLY IS SUPPORTED, against the brief author\'s own first instinct and adopted on the external pass\'s argument. It looks paradoxical — an un-toggleable toggle — and the case for it is enterprise: users review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers and breaks data-table consistency. The contrary position is legitimate rather than wrong.',
-      'THE LABEL SIDE DEFAULTS TO LEADING, which is the opposite of every other control in the corpus, and the brief\'s external pass defaulted the other way (control-leading, for sibling alignment with checkbox and radio). Both are defensible, which is why it is a prop; the default follows the dominant habitat, the settings row. It is not a `variants` axis here because it paints nothing at any coordinate — see the header.',
-      'THE ON/OFF AFFORDANCE DEFAULTS TO A PLAIN TRACK, with inner-track icons available and off by default. The contested part is not the default but what the icons are FOR: they are a legibility aid, never the 1.4.1 answer, since thumb position already carries the state. Hardcoded adjacent On/Off text is rejected outright rather than defaulted off.',
+      'THE `selection` VALUES ARE `[off, on]`, DIVERGING FROM checkbox\'s AND radio\'s `[unchecked, checked]`. #910 settled the axis NAME for the family and left the values open with an ARIA recommendation, so this is a decision taken against that recommendation. Three grounds: paint-key values describe what is on SCREEN and appear in no ARIA tree; `role="switch"` is announced "on"/"off", so ARIA\'s own OUTPUT is on/off even though its PROPERTY is aria-checked; and `checked` is the word that carries this component\'s most common misuse. Since #1354 the values live on `switch-control` (the def that carries the axis), and the Row exposes them. The cost is real and unchecked by anything: the family now spells one axis two ways, and there is no cross-def values census in the engine. If the family should have one vocabulary, this is the entry to delete.',
+      'THE TRACK IS DELIBERATELY ASYMMETRIC ABOUT ITS RIM (off paints a fill AND a border, on paints a fill only), and that asymmetry, the interactive-neutral off track, and the selection-keyed thumb ink all moved to `switch-control` with the painted surface. They are the one place in the selection family where the border survived #1011, and the reason is measured (a gray fill does not clear 3:1 against the page, so the off rim is the only edge the track has). Removing `off.border` "for consistency" breaks 1.4.11 on all five brands at once AND empties `lint-paint.ts` arm 4\'s scope — this track is the only def that still contributes a same-family fill+border pair. Full reasoning: `switch-control.ts` and `checkbox-control.ts`.',
+      'THE ASYNC MODEL SHIPS BOTH STANCES — optimistic-by-default with revert-and-message, plus a first-class `pending` lock. The field genuinely splits here, and the brief\'s reconciliation is deliberate: mandating optimism universally puts the whole orchestration burden on every consumer, and mandating the lock kills the immediacy that is the entire component.',
+      'READ-ONLY IS SUPPORTED, against the brief author\'s own first instinct and adopted on the external pass\'s enterprise argument: users review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers.',
+      'THE LABEL SIDE DEFAULTS TO LEADING, the opposite of every other control in the corpus, because the default follows the dominant habitat (the settings row). It is a prop, not a `variants` axis, because it paints nothing.',
+      'THE ON/OFF AFFORDANCE (the thumb glyph) DEFAULTS OFF, with a checkmark/X available via `showStateLabel`. The contested part is not the default but what the glyph is FOR: a legibility aid, never the 1.4.1 answer, since thumb position already carries the state. Hardcoded adjacent On/Off text is rejected outright rather than defaulted off. The glyph lives on `switch-control`; why it is a code-gate rather than a variant axis is argued there.',
     ],
     unverified: [
-      'THE TRACK AND THUMB ARE NOW BOUND (#900\'s third and last instance), and what is unverified moved with the binding rather than away. The track reads `control.size.<rung>.height` for its thickness and `control.size.<rung>.width` for its length — 2x the height, the first use of a field the tier had emitted for this def and nothing had ever bound — and the thumb reads `control.size.<rung>.dot`. THREE THINGS NOBODY HAS LOOKED AT. (1) `dot` is HALF the height by the tier\'s construction, which was decided for radio\'s dot inside a ring; on a thumb that reads as a small circle in a wide pill, and the shipped systems put their thumb nearer the track\'s full height. NOW MEASURED against Prism 2 and the doubt was right: `toggle-switch.json` runs a 24px thumb in a 32px track, a ratio of 0.75 against this tier\'s 0.5. It is still not this def\'s to override, and the reason sharpened rather than softened — `CONTROL_DOT_RATIO` is SHARED with radio, and Prism 2\'s own radio is 12-in-20, a ratio of 0.6. So Prism 2 does not support one shared ratio at all; adopting its thumb would mean splitting the tier field per consumer, which is structure rather than styling and belongs to whoever takes that decision. (2) At `small` the track is 16x32 (12x24 on aurora, a full rung down) with an 8px thumb — whether that reads as a switch at all is exactly what building one answers, and separately whether a 16px-tall row reaches SC 2.5.8\'s 24x24 target, which is the ROW\'s job and not the track\'s. (3) The brief still specifies no numeric track width, track height or thumb diameter anywhere — §4 gives "thumb position + stark track-color contrast", §8 gives durations, and §15\'s schema carries no dimension — so these bindings satisfy the tier\'s own stated intent and no brief-supplied target.',
-      'THE THUMB NOW CLEARS THE TRACK\'S ENDS (#997 closed), and what is unverified moved rather than went away. The tier grew `control.size.<rung>.inset` = (height - dot) / 2 and the track binds it as uniform padding, so the thumb is inset at both extremes and on both axes. The number is DERIVED from `dot` rather than authored, which is what makes it safe — it cannot disagree with the thumb it clears — and it is also what bounds the claim: the inset is only as right as the dot ratio, and that ratio is the thing below that nobody has looked at. Prism 2 supplied the RELATIONSHIP (a uniform track padding centring the thumb) and could not supply the number: `toggle-switch.json` insets 4 in a 32px track around a 24px thumb, i.e. height/8 with a 0.75 thumb, which on this ladder\'s 0.5 thumb would be 2.5px at `md`. What is still unbuilt is the look: nobody has rendered a switch at these values and judged whether a half-height thumb with a quarter-height inset reads as a switch, and that is one measurement away from the ratio question below rather than a separate doubt.',
-      'READ-ONLY BINDS NOTHING, and here the reason is a MEASUREMENT rather than an absence — which is the difference from checkbox and radio. A candidate exists: `text-field` binds `border.read-only: color.border.secondary`. But `color.border.secondary` resolves to the SAME palette step as `color.interactive.neutral.border.rest` in all four brands (nb neutral.400, harbor neutral.450, wendys and aurora neutral.400), so binding it would produce a read-only switch pixel-identical to a rest switch while reading in the def as though the brief\'s "visually distinct from disabled" requirement had been met. The brief\'s actual answer is a LOCK AFFORDANCE — a glyph, not an ink — which is anatomy.',
-      'PENDING BINDS NO PAINT, and no def in the corpus binds any: `button` has declared `pending` since #843 and binds nothing for it, and the tier emits no pending ink. What the state actually changes is the thumb\'s CONTENT (a spinner replaces it) and the track\'s interactivity. The first of those is now EXPRESSIBLE and deliberately not expressed: `button` spells exactly this as an `overlay` part replacing a visual cell (#848), so the mechanism exists and the part is unauthored — admitted in `anatomy.codeOnly`, where it is a scoped omission rather than a schema gap. Recorded here so nobody reads the state as decorative.',
-      'THE LABEL SIDE HAS ONE EXPRESSION AND `labelPosition` STILL HAS NONE. The anatomy states the DEFAULT — `row.children` is `[label, track]`, label-leading, which is the family\'s one structural divergence — and the flipped order the prop selects is not expressible, because a prop is not a coordinate and the row has one child order. RTL is the sharper half and is unchanged by this: it inverts TWICE over, since the row mirrors AND the thumb travel flips (on sits at the inline-END, so `positionWhen`\'s `end` is the right WORD — a logical edge — while the `MAX` it projects to is a physical one, and Figma auto-layout has no direction flag to mirror it). Logical properties make that automatic in CSS; a Figma projection would need it stated, and nothing states it.',
-      'THE TRAVEL\'S TWO ENDPOINTS ARE NOW EXPRESSED AND THE MOTION BETWEEN THEM IS NOT — which is the whole of what #990 closed and the whole of what it did not. `positionWhen: { selection: { off: start, on: end } }` states where the thumb IS at each coordinate, and a Figma variant is a still frame either way. Brief §8 is emphatic that the slide is functional rather than decorative — it is the literal RECEIPT that the immediate action registered: a ~150-200ms ease-in-out `transform` translate (never an animated width) with a synchronized track-color crossfade, snapping optimistically on an async toggle with a spinner cross-fading onto the thumb, and sliding BACK on failure as the physical metaphor for rejection. Under prefers-reduced-motion the slide drops to 0ms. The engine emits `motion.duration-ms.*` and this def has no motion field to point at.',
-      'THE INNER-TRACK AFFORDANCE (`showStateLabel`) NAMES NO GLYPH, and the anatomy arriving does not change that: a `vector` part would have to name a glyph from the 39-name vocabulary or the projection throws (#864), and the I/O pair in particular is not in it. So the part is admitted in `codeOnly` rather than authored against a name that does not resolve.',
-      'THE WHOLE-ROW HIT TARGET NOW HAS A NODE AND STILL HAS NO NUMBER. `row` is the part it lands on — that is what the anatomy block made expressible — and the padding that would expand it to SC 2.5.8\'s 24x24 is a per-consumer decision about the surrounding layout, so no value is bound. It is sharper here than on the siblings for two reasons: the row is label-leading, so the control sits at the trailing edge where a stretched row puts it furthest from the label; and the track itself is only 16px tall at `small` (12 on aurora), which is the smallest control edge in the corpus. `size.*.min-height` remains the code projection\'s floor and is in `codeOnly`, because Figma has no floor.',
-      'THE ASYNC RACE IS AN IMPLEMENTATION REQUIREMENT NOTHING HERE CAN HOLD: user toggles, local state flips, request fires, user toggles again before it resolves, and two mutations resolve out of order. The fix is to lock input on the first interaction until the promise settles, or to coordinate a pending state internally. It lives in `docs.do` prose.',
+      'THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`\'s was: the nested control instance must pin its own HEIGHT (the track height) rather than stretch to the `control-box` line box, and whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. The control is non-square, so the Row pins HEIGHT only and the width is the control\'s own 2:1 — a narrower pin than checkbox\'s square.',
+      'THE THUMB GLYPH IN A HALF-HEIGHT THUMB IS UNBUILT AND MAY NOT READ (the thumb is half the track height by the tier\'s shared ratio; at `small` the glyph is ~5.7px after its optical inset). The measurement and the reason it is not this def\'s to override are in `switch-control.ts`.',
+      'THE LABEL SIDE HAS ONE EXPRESSION AND `labelPosition` STILL HAS NONE. The anatomy states the DEFAULT (`row.children` is `[label, trackBox]`, label-leading); the flipped order the prop selects is not expressible, because a prop is not a coordinate. RTL is the sharper half and inverts twice over (the row mirrors AND the thumb travel flips).',
+      'THE TRAVEL\'S TWO ENDPOINTS ARE EXPRESSED AND THE MOTION BETWEEN THEM IS NOT — on `switch-control` now. The ~150–200ms ease-in-out slide with the synchronized track-color crossfade (dropping to 0ms under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in the schema.',
+      'THE WHOLE-ROW HIT TARGET NOW HAS A NODE AND STILL HAS NO NUMBER. `row` is the part it lands on; the padding that would expand it to SC 2.5.8\'s 24×24 is a per-consumer decision about the surrounding layout, so no value is bound. It is sharper here than on the siblings because the row is label-leading (the control sits at the trailing edge, furthest from the label) and the track is only 16px tall at `small`.',
     ],
   },
 };

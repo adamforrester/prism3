@@ -200,6 +200,19 @@ variables (change `emphasis` 600→500, all emphasis styles follow); text styles
 `fontFamily`/`fontSize`/`fontWeight`, bake the rest, set `textCase: UPPER` (eyebrow) /
 `textDecoration: UNDERLINE` (-link).
 
+**Line height stays unbound, deliberately (#1356, part of the #1329 host-truth audit).** The audit
+found `boundVariables.lineHeight` empty on every emitted TEXT node and asked whether that was a bug.
+It is not — binding is *wrong*, not merely unimplemented, for three independent reasons: (1) the role
+is a **unitless multiplier** (`core.font.line-height.*` typed `number`), so a FLOAT variable holding
+`1.5` bound to line height renders as **1.5 px**, not 150%; (2) Figma binds line height **as pixels
+only** — a percentage/unitless line height cannot be variable-bound at all, a long-standing intentional
+platform limitation (measured against Figma's API, 2026-09); (3) no `font/line-height/*` Figma variable
+is emitted to bind to. A faithful bind would need a **per-size PIXEL** variable (fontSize × multiplier),
+which is size-dependent and would lose the mode invariance the PERCENT bake preserves — a new guaranteed
+name and a dropped invariant, i.e. an **owner contract decision**, not an engine fix. `lint-lineheight-bake.ts`
+gates the current shape (unbound PERCENT, mode-invariant) and fails by name if a later edit flips `bound`
+or breaks the bake. The `letterSpacing` follow-up below is the same platform case (em-relative).
+
 **Design follow-up (not `emit-figma`):** letter-spacing on `display-3xl`/`2xl` at mobile wants
 tighter tracking — points at **size-linked (optical) tracking** rather than a fixed per-composite
 value. A separate engine typography refinement.
