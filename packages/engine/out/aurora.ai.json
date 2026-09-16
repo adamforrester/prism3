@@ -3026,14 +3026,14 @@
     "field.fill": {
       "$description": "Form field fill.",
       "meaning": "Form input / field chrome",
-      "when_to_use": "The background of a text input / form field — a subtly inset surface.",
+      "when_to_use": "The fill of a text input / form field — TRANSPARENT by default, so the border frames the field on whatever ground it sits. Point it at a surface step for a filled field.",
       "avoid_when": "Do not use for the page (use background.*) or a card (use foreground.*).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
-        "light": "{ads.core.palette.neutral.050}",
-        "dark": "{ads.core.palette.neutral.900}",
-        "hc-light": "{ads.core.palette.white}",
-        "hc-dark": "{ads.core.palette.black}"
+        "light": "{ads.core.palette.transparent}",
+        "dark": "{ads.core.palette.transparent}",
+        "hc-light": "{ads.core.palette.transparent}",
+        "hc-dark": "{ads.core.palette.transparent}"
       },
       "paired_with": [
         "field.border.rest",
@@ -3044,54 +3044,53 @@
     "field.border.rest": {
       "$description": "Form field resting border.",
       "meaning": "Form input / field chrome",
-      "when_to_use": "The RESTING boundary of a form field — perceivable (3:1) before focus.",
+      "when_to_use": "The RESTING boundary of a transparent-fill field — perceivable (3:1, SC 1.4.11) on the darkest permissible ground, before focus.",
       "avoid_when": "Do not use for the focus ring (use border.focus) or a validation state (use border.<semantic>).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{ads.core.palette.neutral.400}",
+        "light": "{ads.core.palette.neutral.450}",
         "dark": "{ads.core.palette.neutral.550}",
         "hc-light": "{ads.core.palette.neutral.500}",
         "hc-dark": "{ads.core.palette.neutral.500}"
       },
       "paired_with": [
-        "field.fill"
+        "field.placeholder"
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.secondary",
           "min": "3:1",
-          "ratio": 3.26
+          "ratio": 3.16
         }
       ]
     },
     "field.border.hover": {
       "$description": "Form field hover border.",
       "meaning": "Form input / field chrome",
-      "when_to_use": "The HOVER boundary of a form field — a subtly stronger perceivable border (4.5) on pointer hover.",
+      "when_to_use": "The HOVER boundary of a form field — a subtly stronger perceivable border (3:1, SC 1.4.11) on pointer hover, gated on the darkest permissible ground.",
       "avoid_when": "Do not use as the resting border (use field.border.rest), the focus ring (use border.focus), or a validation state (use border.<semantic>).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{ads.core.palette.neutral.500}",
+        "light": "{ads.core.palette.neutral.550}",
         "dark": "{ads.core.palette.neutral.450}",
         "hc-light": "{ads.core.palette.neutral.600}",
         "hc-dark": "{ads.core.palette.neutral.400}"
       },
       "paired_with": [
-        "field.fill",
         "field.border.rest"
       ],
       "contrast_with": [
         {
-          "token": "background.primary",
+          "token": "background.secondary",
           "min": "3:1",
-          "ratio": 4.54
+          "ratio": 4.57
         }
       ]
     },
     "field.placeholder": {
       "$description": "Form field placeholder ink.",
       "meaning": "Form input / field chrome",
-      "when_to_use": "Placeholder / hint text inside a field — readable (4.5) on the field fill.",
+      "when_to_use": "Placeholder / hint text inside a field — readable (4.5) on the ground behind the transparent fill.",
       "avoid_when": "Do not use as a label (a11y anti-pattern) or for the entered value (use text.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
@@ -3101,11 +3100,11 @@
         "hc-dark": "{ads.core.palette.neutral.350}"
       },
       "paired_with": [
-        "field.fill"
+        "field.border.rest"
       ],
       "contrast_with": [
         {
-          "token": "field.fill",
+          "token": "background.secondary",
           "min": "4.5:1",
           "ratio": 4.57
         }
@@ -3114,14 +3113,14 @@
     "inverse.field.fill": {
       "$description": "Form field fill, on an inverse surface.",
       "meaning": "Form input / field chrome (inverse ground)",
-      "when_to_use": "The background of a text input / form field — a subtly inset surface. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a text input / form field — TRANSPARENT by default, so the border frames the field on whatever ground it sits. Point it at a surface step for a filled field. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.fill`. Do not use for the page (use background.*) or a card (use foreground.*).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
-        "light": "{ads.core.palette.neutral.900}",
-        "dark": "{ads.core.palette.neutral.050}",
-        "hc-light": "{ads.core.palette.black}",
-        "hc-dark": "{ads.core.palette.white}"
+        "light": "{ads.core.palette.transparent}",
+        "dark": "{ads.core.palette.transparent}",
+        "hc-light": "{ads.core.palette.transparent}",
+        "hc-dark": "{ads.core.palette.transparent}"
       },
       "paired_with": [
         "inverse.field.border.rest",
@@ -3132,54 +3131,53 @@
     "inverse.field.border.rest": {
       "$description": "Form field resting border, on an inverse surface.",
       "meaning": "Form input / field chrome (inverse ground)",
-      "when_to_use": "The RESTING boundary of a form field — perceivable (3:1) before focus. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The RESTING boundary of a transparent-fill field — perceivable (3:1, SC 1.4.11) on the darkest permissible ground, before focus. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.border.rest`. Do not use for the focus ring (use border.focus) or a validation state (use border.<semantic>).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.550}",
-        "dark": "{ads.core.palette.neutral.400}",
+        "dark": "{ads.core.palette.neutral.450}",
         "hc-light": "{ads.core.palette.neutral.500}",
         "hc-dark": "{ads.core.palette.neutral.500}"
       },
       "paired_with": [
-        "inverse.field.fill"
+        "inverse.field.placeholder"
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 3.51
+          "ratio": 3.23
         }
       ]
     },
     "inverse.field.border.hover": {
       "$description": "Form field hover border, on an inverse surface.",
       "meaning": "Form input / field chrome (inverse ground)",
-      "when_to_use": "The HOVER boundary of a form field — a subtly stronger perceivable border (4.5) on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The HOVER boundary of a form field — a subtly stronger perceivable border (3:1, SC 1.4.11) on pointer hover, gated on the darkest permissible ground. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.border.hover`. Do not use as the resting border (use field.border.rest), the focus ring (use border.focus), or a validation state (use border.<semantic>).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{ads.core.palette.neutral.450}",
-        "dark": "{ads.core.palette.neutral.500}",
+        "dark": "{ads.core.palette.neutral.550}",
         "hc-light": "{ads.core.palette.neutral.400}",
         "hc-dark": "{ads.core.palette.neutral.600}"
       },
       "paired_with": [
-        "inverse.field.fill",
         "inverse.field.border.rest"
       ],
       "contrast_with": [
         {
-          "token": "inverse.background.primary",
+          "token": "inverse.background.secondary",
           "min": "3:1",
-          "ratio": 5.06
+          "ratio": 4.66
         }
       ]
     },
     "inverse.field.placeholder": {
       "$description": "Form field placeholder ink, on an inverse surface.",
       "meaning": "Form input / field chrome (inverse ground)",
-      "when_to_use": "Placeholder / hint text inside a field — readable (4.5) on the field fill. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "Placeholder / hint text inside a field — readable (4.5) on the ground behind the transparent fill. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.placeholder`. Do not use as a label (a11y anti-pattern) or for the entered value (use text.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
@@ -3189,11 +3187,11 @@
         "hc-dark": "{ads.core.palette.neutral.650}"
       },
       "paired_with": [
-        "inverse.field.fill"
+        "inverse.field.border.rest"
       ],
       "contrast_with": [
         {
-          "token": "inverse.field.fill",
+          "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.66
         }
@@ -5861,7 +5859,6 @@
         "color.background.primary",
         "color.background.secondary",
         "color.background.tertiary",
-        "color.field.fill",
         "color.foreground.primary",
         "color.foreground.secondary",
         "color.foreground.tertiary",
@@ -5883,7 +5880,6 @@
         "color.inverse.background.primary",
         "color.inverse.background.secondary",
         "color.inverse.background.tertiary",
-        "color.inverse.field.fill",
         "color.inverse.foreground.primary",
         "color.inverse.foreground.secondary",
         "color.inverse.foreground.tertiary",
@@ -5915,7 +5911,6 @@
         "color.background.primary",
         "color.background.secondary",
         "color.background.tertiary",
-        "color.field.fill",
         "color.foreground.primary",
         "color.foreground.secondary",
         "color.foreground.tertiary",
@@ -5937,7 +5932,6 @@
         "color.inverse.background.primary",
         "color.inverse.background.secondary",
         "color.inverse.background.tertiary",
-        "color.inverse.field.fill",
         "color.inverse.foreground.primary",
         "color.inverse.foreground.secondary",
         "color.inverse.foreground.tertiary",
@@ -5958,6 +5952,16 @@
         "color.text.on-success",
         "color.text.on-warning",
         "color.text.primary"
+      ]
+    },
+    "core.palette.transparent": {
+      "$description": "Transparent — alpha 0, no paint. The default field fill aliases this so its border is the boundary on any ground (#1341)",
+      "meaning": "core primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "color.field.fill",
+        "color.inverse.field.fill"
       ]
     },
     "core.palette.primary.100": {
@@ -6236,9 +6240,7 @@
       "aliased_by": [
         "color.border.secondary",
         "color.field.border.hover",
-        "color.field.border.rest",
-        "color.inverse.field.border.hover",
-        "color.inverse.field.border.rest"
+        "color.inverse.field.border.hover"
       ]
     },
     "core.palette.neutral.450": {
@@ -6251,12 +6253,14 @@
         "color.disabled.on-fill",
         "color.disabled.text",
         "color.field.border.hover",
+        "color.field.border.rest",
         "color.field.placeholder",
         "color.icon.secondary",
         "color.icon.tertiary",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.text",
         "color.inverse.field.border.hover",
+        "color.inverse.field.border.rest",
         "color.inverse.field.placeholder",
         "color.inverse.icon.secondary",
         "color.inverse.icon.tertiary",
@@ -6274,14 +6278,12 @@
       "aliased_by": [
         "color.border.primary",
         "color.border.secondary",
-        "color.field.border.hover",
         "color.field.border.rest",
         "color.inverse.border.primary",
         "color.inverse.border.secondary",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.on-fill",
         "color.inverse.disabled.text",
-        "color.inverse.field.border.hover",
         "color.inverse.field.border.rest",
         "color.inverse.icon.secondary",
         "color.inverse.icon.tertiary",
@@ -6297,12 +6299,14 @@
         "color.disabled.icon",
         "color.disabled.on-fill",
         "color.disabled.text",
+        "color.field.border.hover",
         "color.field.border.rest",
         "color.field.placeholder",
         "color.icon.secondary",
         "color.icon.tertiary",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.text",
+        "color.inverse.field.border.hover",
         "color.inverse.field.border.rest",
         "color.inverse.field.placeholder",
         "color.inverse.icon.secondary",
@@ -6414,10 +6418,8 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.background.secondary",
-        "color.field.fill",
         "color.foreground.primary",
         "color.inverse.background.secondary",
-        "color.inverse.field.fill",
         "color.inverse.foreground.primary"
       ]
     },
@@ -6489,10 +6491,8 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.background.secondary",
-        "color.field.fill",
         "color.foreground.primary",
         "color.inverse.background.secondary",
-        "color.inverse.field.fill",
         "color.inverse.foreground.primary",
         "color.inverse.interactive.destructive.fill.rest",
         "color.inverse.interactive.neutral.fill.rest",

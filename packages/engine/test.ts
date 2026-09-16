@@ -1807,21 +1807,38 @@ for (const b of brands) {
       if (!(`field.${k}` in m.roles)) shapeMissing.push(`${m.mode}:field.${k}`);
   ok(shapeMissing.length === 0, 'field: fill/border.rest/border.hover/placeholder present in every mode' + (shapeMissing.length ? ` — ${shapeMissing.slice(0, 3).join(',')}` : ''));
 
+  // #1341 — the DEFAULT field fill is the TRANSPARENT alpha-0 primitive, not a solid surface. Assert the
+  // alias target BY NAME (`core.palette.transparent`), in every mode and on both the page and the inverse
+  // field. A mutation repointing `field.fill` back to `cfg.bg.secondary` (a solid neutral step) fails this.
+  const fillMiss: string[] = [];
+  for (const m of modes)
+    for (const k of ['field.fill', 'inverse.field.fill'])
+      if (!m.roles[k]?.path.endsWith('.core.palette.transparent')) fillMiss.push(`${m.mode}:${k}=${m.roles[k]?.path ?? 'absent'}`);
+  ok(fillMiss.length === 0, 'field(#1341): field.fill AND inverse.field.fill default to the transparent alpha-0 primitive (core.palette.transparent), every mode' + (fillMiss.length ? ` — ${fillMiss.slice(0, 3).join(',')}` : ''));
+
   const fails: string[] = [];
   for (const m of modes) {
     const b = m.roles['field.border.rest'], bh = m.roles['field.border.hover'], p = m.roles['field.placeholder'];
-    // resting border is a perceivable boundary (SC 1.4.11) vs the page — NOT the sub-3:1 Prism2 shipped.
-    if (b.against !== 'background.primary' || b.min < 3 || b.ratio < b.min) fails.push(`${m.mode}:border ${b.ratio.toFixed(2)}<${b.min}@${b.against}`);
-    // hover border is a STRONGER boundary than rest, on the same page ground — a perceptible, not
-    // sole, state cue. Gated at the NON-TEXT bar like rest (#352 item 4): a border carries no text,
-    // so the old `secondaryMin` target was a text constant doing a non-text job. The state cue is
-    // carried by a step OFFSET instead, so what is asserted here is "strictly stronger than rest",
-    // not a second absolute ratio.
-    if (bh.against !== 'background.primary' || bh.min < 3 || bh.ratio < bh.min || bh.ratio <= b.ratio) fails.push(`${m.mode}:border.hover ${bh.ratio.toFixed(2)}<${bh.min}@${bh.against}`);
-    // placeholder is readable on the field fill — NOT a sub-AA hint.
-    if (p.against !== 'field.fill' || p.min < 4.5 || p.ratio < p.min) fails.push(`${m.mode}:placeholder ${p.ratio.toFixed(2)}<${p.min}@${p.against}`);
+    const bgSec = m.roles['background.secondary'];
+    // #1341 — with a TRANSPARENT fill the border IS the field boundary, so it clears the non-text floor
+    // (SC 1.4.11) against the DARKEST permissible ground (`background.secondary`), not just the page. The
+    // contrast is RECOMPUTED here from the two roles' own colors rather than trusting the role's recorded
+    // `ratio` (the lint-ratio-truth lesson, docs/34): a mutation repointing the pick back to the page
+    // ground resolves the old ~#8E8E92 step — ~3.3:1 on white but ~2.7:1 on the off-white surface — and
+    // THIS arm is what catches it, because the recomputed contrast is measured against the ground that
+    // matters even if the recorded ratio was taken against the wrong one.
+    const borderVsGround = contrast(hexToRgb(b.hex), hexToRgb(bgSec.hex));
+    if (b.against !== 'background.secondary' || b.min < 3 || borderVsGround < b.min) fails.push(`${m.mode}:border ${borderVsGround.toFixed(2)}<${b.min}@${b.against}`);
+    // hover border is a STRONGER boundary than rest, on the same (darkest permissible) ground — a
+    // perceptible, not sole, state cue. Gated at the NON-TEXT bar like rest (#352 item 4): a border
+    // carries no text, so a text constant would be the wrong bar. The state cue is a step OFFSET, so what
+    // is asserted is "strictly stronger than rest", recomputed against the ground rather than trusted.
+    const hoverVsGround = contrast(hexToRgb(bh.hex), hexToRgb(bgSec.hex));
+    if (bh.against !== 'background.secondary' || bh.min < 3 || hoverVsGround < bh.min || bh.ratio <= b.ratio) fails.push(`${m.mode}:border.hover ${hoverVsGround.toFixed(2)}<${bh.min}@${bh.against}`);
+    // placeholder is readable on the darkest permissible ground behind the transparent fill — NOT a sub-AA hint.
+    if (p.against !== 'background.secondary' || p.min < 4.5 || p.ratio < p.min) fails.push(`${m.mode}:placeholder ${p.ratio.toFixed(2)}<${p.min}@${p.against}`);
   }
-  ok(fails.length === 0, 'field: rest border ≥3:1 + hover border stronger than rest on the page + placeholder ≥4.5 on the fill, every mode' + (fails.length ? ` — ${fails.join(',')}` : ''));
+  ok(fails.length === 0, 'field(#1341): rest+hover border ≥3:1 on the DARKEST permissible ground (background.secondary), hover stronger than rest, placeholder ≥4.5, every mode' + (fails.length ? ` — ${fails.join(',')}` : ''));
 
   // ...and the delta is UNIFORM across modes, which is the whole point of an offset over a ratio.
   // Chasing an absolute ratio made the perceptual delta depend on wherever `rest` happened to land:
@@ -1830,6 +1847,27 @@ for (const b of brands) {
   const fbDeltas = modes.map((m: any) => Math.abs(fbStep(m.roles['field.border.hover']) - fbStep(m.roles['field.border.rest'])));
   ok(new Set(fbDeltas).size === 1 && fbDeltas[0] === 100,
     `field: hover sits a uniform 2 ramp steps from rest in every mode (deltas ${fbDeltas.join(', ')})`);
+
+  // #1342 — the field's HOVER is a translucent alpha WASH, not a solid fill swap. Select (the component
+  // #1342 opened on) binds an `overlay` slot at hover, reusing the interactive overlay mechanism. Assert
+  // the binding BY NAME and that the role it points at is an ink-on-composite wash with alpha < 1 in every
+  // mode — so a mutation repointing select's `overlay.hover` to a SOLID role (model 'ink-on-surface'), or
+  // one that makes the overlay opaque, fails here rather than shipping an opaque hover fill.
+  const selOverlayRef = (select.tokens as Record<string, string>)['overlay.hover'];
+  ok(selOverlayRef === 'color.interactive.neutral.overlay.hover',
+    `#1342 select binds a hover overlay wash (overlay.hover → ${selOverlayRef})`);
+  const selControl = select.anatomy?.parts?.control as any;
+  ok(Array.isArray(selControl?.paintSlots) && selControl.paintSlots.includes('overlay'),
+    '#1342 select\'s control paints an overlay slot, so the hover wash reaches the box');
+  const washFails: string[] = [];
+  const washRole = (selOverlayRef ?? '').replace(/^color\./, '');
+  for (const m of modes) {
+    const r: any = m.roles[washRole];
+    if (!r) { washFails.push(`${m.mode}:absent`); continue; }
+    if (r.model !== 'ink-on-composite' || !(typeof r.alpha === 'number' && r.alpha > 0 && r.alpha < 1))
+      washFails.push(`${m.mode}:model=${r.model},alpha=${r.alpha}`);
+  }
+  ok(washFails.length === 0, '#1342 the field hover is a translucent wash (ink-on-composite, 0 < alpha < 1), NOT a solid opaque fill, every mode' + (washFails.length ? ` — ${washFails.slice(0, 3).join(',')}` : ''));
 }
 
 // MATERIALISE-TO-FIGMA — the colour aliases MUST bind a distinct target per mode. This locks
@@ -6419,6 +6457,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       'color/inverse/foreground/brand', 'color/inverse/foreground/danger',
       'color/inverse/foreground/info', 'color/inverse/foreground/success',
       'color/inverse/foreground/warning',
+      // #1341 — the alpha-0 `transparent` primitive, an engine addition the hand-built NB export never
+      // had (the default `color.field.fill` aliases it). A palette var, so it appears only in the palette
+      // collection; EXACT name, so a spurious sibling still fails.
+      'palette/transparent',
     ];
     // A var NB really exports that the engine still emits under a DIFFERENT NAME.
     //
@@ -7564,9 +7606,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const wantName = figName(ext.replace(/^\{|\}$/g, ''));
     if (v.alias?.name !== wantName) mismatchedAliases.push(`${v.name} → ${v.alias?.name} (want ${wantName})`);
     const neutralPrefix = `${wf.root}/core/palette/`;
-    if (v.alias && !v.alias.name.startsWith(`${neutralPrefix}neutral/`) && !v.alias.name.startsWith(`${neutralPrefix}white`) && !v.alias.name.startsWith(`${neutralPrefix}black`)) {
+    if (v.alias && !v.alias.name.startsWith(`${neutralPrefix}neutral/`) && !v.alias.name.startsWith(`${neutralPrefix}white`) && !v.alias.name.startsWith(`${neutralPrefix}black`) && v.alias.name !== `${neutralPrefix}transparent`) {
       // Wireframe is a greyscale mode — every chromatic role should route to the neutral
-      // ramp (or pure white/black for those specific primitive roles).
+      // ramp (or pure white/black/transparent, the colorless primitives: transparent carries no
+      // hue, so a transparent field fill (#1341) satisfies the greyscale contract trivially).
       nonNeutralAliases.push(`${v.name} → ${v.alias.name}`);
     }
   }

@@ -1854,83 +1854,10 @@
         }
       },
       "field": {
-        "fill": {
-          "$type": "color",
-          "$value": "{hds.core.palette.white}",
-          "$description": "Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              },
-              "aliasOf": "hds.core.palette.white",
-              "contrast": 1,
-              "against": "self"
-            }
-          }
-        },
-        "border": {
-          "rest": {
-            "$type": "color",
-            "$value": "{hds.core.palette.neutral.500}",
-            "$description": "Form field resting border — a perceivable boundary, 3:1 (SC 1.4.11) — better than a sub-3:1 resting border",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                },
-                "aliasOf": "hds.core.palette.neutral.500",
-                "contrast": 4.59,
-                "against": "background.primary",
-                "min": 4.5
-              }
-            }
-          },
-          "hover": {
-            "$type": "color",
-            "$value": "{hds.core.palette.neutral.600}",
-            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                },
-                "aliasOf": "hds.core.palette.neutral.600",
-                "contrast": 6.75,
-                "against": "background.primary",
-                "min": 4.5
-              }
-            }
-          }
-        },
         "placeholder": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.650}",
-          "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the field fill (not a sub-AA placeholder)",
+          "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -1946,7 +1873,7 @@
               },
               "aliasOf": "hds.core.palette.neutral.650",
               "contrast": 8.16,
-              "against": "field.fill",
+              "against": "background.secondary",
               "min": 7
             }
           }
@@ -2814,34 +2741,11 @@
           }
         },
         "field": {
-          "fill": {
-            "$type": "color",
-            "$value": "{hds.core.palette.black}",
-            "$description": "Form field fill on an inverse surface — the inverse ladder's second tier, the same one-step inset the page field takes",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                },
-                "aliasOf": "hds.core.palette.black",
-                "contrast": 1,
-                "against": "self"
-              }
-            }
-          },
           "border": {
             "rest": {
               "$type": "color",
               "$value": "{hds.core.palette.neutral.500}",
-              "$description": "Form field resting border on an inverse surface — a perceivable boundary, 3:1 (SC 1.4.11)",
+              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable 3:1 (SC 1.4.11) against the darkest permissible inverse ground",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -2857,7 +2761,7 @@
                   },
                   "aliasOf": "hds.core.palette.neutral.500",
                   "contrast": 4.57,
-                  "against": "inverse.background.primary",
+                  "against": "inverse.background.secondary",
                   "min": 4.5
                 }
               }
@@ -2865,7 +2769,7 @@
             "hover": {
               "$type": "color",
               "$value": "{hds.core.palette.neutral.400}",
-              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
+              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (never the sole state carrier — KB §4)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -2881,7 +2785,7 @@
                   },
                   "aliasOf": "hds.core.palette.neutral.400",
                   "contrast": 6.37,
-                  "against": "inverse.background.primary",
+                  "against": "inverse.background.secondary",
                   "min": 4.5
                 }
               }
@@ -2890,7 +2794,7 @@
           "placeholder": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.350}",
-            "$description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the inverse field fill",
+            "$description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -2906,7 +2810,7 @@
                 },
                 "aliasOf": "hds.core.palette.neutral.350",
                 "contrast": 7.49,
-                "against": "inverse.field.fill",
+                "against": "inverse.background.secondary",
                 "min": 7
               }
             }

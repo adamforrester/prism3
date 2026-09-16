@@ -2727,8 +2727,20 @@
  *
  * 0.94.0 — the next free ENGINE integer above main's 0.93.0. Rebased onto main after #1426 took 0.92.0
  * (select QA) and #1425 took 0.93.0 (switch-control scaling); this lane sits above both, never lower.
+ *
+ * 0.97.0 — #1341/#1342: the TRANSPARENT field fill. Adds the alpha-0 `core.palette.transparent` primitive
+ * and defaults `color.field.fill` / `color.inverse.field.fill` to it (kept themable), so a field frames by
+ * its border on any ground rather than an off-register inset surface. With a transparent fill the border IS
+ * the boundary, so `color.field.border.{rest,hover}` are re-gated to clear the non-text floor (SC 1.4.11)
+ * against the DARKEST permissible ground (`background.secondary`, the engine's own worst-case surface / the
+ * `cfg.floor` every gated foreground already uses) — one step darker in light, byte-identical in dark/HC.
+ * Hover (#1342) is an alpha WASH, not a solid fill: select's control gains an `overlay` slot reusing
+ * `color.interactive.neutral.overlay.hover` (the button #1210/#1233 pattern). Disabled keeps its solid,
+ * WCAG-exempt fill. This moves emitted VALUES (every brand's field fill + light border) AND the projected
+ * component surface (select's overlay paint), both ENGINE-version triggers (#1252). Provisional integer —
+ * a rebase relay reassigns it to the true next-free above main before merge.
  */
-export const ENGINE_VERSION = '0.95.0';
+export const ENGINE_VERSION = '0.97.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -3160,8 +3172,18 @@ export const ENGINE_VERSION = '0.95.0';
  * `core.dimension.5` stays exactly as guaranteed as it was on `main`, sourced by a real geometric value rather
  * than a phantom. The switch's own clearance is fed beside it. Surface stability kept, MINOR earned honestly.
  * (#1425)
+ *
+ * 10.3.0 — #1341 adds ONE guaranteed name: `core.palette.transparent`, the alpha-0 "no paint" color
+ * primitive that every brand now emits (the default `color.field.fill` aliases it). A pure ADDITION — a
+ * new name cannot break an existing reference — so a clean MINOR: 10.2.0 → 10.3.0. Nothing is removed or
+ * retyped. The rest of #1341/#1342 moves VALUES, not names: `color.field.fill` / `color.inverse.field.fill`
+ * keep their names and `color` type (only their default value becomes the transparent alias), the
+ * contrast-aware `color.field.border.{rest,hover}` re-point their gating ground (`background.secondary`,
+ * the darkest permissible) without moving a path, and select's hover reuses the existing
+ * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
+ * (#1341/#1342)
  */
-export const CONTRACT_VERSION = '10.2.0';
+export const CONTRACT_VERSION = '10.3.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

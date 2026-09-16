@@ -6357,6 +6357,41 @@ const renderForegroundsEditor = (): HTMLElement => {
       railNote: isSurface ? 'non-text · surface' : undefined,
     }));
   }
+  // #1341 — the FIELD FILL Source control (the missing-control gap the issue opened on). Unlike the fills
+  // above, its default is TRANSPARENT (no paint): a field frames by its border on whatever ground it sits,
+  // so "Auto" reads "Transparent" and picking a neutral step gives the field a solid surface (kept
+  // themable). Contrast-marked on the VALUE INK — a step is flagged when `text.primary` stays legible
+  // (≥4.5) on it — so a filled field keeps its value readable, the field analog of the on-fill gate above.
+  {
+    const role = 'field.fill';
+    const fr = roles[role];
+    if (fr) {
+      const palette = theme.roleToPalette.neutral;
+      const nSteps = theme.palettes.find((p) => p.palette === palette)?.steps ?? [];
+      const inkHex = roles['text.primary']?.hex;
+      const cur = brandState.overrides?.[currentMode]?.[role]?.step;
+      const transparent = cur == null;
+      const mark = (step: string): string => {
+        const s = nSteps.find((x) => x.key === step);
+        return inkHex && s && contrast(hexToRgb(s.hex), hexToRgb(inkHex)) >= 4.5 ? ' · ✓ 4.5:1' : '';
+      };
+      const sel = selectEl('cap');
+      sel.append(optionEl('', 'Transparent (no paint)', transparent));
+      for (const s of nSteps.map((x) => x.key)) sel.append(optionEl(s, `${palette} ${s}${mark(s)}`, cur === s));
+      sel.onchange = () => setFillOverride(role, palette, sel.value === '' ? undefined : sel.value);
+      // A transparent field reads as the page it sits on, so the swatch + example show `background.primary`
+      // (the resolved role hex is the alpha-0 primitive's opaque base — black — which would misrepresent it).
+      const pageHex = roles['background.primary']?.hex ?? '#ffffff';
+      const shown = transparent ? pageHex : fr.hex;
+      sec.append(sfRow({
+        swatchHex: shown, name: 'Field fill', tokenPath: colorPath(role),
+        desc: 'Transparent by default — the border frames the field on any ground. Pick a neutral step for a solid, filled field.',
+        controls: sfCtl(sfCtlBlock('Step', sel)),
+        example: sfExFill(shown, 'Field', legibleInkOn(shown)),
+        railNote: transparent ? 'transparent · no paint' : 'non-text · surface',
+      }));
+    }
+  }
   const ct = sectionContrastRoles('The on-fill legibility pairs this section governs, computed on the resolved colors across every mode — the per-row badge verifies the active mode at the point of edit.', FILL_ROLES.map((f) => [f.role, f.label] as [string, string]));
   if (ct) sec.append(ct);
   return sec;

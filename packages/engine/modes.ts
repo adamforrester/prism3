@@ -1516,13 +1516,28 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // is the TECHNIQUE (copy a page token, flip it by hand, ship it ungated), not the coverage. A
   // generated, contrast-verified inverse set is what the interactive column has always done, and
   // `inverse.field.*` below now does the same.
-  putSurf('field.fill', cfg.bg.secondary, 'Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears)');
+  // #1341 — the DEFAULT field fill is TRANSPARENT (alpha-0 `core.palette.transparent`), not the inset
+  // `background.secondary` surface. A transparent fill frames the field by its BORDER on whatever ground
+  // it sits, so it never lands one step out of register against the page it is dropped on (a hard fill
+  // is always wrong against SOME ground a white-label engine cannot know). The token is kept for
+  // themability — a brand may still point it at a solid surface — only its DEFAULT value moves.
+  putSurf('field.fill', cand(`${ns}.transparent`, BLACK), 'Form field fill — TRANSPARENT by default (no paint): the border is the field boundary, so the fill sits correctly on any ground. Kept themable — point it at a surface step for a filled field. Hover is a translucent wash, not a fill swap (#1342)');
+  // #1341 — with a TRANSPARENT fill the border IS the field boundary, so it must clear the non-text floor
+  // (SC 1.4.11) against the DARKEST PERMISSIBLE GROUND a field sits on, not just the page. That ground is
+  // `background.secondary` — the inset tier the fill used to be, and the engine's own worst-case supported
+  // surface (`cfg.floor`, the same ground every gated foreground like `text.secondary` validates against).
+  // It is the strictly-worse ground for a neutral border in EVERY mode (a mid neutral is closer in
+  // luminance to the tinted tier than to the page), so gating here only ever STRENGTHENS the pick: it is
+  // byte-identical in dark/HC (already clears) and one step darker in light, where the old `neutral.400`
+  // border measured ~2.7:1 on the off-white surface — below 3:1 (#1341's a11y finding).
+  //
   // Border is the one stateful field slot (rest + hover), same shape as interactive.*.fill.<state>.
   // Rest is a perceivable boundary; hover is a subtly STRONGER boundary — never the sole state
   // carrier (KB §4). Focus swaps to border.focus, validation to border.<semantic>, disabled to
   // disabled.border — those compose from generic families, so only rest/hover live in field.*.
-  const fieldRest = pickMinPass(ramp, baseRgb, cfg.nonTextMin);
-  put('field.border.rest', fieldRest, `Form field resting border — a perceivable boundary, ${cfg.nonTextMin}:1 (SC 1.4.11) — better than a sub-3:1 resting border`, 'background.primary', cfg.nonTextMin);
+  const fieldGroundRgb = asGround('background.secondary', cfg.bg.secondary.rgb);
+  const fieldRest = pickMinPass(ramp, fieldGroundRgb, cfg.nonTextMin);
+  put('field.border.rest', fieldRest, `Form field resting border — the boundary of a transparent-fill field, so a perceivable ${cfg.nonTextMin}:1 (SC 1.4.11) against the darkest permissible ground (the tinted \`background.secondary\` tier), not the page alone`, 'background.secondary', cfg.nonTextMin);
   // Hover is a STATE DELTA expressed as a step offset from rest, not a second absolute ratio.
   //
   // It used to target `secondaryMin` — a TEXT constant — which is the same category error the bold
@@ -1538,8 +1553,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // a far weaker cue on 1px of chrome than on a filled button, and this would have been a silent
   // regression in the affordance.
   const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
-  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, 2, dir, guardFrom(contrast(fieldRest.rgb, baseRgb), baseRgb, cfg.nonTextMin)), baseRgb), `Form field hover border — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 (never the sole state carrier — KB §4)`, 'background.primary', cfg.nonTextMin);
-  put('field.placeholder', pickMinPass(textCands, asGround('field.fill', cfg.bg.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink — a READABLE hint, ${cfg.secondaryMin}:1 on the field fill (not a sub-AA placeholder)`, 'field.fill', cfg.secondaryMin);
+  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, 2, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible ground (never the sole state carrier — KB §4)`, 'background.secondary', cfg.nonTextMin);
+  // The placeholder ink sits on the field, whose transparent fill lets the darkest permissible ground
+  // (`background.secondary`) through — so it is gated there, not against the (now paint-less) fill. Same
+  // rgb the fill used to be, so the pick is byte-identical; only the recorded ground moves off `field.fill`.
+  put('field.placeholder', pickMinPass(textCands, asGround('background.secondary', cfg.bg.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink — a READABLE hint, ${cfg.secondaryMin}:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)`, 'background.secondary', cfg.secondaryMin);
 
   // The same four, for a field sitting on a dark hero / inverse band (#892). GENERATED against the
   // inverse ground and contrast-verified there — NOT a hand-mirrored twin, which is the technique the
@@ -1555,14 +1573,19 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // Tranche 1 is why this is first in #892's order: `checkbox`, `radio`, `switch` and `select` all
   // bind `field.*`, and until now a checkbox on an inverse band had no border, fill or placeholder
   // token to resolve to at all.
-  putSurf('inverse.field.fill', cfg.bgInverse.secondary, 'Form field fill on an inverse surface — the inverse ladder\'s second tier, the same one-step inset the page field takes');
+  // #1341 — the inverse field mirrors the page field: TRANSPARENT fill, border gated against the darkest
+  // permissible inverse ground (`inverse.background.secondary`). Keeping the page/inverse mirror invariant
+  // (#892: "every rule below is its page sibling's rule with the ground swapped") is why the inverse fill
+  // moves too — a field is paint-less on the page AND on a dark band, framed by its border on either.
+  putSurf('inverse.field.fill', cand(`${ns}.transparent`, BLACK), 'Form field fill on an inverse surface — TRANSPARENT by default (no paint), the same paint-less field the page takes; the border frames it on the dark band');
   // `-dir` throughout: on the page a stronger neutral steps toward the ink, and on the inverse band
   // that direction reverses. The same idiom the inverse interactive column already uses.
-  const fieldInvRest = pickMinPass(ramp, invRgb, cfg.nonTextMin);
-  put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — a perceivable boundary, ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'inverse.background.primary', cfg.nonTextMin);
+  const fieldInvGroundRgb = asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb);
+  const fieldInvRest = pickMinPass(ramp, fieldInvGroundRgb, cfg.nonTextMin);
+  put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable ${cfg.nonTextMin}:1 (SC 1.4.11) against the darkest permissible inverse ground`, 'inverse.background.secondary', cfg.nonTextMin);
   const fieldInvRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldInvRest.path)!.num;
-  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, 2, -dir, guardFrom(contrast(fieldInvRest.rgb, invRgb), invRgb, cfg.nonTextMin)), invRgb), `Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 (never the sole state carrier — KB §4)`, 'inverse.background.primary', cfg.nonTextMin);
-  put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.field.fill', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a READABLE hint, ${cfg.secondaryMin}:1 on the inverse field fill`, 'inverse.field.fill', cfg.secondaryMin);
+  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, 2, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible inverse ground (never the sole state carrier — KB §4)`, 'inverse.background.secondary', cfg.nonTextMin);
+  put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a READABLE hint, ${cfg.secondaryMin}:1 on the darkest permissible inverse ground behind the transparent fill`, 'inverse.background.secondary', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)
   // Ink. Built from a floor PROFILE so `text` (4.5:1) and `icon` can diverge: with

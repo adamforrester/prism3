@@ -28,6 +28,18 @@
             }
           }
         },
+        "transparent": {
+          "$type": "color",
+          "$value": "#00000000",
+          "$description": "Transparent — alpha 0, no paint. The default field fill aliases this so its border is the boundary on any ground (#1341)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "alpha": 0,
+              "note": "composites over any surface"
+            }
+          }
+        },
         "primary": {
           "100": {
             "$type": "color",
@@ -11035,30 +11047,30 @@
       "field": {
         "fill": {
           "$type": "color",
-          "$value": "{wds.core.palette.neutral.050}",
-          "$description": "Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears)",
+          "$value": "{wds.core.palette.transparent}",
+          "$description": "Form field fill — TRANSPARENT by default (no paint): the border is the field boundary, so the fill sits correctly on any ground. Kept themable — point it at a surface step for a filled field. Hover is a translucent wash, not a fill swap (#1342)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "wds.core.palette.neutral.050",
+              "aliasOf": "wds.core.palette.transparent",
               "contrast": 1,
               "against": "self",
               "modes": {
                 "dark": {
-                  "$value": "{wds.core.palette.neutral.900}",
-                  "aliasOf": "wds.core.palette.neutral.900",
+                  "$value": "{wds.core.palette.transparent}",
+                  "aliasOf": "wds.core.palette.transparent",
                   "contrast": 1,
                   "against": "self"
                 },
                 "hc-light": {
-                  "$value": "{wds.core.palette.white}",
-                  "aliasOf": "wds.core.palette.white",
+                  "$value": "{wds.core.palette.transparent}",
+                  "aliasOf": "wds.core.palette.transparent",
                   "contrast": 1,
                   "against": "self"
                 },
                 "hc-dark": {
-                  "$value": "{wds.core.palette.black}",
-                  "aliasOf": "wds.core.palette.black",
+                  "$value": "{wds.core.palette.transparent}",
+                  "aliasOf": "wds.core.palette.transparent",
                   "contrast": 1,
                   "against": "self"
                 }
@@ -11079,35 +11091,35 @@
         "border": {
           "rest": {
             "$type": "color",
-            "$value": "{wds.core.palette.neutral.400}",
-            "$description": "Form field resting border — a perceivable boundary, 3:1 (SC 1.4.11) — better than a sub-3:1 resting border",
+            "$value": "{wds.core.palette.neutral.450}",
+            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable 3:1 (SC 1.4.11) against the darkest permissible ground (the tinted `background.secondary` tier), not the page alone",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.neutral.400",
-                "contrast": 3.28,
-                "against": "background.primary",
+                "aliasOf": "wds.core.palette.neutral.450",
+                "contrast": 3.18,
+                "against": "background.secondary",
                 "min": 3,
                 "modes": {
                   "dark": {
                     "$value": "{wds.core.palette.neutral.550}",
                     "aliasOf": "wds.core.palette.neutral.550",
-                    "contrast": 3.52,
-                    "against": "background.primary",
+                    "contrast": 3.25,
+                    "against": "background.secondary",
                     "min": 3
                   },
                   "hc-light": {
                     "$value": "{wds.core.palette.neutral.500}",
                     "aliasOf": "wds.core.palette.neutral.500",
                     "contrast": 4.61,
-                    "against": "background.primary",
+                    "against": "background.secondary",
                     "min": 4.5
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.neutral.500}",
                     "aliasOf": "wds.core.palette.neutral.500",
                     "contrast": 4.55,
-                    "against": "background.primary",
+                    "against": "background.secondary",
                     "min": 4.5
                   }
                 },
@@ -11126,35 +11138,35 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{wds.core.palette.neutral.500}",
-            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
+            "$value": "{wds.core.palette.neutral.550}",
+            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (never the sole state carrier — KB §4)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.neutral.500",
-                "contrast": 4.61,
-                "against": "background.primary",
+                "aliasOf": "wds.core.palette.neutral.550",
+                "contrast": 4.55,
+                "against": "background.secondary",
                 "min": 3,
                 "modes": {
                   "dark": {
                     "$value": "{wds.core.palette.neutral.450}",
                     "aliasOf": "wds.core.palette.neutral.450",
-                    "contrast": 5.03,
-                    "against": "background.primary",
+                    "contrast": 4.64,
+                    "against": "background.secondary",
                     "min": 3
                   },
                   "hc-light": {
                     "$value": "{wds.core.palette.neutral.600}",
                     "aliasOf": "wds.core.palette.neutral.600",
                     "contrast": 6.72,
-                    "against": "background.primary",
+                    "against": "background.secondary",
                     "min": 4.5
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.neutral.400}",
                     "aliasOf": "wds.core.palette.neutral.400",
                     "contrast": 6.4,
-                    "against": "background.primary",
+                    "against": "background.secondary",
                     "min": 4.5
                   }
                 },
@@ -11175,34 +11187,34 @@
         "placeholder": {
           "$type": "color",
           "$value": "{wds.core.palette.neutral.550}",
-          "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the field fill (not a sub-AA placeholder)",
+          "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "wds.core.palette.neutral.550",
               "contrast": 4.55,
-              "against": "field.fill",
+              "against": "background.secondary",
               "min": 4.5,
               "modes": {
                 "dark": {
                   "$value": "{wds.core.palette.neutral.450}",
                   "aliasOf": "wds.core.palette.neutral.450",
                   "contrast": 4.64,
-                  "against": "field.fill",
+                  "against": "background.secondary",
                   "min": 4.5
                 },
                 "hc-light": {
                   "$value": "{wds.core.palette.neutral.650}",
                   "aliasOf": "wds.core.palette.neutral.650",
                   "contrast": 8.11,
-                  "against": "field.fill",
+                  "against": "background.secondary",
                   "min": 7
                 },
                 "hc-dark": {
                   "$value": "{wds.core.palette.neutral.350}",
                   "aliasOf": "wds.core.palette.neutral.350",
                   "contrast": 7.46,
-                  "against": "field.fill",
+                  "against": "background.secondary",
                   "min": 7
                 }
               },
@@ -14384,30 +14396,30 @@
         "field": {
           "fill": {
             "$type": "color",
-            "$value": "{wds.core.palette.neutral.900}",
-            "$description": "Form field fill on an inverse surface — the inverse ladder's second tier, the same one-step inset the page field takes",
+            "$value": "{wds.core.palette.transparent}",
+            "$description": "Form field fill on an inverse surface — TRANSPARENT by default (no paint), the same paint-less field the page takes; the border frames it on the dark band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.neutral.900",
+                "aliasOf": "wds.core.palette.transparent",
                 "contrast": 1,
                 "against": "self",
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.neutral.050}",
-                    "aliasOf": "wds.core.palette.neutral.050",
+                    "$value": "{wds.core.palette.transparent}",
+                    "aliasOf": "wds.core.palette.transparent",
                     "contrast": 1,
                     "against": "self"
                   },
                   "hc-light": {
-                    "$value": "{wds.core.palette.black}",
-                    "aliasOf": "wds.core.palette.black",
+                    "$value": "{wds.core.palette.transparent}",
+                    "aliasOf": "wds.core.palette.transparent",
                     "contrast": 1,
                     "against": "self"
                   },
                   "hc-dark": {
-                    "$value": "{wds.core.palette.white}",
-                    "aliasOf": "wds.core.palette.white",
+                    "$value": "{wds.core.palette.transparent}",
+                    "aliasOf": "wds.core.palette.transparent",
                     "contrast": 1,
                     "against": "self"
                   }
@@ -14429,34 +14441,34 @@
             "rest": {
               "$type": "color",
               "$value": "{wds.core.palette.neutral.550}",
-              "$description": "Form field resting border on an inverse surface — a perceivable boundary, 3:1 (SC 1.4.11)",
+              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable 3:1 (SC 1.4.11) against the darkest permissible inverse ground",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "wds.core.palette.neutral.550",
-                  "contrast": 3.52,
-                  "against": "inverse.background.primary",
+                  "contrast": 3.25,
+                  "against": "inverse.background.secondary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.neutral.400}",
-                      "aliasOf": "wds.core.palette.neutral.400",
-                      "contrast": 3.06,
-                      "against": "inverse.background.primary",
+                      "$value": "{wds.core.palette.neutral.450}",
+                      "aliasOf": "wds.core.palette.neutral.450",
+                      "contrast": 3.18,
+                      "against": "inverse.background.secondary",
                       "min": 3
                     },
                     "hc-light": {
                       "$value": "{wds.core.palette.neutral.500}",
                       "aliasOf": "wds.core.palette.neutral.500",
                       "contrast": 4.55,
-                      "against": "inverse.background.primary",
+                      "against": "inverse.background.secondary",
                       "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.neutral.500}",
                       "aliasOf": "wds.core.palette.neutral.500",
                       "contrast": 4.61,
-                      "against": "inverse.background.primary",
+                      "against": "inverse.background.secondary",
                       "min": 4.5
                     }
                   },
@@ -14476,34 +14488,34 @@
             "hover": {
               "$type": "color",
               "$value": "{wds.core.palette.neutral.450}",
-              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
+              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (never the sole state carrier — KB §4)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "wds.core.palette.neutral.450",
-                  "contrast": 5.03,
-                  "against": "inverse.background.primary",
+                  "contrast": 4.64,
+                  "against": "inverse.background.secondary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.neutral.500}",
-                      "aliasOf": "wds.core.palette.neutral.500",
-                      "contrast": 4.3,
-                      "against": "inverse.background.primary",
+                      "$value": "{wds.core.palette.neutral.550}",
+                      "aliasOf": "wds.core.palette.neutral.550",
+                      "contrast": 4.55,
+                      "against": "inverse.background.secondary",
                       "min": 3
                     },
                     "hc-light": {
                       "$value": "{wds.core.palette.neutral.400}",
                       "aliasOf": "wds.core.palette.neutral.400",
                       "contrast": 6.4,
-                      "against": "inverse.background.primary",
+                      "against": "inverse.background.secondary",
                       "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{wds.core.palette.neutral.600}",
                       "aliasOf": "wds.core.palette.neutral.600",
                       "contrast": 6.72,
-                      "against": "inverse.background.primary",
+                      "against": "inverse.background.secondary",
                       "min": 4.5
                     }
                   },
@@ -14524,34 +14536,34 @@
           "placeholder": {
             "$type": "color",
             "$value": "{wds.core.palette.neutral.450}",
-            "$description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the inverse field fill",
+            "$description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "wds.core.palette.neutral.450",
                 "contrast": 4.64,
-                "against": "inverse.field.fill",
+                "against": "inverse.background.secondary",
                 "min": 4.5,
                 "modes": {
                   "dark": {
                     "$value": "{wds.core.palette.neutral.550}",
                     "aliasOf": "wds.core.palette.neutral.550",
                     "contrast": 4.55,
-                    "against": "inverse.field.fill",
+                    "against": "inverse.background.secondary",
                     "min": 4.5
                   },
                   "hc-light": {
                     "$value": "{wds.core.palette.neutral.350}",
                     "aliasOf": "wds.core.palette.neutral.350",
                     "contrast": 7.46,
-                    "against": "inverse.field.fill",
+                    "against": "inverse.background.secondary",
                     "min": 7
                   },
                   "hc-dark": {
                     "$value": "{wds.core.palette.neutral.650}",
                     "aliasOf": "wds.core.palette.neutral.650",
                     "contrast": 8.11,
-                    "against": "inverse.field.fill",
+                    "against": "inverse.background.secondary",
                     "min": 7
                   }
                 },
@@ -20844,7 +20856,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.95.0",
+      "version": "0.97.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

@@ -41,6 +41,25 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "ads/core/palette/transparent",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Transparent — alpha 0, no paint. The default field fill aliases this so its border is the boundary on any ground (#1341)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "ads/core/palette/primary/100",
       "resolvedType": "COLOR",
       "scopes": [
