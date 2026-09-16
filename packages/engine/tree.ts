@@ -412,6 +412,13 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const palette: Record<string, any> = {
     white: baseLeaf(theme, WHITE, 'Pure white — Highlight base / default surface', 'Highlights'),
     black: baseLeaf(theme, BLACK, 'Pure black — Shadow base', 'Shadows'),
+    // #1341 — the alpha-0 "no paint" primitive. A fully-transparent COLOR value, distinct from the
+    // `opacity.*` number scale (a multiplier) and from the white-/black-alpha ramps (which start at
+    // 5%). The default `color.field.fill` aliases it, so a field frames by its border on whatever
+    // ground it sits rather than carrying an off-register surface (#1341/#1342). Built through the same
+    // `alphaLeaf` mechanism the ramps use so a sibling can add opaque white/black fill sources the same
+    // way (#1384), scoped here to `transparent` only.
+    transparent: alphaLeaf(theme, BLACK, 0, 'Transparent — alpha 0, no paint. The default field fill aliases this so its border is the boundary on any ground (#1341)'),
   };
   const brandPalette = theme.roleToPalette.brand;
   const brandAnchorStep = theme.roleAnchorStep.brand;
@@ -1187,7 +1194,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const mr of modes) for (const r of Object.values(mr.roles)) if (r.min > 0) { modeChecks++; if (r.ratio >= r.min) modePass++; }
 
   const alphaLeaves = 2 * ALPHA_STEPS.filter((s) => s > 0 && s < 100).length;
-  const colorLeaves = 2 + theme.palettes.reduce((n, p) => n + p.steps.length, 0) + alphaLeaves;
+  // 3 base swatches: white, black, and the alpha-0 `transparent` primitive (#1341).
+  const colorLeaves = 3 + theme.palettes.reduce((n, p) => n + p.steps.length, 0) + alphaLeaves;
   return { tree, modes, stats: { colorLeaves, dimLeaves: theme.dims.grid.length, spaceTokens: theme.dims.space.length, radiusTokens: theme.dims.radius.length, sizeSteps: theme.dims.sizes.length, fontSizes: theme.typography.sizesPx.length, fontWeights: theme.typography.weightsRef.length, typeComposites: theme.typography.composites.length, aliases: aliases.length, resolved: aliases.length - broken.length, broken, modeChecks, modePass } };
 };
 

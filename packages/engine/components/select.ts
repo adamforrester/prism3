@@ -52,17 +52,20 @@
  * message carry the status. This is the same "error is a border-only swap; warning/success are
  * message-only" contract text-field ships.
  *
- * ── HOVER IS A BORDER SWAP; THE FILL IS STATELESS BY DESIGN (#1342, confirmed) ────────────────────
+ * ── HOVER: A TRANSLUCENT WASH + THE BORDER; THE FILL IS TRANSPARENT (#1341/#1342, owner-decided) ───
  *
- * A QA question (#1342) asked whether the field FILL should change on hover — i.e. whether the token
- * tier should grow a `color/field/fill/hover` role. The answer, matching `text-field`, is NO: hover is
- * carried entirely by the BORDER (`border.hover` → `color.field.border.hover`, bound below and reached at
- * the hover coordinate), and the field FILL (`field.fill`) is CONSTANT across every state and status.
- * A select is a field, and a field's chrome does not restyle its surface on hover — the boundary
- * thickens/darkens, the surface holds. So no `field.fill.hover` role is minted here or in the tier; the
- * fill is deliberately stateless. (Were the fill to gain a hover variant it would also have to clear its
- * own contrast contract against the value ink at both rungs — cost with no signal the border does not
- * already carry.)
+ * A QA question (#1342) asked whether the field FILL should change on hover — i.e. whether the tier
+ * should grow a solid `color/field/fill/hover`. The owner-decided answer (recorded on #1341, 2026-09-14,
+ * reaffirmed 2026-09-16) is NO SOLID fill-hover — but the fill is not stateless either. With the default
+ * `field.fill` now TRANSPARENT (#1341 — a field frames by its border, not a surface, so it sits correctly
+ * on any ground), hover is carried by BOTH the border (`border.hover` → `color.field.border.hover`) AND a
+ * translucent OVERLAY WASH on the control. The wash reuses the existing interactive overlay mechanism
+ * (`color.interactive.neutral.overlay.hover` — a 10% neutral alpha that tints relative to the CURRENT
+ * ground), the button outline/text overlay pattern (#1210/#1233), so it reads on any background a
+ * transparent field is dropped on — where a solid `field.fill.hover` would be one step out of register
+ * against some ground. So the control paints an `overlay` slot (precedence overlay > fill: the wash at
+ * hover, the transparent fill at rest) and no solid fill-hover role is minted. `pressed` is not a select
+ * state, so only `hover` washes.
  *
  * ── ROLES REUSED, VERSION ────────────────────────────────────────────────────────────────────────
  *
@@ -216,11 +219,13 @@ export const select: ComponentDef = {
     // The value ink's type — running body text, one line.
     'type': 'type.body.md.default',
 
-    // ── FILL — the field chrome, STATELESS by design: constant across every state AND status (#1342) ──
-    // One key, no `.hover` / `.focus-visible` variant. Hover is a BORDER swap (see the header and
-    // `border.hover` below); the surface never restyles. text-field's exact model — a field's fill is
-    // chrome, not a stateful signal, so the tier mints no `field.fill.hover`.
+    // ── FILL + HOVER WASH — the field chrome (#1341/#1342, owner-decided). `field.fill` is TRANSPARENT by
+    // default, so at rest the control shows the page. Hover does NOT swap the fill to a solid; it lays a
+    // translucent `overlay` wash over the control (precedence overlay > fill), reusing the interactive
+    // overlay mechanism so it tints relative to whatever ground the field sits on. The border strengthens
+    // in parallel (`border.hover`). `pressed` is not a select state, so only `hover` washes. See the header.
     'fill': 'color.field.fill',
+    'overlay.hover': 'color.interactive.neutral.overlay.hover',
 
     // ── BORDER — stateful, with the error swap (border-ONLY). See the header for the vocabulary and the
     // precedence. `border` (bare) is the rest value; `border.hover` / `border.focus-visible` are the
@@ -308,12 +313,12 @@ export const select: ComponentDef = {
         note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts at the select default (small / secondary / regular).',
       },
       // THE CONTROL — the bordered, interactive box. The single target: it owns the hit area, the focus
-      // ring and the stateful border. Paints its fill and border (`paintSlots`); fills the column width
-      // and holds a fixed single-line height.
+      // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
+      // precedence overlay > fill — #1341/#1342); fills the column width and holds a fixed single-line height.
       control: {
         kind: 'box',
         role: 'target',
-        paintSlots: ['fill', 'border'],
+        paintSlots: ['overlay', 'fill', 'border'],
         // `space-between` PINS THE TRAILING CHEVRON TO THE FIELD'S RIGHT EDGE (#1426), independent of the
         // value string's length. `content` fills the control in CODE (flexbox `flex:1` pushes the chevron
         // right), but the engine projects `sizing: 'fill'` to AUTO/HUG (#989), so in Figma `content` HUGS

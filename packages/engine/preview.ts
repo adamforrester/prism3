@@ -105,14 +105,15 @@ export const previewSpec: PreviewSpec = {
     {
       id: 'input', label: 'Text input', description: 'A form field on the field.* chrome — resting, hover (stronger border), focused (border.focus), and disabled (disabled.*).',
       variants: [
-        // The field.* category (docs/20 §17): field.fill fill, a PERCEIVABLE resting
-        // field.border.rest (gated 3:1 — better than a decorative border), a STRONGER
-        // field.border.hover (gated 4.5), and a READABLE field.placeholder (gated 4.5).
-        // Focus swaps to border.focus; disabled to disabled.*.
+        // The field.* category (docs/20 §17): a TRANSPARENT field fill (#1341) — the field shows the
+        // page, so value + placeholder are gated on the ground behind it and the border, which is now the
+        // field boundary, is gated on the DARKEST permissible ground (`background.secondary`), matching the
+        // engine's own contract. A STRONGER field.border.hover (also on that ground). Focus swaps to
+        // border.focus; disabled keeps its solid, WCAG-exempt fill.
         { name: 'default', bindings: { bg: 'color.field.fill', border: 'color.field.border.rest', text: 'color.text.primary', placeholder: 'color.field.placeholder', radius: 'radius.sm', padX: 'space.200', padY: 'space.150', type: 'type.body.md.default' },
-          contracts: [{ fg: 'color.text.primary', bg: 'color.field.fill', min: TEXT, label: 'value on field' }, { fg: 'color.field.border.rest', bg: 'color.background.primary', min: UI, label: 'resting border' }, { fg: 'color.field.placeholder', bg: 'color.field.fill', min: TEXT, label: 'placeholder on field' }] },
+          contracts: [{ fg: 'color.text.primary', bg: 'color.background.primary', min: TEXT, label: 'value on field' }, { fg: 'color.field.border.rest', bg: 'color.background.secondary', min: UI, label: 'resting border' }, { fg: 'color.field.placeholder', bg: 'color.background.secondary', min: TEXT, label: 'placeholder on field' }] },
         { name: 'hover', bindings: { bg: 'color.field.fill', border: 'color.field.border.hover', text: 'color.text.primary', placeholder: 'color.field.placeholder', radius: 'radius.sm', padX: 'space.200', padY: 'space.150', type: 'type.body.md.default' },
-          contracts: [{ fg: 'color.field.border.hover', bg: 'color.background.primary', min: UI, label: 'hover border' }] },
+          contracts: [{ fg: 'color.field.border.hover', bg: 'color.background.secondary', min: UI, label: 'hover border' }] },
         { name: 'focus', bindings: { bg: 'color.field.fill', border: 'color.border.focus', text: 'color.text.primary', radius: 'radius.sm', padX: 'space.200', padY: 'space.150', type: 'type.body.md.default' },
           contracts: [{ fg: 'color.border.focus', bg: 'color.background.primary', min: UI, label: 'focus ring' }] },
         { name: 'disabled', bindings: { bg: 'color.disabled.fill', border: 'color.disabled.border', text: 'color.disabled.on-fill', radius: 'radius.sm', padX: 'space.200', padY: 'space.150', type: 'type.body.md.default' },

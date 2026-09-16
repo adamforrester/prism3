@@ -127,12 +127,12 @@ const describe = (group: string, variant: string, state: string | undefined): { 
 
   // field — form-element chrome (docs/20 §17). Minimal; states compose from other families.
   if (group === 'field') {
-    if (variant === 'fill') return { desc: 'Form field fill', when_to_use: 'The background of a text input / form field — a subtly inset surface.', avoid_when: 'Do not use for the page (use background.*) or a card (use foreground.*).', paired_with: ['field.border.rest', 'field.placeholder', 'text.primary'] };
+    if (variant === 'fill') return { desc: 'Form field fill', when_to_use: 'The fill of a text input / form field — TRANSPARENT by default, so the border frames the field on whatever ground it sits. Point it at a surface step for a filled field.', avoid_when: 'Do not use for the page (use background.*) or a card (use foreground.*).', paired_with: ['field.border.rest', 'field.placeholder', 'text.primary'] };
     if (variant === 'border') {
-      if (state === 'hover') return { desc: 'Form field hover border', when_to_use: 'The HOVER boundary of a form field — a subtly stronger perceivable border (4.5) on pointer hover.', avoid_when: 'Do not use as the resting border (use field.border.rest), the focus ring (use border.focus), or a validation state (use border.<semantic>).', paired_with: ['field.fill', 'field.border.rest'] };
-      return { desc: 'Form field resting border', when_to_use: 'The RESTING boundary of a form field — perceivable (3:1) before focus.', avoid_when: 'Do not use for the focus ring (use border.focus) or a validation state (use border.<semantic>).', paired_with: ['field.fill'] };
+      if (state === 'hover') return { desc: 'Form field hover border', when_to_use: 'The HOVER boundary of a form field — a subtly stronger perceivable border (3:1, SC 1.4.11) on pointer hover, gated on the darkest permissible ground.', avoid_when: 'Do not use as the resting border (use field.border.rest), the focus ring (use border.focus), or a validation state (use border.<semantic>).', paired_with: ['field.border.rest'] };
+      return { desc: 'Form field resting border', when_to_use: 'The RESTING boundary of a transparent-fill field — perceivable (3:1, SC 1.4.11) on the darkest permissible ground, before focus.', avoid_when: 'Do not use for the focus ring (use border.focus) or a validation state (use border.<semantic>).', paired_with: ['field.placeholder'] };
     }
-    if (variant === 'placeholder') return { desc: 'Form field placeholder ink', when_to_use: 'Placeholder / hint text inside a field — readable (4.5) on the field fill.', avoid_when: 'Do not use as a label (a11y anti-pattern) or for the entered value (use text.primary).', paired_with: ['field.fill'] };
+    if (variant === 'placeholder') return { desc: 'Form field placeholder ink', when_to_use: 'Placeholder / hint text inside a field — readable (4.5) on the ground behind the transparent fill.', avoid_when: 'Do not use as a label (a11y anti-pattern) or for the entered value (use text.primary).', paired_with: ['field.border.rest'] };
   }
 
   if (group === 'scrim') return { desc: 'Semi-transparent backdrop behind modals / drawers', when_to_use: 'The dimming layer behind a modal, dialog, or drawer.', avoid_when: 'Do not use as a solid surface or for any opaque element.', paired_with: ['inverse.foreground.primary'] };
