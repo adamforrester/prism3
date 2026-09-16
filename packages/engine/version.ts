@@ -2505,6 +2505,39 @@
  * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
  */
 /**
+ * 0.96.0 — the component ref-wiring re-find SCOPES PAST NESTED INSTANCES (#1428, host-truth binding fix, no
+ * design decision). `select` COMPOSES field-label AND field-message, and both carry a part named `text` —
+ * the same name as select's own value `text`. Both executors re-find each part by name to wire its Figma
+ * component-property reference (the paste payload's `PAYLOAD_WIRE_REFS`, the plugin's read-back/recovery),
+ * and `findOne` descends INTO a nested instance: on the live host it returned one of the instance's own
+ * `text` layers — a sublayer of ANOTHER component, which cannot hold this set's reference — so Figma refused
+ * with "Could not create a new component property reference" and select's `value` reference was dropped
+ * (QA 2026-09-15). `leadingVisual` (a unique name) and `message` (matched on the nested-instance node
+ * ITSELF, a valid target) never collided, which is why only `value` failed. Both executors now use a scoped
+ * `findOwnPart` that matches a part by name without descending into a nested instance; a referenced part is
+ * always the member's own layer, so the scope loses nothing.
+ *
+ * ENGINE and not CONTRACT. A consumer who pastes the payload or runs the plugin now gets select's `value`
+ * property reference where it was silently dropped — an observable change in the engine's output — so the
+ * bump is owed by the surface rule (version.ts's "what a consumer can OBSERVE"). It adds, removes and
+ * retypes NO guaranteed token name, so CONTRACT STANDS at 10.2.0 (`token-contract.ts --check` confirms the
+ * guaranteed surface unchanged). The projected component SURFACE digest does not move either — the fix is in
+ * the two EXECUTORS, not in `figmaAnatomySet`, so `lint-component-surface`'s `planStamp` is byte-identical
+ * and `lint-emission-version` is blind to payloads by construction (both facts stated above). Committed
+ * `out/` therefore moves ONLY on the `engineVersion` stamp, the same shape as the 0.90.0 control-shape entry
+ * below. Recorded here because neither emission gate forces this bump — it is owed by policy, not by a red.
+ *
+ * BEHAVIOR mutation (docs/34): `test-roundtrip.ts`'s #1428 arm drives select's PLUGIN executor, and
+ * `test.ts`'s #1428 arm its PASTE payload, each through a stub whose nested instances carry a colliding
+ * `text` part that refuses a reference write exactly as a sublayer of another component does. Each has a
+ * reachability floor proving the collision materialised, then asserts select's `value` reference survives on
+ * every member. Revert `findOwnPart` in either executor and its arm fails BY NAME with the live host's own
+ * "Could not create a new component property reference" (paste) / `DISCARDED` (plugin read-back) message.
+ *
+ * 0.96.0 and not 0.94.0 because 0.94.0/0.95.0 are taken by lanes in flight; this is the next free ENGINE
+ * integer above 0.93.0 at emit time (never lower), and a rebase relay may reassign it before merge.
+ */
+/**
  * 0.93.0 — `switch-control` is SCALED to Prism 2's toggle proportions (#1425, owner-triaged `engine`+`a11y`,
  * decision-free calibration). It was ~half Prism 2's scale — a 16px track at aurora's largest switch rung,
  * a thumb half that, failing to read as a switch and leaning on the row for the whole hit target — because
@@ -2649,7 +2682,7 @@
  * 0.90.0 and not 0.89.0 because this merged post-#1347 main, which took 0.89.0 for the checkbox-row rename +
  * checkbox-group build — the next free ENGINE above it (never lower).
  */
-export const ENGINE_VERSION = '0.93.0';
+export const ENGINE_VERSION = '0.96.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

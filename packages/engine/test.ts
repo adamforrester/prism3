@@ -10066,7 +10066,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[] };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -10493,6 +10493,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
               name, id: `73:${37 + i}`,
               createInstance: () => {
                 const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec];
+                // #1428 — model the instance's OWN parts as real children so a member's `findOne` descends
+                // into them and can collide with the host's own part names (select nests field-label AND
+                // field-message, both carrying a `text` part). Each refuses a reference write — it is a
+                // sublayer of ANOTHER component — so a re-find by name that lands on it fails exactly as
+                // live. Flagged for `guardRefs` below. Opt-in via `nestedInstanceParts`.
+                for (const partName of opts.nestedInstanceParts ?? []) {
+                  const kid = mkNode('TEXT'); kid.name = partName; kid._inNestedInstance = true;
+                  kid.parent = inst;   // #1428 — so `inInst`'s ancestry walk sees the INSTANCE
+                  (inst.children as Record<string, unknown>[]).push(kid);
+                }
                 // AN INSTANCE INHERITS ITS MAIN COMPONENT'S ROOT BINDINGS (#1388, #1290). The focus-ring
                 // main component binds width AND height to its `nominal-side` (`size.md.height`, the
                 // buildable-alone square), so a nested ring instance carries those bindings until the host
@@ -10662,6 +10672,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // when a node is built.
       const guardRefs = (set: Record<string, unknown>) => {
         for (const n of [set, ...(set.findAll as () => Record<string, unknown>[])()]) {
+          // #1428 — a node INSIDE a nested instance cannot hold one of THIS set's references (it is a
+          // sublayer of another component): Figma refuses with its own message. Modelled so a re-find by
+          // name that lands on such a node (the pre-#1428 `findOne`) fails exactly as it does live, rather
+          // than being silently accepted by the validating setter below.
+          if (n._inNestedInstance) {
+            Object.defineProperty(n, 'componentPropertyReferences', {
+              configurable: true,
+              get: () => null,
+              set: () => { throw new Error('in set_componentPropertyReferences: Could not create a new component property reference'); },
+            });
+            continue;
+          }
           let held: Record<string, string> | null = null;
           Object.defineProperty(n, 'componentPropertyReferences', {
             configurable: true,
@@ -11994,6 +12016,55 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           ok(unexposed.length === 0,
             `#1392 the paste payload marks every ${def.id} nest-exposed instance isExposedInstance=true — the payload executor's exposure write, UNGATED until #1386's review (${instances.length - unexposed.length}/${instances.length} exposed)`);
         }
+      }
+
+      // ---- #1428: NESTED-INSTANCE PART-NAME COLLISION, PASTE-PATH HOST-TRUTH -----------------------
+      // select COMPOSES field-label AND field-message, and BOTH carry a part named `text` — the same name
+      // as select's own value `text`. The paste payload's ref wire re-finds each part by name
+      // (`member.findOne`), which on the live host descends INTO a nested instance and returns one of ITS
+      // `text` layers — a sublayer of ANOTHER component that cannot hold this set's reference, so Figma
+      // refuses with "Could not create a new component property reference" and the `value` TEXT reference is
+      // dropped (#1428, QA 2026-09-15 — surfaced on the status=warning/hover coordinates a live build
+      // happened to exercise, but the collision is per-member and general). The payload now scopes past
+      // nested instances (`findOwnPart` in `PAYLOAD_WIRE_REFS`), the twin of the plugin executor's fix, so
+      // the two paths stay in lockstep at the parity gate below. `leadingVisual` (a unique name) and
+      // `message` (matched on the nested-instance node ITSELF, a valid target) never collided — which is
+      // exactly why only `text.characters` failed while `message.visible` never did.
+      //
+      // The default stub uses OPAQUE nested-instance stubs, so it is blind to this by construction (docs/34:
+      // the subject was under-modelled). Drive select through the payload with a stub whose nested instances
+      // carry a colliding `text` part (`nestedInstanceParts`), each refusing a reference write exactly as a
+      // sublayer of another component does. Mutation-by-name (docs/34): revert `findOwnPart` in
+      // `PAYLOAD_WIRE_REFS` and every member reports `text.characters -> … Could not create`, failing the
+      // SECOND assertion by name. The reachability floor (first assertion) proves the collision materialised.
+      {
+        const plans = figmaAnatomySet(select, { swapTarget: 'FPO-default-icon' });
+        const collect = (n: AnatomyPlan['root']): string[] => [...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []), ...n.children.flatMap(collect)];
+        const page: StubPage = { children: [] };
+        const opts: StubOpts = {
+          vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+          styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+          comps: [...new Set(plans.flatMap((p) => collect(p.root)))],
+          nestedInstanceParts: ['text'],
+          page,
+        };
+        const run = await runPayload(planSetToPluginJs(plans), opts);
+        // REACHABILITY FLOOR — the collision materialised: every built member's descending search reaches a
+        // nested-instance `text` (flagged by the stub), not select's own value text. Without this the miss
+        // assertion could pass because the fixture never built the colliding node (docs/34's empty-set silence).
+        const set = page.children.find((c) => (c as { type?: string }).type === 'COMPONENT_SET') as { children?: Record<string, unknown>[] } | undefined;
+        const members = set?.children ?? [];
+        const descend = (n: Record<string, unknown>, name: string): Record<string, unknown> | undefined => {
+          if (n.name === name && n._inNestedInstance) return n;
+          for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) { const h = descend(c, name); if (h) return h; }
+          return undefined;
+        };
+        const collided = members.filter((m) => descend(m, 'text'));
+        ok(members.length === 16 && collided.length === members.length,
+          `#1428 reachability (paste): every built select member carries a colliding nested-instance \`text\` (${collided.length}/${members.length})`);
+        const textMisses = run.misses.filter((m) => /\btext\.characters\b/.test(m));
+        ok(textMisses.length === 0,
+          `#1428 paste-path: select's own \`value\` TEXT reference is wired despite the nested field-label/field-message \`text\` collision — 0 dropped (${textMisses.length ? textMisses.slice(0, 2).join(' | ') : 'none'})`);
       }
 
       // ---- AXIS PARITY between the two write paths (#487 step 5) --------------------------------

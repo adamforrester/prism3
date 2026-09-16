@@ -159,6 +159,22 @@ export type ShimOpts = {
    * this file keeps identity across combine unchanged.
    */
   detachPartsOnCombine?: boolean;
+  /**
+   * NESTED INSTANCES CARRY THEIR OWN PARTS, AND THOSE PARTS CAN COLLIDE (#1428) — the host behavior the
+   * opaque `createInstance` stub could not otherwise reach. A real nested instance is a live subtree of
+   * ANOTHER component: `member.findOne(x => x.name === P)` descends into it and can return one of ITS
+   * layers when the host def composes a component whose part name matches its own. Select nests
+   * `field-label` and `field-message`, both of which have a `text` part — colliding with select's own
+   * value `text`.
+   *
+   * With this set, every instance `createInstance` builds carries a child named after each entry, and each
+   * such child REFUSES a `componentPropertyReferences` write with Figma's own "Could not create a new
+   * component property reference" — because a node inside a nested instance is a sublayer of that other
+   * component, not of this set, and cannot hold one of this set's references. So a re-find by name that
+   * lands on it (the pre-#1428 `findOne`) both returns the wrong node AND cannot be repaired onto it,
+   * exactly as on the live host. Opt-in, so the corpus loop above keeps its opaque nested instances.
+   */
+  nestedInstanceParts?: string[];
 };
 
 /** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
@@ -523,6 +539,18 @@ export const makeShim = (opts: ShimOpts = {}) => {
   // a node is built.
   const guardRefs = (set: Node): void => {
     for (const n of [set, ...(set.findAll as () => Node[])()]) {
+      // #1428 — a node INSIDE a nested instance is a sublayer of ANOTHER component, so it cannot hold one
+      // of THIS set's references: Figma refuses the write with its own message. Modelled so a re-find by
+      // name that lands on such a node (the pre-#1428 `findOne`) fails exactly as it does live, rather than
+      // being silently accepted by the validating setter below.
+      if ((n as Record<string, unknown>)._inNestedInstance) {
+        Object.defineProperty(n, 'componentPropertyReferences', {
+          configurable: true,
+          get: () => null,
+          set: () => { throw new Error('in set_componentPropertyReferences: Could not create a new component property reference'); },
+        });
+        continue;
+      }
       let held: Record<string, string> | null = null;
       Object.defineProperty(n, 'componentPropertyReferences', {
         configurable: true,
@@ -573,6 +601,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
           name, id: `73:${37 + i}`,
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
+            // #1428 — model the instance's OWN parts as real children so a member's `findOne` descends
+            // into them and can collide (see `nestedInstanceParts`). Each refuses a reference write: it is
+            // a sublayer of ANOTHER component. Flagged so `guardRefs` installs the refusing setter below.
+            for (const partName of opts.nestedInstanceParts ?? []) {
+              const kid = mkNode('TEXT'); kid.name = partName;
+              (kid as Record<string, unknown>)._inNestedInstance = true;
+              kid.parent = inst;   // #1428 — so `insideNestedInstance`'s ancestry walk sees the INSTANCE
+              (inst.children as Node[]).push(kid);
+            }
             // AN INSTANCE INHERITS ITS MAIN COMPONENT'S ROOT BINDINGS (#1388, #1290) — the focus-ring
             // component binds width/height to its `nominal-side`, so a nested ring carries those bindings
             // until the host clears them. Seeded for the ring so the executor's clear-before-resize is

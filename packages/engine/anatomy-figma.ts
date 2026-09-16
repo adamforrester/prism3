@@ -2895,11 +2895,22 @@ const refOv=new Map();
 // Keyed member -> part+field (#1331): one part can carry two refs (a swap + a node-visibility boolean), so
 // a part-only key would hand the visible ref the swap's override and vice versa.
 for(const o of REF_OVERRIDES){let m=refOv.get(o.member);if(!m){m=new Map();refOv.set(o.member,m);}m.set(o.part+'|'+o.field,o);}
+// #1428 — a member's OWN part by name, EXCLUDING any node INSIDE a nested INSTANCE. A def that COMPOSES
+// other components (select nests field-label AND field-message, both carrying a \`text\` part — colliding
+// with select's own value \`text\`) has same-named nodes inside those instances; a bare \`findOne\` crosses
+// that boundary and returns one, a sublayer of ANOTHER component that cannot hold this set's reference —
+// Figma throws "Could not create a new component property reference". A referenced part is always the
+// member's own layer (Figma forbids referencing a nested instance's internals), so rejecting an
+// instance-internal match by ancestry only ever drops the WRONG node. Routed THROUGH \`findOne\` so the
+// search is scoped, not replaced. The plugin executor's \`findOwnPart\` is the same fix; the two must stay
+// in lockstep or the parity gate diverges.
+const inInst=(node,stop)=>{for(let p=node.parent;p&&p!==stop;p=p.parent)if(p.type==='INSTANCE')return true;return false;};
+const findOwnPart=(member,name)=>member.findOne(x=>x.name===name&&!inInst(x,member));
 const wiredRefs=[];
 for(const member of set.children){
   const own=refOv.get(member.name);
   for(const r of REFS){
-    const node=member.findOne(x=>x.name===r.part);
+    const node=findOwnPart(member,r.part);
     // An optional part absent from THIS variant builds no node, so there is nothing to wire — the
     // legitimate case, not an error. \`planSetProperties\` only ever declares a property some node
     // references, so a part missing everywhere would leave the property undeclared instead.
@@ -2924,7 +2935,7 @@ for(const member of set.children){
 // had for variable bindings before #503.
 for(const [mName,part,field,id] of wiredRefs){
   const member=set.children.find(c=>c.name===mName);
-  const node=member?member.findOne(x=>x.name===part):null;
+  const node=member?findOwnPart(member,part):null;   // #1428: read back the member's OWN part, not a nested twin
   const got=node&&node.componentPropertyReferences?node.componentPropertyReferences[field]:undefined;
   if(got!==id)misses.push('ref '+mName+'/'+part+'.'+field+' -> DISCARDED (set '+id+', reads '+got+')');
 }`;

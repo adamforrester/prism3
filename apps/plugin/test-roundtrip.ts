@@ -332,6 +332,49 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     "#1331 host-truth: every built leading glyph's `visible` is wired to the 'leading icon' boolean (componentPropertyReferences.visible)");
 }
 
+// ── #1428: A NESTED-INSTANCE PART-NAME COLLISION DOES NOT DROP THE HOST'S OWN REFERENCE — HOST-TRUTH ─
+//
+// select COMPOSES field-label AND field-message, and BOTH of those carry a part named `text` — the same
+// name as select's own value `text`. On the live host `member.findOne(x => x.name === 'text')` descends
+// INTO a nested instance and returns one of ITS `text` layers, a node that cannot hold this set's
+// component-property reference (it is a sublayer of ANOTHER component): Figma refuses the write with "Could
+// not create a new component property reference", so the `value` TEXT reference was reported dropped
+// (#1428, QA 2026-09-15). The QA surfaced it on the status=warning/hover coordinates a live build happened
+// to exercise via the throw path, but the collision is PER-MEMBER and general — every member's `text`
+// read-back lands on the wrong node. The fix scopes every re-find-by-name past nested instances
+// (`findOwnPart`, write-components.ts); `leadingVisual` (a unique name) and `message` (matched on the
+// nested-instance node ITSELF, a valid target) never collided, which is exactly why only `text.characters`
+// failed while `message.visible` never did.
+//
+// The corpus loop above uses OPAQUE nested-instance stubs, so it is blind to this by construction (docs/34:
+// the gate's subject was under-modelled). Drive select through a shim whose nested instances carry their
+// own `text` part (`nestedInstanceParts`), each refusing a reference write exactly as a sublayer of another
+// component does, and assert the host holds select's OWN `value` reference on every member. Mutation-by-name
+// (docs/34): revert the `findOwnPart` scoping and every member reports `text.characters -> DISCARDED`,
+// failing the SECOND assertion below by name. The reachability floor (first assertion) proves the collision
+// actually materialised — a naive descending `findOne` returns the nested-instance `text`, not select's own
+// — so a green here is the reference surviving a REAL collision, not a fixture that never built one.
+{
+  const def = componentDefs.find((d) => d.id === 'select')!;
+  const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(plans), page, nestedInstanceParts: ['text'] });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const res = await applyComponentPlan(plans, shim as any, {});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's members
+  const members = (page.children[0]?.children ?? []) as any[];
+  // REACHABILITY FLOOR — the collision materialised: the SAME descending `findOne` the pre-fix code used
+  // returns a node INSIDE a nested instance (flagged by the shim), not select's own value text. Without
+  // this, the miss-count assertion below could pass because the fixture never built the colliding node.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim
+  const naive = members[0]?.findOne?.((x: any) => x.name === 'text');
+  ok(members.length === 16 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
+    `#1428 reachability: a naive descending findOne on a built select member returns a nested-instance \`text\` (the wrong node the fix defends against) — collision materialised (${members.length} members)`);
+  const textRefMisses = res.misses.filter((m) => /\btext\.characters\b/.test(m));
+  ok(res.wiredMembers === plans.length && textRefMisses.length === 0,
+    `#1428: select's own \`value\` TEXT reference is created on every member despite the nested field-label/field-message \`text\` collision — 0 dropped (${textRefMisses.length ? textRefMisses.slice(0, 2).join(' | ') : 'none'}; wiredMembers=${res.wiredMembers}/${plans.length})`);
+}
+
 // ── STROKE-WEIGHT PER-SIDE READ-BACK (#1332) — HOST-TRUTH ──────────────────────────────────────
 //
 // The 2026-09-09 host-truth Figma-console audit established that `setBoundVariable('strokeWeight', v)`
