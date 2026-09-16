@@ -190,6 +190,42 @@ The `code-only` list is the component-tier version of the ceilings discipline `1
 for tokens: some anatomy provably will not survive the Figma leg, and the schema must say so
 **explicitly** rather than lose it silently.
 
+### The 44px interactive hit-target floor (#1443)
+
+An interactive control presents a hit target of at least **44px** — WCAG 2.2 Success Criterion
+2.5.5 (Enhanced) Target Size. The floor is about the **touch/hit area**, not the visual size: a
+control may look smaller than 44px as long as the area that responds to a tap or click clears the
+floor. This is the same optical-box-versus-hit-box distinction the `touch-target-expansion` entry
+above records — the hit area is decoupled from the paint, and the floor is a claim about the hit
+area alone.
+
+The floor governs the **comfortable and spacious** densities. At a control's default size the `md`
+rung is 44px on a comfortable brand and 56px on a spacious one, so a control meets the floor there by
+binding that rung directly; `select` additionally binds `size.md.min-height` = `max(size.md.height,
+44)` so its own control is never below 44 regardless of density (#1426/#1437).
+
+There are **two documented, permanent exceptions**, and nothing else:
+
+1. **The small button** (owner, 2026-09-15). A small button knowingly sits below the floor, because
+   its compactness is the reason to reach for it; a consumer choosing it is choosing the smaller
+   target.
+2. **Compact density** (owner, 2026-09-16). A compact-density brand is a deliberate dense/desktop
+   mode, allowed below the floor. The exception is scoped to compact **alone** — comfortable and
+   spacious are not exempt, so a control that drops below 44px there is a real failure, not a
+   density affordance.
+
+`packages/engine/lint-hit-target.ts` enforces this. It builds one brand at each density, asserts each
+build is the density it claims (so the compact exception cannot mask a comfortable or spacious
+regression), and measures the token each control actually binds at its default size against a `44`
+floor written independently of the emitter's own constant. Every control is represented — measured,
+or excluded with a stated reason (a nested atom whose target is the row above it, a group whose rows
+are the targets, the fluid multi-line textarea, or a non-interactive part). Both exceptions are
+asserted to be **actually below** the floor, so if a change ever lifts a small button or the compact
+`md` to 44, the carve-out goes stale and fails by name rather than persisting unexamined. The floor is
+measured at each control's default size; whether non-default small variants — which sit at the same
+36px `sm` rung as the small button on a comfortable brand — should also be gated is a scope the owner
+has not extended.
+
 ### 4.1 `nesting` — how a part relates to the component it points at (#681)
 
 The schema above says *which* component a part points at (`nests`, or nothing at all for a

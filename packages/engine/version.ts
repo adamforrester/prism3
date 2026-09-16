@@ -2505,6 +2505,52 @@
  * that survives), so the recolor has one home and cannot be gated by two assertions that contradict.
  */
 /**
+ * 0.96.0 — emitted COMPONENT SETS keep their variant-set FRAME so they read as sets on the canvas (#1430,
+ * owner-triaged quality-of-life; the first question was correctness and the answer clears it). DIAGNOSIS,
+ * with evidence (the (a)-vs-(b) fork the issue posed): the emitted sets ARE real `ComponentSetNode`s —
+ * `write-components.ts` builds them with `figma.combineAsVariants` and the host reads them back as
+ * `type === 'COMPONENT_SET'` (now asserted in `test-roundtrip.ts`). So this is NOT case (a), a projection
+ * that emits plain frames; the node model is right and variant-switching / the properties panel / publishing
+ * all work. It is case (b): a PRESENTATION strip. `combineAsVariants` returns a container Figma dresses as a
+ * variant set — a 5px radius, a purple dashed border and a fill — and #865's default-claim (`claimDefaults`)
+ * BLANKED all of it to a bare frame, so an emitted set was indistinguishable from any other frame on a busy
+ * canvas.
+ *
+ * THE FIX preserves the BORDER rather than blanking it, still as a #865 CLAIM: for the set node (the sole
+ * `claimDefaults(null)` call), `strokes`/`strokeWeight`/`strokeAlign`/`dashPattern` and the four corner
+ * radii are claimed by ECHOING what the host dressed the set with, not by writing a neutral literal. Echo
+ * rather than a hardcoded purple because the exact values are Figma's own and are recorded nowhere offline
+ * to re-assert — echoing keeps an emitted set's border pixel-identical to a native one, which is the whole
+ * of the ask; a guessed literal would be the thing that drifts. The set's OPAQUE default FILL is the one
+ * framing property NOT preserved — it is cleared to transparent, because keeping it would put a solid box
+ * behind whatever a designer arranges around the set and would trip #1387's no-opaque-white rule; a set's
+ * canvas identity is its dashed purple border, not a fill. Every non-framing default still neutralizes.
+ * This matches the PASTE path, which never neutralized the set (its #865 claim is member-only), so the two
+ * executors now agree on the set's frame as well.
+ *
+ * PLUGIN-SIDE — no `out/**` diff comes from the logic itself (the set frame is a live Figma object, not an
+ * emitted artifact), so `lint-emission-version` does not compel this bump (it reports 0 moved artifacts —
+ * executor-only, the #1429/#1428 shape). But the built set is a consumer-OBSERVABLE change and
+ * `ENGINE_VERSION` is the "what code produced this" answer (and the MCP `serverInfo.version`), so it moves;
+ * the only `out/**` churn is the re-stamped `generator.version`.
+ * 0.96.0 and not 0.94.0 because this merged onto post-#1424/#1433/#1428 main: 0.94.0 was the radio/checkbox
+ * row QA bundle and 0.95.0 the #1428 select ref-wiring scope fix; #1429 was gate-only and consumed no
+ * integer, so 0.96.0 is the next free ENGINE integer above 0.95.0 (never lower). The provisional first cut
+ * was 0.98.0 off 0.93.0 main.
+ *
+ * CONTRACT STANDS at 10.2.0. No guaranteed token NAME is added, removed or retyped — this is node-type
+ * styling, not tokens — so `token-contract.ts --check` confirms the guaranteed surface unchanged (586) and
+ * `--accept` refreshes only the informational `engineVersion` stamp.
+ *
+ * SAFETY NET (docs/34): the set-ness and the frame are HOST-OBSERVABLE, so they are asserted by name in
+ * `test-roundtrip.ts` (#1430): the shared `component-shim` now models the frame `combineAsVariants` applies
+ * (a bare `COMPONENT_SET` could not tell the fix from the #865 blank — shape 4), and the gate reads back off
+ * every emitted set that it is a real `ComponentSetNode` carrying a non-empty dashed stroke and a set radius.
+ * The oracle is authored in the gate, not derived from the executor; reverting either `isSet` branch to the
+ * #865 blank trips it by name, and a negative arm (a set stripped of its stroke IS reported) proves the
+ * check is not vacuous. It runs over the whole projected corpus, since the strip affected every set.
+ */
+/**
  * 0.95.0 — the component ref-wiring re-find SCOPES PAST NESTED INSTANCES (#1428, host-truth binding fix, no
  * design decision). `select` COMPOSES field-label AND field-message, and both carry a part named `text` —
  * the same name as select's own value `text`. Both executors re-find each part by name to wire its Figma

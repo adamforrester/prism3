@@ -717,6 +717,20 @@ export const makeShim = (opts: ShimOpts = {}) => {
       const set = mkNode('COMPONENT_SET');
       set.id = 'SET:1';
       set.children = members;
+      // #1430 — HOST TRUTH: `combineAsVariants` returns a set Figma has already DRESSED as a variant set —
+      // a purple dashed border and a 5px radius, the outline a designer uses to pick the set out on the
+      // canvas. `mkNode` hands back a BARE `COMPONENT_SET` (strokes `[]`, corners 0), so a shim that stopped
+      // there could not tell the executor KEEPING that border (the #1430 fix) from BLANKING it (the #865
+      // defect this corrects) — docs/34 shape 4: model the axis or the gate cannot see it. Seeded verbatim
+      // as Figma's own (the border is `#9747FF`, the variant-set purple) so the round-trip's assertion reads
+      // a real border back and the pre-#1430 blank fails it by name. The set's OPAQUE default FILL is NOT
+      // modelled: the executor clears it to transparent on purpose (#1430 note in `write-components.ts` —
+      // it would obscure content and trip #1387), so there is nothing there for a gate to preserve.
+      set.strokes = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0x97 / 255, g: 0x47 / 255, b: 1 } }];
+      set.strokeWeight = 1;
+      set.strokeAlign = 'INSIDE';
+      set.dashPattern = [10, 5];
+      for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) (set as Record<string, unknown>)[c] = 5;
       takeFromPage(members);
       // #1337 — DETACH the pre-combine descendant handles and hand the live members fresh TWINS. See
       // `detachPartsOnCombine` in `ShimOpts` for why this is the one host behavior worth modelling. The
