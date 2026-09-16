@@ -2836,16 +2836,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+      "description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.9137254953384399,
-        "b": 0.9176470637321472,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/050"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -2855,16 +2855,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+      "description": "primary interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.8078431487083435,
-        "g": 0.8078431487083435,
-        "b": 0.8156862854957581,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/150"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -2874,16 +2874,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+      "description": "primary interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.7058823704719543,
-        "g": 0.7058823704719543,
-        "b": 0.7137255072593689,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/250"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -2893,16 +2893,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
+      "description": "primary interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.8078431487083435,
-        "g": 0.8078431487083435,
-        "b": 0.8156862854957581,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/150"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -2912,16 +2912,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+      "description": "primary interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.7058823704719543,
-        "g": 0.7058823704719543,
-        "b": 0.7137255072593689,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/250"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -2932,16 +2932,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it, or the max-contrast extreme in the high-contrast modes (#1244)",
+      "description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)",
       "value": {
         "r": 0,
-        "g": 0.4313725531101227,
-        "b": 0.6000000238418579,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/550"
+        "name": "ads/core/palette/accent/500"
       }
     },
     {
@@ -3116,16 +3116,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+      "description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.9137254953384399,
-        "b": 0.9176470637321472,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/050"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -3135,16 +3135,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+      "description": "destructive interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.8078431487083435,
-        "g": 0.8078431487083435,
-        "b": 0.8156862854957581,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/150"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -3154,16 +3154,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+      "description": "destructive interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.7058823704719543,
-        "g": 0.7058823704719543,
-        "b": 0.7137255072593689,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/250"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -3173,16 +3173,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
+      "description": "destructive interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.8078431487083435,
-        "g": 0.8078431487083435,
-        "b": 0.8156862854957581,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/150"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -3192,16 +3192,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+      "description": "destructive interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.7058823704719543,
-        "g": 0.7058823704719543,
-        "b": 0.7137255072593689,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/250"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -3212,16 +3212,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Ink on the destructive inverse fill (a dark label on the light on-dark CTA)",
+      "description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/950"
+        "name": "ads/core/palette/danger/500"
       }
     },
     {
@@ -3396,16 +3396,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+      "description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.9137254953384399,
-        "b": 0.9176470637321472,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/050"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -3415,16 +3415,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+      "description": "neutral interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.8078431487083435,
-        "g": 0.8078431487083435,
-        "b": 0.8156862854957581,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/150"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -3434,16 +3434,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+      "description": "neutral interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.7058823704719543,
-        "g": 0.7058823704719543,
-        "b": 0.7137255072593689,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/250"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -3453,16 +3453,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
+      "description": "neutral interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.8078431487083435,
-        "g": 0.8078431487083435,
-        "b": 0.8156862854957581,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/150"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -3472,16 +3472,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+      "description": "neutral interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
       "value": {
-        "r": 0.7058823704719543,
-        "g": 0.7058823704719543,
-        "b": 0.7137255072593689,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/250"
+        "name": "ads/core/palette/white"
       }
     },
     {
@@ -3492,7 +3492,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Ink on the neutral inverse fill (a dark label on the light on-dark CTA)",
+      "description": "Ink on the neutral inverse fill — a neutral high-contrast label on the crisp white / black CTA",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,

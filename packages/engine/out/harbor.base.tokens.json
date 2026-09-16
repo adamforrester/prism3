@@ -7903,13 +7903,13 @@
             "fill": {
               "rest": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.050}",
-                "$description": "primary interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.050",
-                    "contrast": 15.98,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -7927,13 +7927,13 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.150}",
-                "$description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "primary interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -7951,13 +7951,13 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.250}",
-                "$description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "primary interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.250",
-                    "contrast": 9.3,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -7975,13 +7975,13 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.150}",
-                "$description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "primary interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -7999,13 +7999,13 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.250}",
-                "$description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "primary interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.250",
-                    "contrast": 9.3,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8024,13 +8024,13 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.550}",
-              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it, or the max-contrast extreme in the high-contrast modes (#1244)",
+              "$value": "{hds.core.palette.primary.500}",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.550",
-                  "contrast": 4.62,
+                  "aliasOf": "hds.core.palette.primary.500",
+                  "contrast": 4.58,
                   "against": "inverse.interactive.primary.fill.rest",
                   "min": 4.5,
                   "figma": {
@@ -8279,13 +8279,13 @@
             "fill": {
               "rest": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.050}",
-                "$description": "destructive interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.050",
-                    "contrast": 15.98,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8303,13 +8303,13 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.150}",
-                "$description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "destructive interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8327,13 +8327,13 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.250}",
-                "$description": "destructive interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "destructive interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.250",
-                    "contrast": 9.3,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8351,13 +8351,13 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.150}",
-                "$description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "destructive interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8375,13 +8375,13 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.250}",
-                "$description": "destructive interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "destructive interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.250",
-                    "contrast": 9.3,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8400,13 +8400,13 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{hds.core.palette.neutral.950}",
-              "$description": "Ink on the destructive inverse fill (a dark label on the light on-dark CTA)",
+              "$value": "{hds.core.palette.danger.500}",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.neutral.950",
-                  "contrast": 15.98,
+                  "aliasOf": "hds.core.palette.danger.500",
+                  "contrast": 4.57,
                   "against": "inverse.interactive.destructive.fill.rest",
                   "min": 4.5,
                   "figma": {
@@ -8655,13 +8655,13 @@
             "fill": {
               "rest": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.050}",
-                "$description": "neutral interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.050",
-                    "contrast": 15.98,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8679,13 +8679,13 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.150}",
-                "$description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "neutral interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8703,13 +8703,13 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.250}",
-                "$description": "neutral interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "neutral interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.250",
-                    "contrast": 9.3,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8727,13 +8727,13 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.150}",
-                "$description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "neutral interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8751,13 +8751,13 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{hds.core.palette.neutral.250}",
-                "$description": "neutral interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+                "$value": "{hds.core.palette.white}",
+                "$description": "neutral interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "hds.core.palette.neutral.250",
-                    "contrast": 9.3,
+                    "aliasOf": "hds.core.palette.white",
+                    "contrast": 19.42,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8777,12 +8777,12 @@
             "on-fill": {
               "$type": "color",
               "$value": "{hds.core.palette.neutral.950}",
-              "$description": "Ink on the neutral inverse fill (a dark label on the light on-dark CTA)",
+              "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the crisp white / black CTA",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "hds.core.palette.neutral.950",
-                  "contrast": 15.98,
+                  "contrast": 19.42,
                   "against": "inverse.interactive.neutral.fill.rest",
                   "min": 4.5,
                   "figma": {
@@ -14270,7 +14270,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.97.0",
+      "version": "0.98.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

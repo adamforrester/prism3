@@ -520,10 +520,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const N025 = (): Cand => pStep(r2p.neutral, 25);
   const N950 = (): Cand => pStep(r2p.neutral, 950);
   // BRAND INK ON THE INVERSE FILL (#1244), and the auto-selection is the decision rather than a
-  // convenience. The inverse fill is a uniform neutral extreme (#1231) — near-white in light, near-black
-  // in dark — and the owner's policy is a BRAND-colored label on it rather than the neutral ink #1208
-  // shipped. A fixed conservative rung was rejected: it is unnecessarily dark for brands that could
-  // carry a more vivid step, and it drifts as the palette engine changes.
+  // convenience. The inverse fill is a uniform crisp absolute (#1384) — pure `white` in light-family modes,
+  // pure `black` in dark-family ones — and the owner's policy is a FAMILY-colored label on it (primary →
+  // brand, destructive → danger) rather than the neutral ink #1208 shipped. A fixed conservative rung was
+  // rejected: it is unnecessarily dark for brands that could carry a more vivid step, and it drifts as the
+  // palette engine changes.
   //
   // THE RULE, stated so it does not depend on which extreme the fill is: walk the brand ramp from the
   // end that INCREASES contrast against this fill, and take the FIRST step clearing `onMin`. That is
@@ -1103,7 +1104,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const neutralAnchor = neutralStrong ? (cfg.family === 'light' ? 800 : 150) : (cfg.family === 'light' ? 150 : 850);
   iFill('neutral', neutralStepR(neutralAnchor), r2p.neutral, neutralStrong ? cfg.nonTextMin : 0);
   // #576: neutral's border now FOLLOWS THE INK, like every colored family — the former special-case
-  // mid-grey edge (`pickMinPass`, 400–550) is retired. The neutral ink is `pickMostExtreme` (near-black
+  // mid-gray edge (`pickMinPass`, 400–550) is retired. The neutral ink is `pickMostExtreme` (near-black
   // in light / near-white in dark) and `walkable: false`, so the three border states collapse onto rest
   // exactly as the ink does. This reads LOUDER than the old grey — a near-black (or near-white) edge
   // matching its label — which is the DECIDED outcome (owner, on #576), not a regression to re-report.
@@ -1175,62 +1176,39 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // light / dark extreme so it reads as an inverted button AND its on-fill ink resolves clean (a mid
     // fill makes onColor fall back to pure black). States walk toward MORE contrast on the inverse band.
     //
-    // #1208: the inverse FILLED fill is NEUTRAL near-white (light) / near-black (dark) for EVERY family,
-    // not a light step of the family's own palette. Desk QA read the family tint (primary → brand.100,
-    // destructive → danger.100) as "not white"; the decided answer is a uniform neutral inverted surface,
-    // so primary / neutral / destructive all resolve the SAME fill here — the family identity on a dark
-    // band is carried by the OUTLINE/TEXT ink and the on-fill ink, not by tinting the filled surface.
-    // Mode-awareness is kept: `neutralStepR` picks 50 in light (near-white) and 850 in dark (near-black),
-    // the extreme that both reads as an inverted button and resolves a clean on-fill (a mid neutral would
-    // make `onColor` fall back to pure black). The state walk below now rides the NEUTRAL ramp for the
-    // same reason — a family-palette walk from a neutral rest would be a step number on the wrong ramp.
-    const fillRest: RatedNum = neutralStepR(cfg.family === 'light' ? 50 : 850);
-    // `FILL_STATES`, not a hand-written three (#892). This loop read
-    // `['default','hover','pressed']` while the page's `iFill` walked all five, so `fill.focused`
-    // and `fill.selected` were absent from every inverse column — and `focused` is the
-    // accessibility-relevant one: a keyboard-focused control on a dark hero had no fill to resolve.
+    // #1384 — the DEFAULT inverse REST fill is now the CRISP ABSOLUTE `white`/`black` literal-color
+    // sentinel (the #1341 mechanism), not the brand-tinted neutral 050/850 step #1208/#1389 shipped. The
+    // owner's QA read the tinted near-white as "not white"; the decided answer is a pure white inverse fill
+    // for EVERY button family (primary/neutral/destructive), each carrying its OWN family ink below. It stays
+    // UNIFORM across the family — primary / neutral / destructive resolve the SAME fill here; the identity is
+    // carried by the on-fill ink, not by tinting the surface.
     //
-    // It was ONE omission, not two: the same literal appears in the `text` loop above, and both
-    // were written when the inverse column only had rest/hover/pressed to mirror. Reading the state
-    // list from the shared constant is what stops the next state added to `FILL_STATES` from
-    // silently skipping the inverse column again. The step rule below IS the page rule — literally,
-    // through `stateRungs`, as of #1281 — with the direction reversed, which is the only thing that
-    // legitimately differs on an inverse ground. This comment used to RESTATE the rule instead
-    // ("hover/focused one step, pressed/selected two"), which is how a copy stays in step right up
-    // until the day it does not.
-    // #1389 (F3) — the inverse FILLED fill STEPS PER STATE for EVERY family, toward the ground, uniform
-    // across primary/neutral/destructive (owner decision B4a). A filled button on the dark band is a
-    // near-white surface (`fillRest`, neutral 50 in light / 850 in dark); a flat fill gives it no hover /
-    // pressed feedback, and the overlay wash — an outline / text + fields mechanism, no fill to change —
-    // is the wrong tool for it. So the fill walks the neutral ramp TOWARD THE GROUND, exactly as a
-    // page-ground filled button steps toward its palette: light 050 → 150 (hover) → 250 (pressed), dark
-    // 850 → 750 → 650; `focused` mirrors hover, `selected` mirrors pressed, through `stateRungs`.
+    // MODE-DRIVEN, because the inverse BAND flips per family: a light-family mode places it dark (a white fill
+    // pops), a dark-family mode places it near-white — so the crisp absolute there is BLACK, not white (a
+    // white fill on the near-white dark-mode band is degenerate and fails the 3:1 non-text contract against
+    // the band). "White" is the contrasting absolute the band asks for — white on the dark band, black on the
+    // light one — the same mode-mirroring `neutralStepR(50/850)` already carried, promoted from a tinted step
+    // to a pure literal, and FLAT across states (see the loop below for why the #1389 step cannot survive a
+    // pure absolute).
+    const fillRestAbs: Cand = cfg.family === 'light' ? cand(`${ns}.white`, WHITE) : cand(`${ns}.black`, BLACK);
+    // `FILL_STATES`, not a hand-written three (#892) — every state (rest / hover / pressed / focused /
+    // selected) is emitted, so a keyboard-focused inverse button always resolves a fill.
     //
-    // DIRECTION IS `dir`, NOT `-dir`. The page fill steps `dir` (toward the palette); the inverse fill's
-    // ground is the inverse SURFACE, and stepping toward it is `dir` too — +1 in light (050→150→250),
-    // −1 in dark (850→750→650). `-dir` was the pre-#1389 form (walk toward MORE contrast with the band,
-    // like the outline/text ink): in light it overshot the white extreme and reflected inward onto the
-    // same 050→150→250 by luck, but in dark it walked toward the black extreme and only reflected on
-    // `pressed`, emitting a NON-MONOTONIC 850 → 950 (hover) → 650 (pressed). `dir` makes both modes
-    // monotonic toward the ground with no reliance on the reflection guard.
-    //
-    // THE `on-fill` INK POLICY LIVES BELOW, not here (owner decision B4a, and the #1351 lesson it
-    // reverses). Stepping the fill darker lowers the contrast of any ink sitting on it; the primary
-    // `on-fill` is a single VIVID brand step (#1244) gated against `fill.rest`, so on the stepped fill
-    // it dips below AA on hover / pressed — measured over the corpus, 4.69 → 3.62 → 2.75 (#1351 defect
-    // 2). B4a keeps the vivid brand ink as the DEFAULT and treats hover / pressed as TRANSIENT states
-    // that may dip (rest still clears AA); a brand that needs AA in every state sets the
-    // `strictInteractiveContrast` lever, which swaps primary's `on-fill` to the neutral extreme (the
-    // near-black / near-white ink the other families already use, which survives the darkening at
-    // 7.6–16:1). `neutral` / `destructive` are unchanged — their `on-fill` is already the neutral
-    // extreme, AA-clean at every step; `destructive`'s "red is lighter ink" note is about the OUTLINE /
-    // TEXT ink (page-contrast, #1367/#1352 class), not this filled surface, so it needs no change here.
+    // #1384 SUPERSEDES #1389's per-state STEP for this fill — and it is the MECHANISM that changes, not the
+    // decision that feedback is good. #1389 (owner B4a) made the inverse fill a NEUTRAL step (050/850) and
+    // walked it toward the ground for hover/pressed feedback; that walk is only expressible on a ramp. #1384
+    // makes the default a pure ABSOLUTE (`white`/`black`), and there is no rung "whiter than white" to walk
+    // to, so the fill is FLAT — every state is the same crisp absolute. Keeping the step measured a real a11y
+    // failure: on the near-white dark-mode band the fill stepped black → neutral.750, and the family ink
+    // (gated on pure black) dropped to 1.78:1 on that mid-gray hover — under even the lenient 2:1 rendered
+    // floor (`studio` smoke). A flat absolute keeps the ink on ONE ground, AA-clean at every state. The
+    // hover/pressed FEEDBACK a white filled button should carry (an overlay wash, the #1342 idiom, since a
+    // pure fill cannot darken) is a design question deferred with the icon-button work (#1427-adjacent),
+    // not smuggled in here. See the on-fill note below for how the per-family ink is gated.
     for (const st of FILL_STATES) {
       const stKey = st === 'default' ? 'rest' : st;
-      const c: Cand = st === 'default' ? fillRest
-        : walk(r2p.neutral, fillRest.num, stateRungs(st), dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
-      put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb),
-        `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'inverse.background.primary', cfg.nonTextMin);
+      put(`inverse.interactive.${name}.fill.${stKey}`, rated(fillRestAbs, invRgb),
+        `${name} interactive fill on a dark / inverse surface — ${stKey} (the crisp white / black default, flat across states — #1384)`, 'inverse.background.primary', cfg.nonTextMin);
     }
     // PRIMARY ONLY (#1244). `destructive` and `neutral` keep the neutral ink until their own decision
     // lands — filed as #1253 and #1254 rather than mirrored here, and they are two different questions.
@@ -1253,20 +1231,27 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // `fill.rest` (where AA is a HARD requirement); the per-state contract in `test.ts` enforces the rest
     // floor always and the hover/pressed floor only when the lever is ON, so a default-brand dip is an
     // asserted, visible exemption rather than a silent fail.
+    // #1384 — PER-FAMILY ink on the crisp white/black fill: each button family keeps its OWN ink, derived to
+    // clear AA on the absolute fill via the existing contrast-aware mechanism. primary → the vivid action /
+    // brand step (#1244); DESTRUCTIVE → its DANGER step (the #1384 change — #1208/#1389 shipped a NEUTRAL ink
+    // here, deferred as #1253; the owner now decides destructive carries danger ink); neutral (and any accent
+    // column) → the neutral extreme via `onColor`. The `strictInteractiveContrast` lever still swaps PRIMARY
+    // to the neutral extreme (B4a). Every family's ink resolves ≥AA on white/black across the corpus (measured
+    // primary/danger land on a vivid ~step-500 at ~4.5–4.6); a brand whose family ink cannot stay itself AND
+    // clear AA on white is a design call, surfaced to the owner — not forced, not allowlisted.
+    const inkGround = asGround(`inverse.interactive.${name}.fill.rest`, fillRestAbs.rgb);
+    const inkPalette = name === 'primary' ? (r2p.action ?? r2p.brand) : name === 'destructive' ? r2p.danger : null;
+    const useBrandInk = inkPalette !== null && !(name === 'primary' && theme.strictInteractiveContrast);
     put(`inverse.interactive.${name}.on-fill`,
-      name === 'primary' && !theme.strictInteractiveContrast
-        ? brandOnFill(palOf(r2p.action ?? r2p.brand), asGround(`inverse.interactive.${name}.fill.rest`, fillRest.rgb))
-        : onColor(asGround(`inverse.interactive.${name}.fill.rest`, fillRest.rgb)),
-      // ONE description serves all four modes. A leaf carries a single `$description`; the per-mode
-      // entries under `$extensions.prism3.modes.*` carry a value and its rating, and no prose. So the
-      // wording has to hold in every mode, and "the most vivid brand step" alone does not: `hc-light`
-      // and `hc-dark` take the max-contrast extreme instead (see the `hc` branch in `brandOnFill`).
-      // Naming both arms is the only phrasing that stays true across the set — it shipped for review
-      // naming only the brand arm, and described pure black in `hc-light` as a brand step.
-      name === 'primary' && !theme.strictInteractiveContrast
-        ? `Ink on the ${name} inverse fill — the most vivid brand step clearing ${onMin}:1 against it, ` +
-          `or the max-contrast extreme in the high-contrast modes (#1244)`
-        : `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`,
+      useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround) : onColor(inkGround),
+      // ONE description serves all four modes. A leaf carries a single `$description`; the per-mode entries
+      // under `$extensions.prism3.modes.*` carry a value and its rating, and no prose. So the wording has to
+      // hold in every mode, and "the most vivid brand step" alone does not: `hc-light` / `hc-dark` take the
+      // max-contrast extreme instead (the `hc` branch in `brandOnFill`). Naming both arms is the only phrasing
+      // that stays true across the set.
+      useBrandInk
+        ? `Ink on the ${name} inverse fill — the ${name === 'destructive' ? 'danger' : 'most vivid brand'} step clearing ${onMin}:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)`
+        : `Ink on the ${name} inverse fill — a neutral high-contrast label on the crisp white / black CTA`,
       `inverse.interactive.${name}.fill.rest`, onMin);
     // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,
     // for the same reason the page border does — the intent "the edge matches its label" is no
@@ -1286,7 +1271,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // non-matching source must be held to its own bar, not to the ink's.
     //
     // #576: EVERY family's inverse border now follows its inverse ink, neutral included — the former
-    // neutral special-case (a mid-grey `pickMinPass` edge on the dark band) is retired to match the page
+    // neutral special-case (a mid-gray `pickMinPass` edge on the dark band) is retired to match the page
     // ground. Neutral's inverse ink is `pickMostExtreme` against `invRgb` — WHITE on the dark band — so
     // the neutral inverse outline border is now white, matching its white label (the decided answer to
     // "inverse outline: border matches the white text, or not?" — yes). Its states collapse onto rest
@@ -1914,7 +1899,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   //
   // That case is real and was silent. A declared `surfaces.<mode>.base` of neutral 500 leaves 41
   // generated roles unable to reach their minimum, and `inverseBase` 500 leaves 30: no ink is 4.5:1
-  // on a mid-grey ground, so the ramp has nowhere left to escalate to. The engine was already doing
+  // on a mid-gray ground, so the ramp has nowhere left to escalate to. The engine was already doing
   // the right thing with the colours — `chromatic` and `pickMostExtreme` walk as far as the ladder
   // goes — and then said nothing about coming up short.
   //
