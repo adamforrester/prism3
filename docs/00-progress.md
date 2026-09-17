@@ -18,6 +18,32 @@
 **Scope.** One comment edited; the new wording carries the derivation so the next axis change has a formula to re-check against rather than a bare number, and points at assertion (1) as the live figure. The dated #1429 entry below (2026-09-16) still says 12 — it is a record of what was measured at 0.93.0 and is left as history. Nothing else in `apps/plugin/` or `packages/engine/` carries the stale count (grepped for the "12 per icon-button" shape repo-wide; this comment was the sole instance). Full `npm run verify` FOREGROUND: **59/59 PASS**.
 
 **Trap for re-verifiers.** The number in that comment will go stale AGAIN the next time an icon-button axis is added or removed (it is a product of the def's axis sizes, and nothing gates a comment). Whoever changes the axes: re-run `test:roundtrip`, read the `#1429 … every named family (… icon-button=N …)` line, and update the comment's count and formula in the same PR.
+## (2026-09-17) — the `glyphScale` range refusal gets its own by-name mutation test (#1409)
+
+**STATUS: test-only PR on branch `1409-glyphscale-refusal-test` — do NOT merge (orchestrator verifies + merges). No ENGINE bump, CONTRACT 10.3.0, `regen --check` byte-identical, no emission change.**
+
+**The untested guard.** #1408 added `PartDef.glyphScale` (a `vector` part's drawn grid occupies this fraction of its artboard; checkbox-control's mark and dash author `0.8`) with a refusal in `anatomyErrors` (`packages/engine/component-schema.ts`, the `if (p.glyphScale !== undefined)` block): the value must be in `(0, 1]`, and the field is refused on any non-`vector` kind. Its progress note argued the guard was "exercised by construction (0.8 is in range)" — the it's-exercised fallacy docs/34 names: a passing in-range value proves the happy path, never the refusal. Hand-verified at merge, committed nowhere. Either comparison could be deleted or mis-written (`>= 0`, `< 1`) and 3,742 assertions stayed green — a guard with no test is one a future cleanup deletes silently.
+
+**The test added** (`packages/engine/test.ts`, beside the #1340 `glyphPx` refusal battery it mirrors — same file, same vocabulary). Three arms, nine assertions, all `#1409`-prefixed so a mutation report names them:
+
+- **(a) in range accepted** — `0.0001`, `0.5`, `1` validate with no `glyphScale`-family error. Not a truthiness check: the filter is the glyphScale message family only, so an unrelated authoring error on the patched def cannot mask a wrongly-firing refusal.
+- **(b) out of range refused by name** — `0`, `-0.1`, `1.0001`, `1.5` each produce the range message with the VALUE ECHOED (`declares glyphScale 1.5 … must be in (0, 1]`), so a refusal that fires on the wrong probe cannot satisfy it.
+- **(c) wrong kind refused by name** — an in-range `0.8` on the control BOX (the mark's host, the realistic one-level-up slip) produces the `only a 'vector'` message.
+
+**Why the boundary is independent (docs/34 shape 1 / shape 2).** EXPECTED is `(0, 1]` authored as literals in the test from the schema's own doc-comment contract (`0 < glyphScale ≤ 1`), never read from the comparison the subject runs. The two just-inside / just-outside PAIRS are what pin the bound's *type* rather than its existence: `1` accepted + `1.0001` refused fails on a `< 1` rewrite, `0` refused + `0.0001` accepted fails on `>= 0`. The subject is the REAL checkbox-control mark patched per probe, with a probe-subject assertion first (it is a vector carrying a numeric `glyphScale`), so a def rename or a mark that stops authoring the field fails there rather than leaving every arm vacuous on an undefined patch.
+
+**Mutation confirmation — four mutations, each failing BY NAME and nothing else** (wip commit between each; every restore is `git checkout -- component-schema.ts`, which reaches HEAD):
+
+| Mutation on the subject | Suite | Named failures |
+|---|---|---|
+| `<= 1` → `<= 2` (admit above 1) | 3749 / 2 failed | `#1409 glyphScale 1.0001 … refused BY NAME`, `#1409 glyphScale 1.5 … refused BY NAME` |
+| `> 0` → `>= 0` (admit 0) | 3750 / 1 failed | `#1409 glyphScale 0 … refused BY NAME` |
+| `<= 1` → `< 1` (tighten — proves the ACCEPT arm can fail) | 3750 / 1 failed | `#1409 glyphScale 1 is IN (0, 1] and validates clean` |
+| delete the wrong-kind arm | 3750 / 1 failed | `#1409 glyphScale on a NON-vector part … refused BY NAME` |
+
+Restored: 3751 passed, 0 failed. The third row is the one worth keeping: a test that only asserts refusals is half a gate — a refusal widened to `> 0 && < 2` and one tightened to `> 0 && < 1` are both wrong, and only an acceptance arm at the inclusive edge sees the second.
+
+**Not folded in.** #1409's optional `edge ÷ 8` comment-phrasing note in `checkbox-control.ts` / `component-schema.ts` / `version.ts` is left as filed — prose in three files is a separate concern from a test-only PR (principle 3).
 
 ## (2026-09-17) — a shipped $description bricked the plugin (Figma import-expression reject); hotfix #1460 + the gate that would have caught it (#1461)
 
