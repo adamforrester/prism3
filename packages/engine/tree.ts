@@ -384,9 +384,9 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
                   figma: { field: 'fontSize', scope: 'FONT_SIZE', modes: { mobile: c.sizeMinByMode[m], desktop: c.sizeByMode[m] } } }
               : { fluid: false, px: c.sizeByMode[m] } }
           : {}),
-        // Labelled from the fields actually present. The previous expression hardcoded
+        // Labeled from the fields actually present. The previous expression hardcoded
         // "size"/"leading/tracking" and its second branch was already dead (#377 moved leading and
-        // tracking onto the semantic role), so adding family would have mislabelled a family re-point
+        // tracking onto the semantic role), so adding family would have mislabeled a family re-point
         // as "leading/tracking". Only fontSize reaches here now (#415 moved family onto the semantic
         // too), but the label table keeps the note honest if another field ever does.
         note: `${Object.keys(parts).map((f) => RE_POINT_LABEL[f] ?? f).join(' + ')} re-point — ${m} (${Object.entries(parts).map(([f, v]) => `${f} → ${v}`).join(', ')})`,
@@ -696,7 +696,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
       // degrades to a literal rather than emitting a dangling alias.
       : dimLeaf(px, description);
   // #1201 — the LABEL's line-box height per rung, baked to a fixed px. A selection control
-  // (checkbox / radio / switch) sits in a box exactly one line-box tall and centres WITHIN it, so it
+  // (checkbox / radio / switch) sits in a box exactly one line-box tall and centers WITHIN it, so it
   // tracks the FIRST line of its label rather than floating to the middle of a wrapping one. #1009
   // identified this exact construction and could not build it: a line-box is `fontSize × lineHeight` and
   // `lineHeight` is a RATIO role, which Figma variables cannot multiply — but the PRODUCT is a fixed
@@ -783,9 +783,9 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // same thumb (`toggle-switch.json`: a 32px track with `padding: 4` around a 24px thumb).
     //
     // A square control does not read it: a checkbox's mark is a `vector` whose optical inset already
-    // lives inside the glyph artboard, and radio's dot is centred by its parent rather than padded away
+    // lives inside the glyph artboard, and radio's dot is centered by its parent rather than padded away
     // from it. This is the field a control needs when its mark TRAVELS.
-    const insetLeaf = controlLeaf(c.inset, `control.size.${c.name} inset — ${c.inset}px gap between the thumb and the track's boundary ((${c.track}px track − ${c.thumb}px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.`);
+    const insetLeaf = controlLeaf(c.inset, `control.size.${c.name} inset — ${c.inset}px gap between the thumb and the track's boundary ((${c.track}px track − ${c.thumb}px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.`);
     const hMods = controlModes(c.name, 'height', c.height, (x) => x.height);
     const wMods = controlModes(c.name, 'width', c.width, (x) => x.width);
     const dMods = controlModes(c.name, 'dot', c.dot, (x) => x.dot);
@@ -803,7 +803,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // dimension, and a mode that resized the body ramp would re-derive this from the same product.
     const lineBoxPx = bodyLineBox[c.name];
     const lineBox = lineBoxPx !== undefined
-      ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`body.${c.name}\` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).`)
+      ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`body.${c.name}\` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).`)
       : undefined;
     // #1015 — the corner, clamped to this rung's own edge (see `controlRadiusLeaf` above).
     const radiusPx = controlRadius(c.height, radiusSmPx);

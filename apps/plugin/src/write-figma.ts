@@ -168,7 +168,7 @@ export const strandedCollections = (
 /**
  * The AXIS a plan owns, as the label its orphan report carries (#1097).
  *
- * `core` is written by three executors, so a report labelled `core` from any one of them reads as a
+ * `core` is written by three executors, so a report labeled `core` from any one of them reads as a
  * statement about all 199 variables in it when it is a statement about 38. The label names the slice:
  * `core/dimension`. Non-merged collections are unchanged — `space` is still `space`.
  */

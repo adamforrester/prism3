@@ -65,6 +65,32 @@ const PATTERN = /\b[A-Za-z]{3,}(?:is(?:e|ed|es|ing|ation)|our)s?\b/g;
 // (`greyscale`, `greys`, `grey-500`). A false positive here is still fixed by adding to NOT_EN_GB,
 // never by narrowing either scan.
 const STEMS = /\b[A-Za-z]*grey[A-Za-z]*\b/gi;
+// ...and a THIRD and FOURTH (#1447), because two shapes did not cover the standard either. The
+// standard is "US English", and CLAUDE.md's three named rules are EXAMPLES of it, not its extent —
+// which is how `travelling` shipped green in #1425 and `centred`/`centres` sat in `out/nb.tokens.json`
+// on `main` through every scan: neither ends in `-ise`/`-our`, neither contains `grey`, so the gate
+// ran, found nothing, and reported clean (docs/34 shape 9, applied to the prose scan itself).
+//
+// DOUBLED L BEFORE A SUFFIX: en-GB doubles the `l` after an UNSTRESSED vowel (`travelling`,
+// `labelled`, `cancelled`, `modelling`, `signalled`); en-US does not (`traveling`, `labeled`). A bare
+// `ll(ed|ing|er)` suffix scan is unusable — en-US ALSO doubles after a stressed syllable
+// (`controlled`, `compelled`, `installed`) and in every `-ll` stem (`called`, `filled`, `smaller`,
+// `scrolling`), so the pattern is a STEM ALTERNATION: words whose final syllable is unstressed, each
+// followed by the doubled `l` and a suffix. `[A-Za-z]*` in front catches the prefixed forms
+// (`unlabelled`, `mislabelled`, `remodelled`, `refuelled`); the suffix list stops at what en-GB
+// actually doubles, so `cancellation` (doubled in BOTH dialects) is not matched. Adjective `-y`
+// (`totally`, `equally`, `initially`) is deliberately absent: those are en-US, and the scan is anchored
+// to whole words so they cannot be reached by any other route.
+const DOUBLE_L = /\b[A-Za-z]*(?:travel|label|cancel|model|signal|fuel|level|channel|panel|tunnel|funnel|marvel|dial|equal|total|rival|counsel|jewel|quarrel|revel|shovel|spiral|initial|pencil|stencil|libel|parcel|enamel|kennel|grovel|bevel|chisel|swivel|tassel|towel|trowel|shrivel|snivel|drivel|carol|pedal|medal|petal|barrel|duel|gravel|gruel|pummel|trammel|yodel|cudgel|tinsel|gambol|cavil|wool)l(?:ed|ing|er|ers|or|ors|ery|ous|en|ist|ists)\b/gi;
+// THE `-re` ENDINGS: `centre`, `metre`, `litre`, `theatre`, `fibre`, `calibre`, `lustre` (en-US
+// `center`, `meter`, …). Same shape as STEMS — the stem is matched as a SUBSTRING of a whole word so
+// the inflections and compounds come for free (`centred`, `centres`, `centrepiece`, `kilometres`,
+// `fibreglass`, `amphitheatre`) — and anchored at BOTH word boundaries, so `diameter`/`parameter`/
+// `perimeter` (which contain `meter`, never `metre`) and `epicenter` cannot reach it: the en-US
+// spelling of every stem here differs by letter ORDER, not by a suffix, which is what makes a
+// substring scan safe where the `-ise` one needs a false-positive list. A bare `\b\w+re\b` suffix scan
+// would flag `are`/`more`/`figure`/`measure`/`structure` and is not what this is.
+const RE_ENDINGS = /\b[A-Za-z]*(?:centre|metre|litre|theatre|fibre|calibre|lustre|sabre|spectre|meagre|manoeuvre|sepulchre)[A-Za-z]*\b/gi;
 // Ordinary English that merely ENDS in those letters. Subtracting these is what makes a pattern scan
 // usable; adding to this list is the correct fix for a false positive, never narrowing the pattern.
 const NOT_EN_GB = new Set([
@@ -78,6 +104,8 @@ const NOT_EN_GB = new Set([
   'your', 'yours', 'our', 'ours', 'four', 'hour', 'hours', 'pour', 'pours', 'tour', 'tours', 'detour',
   'source', 'sources', 'sourced', 'sourcing', 'resource', 'resources', 'outsource', 'flour', 'devour',
   'contour', 'contours', 'velour', 'dour', 'scour', 'sour',
+  // DOUBLE_L over-catches (#1447): en-US words that happen to be stem + `ll` + a listed suffix.
+  'cancellous', // anatomy — the spongy bone; doubled in both dialects
 ]);
 // The ONE place either regex is applied. `scan()` (real files) and SELF_CHECK (samples) both drive
 // this, and that sharing is load-bearing — the exact opposite of the DRY trap, because here the two
@@ -91,7 +119,7 @@ const NOT_EN_GB = new Set([
 // it calls — so it has to call the thing that runs.
 export const enGb = (txt: string): { word: string; index: number }[] => {
   const found: { word: string; index: number }[] = [];
-  for (const re of [PATTERN, STEMS]) {
+  for (const re of [PATTERN, STEMS, DOUBLE_L, RE_ENDINGS]) {
     for (const m of txt.matchAll(re)) {
       if (NOT_EN_GB.has(m[0].toLowerCase())) continue;
       found.push({ word: m[0], index: m.index ?? 0 });

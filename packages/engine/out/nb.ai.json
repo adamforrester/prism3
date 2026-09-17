@@ -378,7 +378,7 @@
     },
     "foreground.success": {
       "$description": "Bold solid success / positive fill.",
-      "meaning": "Success / positive signalling",
+      "meaning": "Success / positive signaling",
       "when_to_use": "Filled success elements — badges, banners, status chips.",
       "avoid_when": "Do not use for success ink (use text.success) or as a subtle tint (use foreground.success-subtle).",
       "avoid_when_level": "MUST",
@@ -402,7 +402,7 @@
     },
     "foreground.warning": {
       "$description": "Bold solid warning / caution fill.",
-      "meaning": "Warning / caution signalling",
+      "meaning": "Warning / caution signaling",
       "when_to_use": "Filled warning elements — badges, banners, status chips.",
       "avoid_when": "Do not use for warning ink (use text.warning) or as a subtle tint (use foreground.warning-subtle).",
       "avoid_when_level": "MUST",
@@ -426,7 +426,7 @@
     },
     "foreground.info": {
       "$description": "Bold solid informational fill.",
-      "meaning": "Informational signalling",
+      "meaning": "Informational signaling",
       "when_to_use": "Filled info elements — badges, banners, status chips.",
       "avoid_when": "Do not use for info ink (use text.info) or as a subtle tint (use foreground.info-subtle).",
       "avoid_when_level": "MUST",
@@ -467,7 +467,7 @@
     },
     "foreground.success-subtle": {
       "$description": "Subtle success / positive tint surface.",
-      "meaning": "Success / positive signalling (low-emphasis)",
+      "meaning": "Success / positive signaling (low-emphasis)",
       "when_to_use": "Low-emphasis success surfaces — banners, badges, selected rows.",
       "avoid_when": "Do not use as a solid success fill (use foreground.success) or for success ink (use text.success).",
       "avoid_when_level": "SHOULD",
@@ -484,7 +484,7 @@
     },
     "foreground.warning-subtle": {
       "$description": "Subtle warning / caution tint surface.",
-      "meaning": "Warning / caution signalling (low-emphasis)",
+      "meaning": "Warning / caution signaling (low-emphasis)",
       "when_to_use": "Low-emphasis warning surfaces — banners, badges, selected rows.",
       "avoid_when": "Do not use as a solid warning fill (use foreground.warning) or for warning ink (use text.warning).",
       "avoid_when_level": "SHOULD",
@@ -501,7 +501,7 @@
     },
     "foreground.danger-subtle": {
       "$description": "Subtle destructive / error tint surface.",
-      "meaning": "Destructive / error signalling (low-emphasis)",
+      "meaning": "Destructive / error signaling (low-emphasis)",
       "when_to_use": "Low-emphasis danger surfaces — banners, badges, selected rows.",
       "avoid_when": "Do not use as a solid danger fill (use foreground.danger) or for danger ink (use text.danger).",
       "avoid_when_level": "SHOULD",
@@ -518,7 +518,7 @@
     },
     "foreground.info-subtle": {
       "$description": "Subtle informational tint surface.",
-      "meaning": "Informational signalling (low-emphasis)",
+      "meaning": "Informational signaling (low-emphasis)",
       "when_to_use": "Low-emphasis info surfaces — banners, badges, selected rows.",
       "avoid_when": "Do not use as a solid info fill (use foreground.info) or for info ink (use text.info).",
       "avoid_when_level": "SHOULD",
@@ -559,7 +559,7 @@
     },
     "inverse.foreground.success": {
       "$description": "Bold solid success / positive fill, on an inverse surface.",
-      "meaning": "Success / positive signalling (inverse ground)",
+      "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Filled success elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.success`. Do not use for success ink (use text.success) or as a subtle tint (use foreground.success-subtle).",
       "avoid_when_level": "MUST",
@@ -583,7 +583,7 @@
     },
     "inverse.foreground.warning": {
       "$description": "Bold solid warning / caution fill, on an inverse surface.",
-      "meaning": "Warning / caution signalling (inverse ground)",
+      "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Filled warning elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.warning`. Do not use for warning ink (use text.warning) or as a subtle tint (use foreground.warning-subtle).",
       "avoid_when_level": "MUST",
@@ -607,7 +607,7 @@
     },
     "inverse.foreground.danger": {
       "$description": "Bold solid destructive / error fill, on an inverse surface.",
-      "meaning": "Destructive / error signalling (inverse ground)",
+      "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Filled danger elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.danger`. Do not use for danger ink (use text.danger) or as a subtle tint (use foreground.danger-subtle).",
       "avoid_when_level": "MUST",
@@ -631,7 +631,7 @@
     },
     "inverse.foreground.info": {
       "$description": "Bold solid informational fill, on an inverse surface.",
-      "meaning": "Informational signalling (inverse ground)",
+      "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Filled info elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.info`. Do not use for info ink (use text.info) or as a subtle tint (use foreground.info-subtle).",
       "avoid_when_level": "MUST",
@@ -672,7 +672,7 @@
     },
     "inverse.foreground.success-subtle": {
       "$description": "Subtle success / positive tint surface, on an inverse surface.",
-      "meaning": "Success / positive signalling (low-emphasis) (inverse ground)",
+      "meaning": "Success / positive signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis success surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.success-subtle`. Do not use as a solid success fill (use foreground.success) or for success ink (use text.success).",
       "avoid_when_level": "SHOULD",
@@ -689,7 +689,7 @@
     },
     "inverse.foreground.warning-subtle": {
       "$description": "Subtle warning / caution tint surface, on an inverse surface.",
-      "meaning": "Warning / caution signalling (low-emphasis) (inverse ground)",
+      "meaning": "Warning / caution signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis warning surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.warning-subtle`. Do not use as a solid warning fill (use foreground.warning) or for warning ink (use text.warning).",
       "avoid_when_level": "SHOULD",
@@ -706,7 +706,7 @@
     },
     "inverse.foreground.danger-subtle": {
       "$description": "Subtle destructive / error tint surface, on an inverse surface.",
-      "meaning": "Destructive / error signalling (low-emphasis) (inverse ground)",
+      "meaning": "Destructive / error signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis danger surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.danger-subtle`. Do not use as a solid danger fill (use foreground.danger) or for danger ink (use text.danger).",
       "avoid_when_level": "SHOULD",
@@ -723,7 +723,7 @@
     },
     "inverse.foreground.info-subtle": {
       "$description": "Subtle informational tint surface, on an inverse surface.",
-      "meaning": "Informational signalling (low-emphasis) (inverse ground)",
+      "meaning": "Informational signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis info surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.info-subtle`. Do not use as a solid info fill (use foreground.info) or for info ink (use text.info).",
       "avoid_when_level": "SHOULD",
@@ -740,7 +740,7 @@
     },
     "foreground.danger": {
       "$description": "Bold solid destructive / error fill.",
-      "meaning": "Destructive / error signalling",
+      "meaning": "Destructive / error signaling",
       "when_to_use": "Filled danger elements — badges, banners, status chips.",
       "avoid_when": "Do not use for danger ink (use text.danger) or as a subtle tint (use foreground.danger-subtle).",
       "avoid_when_level": "MUST",
@@ -3294,7 +3294,7 @@
     },
     "text.success": {
       "$description": "Success / positive text.",
-      "meaning": "Success / positive signalling",
+      "meaning": "Success / positive signaling",
       "when_to_use": "Success text on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid success fill — use text.on-success.",
       "avoid_when_level": "MUST",
@@ -3317,7 +3317,7 @@
     },
     "text.warning": {
       "$description": "Warning / caution text.",
-      "meaning": "Warning / caution signalling",
+      "meaning": "Warning / caution signaling",
       "when_to_use": "Warning text on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid warning fill — use text.on-warning.",
       "avoid_when_level": "MUST",
@@ -3340,7 +3340,7 @@
     },
     "text.danger": {
       "$description": "Destructive / error text.",
-      "meaning": "Destructive / error signalling",
+      "meaning": "Destructive / error signaling",
       "when_to_use": "Danger text on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid danger fill — use text.on-danger.",
       "avoid_when_level": "MUST",
@@ -3363,7 +3363,7 @@
     },
     "text.info": {
       "$description": "Informational text.",
-      "meaning": "Informational signalling",
+      "meaning": "Informational signaling",
       "when_to_use": "Info text on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid info fill — use text.on-info.",
       "avoid_when_level": "MUST",
@@ -3409,7 +3409,7 @@
     },
     "text.success-subtle": {
       "$description": "Muted success / positive text.",
-      "meaning": "Success / positive signalling (low-emphasis)",
+      "meaning": "Success / positive signaling (low-emphasis)",
       "when_to_use": "Low-emphasis success text — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical success messaging use the bold text.success; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -3432,7 +3432,7 @@
     },
     "text.warning-subtle": {
       "$description": "Muted warning / caution text.",
-      "meaning": "Warning / caution signalling (low-emphasis)",
+      "meaning": "Warning / caution signaling (low-emphasis)",
       "when_to_use": "Low-emphasis warning text — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical warning messaging use the bold text.warning; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -3455,7 +3455,7 @@
     },
     "text.danger-subtle": {
       "$description": "Muted destructive / error text.",
-      "meaning": "Destructive / error signalling (low-emphasis)",
+      "meaning": "Destructive / error signaling (low-emphasis)",
       "when_to_use": "Low-emphasis danger text — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical danger messaging use the bold text.danger; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -3478,7 +3478,7 @@
     },
     "text.info-subtle": {
       "$description": "Muted informational text.",
-      "meaning": "Informational signalling (low-emphasis)",
+      "meaning": "Informational signaling (low-emphasis)",
       "when_to_use": "Low-emphasis info text — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical info messaging use the bold text.info; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -3791,7 +3791,7 @@
     },
     "icon.success": {
       "$description": "Success / positive icon.",
-      "meaning": "Success / positive signalling",
+      "meaning": "Success / positive signaling",
       "when_to_use": "Success icon on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid success fill — use icon.on-success.",
       "avoid_when_level": "MUST",
@@ -3814,7 +3814,7 @@
     },
     "icon.warning": {
       "$description": "Warning / caution icon.",
-      "meaning": "Warning / caution signalling",
+      "meaning": "Warning / caution signaling",
       "when_to_use": "Warning icon on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid warning fill — use icon.on-warning.",
       "avoid_when_level": "MUST",
@@ -3837,7 +3837,7 @@
     },
     "icon.danger": {
       "$description": "Destructive / error icon.",
-      "meaning": "Destructive / error signalling",
+      "meaning": "Destructive / error signaling",
       "when_to_use": "Danger icon on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid danger fill — use icon.on-danger.",
       "avoid_when_level": "MUST",
@@ -3860,7 +3860,7 @@
     },
     "icon.info": {
       "$description": "Informational icon.",
-      "meaning": "Informational signalling",
+      "meaning": "Informational signaling",
       "when_to_use": "Info icon on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid info fill — use icon.on-info.",
       "avoid_when_level": "MUST",
@@ -3906,7 +3906,7 @@
     },
     "icon.success-subtle": {
       "$description": "Muted success / positive icon.",
-      "meaning": "Success / positive signalling (low-emphasis)",
+      "meaning": "Success / positive signaling (low-emphasis)",
       "when_to_use": "Low-emphasis success icon — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical success messaging use the bold icon.success; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -3929,7 +3929,7 @@
     },
     "icon.warning-subtle": {
       "$description": "Muted warning / caution icon.",
-      "meaning": "Warning / caution signalling (low-emphasis)",
+      "meaning": "Warning / caution signaling (low-emphasis)",
       "when_to_use": "Low-emphasis warning icon — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical warning messaging use the bold icon.warning; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -3952,7 +3952,7 @@
     },
     "icon.danger-subtle": {
       "$description": "Muted destructive / error icon.",
-      "meaning": "Destructive / error signalling (low-emphasis)",
+      "meaning": "Destructive / error signaling (low-emphasis)",
       "when_to_use": "Low-emphasis danger icon — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical danger messaging use the bold icon.danger; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -3975,7 +3975,7 @@
     },
     "icon.info-subtle": {
       "$description": "Muted informational icon.",
-      "meaning": "Informational signalling (low-emphasis)",
+      "meaning": "Informational signaling (low-emphasis)",
       "when_to_use": "Low-emphasis info icon — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical info messaging use the bold icon.info; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -4288,7 +4288,7 @@
     },
     "inverse.text.success": {
       "$description": "Success / positive text, on an inverse surface.",
-      "meaning": "Success / positive signalling (inverse ground)",
+      "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Success text on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.success`. Do not use on a solid success fill — use text.on-success.",
       "avoid_when_level": "MUST",
@@ -4311,7 +4311,7 @@
     },
     "inverse.text.warning": {
       "$description": "Warning / caution text, on an inverse surface.",
-      "meaning": "Warning / caution signalling (inverse ground)",
+      "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Warning text on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.warning`. Do not use on a solid warning fill — use text.on-warning.",
       "avoid_when_level": "MUST",
@@ -4334,7 +4334,7 @@
     },
     "inverse.text.danger": {
       "$description": "Destructive / error text, on an inverse surface.",
-      "meaning": "Destructive / error signalling (inverse ground)",
+      "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Danger text on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.danger`. Do not use on a solid danger fill — use text.on-danger.",
       "avoid_when_level": "MUST",
@@ -4357,7 +4357,7 @@
     },
     "inverse.text.info": {
       "$description": "Informational text, on an inverse surface.",
-      "meaning": "Informational signalling (inverse ground)",
+      "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Info text on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.info`. Do not use on a solid info fill — use text.on-info.",
       "avoid_when_level": "MUST",
@@ -4403,7 +4403,7 @@
     },
     "inverse.text.success-subtle": {
       "$description": "Muted success / positive text, on an inverse surface.",
-      "meaning": "Success / positive signalling (low-emphasis) (inverse ground)",
+      "meaning": "Success / positive signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis success text — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.success-subtle`. For safety-critical success messaging use the bold text.success; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -4426,7 +4426,7 @@
     },
     "inverse.text.warning-subtle": {
       "$description": "Muted warning / caution text, on an inverse surface.",
-      "meaning": "Warning / caution signalling (low-emphasis) (inverse ground)",
+      "meaning": "Warning / caution signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis warning text — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.warning-subtle`. For safety-critical warning messaging use the bold text.warning; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -4449,7 +4449,7 @@
     },
     "inverse.text.danger-subtle": {
       "$description": "Muted destructive / error text, on an inverse surface.",
-      "meaning": "Destructive / error signalling (low-emphasis) (inverse ground)",
+      "meaning": "Destructive / error signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis danger text — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.danger-subtle`. For safety-critical danger messaging use the bold text.danger; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -4472,7 +4472,7 @@
     },
     "inverse.text.info-subtle": {
       "$description": "Muted informational text, on an inverse surface.",
-      "meaning": "Informational signalling (low-emphasis) (inverse ground)",
+      "meaning": "Informational signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis info text — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.info-subtle`. For safety-critical info messaging use the bold text.info; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -4670,7 +4670,7 @@
     },
     "inverse.icon.success": {
       "$description": "Success / positive icon, on an inverse surface.",
-      "meaning": "Success / positive signalling (inverse ground)",
+      "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Success icon on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.success`. Do not use on a solid success fill — use icon.on-success.",
       "avoid_when_level": "MUST",
@@ -4693,7 +4693,7 @@
     },
     "inverse.icon.warning": {
       "$description": "Warning / caution icon, on an inverse surface.",
-      "meaning": "Warning / caution signalling (inverse ground)",
+      "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Warning icon on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.warning`. Do not use on a solid warning fill — use icon.on-warning.",
       "avoid_when_level": "MUST",
@@ -4716,7 +4716,7 @@
     },
     "inverse.icon.danger": {
       "$description": "Destructive / error icon, on an inverse surface.",
-      "meaning": "Destructive / error signalling (inverse ground)",
+      "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Danger icon on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.danger`. Do not use on a solid danger fill — use icon.on-danger.",
       "avoid_when_level": "MUST",
@@ -4739,7 +4739,7 @@
     },
     "inverse.icon.info": {
       "$description": "Informational icon, on an inverse surface.",
-      "meaning": "Informational signalling (inverse ground)",
+      "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Info icon on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.info`. Do not use on a solid info fill — use icon.on-info.",
       "avoid_when_level": "MUST",
@@ -4785,7 +4785,7 @@
     },
     "inverse.icon.success-subtle": {
       "$description": "Muted success / positive icon, on an inverse surface.",
-      "meaning": "Success / positive signalling (low-emphasis) (inverse ground)",
+      "meaning": "Success / positive signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis success icon — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.success-subtle`. For safety-critical success messaging use the bold icon.success; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -4808,7 +4808,7 @@
     },
     "inverse.icon.warning-subtle": {
       "$description": "Muted warning / caution icon, on an inverse surface.",
-      "meaning": "Warning / caution signalling (low-emphasis) (inverse ground)",
+      "meaning": "Warning / caution signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis warning icon — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.warning-subtle`. For safety-critical warning messaging use the bold icon.warning; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -4831,7 +4831,7 @@
     },
     "inverse.icon.danger-subtle": {
       "$description": "Muted destructive / error icon, on an inverse surface.",
-      "meaning": "Destructive / error signalling (low-emphasis) (inverse ground)",
+      "meaning": "Destructive / error signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis danger icon — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.danger-subtle`. For safety-critical danger messaging use the bold icon.danger; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -4854,7 +4854,7 @@
     },
     "inverse.icon.info-subtle": {
       "$description": "Muted informational icon, on an inverse surface.",
-      "meaning": "Informational signalling (low-emphasis) (inverse ground)",
+      "meaning": "Informational signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis info icon — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.info-subtle`. For safety-critical info messaging use the bold icon.info; verify contrast for body text.",
       "avoid_when_level": "MUST",
@@ -5016,7 +5016,7 @@
     },
     "border.success": {
       "$description": "Success / positive validation border.",
-      "meaning": "Success / positive signalling",
+      "meaning": "Success / positive signaling",
       "when_to_use": "Validation/state borders for success (e.g. invalid fields).",
       "avoid_when": "Do not use as success ink or fill — use text.success / foreground.success.",
       "avoid_when_level": "MUST",
@@ -5036,7 +5036,7 @@
     },
     "border.warning": {
       "$description": "Warning / caution validation border.",
-      "meaning": "Warning / caution signalling",
+      "meaning": "Warning / caution signaling",
       "when_to_use": "Validation/state borders for warning (e.g. invalid fields).",
       "avoid_when": "Do not use as warning ink or fill — use text.warning / foreground.warning.",
       "avoid_when_level": "MUST",
@@ -5056,7 +5056,7 @@
     },
     "border.danger": {
       "$description": "Destructive / error validation border.",
-      "meaning": "Destructive / error signalling",
+      "meaning": "Destructive / error signaling",
       "when_to_use": "Validation/state borders for danger (e.g. invalid fields).",
       "avoid_when": "Do not use as danger ink or fill — use text.danger / foreground.danger.",
       "avoid_when_level": "MUST",
@@ -5076,7 +5076,7 @@
     },
     "border.info": {
       "$description": "Informational validation border.",
-      "meaning": "Informational signalling",
+      "meaning": "Informational signaling",
       "when_to_use": "Validation/state borders for info (e.g. invalid fields).",
       "avoid_when": "Do not use as info ink or fill — use text.info / foreground.info.",
       "avoid_when_level": "MUST",
@@ -5178,7 +5178,7 @@
     },
     "inverse.border.success": {
       "$description": "Success / positive validation border, on an inverse surface.",
-      "meaning": "Success / positive signalling (inverse ground)",
+      "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Validation/state borders for success (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.success`. Do not use as success ink or fill — use text.success / foreground.success.",
       "avoid_when_level": "MUST",
@@ -5198,7 +5198,7 @@
     },
     "inverse.border.warning": {
       "$description": "Warning / caution validation border, on an inverse surface.",
-      "meaning": "Warning / caution signalling (inverse ground)",
+      "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Validation/state borders for warning (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.warning`. Do not use as warning ink or fill — use text.warning / foreground.warning.",
       "avoid_when_level": "MUST",
@@ -5218,7 +5218,7 @@
     },
     "inverse.border.danger": {
       "$description": "Destructive / error validation border, on an inverse surface.",
-      "meaning": "Destructive / error signalling (inverse ground)",
+      "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Validation/state borders for danger (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.danger`. Do not use as danger ink or fill — use text.danger / foreground.danger.",
       "avoid_when_level": "MUST",
@@ -5238,7 +5238,7 @@
     },
     "inverse.border.info": {
       "$description": "Informational validation border, on an inverse surface.",
-      "meaning": "Informational signalling (inverse ground)",
+      "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Validation/state borders for info (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.info`. Do not use as info ink or fill — use text.info / foreground.info.",
       "avoid_when_level": "MUST",
@@ -8785,19 +8785,19 @@
       "consume": "Private primitive — prefer a semantic token."
     },
     "control.size.sm.line-box": {
-      "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
       "meaning": "control primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
     },
     "control.size.md.line-box": {
-      "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
       "meaning": "control primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
     },
     "control.size.lg.line-box": {
-      "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
       "meaning": "control primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."

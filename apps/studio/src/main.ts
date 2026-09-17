@@ -14,7 +14,7 @@
  * roles that alias them, then type, then form. Stage 1 (Brand primitives) is the
  * bespoke redesign — a scalable brand-color list, a tunable neutral cast with a
  * Derive⇄Pin toggle (surfacing the engine's `neutral.anchor`), and the generated
- * ramps shown as labelled specimens. Later stages render their lever groups + the
+ * ramps shown as labeled specimens. Later stages render their lever groups + the
  * live preview/overlay. Colour-axis edits re-resolve the engine and repaint only the
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
@@ -719,7 +719,7 @@ let restoreError: string | null = null;
  *
  *  A SEPARATE slot from `seedInfo` on purpose. Both arrive as `{ok, summary}` and both wanted the one
  *  pill, so an apply used to overwrite the boot read-back and render as if it WERE the boot read-back —
- *  the only surface for "what happened when I pressed the button" was a pill labelled with what was in
+ *  the only surface for "what happened when I pressed the button" was a pill labeled with what was in
  *  the file before it. And with no slot of its own there was nowhere for `pending` to live, so a write
  *  over a large file looked like a button that did nothing. Two facts, two slots. */
 let applyState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
@@ -1084,7 +1084,7 @@ const palSection = (title: string, sub: string): HTMLElement => {
   return sec;
 };
 
-// A labelled control column (Source / Hue / Chroma / Anchor). `right` aligns it to the row's end.
+// A labeled control column (Source / Hue / Chroma / Anchor). `right` aligns it to the row's end.
 const pfield = (label: string, control: HTMLElement, right = false): HTMLElement => {
   const f = el('div', 'pfield' + (right ? ' r' : ''));
   f.append(el('span', 'pfk', label), control);
@@ -1617,7 +1617,7 @@ const tokTierOf = (node: TreeNode): TokTier =>
   node.$type === 'typography' ? 'semantic'
     : (typeof node.$value === 'string' && TOK_ALIAS.test(node.$value)) ? 'semantic' : 'primitive';
 
-/** A typography composite's parts, in composite order, labelled for the stacked alias cell. */
+/** A typography composite's parts, in composite order, labeled for the stacked alias cell. */
 const COMPOSITE_PART: Record<string, string> = {
   fontFamily: 'Family', fontSize: 'Size', fontWeight: 'Weight', lineHeight: 'Leading', letterSpacing: 'Tracking',
 };
@@ -1701,7 +1701,7 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     const wantValue = tokShow !== 'alias' || !hasAlias;             // never render an empty cell
     const wrap = el('div', wantAlias && wantValue ? 'tok-two' : undefined);
     if (wantAlias && parts.length) {
-      // STACKED, one labelled row per part. Chosen over an inline join because the five paths run
+      // STACKED, one labeled row per part. Chosen over an inline join because the five paths run
       // ~123 characters — about 775px at this size, i.e. the whole 850px content column, so every
       // one of the 37 composites would scroll sideways (aurora; harbor: 38). Stacking costs height
       // in one section only; `type.*` is the only shape in the system with more than one alias.
@@ -1781,7 +1781,7 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     sections.push({ cat: category, leaves, hasModes: modeSource !== null, modeSource, ns });
   }
 
-  // ---- controls: a header ABOVE the content (doc 26), every field labelled via `pfield`. ----
+  // ---- controls: a header ABOVE the content (doc 26), every field labeled via `pfield`. ----
   // #466 — tok-seg is the L3 (nested) modifier of the shared view segment
   const seg = el('div', mix('pvseg', 'tok-seg'));
   for (const [k, label] of [['primitive', 'Primitives'], ['semantic', 'Semantics']] as Array<[TokTier, string]>) {
@@ -2019,7 +2019,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
 
   // One picker for the view, not one per section — seven copies of the same control would be noise,
   // and the sections are read together as one system.
-  // Label ABOVE the control, matching every other labelled field in the app (`pfield`), and named for
+  // Label ABOVE the control, matching every other labeled field in the app (`pfield`), and named for
   // what it does rather than where it sits: "Preview on / Page" left a reader guessing whether it
   // changed the mode, the page, or the specimens. It changes the ground the specimens are drawn on,
   // so it says that.
@@ -2616,7 +2616,7 @@ const exTextOnPage = (color: string, label: string): HTMLElement => {
 const iExample = (inner: HTMLElement, badge?: HTMLElement): HTMLElement => {
   const aex = el('div', 'aex'); aex.append(inner); if (badge) aex.append(badge); return aex;
 };
-/** Two labelled specimens side by side in the example column (rest→hover, filled→outline, match→distinct).
+/** Two labeled specimens side by side in the example column (rest→hover, filled→outline, match→distinct).
  *  Each may carry its OWN contrast receipt as a third tuple slot — per specimen, not per row, because two
  *  specimens can be rated against different grounds and clear different ratios (`disabled.on-fill` is
  *  measured on the disabled fill, `disabled.text` on the page). One receipt for the pair would have to
@@ -4264,7 +4264,7 @@ const controlSplitPage = (host: HTMLElement, pageKey: PageKey, blocks: () => Spl
   setVolatile(previews, () => { refreshers.forEach((r) => r()); });
   paintVolatile();
 };
-/** A compact labelled slider for the split pages — value read-out updates live on drag; the theme commits
+/** A compact labeled slider for the split pages — value read-out updates live on drag; the theme commits
  *  on release (`change` → apply()), which repaints the previews via the registered refreshers. Not the
  *  full-width `.knob` slider (overkill here, per #264/#265). */
 const csSlider = (key: string, label: string, min: number, max: number, step: number, unit: string, get: () => number): HTMLElement => {
@@ -4278,7 +4278,7 @@ const csSlider = (key: string, label: string, min: number, max: number, step: nu
   f.append(top, input);
   return f;
 };
-/** A compact labelled enum picker for the split pages (curated choices → a select). Commits on change. */
+/** A compact labeled enum picker for the split pages (curated choices → a select). Commits on change. */
 const csPicker = (key: string, label: string, choices: Array<[string, string]>, cur: string, onCommit?: () => void): HTMLElement => {
   const sel = selectEl('cap');
   for (const [value, text] of choices) sel.append(optionEl(value, text, value === cur));
@@ -4800,7 +4800,7 @@ const renderTypefaceLibrary = (): HTMLElement => {
   sec.append(subHead('The library — one primitive per face'));
   /** Where a face's binding lives. #287 made "in the library, bound to nothing" a REAL state — before
    *  it, a face existed only while a category bound it, so the old copy could say the list was purely
-   *  derived. It no longer can, and an unbound face must not be mislabelled as a mode override. */
+   *  derived. It no longer can, and an unbound face must not be mislabeled as a mode override. */
   const bindingOf = (name: string): { label: string; unbound: boolean } => {
     // #415 — categories, not roles. A face bound by all of them says so once rather than listing
     // seven names in a 148px cell, which is the shape the collapse would otherwise produce for the
@@ -5159,7 +5159,7 @@ const renderTypefaceBindings = (): HTMLElement => {
     }
   } else {
     // A single-mode brand has no mode axis to show, so the column keeps its plain name rather than
-    // being labelled "Light" — there is nothing for that label to contrast with.
+    // being labeled "Light" — there is nothing for that label to contrast with.
     htr.append(el('th', 'mtbl-mode', 'Face'));
   }
   htr.append(el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
@@ -5874,8 +5874,8 @@ const renderCategorySetup = (): HTMLElement => {
     tr.append(nameTd);
     // #415 — READ-ONLY. This was a select over the display/text/mono ROLES, and it is the control that
     // exposed the tier as a mistake: with every role on one face it rendered several options all
-    // labelled "Inter" (the values were roles, the labels were faces), so picking one was guesswork.
-    // Collapsing the tier removes the choice from here rather than relabelling it — the category now
+    // labeled "Inter" (the values were roles, the labels were faces), so picking one was guesswork.
+    // Collapsing the tier removes the choice from here rather than relabeling it — the category now
     // binds a face directly, and `font.family.<category>` is a SEMANTIC token, so its editor belongs on
     // Semantics next to the other semantics. Two live editors for one value is the state the mode-bar
     // overlap already put this page in (#416); this does not add a third.
@@ -6676,10 +6676,10 @@ const renderTypeRamp = (): HTMLElement => {
 };
 
 /** The radius preview: the whole corner-radius ramp, HOLISTICALLY — a swatch per step (the actual corner)
- *  labelled with its px and the component(s) that consume it (button→md, input→sm, card→lg, badge→round).
+ *  labeled with its px and the component(s) that consume it (button→md, input→sm, card→lg, badge→round).
  *  Fills a caller-owned node so `apply()` repaints it beside the radius controls (#265). Reads each rung's
  *  px from `rp.dims` (live per lever), with two SENTINELS special-cased: `none` = 0, and `capsule` = a full
- *  pill labelled `full` rather than a literal px (#1177). `capsule` is a 999px "clamp me to a pill" marker,
+ *  pill labeled `full` rather than a literal px (#1177). `capsule` is a 999px "clamp me to a pill" marker,
  *  not a corner anyone reads as 999 — and it is not in `rp.dims` at all (no preview-spec component binds it
  *  until `controlShape: pill`), so printing its stored px would both misrepresent the behaviour and require
  *  a source the ramp does not carry. The CONTROL SHAPE panel below is the specimen that shows what `pill`
@@ -6699,7 +6699,7 @@ const paintRadiusPreview = (into: HTMLElement): void => {
   for (const step of RADIUS_STEPS) {
     // `capsule` is the PILL SENTINEL, special-cased like `none`: it has no meaningful ramp px (its 999
     // means "clamp to a pill at any height"), and it is absent from `rp.dims`, so it is drawn as a pill
-    // and labelled `full` rather than read as a number (#1177). Every other rung reads `rp.dims` as before.
+    // and labeled `full` rather than read as a number (#1177). Every other rung reads `rp.dims` as before.
     const isCapsule = step === 'capsule';
     const overridePx = byMode?.find((s) => s.name === step)?.px;
     const px = step === 'none' ? 0 : (overridePx ?? rp.dims[`radius.${step}`] ?? 0);
@@ -6766,7 +6766,7 @@ const renderShadowSpecimen = (): HTMLElement => {
   // `inset` rides along after the ramp. The engine emits 7 shadow tokens and this specimen showed 6 —
   // `shadow.inset` appeared NOWHERE on the page, so the one token you could not see was the one whose
   // shape you most need to (an inner shadow reads nothing like an elevation step). It is deliberately
-  // not a ramp STEP — it is a different kind of shadow, not a rung — so it is labelled apart rather
+  // not a ramp STEP — it is a different kind of shadow, not a rung — so it is labeled apart rather
   // than appended to xs…2xl as if it were the next size up.
   for (const step of [...SHADOW_STEPS, 'inset']) {
     const css = rp.shadows[`shadow.${step}`]?.[m];
@@ -7107,7 +7107,7 @@ const NEUTRAL_EMPHASES: Array<['subtle' | 'strong', string]> = [['subtle', 'subt
 
 // ---- Gradient editor (docs/23 §2 "Gradients") -----------------------------
 // The gradient axis was on/off only; this edits the DEFINITION — kind (linear/radial), angle or
-// centre+shape, interpolation, and the ramp-aliased stops — writing an explicit `GradientInput[]`
+// center+shape, interpolation, and the ramp-aliased stops — writing an explicit `GradientInput[]`
 // to `brandState.gradients` (the engine's opt-in axis, `boolean | GradientInput[]`). `true` (the
 // toggle default) materialises to the engine's default single brand gradient for display; the first
 // edit writes it out explicitly. Stops alias the ramp (palette + step), never raw hex.
@@ -7189,7 +7189,7 @@ const renderGradientCard = (g: GradientInput, gi: number, all: GradientInput[], 
   const sw = el('div', 'gr-ed-sw'); sw.style.background = inputGradientCss(g);
   card.append(sw);
 
-  // Geometry controls — kind, then angle (linear) or shape + centre (radial), then interpolation.
+  // Geometry controls — kind, then angle (linear) or shape + center (radial), then interpolation.
   const ctrls = el('div', 'gr-ed-ctrls');
   const mut = (fn: (gg: GradientInput) => void): void => { const arr = readGradients(); fn(arr[gi]); writeGradients(arr); };
   const labeledSelect = (label: string, opts: [string, string][], cur: string, onPick: (v: string) => void): HTMLElement => {

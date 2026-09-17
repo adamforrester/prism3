@@ -51,8 +51,8 @@ export const textField: ComponentDef = {
     { name: 'autoComplete', type: 'string (WHATWG token)', required: false, description: 'Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience.' },
     { name: 'inputMode', type: "enum: 'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url' | 'search'", values: ['text', 'numeric', 'decimal', 'tel', 'email', 'url', 'search'], required: false, description: 'Selects the mobile virtual keyboard.' },
     { name: 'prefix', type: 'slot (adornment)', required: false, description: 'Leading adornment — a decorative/purpose glyph (currency, search), aria-hidden. Signals the field\'s PURPOSE; validation never mutates it.' },
-    { name: 'suffix', type: 'slot (adornment | action)', required: false, description: 'Trailing adornment. May be decorative (aria-hidden) OR a real labelled action (clear / reveal) — a focusable button, not decoration. The decorative-vs-interactive split is load-bearing (§2).' },
-    { name: 'clearable', type: 'boolean', default: false, required: false, description: 'Adds a labelled Clear button that announces the cleared state and RETURNS FOCUS to the input (the recurring trap is stranding focus).' },
+    { name: 'suffix', type: 'slot (adornment | action)', required: false, description: 'Trailing adornment. May be decorative (aria-hidden) OR a real labeled action (clear / reveal) — a focusable button, not decoration. The decorative-vs-interactive split is load-bearing (§2).' },
+    { name: 'clearable', type: 'boolean', default: false, required: false, description: 'Adds a labeled Clear button that announces the cleared state and RETURNS FOCUS to the input (the recurring trap is stranding focus).' },
     // `isPending`, not `loading` — the same concept Button's `isPending` names, spelled the same way
     // (#843). Button's own prop description already recorded the preference ("Preferred over `loading`")
     // and this def had not followed it. The PROP rename is free where the STATE rename below is not:
@@ -178,7 +178,7 @@ export const textField: ComponentDef = {
       'Always render a visible, associated label (FieldLabel) — visually-hidden only for search',
       'Distinguish readOnly (copyable, submitted, full-contrast) from disabled (silent, exempt)',
       'Emit a real <input name> so it works uncontrolled, in a native form, with Server Actions',
-      'Separate a decorative prefix (aria-hidden) from an interactive suffix action (a labelled button)',
+      'Separate a decorative prefix (aria-hidden) from an interactive suffix action (a labeled button)',
     ],
     dont: [
       'Use the placeholder as the label, or put load-bearing text in it',

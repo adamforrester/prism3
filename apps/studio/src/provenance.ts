@@ -38,7 +38,7 @@ import type { BrandInput } from '@prism3/engine/theme';
  * The four writers, plus the absence of one.
  *
  * `none` is NOT an error or an "unset" placeholder to be tolerated — it is the empty state, and
- * modelling it here rather than as a separate `firstRun` boolean is #721's call. A boolean beside
+ * modeling it here rather than as a separate `firstRun` boolean is #721's call. A boolean beside
  * the state can disagree with it; a case of the origin cannot. It is also what makes *returning*
  * to the empty state ordinary: `preview an example → decide to start blank` is two origin changes,
  * not a wizard re-entered.

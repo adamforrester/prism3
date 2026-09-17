@@ -2,13 +2,13 @@
  * IconButton — the icon-only specialization of Button (KB brief §6, §10, §12).
  *
  * It exists as a DISTINCT component for one reason: an icon-only control has no visible
- * text, so its accessible name must be REQUIRED at the type level — "button, unlabelled" is
+ * text, so its accessible name must be REQUIRED at the type level — "button, unlabeled" is
  * the single highest-frequency Button a11y failure in the wild (brief §6). Everything else
  * it inherits from Button (the appearance model, the state trio, the focus contract);
  * this def records the DELTA, per the schema's `inherits` convention.
  *
  * The boundary from the other side: here the IconButton owns the accessible name and the
- * Icon inside it is decorative (aria-hidden) — the inverse of a labelled Button with a
+ * Icon inside it is decorative (aria-hidden) — the inverse of a labeled Button with a
  * leadingVisual, where the label carries the name and the icon is aria-hidden either way.
  *
  * ── #1225: INTENT IS THE COMPONENT, NOT AN AXIS ────────────────────────────────────────────────
@@ -154,7 +154,7 @@ const makeIconButton = (id: string, name: string, description: string, family: I
     surface: ['default', 'inverse'],
   },
   // NO `modifiers` AXIS (#845). It held `['pending']` — an axis of one, whose single value is already a
-  // value on the state axis, so it modelled one coordinate twice and enumerated no alternatives at all.
+  // value on the state axis, so it modeled one coordinate twice and enumerated no alternatives at all.
   // An axis's values are supposed to be mutually exclusive coordinates along one dimension; a one-value
   // list has no dimension. `pending` survives where it already lived (`states`, and the projected
   // `stateAxis`), and it keeps its own leading `codeOnly` entry explaining the spinner ceiling — which
@@ -291,7 +291,7 @@ const makeIconButton = (id: string, name: string, description: string, family: I
       // REQUIRED, and this is the load-bearing difference from Button's two optional visuals. The whole
       // reason IconButton is a separate component is that its content and its accessible name cannot
       // both be optional (§10) — a slot that could be absent would project an empty square, which is
-      // the "button, unlabelled" failure with the visual half missing too.
+      // the "button, unlabeled" failure with the visual half missing too.
       //
       // `optional` is therefore ABSENT (which the schema reads as required), and that has a consequence
       // recorded in `figmaProperties` below rather than here: presence is not a question, so there is no
@@ -462,8 +462,8 @@ const makeIconButton = (id: string, name: string, description: string, family: I
       'Expand the hit area to meet target-size minimums even when the icon is visually small',
     ],
     dont: [
-      'Ship it without an accessible name ("button, unlabelled")',
-      'Use it for an unfamiliar action a user cannot infer from the glyph — use a labelled Button',
+      'Ship it without an accessible name ("button, unlabeled")',
+      'Use it for an unfamiliar action a user cannot infer from the glyph — use a labeled Button',
       "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use isInactive",
     ],
   },
@@ -471,7 +471,7 @@ const makeIconButton = (id: string, name: string, description: string, family: I
   ai: {
     primaryPurpose: 'Trigger an action with an icon alone, no visible label.',
     whenToUse: 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).',
-    avoidWhen: 'The action is not obvious from the icon (use a labelled button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name.',
+    avoidWhen: 'The action is not obvious from the icon (use a labeled button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name.',
     commonPartners: ['icon', 'tooltip', 'button-group', 'menu'],
     triggerKeywords: ['icon button', 'close button', 'more button', 'toolbar action', 'edit action', 'kebab menu'],
     generationPriority: 2,

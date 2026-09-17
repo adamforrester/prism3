@@ -370,7 +370,7 @@ const hueDist = (a: number, b: number): number => {
 };
 // A hue in the red window still needs enough chroma to READ as red — below this it's a warm
 // grey/greige, not a danger signal (M-05). Reusing such a primary for `danger` would collapse
-// destructive signalling to a near-neutral. ~0.08 is the floor where a red starts to register.
+// destructive signaling to a near-neutral. ~0.08 is the floor where a red starts to register.
 export const RED_CHROMA_FLOOR = 0.08;
 /** Is this primary a SATURATED red — close enough in hue AND chromatic enough to BE the danger
  *  hue? A red-ish but desaturated (greige) primary is not red: danger must carve its own. */
@@ -1035,7 +1035,7 @@ export type TypographyInput = {
   captionFloor?: 10 | 11;
   /** OPT-IN sub-10px escape hatch (#1363). `8` pushes the size-ladder floor to 8px (see
    *  `fontSizeLadder`) and adds a single `caption.xs` = 8px rung; `10` (default) is the hard floor and
-   *  adds nothing. Modelled on `titleFloor` — an enumerated opt-in that enables one extra small rung on
+   *  adds nothing. Modeled on `titleFloor` — an enumerated opt-in that enables one extra small rung on
    *  one group and touches nothing else — but 8px sits BELOW the size range the system's contrast
    *  ratios were reasoned about, so the engine FLAGS it in `notes` as a deliberate escape hatch (the way
    *  `actionPalette` flags a decoupled action colour), never a rung a brand reaches by accident. OFF by
@@ -1704,7 +1704,7 @@ export type LayoutAxis = {
   containerNarrow: number;
 };
 // Count-aware names: ≤5 tiers anchor at sm (sm/md/lg/xl/2xl — Tailwind); 6+ prepend
-// xs (xs/sm/md/lg/xl/2xl — Bootstrap), so a small-phone tier is labelled correctly.
+// xs (xs/sm/md/lg/xl/2xl — Bootstrap), so a small-phone tier is labeled correctly.
 const bpNames = (n: number): string[] =>
   n <= 5 ? ['sm', 'md', 'lg', 'xl', '2xl'].slice(0, n) : ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'].slice(0, n);
 // Shallow gutter/margin ramps (px), anchored to Atlassian/Prism2; margin runs a

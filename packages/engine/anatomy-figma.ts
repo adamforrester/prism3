@@ -86,7 +86,7 @@ export type FigmaNodePlan = {
    *
    *  ── WHAT THIS DOES NOT DO ─────────────────────────────────────────────────────────────────────
    *
-   *  It does not centre a control against its label. That is #1009's half 1, it lives on the PARENT
+   *  It does not center a control against its label. That is #1009's half 1, it lives on the PARENT
    *  frame's `counterAxisAlignItems`, and no value here reaches it. The two arrived as one QA
    *  observation and are two properties on two different nodes — see the issue, and see `docs/00` for
    *  why half 1 is not in this change.
@@ -661,7 +661,7 @@ const viewBoxDims = (): [number, number] => {
 /**
  * THE ARTBOARD a glyph document declares, PADDED by `glyphScale` (#1346). Absent (or `1`) is the set's
  * own square untouched; a scale in `(0, 1)` pads the artboard to `grid / scale` and shifts its origin so
- * the SAME drawn path is CENTRED in the larger canvas — the ink then occupies `scale` of the frame, and
+ * the SAME drawn path is CENTERED in the larger canvas — the ink then occupies `scale` of the frame, and
  * the host's existing size binding renders it at `scale` of the box with the path `d` and the shared
  * vocabulary byte-unchanged. Shrinking the FRAME instead would mint a per-rung control token (the plan
  * is brand-agnostic, a frame binds a variable, a new emitted name is a CONTRACT bump); padding the
@@ -679,7 +679,7 @@ const glyphArtboard = (scale?: number): { viewBox: string; dims: [number, number
   const r = (v: number): number => Math.round(v * 1e4) / 1e4;
   const [minX, minY] = ICON_VIEWBOX.split(/\s+/).map(Number);
   const padW = r(w / scale), padH = r(h / scale);          // the drawn grid is `scale` of the padded box
-  const offX = r(minX - (padW - w) / 2), offY = r(minY - (padH - h) / 2);  // centre the SAME path, `d` unshifted
+  const offX = r(minX - (padW - w) / 2), offY = r(minY - (padH - h) / 2);  // center the SAME path, `d` unshifted
   return { viewBox: `${offX} ${offY} ${padW} ${padH}`, dims: [padW, padH] };
 };
 
@@ -1099,7 +1099,7 @@ export const figmaAnatomyPlan = (
     return !p?.optional;
   };
 
-  /* WHERE A TRAVELLING CHILD PUTS ITS PARENT'S DISTRIBUTION (#990). A switch's thumb declares
+  /* WHERE A TRAVELING CHILD PUTS ITS PARENT'S DISTRIBUTION (#990). A switch's thumb declares
    * `positionWhen: { selection: { off: 'start', on: 'end' } }`, and this is where that becomes Figma:
    * the value is read at THIS coordinate and replaces the parent's own `layout.justify`.
    *

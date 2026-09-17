@@ -308,7 +308,7 @@ export const iconSizes = (): IconSizeStep[] => ICON_SIZES.map((s) => ({ ...s }))
 //     above (16/24/32 windowed vs 12/16/20). The switch used to borrow `height` for its track, which is
 //     the undersize #1425 corrects: a track that holds a traveling thumb has to be bigger than a
 //     checkbox square. `md` at the default density is 32 — Prism 2's `toggle-switch.json` track — and
-//     the multiples-of-8 ladder is what keeps the 0.75 thumb and centred inset integer (see the ratio
+//     the multiples-of-8 ladder is what keeps the 0.75 thumb and centered inset integer (see the ratio
 //     constants below).
 //   · `width` is 2x `track` (the track height), NOT 2x the box `height`. The switch track's aspect ratio
 //     is the one number the field really does converge on — Carbon 24x48, Ant 22x44 and Fluent 20x40 are
@@ -375,7 +375,7 @@ const SWITCH_THUMB_RATIO = 0.75;
  *  #1425 onto the switch's own track/thumb).
  *
  *  NOT A NEW RATIO, and that is the whole reason it is safe to mint. It is the quantity the thumb
- *  argument already reasons in — a thumb centred in its track has an equal gap on all sides, which is
+ *  argument already reasons in — a thumb centered in its track has an equal gap on all sides, which is
  *  exactly `(track − thumb) / 2` — so deriving it back out cannot disagree with the thumb, at any rung
  *  or density, by construction. A second literal ratio here could — and would be the drift a derived
  *  quantity exists to prevent.
@@ -390,7 +390,7 @@ const SWITCH_THUMB_RATIO = 0.75;
  *
  *  PRISM 2 IS THE SOURCE FOR THE RELATIONSHIP, AND NOW FOR THE NUMBER TOO. `toggle-switch.json` sites
  *  its thumb by giving the TRACK a uniform `padding: 4` at a 32px track with a 24px thumb — an equal
- *  inset on all four sides, i.e. the thumb centred in the track, `(32 − 24) / 2 = 4`. With the switch
+ *  inset on all four sides, i.e. the thumb centered in the track, `(32 − 24) / 2 = 4`. With the switch
  *  now carrying Prism 2's own 0.75 thumb (`SWITCH_THUMB_RATIO`) on a 32px `md` track, the inset lands on
  *  Prism 2's literal 4 rather than being re-derived away from it, and every rung stays integer —
  *  2/3/4/5/6 across `SWITCH_TRACK_RUNGS`. */
@@ -406,7 +406,7 @@ export type ControlSizeStep = { name: string; height: number; width: number; dot
  *
  *  TWO INDEPENDENT LADDERS live here (#1425). `height`/`dot` are the SQUARE box a checkbox/radio reads
  *  (12–28 windowed, dot = half). `track`/`thumb`/`width`/`inset` are the switch's non-square TRACK
- *  (16–48 windowed, thumb = 0.75, width = 2× track, inset centres the thumb). They share a rung name and
+ *  (16–48 windowed, thumb = 0.75, width = 2× track, inset centers the thumb). They share a rung name and
  *  a density window and nothing else — a switch is bigger than a checkbox because a track that holds a
  *  traveling thumb has to be, which is the whole of #1425. */
 export const controlSizes = (density: Density): ControlSizeStep[] =>

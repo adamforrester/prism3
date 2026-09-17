@@ -1,7 +1,7 @@
 /**
  * Switch.Control — the ATOMIC track-and-thumb (#1354, the #1226/#1330 mechanism a third time). The
  * painted pill, its traveling thumb, the state glyph in that thumb, and the focus ring — extracted
- * from `switch` so the labelled Row NESTS it rather than redraws it, exactly as `checkbox` nests
+ * from `switch` so the labeled Row NESTS it rather than redraws it, exactly as `checkbox` nests
  * `checkbox-control`. A fix to the track (its border weight, its fill grammar) or the thumb (its
  * travel, its glyph) now propagates to the Row by single-sourcing rather than by a copy kept in step
  * by hand.
@@ -98,7 +98,7 @@ export const switchControl: ComponentDef = {
   category: 'form',
   status: 'draft',
   description:
-    'The atomic switch control — the painted pill track, its traveling thumb, the X/checkmark state glyph in that thumb, and the focus ring, and nothing else. Nested by the labelled Switch row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the two-value selection axis (off / on) whose thumb POSITION is the part that varies, the off-track border that is load-bearing for WCAG 1.4.11, and the 2px control border.',
+    'The atomic switch control — the painted pill track, its traveling thumb, the X/checkmark state glyph in that thumb, and the focus ring, and nothing else. Nested by the labeled Switch row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the two-value selection axis (off / on) whose thumb POSITION is the part that varies, the off-track border that is load-bearing for WCAG 1.4.11, and the 2px control border.',
 
   // The atom's surface, not the field's. No `label`, no `description`, no form wiring — those are the
   // Row's. `showStateLabel` lives here because it gates a part of this atom (the thumb glyph); the Row
@@ -236,7 +236,7 @@ export const switchControl: ComponentDef = {
         padding: { block: 'size.{size}.inset', inlineLabel: 'size.{size}.inset' },
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['thumb', 'focusRing'],
-        note: 'The pill AND the nominal hit-target marker (the real hit target is the whole labelled ROW, which lives on `switch`; `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part and `checkbox-control`\'s `control` carry). Its two dimensions are two decisions: 2:1 is the ratio the field converges on, and it is the tier\'s.',
+        note: 'The pill AND the nominal hit-target marker (the real hit target is the whole labeled ROW, which lives on `switch`; `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part and `checkbox-control`\'s `control` carry). Its two dimensions are two decisions: 2:1 is the ratio the field converges on, and it is the tier\'s.',
       },
       // THE THUMB. A filled `box` claiming `indicator` (radio's dot took the slot first; #933's rule is
       // that two boxes cannot divide one slot, and the track owns `fill`). It travels (`positionWhen`),
@@ -296,7 +296,7 @@ export const switchControl: ComponentDef = {
       'THE THUMB\'S TRAVEL AS MOTION. `positionWhen` states WHERE the thumb is at each coordinate; the ~150–200ms ease-in-out slide between them (with the track-color crossfade, collapsing to 0ms under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in this schema.',
       'THE STATE GLYPH\'S VISIBILITY TOGGLE. The glyph is present in the Figma set at every member (Prism 2\'s set does the same); `showStateLabel` (the Row\'s prop, default off) gates it in the CODE projection. A def schema has no "present when a boolean prop is true, without a variant axis" mechanism short of doubling the set, so the projected set shows the on-appearance and the prop carries the default-off in code.',
       'THE GLYPH\'S OWN MICRO-MOTION — the check/X draw and the cross-fade onto the thumb on an async toggle. Neither the def schema nor a Figma variant carries motion, so the glyphs are static outlines at every coordinate.',
-      'THE WHOLE-ROW HIT TARGET. A bare track is a 16–36px pill that fails SC 2.5.8 in isolation; the accessible target is the labelled ROW, which is `switch` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
+      'THE WHOLE-ROW HIT TARGET. A bare track is a 16–36px pill that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `switch` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
     ],
   },
 
@@ -338,7 +338,7 @@ export const switchControl: ComponentDef = {
       'Supply an external aria-label only when using the control genuinely alone',
     ],
     dont: [
-      'Place a bare track as the clickable element — it fails SC 2.5.8 in isolation; the labelled row is the hit target',
+      'Place a bare track as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target',
       'Double-label a nested control — the host row already provides the accessible name',
       'Put the focus ring on the thumb — it moves, so the indicator would travel with it',
       'Hardcode "On"/"Off" text beside the control — the glyph affordance and the role announcement carry it',
@@ -348,8 +348,8 @@ export const switchControl: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Render the atomic switch control — the painted pill, its traveling thumb, the X/checkmark state glyph and the focus ring — for a host row to nest.',
-    whenToUse: 'Nested by the labelled Switch row (the common case), or standalone only for a control with an external label and its own aria wiring.',
-    avoidWhen: 'You want the labelled case (that is Switch), a staged binary submitted with a form (Checkbox / Checkbox.Control), or a mutually-exclusive one-of-many (Radio). Never place a bare track as the clickable element — the hit target is the labelled row.',
+    whenToUse: 'Nested by the labeled Switch row (the common case), or standalone only for a control with an external label and its own aria wiring.',
+    avoidWhen: 'You want the labeled case (that is Switch), a staged binary submitted with a form (Checkbox / Checkbox.Control), or a mutually-exclusive one-of-many (Radio). Never place a bare track as the clickable element — the hit target is the labeled row.',
     commonPartners: ['switch', 'focus-ring'],
     triggerKeywords: ['switch control', 'switch track', 'toggle control', 'switch thumb', 'toggle handle'],
     generationPriority: 3,

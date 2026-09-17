@@ -182,7 +182,7 @@ export const FIELDS: Record<string, FieldCheck> = {
       // at this one node, correctly, on every member of every set. That divergence was invisible until the
       // shim started converting too: with `createComponentFromNode` as an identity function the root read
       // back FRAME, this predicate agreed, and 1,694 members' worth of agreement rested on the shim not
-      // modelling the conversion. Accepted only at the root, and only for a planned FRAME.
+      // modeling the conversion. Accepted only at the root, and only for a planned FRAME.
       if (isRoot && got === 'COMPONENT' && want.includes('FRAME')) return null;
       return want.includes(got) ? null : got || '∅';
     },

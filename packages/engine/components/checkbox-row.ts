@@ -4,17 +4,17 @@
  * into a form and submitted, optionally one of many in a set.
  *
  * The brief's own framing: *"Checkbox looks atomic and isn't."* The same control appears at three
- * granularities — the bare box, the labelled row, the group — and the brief's headline job is deciding
+ * granularities — the bare box, the labeled row, the group — and the brief's headline job is deciding
  * how many components that becomes. Its answer is **two public components plus an exposed atomic
  * primitive**, and #1347 (OPTION B, owner-decided 2026-09-15) adopts Prism 2's names for all three:
- * `checkbox-row` (this def — the labelled row, renamed from `checkbox`), `checkbox-group` (the set, which
+ * `checkbox-row` (this def — the labeled row, renamed from `checkbox`), `checkbox-group` (the set, which
  * owns the value array and ALL group validation, built in #1347), and `checkbox-control` (the nestable
  * box). The rename is a component-surface move (ENGINE), NOT a token-contract break: the versioned
  * contract is the emitted token-name surface, and no component id lives in it (docs/30, #1252).
  *
  * ── WHAT THIS DEF IS, AND THE TWO SURFACES IT IS NOT ────────────────────────────────────────────
  *
- * **This def is the labelled ROW only** — the ~90% case. `Checkbox.Control` is now its OWN def
+ * **This def is the labeled ROW only** — the ~90% case. `Checkbox.Control` is now its OWN def
  * (`checkbox-control`, #1226 step 2), which this Row NESTS in flow rather than inlining; `checkbox-group`
  * is a separate def, built in #1347 — it NESTS this Row (a `field-label` above a stack of these). That
  * the group is not folded in is worth stating rather than leaving to be inferred from an absence: a
@@ -24,7 +24,7 @@
  *
  * So this is the first def where a brief's decomposition does NOT map one-to-one onto engine defs, and
  * that is the calibration: the brief decides a component's public surface, and a `ComponentDef`
- * describes exactly one component of it — here the labelled Row, nesting the atom, filing the group.
+ * describes exactly one component of it — here the labeled Row, nesting the atom, filing the group.
  *
  * ── `inherits`, WHICH IS PROSE (the rule `textarea` established, #863) ──────────────────────────
  *
@@ -109,7 +109,7 @@ export const checkboxRow: ComponentDef = {
   status: 'draft',
   inherits: 'text-field',
   description:
-    'A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labelled ROW: control, rich-content label, optional description, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch), not a mutually-exclusive one-of-many (Radio), not an action with a pressed state (ToggleButton).',
+    'A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labeled ROW: control, rich-content label, optional description, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch), not a mutually-exclusive one-of-many (Radio), not an action with a pressed state (ToggleButton).',
 
   // THE DELTA ONLY (brief §3, §15). The form-field substrate — `description`/helper, `error`, the
   // aria-describedby wiring, `name`, `id`, `required`, `disabled`, `readOnly`, `onFocus`/`onBlur` — is
@@ -194,8 +194,8 @@ export const checkboxRow: ComponentDef = {
 
     // ── THE ALIGNMENT BOX (#1201, building #1009's filed fix). One line of the LABEL tall, per rung —
     // `control.size.*.line-box` is the baked `body.{rung}` line-box (21/24/27 on nb). The nested control
-    // centres inside a box this tall while the ROW stays top-aligned, so on a single line the control
-    // reads centred and on a WRAPPING label it holds the first line instead of floating to the
+    // centers inside a box this tall while the ROW stays top-aligned, so on a single line the control
+    // reads centered and on a WRAPPING label it holds the first line instead of floating to the
     // paragraph's middle. #1226 step 2 kept this construction on the Row unchanged — the centring box is
     // a real `box` here, and only its CHILD became the nested control (see the anatomy).
     'size.small.control-box': 'control.size.sm.line-box',
@@ -204,7 +204,7 @@ export const checkboxRow: ComponentDef = {
 
     // ── THE NESTED CONTROL'S OWN SQUARE (#1226 step 2). The `control` nest part binds this so the nested
     // instance is PINNED to the control square — 16/20/24 on nb, 12/16/20 on aurora — and does NOT
-    // stretch to fill the taller `control-box` line box it is centred within. `control.size.*.height`
+    // stretch to fill the taller `control-box` line box it is centered within. `control.size.*.height`
     // and NOT `icon.size.*` for the same reason the atom binds it (the control ladder shifts a rung with
     // brand density where the glyph grid is fixed). The atom (`checkbox-control`) binds the identical key
     // on its own root; a binding is a reference, so both defs naming it is single-sourcing, not a copy.
@@ -223,7 +223,7 @@ export const checkboxRow: ComponentDef = {
     'size.large.text': 'type.body.lg.default',
   },
 
-  // ── ANATOMY — THE LABELLED ROW THAT NESTS THE CONTROL (#910, #1226 step 2) ──────────────────────
+  // ── ANATOMY — THE LABELED ROW THAT NESTS THE CONTROL (#910, #1226 step 2) ──────────────────────
   //
   // Three parts now, not seven: the whole ROW is the hit target, the `controlBox` is the #1201 line-box
   // wrapper, and its CHILD is a `nest` of `checkbox-control` where the painted box, the two glyphs and
@@ -235,9 +235,9 @@ export const checkboxRow: ComponentDef = {
   // instance stretched to the line box is a control floating in a tall cell. Instead the centring box
   // (a real `box`) keeps the line-box height and the `align: center`, and the nest is the inner control
   // at its OWN square: the box handles alignment, the nest handles extent. So the small control reads
-  // centred on the first line rather than filling the taller box.
+  // centered on the first line rather than filling the taller box.
   //
-  // THE ROW MUST NOT CENTRE. On a wrapping consent label `align: center` floats the control to the
+  // THE ROW MUST NOT CENTER. On a wrapping consent label `align: center` floats the control to the
   // middle of the paragraph (the wrong repair `test.ts` #1009 half-1 forbids by name). The row stays
   // top-aligned and the centring lives one level down, in `controlBox`. `test.ts` #1201 asserts both.
   anatomy: {
@@ -250,11 +250,11 @@ export const checkboxRow: ComponentDef = {
         kind: 'box',
         role: 'target',
         // START on the cross axis, and #1201 is what makes that both correct AND enough. The ROW must NOT
-        // centre — on a wrapping consent label `align: center` floats the control to the middle of the
+        // center — on a wrapping consent label `align: center` floats the control to the middle of the
         // paragraph (the measured wrong repair `test.ts` #1009 half-1 forbids by name). Centring the
         // control against its label is done one level down, INSIDE `controlBox`, which is exactly one
         // line-box tall; top-aligning that box here lands it on the first line. So a single-line label
-        // reads centred and a wrapping one keeps the control on line one.
+        // reads centered and a wrapping one keeps the control on line one.
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
         // TOP/BOTTOM PADDING (#1433b) from Prism 2's row (`space.150` = 12px on nb); inline sides zero
@@ -272,7 +272,7 @@ export const checkboxRow: ComponentDef = {
       // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). A structural wrapper exactly one line of
       // the label tall (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the
       // control on its cross axis. No `paintSlots` — it draws nothing; it exists only to give the control
-      // a line-tall box to centre within, so the top-aligned row lands it on the FIRST line rather than
+      // a line-tall box to center within, so the top-aligned row lands it on the FIRST line rather than
       // mid-paragraph. Height FIXED to the line-box; width HUGs the control so the row's gap is unchanged.
       controlBox: {
         kind: 'box',
@@ -297,7 +297,7 @@ export const checkboxRow: ComponentDef = {
       //
       // IT PINS ITS OWN SQUARE and does NOT stretch. `size: 'size.{size}.control'` (→ `control.size.*.height`,
       // 16/20/24 on nb) binds the instance to the control square, which is SHORTER than the `control-box`
-      // line box (21/24/27) it is centred within — so the small control reads centred on the first line
+      // line box (21/24/27) it is centered within — so the small control reads centered on the first line
       // rather than filling the taller box. This is #1299's nest-height mechanism applied to the inner
       // control: the centring box (a real `box`, above) handles ALIGNMENT, and the nest carries the
       // control's own extent. `test.ts` #1201 asserts the pin by name, so a change binding the line box
@@ -307,7 +307,7 @@ export const checkboxRow: ComponentDef = {
         nests: 'checkbox-control',
         size: 'size.{size}.control',
         nesting: { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest' }, expose: ['selection', 'state'], follow: ['size'] },
-        note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size, and binds its own square so it is centred within the taller wrapper rather than stretched to fill it.',
+        note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size, and binds its own square so it is centered within the taller wrapper rather than stretched to fill it.',
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
       // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the fill and not
@@ -431,7 +431,7 @@ export const checkboxRow: ComponentDef = {
     contested: [
       'THE PAINT GRAMMAR IS AXIS-LED and the exemption is declared per-AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`) rather than per-key. RESOLVED, not open — kept here because the rejected alternative is the instructive part. This def first shipped SLOT-led (`fill.checked`), which skips arm 1 by construction, since that rule only examines a key whose literal lead is an axis value: the same net coverage, none of the visibility, and exactly the shape the house rule forbids — a false positive is fixed by adding to the exemption list, never by narrowing a scan. The other alternative, axis-led with a `PROVENANCE_EXCEPTIONS` entry per binding, was costed at roughly four times `field-message`\'s whole list for this one def; the axis-level entry replaces all twenty with one declaration that `radio` and `switch` inherit. What stays genuinely open is only the underlying fact, and it is a TOKEN-TIER claim anyone can check: the tier emits no `color.checked.*` family and should not grow one. If that stops being true, arm 1 should cover this axis and the exemption fails as no-longer-exercised, which is the direction it is checked in.',
       '`checked`/`indeterminate` as a variant AXIS rather than as two `STATES` entries — and, since #1330, EXPOSED from the nested control rather than enumerated on the Row. The alternative (two states) is real and cheaper but wrong: `{state}` holds one value per coordinate, so `checked` x `hover` would not fail — it would fall back and paint the unchecked hover border. `selection` earns its axis in the shape a flat state property could not — the mark and the dash are two PARTS gated on it (`presentWhen`), not two paint treatments, so collapsing it into `state` would put a tick and a dash at one coordinate. What #1330 changed is WHERE the axis lives, not whether it is one: the atom (`checkbox-control`) carries the 3 selections x 3 sizes x 6 states = 54-member set, and the Row EXPOSES `selection` + `state` from it (projecting a size-only 3-member set) instead of re-enumerating the 54 it used to. The #761 reversal, owner-approved, QA-measured. Settled by evidence.',
-      '`alignment` (top/baseline vs center) is in brief §15\'s variants block and is NOT an axis here. The brief calls top/baseline "the non-negotiable default, not center", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centred — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlBox` exactly one label line-box tall and centres WITHIN that box, so a single-line label reads centred and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.',
+      '`alignment` (top/baseline vs center) is in brief §15\'s variants block and is NOT an axis here. The brief calls top/baseline "the non-negotiable default, not center", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centered — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlBox` exactly one label line-box tall and centers WITHIN that box, so a single-line label reads centered and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.',
       'The group\'s `orientation` and `density` are in brief §15\'s variants block and are not here because they are `CheckboxGroup`\'s axes, not this component\'s. The alternative is folding the group into this def, which is the monolithic decomposition the brief evaluates and rejects (§2).',
       'THE BOX\'S CORNER — CLOSED by #1015, and the answer was engine surface after all. This entry ran for three revisions saying `radius.sm` was correct and needed no def change, and each revision was right about the fact it measured and wrong about the question. What it kept measuring: 2px is what four of five brands resolve, and aurora\'s 4px is its own `radiusScale: 2` lever working as designed. What it never asked: whether ONE corner value can be right for THREE box sizes. It cannot. `radius.sm` is a rung on the CARD ramp, and a card scales with the page while this box scales with the type — so the same 4px token is a fourteenth of aurora\'s card corner and a THIRD of its 12px `small` square. The proportion is the defect, not the value, which is why "2px is correct" and "the binding is wrong" were both true and the entry could not see it. Now `control.size.<rung>.radius` = `min(radius.sm, snap2(edge ÷ 8))`, a sibling of the `height` it is derived from, bound per rung. Prism 2\'s own controls sit at ~1/8 of their edge, which is where the ratio comes from; `min` is what makes the change non-destructive, because a bare ratio would round nb\'s 24px `large` corner UP from 2 to 4 and move four brands to fix one. Aurora moves 4 → 2 at all three rungs and nothing else moves at all. The alternative this entry named — a dedicated control-radius RUNG on the radius ramp — was the shape rejected: a rung cannot see the box EDGE, so it would be a fourth name that still could not scale with the thing it corners. What is genuinely NOT fixed: the ratio and the 2px radius sub-grid cannot both hold on a 12px edge, so aurora\'s `small` lands at 0.167 rather than the 0.125 the ratio targets, and the sub-grid wins on purpose (a 1.5px corner is not a corner). The binding reaches the built NODE, pinned by a per-rung read-back in `apps/plugin/test-write-components.ts` that recomputes the clamp from the brand\'s own `radius.sm` and box edge rather than trusting the emitter — `radius/round` for radio stays asserted beside it, so "checkbox only" is enforced rather than intended.',
       'BORDER AND FILL AT ONE COORDINATE — #1011\'s third finding, and the answer is NEITHER of the two the issue offered. The defect: a selected box named `fill.selected` for its fill and let its border fall through to `border.rest`, so two bindings that must AGREE about the box\'s boundary disagreed. Both resolved, both named tokens this def chose, and the box shipped with a visible seam — #802\'s class again, and the second on this component after #967\'s `role: \'target\'` conflation. The issue asked whether this needs a new EXPRESSION or is PER-DEF CARE. It is a third thing. It needs no new expression: the grammar already says it, because an unbound slot returns `undefined` and paints nothing, so the ABSENCE of `unchecked.fill` IS the binding "this coordinate has no fill" — the fix was deleting seven keys, not adding a field. And per-def care is exactly what had already failed: `radio` and `switch` carried the identical pairing because they copied this def verbatim, which is per-def care performed correctly three times over one wrong premise. What was missing was neither vocabulary nor diligence but ENFORCEMENT, so the answer is a gate — `lint-paint.ts` arm 4, which measures whether a fill is self-bounding against the page (>= 3:1, SC 1.4.11) and fails a same-family border drawn beside one. It named all three defs in a single run before any of them was fixed. The measured fact underneath, which is why the rule generalizes rather than describing these three: `interactive.<intent>.fill.*` and `interactive.<intent>.border.*` are byte-identical at every rung they SHARE across 5 brands x 4 modes, and the border ladder has NO `selected` rung at all — so `fill.selected` beside `border.rest` was never two shades of one idea, it was a fill that moved and a border that could not follow. The asymmetry to keep in view: switch\'s OFF track KEEPS its rim, because no brand\'s neutral fill clears 3:1 (1.21-1.58:1 at rest) and the rim is that track\'s only edge — which is precisely why arm 4 asks about the FILL\'s contrast rather than comparing the two bindings to each other.',

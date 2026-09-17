@@ -3,7 +3,7 @@
  * stack of `checkbox-row`s, for selecting ANY NUMBER — zero to many — from a bounded set. Built from
  * Prism 2's real specs (`reference/Prism2/component-specs/checkbox-group.json`, `checkbox-row.json`,
  * `checkboxes.json`): the third and last member of the checkbox decomposition the brief named — the
- * atom (`checkbox-control`), the labelled row (`checkbox-row`) and this set — and the one that owns the
+ * atom (`checkbox-control`), the labeled row (`checkbox-row`) and this set — and the one that owns the
  * contract a single row structurally cannot (the value ARRAY, group-level required and ALL validation).
  *
  * ── WHAT PRISM 2 SETTLES, AND WHAT IT DOES NOT (the fork map) ────────────────────────────────────────
@@ -71,7 +71,7 @@ export const checkboxGroup: ComponentDef = {
   category: 'form',
   status: 'draft',
   description:
-    'A labelled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox rows. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7-10 options a filtering multi-select Combobox scans better. Not exactly-one selection (RadioGroup), not a single independent opt-in (a lone Checkbox row), not an immediate-effect setting list (a list of Switches).',
+    'A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox rows. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7-10 options a filtering multi-select Combobox scans better. Not exactly-one selection (RadioGroup), not a single independent opt-in (a lone Checkbox row), not an immediate-effect setting list (a list of Switches).',
 
   // THE GROUP'S PUBLIC API — the contract the brief (§2) puts on the group and a row cannot express. The
   // per-row `checked` is DERIVED from `value`, never held on a row inside a group.
@@ -171,7 +171,7 @@ export const checkboxGroup: ComponentDef = {
         kind: 'nest',
         nests: 'checkbox-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        note: 'The first Checkbox row — always present. Nests the labelled row (which nests the control), following the group\'s size. Its checked state is derived from the group\'s value array, not wired here.',
+        note: 'The first Checkbox row — always present. Nests the labeled row (which nests the control), following the group\'s size. Its checked state is derived from the group\'s value array, not wired here.',
       },
       row2: {
         kind: 'nest',
@@ -216,7 +216,7 @@ export const checkboxGroup: ComponentDef = {
       '2.5.8 Target Size (each row is its own target — the group does not change that)',
       '3.3.7 Redundant Entry (repeated consents across a form)',
     ],
-    keyboard: 'Each checkbox row is its OWN Tab stop and Space toggles it — the same model as a standalone Checkbox, and the key difference from RadioGroup (one Tab stop, arrows within). The group adds no roving tabindex and no arrow navigation; it is a labelled container, not a single composite widget. NEVER override Enter (it submits the enclosing form).',
+    keyboard: 'Each checkbox row is its OWN Tab stop and Space toggles it — the same model as a standalone Checkbox, and the key difference from RadioGroup (one Tab stop, arrows within). The group adds no roving tabindex and no arrow navigation; it is a labeled container, not a single composite widget. NEVER override Enter (it submits the enclosing form).',
     focus: 'Focus lands on each row\'s control in turn; the group container is not itself focusable. On a validation error, move focus to the first invalid group (its label / first row) and announce the group-level message.',
     aria: 'Prefer role="group" on a div plus aria-labelledby over <fieldset>/<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="group" keeps the layout freedom while preserving the shared-label announcement. The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual row never owns its own required or error. Do not double-label: the rows carry their short labels, the group carries the decision.',
   },
@@ -246,7 +246,7 @@ export const checkboxGroup: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'Select any number — zero to many — from a bounded set via a labelled stack of Checkbox rows, with the group owning the value array, group-level required and all validation.',
+    primaryPurpose: 'Select any number — zero to many — from a bounded set via a labeled stack of Checkbox rows, with the group owning the value array, group-level required and all validation.',
     whenToUse: 'A small bounded multi-select committed on save (notification preferences, feature opt-ins, a filter set), where seeing all the options aids the choice and the group needs one label, one required rule and one validation message.',
     avoidWhen: 'Exactly one option may be chosen (RadioGroup — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox row — a consent line, "remember me"), the change takes effect the instant it is toggled (a list of Switches — staged versus immediate), or the set runs past roughly 7-10 options (a filtering multi-select Combobox or Listbox).',
     commonPartners: ['checkbox-row', 'checkbox-control', 'field-label', 'field-message', 'form'],

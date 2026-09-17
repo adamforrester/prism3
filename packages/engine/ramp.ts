@@ -64,7 +64,7 @@ export const autoPlaceStep = (l: number, lMax = 0.975, lMin = 0.16): number => {
 };
 
 /** The lightness at which a hue reaches its widest in-gamut chroma (yellows peak
- *  light, blues peak dark). Used to centre an unanchored vivid ramp. */
+ *  light, blues peak dark). Used to center an unanchored vivid ramp. */
 export const peakChromaL = (hue: number, ceiling = 0.4): number => {
   let bestL = 0.5, best = 0;
   for (let L = 0.05; L <= 0.97; L += 0.01) {
@@ -143,7 +143,7 @@ export const generateRamp = (opts: RampOpts): Step[] => {
   ];
   if (anchor) knots.push({ i: ai, L: anchor.oklch.l });
   if (roleTargets) {
-    // Mid-Tone 500 = the dual-side AA pivot: place it at the centre of the
+    // Mid-Tone 500 = the dual-side AA pivot: place it at the center of the
     // luminance window where it clears 4.5:1 on BOTH white and black.
     const i500 = STEP_NUMS.indexOf(500);
     if (i500 !== ai) {
