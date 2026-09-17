@@ -27,6 +27,7 @@ import type { MainToUi, UiToMain } from './messages';
 import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration, strandedCollections } from './write-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
 import { applyStylesPlan } from './write-styles';
+import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { preloadFonts } from './preload-fonts';
 import { applyComponentPlan, partialWriteOf } from './write-components';
@@ -35,7 +36,7 @@ import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './b
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleCounts } from './list-fonts';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildGridStylePlan, buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
 import { verifyReadback } from '@prism3/engine/read-back';
 import { persistInput, restoreInput } from './persist-figma';
 import { brandTheme } from '@prism3/engine/theme';
@@ -163,6 +164,12 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
     // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
     const s = await applyStylesPlan(buildStylesPlan(theme), figma);
+    // GRID STYLES (#1480): one reusable Figma Grid Style per breakpoint (`Grid / sm`, …), sourced from
+    // the same layout data as the numeric `layout` collection. STATIC — a grid style cannot mode-switch
+    // off a variable — so N breakpoints = N styles, coexisting with the variables (the responsive source
+    // of truth). The global `figma` structurally satisfies the GridStylesApi port (createGridStyle +
+    // getLocalGridStylesAsync). No binding, so nothing here can miss.
+    const gs = await applyGridStylePlan(buildGridStylePlan(theme), figma);
     // TYPOGRAPHY (#237): core/font + type-sets variables first (bound targets must exist), then Text
     // Styles. The Text Style port needs figma's style/font surface + figma.variables' getter.
     const tv = await applyVarCollectionPlan(fontPlan, figma.variables, mig);
@@ -278,7 +285,7 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     const summary =
       `palette ${r.paletteTotal} (+${r.paletteCreated}), color ${r.colorTotal} (+${r.colorCreated}), ` +
       `dims/layout ${f.collections.length} collections (+${floatCreated}), ` +
-      `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound), ` +
+      `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created}), ` +
       `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
       `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') +
       renameNote + orphanNote + strandedNote + resolvedNote + skippedNote + fontNote + refusedNote;

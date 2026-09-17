@@ -29,7 +29,7 @@ import { leverManifest, leverGroups, buildLeverManifest, identityFields } from '
 import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
-import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
+import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput } from './emit-dtcg';
@@ -7549,6 +7549,76 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(gutter.join(',') === expect.gutter.join(',') && margin.join(',') === expect.margin.join(','),
       `#1479 n=${n}: grid gutter/margin ramps [${expect.gutter.join(',')}]/[${expect.margin.join(',')}] — got [${gutter.join(',')}]/[${margin.join(',')}]`);
   }
+}
+
+// (19d) #1480 — GRID STYLES. Layout emits as FLOAT variables, but a number cannot BECOME a live Figma
+// column grid (Figma has no variable→layout-grid binding), so this emits the missing artifact: one
+// reusable Grid Style per breakpoint, sourced from the SAME layout data (columns/gutter/margin), named
+// `Grid / <bp>` following the auto breakpoint names. Grid styles are STATIC (no mode-switch off a
+// variable), so N breakpoints = N separate styles, coexisting with the numeric `layout` collection.
+//
+// INDEPENDENCE (docs/34 shape 1). The expected columns/gutter/margin are HAND-AUTHORED here from the
+// DOCUMENTED layout contract in theme.ts (NB's default floors [0,768,1024,1440,1920] → sm..2xl; the
+// `cols` ladder 4/8/…/base at base 12; the `GUTTER_PX`/`MARGIN_PX` ramps), NEVER read back from
+// `theme.layout` or `buildFigmaLayout` — a gate whose expected value is derived from the emitter it
+// checks cannot see the emitter break. It also asserts REPRESENTATION, not a count: every breakpoint
+// name must appear as its own `Grid / <bp>` style carrying a COLUMNS/STRETCH grid, so a style silently
+// dropped or misnamed fails by name.
+//
+// MUTATION REGISTER (docs/34: a gate that cannot see its subject cannot fail). Each applied to the
+// SUBJECT's real code, the whole suite re-run, the named assertion confirmed among the failures, then
+// reverted:
+//   M1  `buildFigmaGridStyles` `offset: g.marginPx` → `offset: g.gutterPx` (margin sourced from the
+//       wrong field). The per-breakpoint margin arm fails BY NAME for every mode whose gutter≠margin
+//       (all of sm/md/lg/xl/2xl here). Verified.
+//   M2  the name template `Grid / ${g.bp}` → `Grid/${g.bp}` (drops the spaced separator). The
+//       representation arm fails BY NAME — `Grid / md` absent — for all five breakpoints. Verified.
+{
+  const theme = nbTheme();
+  const grid = buildFigmaGridStyles(theme);
+  ok(grid.$collection === 'grid-styles', `#1480 grid: file is $collection = 'grid-styles' (got ${grid.$collection})`);
+
+  // Hand-authored from theme.ts's DOCUMENTED contract for NB's default 5-breakpoint layout — NOT read
+  // from `theme.layout`. Each row: the auto breakpoint name, and the column/gutter/margin the layout
+  // contract prescribes at that tier.
+  type Row = { bp: string; count: number; gutter: number; margin: number };
+  const EXPECT: Row[] = [
+    { bp: 'sm', count: 4, gutter: 16, margin: 16 },
+    { bp: 'md', count: 8, gutter: 16, margin: 24 },
+    { bp: 'lg', count: 12, gutter: 24, margin: 24 },
+    { bp: 'xl', count: 12, gutter: 24, margin: 32 },
+    { bp: '2xl', count: 12, gutter: 32, margin: 48 },
+  ];
+
+  // REPRESENTATION: one `Grid / <bp>` style per breakpoint, in order, and nothing else.
+  const names = grid.styles.map((s) => s.name);
+  const wantNames = EXPECT.map((r) => `Grid / ${r.bp}`);
+  ok(names.join(' | ') === wantNames.join(' | '),
+    `#1480 grid: one 'Grid / <bp>' style per breakpoint in order [${wantNames.join(', ')}] — got [${names.join(', ')}]`);
+
+  // Each style holds exactly one COLUMNS/STRETCH grid whose count/gutterSize/offset match the layout
+  // contract for its breakpoint — BY NAME, so a wrong-field or mis-sourced value names the breakpoint.
+  const bad: string[] = [];
+  for (const row of EXPECT) {
+    const style = grid.styles.find((s) => s.name === `Grid / ${row.bp}`);
+    if (!style) { bad.push(`${row.bp}: no 'Grid / ${row.bp}' style`); continue; }
+    if (style.layoutGrids.length !== 1) { bad.push(`${row.bp}: ${style.layoutGrids.length} layoutGrids (want 1)`); continue; }
+    const lg = style.layoutGrids[0];
+    if (lg.pattern !== 'COLUMNS') bad.push(`${row.bp}: pattern ${lg.pattern} (want COLUMNS)`);
+    if (lg.alignment !== 'STRETCH') bad.push(`${row.bp}: alignment ${lg.alignment} (want STRETCH)`);
+    if (lg.count !== row.count) bad.push(`${row.bp}: count ${lg.count} ≠ ${row.count}`);
+    if (lg.gutterSize !== row.gutter) bad.push(`${row.bp}: gutterSize ${lg.gutterSize} ≠ ${row.gutter}`);
+    if (lg.offset !== row.margin) bad.push(`${row.bp}: offset(margin) ${lg.offset} ≠ ${row.margin}`);
+  }
+  ok(bad.length === 0,
+    '#1480 grid: each breakpoint emits a COLUMNS/STRETCH grid style with the right count/gutter/margin'
+      + (bad.length ? ` — ${bad.slice(0, 3).join('; ')}` : ''));
+
+  // A 2-breakpoint brand yields exactly two grid styles following the auto names (the #1479 interlink) —
+  // proves the emit is count-derived, not hardcoded to 5. Names authored, not read back.
+  const two = buildFigmaGridStyles(brandTheme({ id: 'grid2', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 }, layout: { breakpoints: [0, 768] } } as BrandInput));
+  ok(two.styles.map((s) => s.name).join(' | ') === 'Grid / sm | Grid / md',
+    `#1480 grid: a 2-breakpoint brand yields exactly [Grid / sm, Grid / md] (got [${two.styles.map((s) => s.name).join(', ')}])`);
 }
 
 // (20) EMIT-FIGMA MODE OPT-OUT (post-#42 follow-up; #45 audit; reviewer flag on #46).

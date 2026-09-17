@@ -1,0 +1,125 @@
+{
+  "$collection": "grid-styles",
+  "styles": [
+    {
+      "name": "Grid / xs",
+      "description": "4-column layout grid for the xs breakpoint — 16px gutter, 16px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.",
+      "layoutGrids": [
+        {
+          "pattern": "COLUMNS",
+          "alignment": "STRETCH",
+          "count": 4,
+          "gutterSize": 16,
+          "offset": 16,
+          "visible": true,
+          "color": {
+            "r": 1,
+            "g": 0,
+            "b": 0,
+            "a": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Grid / sm",
+      "description": "8-column layout grid for the sm breakpoint — 16px gutter, 24px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.",
+      "layoutGrids": [
+        {
+          "pattern": "COLUMNS",
+          "alignment": "STRETCH",
+          "count": 8,
+          "gutterSize": 16,
+          "offset": 24,
+          "visible": true,
+          "color": {
+            "r": 1,
+            "g": 0,
+            "b": 0,
+            "a": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Grid / md",
+      "description": "12-column layout grid for the md breakpoint — 24px gutter, 24px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.",
+      "layoutGrids": [
+        {
+          "pattern": "COLUMNS",
+          "alignment": "STRETCH",
+          "count": 12,
+          "gutterSize": 24,
+          "offset": 24,
+          "visible": true,
+          "color": {
+            "r": 1,
+            "g": 0,
+            "b": 0,
+            "a": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Grid / lg",
+      "description": "12-column layout grid for the lg breakpoint — 24px gutter, 32px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.",
+      "layoutGrids": [
+        {
+          "pattern": "COLUMNS",
+          "alignment": "STRETCH",
+          "count": 12,
+          "gutterSize": 24,
+          "offset": 32,
+          "visible": true,
+          "color": {
+            "r": 1,
+            "g": 0,
+            "b": 0,
+            "a": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Grid / xl",
+      "description": "12-column layout grid for the xl breakpoint — 32px gutter, 48px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.",
+      "layoutGrids": [
+        {
+          "pattern": "COLUMNS",
+          "alignment": "STRETCH",
+          "count": 12,
+          "gutterSize": 32,
+          "offset": 48,
+          "visible": true,
+          "color": {
+            "r": 1,
+            "g": 0,
+            "b": 0,
+            "a": 0.1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Grid / 2xl",
+      "description": "12-column layout grid for the 2xl breakpoint — 32px gutter, 48px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.",
+      "layoutGrids": [
+        {
+          "pattern": "COLUMNS",
+          "alignment": "STRETCH",
+          "count": 12,
+          "gutterSize": 32,
+          "offset": 48,
+          "visible": true,
+          "color": {
+            "r": 1,
+            "g": 0,
+            "b": 0,
+            "a": 0.1
+          }
+        }
+      ]
+    }
+  ]
+}

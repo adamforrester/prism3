@@ -2926,6 +2926,24 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.110.0 — #1480: emit reusable Figma GRID STYLES, one per breakpoint. Layout was emitted as FLOAT
+ * variables only (the `layout` collection: grid/columns, grid/gutter, grid/margin, container/*,
+ * breakpoint/*); a number cannot BECOME a live Figma column grid (Figma has no variable→layout-grid
+ * binding), so a designer got the numbers and no applicable grid. This adds a new emitted STYLE surface:
+ * `buildFigmaGridStyles` (emit-figma-styles.ts) → a `grid-styles.json` artifact per brand, one
+ * `Grid / <bp>` COLUMNS/STRETCH grid style per breakpoint, sourced from the SAME layout data
+ * (columns/gutter/margin). A plugin executor (`apps/plugin/src/write-grid-styles.ts`, sibling of
+ * write-text-styles.ts) materialises them via `figma.createGridStyle()`, wired into the apply path.
+ * Figma grid styles are STATIC (they can't mode-switch off a variable), so N breakpoints = N separate
+ * styles, coexisting with the numeric `layout` variable collection — two representations of one dataset,
+ * the variables staying the responsive source of truth. `out/**` GROWS by one artifact per brand (3 new
+ * files, EXPECTED_ARTIFACTS 108 → 111) → ENGINE bump. CONTRACT STANDS at 11.2.0: a grid style is a Figma
+ * STYLE, not a token name — `buildContract` reads DTCG token trees and never sees it, so no guaranteed
+ * name moves (`token-contract --check` level `none`; stamp-only `--accept` to sync the baseline's
+ * `engineVersion` field). Gate: `test.ts` #1480 asserts each breakpoint emits a COLUMNS/STRETCH grid
+ * style with the right count/gutter/margin, expected values hand-authored from theme.ts's layout
+ * contract (docs/34 shape 1), mutation-proven by name.
+ *
  * 0.109.0 — #1260: mint `type.label.lg` (18px at the label tier's own emphasis/600 weight) and re-point
  * `size.large.type` from `type.label.md.emphasis` to `type.label.lg.emphasis` across the button family
  * (button / button-destructive / button-neutral, off the one `makeButton` factory). Before this there
@@ -2987,7 +3005,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.109.0';
+export const ENGINE_VERSION = '0.110.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
