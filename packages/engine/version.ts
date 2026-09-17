@@ -2859,8 +2859,39 @@
  * stands at 10.3.0. GATE A (test.ts) is reconciled from "flat absolute" to "absolute at rest + 2-rung step
  * away from the extreme"; GATE B stays REST-ONLY. Mutations (docs/34): flattening any non-rest state back to
  * the absolute fails GATE A's FLAT arm by name; inverting the mode-mirror fails GATE A's DIRECTION arm.
+ *
+ * 0.101.0 — #1432: RENAME the icon-button appearance axis VALUE `text` → `ghost` (owner-decided 2026-09-17),
+ * for the three icon-button families ONLY (`icon-button`, `icon-button-destructive`, `icon-button-neutral`).
+ * A "text" appearance is meaningless on an icon-only control — `ghost` is the industry term for a
+ * borderless/fill-less icon button. Button KEEPS `text`; the two families deliberately diverge on this one
+ * appearance-value name (owner-accepted). This is an axis-VALUE rename only: `icon-button.ts` binds the
+ * `ghost.*` paint KEYS to the SAME `color.interactive.<family>.text.*` ink roles, so the mechanical mapping
+ * to button's `text` appearance behaviour is UNCHANGED. The PROJECTED component surface moves (member names
+ * `appearance=text` → `appearance=ghost` and the `ghost.*` paint keys), a `lint-component-surface` #1252
+ * trigger; `component-surface.json` + `paint-census.json` re-accepted at this bump. Provisional integer
+ * 0.101.0 (next free above main's 0.100.0) — a rebase relay reassigns it before merge.
+ *
+ * NO CONTRACT bump — and this is the load-bearing correction to the issue's provisional (read before
+ * "restoring" 11.0.0). The issue #1432 body and the lane brief both state this is a "guaranteed NAME-surface
+ * change → CONTRACT MAJOR" and that `token-contract --check` will show a REMOVE (`…text…`) + ADD (`…ghost…`).
+ * It does NOT, and cannot: `token-contract.ts` versions the emitted TOKEN-name surface (`tokenPaths` over
+ * `buildTree(theme)`), and a component appearance-axis VALUE is not a token — it never enters the tree, the
+ * baseline `schema/token-contract.json` contains no `icon-button` path, and `token-contract --check` reports
+ * the guaranteed surface UNCHANGED (level `none`). This is the exact #1427 precedent: adding icon-button's
+ * `surface` axis was likewise a projection change that left CONTRACT at 10.3.0, because "a component
+ * prop/variant name is not part of the token-name contract". The gate ENFORCES this: `satisfiesBump(…,
+ * 'none')` accepts ONLY version equality, so setting CONTRACT_VERSION to 11.0.0 makes `token-contract
+ * --accept` REFUSE ("this change is NONE but CONTRACT_VERSION is still 11.0.0") and leaves `--check`
+ * permanently red — deadlocking `npm run verify`. CONTRACT therefore STANDS at 10.3.0 (stamp-only `--accept`
+ * refreshes engineVersion 0.100.0 → 0.101.0), per principle 5 and the #1384/#1427/#1429 rule that the
+ * objective gate result decides the bump, not the provisional guess. The icon-button appearance-value rename
+ * IS a breaking change to the COMPONENT API surface — but that surface is ENGINE-tracked (this bump +
+ * `lint-component-surface`), not token-contract-tracked. FLAGGED to the orchestrator/owner in the PR + the
+ * docs/00-progress entry: reconciling "the component appearance value is a versioned name" with the token
+ * contract would need a NEW mechanism (a component-API section in token-contract.ts), which is out of scope
+ * for this rename.
  */
-export const ENGINE_VERSION = '0.100.0';
+export const ENGINE_VERSION = '0.101.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

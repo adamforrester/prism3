@@ -8663,11 +8663,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         `#1427 ${def.id}: the DEFAULT-surface filled container binds the PAGE role color/interactive/${fam}/fill/rest — so the inverse binding above is the surface rewrite, not a constant`);
     }
 
-    // (3) THE GLYPH INK WALKS STATE on outline/text (item 1). At rest it is text.rest; at hover/pressed it is
+    // (3) THE GLYPH INK WALKS STATE on outline/ghost (item 1). At rest it is text.rest; at hover/pressed it is
     // text.<state>, not text.rest — for every family. `filled` ink stays on-fill across states (unchanged).
+    // NOTE (#1432): the icon-button tertiary appearance VALUE is `ghost`, not `text` (renamed — an icon-only
+    // control has no text); the ink ROLE it binds is still `interactive.<fam>.text.*` (button's `text` role,
+    // the mechanical mapping the rename preserves), which is why the role assertions below still read `text/`.
     let inkChecked = 0;
     for (const [def, fam] of IB_FAMILIES)
-      for (const appearance of ['outline', 'text']) {
+      for (const appearance of ['outline', 'ghost']) {
         ok(glyphInk(def, appearance, 'rest', 'default').includes(`color/interactive/${fam}/text/rest`),
           `#1427 ${def.id} ${appearance}: the glyph ink at rest is text.rest (color/interactive/${fam}/text/rest)`);
         for (const state of ['hover', 'pressed']) {
@@ -12853,7 +12856,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // Read from the projection and compared against the def's TOKEN MAP, which are two different
       // things: a projection that dropped one axis would satisfy an assertion derived from the def alone.
       const ibPlan = (size: string, o: Record<string, unknown> = {}) =>
-        figmaAnatomyPlan(iconButton, size, { swapTarget: 'FPO-default-icon', appearance: 'text', state: 'rest', shape: 'square', ...o });
+        figmaAnatomyPlan(iconButton, size, { swapTarget: 'FPO-default-icon', appearance: 'ghost', state: 'rest', shape: 'square', ...o }); // #1432: icon-button tertiary appearance is `ghost` (was `text`)
       const sq = ibPlan('medium');
       const sideVar = figmaVarName(iconButton.tokens['size.medium.side']);
       ok(sq.root.bound.width === sideVar && sq.root.bound.height === sideVar,

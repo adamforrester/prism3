@@ -19,7 +19,7 @@
  * `interactive.<family>` color binding (each was 54 members at #1225, doubled to 108 once #1353 added the
  * `shape` axis, and doubled again to 216 once #1427 added the `surface` axis — see `figmaProperties`).
  * Appearance is STILL
- * the emphasis axis within each component (filled > outline > text). `icon-button` keeps its id and is the
+ * the emphasis axis within each component (filled > outline > ghost). `icon-button` keeps its id and is the
  * primary component; `icon-button-destructive` and `icon-button-neutral` are its siblings. `lint-axis-values.ts`
  * had scoped its `intent` register entry to `['icon-button']` alone, provisionally, naming this exact open
  * question; the split closes it — no def carries `intent` as a variant axis any more, so the entry is gone.
@@ -46,8 +46,8 @@ type IntentFamily = 'primary' | 'neutral' | 'destructive';
  * The keys drop the intent segment the grammar used to lead with. With intent FIXED per component it is no
  * longer a coordinate, so `paintKeys` is `{appearance}.{slot}.{state}` / `{appearance}.{slot}` and these keys
  * match it. This is Button's `intentTokens` MINUS the label — an icon-only control has no `label` slot, so
- * there are no `filled.label` / `outline.label.*` / `text.label` keys; the glyph ink now carries state on
- * `outline`/`text` exactly as Button's label/icon does (#1427 — the icon-only control had held it at
+ * there are no `filled.label` / `outline.label.*` / `ghost.label` keys; the glyph ink now carries state on
+ * `outline`/`ghost` exactly as Button's label/icon does (#1427 — the icon-only control had held it at
  * `.rest`, the QA-found gap this closes). `disabled.*` is cross-cutting (intent-independent,
  * docs/20 §7) and lives in the shared token block, not here — its identity across all three components is
  * the whole reason the split loses no coverage.
@@ -64,8 +64,8 @@ const iconButtonIntentTokens = (family: IntentFamily): Record<string, string> =>
   'outline.border.pressed': `color.interactive.${family}.border.pressed`,
   // THE GLYPH INK CARRIES STATE TOO (#1427), reversing the icon-button-only pin that held it at `.rest`.
   // This is Button's #1282/#1351 change reaching the icon-only control: the QA (2026-09-15) found the icon
-  // ink static across states for `outline`/`text` while the container's edge and overlay wash moved, so an
-  // outline icon-button's border stepped on hover/pressed while its glyph did not, and a text icon-button's
+  // ink static across states for `outline`/`ghost` while the container's edge and overlay wash moved, so an
+  // outline icon-button's border stepped on hover/pressed while its glyph did not, and a ghost icon-button's
   // glyph sat unchanged while the overlay wash lightened the ground beneath it — the same composited-contrast
   // collapse Button measured (#1351). The roles were already there — `iText` emits `text.{rest,hover,pressed}`
   // (#576), the very candidates `border` above consumes by value — so the glyph now walks the SAME three
@@ -75,17 +75,23 @@ const iconButtonIntentTokens = (family: IntentFamily): Record<string, string> =>
   'outline.icon': `color.interactive.${family}.text.rest`,
   'outline.icon.hover': `color.interactive.${family}.text.hover`,
   'outline.icon.pressed': `color.interactive.${family}.text.pressed`,
-  // text — the glyph ink walks state (#1427, as `outline` above); hover/pressed also carry the translucent
-  // overlay wash on the container.
-  'text.icon': `color.interactive.${family}.text.rest`,
-  'text.icon.hover': `color.interactive.${family}.text.hover`,
-  'text.icon.pressed': `color.interactive.${family}.text.pressed`,
-  // outline/text hover is the overlay wash — a fill on the target node, because neither appearance has a
+  // ghost — the borderless/fill-less icon action (#1432, owner-decided 2026-09-17). RENAMED from `text`:
+  // a "text" appearance is meaningless on an icon-only control (there is no text), so the axis VALUE is
+  // `ghost`, the industry term for a borderless icon button. This is an axis-VALUE rename only — the paint
+  // KEY prefix is `ghost.*` so the projector selects it at the `ghost` coordinate, while the VALUES still
+  // bind `color.interactive.${family}.text.*`: the mechanical mapping to button's `text` appearance ink
+  // role is UNCHANGED (only the icon-button coordinate name moved, not the behavior). Button KEEPS `text`;
+  // the two families deliberately diverge on this one appearance-value name (owner-accepted). The glyph ink
+  // walks state (#1427, as `outline` above); hover/pressed also carry the translucent overlay wash.
+  'ghost.icon': `color.interactive.${family}.text.rest`,
+  'ghost.icon.hover': `color.interactive.${family}.text.hover`,
+  'ghost.icon.pressed': `color.interactive.${family}.text.pressed`,
+  // outline/ghost hover is the overlay wash — a fill on the target node, because neither appearance has a
   // fill to change. Both states keyed, or a pressed member falls back to rest and projects identical to it.
   'outline.overlay.hover': `color.interactive.${family}.overlay.hover`,
   'outline.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
-  'text.overlay.hover': `color.interactive.${family}.overlay.hover`,
-  'text.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
+  'ghost.overlay.hover': `color.interactive.${family}.overlay.hover`,
+  'ghost.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
 });
 
 /**
@@ -111,7 +117,7 @@ const makeIconButton = (id: string, name: string, description: string, family: I
   props: [
     { name: 'icon', type: 'slot', required: true, description: 'The single icon. Rendered aria-hidden — the IconButton owns the name.' },
     { name: 'aria-label', type: 'string', required: true, description: 'REQUIRED accessible name (there is no visible text). A verb naming the action ("Close", "More actions"). Enforced at the TYPE LEVEL — a missing name is a compile error, not merely a runtime warning; that type-level requirement is the entire reason IconButton is a separate component.' },
-    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'text', required: false, description: 'Default text — icon-only actions usually sit in toolbars, not as filled CTAs. Emphasis is the appearance axis; the color is the COMPONENT (IconButton / Destructive IconButton / Neutral IconButton).' },
+    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'ghost'", values: ['filled', 'outline', 'ghost'], default: 'ghost', required: false, description: 'Default ghost — icon-only actions usually sit in toolbars, not as filled CTAs. The tertiary appearance is `ghost` (a borderless, fill-less icon action), RENAMED from `text` in #1432 because an icon-only control has no text; Button keeps `text`, the two families diverge on this one name by owner decision. Emphasis is the appearance axis; the color is the COMPONENT (IconButton / Destructive IconButton / Neutral IconButton).' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Square control; height drives both dimensions.' },
     { name: 'shape', type: "enum: 'square' | 'circular'", values: ['square', 'circular'], default: 'square', required: false, description: 'The corner silhouette — PURE GEOMETRY (#1353, owner-decided 2026-09-10). `square` is the button\'s normal rounded rectangle (`radius.md`); `circular` is full-round (`radius.round`), the tap target read as a disc. NO color, state, or token difference between the two — only the corner radius — which is why it is a clean 2-value axis and not a component split (contrast #1225, where each intent carried a different `interactive.<family>` binding). Both stay square in dimension (height drives width); shape rounds the corners, it does not change the box.' },
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the icon-button sits on (#1427 — following Button 1:1). `default` for a normal page; `inverse` for a dark or brand-filled band, where the control binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon-button inherits #1384\'s white-inverse model with the ICON as the ink: white fill + a per-family icon-ink derived to clear AA on white. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives.' },
@@ -123,8 +129,9 @@ const makeIconButton = (id: string, name: string, description: string, family: I
   states: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'inactive', 'disabled'],
   variants: {
     // #1225 — `intent` is gone as an axis; it is the component identity now. `appearance` carries emphasis,
-    // `size` the rung.
-    appearance: ['filled', 'outline', 'text'],
+    // `size` the rung. #1432 — the tertiary value is `ghost`, not `text` (an icon-only control has no text);
+    // this is an axis-VALUE rename for the icon-button family only, Button keeps `text` (owner-decided).
+    appearance: ['filled', 'outline', 'ghost'],
     size: ['small', 'medium', 'large'],
     // #1353 — SHAPE is pure geometry (owner-decided 2026-09-10). `square` (default) is the button's normal
     // radius (`radius.md`); `circular` is full-round (`radius.round`). The two values differ ONLY in the
@@ -448,7 +455,7 @@ const makeIconButton = (id: string, name: string, description: string, family: I
   },
 
   docs: {
-    usage: 'Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the COMPONENT (IconButton / Destructive IconButton / Neutral IconButton — pick by semantics); rank actions within a view by APPEARANCE (filled > outline > text). Always provide the accessible name; pair with a Tooltip for the visible name on hover/focus.',
+    usage: 'Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the COMPONENT (IconButton / Destructive IconButton / Neutral IconButton — pick by semantics); rank actions within a view by APPEARANCE (filled > outline > ghost). Always provide the accessible name; pair with a Tooltip for the visible name on hover/focus.',
     do: [
       'Always give it an accessible name (a verb)',
       'Use recognisable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead',
@@ -501,7 +508,7 @@ export const iconButton: ComponentDef = makeIconButton(
 export const iconButtonDestructive: ComponentDef = makeIconButton(
   'icon-button-destructive',
   'Destructive IconButton',
-  'An icon-only trigger for a DESTRUCTIVE action — delete, remove, discard — in the destructive color, so the consequence reads before the click. Same anatomy as IconButton; the color is the whole difference, and the accessible name is still mandatory (a bare trash glyph is not a name). For a quiet destructive icon action, use appearance=text on this component.',
+  'An icon-only trigger for a DESTRUCTIVE action — delete, remove, discard — in the destructive color, so the consequence reads before the click. Same anatomy as IconButton; the color is the whole difference, and the accessible name is still mandatory (a bare trash glyph is not a name). For a quiet destructive icon action, use appearance=ghost on this component.',
   'destructive',
   'button-destructive',
 );
