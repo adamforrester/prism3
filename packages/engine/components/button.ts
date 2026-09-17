@@ -32,7 +32,8 @@
  * neutral (was the stateless `foreground.secondary`) carries hover/pressed/on-fill like every family, so
  * the Neutral Button is not hover-less. outline/text hover uses the overlay wash (assumes
  * `outlineInteraction: overlay-neutral`, the default). `ghost` is retired — a quiet button is the
- * Neutral Button at `appearance=text`. (`type.label.lg` gap still stands.)
+ * Neutral Button at `appearance=text`. (The `type.label.lg` gap is CLOSED — #1260 minted the rung at
+ * 18px/emphasis and `size.large.type` binds it.)
  */
 import { ComponentDef } from '../component-schema';
 
@@ -284,13 +285,15 @@ const makeButton = (id: string, name: string, description: string, family: Inten
     'size.large.gap': 'size.lg.gap',
     'size.large.height': 'size.lg.height',
     'size.large.icon': 'icon.size.md',
-    // FILED as #1260, and #1248 is what measured it: there is no `type.label.lg` rung, so `large`
-    // reuses `md` and a large button's label is typographically identical to a medium one while every
-    // other dimension moves. This was a bare "FINDING (still open)" trailing comment for three
-    // tickets — a comment is not a work item, so it now has an issue. `test.ts`'s type-key sweep
-    // authors `2` distinct styles for this binding with the reason attached, which is what makes the
-    // collapse fail loudly on the day someone fixes it rather than staying invisible.
-    'size.large.type': 'type.label.md.emphasis',
+    // RESOLVED #1260 (owner target 2026-09-17): a large button's label is 18px at emphasis (600),
+    // bound to the `type.label.lg` rung MINTED for it — the body-lg SIZE (18) at the label tier's own
+    // WEIGHT (emphasis/600). Before this, there was no `lg` rung so `large` reused `md` and a large
+    // button's label was typographically identical to a medium one while height/padding/gap all moved;
+    // #1248's type-key sweep measured that collapse (2 distinct styles across 3 sizes). It is now 3 —
+    // `type.label.{sm,md,lg}` = 12/14/18 — and the sweep's authored expectation moves to 3 in step, so
+    // re-pointing this back to `md` fails that gate by name (docs/34). Label is reading/UI text, exempt
+    // from the typeScale shift, so `lg` resolves to 18px in every density (the owner's comfortable target).
+    'size.large.type': 'type.label.lg.emphasis',
 
     // THE PER-FAMILY PAINT — the full appearance × slot × state skin, bound to `interactive.<family>.*`.
     // Authored once in `intentTokens` above and spread here so the three components cannot silently
@@ -610,7 +613,7 @@ const makeButton = (id: string, name: string, description: string, family: Inten
       'RESOLVED (was the v1 HIGH finding): interaction states existed only on the solid action/danger roles, so the default (neutral) button was hover-less. The interactive color system (docs/20) gives every color — primary/neutral/destructive — the full fill+states/on-fill/border/text/overlay shape, so the matrix is now uniform and the default button has proper hover/pressed. Disabled is the cross-cutting disabled.* family, no longer scattered per-color.',
     ],
     unverified: [
-      'FINDING (token layer, still open): no type.label.lg composite — large buttons reuse type.label.md (large differs from medium only in height/padding, not type scale).',
+      'RESOLVED (#1260): type.label.lg now exists (18px / emphasis) and size.large.type binds it, so a large button label is one rung above medium (14 → 18) rather than reusing type.label.md.',
       'FINDING (engine): the focus-ring 3:1 non-text contrast (1.4.11) is asserted here but not yet engine-verified — a follow-up contract.',
     ],
   },

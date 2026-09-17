@@ -9437,8 +9437,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     && !fieldLabel.props.some((p) => p.name === 'tone'),
     'component: FieldLabel emphasis axis is [primary, secondary] and `tone` is retired (#1334)');
   // …and TYPE follows size across three rungs, on `type.body.*` — the tier #862 predicted and the one
-  // that matches Prism 2's 14/16/18 ladder. `type.label.*` is 12/14 with no `lg`, so naming the tier is
-  // part of the claim rather than decoration.
+  // that matches Prism 2's 14/16/18 ladder. `type.label.*` is 12/14/18 (its `lg` was minted at 18 by
+  // #1260) but emphasis-only and its middle rung is 14 not 16, so it matches neither Prism 2's sizes nor
+  // its regular/bold weights — naming the tier is part of the claim rather than decoration.
   //
   // NOW CROSSED WITH `weight` (#1248), and pinned as a GRID rather than as a ladder: all six cells,
   // each naming the role it must land on. The rung and the weight-cell are asserted TOGETHER because
@@ -9892,16 +9893,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // the authored table disagreed with the corpus and said so — which is the two-direction check
     // earning its place immediately rather than in principle.
     const TYPE_GRID: { def: ComponentDef; part: string; axes: Readonly<Record<string, number>> }[] = [
-      // THREE SIZE VALUES, TWO STYLES, and this is a real pre-existing gap rather than a resolver
-      // fault: `size.large.type` binds `type.label.md.emphasis`, the same role as `medium`, because
-      // there is no `type.label.lg` rung to bind. The def has carried it as an open FINDING in a
-      // trailing comment since the ladder went to three; filed as an issue by #1248 rather than left
-      // as prose. `2` here is what the corpus MEASURES today — when the `lg` rung lands, this arm
-      // fails and whoever fixes it updates the number, which is the only way a recorded collapse gets
-      // re-examined. All three siblings come off one factory, so all three collapse identically.
-      { def: button, part: 'label', axes: { size: 2 } },
-      { def: buttonDestructive, part: 'label', axes: { size: 2 } },
-      { def: buttonNeutral, part: 'label', axes: { size: 2 } },
+      // THREE SIZE VALUES, THREE STYLES — full discrimination as of #1260, which minted `type.label.lg`
+      // (18px / emphasis) and re-pointed `size.large.type` at it. Until then this authored `2`: there
+      // was no `lg` rung, so `size.large.type` reused `type.label.md.emphasis` (the same role as
+      // `medium`) and the ladder collapsed to two distinct styles across three sizes — a real
+      // pre-existing gap, recorded here as an expectation precisely so the fix had to come back and
+      // raise the number. It landed: `type.label.{sm,md,lg}` = 12/14/18, so button now discriminates
+      // into three. Re-pointing `size.large.type` back to `md` (or dropping the `lg` rung) drops this to
+      // two and fails this arm BY NAME. All three siblings come off one factory, so all three move together.
+      { def: button, part: 'label', axes: { size: 3 } },
+      { def: buttonDestructive, part: 'label', axes: { size: 3 } },
+      { def: buttonNeutral, part: 'label', axes: { size: 3 } },
       { def: checkboxRow, part: 'label', axes: { size: 3 } },
       { def: radio, part: 'label', axes: { size: 3 } },
       // TWO, and not a collapse: `switch` declares `size: [small, medium]` only, on its brief's own

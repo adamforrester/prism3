@@ -8,7 +8,7 @@
 ## Headline
 
 - **Anchor reproduction** — provided `primary` `#C8102E` vs generated `primary.500` `#c8102e`: **ΔE00 0.00** (≈0 confirms exact-anchor preservation).
-- **Aliases**: 1326/1326 resolve · **mode contrast contracts**: 788/788 hold.
+- **Aliases**: 1331/1331 resolve · **mode contrast contracts**: 788/788 hold.
 - **`primary` on white**: the engine measures **5.88:1** (clears small-text AA). The engine measures every contract, so if the brief's prose states a different figure, the *measured* value governs — a stale contrast claim in the source can't propagate.
 - Palettes generated: primary, neutral, secondary, tertiary, success, warning, info, danger · danger draws from `danger`.
 - x-prism3 levers: root=wds.
@@ -91,7 +91,7 @@ Observed type roles are mapped onto the engine's semantic vocabulary (`display` 
 | `title-xs` | wendysFresh · 16px · 700 | `title` | `title.xs.strong` (18px, wendysFresh, w:strong) | +2px |
 | `title-2xs` | wendysFresh · 14px · 700 | `title` | `title.xs.strong` (18px, wendysFresh, w:strong) | +4px |
 | `title-3xs` | wendysFresh · 12px · 700 | `title` | `title.xs.strong` (18px, wendysFresh, w:strong) | +6px |
-| `button-l` | wendysFresh · 18px · 700 | `label` | `label.md.emphasis` (14px, wendysFresh, w:emphasis) | -4px |
+| `button-l` | wendysFresh · 18px · 700 | `label` | `label.lg.emphasis` (18px, wendysFresh, w:emphasis) | 0px |
 | `button-s` | wendysFresh · 14px · 700 | `label` | `label.md.emphasis` (14px, wendysFresh, w:emphasis) | 0px |
 | `body-l` | Roboto · 18px · 400 | `body` | `body.lg.default` (18px, Roboto, w:default) | 0px |
 | `body-l-bold` | Roboto · 18px · 700 | `body` | `body.lg.default` (18px, Roboto, w:default) | 0px |
@@ -200,7 +200,7 @@ Observed elevation is single-layer CSS `box-shadow` strings; the engine generate
 - shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 249.14, amount 0.15). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
 - gradient: none (opt-in axis; brand declared no gradients — the field-common default).
 - layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.
-- typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=wendysFresh, title=wendysFresh, body=Roboto, label=wendysFresh, caption=Roboto, eyebrow=wendysFresh, code=JetBrains Mono; typeScale 'default'. 38 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (160px); title tier omits title.2xs). responsive: 11 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
+- typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=wendysFresh, title=wendysFresh, body=Roboto, label=wendysFresh, caption=Roboto, eyebrow=wendysFresh, code=JetBrains Mono; typeScale 'default'. 39 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (160px); title tier omits title.2xs). responsive: 11 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
 - disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.
 - interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque interactive.<color>.subtle-fill.{hover,pressed,selected}) or 'none' to opt out.
 - neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)

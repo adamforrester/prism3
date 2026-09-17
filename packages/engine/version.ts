@@ -2925,8 +2925,22 @@
  * comments that ship in the plugin bundle. All respelled to en-US — meaning identical, letters moved.
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
+ *
+ * 0.105.0 — #1260: mint `type.label.lg` (18px at the label tier's own emphasis/600 weight) and re-point
+ * `size.large.type` from `type.label.md.emphasis` to `type.label.lg.emphasis` across the button family
+ * (button / button-destructive / button-neutral, off the one `makeButton` factory). Before this there
+ * was no `lg` rung on the label tier (12/14 only), so a large button's label was typographically
+ * identical to a medium one while height/padding/gap all moved; the owner resolved the target to
+ * 18px/emphasis (2026-09-17). The rung is the body-lg SIZE (18) at the label WEIGHT — the two rejected
+ * routes were `lg`=16 (too small) and `type.body.lg` (18px but default/strong, wrong weight). Label is
+ * reading/UI text and exempt from the typeScale shift, so `type.label.lg` resolves to 18px in every
+ * density (compact/default/expressive), landing the owner's 18px at the comfortable/default density.
+ * TWO surfaces move → ENGINE bump: emitted `out/**` GROWS (`type.label.lg.emphasis` is a new token in
+ * every brand) AND the projected component surface moves (the large button member's text style). CONTRACT
+ * bumps MINOR (10.3.0 → 10.4.0): `type.label.lg.emphasis` is a guaranteed name ADD, and an add cannot
+ * break an existing reference.
  */
-export const ENGINE_VERSION = '0.104.0';
+export const ENGINE_VERSION = '0.105.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -3368,8 +3382,18 @@ export const ENGINE_VERSION = '0.104.0';
  * the darkest permissible) without moving a path, and select's hover reuses the existing
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
+ *
+ * 10.4.0 — #1260 adds ONE guaranteed name: `type.label.lg.emphasis`, the large-button label rung minted at
+ * 18px/emphasis (the body-lg size at the label tier's own weight). The label tier binds Inter in every
+ * corpus brand (including `minimal`, which takes the default face), so the new composite lands in the
+ * GUARANTEED intersection, not `brandDependent`. A pure ADDITION — a new name cannot break an existing
+ * reference — so a clean MINOR: 10.3.0 → 10.4.0. Nothing is removed or retyped. `size.large.type` (a
+ * component binding, not a token path) re-points from `type.label.md.emphasis` to the new rung; the `md`
+ * name is untouched and still bound elsewhere, so the only guaranteed-surface move is the single ADD.
+ * `token-contract.ts --accept` records it and refuses unless `CONTRACT_VERSION` was raised by exactly this
+ * MINOR first. (#1260)
  */
-export const CONTRACT_VERSION = '10.3.0';
+export const CONTRACT_VERSION = '10.4.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

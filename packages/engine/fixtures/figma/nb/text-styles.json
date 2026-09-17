@@ -1811,6 +1811,73 @@
       }
     },
     {
+      "name": "text/label/lg/emphasis",
+      "description": "label lg emphasis",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "font/family/label",
+          "collection": "font",
+          "type": "STRING",
+          "resolvedByMode": {
+            "Default": "Inter"
+          }
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Semi Bold"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "font/size/18",
+          "collection": "font",
+          "type": "FLOAT",
+          "resolvedByMode": {
+            "Default": 18
+          }
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "font/weight-role/emphasis",
+          "collection": "font",
+          "type": "FLOAT",
+          "resolvedByMode": {
+            "Default": 600
+          }
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PIXELS",
+            "value": 20.7
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PIXELS",
+            "value": 0
+          }
+        },
+        "paragraphSpacing": {
+          "bound": false,
+          "value": 0
+        },
+        "paragraphIndent": {
+          "bound": false,
+          "value": 0
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        }
+      }
+    },
+    {
       "name": "text/caption/md/default",
       "description": "caption md default",
       "properties": {

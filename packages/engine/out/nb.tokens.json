@@ -17226,6 +17226,46 @@
               }
             }
           }
+        },
+        "lg": {
+          "emphasis": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{nbds.core.font.family.label}",
+              "fontSize": "{nbds.core.font.size.18}",
+              "fontWeight": "{nbds.core.font.weight-role.emphasis}",
+              "lineHeight": "{nbds.core.font.line-height-role.snug}",
+              "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+            },
+            "$description": "label lg emphasis — 18px Inter, snug line-height, emphasis weight, normal tracking — consumer-facing type style",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "label",
+                "variant": "lg",
+                "weightRole": "emphasis",
+                "sizePx": 18,
+                "responsive": {
+                  "fluid": false,
+                  "px": 18
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontWeight"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontWeight bind their primitives (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle: a facePin (#1368) bakes the pinned style verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach); else when $value carries fontStyle:italic (weight-paired italic variant) the Figma style is the weight’s italic named-instance (e.g. Bold Italic); otherwise it is derived from the bound fontWeight at import via a weight→style-name table."
+                }
+              }
+            }
+          }
         }
       },
       "caption": {
@@ -19636,7 +19676,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.104.0",
+      "version": "0.105.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

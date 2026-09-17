@@ -63,13 +63,16 @@
  *      inverted as a ladder.
  *
  * Why MONOTONIC rather than STRICTLY monotonic, which is the one judgment call in this file and is
- * measured rather than preferred: `button` binds `size.large.type → type.label.md.emphasis`, sharing
- * `md` with `medium`. That is CORRECT — `type.label` emits only two rungs (`sm`, `md`) in all four
- * brands, so a three-size control legitimately clamps its label at the top. Strict monotonicity would
- * fail that, and the fix would be to add an exception, which is the wrong shape: a repeat is a clamp
- * against a shorter tier and it is always benign, while a REVERSAL is never benign. Monotonicity admits
- * the first and refuses the second with no exception list at all. (Measured across the corpus: 13 of 14
- * tier families are strictly increasing; the single non-strict one is that clamp.)
+ * reasoned rather than preferred: a def whose `size` axis is longer than the tier it binds legitimately
+ * CLAMPS its top rung (`small→sm, medium→md, large→md`) — a benign repeat against a shorter ladder —
+ * whereas a REVERSAL (`medium→md, large→sm`) is never benign. Monotonicity admits the first and refuses
+ * the second with no exception list at all, and refusing a repeat would force exactly such a list. The
+ * canonical instance was `button`'s label, which clamped `size.large.type → type.label.md.emphasis`
+ * because `type.label` shipped only `sm`/`md`; #1260 minted `type.label.lg` (18px/emphasis) and
+ * re-pointed the binding, so that clamp is GONE and every corpus tier family is now strictly increasing.
+ * The rule stays non-strict anyway: `switch` declares only `[small, medium]` and any future control
+ * whose size axis outruns its tier will clamp, and a strict check would then fail a benign design on
+ * the day it ships. The property to hold is "never inverted", not "never repeated".
  *
  * ── ARM 3: THE DEFAULT RULE (#756's third Do bullet — a rule, asserted at zero) ──────────────────
  *
@@ -119,9 +122,11 @@
  * rather than a reconciliation. The default follows the ladder's shape, and the ladder is the engine's.
  *
  * The `md` rung is named in this file as a CONSTANT (`DEFAULT_RUNG`), which is a deliberate choice
- * against reading it out of the tier as "the middle one". `type.label` has two rungs, so "middle" is
- * not well defined; and a rule whose expectation is computed from the tier's length would silently
- * re-point at a different rung the day a tier gained a step. The rule says `md`, so the gate says `md`.
+ * against reading it out of the tier as "the middle one". A rule whose expectation is computed from the
+ * tier's length would silently re-point at a different rung the day a tier gained a step — and
+ * `type.label` gaining its `lg` rung in #1260 (12/14 → 12/14/18) is exactly that day: a length-derived
+ * "middle" would have quietly shifted the expected default from `sm` (of two) toward `md` (of three).
+ * The rule says `md`, so the gate says `md`, unmoved by the tier growing.
  *
  * ── INDEPENDENCE (`docs/34`) ────────────────────────────────────────────────────────────────────
  *

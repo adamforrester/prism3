@@ -5625,6 +5625,19 @@
         "letterSpacing": "{hds.core.font.letter-spacing.normal}"
       }
     },
+    "type.label.lg.emphasis": {
+      "$description": "UI label type — buttons, form labels, tabs, chips.",
+      "meaning": "Type style — label lg emphasis (18px, label face)",
+      "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
+      "avoid_when": "Do not use for running text (use body).",
+      "resolves_to": {
+        "fontFamily": "{hds.core.font.family.label}",
+        "fontSize": "{hds.core.font.size.18}",
+        "fontWeight": "{hds.core.font.weight-role.emphasis}",
+        "lineHeight": "{hds.core.font.line-height.snug}",
+        "letterSpacing": "{hds.core.font.letter-spacing.normal}"
+      }
+    },
     "type.caption.md.default": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption md default (11px, caption face)",
@@ -8063,6 +8076,7 @@
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
+        "type.label.lg.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis",
         "type.title.2xl.strong",
@@ -8155,6 +8169,7 @@
         "type.body.lg.strong",
         "type.body.lg.strong-link",
         "type.eyebrow.lg.emphasis",
+        "type.label.lg.emphasis",
         "type.title.sm.strong"
       ]
     },
@@ -8336,6 +8351,7 @@
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
+        "type.label.lg.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis"
       ]
@@ -8405,6 +8421,7 @@
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
+        "type.label.lg.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis",
         "type.title.2xl.strong",
@@ -8509,6 +8526,7 @@
         "type.caption.md.strong",
         "type.caption.md.strong-link",
         "type.code.inline.default",
+        "type.label.lg.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis"
       ]
