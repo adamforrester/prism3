@@ -1028,6 +1028,20 @@ npx tsx apps/plugin/lint-unclaimed-defaults.ts
                                           # is glyphDocument's shape — a deeper subtree from Figma's real
                                           # importer is not seen. First gate outside packages/engine/, which
                                           # is why verify.ts's orphan scope now admits apps/*/lint-*.ts
+npx tsx apps/plugin/lint-sandbox-reject.ts
+                                          # THE FIGMA MAIN-THREAD SANDBOX REJECT SCAN (#1461). Figma's
+                                          # plugin sandbox (rejectImportExpressions) scans the built
+                                          # main.js SOURCE TEXT — string literals included — for `import`
+                                          # followed by `(` and refuses to load the WHOLE plugin. A shipped
+                                          # $description carrying "the Figma import (2026-09-15)" bricked the
+                                          # plugin with 58 gates + CI green (PR #1460): nothing read main.js
+                                          # the way Figma does — plugin-no-node-builtins scans it for `node:`
+                                          # builtins, the verdict/start suites drive the UI, us-english/voice
+                                          # read it as prose. EXPECTED is authored here from Figma's
+                                          # documented sandbox rules, not the bundle (docs/34). Runs after
+                                          # the plugin build; scoped to main.js (ui.html is a browser iframe
+                                          # where import() is valid syntax). Mutation: reintroduce `import (`
+                                          # into any shipped $description, rebuild — it fires by name.
 npm run test      -w @prism3/tokenpress  # the ported suite's 263 assertions, on tsx rather than the
                                           # vitest it arrived with. The runner asserts a PER-FILE census
                                           # against the pre-port vitest baseline, so a test quietly
