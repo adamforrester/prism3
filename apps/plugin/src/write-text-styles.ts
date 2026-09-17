@@ -12,7 +12,7 @@
  * substituted wrong face, never a throw that aborts the whole write. The font *variables* (`core/font`/
  * `type-sets`) write regardless (that's `applyVarCollectionPlan`), so a skipped style is the only loss.
  *
- * Bound props (fontFamily/fontSize/fontWeight) are wired to their variables via `setBoundVariable`; the
+ * Bound props (fontFamily/fontSize/fontStyle) are wired to their variables via `setBoundVariable`; the
  * baked literal (fontName/fontSize/lineHeight/…) is set first as the correct fallback value. The
  * name→Variable map is built from an UNFILTERED `getLocalVariablesAsync()` (the #146 lesson: a
  * type-filtered fetch would miss the STRING family + FLOAT size/weight vars).
@@ -129,7 +129,7 @@ export type TextStyleApplyResult = {
   created: number;
   /** styles NOT written because their font/style wouldn't load (skip-with-warning). */
   skipped: { name: string; reason: string }[];
-  /** bound-variable links written (fontFamily/fontSize/fontWeight across the applied styles). */
+  /** bound-variable links written (fontFamily/fontSize/fontStyle across the applied styles). */
   bound: number;
   /** bound target var names not found (should be empty — the var plan writes them first). */
   misses: string[];
@@ -204,7 +204,10 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
 
     // Bind the variable-backed props. The binding overrides the literal; a missing target is a miss
     // (shouldn't happen — the var plan ran first — but recorded honestly, never thrown).
-    const bind = (field: 'fontFamily' | 'fontSize' | 'fontWeight', name: string): void => {
+    // #1485 — the single weight/style control binds the STRING cut variable (`fontStyle`), NOT the FLOAT
+    // weight-role variable: a numeric weight can never reach a WIDTH cut like "Light Condensed", and
+    // binding both would double-bind one control. The numeric weight-role variable stays emitted as data.
+    const bind = (field: 'fontFamily' | 'fontSize' | 'fontStyle', name: string): void => {
       if (!name) return;
       const v = varByName.get(name);
       if (!v) { misses.push(`${row.name}.${field} -> ${name}`); return; }
@@ -213,7 +216,7 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     };
     bind('fontFamily', row.fontFamilyVar);
     bind('fontSize', row.fontSizeVar);
-    bind('fontWeight', row.fontWeightVar);
+    bind('fontStyle', row.fontStyleVar);
   }
 
   return { total: plan.length, created, skipped, bound, misses, resolvedStyles };

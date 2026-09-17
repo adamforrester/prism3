@@ -9,8 +9,9 @@
  * FAKE FONT REGISTRY so both paths are exercised: a font in the registry loads (style created + bound
  * vars set), and a font NOT in the registry throws from loadFontAsync → the style is SKIPPED with a
  * reason (never a throw that aborts the write). Asserts: font vars created (STRING family + FLOAT
- * size/weight), weight-role aliases bound (0 misses), text styles created + fontFamily/fontSize/
- * fontWeight bound, an unavailable font skipped-with-reason, and idempotent re-apply (+0).
+ * size/weight + STRING cut), weight-role aliases bound (0 misses), text styles created + fontFamily/
+ * fontSize/fontStyle bound (fontWeight is parallel data, unbound — #1485), an unavailable font
+ * skipped-with-reason, and idempotent re-apply (+0).
  *
  * BOTH SIDES OF THE #1097 NAMESPACE MEET IN THIS FILE, which is why the expected names below are written
  * out rather than derived. A VARIABLE carries the brand root and, for the three primitive groups, the
@@ -206,9 +207,11 @@ const stylesAfterFirst = tShim.styles.length;
 const tr2 = await applyTextStylePlan(textPlan, tApi); // idempotency
 
 ok(tr1.created === textPlan.length && tr1.skipped.length === 0, `all text styles created (${tr1.created}/${textPlan.length}), 0 skipped when fonts available`);
-ok(tr1.misses.length === 0 && tr1.bound === textPlan.length * 3, `every text style binds fontFamily+fontSize+fontWeight (${tr1.bound}), 0 misses`);
+ok(tr1.misses.length === 0 && tr1.bound === textPlan.length * 3, `every text style binds fontFamily+fontSize+fontStyle (${tr1.bound}), 0 misses`);
 const sample = tShim.styles[0];
-ok(!!sample.bound.fontFamily && !!sample.bound.fontSize && !!sample.bound.fontWeight, 'a text style has all three bound vars set');
+// #1485 — the three bound props are fontFamily/fontSize/fontStyle (the STRING cut). fontWeight is
+// parallel data, deliberately NOT bound (one authoritative style binding).
+ok(!!sample.bound.fontFamily && !!sample.bound.fontSize && !!sample.bound.fontStyle && !sample.bound.fontWeight, 'a text style binds fontFamily+fontSize+fontStyle and leaves fontWeight unbound (#1485)');
 ok(sample.fontName.family !== '' && sample.fontName.style !== '', 'a text style has its baked fontName (family + style) set as the fallback');
 // The description is what a designer reads in the style panel to know what a rung is FOR. The plan has
 // always carried it and this executor dropped it until #464, where the sibling paste path started
@@ -418,11 +421,12 @@ ok(wrote.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
   `#680 every one of aurora's ${auroraFontVarRows} font variables is still CREATED despite the refusals — the write steps over the refused value, it does not stop`);
 // `bound` must not count a binding the host rejected — a summary claiming bindings the file does not
 // carry is worse than one reporting fewer. The refusals above land on `font/family/*` rows, which carry no
-// alias, so this needs its OWN fixture: text styles bind `fontWeight` to `core/font/weight-role/*`, and those
-// are exactly the aliased rows. Keyed there, the refusal reaches pass B.
+// alias, so this needs its OWN fixture: the `core/font/weight-role/*` rows are the aliased ones (each
+// aliases `font/weight/<n>`), so a refusal keyed there reaches pass B — the alias write. (#1485 unbound
+// these from the Text Style, but the VARIABLES still alias, which is all this pass-B fixture needs.)
 const aliasedRows = auroraVarPlan.flatMap((c) => c.rows).filter((r) => r.aliasByMode.some(Boolean));
 ok(aliasedRows.length > 0 && aliasedRows.every((r) => r.name.startsWith('ads/core/font/weight-role/')),
-  `#680 reachable: the ${aliasedRows.length} aliased rows are the weight-roles a text style's fontWeight binds to — so a refusal CAN land on an alias write, which is what the next assertion needs`);
+  `#680 reachable: the ${aliasedRows.length} aliased rows are the weight-role FLOAT variables (each aliasing a numeric weight) — so a refusal CAN land on an alias write, which is what the next assertion needs`);
 const aliasSession = new FontSession();
 // Every weight-role bound to a face nothing loaded — the pass-B write is refused, not the pass-A one.
 aliasSession.dependents = new Map(aliasedRows.map((r) => [r.name, { family: 'Clash Display', style: 'Bold' }] as const));

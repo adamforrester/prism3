@@ -2926,6 +2926,26 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.110.0 — #1485: BIND the text-style cut (weight/style) to a STRING variable, so a WIDTH cut like ITC
+ * Garamond Std *Light Condensed* is bindable and themeable in Figma — the numeric weight axis can never
+ * reach a width. A Figma Text Style has ONE weight/style control; the engine used to bind it via the
+ * FLOAT weight-role variable and BAKE `fontStyle` beside it (so a facePin, #1368, could only bake a
+ * literal). Now `buildFigmaFont` emits a STRING cut variable per (category, weight-role, italic) slot
+ * — `<root>/core/font/style/<cat>/<role>[-italic]`, scope FONT_STYLE — whose value is the facePin
+ * verbatim or the weight-role's named-instance derivation, and `buildFigmaTextStyles` BINDS `fontStyle`
+ * to it. The numeric weight-role FLOAT variable is RETAINED as parallel data (still emitted in `core`,
+ * DTCG `$value.fontWeight` still aliases it) but is no longer bound on the Text Style — one authoritative
+ * style binding, no conflicting double-bind. Per-CATEGORY, not per-role, because a facePin is keyed
+ * (category, weight-role): display/subtle can pin "Light Condensed" while title/subtle derives "Light",
+ * and a per-role-only cut would collapse the two (the silent cut swap the gate guards). Plugin
+ * (`write-text-styles.ts`) + CLI paste (`materialise-to-figma.ts`) bind `fontStyle`, not `fontWeight`;
+ * `materialise` gains a FONT_STYLE scope code ('y'). The emitted `out/figma/**` cut variables + bound
+ * text styles move, and the DTCG `figma.binds`/`baked`/`note` metadata moves → ENGINE bump. CONTRACT
+ * STANDS at 11.2.0 (rebased): the cut lives in Figma variables + `$extensions.prism3.facePin`, not a
+ * guaranteed DTCG token NAME — `$value` is unchanged, so `token-contract --check` is level `none`
+ * (brand-dependent). A follow-up covers TokenPress reading a fontStyle-bound variable to round-trip the
+ * cut (a guest surface, out of scope for this PR).
+ *
  * 0.109.0 — #1260: mint `type.label.lg` (18px at the label tier's own emphasis/600 weight) and re-point
  * `size.large.type` from `type.label.md.emphasis` to `type.label.lg.emphasis` across the button family
  * (button / button-destructive / button-neutral, off the one `makeButton` factory). Before this there
@@ -2987,7 +3007,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.109.0';
+export const ENGINE_VERSION = '0.110.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

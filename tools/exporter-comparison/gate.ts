@@ -28,8 +28,15 @@
  *                  path. This is the assertion that stops the #747 hole from reopening quietly.
  *
  *   UNPAIRED     asserted per DIRECTION, and the two directions are NOT symmetric:
- *                · tokenpress-only  — a RULE at 0. A path TokenPress emits and prism3 does not
- *                  means the Figma round-trip invented a token, or prism3 dropped one.
+ *                · tokenpress-only  — a RULE at 0, EXCEPT the #1485 STRING cut variables
+ *                  (`core.font.style.<cat>.<role>`). A path TokenPress emits and prism3 does not
+ *                  normally means the Figma round-trip invented a token, or prism3 dropped one — but
+ *                  the cut is a deliberate representation gap: prism3 binds it as a Figma variable
+ *                  whose DTCG home is `$extensions`, not a token, so TokenPress faithfully exporting
+ *                  the variable is a CONVENTION difference. The exempt set is prism3's OWN emitted cut
+ *                  variables (`prism3CutPaths`, read from the Figma emission, never from TokenPress),
+ *                  checked as a BIJECTION so an invented or dropped cut still fails, with a non-empty
+ *                  floor. See `prism3CutPaths` below and #1489 (the TokenPress reader follow-up).
  *                · prism3-only      — a MEMORY, per brand, of the paths currently known to be
  *                  unreachable and WHY. See KNOWN_UNREACHABLE below; the "why" is the gate.
  *
@@ -158,6 +165,10 @@
  *       the tree already rooted)
  *   N3  revert `unionTokenPress`'s `leaves(…, rootKey)` → ARMs 2a+2b, 4316 failures (the strip is
  *       to the unstripped call it replaced                    load-bearing, not cosmetic)
+ *   C1  empty `prism3CutPaths` (regex matches nothing)  → ARM 2a, 30 failures  (#1485: 9 now-unexempted
+ *                                                        cut paths × 3 brands + 3 CUT-EXEMPTION-EMPTY
+ *                                                        floors — the exemption is a bijection, not a
+ *                                                        blanket skip; emptying it re-reddens the arm)
  *
  * WHY N1/N2 EXIST AT ALL, AND WHAT N2 MEASURED THAT NO PARAGRAPH COULD: under N2's total namespace
  * loss the UNPAIRED ARMS REPORT A CLEAN PASS — 0 tokenpress-only, 0 unexplained prism3-only, on all
@@ -192,7 +203,7 @@
  * gate, and it is indistinguishable from a blind spot unless you go read why. Check that the thing you
  * mutated is the thing that decides.
  */
-import { readdirSync, existsSync } from 'node:fs';
+import { readdirSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { analyze } from './compare.ts';
 
@@ -254,6 +265,38 @@ const KNOWN_UNREACHABLE: Record<string, { path: string; why: string; owner: stri
       issue: '#731',
     },
   ],
+};
+
+/**
+ * #1485 — the STRING CUT variables prism3 emits that have NO prism3 DTCG token counterpart BY DESIGN.
+ *
+ * A text style's cut binds a Figma STRING variable `<root>/core/font/style/<cat>/<role>[-italic]`
+ * (scope FONT_STYLE), so a WIDTH cut like "Light Condensed" is bindable. Its DTCG home, by the owner's
+ * decision, is `$extensions.prism3` (the facePin) plus the numeric weight in `$value` — NOT a standalone
+ * `core.font.style.*` DTCG token (DTCG has no width field; no family-split invented). So prism3's own
+ * `emit-dtcg` writes no such token, while TokenPress — which exports every Figma variable it scans —
+ * faithfully turns each cut variable into one. That is a CONVENTION difference (like `rgb()` vs
+ * `{colorSpace, components}`), not "an invented token or a dropped one," so ARM 2a exempts EXACTLY the
+ * cut variables prism3 actually emitted for this brand — read from prism3's OWN Figma emission, never
+ * from TokenPress — and still fails on any other tokenpress-only path. The set is a BIJECTION check: a
+ * tokenpress-only `core.font.style.*` path prism3 did not emit is an invented token (fail); a cut prism3
+ * emitted that did NOT round-trip is a dropped variable (fail); and if prism3 ever DOES emit a matching
+ * DTCG token (a future contract move), the cut pairs, this list no longer matches, and the gate goes red
+ * — forcing a conscious update. Aligning TokenPress's Text-Style reader with the bound cut is #1489
+ * (a guest-surface follow-up); it does not change this by-design representation gap.
+ *
+ * Read the emitted cut-variable names, strip the brand root (first segment), dot-join — the same
+ * normalized shape the unpaired arms compare (`nbds/core/font/style/body/default` -> `core.font.style.body.default`).
+ */
+const prism3CutPaths = (brand: string): Set<string> => {
+  const f = join(FIGMA_OUT, brand, 'core.font.json');
+  if (!existsSync(f)) return new Set();
+  const doc = JSON.parse(readFileSync(f, 'utf8')) as { variables?: Array<{ name?: string; scopes?: string[] }> };
+  const out = new Set<string>();
+  for (const v of doc.variables ?? []) {
+    if (v.name && /(?:^|\/)font\/style\/[^/]+\/[^/]+$/.test(v.name)) out.add(v.name.split('/').slice(1).join('.'));
+  }
+  return out;
 };
 
 const discoverBrands = (): string[] => {
@@ -354,11 +397,36 @@ const main = async (): Promise<void> => {
     }
     lines.push(`axes: ${r.axes.represented.join('+')}`);
 
-    // ---- ARM 2a: tokenpress-only paths, a RULE at 0 ---------------------------------------------
+    // ---- ARM 2a: tokenpress-only paths, a RULE at 0 EXCEPT the #1485 cut variables ---------------
+    // The exempt set is prism3's OWN emitted cut variables (see `prism3CutPaths`) — a by-design
+    // representation gap (the cut lives in a Figma variable + `$extensions`, not a DTCG token), checked
+    // as a BIJECTION so it cannot mask an invented or dropped token.
+    const cutPaths = prism3CutPaths(brand);
     for (const p of r.paths.unpairedTokenPress) {
+      if (cutPaths.has(p)) continue; // #1485 by-design: prism3 emits this cut as a Figma STRING variable with no DTCG token; TokenPress faithfully exports the variable (#1489 aligns the Text-Style reader).
       failures.push(
         `[${brand}] UNPAIRED (tokenpress-only): ${p} — TokenPress emits a path prism3 does not. ` +
           'Either the round-trip invented a token or prism3 dropped one; a pairing rule in compare.ts may also have stopped matching.'
+      );
+    }
+    // BIJECTION, the other direction: every cut variable prism3 emitted MUST appear as a tokenpress-only
+    // token (TokenPress exports every variable, and prism3 has no matching DTCG token to pair it). A
+    // missing one means TokenPress dropped a variable, or prism3 began emitting the cut as a DTCG token
+    // (a contract move) — either way the exemption no longer describes reality and must be revisited.
+    const seenCut = new Set(r.paths.unpairedTokenPress.filter((p) => cutPaths.has(p)));
+    for (const p of cutPaths) {
+      if (!seenCut.has(p)) {
+        failures.push(
+          `[${brand}] CUT BIJECTION BROKEN: prism3 emits the cut variable '${p}' but it did not round-trip through TokenPress as a tokenpress-only token. ` +
+            'Either TokenPress dropped the variable, or prism3 now emits a matching DTCG token so the #1485 representation gap closed — revisit the ARM 2a exemption (prism3CutPaths).'
+        );
+      }
+    }
+    // Floor: a brand with text styles emits cut variables, so the exempt set must be NON-EMPTY — an
+    // empty set would let the exemption pass over nothing while a real cut regression hid as "0 cuts".
+    if (r.paths.unpairedTokenPress.length > 0 && cutPaths.size === 0) {
+      failures.push(
+        `[${brand}] CUT EXEMPTION EMPTY: tokenpress-only paths exist but prism3 emitted no font/style cut variables to exempt — the #1485 cut emission may have broken (core.font.json), leaving the exemption masking nothing.`
       );
     }
 
@@ -386,7 +454,7 @@ const main = async (): Promise<void> => {
       }
     }
     lines.push(
-      `unpaired: ${r.paths.unpairedPrism3.length} prism3-only (${known.length} known) / ${r.paths.unpairedTokenPress.length} tokenpress-only`
+      `unpaired: ${r.paths.unpairedPrism3.length} prism3-only (${known.length} known) / ${r.paths.unpairedTokenPress.length} tokenpress-only (${cutPaths.size} #1485 cut var(s) exempt)`
     );
 
     // ---- ARM 2c: the brand namespace survives the round trip, a RULE (#1097) --------------------

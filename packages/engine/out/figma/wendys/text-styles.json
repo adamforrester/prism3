@@ -12,8 +12,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -22,10 +24,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -62,8 +62,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -72,10 +74,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -112,8 +112,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -122,10 +124,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -162,8 +162,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -172,10 +174,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -212,8 +212,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -222,10 +224,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -262,8 +262,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/display/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -272,10 +274,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -312,8 +312,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -322,10 +324,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -362,8 +362,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -372,10 +374,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -412,8 +412,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -422,10 +424,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -462,8 +462,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -472,10 +474,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -512,8 +512,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -522,10 +524,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -562,8 +562,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/title/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -572,10 +574,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -612,8 +612,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Regular"
+          "bound": true,
+          "variable": "wds/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -622,10 +624,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
@@ -662,8 +662,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Regular"
+          "bound": true,
+          "variable": "wds/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -672,10 +674,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
@@ -712,8 +712,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -722,10 +724,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -762,8 +762,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -772,10 +774,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -812,8 +812,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Regular"
+          "bound": true,
+          "variable": "wds/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -822,10 +824,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
@@ -862,8 +862,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Regular"
+          "bound": true,
+          "variable": "wds/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -872,10 +874,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
@@ -912,8 +912,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -922,10 +924,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -962,8 +962,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -972,10 +974,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -1012,8 +1012,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Regular"
+          "bound": true,
+          "variable": "wds/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1022,10 +1024,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
@@ -1062,8 +1062,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Regular"
+          "bound": true,
+          "variable": "wds/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1072,10 +1074,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
@@ -1112,8 +1112,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1122,10 +1124,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -1162,8 +1162,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1172,10 +1174,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -1212,8 +1212,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Semi Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/label/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1222,10 +1224,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/emphasis",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 600
         },
         "lineHeight": {
           "bound": false,
@@ -1262,8 +1262,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Semi Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/label/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1272,10 +1274,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/emphasis",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 600
         },
         "lineHeight": {
           "bound": false,
@@ -1312,8 +1312,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Semi Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/label/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1322,10 +1324,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/emphasis",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 600
         },
         "lineHeight": {
           "bound": false,
@@ -1362,8 +1362,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Regular"
+          "bound": true,
+          "variable": "wds/core/font/style/caption/default",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1372,10 +1374,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
@@ -1412,8 +1412,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Regular"
+          "bound": true,
+          "variable": "wds/core/font/style/caption/default",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1422,10 +1424,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
@@ -1462,8 +1462,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/caption/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1472,10 +1474,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -1512,8 +1512,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/caption/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1522,10 +1524,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -1562,8 +1562,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Regular"
+          "bound": true,
+          "variable": "wds/core/font/style/caption/default",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1572,10 +1574,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
@@ -1612,8 +1612,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Regular"
+          "bound": true,
+          "variable": "wds/core/font/style/caption/default",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1622,10 +1624,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
@@ -1662,8 +1662,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/caption/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1672,10 +1674,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -1712,8 +1712,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/caption/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1722,10 +1724,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 700
         },
         "lineHeight": {
           "bound": false,
@@ -1762,8 +1762,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Semi Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/eyebrow/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1772,10 +1774,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/emphasis",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 600
         },
         "lineHeight": {
           "bound": false,
@@ -1812,8 +1812,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Semi Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/eyebrow/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1822,10 +1824,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/emphasis",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 600
         },
         "lineHeight": {
           "bound": false,
@@ -1862,8 +1862,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Semi Bold"
+          "bound": true,
+          "variable": "wds/core/font/style/eyebrow/emphasis",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1872,10 +1874,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/emphasis",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 600
         },
         "lineHeight": {
           "bound": false,
@@ -1912,8 +1912,10 @@
           "resolvedType": "STRING"
         },
         "fontStyle": {
-          "bound": false,
-          "value": "Regular"
+          "bound": true,
+          "variable": "wds/core/font/style/code/default",
+          "collection": "core",
+          "resolvedType": "STRING"
         },
         "fontSize": {
           "bound": true,
@@ -1922,10 +1924,8 @@
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
-          "bound": true,
-          "variable": "wds/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
+          "bound": false,
+          "value": 400
         },
         "lineHeight": {
           "bound": false,
