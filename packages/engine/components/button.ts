@@ -77,9 +77,13 @@ const intentTokens = (family: IntentFamily): Record<string, string> => ({
   'outline.label': `color.interactive.${family}.text.rest`,
   'outline.label.hover': `color.interactive.${family}.text.hover`,
   'outline.label.pressed': `color.interactive.${family}.text.pressed`,
-  'outline.icon': `color.interactive.${family}.text.rest`,
-  'outline.icon.hover': `color.interactive.${family}.text.hover`,
-  'outline.icon.pressed': `color.interactive.${family}.text.pressed`,
+  // #1471 — the GLYPH binds the dedicated `icon.*` role, not `text.*`. Value-identical (the engine mints
+  // `interactive.<family>.icon.{rest,hover,pressed}` as a value twin of `text.*`), so this is a semantic
+  // rebinding with NO color change: an outline button's icon is an icon, and now says so. The label keeps
+  // `text.*` (it IS text). Both button and icon-button move together.
+  'outline.icon': `color.interactive.${family}.icon.rest`,
+  'outline.icon.hover': `color.interactive.${family}.icon.hover`,
+  'outline.icon.pressed': `color.interactive.${family}.icon.pressed`,
   'outline.overlay.hover': `color.interactive.${family}.overlay.hover`,
   'outline.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
   // text — ink + the translucent overlay wash (#536 item 1: both overlay states keyed, or a pressed
@@ -104,9 +108,11 @@ const intentTokens = (family: IntentFamily): Record<string, string> => ({
   'text.label': `color.interactive.${family}.text.rest`,
   'text.label.hover': `color.interactive.${family}.text.hover`,
   'text.label.pressed': `color.interactive.${family}.text.pressed`,
-  'text.icon': `color.interactive.${family}.text.rest`,
-  'text.icon.hover': `color.interactive.${family}.text.hover`,
-  'text.icon.pressed': `color.interactive.${family}.text.pressed`,
+  // #1471 — the GLYPH binds `icon.*` (value-identical to `text.*`); the label keeps `text.*`. See the
+  // `outline.icon` note above — a name/semantic move, no color change.
+  'text.icon': `color.interactive.${family}.icon.rest`,
+  'text.icon.hover': `color.interactive.${family}.icon.hover`,
+  'text.icon.pressed': `color.interactive.${family}.icon.pressed`,
   'text.overlay.hover': `color.interactive.${family}.overlay.hover`,
   'text.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
 });

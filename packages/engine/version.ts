@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.108.0 — #1471: a dedicated interactive ICON ink role. The interactive column gained no `icon` sub-role,
+ * so component glyphs inked from the interactive `text` role (button/icon-button outline/ghost/text). This
+ * mints `interactive.<family>.icon.{rest,hover,pressed}` (and its `inverse.` twin) as a VALUE-IDENTICAL
+ * mirror of `text.*` — the same resolved candidate, shared by value — and re-points every glyph ink key in
+ * `button.ts` and `icon-button.ts` from `...text.*` to `...icon.*` (`filled.icon` stays on `on-fill`, a glyph
+ * on a filled ground). Because the value equals `text`, emitted COLOURS are byte-identical (no visual change)
+ * and every contrast contract is unchanged; the emitted trees move only their new `icon.*` leaves + the
+ * version stamp, and the projected component surface moves its glyph bindings. Both families move together.
+ * CONTRACT rises to 11.1.0 — this ADDS a guaranteed emitted name (see the CONTRACT entry).
+ *
  * 0.107.0 — #1476: the emitted text styles now read LARGEST → SMALLEST within each type group, so the
  * Figma styles list reads top-to-bottom the way a designer reads a type ramp (within a role, lg before md
  * before sm). The composite walk (`emit-figma-font.ts` `orderComposites`) stable-sorts by a size-rank map
@@ -2963,7 +2973,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.107.0';
+export const ENGINE_VERSION = '0.108.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -3406,6 +3416,14 @@ export const ENGINE_VERSION = '0.107.0';
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
  *
+ * 11.1.0 — #1471 mints the interactive ICON ink role: `color.interactive.<family>.icon.{rest,hover,pressed}`
+ * and its `color.inverse.interactive.<family>.icon.*` twin, for every built-in family (primary/neutral/
+ * destructive) and every opt-in `interactivePalettes` column. A pure ADDITION — new names cannot break an
+ * existing reference — so a clean MINOR: 11.0.0 → 11.1.0. Nothing is removed or retyped; the new roles are
+ * VALUE-IDENTICAL to the sibling `text.*` roles (same resolved color), so no existing name moves and no value
+ * a consumer already reads changes. Components (button/icon-button) now bind their glyph ink to these names
+ * instead of borrowing `text.*`. (#1471)
+ *
  * 11.0.0 — #1479 (owner-decided MAJOR, no consumers): DEMOTE the upper breakpoint tiers out of `guaranteed`.
  * `breakpoint.{lg,xl,2xl}` and `grid.{lg,xl,2xl}.{columns,gutter,margin}` — 12 paths — move to
  * `brandDependent`. The breakpoint COUNT is a per-brand lever (`layout.breakpoints`), and `bpNames` slices
@@ -3420,7 +3438,7 @@ export const ENGINE_VERSION = '0.107.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '11.0.0';
+export const CONTRACT_VERSION = '11.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

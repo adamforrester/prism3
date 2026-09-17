@@ -597,7 +597,7 @@ for (const b of brands) {
   for (const c of ['primary', 'neutral', 'destructive']) {
     for (const st of ['rest', 'hover', 'pressed', 'focused', 'selected'])
       if (!(`interactive.${c}.fill.${st}` in light)) shapeMissing.push(`interactive.${c}.fill.${st}`);
-    for (const slot of ['on-fill', 'text.rest', 'text.hover', 'text.pressed', 'border.rest', 'border.hover', 'border.pressed'])
+    for (const slot of ['on-fill', 'text.rest', 'text.hover', 'text.pressed', 'icon.rest', 'icon.hover', 'icon.pressed', 'border.rest', 'border.hover', 'border.pressed'])
       if (!(`interactive.${c}.${slot}` in light)) shapeMissing.push(`interactive.${c}.${slot}`);
     // The bare leaf is GONE, not merely superseded (#576). Asserted explicitly because the loop
     // above cannot see it: adding `border.rest` while leaving `border` behind would satisfy every
@@ -605,7 +605,7 @@ for (const b of brands) {
     // flattens, dropping all three states for a conforming consumer.
     if (`interactive.${c}.border` in light) shapeMissing.push(`interactive.${c}.border STILL PRESENT as a bare leaf`);
   }
-  ok(shapeMissing.length === 0, 'interactive: primary/neutral/destructive each carry fill(+5 states)/on-fill/text.{rest,hover,pressed}/border.{rest,hover,pressed}' + (shapeMissing.length ? ` — MISSING ${shapeMissing.slice(0, 4).join(',')}` : ''));
+  ok(shapeMissing.length === 0, 'interactive: primary/neutral/destructive each carry fill(+5 states)/on-fill/text.{rest,hover,pressed}/icon.{rest,hover,pressed}/border.{rest,hover,pressed}' + (shapeMissing.length ? ` — MISSING ${shapeMissing.slice(0, 4).join(',')}` : ''));
   // (b2) per-colour disabled fill is retired — no interactive.<color>.fill.disabled.
   const perColourDisabled = ['primary', 'neutral', 'destructive'].map((c) => `interactive.${c}.fill.disabled`).filter((k) => k in light);
   ok(perColourDisabled.length === 0, 'interactive: per-colour fill.disabled retired (cross-cutting disabled.* instead)' + (perColourDisabled.length ? ` — STILL PRESENT ${perColourDisabled.join(',')}` : ''));
@@ -980,6 +980,11 @@ for (const b of brands) {
   for (const st of ['rest', 'hover', 'pressed'])
     if (scopeOf(`color/interactive/primary/border/${st}`) !== JSON.stringify(['STROKE_COLOR'])) scopeBad.push(`primary/border/${st}`);
   if (scopeOf('color/interactive/primary/fill/rest') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) scopeBad.push('primary/fill/rest');
+  // #1471 — the minted interactive ICON role scopes as a GLYPH ([FRAME,SHAPE,STROKE]) like `icon.*` /
+  // `disabled.icon`, NOT as TEXT — a glyph can paint or stroke, so its picker context differs from the label
+  // (`text` = TEXT_FILL above). Every state carries it, like `border`.
+  for (const st of ['rest', 'hover', 'pressed'])
+    if (scopeOf(`color/interactive/primary/icon/${st}`) !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'])) scopeBad.push(`primary/icon/${st}`);
   ok(scopeBad.length === 0, 'interactive: Figma slots carry slot-aware scopes' + (scopeBad.length ? ` — ${scopeBad.join(',')}` : ''));
 
   // (e2) disabled.<slot> is also slot-scoped — surface/on-disabled paint, text=TEXT_FILL,
@@ -8778,20 +8783,21 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         `#1427 ${def.id}: the DEFAULT-surface filled container binds the PAGE role color/interactive/${fam}/fill/rest — so the inverse binding above is the surface rewrite, not a constant`);
     }
 
-    // (3) THE GLYPH INK WALKS STATE on outline/ghost (item 1). At rest it is text.rest; at hover/pressed it is
-    // text.<state>, not text.rest — for every family. `filled` ink stays on-fill across states (unchanged).
+    // (3) THE GLYPH INK WALKS STATE on outline/ghost (item 1). At rest it is icon.rest; at hover/pressed it is
+    // icon.<state>, not icon.rest — for every family. `filled` ink stays on-fill across states (unchanged).
     // NOTE (#1432): the icon-button tertiary appearance VALUE is `ghost`, not `text` (renamed — an icon-only
-    // control has no text); the ink ROLE it binds is still `interactive.<fam>.text.*` (button's `text` role,
-    // the mechanical mapping the rename preserves), which is why the role assertions below still read `text/`.
+    // control has no text). NOTE (#1471): the glyph ink ROLE is now the dedicated `interactive.<fam>.icon.*`
+    // column (value-identical to `text.*`, so no colour change) rather than the `text.*` it used to borrow —
+    // which is why the role assertions below read `icon/`. The per-state WALK is unchanged (icon mirrors text).
     let inkChecked = 0;
     for (const [def, fam] of IB_FAMILIES)
       for (const appearance of ['outline', 'ghost']) {
-        ok(glyphInk(def, appearance, 'rest', 'default').includes(`color/interactive/${fam}/text/rest`),
-          `#1427 ${def.id} ${appearance}: the glyph ink at rest is text.rest (color/interactive/${fam}/text/rest)`);
+        ok(glyphInk(def, appearance, 'rest', 'default').includes(`color/interactive/${fam}/icon/rest`),
+          `#1471 ${def.id} ${appearance}: the glyph ink at rest is icon.rest (color/interactive/${fam}/icon/rest)`);
         for (const state of ['hover', 'pressed']) {
           inkChecked++;
-          ok(glyphInk(def, appearance, state, 'default').includes(`color/interactive/${fam}/text/${state}`),
-            `#1427 ${def.id} ${appearance}: the glyph ink at ${state} WALKS to text.${state} (color/interactive/${fam}/text/${state}), not text.rest`);
+          ok(glyphInk(def, appearance, state, 'default').includes(`color/interactive/${fam}/icon/${state}`),
+            `#1471 ${def.id} ${appearance}: the glyph ink at ${state} WALKS to icon.${state} (color/interactive/${fam}/icon/${state}), not icon.rest`);
         }
       }
     ok(inkChecked === IB_FAMILIES.length * 2 * 2, `#1427 the per-state ink pin ran over 3 families × {outline,text} × {hover,pressed} (${inkChecked})`);
@@ -8810,13 +8816,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       `#1427 a surface=default icon-button nests the surface=default focus-ring — got ${JSON.stringify(ibRing('default')?.nestVariant)}`);
 
     // ── MUTATION ARMS (docs/34), each flipping a NAMED assertion true→false on the SUBJECT (the def) ──
-    //   ARM A (item 1) — make the outline glyph ink STATIC again: bind outline.icon.hover back to text.rest.
-    //   The projected outline hover glyph then binds text/rest, flipping the '#1427 … outline: the glyph ink
-    //   at hover WALKS to text.hover' assertion BY NAME.
-    const inkStatic = { ...iconButton, tokens: { ...iconButton.tokens, 'outline.icon.hover': 'color.interactive.primary.text.rest' } };
-    ok(glyphInk(inkStatic as ComponentDef, 'outline', 'hover', 'default').includes('color/interactive/primary/text/rest')
-      && !glyphInk(inkStatic as ComponentDef, 'outline', 'hover', 'default').includes('color/interactive/primary/text/hover'),
-      "#1427 MUTATION ARM A: pinning outline.icon.hover back to text.rest makes the hover glyph bind text/rest (not text/hover), flipping '#1427 icon-button outline: the glyph ink at hover WALKS to text.hover' to failing");
+    //   ARM A (item 1) — make the outline glyph ink STATIC again: bind outline.icon.hover back to icon.rest.
+    //   The projected outline hover glyph then binds icon/rest, flipping the '#1471 … outline: the glyph ink
+    //   at hover WALKS to icon.hover' assertion BY NAME. (#1471 — the role moved text→icon; ARM still fires.)
+    const inkStatic = { ...iconButton, tokens: { ...iconButton.tokens, 'outline.icon.hover': 'color.interactive.primary.icon.rest' } };
+    ok(glyphInk(inkStatic as ComponentDef, 'outline', 'hover', 'default').includes('color/interactive/primary/icon/rest')
+      && !glyphInk(inkStatic as ComponentDef, 'outline', 'hover', 'default').includes('color/interactive/primary/icon/hover'),
+      "#1471 MUTATION ARM A: pinning outline.icon.hover back to icon.rest makes the hover glyph bind icon/rest (not icon/hover), flipping '#1471 icon-button outline: the glyph ink at hover WALKS to icon.hover' to failing");
     //   ARM B (item 2) — DROP the surface axis. The enumerated set then carries NO surface=inverse member, so
     //   the inverse fill/glyph and the doubling assertions above have no member to fire on — the '#1427 surface
     //   DOUBLES the set' assertion (which reads the enumeration, not a hand-passed coordinate) flips BY NAME.
@@ -9383,8 +9389,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const seg = (ref?: string) => ref?.split('.').pop();
       ok(seg(border) === st && seg(label) === st && seg(icon) === st,
         `#1282 ${d.id} outline ${st}: border, label and icon all resolve the '${st}' interactive role — the edge and the ink it surrounds move together (got border=${seg(border)}, label=${seg(label)}, icon=${seg(icon)})`);
-      ok(label === `color.interactive.${fam}.text.${st}` && border === `color.interactive.${fam}.border.${st}`,
-        `#1282 ${d.id} outline ${st}: the ink binds text.${st} and the edge binds border.${st} — the two roles the engine derives from ONE candidate (iBorder consumes iText), so matching bindings is matching colour`);
+      ok(label === `color.interactive.${fam}.text.${st}` && border === `color.interactive.${fam}.border.${st}` && icon === `color.interactive.${fam}.icon.${st}`,
+        `#1282/#1471 ${d.id} outline ${st}: the label binds text.${st}, the glyph binds the dedicated icon.${st} role (#1471 — value-identical to text, so no colour change), and the edge binds border.${st} — all three roles the engine derives from ONE candidate, so matching bindings is matching colour`);
     }
   }
   // The colour tokens: each def binds ONLY its own family, and binds the full 16-key skin (not zero).
