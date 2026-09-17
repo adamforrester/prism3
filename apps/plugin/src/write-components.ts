@@ -1962,6 +1962,21 @@ const writeComponentSet = async (
   // and #866's read-back increments it after — the same counter for the same divergence, caught at two
   // points. It was declared just above the read-back until #1337 gave the wire loop a reason to touch it.
   let refsRepaired = 0;
+  // #1473 — THE SET'S LIVE MEMBERS, RE-READ NOW, after every set-level op (combine, the layout `resize`,
+  // `addComponentProperty`) has settled. `members` was snapshotted right after combine (for the layout
+  // pass); a member handle from that snapshot can end up with a DETACHED subtree while the set's live child
+  // for that coordinate is a fresh, referenceable node — the host keeps reconciling ids after combine and,
+  // for some members, reassigns the MEMBER's identity too. Re-finding a part THROUGH the stale handle lands
+  // on the detached node and Figma refuses the reference ("Could not create a new component property
+  // reference"), so the field-label/select persistent misses stayed permanent even with the #1337 recovery
+  // — the recovery re-found through the SAME stale `member`. A fresh read, keyed by name (the key every
+  // re-find already has), reaches the settled member whose own layers CAN hold the reference. Inert when
+  // identity is stable (the common case, and every offline run without the `settleAfterCombine` shim mode):
+  // the fresh read is the very same objects the snapshot holds. Geometry read-backs below deliberately KEEP
+  // reading `members` — position/size ride the snapshot handle — so only the reference re-finds move here.
+  const liveByName = new Map<string, CompNode>();
+  for (const c of (set.children ?? [])) if (c.name != null) liveByName.set(String(c.name), c);
+  const liveMember = (name: string): CompNode | undefined => liveByName.get(name);
   mark = phaseStart = Date.now();
   const toWire = readable ? members : [];
   for (let i = 0; i < toWire.length; i++) {
@@ -1988,7 +2003,7 @@ const writeComponentSet = async (
       const kept = builtFor?.get(r.part);
       let node: CompNode | null | undefined;
       if (builtFor) { node = kept; if (kept) refsRetained++; else refsKnownAbsent++; }
-      else { node = findOwnPart(member, r.part); refsSearched++; }   // #1428: scope past nested instances
+      else { node = findOwnPart(liveMember(String(member.name)) ?? member, r.part); refsSearched++; }   // #1428: scope past nested instances; #1473: off the LIVE member
       // An optional part absent from THIS variant builds no node, so there is nothing to wire — the
       // legitimate case. `planSetProperties` only declares a property some node references.
       if (!node) continue;
@@ -2037,7 +2052,10 @@ const writeComponentSet = async (
         // fires only after a throw, only re-tries a node that is NOT the one that threw, and offline the #874
         // shim keeps one node object across combine (`makeShim({ detachPartsOnCombine })` is the one mode that
         // detaches, added for #1337's gate) so on every other run no handle detaches and this path is dead.
-        const live = findOwnPart(member, r.part);   // #1428: the live twin among the member's OWN layers
+        // #1473: re-resolve the MEMBER from the freshly-settled set (`liveMember`) BEFORE finding the part —
+        // re-finding through the combine-time `member` handle lands on the same detached subtree that just
+        // threw, which is why the #1337 recovery could not reach the field-label/select persistent misses.
+        const live = findOwnPart(liveMember(String(member.name)) ?? member, r.part);   // #1428: the member's OWN layers
         let recovered = false;
         if (live && live !== node) {
           try {
@@ -2067,7 +2085,7 @@ const writeComponentSet = async (
   // that looks built and is inert. docs/34: the check must not share its subject with the thing it checks.
   // `refsRepaired` is declared before the wire loop (#1337 increments it there too — see the wire catch).
   for (const [mName, part, field, id, written] of wiredRefs) {
-    const member = members.find((c) => c.name === mName);
+    const member = liveMember(mName) ?? members.find((c) => c.name === mName);   // #1473: the LIVE settled member
     const node = findOwnPart(member, part);   // #1428: read back the member's OWN part, not a nested twin
     const held = (node?.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
     if (held?.[field] === id) continue;   // retained — the common case, nothing to do
@@ -2130,7 +2148,7 @@ const writeComponentSet = async (
   // re-run (empty map) makes zero searches here, exactly as it rebuilds nothing.
   let boundSearched = 0;
   for (const [mName, builtFor] of builtParts) {
-    const member = members.find((c) => c.name === mName);
+    const member = liveMember(mName) ?? members.find((c) => c.name === mName);   // #1473: the LIVE settled member
     if (!member) continue;
     const spec = cells.find((c) => c.name === mName);
     if (!spec) continue;
@@ -2181,7 +2199,9 @@ const writeComponentSet = async (
   // TWO: an ORPHAN — a property no node references. Figma shows it in the panel and changing it does
   // nothing, which is indistinguishable from a broken component to the designer holding it.
   const referenced = new Set<string>();
-  for (const member of members)
+  // #1473: off the LIVE members — a settled member holds its references on the freshly-resolved node, not
+  // on the combine-time snapshot handle, so reading `members` here would miss them and report false ORPHANs.
+  for (const member of (set.children ?? members) as CompNode[])
     for (const n of [member, ...((member.findAll?.(() => true) ?? []) as CompNode[])])
       for (const id of Object.values((n.componentPropertyReferences ?? {}) as Record<string, string>)) referenced.add(id);
   for (const [name, key] of bare)

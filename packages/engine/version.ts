@@ -2926,6 +2926,21 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.106.0 — #1472/#1473: component-property references failed to wire on specific members (field-label 27
+ * misses, select 36), all "set_componentPropertyReferences: Could not create a new component property
+ * reference". Root cause: the plugin's component write path (`apps/plugin/src/write-components.ts`) re-found
+ * a member's part for the #1337 recovery THROUGH the member handle it snapshotted right after
+ * `combineAsVariants` — but the host keeps reconciling ids after combine and, for some members, reassigns
+ * the MEMBER's own identity, leaving that snapshotted handle DETACHED while a fresh `set.children` read holds
+ * a live, referenceable twin. Re-finding through the stale handle threw again, so the miss was permanent and
+ * the property no longer drove the node (the coupled #1472 icon-swap symptom: an INSTANCE_SWAP whose
+ * `mainComponent` reference never landed cannot swap). Fix: re-resolve the member from a fresh `set.children`
+ * read (`liveByName`) before every re-find (recovery, ref/bound read-back, orphan scan). New host-truth gate
+ * (`settleAfterCombine` shim mode + `test-write-components.ts`/`test-roundtrip.ts`) fails BY NAME when any
+ * declared reference is left unwired on any member; mutation-proven. A PLUGIN write-path behavior change
+ * (principle 5: any behavior change) → ENGINE bump; no engine emission or projected surface moves, so
+ * `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at 11.0.0 (no token name or member moves).
+ *
  * 0.105.0 — #1479: the breakpoint COUNT is made a truly brand-flexible axis (2/3/4/5/6 all supported and
  * auto-named), and the upper breakpoint tiers are reclassified `brandDependent` (CONTRACT 11.0.0, below).
  * The capability already existed by construction — `layout.breakpoints` is a per-brand lever and `bpNames`
@@ -2937,7 +2952,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.105.0';
+export const ENGINE_VERSION = '0.106.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
