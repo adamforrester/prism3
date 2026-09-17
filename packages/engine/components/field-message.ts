@@ -263,9 +263,12 @@ export const fieldMessage: ComponentDef = {
   // `Message` (the meaningful name this comment first reached for and the coupling used to forbid), so the
   // key is `Message` too. `icon` was already a fine designer-facing name and stays as it is.
   //
-  // The TEXT default is `content.labelPattern`'s own example rather than a fresh string: that field says
-  // the default tone carries the format up front, and a placeholder demonstrating the rule is worth more
-  // than one describing the slot. An empty default is what #510 shipped and what the schema now rejects.
+  // The TEXT default is a GENERIC illustrative scaffold ("This is a standard message.", the Prism 2 helper
+  // reference's own placeholder), not `content.labelPattern`'s format example (#1434, owner-directed): the
+  // shipped placeholder must read as obviously illustrative for a white-label engine, never as a real
+  // product's rule. `content.labelPattern` still carries the format-up-front ADVICE for the consumer's own
+  // copy — that guidance is separate from the scaffold this member ships. An empty default is what #510
+  // shipped and what the schema now rejects.
   figmaProperties: {
     variantAxes: ['status'],
     // THE BOX MOVES ON `status`, AND THAT IS INTENDED (#1010). Three statuses carry a 16px glyph in the
@@ -279,17 +282,22 @@ export const fieldMessage: ComponentDef = {
     // `icon.size.xs` on both axes (`apps/plugin/test-write-components.ts`) and that ref resolves to 16px in
     // all five corpus brands (`test.ts`). See `FigmaProperties.footprintVaries`.
     footprintVaries: ['status'],
-    // PER-MEMBER copy (#1018). `default` stays `content.labelPattern`'s own example ("Use 8+ characters"),
-    // correct for `status=default` — the format shown before failure. Before this, that string was ALSO
-    // what the error / warning / success members rendered, because a set carried one text default: a red
-    // alert triangle beside helper copy, the opposite of `content.errorPattern`. `byVariant.status` gives
-    // each of the other three members its own copy (from the staged `helper-message.json` spec); a
-    // coordinate not named here still falls back to `default`. Keyed on `status`, this def's only variant axis.
+    // PER-MEMBER copy (#1018). `default` is a GENERIC illustrative scaffold — the Prism 2 reference's own
+    // helper/standard placeholder, "This is a standard message." (#1434, owner-directed) — not a demonstration
+    // of a real format rule. The four members now read as one parallel set (standard / error / warning /
+    // success message), all obviously placeholder scaffolding a designer replaces, none of it competing with
+    // the brand a customer is building (voice-standard §1 recessive). The previous default, "Use 8+ characters",
+    // read as a real product's password rule (the #1434 failure) — a placeholder demonstrating a format is the
+    // owner's copy, not the tool's. The #1018 per-member fix still holds: before it, one text default meant the
+    // error / warning / success members ALSO rendered the default's copy — a red alert triangle beside helper
+    // text, the opposite of `content.errorPattern`. `byVariant.status` gives each of the other three members its
+    // own copy (from the staged `helper-message.json` spec, which uses these exact strings); a coordinate not
+    // named here still falls back to `default`. Keyed on `status`, this def's only variant axis.
     texts: {
       // `message` lowercase per #1333 — validated against `props` above, so it renames with the prop.
       message: {
         part: 'text',
-        default: 'Use 8+ characters',
+        default: 'This is a standard message.',
         byVariant: {
           status: {
             error: 'This is an error message.',

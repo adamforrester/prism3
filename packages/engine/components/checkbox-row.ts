@@ -352,7 +352,12 @@ export const checkboxRow: ComponentDef = {
       // A CONSENT LINE as the placeholder, not "Label". #798's finding is that a text part with no TEXT
       // property projects a blank node; the corollary is that the default is the only copy anyone
       // reviewing the set will see, so it should be the shape the component is hardest at.
-      label: { part: 'label', default: 'I agree to the Terms of Service' },
+      // GENERIC illustrative scaffold ("Checkbox label"), not a realistic consent line (#1434, owner-directed;
+      // REVERSES #798, which had preferred a canonical realistic label): a white-label engine's shipped
+      // placeholder must read as obviously replaceable scaffolding, not compete with the brand a customer is
+      // building (voice-standard §1 recessive). The `label` prop stays a node so a real consumer can still put
+      // a link in a consent line — that capability is described on the prop, separate from this scaffold.
+      label: { part: 'label', default: 'Checkbox label' },
     },
     // No `swaps` — the Row nests `checkbox-control` and exposes its selection/state (the def picks the
     // control, the consumer drives its properties), and the two glyphs that were gated by `presentWhen`
