@@ -175,6 +175,29 @@ export type ShimOpts = {
    * exactly as on the live host. Opt-in, so the corpus loop above keeps its opaque nested instances.
    */
   nestedInstanceParts?: string[];
+  /**
+   * MEMBER-LEVEL id-settle AFTER COMBINE (#1473) — the host behavior `detachPartsOnCombine` above stops one
+   * level short of. `detachPartsOnCombine` detaches a member's DESCENDANTS while keeping the member's own
+   * identity, so a handle snapshotted from `set.children` right after combine still re-finds an attached
+   * part and the wire-loop recovery lands. The field-label persistent misses (27 on a live aurora build)
+   * are the level up: the host keeps reconciling the set AFTER combine, and for some members the id rewrite
+   * reassigns the MEMBER's identity too — the handle a run snapshotted at combine (`members = [...set.children]`)
+   * ends up with a DETACHED subtree, while `set.children` re-read LATER hands back a fresh, referenceable
+   * twin for that same coordinate. A recovery that re-finds a part THROUGH the stale member handle is on a
+   * detached node and throws again ("Could not create a new component property reference"), so the miss is
+   * permanent; only re-resolving the MEMBER from a fresh `set.children` read reaches the live twin.
+   *
+   * Modelled as a SETTLE that fires once, on the first set-level op after the combine-time snapshot (`resize`,
+   * the layout pass's single set call — with `addComponentProperty` as a fallback trigger): each named member
+   * is REPLACED in the live `set.children` array by a fresh, guarded twin (attached child-twins that CAN hold
+   * a reference), and the original's descendants — which `builtParts` also holds — get the throwing
+   * `componentPropertyReferences` setter. The combine-time snapshot array still references the ORIGINAL (its
+   * geometry intact, its refs now throwing); a fresh `set.children` read finds the twin. Value `'all'` settles
+   * every member (the by-name floor drives every reference through the member-level recovery); a name list
+   * settles just those coordinates, modelling the live concentration. Opt-in — every other case keeps member
+   * identity stable across combine, so the fresh read equals the snapshot and the fix is inert.
+   */
+  settleAfterCombine?: string[] | 'all';
 };
 
 /** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
@@ -773,6 +796,50 @@ export const makeShim = (opts: ShimOpts = {}) => {
           for (const tw of twins) tw.parent = m;
         }
       }
+      // #1473 — MEMBER-LEVEL id-settle, deferred to the first post-combine set op. See `settleAfterCombine`
+      // in `ShimOpts`. `detachPartsOnCombine` above keeps the MEMBER's identity and only detaches its
+      // descendants; this models the level up — the host reassigning a member's OWN identity after combine —
+      // so a handle snapshotted at combine (`members = [...set.children]`) is detached while a fresh
+      // `set.children` read finds a live twin. `settle()` runs ONCE, the first time the executor touches the
+      // set after that snapshot (its `resize` in the layout pass, or an `addComponentProperty`, whichever
+      // lands first), which is exactly when the id rewrite has "settled for the whole set".
+      const settleAll = opts.settleAfterCombine === 'all';
+      const settleNames = new Set(Array.isArray(opts.settleAfterCombine) ? opts.settleAfterCombine : []);
+      let settled = !settleAll && settleNames.size === 0;   // nothing to settle → identity stays stable
+      // A THROWING ref setter — a detached node is not a component sublayer, Figma's own message.
+      const markDetached = (n: Node): void => Object.defineProperty(n, 'componentPropertyReferences', {
+        configurable: true, get: () => null,
+        set: () => { throw new Error('in set_componentPropertyReferences: Could not create a new component property reference'); },
+      });
+      // A fresh ATTACHED twin subtree — the live, referenceable node the set now holds for a settled member.
+      // No detach side-effect (unlike `twinOf` above): the original is detached separately, as a whole subtree.
+      const twinAttached = (n: Node): Node => {
+        const t = mkNode(String(n.type));
+        t.name = n.name; t.characters = n.characters;
+        (t as Record<string, unknown>).boundVariables = n.boundVariables;
+        t.fills = n.fills; t.strokes = n.strokes;
+        (t as Record<string, unknown>)._exposed = (n as Record<string, unknown>)._exposed;
+        if (n.layoutMode !== undefined) (t as Record<string, unknown>).layoutMode = n.layoutMode;
+        for (const kid of (n.children as Node[]) ?? []) (t.appendChild as (c: Node) => void)(twinAttached(kid));
+        return t;
+      };
+      const settle = (): void => {
+        if (settled) return;
+        settled = true;
+        const live = set.children as Node[];
+        for (let i = 0; i < live.length; i++) {
+          const m = live[i];
+          if (!(settleAll || settleNames.has(String(m.name)))) continue;
+          const twin = twinAttached(m);
+          // GUARD the twin's subtree exactly as `guardRefs(set)` guarded the originals — a validating setter,
+          // so a wire ONTO the twin succeeds while a wire onto the detached original throws.
+          guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [twin, ...((twin.findAll as () => Node[])())] } as Node);
+          live[i] = twin;   // MUTATE the live array in place — the combine-time snapshot still references `m`
+          // DETACH the original member's whole subtree (`builtParts` holds these descendants): the wire loop's
+          // fast-path write, and any recovery re-finding a part THROUGH the stale `m`, now throws.
+          for (const d of [m, ...((m.findAll as () => Node[])())]) markDetached(d);
+        }
+      };
       // A SET RESIZES, and its box does NOT follow its members — the whole reason the executor calls
       // `resize` at all. A stub whose width tracked its children would let that call be deleted green.
       let w = 0, h = 0;
@@ -780,7 +847,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         width: { configurable: true, get: () => w },
         height: { configurable: true, get: () => h },
       });
-      set.resize = (nw: number, nh: number) => { w = nw; h = nh; };
+      set.resize = (nw: number, nh: number) => { settle(); w = nw; h = nh; };
       set.appendChild = (c: Node) => {
         (set.children as Node[]).push(c);
         takeFromPage([c]);
@@ -809,6 +876,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         },
       });
       set.addComponentProperty = (name: string, type: string, defaultValue: unknown) => {
+        settle();   // #1473 — fallback trigger, in case a def declares properties without ever resizing
         if (type === 'INSTANCE_SWAP' && typeof defaultValue !== 'string')
           throw new Error('in addComponentProperty: Property value is incompatible with component property type');
         if (type === 'BOOLEAN' && typeof defaultValue !== 'boolean')

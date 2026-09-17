@@ -1860,6 +1860,69 @@ ok(labelInstr.progress.every((p) => p.done <= p.total) && labelInstr.progress.so
 }
 
 // =============================================================================================
+// #1473 — A REFERENCE DETACHED BY A MEMBER-LEVEL id-SETTLE IS RECOVERED, NOT LEFT UNWIRED
+// =============================================================================================
+// THE DEFECT this reproduces, one level past #1337. #1337's `detachPartsOnCombine` detaches a member's
+// DESCENDANTS but keeps the MEMBER's own identity, so the recovery re-finds an attached part THROUGH the
+// combine-time member handle and lands. The field-label persistent misses (27 on a live aurora build,
+// concentrated on `emphasis=secondary/weight=bold`) are the level up: the host keeps reconciling ids after
+// combine and reassigns some members' OWN identity, so the handle a run snapshotted at combine ends up with
+// a DETACHED subtree while a fresh `set.children` read holds a live twin. The #1337 recovery re-found the
+// part THROUGH that SAME stale handle and threw again — a permanent "Could not create a new component
+// property reference". The fix (`write-components.ts`) re-resolves the MEMBER from a fresh `set.children`
+// read (`liveByName`) before finding the part, so recovery reaches the live twin.
+//
+// The shim's `settleAfterCombine: 'all'` models that host behavior (see `component-shim.ts`): every member
+// is replaced in the live `set.children` by a fresh guarded twin and the combine-time original is detached.
+// Mutation-by-name (docs/34): revert the `liveByName` re-resolution in `write-components.ts` and this run
+// reports one "Could not create a new component property reference" per reference and `refsRepaired: 0`,
+// failing every named assertion below. The reachability floor `refsRepaired === wantRefs` proves the
+// member-level settle actually fired on every reference — WITHOUT it there is nothing to recover, so a green
+// here is the fix catching a real detach and not a vacuous pass on an un-settled run. `field-label` is the
+// fixture for the same reason it was #1337's: the corpus's only member with TWO TEXT parts, and the def the
+// live misses were filed on.
+{
+  const wantRefs = labelPlans.length * planSetProperties(labelPlans).length;
+  const settlePage: Page = { children: [] };
+  const settleRun = await run(labelPlans, { ...fullFor(labelPlans), page: settlePage, settleAfterCombine: 'all' });
+  const created = settleRun.misses.filter((m) => /Could not create a new component property reference/.test(m));
+  ok(created.length === 0,
+    `#1473 a reference the member-level settle detaches is re-wired on the live member, not left unwired — 0 "could not create" misses (${created.length}${created.length ? `: ${created.slice(0, 2).join(' | ')}` : ''})`);
+  ok(settleRun.refs === wantRefs && settleRun.wiredMembers === labelPlans.length,
+    `#1473 ...and every reference still reaches every member (${settleRun.refs} refs = ${labelPlans.length} × ${planSetProperties(labelPlans).length}, ${settleRun.wiredMembers} members wired)`);
+  ok(settleRun.refsRepaired === wantRefs,
+    `#1473 every one of the ${wantRefs} references went through the member-level recovery — refsRepaired=${settleRun.refsRepaired} proves the settle fired and the fix caught it all, not a vacuous pass on an un-settled run`);
+
+  // HOST-TRUTH read-back — the by-name gate the issue asks for. The independent expectation is the def's
+  // DECLARED set properties (`planSetProperties` — `label`, `required marker`, `required`), NOT the executor's
+  // `wiredRefs` (docs/34): each must be REFERENCED by some node in EVERY settled member's subtree, read off
+  // the LIVE set. A reference the settle detaches and the fix fails to recover leaves that property's key
+  // absent from the member, and the member is named here. The key floor proves the properties exist on the
+  // host — a set that declared none would fail it rather than the loop passing over an empty expectation.
+  const settleSet = settlePage.children[0] as Node;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's set
+  const propDefs = (settleSet as any).componentPropertyDefinitions as Record<string, { type: string }>;
+  const wantKeys = planSetProperties(labelPlans).map((p) => ({ name: p.name, key: Object.keys(propDefs).find((k) => k.split('#')[0] === p.name) }));
+  ok(wantKeys.length > 0 && wantKeys.every((w) => !!w.key),
+    `#1473 host-truth floor: every declared set property has a host key (${wantKeys.map((w) => `${w.name}=${w.key ? '✓' : '✗'}`).join(', ')})`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural walk over the shim tree
+  const refsInSubtree = (m: any): Set<string> => {
+    const out = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const walk = (n: any): void => { for (const id of Object.values(n?.componentPropertyReferences ?? {})) out.add(id as string); for (const c of n?.children ?? []) walk(c); };
+    walk(m);
+    return out;
+  };
+  const unwired: string[] = [];
+  for (const m of settleSet.children as Node[]) {
+    const held = refsInSubtree(m);
+    for (const w of wantKeys) if (w.key && !held.has(w.key)) unwired.push(`${String(m.name)}/${w.name}`);
+  }
+  ok((settleSet.children as Node[]).length === labelPlans.length && unwired.length === 0,
+    `#1473 host-truth: every declared component property is referenced on every settled member's live node — 0 unwired (${unwired.length ? unwired.slice(0, 3).join(' | ') : 'none'})`);
+}
+
+// =============================================================================================
 // #1010 — THE STATUS GLYPH, READ OFF THE NODE THE EXECUTOR BUILT
 // =============================================================================================
 // WHY THIS IS HERE AND NOT IN `test.ts`. Every defect #1010 reports is a value that RESOLVES. The def
