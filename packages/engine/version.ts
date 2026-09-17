@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.105.0 — #1485: BIND the text-style cut (weight/style) to a STRING variable, so a WIDTH cut like ITC
+ * 0.110.0 — #1485: BIND the text-style cut (weight/style) to a STRING variable, so a WIDTH cut like ITC
  * Garamond Std *Light Condensed* is bindable and themeable in Figma — the numeric weight axis can never
  * reach a width. A Figma Text Style has ONE weight/style control; the engine used to bind it via the
  * FLOAT weight-role variable and BAKE `fontStyle` beside it (so a facePin, #1368, could only bake a
@@ -2941,12 +2941,73 @@
  * (`write-text-styles.ts`) + CLI paste (`materialise-to-figma.ts`) bind `fontStyle`, not `fontWeight`;
  * `materialise` gains a FONT_STYLE scope code ('y'). The emitted `out/figma/**` cut variables + bound
  * text styles move, and the DTCG `figma.binds`/`baked`/`note` metadata moves → ENGINE bump. CONTRACT
- * STANDS at 10.3.0: the cut lives in Figma variables + `$extensions.prism3.facePin`, not a guaranteed
- * DTCG token NAME — `$value` is unchanged, so `token-contract --check` is level `none` (587 guaranteed,
- * brand-dependent). A follow-up covers TokenPress reading a fontStyle-bound variable to round-trip the
+ * STANDS at 11.2.0 (rebased): the cut lives in Figma variables + `$extensions.prism3.facePin`, not a
+ * guaranteed DTCG token NAME — `$value` is unchanged, so `token-contract --check` is level `none`
+ * (brand-dependent). A follow-up covers TokenPress reading a fontStyle-bound variable to round-trip the
  * cut (a guest surface, out of scope for this PR).
+ *
+ * 0.109.0 — #1260: mint `type.label.lg` (18px at the label tier's own emphasis/600 weight) and re-point
+ * `size.large.type` from `type.label.md.emphasis` to `type.label.lg.emphasis` across the button family
+ * (button / button-destructive / button-neutral, off the one `makeButton` factory). Before this there
+ * was no `lg` rung on the label tier (12/14 only), so a large button's label was typographically
+ * identical to a medium one while height/padding/gap all moved; the owner resolved the target to
+ * 18px/emphasis (2026-09-17). The rung is the body-lg SIZE (18) at the label WEIGHT — the two rejected
+ * routes were `lg`=16 (too small) and `type.body.lg` (18px but default/strong, wrong weight). Label is
+ * reading/UI text and exempt from the typeScale shift, so `type.label.lg` resolves to 18px in every
+ * density (compact/default/expressive), landing the owner's 18px at the comfortable/default density.
+ * TWO surfaces move → ENGINE bump: emitted `out/**` GROWS (`type.label.lg.emphasis` is a new token in
+ * every brand) AND the projected component surface moves (the large button member's text style). CONTRACT
+ * bumps MINOR (11.1.0 → 11.2.0, rebased): `type.label.lg.emphasis` is a guaranteed name ADD, and an add cannot
+ * break an existing reference.
+ *
+ * 0.108.0 — #1471: a dedicated interactive ICON ink role. The interactive column gained no `icon` sub-role,
+ * so component glyphs inked from the interactive `text` role (button/icon-button outline/ghost/text). This
+ * mints `interactive.<family>.icon.{rest,hover,pressed}` (and its `inverse.` twin) as a VALUE-IDENTICAL
+ * mirror of `text.*` — the same resolved candidate, shared by value — and re-points every glyph ink key in
+ * `button.ts` and `icon-button.ts` from `...text.*` to `...icon.*` (`filled.icon` stays on `on-fill`, a glyph
+ * on a filled ground). Because the value equals `text`, emitted COLOURS are byte-identical (no visual change)
+ * and every contrast contract is unchanged; the emitted trees move only their new `icon.*` leaves + the
+ * version stamp, and the projected component surface moves its glyph bindings. Both families move together.
+ * CONTRACT rises to 11.1.0 — this ADDS a guaranteed emitted name (see the CONTRACT entry).
+ *
+ * 0.107.0 — #1476: the emitted text styles now read LARGEST → SMALLEST within each type group, so the
+ * Figma styles list reads top-to-bottom the way a designer reads a type ramp (within a role, lg before md
+ * before sm). The composite walk (`emit-figma-font.ts` `orderComposites`) stable-sorts by a size-rank map
+ * (3xl…2xs, largest first) applied WITHIN each group; the tier order and the weight-role variant order are
+ * preserved (only the size axis flips). This is the single deterministic driver of Figma creation order,
+ * so the emitted `text-styles.json` AND every plan consumer (the plugin's `applyTextStylePlan`, the paste
+ * path) inherit it — and, the owner confirms, both the right-panel local-styles list and the Assets panel
+ * follow creation order, so style names stay CLEAN (no numeric/zero-padded prefix). Every brand's
+ * emitted `text-styles.json` under `out/figma` reorders → ENGINE bump. CONTRACT STANDS at 11.0.0 —
+ * ordering is not a token name (no guaranteed name moves; `token-contract --check` level `none`).
+ *
+ * 0.106.0 — #1472/#1473: component-property references failed to wire on specific members (field-label 27
+ * misses, select 36), all "set_componentPropertyReferences: Could not create a new component property
+ * reference". Root cause: the plugin's component write path (`apps/plugin/src/write-components.ts`) re-found
+ * a member's part for the #1337 recovery THROUGH the member handle it snapshotted right after
+ * `combineAsVariants` — but the host keeps reconciling ids after combine and, for some members, reassigns
+ * the MEMBER's own identity, leaving that snapshotted handle DETACHED while a fresh `set.children` read holds
+ * a live, referenceable twin. Re-finding through the stale handle threw again, so the miss was permanent and
+ * the property no longer drove the node (the coupled #1472 icon-swap symptom: an INSTANCE_SWAP whose
+ * `mainComponent` reference never landed cannot swap). Fix: re-resolve the member from a fresh `set.children`
+ * read (`liveByName`) before every re-find (recovery, ref/bound read-back, orphan scan). New host-truth gate
+ * (`settleAfterCombine` shim mode + `test-write-components.ts`/`test-roundtrip.ts`) fails BY NAME when any
+ * declared reference is left unwired on any member; mutation-proven. A PLUGIN write-path behavior change
+ * (principle 5: any behavior change) → ENGINE bump; no engine emission or projected surface moves, so
+ * `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at 11.0.0 (no token name or member moves).
+ *
+ * 0.105.0 — #1479: the breakpoint COUNT is made a truly brand-flexible axis (2/3/4/5/6 all supported and
+ * auto-named), and the upper breakpoint tiers are reclassified `brandDependent` (CONTRACT 11.0.0, below).
+ * The capability already existed by construction — `layout.breakpoints` is a per-brand lever and `bpNames`
+ * slices the t-shirt ladder to the count — but was untested below 5 floors; this adds the gate that builds
+ * 2-, 3-, and 4-floor brands (and confirms 6) and asserts the emitted `layout` collection's auto-names and
+ * per-breakpoint grid values, plus a `minimal-bp2` corpus member that demotes the upper tiers. NO emitted
+ * token value and NO projected component member moves — a 5-floor brand emits exactly what it did before.
+ * The ENGINE bump accompanies the contract reclassification and restamps `out/**`'s
+ * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
+ * (#1479)
  */
-export const ENGINE_VERSION = '0.105.0';
+export const ENGINE_VERSION = '0.110.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -3388,8 +3449,40 @@ export const ENGINE_VERSION = '0.105.0';
  * the darkest permissible) without moving a path, and select's hover reuses the existing
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
+ *
+ * 11.2.0 — #1260 adds ONE guaranteed name: `type.label.lg.emphasis`, the large-button label rung minted at
+ * 18px/emphasis (the body-lg size at the label tier's own weight). The label tier binds Inter in every
+ * corpus brand (including `minimal`, which takes the default face), so the new composite lands in the
+ * GUARANTEED intersection, not `brandDependent`. A pure ADDITION — a new name cannot break an existing
+ * reference — so a clean MINOR: 11.1.0 → 11.2.0 (rebased). Nothing is removed or retyped. `size.large.type` (a
+ * component binding, not a token path) re-points from `type.label.md.emphasis` to the new rung; the `md`
+ * name is untouched and still bound elsewhere, so the only guaranteed-surface move is the single ADD.
+ * `token-contract.ts --accept` records it and refuses unless `CONTRACT_VERSION` was raised by exactly this
+ * MINOR first. (#1260)
+ *
+ * 11.1.0 — #1471 mints the interactive ICON ink role: `color.interactive.<family>.icon.{rest,hover,pressed}`
+ * and its `color.inverse.interactive.<family>.icon.*` twin, for every built-in family (primary/neutral/
+ * destructive) and every opt-in `interactivePalettes` column. A pure ADDITION — new names cannot break an
+ * existing reference — so a clean MINOR: 11.0.0 → 11.1.0. Nothing is removed or retyped; the new roles are
+ * VALUE-IDENTICAL to the sibling `text.*` roles (same resolved color), so no existing name moves and no value
+ * a consumer already reads changes. Components (button/icon-button) now bind their glyph ink to these names
+ * instead of borrowing `text.*`. (#1471)
+ *
+ * 11.0.0 — #1479 (owner-decided MAJOR, no consumers): DEMOTE the upper breakpoint tiers out of `guaranteed`.
+ * `breakpoint.{lg,xl,2xl}` and `grid.{lg,xl,2xl}.{columns,gutter,margin}` — 12 paths — move to
+ * `brandDependent`. The breakpoint COUNT is a per-brand lever (`layout.breakpoints`), and `bpNames` slices
+ * the t-shirt ladder to the count, so a 2/3/4-floor brand emits none of these tiers. They were guaranteed
+ * only because every corpus brand happened to ship 5+ floors — the identical over-claim `minimal` exists to
+ * catch (a lever's DEFAULT is a value like any other), one axis in; `breakpoint.xs`/`grid.xs.*` are already
+ * brand-dependent for the mirror reason (only aurora's 6 floors reach them). The demotion is realized the
+ * only honest way — a new `minimal-bp2` corpus member (2 floors) drops the 12 paths out of the intersection —
+ * NOT by hand-editing the baseline. A guaranteed removal is MAJOR whether or not the path is still emitted
+ * elsewhere (it reports as DEMOTED, still emitted, no migration): 10.3.0 → 11.0.0. Owner confirmed no
+ * consumers bind these names, so there is no real breakage; after this, a brand changing its breakpoint
+ * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
+ * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '10.3.0';
+export const CONTRACT_VERSION = '11.2.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

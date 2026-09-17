@@ -351,6 +351,45 @@ const sizeBinding = (root: string, compositePath: string, sizeAlias: string, flu
 // becomes a style whose path is `group/variant/weight-role[-link]`.
 const compositeToStyleName = (compositePath: string): string => compositePath;
 
+// #1476 — order the emitted text styles LARGEST → SMALLEST within each type group, so the Figma styles
+// list reads top-to-bottom the way a designer reads a type ramp (display at the top, small labels at the
+// bottom; within a role, lg before md before sm). The owner confirmed BOTH the right-panel local styles
+// list AND the Assets panel follow CREATION order — the Assets panel is not an independent alphabetical
+// sort — so sorting the plan fixes both panels at once and style names stay CLEAN (no numeric/zero-padded
+// name prefix). Sorting HERE (the composite walk) is the single deterministic driver of creation order:
+// the emitted `text-styles.json` artifact and every plan consumer (`buildTextStylePlan` → the plugin's
+// `applyTextStylePlan`, the paste path `materialise-to-figma`) all inherit this one ordering.
+//
+// SIZE_RANK: larger rank = larger size = emitted earlier. Covers 3xl…2xs so it generalizes past the
+// three-rung families. Only the SIZE axis flips — the tier (group) order is PRESERVED exactly as the
+// type-tree walk produced it (#1476: "if the tier order is ambiguous, keep it and only flip the size
+// axis — do not invent a new tier ordering"). A second path segment that is not a known size (e.g.
+// `code/inline`) shares one fallback rank, which — with the stable sort — leaves such rows in their
+// original relative order rather than inventing a place for them.
+const SIZE_RANK: Record<string, number> = { '3xl': 7, '2xl': 6, xl: 5, lg: 4, md: 3, sm: 2, xs: 1, '2xs': 0 };
+const sizeRankOf = (compositePath: string): number => SIZE_RANK[compositePath.split('/')[1] ?? ''] ?? -1;
+const orderComposites = (composites: Array<{ path: string; leaf: any }>): Array<{ path: string; leaf: any }> => {
+  // First-appearance index per group, so the existing tier order is preserved without hardcoding it.
+  const groupOrder = new Map<string, number>();
+  for (const { path } of composites) {
+    const g = path.split('/')[0] ?? '';
+    if (!groupOrder.has(g)) groupOrder.set(g, groupOrder.size);
+  }
+  // Decorate-sort-undecorate: the `i` tiebreak makes the sort explicitly stable, so weight-role variants
+  // within one (group, size) — default / …-link / strong / …-link — keep their walk order untouched.
+  return composites
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => {
+      const ga = groupOrder.get(a.c.path.split('/')[0] ?? '') ?? 0;
+      const gb = groupOrder.get(b.c.path.split('/')[0] ?? '') ?? 0;
+      if (ga !== gb) return ga - gb;                       // preserve tier order
+      const ra = sizeRankOf(a.c.path), rb = sizeRankOf(b.c.path);
+      if (ra !== rb) return rb - ra;                        // largest size first
+      return a.i - b.i;                                     // stable within (group, size)
+    })
+    .map(({ c }) => c);
+};
+
 /** Numeric weight (100..900) for a weight-role by reading the weight-role leaf. */
 const numericWeightForRole = (fontNode: any, role: string): number => {
   const leaf = fontNode['weight-role']?.[role];
@@ -360,7 +399,7 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
   const { tree } = buildTree(theme);
   const root = Object.keys(tree)[0];
   const font = tree[root].core.font;
-  const composites = collectComposites(tree[root].type, '');
+  const composites = orderComposites(collectComposites(tree[root].type, ''));
 
   const styles: FigmaTextStyle[] = composites.map(({ path, leaf }) => {
     const v = leaf.$value as Record<string, string>;

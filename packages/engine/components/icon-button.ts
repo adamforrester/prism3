@@ -72,9 +72,13 @@ const iconButtonIntentTokens = (family: IntentFamily): Record<string, string> =>
   // steps the label does on Button: nothing new in the token tier, three keys per appearance were missing
   // here. Neutral's ink is `walkable: false`, so its three states collapse onto rest exactly as the border
   // does — no change to a neutral icon-button.
-  'outline.icon': `color.interactive.${family}.text.rest`,
-  'outline.icon.hover': `color.interactive.${family}.text.hover`,
-  'outline.icon.pressed': `color.interactive.${family}.text.pressed`,
+  // #1471 — the GLYPH binds the dedicated `icon.*` role, not `text.*`. On an icon-only control this is the
+  // role the ink always SHOULD have carried — the whole content is a glyph. Value-identical (the engine
+  // mints `interactive.<family>.icon.{rest,hover,pressed}` as a value twin of `text.*`), so NO color
+  // change; both icon-button and button move together.
+  'outline.icon': `color.interactive.${family}.icon.rest`,
+  'outline.icon.hover': `color.interactive.${family}.icon.hover`,
+  'outline.icon.pressed': `color.interactive.${family}.icon.pressed`,
   // ghost — the borderless/fill-less icon action (#1432, owner-decided 2026-09-17). RENAMED from `text`:
   // a "text" appearance is meaningless on an icon-only control (there is no text), so the axis VALUE is
   // `ghost`, the industry term for a borderless icon button. This is an axis-VALUE rename only — the paint
@@ -83,9 +87,11 @@ const iconButtonIntentTokens = (family: IntentFamily): Record<string, string> =>
   // role is UNCHANGED (only the icon-button coordinate name moved, not the behavior). Button KEEPS `text`;
   // the two families deliberately diverge on this one appearance-value name (owner-accepted). The glyph ink
   // walks state (#1427, as `outline` above); hover/pressed also carry the translucent overlay wash.
-  'ghost.icon': `color.interactive.${family}.text.rest`,
-  'ghost.icon.hover': `color.interactive.${family}.text.hover`,
-  'ghost.icon.pressed': `color.interactive.${family}.text.pressed`,
+  // #1471 — the GLYPH binds `icon.*` (value-identical to `text.*`). The `ghost.*` KEY prefix still selects
+  // this at the `ghost` coordinate (#1432); only the VALUE role moves from `text` to `icon`. No color change.
+  'ghost.icon': `color.interactive.${family}.icon.rest`,
+  'ghost.icon.hover': `color.interactive.${family}.icon.hover`,
+  'ghost.icon.pressed': `color.interactive.${family}.icon.pressed`,
   // outline/ghost hover is the overlay wash — a fill on the target node, because neither appearance has a
   // fill to change. Both states keyed, or a pressed member falls back to rest and projects identical to it.
   'outline.overlay.hover': `color.interactive.${family}.overlay.hover`,

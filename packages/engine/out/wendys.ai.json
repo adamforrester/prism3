@@ -923,6 +923,26 @@
         }
       ]
     },
+    "interactive.primary.icon.rest": {
+      "$description": "Primary interactive icon.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The icon of a primary interactive element.",
+      "avoid_when": "Do not use outside the primary interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.500}",
+        "dark": "{wds.core.palette.primary.400}",
+        "hc-light": "{wds.core.palette.primary.600}",
+        "hc-dark": "{wds.core.palette.primary.300}"
+      },
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 5.88
+        }
+      ]
+    },
     "interactive.primary.text.hover": {
       "$description": "Primary interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
@@ -946,6 +966,26 @@
         }
       ]
     },
+    "interactive.primary.icon.hover": {
+      "$description": "Primary interactive icon.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The icon of a primary interactive element.",
+      "avoid_when": "Do not use outside the primary interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.600}",
+        "dark": "{wds.core.palette.primary.300}",
+        "hc-light": "{wds.core.palette.primary.700}",
+        "hc-dark": "{wds.core.palette.primary.200}"
+      },
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 8.28
+        }
+      ]
+    },
     "interactive.primary.text.pressed": {
       "$description": "Primary interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
@@ -961,6 +1001,26 @@
       "paired_with": [
         "background.primary"
       ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 11.42
+        }
+      ]
+    },
+    "interactive.primary.icon.pressed": {
+      "$description": "Primary interactive icon.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The icon of a primary interactive element.",
+      "avoid_when": "Do not use outside the primary interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.700}",
+        "dark": "{wds.core.palette.primary.200}",
+        "hc-light": "{wds.core.palette.primary.800}",
+        "hc-dark": "{wds.core.palette.primary.100}"
+      },
       "contrast_with": [
         {
           "token": "background.primary",
@@ -1202,6 +1262,26 @@
         }
       ]
     },
+    "interactive.destructive.icon.rest": {
+      "$description": "Destructive interactive icon.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The icon of a destructive interactive element.",
+      "avoid_when": "Do not use outside the destructive interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.danger.600}",
+        "dark": "{wds.core.palette.danger.400}",
+        "hc-light": "{wds.core.palette.danger.650}",
+        "hc-dark": "{wds.core.palette.danger.350}"
+      },
+      "contrast_with": [
+        {
+          "token": "background.tertiary",
+          "min": "4.5:1",
+          "ratio": 4.89
+        }
+      ]
+    },
     "interactive.destructive.text.hover": {
       "$description": "Destructive interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
@@ -1225,6 +1305,26 @@
         }
       ]
     },
+    "interactive.destructive.icon.hover": {
+      "$description": "Destructive interactive icon.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The icon of a destructive interactive element.",
+      "avoid_when": "Do not use outside the destructive interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.danger.700}",
+        "dark": "{wds.core.palette.danger.300}",
+        "hc-light": "{wds.core.palette.danger.750}",
+        "hc-dark": "{wds.core.palette.danger.250}"
+      },
+      "contrast_with": [
+        {
+          "token": "background.tertiary",
+          "min": "4.5:1",
+          "ratio": 7.22
+        }
+      ]
+    },
     "interactive.destructive.text.pressed": {
       "$description": "Destructive interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
@@ -1240,6 +1340,26 @@
       "paired_with": [
         "background.primary"
       ],
+      "contrast_with": [
+        {
+          "token": "background.tertiary",
+          "min": "4.5:1",
+          "ratio": 10.24
+        }
+      ]
+    },
+    "interactive.destructive.icon.pressed": {
+      "$description": "Destructive interactive icon.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The icon of a destructive interactive element.",
+      "avoid_when": "Do not use outside the destructive interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.danger.800}",
+        "dark": "{wds.core.palette.danger.200}",
+        "hc-light": "{wds.core.palette.danger.850}",
+        "hc-dark": "{wds.core.palette.danger.150}"
+      },
       "contrast_with": [
         {
           "token": "background.tertiary",
@@ -1446,6 +1566,26 @@
         }
       ]
     },
+    "interactive.neutral.icon.rest": {
+      "$description": "Neutral interactive icon.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The icon of a neutral interactive element.",
+      "avoid_when": "Do not use outside the neutral interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.neutral.950}",
+        "dark": "{wds.core.palette.neutral.025}",
+        "hc-light": "{wds.core.palette.black}",
+        "hc-dark": "{wds.core.palette.white}"
+      },
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 19.43
+        }
+      ]
+    },
     "interactive.neutral.text.hover": {
       "$description": "Neutral interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
@@ -1469,6 +1609,26 @@
         }
       ]
     },
+    "interactive.neutral.icon.hover": {
+      "$description": "Neutral interactive icon.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The icon of a neutral interactive element.",
+      "avoid_when": "Do not use outside the neutral interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.neutral.950}",
+        "dark": "{wds.core.palette.neutral.025}",
+        "hc-light": "{wds.core.palette.black}",
+        "hc-dark": "{wds.core.palette.white}"
+      },
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 19.43
+        }
+      ]
+    },
     "interactive.neutral.text.pressed": {
       "$description": "Neutral interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
@@ -1484,6 +1644,26 @@
       "paired_with": [
         "background.primary"
       ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 19.43
+        }
+      ]
+    },
+    "interactive.neutral.icon.pressed": {
+      "$description": "Neutral interactive icon.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The icon of a neutral interactive element.",
+      "avoid_when": "Do not use outside the neutral interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.neutral.950}",
+        "dark": "{wds.core.palette.neutral.025}",
+        "hc-light": "{wds.core.palette.black}",
+        "hc-dark": "{wds.core.palette.white}"
+      },
       "contrast_with": [
         {
           "token": "background.primary",
@@ -1587,6 +1767,26 @@
         }
       ]
     },
+    "inverse.interactive.primary.icon.rest": {
+      "$description": "Primary interactive icon, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The icon of a primary interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.icon.rest`. Do not use outside the primary interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.400}",
+        "dark": "{wds.core.palette.primary.500}",
+        "hc-light": "{wds.core.palette.primary.300}",
+        "hc-dark": "{wds.core.palette.primary.600}"
+      },
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "4.5:1",
+          "ratio": 4.94
+        }
+      ]
+    },
     "inverse.interactive.primary.text.hover": {
       "$description": "Primary interactive ink (outline / text appearance), on an inverse surface.",
       "meaning": "Interactivity / actions (inverse ground)",
@@ -1610,6 +1810,26 @@
         }
       ]
     },
+    "inverse.interactive.primary.icon.hover": {
+      "$description": "Primary interactive icon, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The icon of a primary interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.icon.hover`. Do not use outside the primary interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.300}",
+        "dark": "{wds.core.palette.primary.600}",
+        "hc-light": "{wds.core.palette.primary.200}",
+        "hc-dark": "{wds.core.palette.primary.700}"
+      },
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "4.5:1",
+          "ratio": 7.14
+        }
+      ]
+    },
     "inverse.interactive.primary.text.pressed": {
       "$description": "Primary interactive ink (outline / text appearance), on an inverse surface.",
       "meaning": "Interactivity / actions (inverse ground)",
@@ -1625,6 +1845,26 @@
       "paired_with": [
         "inverse.background.primary"
       ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "4.5:1",
+          "ratio": 10.05
+        }
+      ]
+    },
+    "inverse.interactive.primary.icon.pressed": {
+      "$description": "Primary interactive icon, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The icon of a primary interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.icon.pressed`. Do not use outside the primary interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.200}",
+        "dark": "{wds.core.palette.primary.700}",
+        "hc-light": "{wds.core.palette.primary.100}",
+        "hc-dark": "{wds.core.palette.primary.800}"
+      },
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1866,6 +2106,26 @@
         }
       ]
     },
+    "inverse.interactive.destructive.icon.rest": {
+      "$description": "Destructive interactive icon, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The icon of a destructive interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.icon.rest`. Do not use outside the destructive interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.danger.400}",
+        "dark": "{wds.core.palette.danger.600}",
+        "hc-light": "{wds.core.palette.danger.350}",
+        "hc-dark": "{wds.core.palette.danger.650}"
+      },
+      "contrast_with": [
+        {
+          "token": "inverse.background.tertiary",
+          "min": "4.5:1",
+          "ratio": 4.81
+        }
+      ]
+    },
     "inverse.interactive.destructive.text.hover": {
       "$description": "Destructive interactive ink (outline / text appearance), on an inverse surface.",
       "meaning": "Interactivity / actions (inverse ground)",
@@ -1889,6 +2149,26 @@
         }
       ]
     },
+    "inverse.interactive.destructive.icon.hover": {
+      "$description": "Destructive interactive icon, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The icon of a destructive interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.icon.hover`. Do not use outside the destructive interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.danger.300}",
+        "dark": "{wds.core.palette.danger.700}",
+        "hc-light": "{wds.core.palette.danger.250}",
+        "hc-dark": "{wds.core.palette.danger.750}"
+      },
+      "contrast_with": [
+        {
+          "token": "inverse.background.tertiary",
+          "min": "4.5:1",
+          "ratio": 6.61
+        }
+      ]
+    },
     "inverse.interactive.destructive.text.pressed": {
       "$description": "Destructive interactive ink (outline / text appearance), on an inverse surface.",
       "meaning": "Interactivity / actions (inverse ground)",
@@ -1904,6 +2184,26 @@
       "paired_with": [
         "inverse.background.primary"
       ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.tertiary",
+          "min": "4.5:1",
+          "ratio": 8.84
+        }
+      ]
+    },
+    "inverse.interactive.destructive.icon.pressed": {
+      "$description": "Destructive interactive icon, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The icon of a destructive interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.icon.pressed`. Do not use outside the destructive interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.danger.200}",
+        "dark": "{wds.core.palette.danger.800}",
+        "hc-light": "{wds.core.palette.danger.150}",
+        "hc-dark": "{wds.core.palette.danger.850}"
+      },
       "contrast_with": [
         {
           "token": "inverse.background.tertiary",
@@ -2145,6 +2445,26 @@
         }
       ]
     },
+    "inverse.interactive.neutral.icon.rest": {
+      "$description": "Neutral interactive icon, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The icon of a neutral interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.icon.rest`. Do not use outside the neutral interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.neutral.025}",
+        "dark": "{wds.core.palette.neutral.950}",
+        "hc-light": "{wds.core.palette.white}",
+        "hc-dark": "{wds.core.palette.black}"
+      },
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "4.5:1",
+          "ratio": 18.13
+        }
+      ]
+    },
     "inverse.interactive.neutral.text.hover": {
       "$description": "Neutral interactive ink (outline / text appearance), on an inverse surface.",
       "meaning": "Interactivity / actions (inverse ground)",
@@ -2168,6 +2488,26 @@
         }
       ]
     },
+    "inverse.interactive.neutral.icon.hover": {
+      "$description": "Neutral interactive icon, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The icon of a neutral interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.icon.hover`. Do not use outside the neutral interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.neutral.025}",
+        "dark": "{wds.core.palette.neutral.950}",
+        "hc-light": "{wds.core.palette.white}",
+        "hc-dark": "{wds.core.palette.black}"
+      },
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "4.5:1",
+          "ratio": 18.13
+        }
+      ]
+    },
     "inverse.interactive.neutral.text.pressed": {
       "$description": "Neutral interactive ink (outline / text appearance), on an inverse surface.",
       "meaning": "Interactivity / actions (inverse ground)",
@@ -2183,6 +2523,26 @@
       "paired_with": [
         "inverse.background.primary"
       ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "4.5:1",
+          "ratio": 18.13
+        }
+      ]
+    },
+    "inverse.interactive.neutral.icon.pressed": {
+      "$description": "Neutral interactive icon, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The icon of a neutral interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.icon.pressed`. Do not use outside the neutral interactive family.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.neutral.025}",
+        "dark": "{wds.core.palette.neutral.950}",
+        "hc-light": "{wds.core.palette.white}",
+        "hc-dark": "{wds.core.palette.black}"
+      },
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -5625,6 +5985,19 @@
         "letterSpacing": "{wds.core.font.letter-spacing.normal}"
       }
     },
+    "type.label.lg.emphasis": {
+      "$description": "UI label type — buttons, form labels, tabs, chips.",
+      "meaning": "Type style — label lg emphasis (18px, label face)",
+      "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
+      "avoid_when": "Do not use for running text (use body).",
+      "resolves_to": {
+        "fontFamily": "{wds.core.font.family.label}",
+        "fontSize": "{wds.core.font.size.18}",
+        "fontWeight": "{wds.core.font.weight-role.emphasis}",
+        "lineHeight": "{wds.core.font.line-height.snug}",
+        "letterSpacing": "{wds.core.font.letter-spacing.normal}"
+      }
+    },
     "type.caption.md.default": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption md default (11px, caption face)",
@@ -5847,6 +6220,9 @@
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
@@ -5865,6 +6241,9 @@
         "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.fill.rest",
+        "color.inverse.interactive.neutral.icon.hover",
+        "color.inverse.interactive.neutral.icon.pressed",
+        "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
@@ -5902,6 +6281,9 @@
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
@@ -5920,6 +6302,9 @@
         "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.fill.rest",
+        "color.inverse.interactive.neutral.icon.hover",
+        "color.inverse.interactive.neutral.icon.pressed",
+        "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
@@ -5953,9 +6338,11 @@
       "aliased_by": [
         "color.foreground.brand-subtle",
         "color.interactive.primary.border.pressed",
+        "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.pressed",
         "color.inverse.foreground.brand-subtle",
         "color.inverse.interactive.primary.border.pressed",
+        "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.pressed"
       ]
     },
@@ -5980,11 +6367,15 @@
         "color.icon.link.hover",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.pressed",
+        "color.interactive.primary.icon.hover",
+        "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.pressed",
         "color.inverse.icon.link.visited",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
+        "color.inverse.interactive.primary.icon.hover",
+        "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.link.visited",
@@ -6023,6 +6414,8 @@
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
+        "color.interactive.primary.icon.hover",
+        "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
@@ -6032,6 +6425,8 @@
         "color.inverse.icon.link.visited",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
+        "color.inverse.interactive.primary.icon.hover",
+        "color.inverse.interactive.primary.icon.rest",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
@@ -6068,6 +6463,7 @@
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.rest",
         "color.inverse.border.brand",
         "color.inverse.border.focus",
@@ -6076,6 +6472,7 @@
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
         "color.inverse.interactive.primary.border.rest",
+        "color.inverse.interactive.primary.icon.rest",
         "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand",
@@ -6111,6 +6508,7 @@
         "color.icon.link.focused",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.rest",
         "color.inverse.border.brand",
         "color.inverse.border.focus",
@@ -6119,6 +6517,7 @@
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
         "color.inverse.interactive.primary.border.rest",
+        "color.inverse.interactive.primary.icon.rest",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand-subtle",
         "color.inverse.text.link.default",
@@ -6154,6 +6553,8 @@
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.interactive.primary.icon.hover",
+        "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
@@ -6163,6 +6564,8 @@
         "color.inverse.icon.link.visited",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
+        "color.inverse.interactive.primary.icon.hover",
+        "color.inverse.interactive.primary.icon.rest",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
@@ -6202,12 +6605,16 @@
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
+        "color.interactive.primary.icon.hover",
+        "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.pressed",
         "color.inverse.icon.brand",
         "color.inverse.icon.link.visited",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
+        "color.inverse.interactive.primary.icon.hover",
+        "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.brand",
@@ -6235,8 +6642,10 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.interactive.primary.border.pressed",
+        "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.pressed",
         "color.inverse.interactive.primary.border.pressed",
+        "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.pressed"
       ]
     },
@@ -6572,6 +6981,9 @@
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
@@ -6582,6 +6994,9 @@
         "color.inverse.interactive.neutral.border.hover",
         "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
+        "color.inverse.interactive.neutral.icon.hover",
+        "color.inverse.interactive.neutral.icon.pressed",
+        "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
@@ -6602,6 +7017,9 @@
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
@@ -6613,6 +7031,9 @@
         "color.inverse.interactive.neutral.border.hover",
         "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
+        "color.inverse.interactive.neutral.icon.hover",
+        "color.inverse.interactive.neutral.icon.pressed",
+        "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
@@ -7433,8 +7854,10 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.interactive.destructive.border.pressed",
+        "color.interactive.destructive.icon.pressed",
         "color.interactive.destructive.text.pressed",
         "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.icon.pressed",
         "color.inverse.interactive.destructive.text.pressed"
       ]
     },
@@ -7447,8 +7870,10 @@
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.icon.pressed",
         "color.interactive.destructive.text.pressed",
         "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.icon.pressed",
         "color.inverse.interactive.destructive.text.pressed"
       ]
     },
@@ -7459,8 +7884,10 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.interactive.destructive.border.hover",
+        "color.interactive.destructive.icon.hover",
         "color.interactive.destructive.text.hover",
         "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.icon.hover",
         "color.inverse.interactive.destructive.text.hover"
       ]
     },
@@ -7476,9 +7903,11 @@
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.fill.selected",
+        "color.interactive.destructive.icon.hover",
         "color.interactive.destructive.text.hover",
         "color.inverse.icon.danger",
         "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.icon.hover",
         "color.inverse.interactive.destructive.text.hover",
         "color.inverse.text.danger",
         "color.text.danger"
@@ -7492,9 +7921,11 @@
       "aliased_by": [
         "color.icon.danger-subtle",
         "color.interactive.destructive.border.rest",
+        "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
         "color.inverse.foreground.danger",
         "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.icon.rest",
         "color.inverse.interactive.destructive.text.rest",
         "color.text.danger-subtle"
       ]
@@ -7508,8 +7939,10 @@
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
         "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.icon.rest",
         "color.inverse.interactive.destructive.text.rest"
       ]
     },
@@ -7565,9 +7998,11 @@
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
         "color.inverse.icon.danger",
         "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.icon.rest",
         "color.inverse.interactive.destructive.text.rest",
         "color.inverse.text.danger",
         "color.text.danger"
@@ -7580,10 +8015,12 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.interactive.destructive.border.rest",
+        "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
         "color.inverse.foreground.danger",
         "color.inverse.icon.danger-subtle",
         "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.icon.rest",
         "color.inverse.interactive.destructive.text.rest",
         "color.inverse.text.danger-subtle"
       ]
@@ -7600,9 +8037,11 @@
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.fill.selected",
+        "color.interactive.destructive.icon.hover",
         "color.interactive.destructive.text.hover",
         "color.inverse.icon.danger",
         "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.icon.hover",
         "color.inverse.interactive.destructive.text.hover",
         "color.inverse.text.danger",
         "color.text.danger"
@@ -7615,8 +8054,10 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.interactive.destructive.border.hover",
+        "color.interactive.destructive.icon.hover",
         "color.interactive.destructive.text.hover",
         "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.icon.hover",
         "color.inverse.interactive.destructive.text.hover"
       ]
     },
@@ -7629,8 +8070,10 @@
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.icon.pressed",
         "color.interactive.destructive.text.pressed",
         "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.icon.pressed",
         "color.inverse.interactive.destructive.text.pressed"
       ]
     },
@@ -7641,8 +8084,10 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.interactive.destructive.border.pressed",
+        "color.interactive.destructive.icon.pressed",
         "color.interactive.destructive.text.pressed",
         "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.icon.pressed",
         "color.inverse.interactive.destructive.text.pressed"
       ]
     },
@@ -8278,6 +8723,7 @@
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
+        "type.label.lg.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis",
         "type.title.2xl.strong",
@@ -8398,6 +8844,7 @@
         "type.body.lg.strong",
         "type.body.lg.strong-link",
         "type.eyebrow.lg.emphasis",
+        "type.label.lg.emphasis",
         "type.title.xs.strong"
       ]
     },
@@ -8582,6 +9029,7 @@
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
+        "type.label.lg.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis"
       ]
@@ -8651,6 +9099,7 @@
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
+        "type.label.lg.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis",
         "type.title.2xl.strong",
@@ -8755,6 +9204,7 @@
         "type.caption.md.strong",
         "type.caption.md.strong-link",
         "type.code.inline.default",
+        "type.label.lg.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis"
       ]

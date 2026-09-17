@@ -171,8 +171,9 @@ export const fieldLabel: ComponentDef = {
     // `type.body.*` and NOT `type.label.*`, which the numbers settle rather than taste. Prism 2's
     // form-label ladder is 14 / 16 / 18px at 150% line-height, and `type.body.{sm,md,lg}` is 14 / 16 / 18
     // at `line-height-role.normal` = 150% — an exact match on all three rungs AND the line-height.
-    // `type.label.*` is 12 / 14, emphasis-only, and has no `lg` rung, so it can reach neither Prism 2's
-    // sizes nor its regular weight. It is also the tier #862 predicted for the field family.
+    // `type.label.*` is 12 / 14 / 18 (its `lg` was minted at 18 by #1260) but emphasis-only, and its
+    // middle rung is 14 not 16, so it can reach neither Prism 2's 14/16/18 sizes nor its regular weight.
+    // `type.body.*` is also the tier #862 predicted for the field family.
     //
     // BOTH WEIGHTS, AS OF #1248 — the two things this binding was waiting on both landed in that
     // change: the projector fills a `type` key from the member's whole coordinate rather than from

@@ -7494,6 +7494,149 @@
               }
             }
           },
+          "icon": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.600}",
+              "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.primary.600",
+                  "contrast": 5.59,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.primary.450}",
+                      "aliasOf": "hds.core.palette.primary.450",
+                      "contrast": 5,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.primary.650}",
+                      "aliasOf": "hds.core.palette.primary.650",
+                      "contrast": 8.28,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.primary.350}",
+                      "aliasOf": "hds.core.palette.primary.350",
+                      "contrast": 7.47,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.700}",
+              "$description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.primary.700",
+                  "contrast": 8.2,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.primary.350}",
+                      "aliasOf": "hds.core.palette.primary.350",
+                      "contrast": 6.91,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.primary.750}",
+                      "aliasOf": "hds.core.palette.primary.750",
+                      "contrast": 11.78,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.primary.250}",
+                      "aliasOf": "hds.core.palette.primary.250",
+                      "contrast": 10.11,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.800}",
+              "$description": "primary interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.primary.800",
+                  "contrast": 11.49,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.primary.250}",
+                      "aliasOf": "hds.core.palette.primary.250",
+                      "contrast": 9.34,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.primary.850}",
+                      "aliasOf": "hds.core.palette.primary.850",
+                      "contrast": 15.92,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.primary.150}",
+                      "aliasOf": "hds.core.palette.primary.150",
+                      "contrast": 13.33,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            }
+          },
           "border": {
             "rest": {
               "$type": "color",
@@ -8233,6 +8376,149 @@
               }
             }
           },
+          "icon": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.650}",
+              "$description": "destructive interactive icon ink — rest (the glyph in an outline / ghost / text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.danger.650",
+                  "contrast": 5.25,
+                  "against": "background.tertiary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.danger.400}",
+                      "aliasOf": "hds.core.palette.danger.400",
+                      "contrast": 4.82,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.danger.650}",
+                      "aliasOf": "hds.core.palette.danger.650",
+                      "contrast": 8.25,
+                      "against": "background.tertiary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.danger.350}",
+                      "aliasOf": "hds.core.palette.danger.350",
+                      "contrast": 7.46,
+                      "against": "background.tertiary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.750}",
+              "$description": "destructive interactive icon ink — hover (the glyph in an outline / ghost / text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.danger.750",
+                  "contrast": 7.67,
+                  "against": "background.tertiary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.danger.300}",
+                      "aliasOf": "hds.core.palette.danger.300",
+                      "contrast": 6.62,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.danger.750}",
+                      "aliasOf": "hds.core.palette.danger.750",
+                      "contrast": 12.06,
+                      "against": "background.tertiary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.danger.250}",
+                      "aliasOf": "hds.core.palette.danger.250",
+                      "contrast": 10.12,
+                      "against": "background.tertiary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.danger.850}",
+              "$description": "destructive interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.danger.850",
+                  "contrast": 10.39,
+                  "against": "background.tertiary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.danger.200}",
+                      "aliasOf": "hds.core.palette.danger.200",
+                      "contrast": 8.91,
+                      "against": "background.tertiary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.danger.850}",
+                      "aliasOf": "hds.core.palette.danger.850",
+                      "contrast": 16.33,
+                      "against": "background.tertiary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.danger.150}",
+                      "aliasOf": "hds.core.palette.danger.150",
+                      "contrast": 13.34,
+                      "against": "background.tertiary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            }
+          },
           "border": {
             "rest": {
               "$type": "color",
@@ -8908,6 +9194,149 @@
               "$type": "color",
               "$value": "{hds.core.palette.neutral.950}",
               "$description": "neutral interactive ink — pressed (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.neutral.950",
+                  "contrast": 15.98,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.neutral.025}",
+                      "aliasOf": "hds.core.palette.neutral.025",
+                      "contrast": 18.11,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.black}",
+                      "aliasOf": "hds.core.palette.black",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.white}",
+                      "aliasOf": "hds.core.palette.white",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            }
+          },
+          "icon": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.950}",
+              "$description": "neutral interactive icon ink — rest (the glyph in an outline / ghost / text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.neutral.950",
+                  "contrast": 15.98,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.neutral.025}",
+                      "aliasOf": "hds.core.palette.neutral.025",
+                      "contrast": 18.11,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.black}",
+                      "aliasOf": "hds.core.palette.black",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.white}",
+                      "aliasOf": "hds.core.palette.white",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.950}",
+              "$description": "neutral interactive icon ink — hover (the glyph in an outline / ghost / text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.neutral.950",
+                  "contrast": 15.98,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.neutral.025}",
+                      "aliasOf": "hds.core.palette.neutral.025",
+                      "contrast": 18.11,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.black}",
+                      "aliasOf": "hds.core.palette.black",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.white}",
+                      "aliasOf": "hds.core.palette.white",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.950}",
+              "$description": "neutral interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -11261,6 +11690,149 @@
                 }
               }
             },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.450}",
+                "$description": "primary interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "hds.core.palette.primary.450",
+                    "contrast": 5,
+                    "against": "inverse.background.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{hds.core.palette.primary.600}",
+                        "aliasOf": "hds.core.palette.primary.600",
+                        "contrast": 6.33,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{hds.core.palette.primary.350}",
+                        "aliasOf": "hds.core.palette.primary.350",
+                        "contrast": 7.47,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{hds.core.palette.primary.650}",
+                        "aliasOf": "hds.core.palette.primary.650",
+                        "contrast": 8.28,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.350}",
+                "$description": "primary interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "hds.core.palette.primary.350",
+                    "contrast": 6.91,
+                    "against": "inverse.background.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{hds.core.palette.primary.700}",
+                        "aliasOf": "hds.core.palette.primary.700",
+                        "contrast": 9.29,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{hds.core.palette.primary.250}",
+                        "aliasOf": "hds.core.palette.primary.250",
+                        "contrast": 10.11,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{hds.core.palette.primary.750}",
+                        "aliasOf": "hds.core.palette.primary.750",
+                        "contrast": 11.78,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.250}",
+                "$description": "primary interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "hds.core.palette.primary.250",
+                    "contrast": 9.34,
+                    "against": "inverse.background.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{hds.core.palette.primary.800}",
+                        "aliasOf": "hds.core.palette.primary.800",
+                        "contrast": 13.02,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{hds.core.palette.primary.150}",
+                        "aliasOf": "hds.core.palette.primary.150",
+                        "contrast": 13.33,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{hds.core.palette.primary.850}",
+                        "aliasOf": "hds.core.palette.primary.850",
+                        "contrast": 15.92,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              }
+            },
             "fill": {
               "rest": {
                 "$type": "color",
@@ -12000,6 +12572,149 @@
                 }
               }
             },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.400}",
+                "$description": "destructive interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "hds.core.palette.danger.400",
+                    "contrast": 4.82,
+                    "against": "inverse.background.tertiary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{hds.core.palette.danger.600}",
+                        "aliasOf": "hds.core.palette.danger.600",
+                        "contrast": 4.92,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{hds.core.palette.danger.350}",
+                        "aliasOf": "hds.core.palette.danger.350",
+                        "contrast": 7.46,
+                        "against": "inverse.background.tertiary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{hds.core.palette.danger.650}",
+                        "aliasOf": "hds.core.palette.danger.650",
+                        "contrast": 8.25,
+                        "against": "inverse.background.tertiary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.300}",
+                "$description": "destructive interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "hds.core.palette.danger.300",
+                    "contrast": 6.62,
+                    "against": "inverse.background.tertiary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{hds.core.palette.danger.700}",
+                        "aliasOf": "hds.core.palette.danger.700",
+                        "contrast": 7.24,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{hds.core.palette.danger.250}",
+                        "aliasOf": "hds.core.palette.danger.250",
+                        "contrast": 10.12,
+                        "against": "inverse.background.tertiary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{hds.core.palette.danger.750}",
+                        "aliasOf": "hds.core.palette.danger.750",
+                        "contrast": 12.06,
+                        "against": "inverse.background.tertiary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.200}",
+                "$description": "destructive interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "hds.core.palette.danger.200",
+                    "contrast": 8.91,
+                    "against": "inverse.background.tertiary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{hds.core.palette.danger.800}",
+                        "aliasOf": "hds.core.palette.danger.800",
+                        "contrast": 10.32,
+                        "against": "inverse.background.tertiary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{hds.core.palette.danger.150}",
+                        "aliasOf": "hds.core.palette.danger.150",
+                        "contrast": 13.34,
+                        "against": "inverse.background.tertiary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{hds.core.palette.danger.850}",
+                        "aliasOf": "hds.core.palette.danger.850",
+                        "contrast": 16.33,
+                        "against": "inverse.background.tertiary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              }
+            },
             "fill": {
               "rest": {
                 "$type": "color",
@@ -12695,6 +13410,149 @@
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.025}",
                 "$description": "neutral interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "hds.core.palette.neutral.025",
+                    "contrast": 18.11,
+                    "against": "inverse.background.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{hds.core.palette.neutral.950}",
+                        "aliasOf": "hds.core.palette.neutral.950",
+                        "contrast": 18.11,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{hds.core.palette.white}",
+                        "aliasOf": "hds.core.palette.white",
+                        "contrast": 21,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{hds.core.palette.black}",
+                        "aliasOf": "hds.core.palette.black",
+                        "contrast": 21,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              }
+            },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.025}",
+                "$description": "neutral interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "hds.core.palette.neutral.025",
+                    "contrast": 18.11,
+                    "against": "inverse.background.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{hds.core.palette.neutral.950}",
+                        "aliasOf": "hds.core.palette.neutral.950",
+                        "contrast": 18.11,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{hds.core.palette.white}",
+                        "aliasOf": "hds.core.palette.white",
+                        "contrast": 21,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{hds.core.palette.black}",
+                        "aliasOf": "hds.core.palette.black",
+                        "contrast": 21,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.025}",
+                "$description": "neutral interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "hds.core.palette.neutral.025",
+                    "contrast": 18.11,
+                    "against": "inverse.background.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{hds.core.palette.neutral.950}",
+                        "aliasOf": "hds.core.palette.neutral.950",
+                        "contrast": 18.11,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{hds.core.palette.white}",
+                        "aliasOf": "hds.core.palette.white",
+                        "contrast": 21,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{hds.core.palette.black}",
+                        "aliasOf": "hds.core.palette.black",
+                        "contrast": 21,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.025}",
+                "$description": "neutral interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -17599,6 +18457,46 @@
               }
             }
           }
+        },
+        "lg": {
+          "emphasis": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{hds.core.font.family.label}",
+              "fontSize": "{hds.core.font.size.18}",
+              "fontWeight": "{hds.core.font.weight-role.emphasis}",
+              "lineHeight": "{hds.core.font.line-height-role.snug}",
+              "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+            },
+            "$description": "label lg emphasis — 18px Inter, snug line-height, emphasis weight, normal tracking — consumer-facing type style",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "label",
+                "variant": "lg",
+                "weightRole": "emphasis",
+                "sizePx": 18,
+                "responsive": {
+                  "fluid": false,
+                  "px": 18
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
+          }
         }
       },
       "caption": {
@@ -20009,7 +20907,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.105.0",
+      "version": "0.110.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -20030,7 +20928,7 @@
         "shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 65, amount 0.15). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.",
         "gradient: none (opt-in axis; brand declared no gradients — the field-common default).",
         "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.",
-        "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=Inter, title=Inter, body=Inter, label=Inter, caption=Inter, eyebrow=Inter, code=JetBrains Mono; typeScale 'compact'. 38 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (144px); title tier omits title.2xs). responsive: 10 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
+        "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=Inter, title=Inter, body=Inter, label=Inter, caption=Inter, eyebrow=Inter, code=JetBrains Mono; typeScale 'compact'. 39 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (144px); title tier omits title.2xs). responsive: 10 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
         "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
         "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque interactive.<color>.subtle-fill.{hover,pressed,selected}) or 'none' to opt out.",
         "light primary surface is NON-default (neutral.50) — CONFIRM this is the page color; the contrast floor moves with it",

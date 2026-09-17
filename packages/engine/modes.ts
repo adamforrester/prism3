@@ -1024,6 +1024,13 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         : walk(palette, restNum, stateRungs(st), dir, guardFrom(contrast(restCand.rgb, ground), ground, cfg.secondaryMin));
       put(`interactive.${name}.text.${stKey}`, rated(c, ground),
         `${name} interactive ink — ${stKey} (outline / text appearance)`, against, cfg.secondaryMin);
+      // #1471 — the GLYPH ink, minted as its own role rather than borrowed from `text.*`. Its VALUE is the
+      // very same candidate `c` resolved above (one derivation, shared by value — the border pattern), so
+      // this is a NAME add with NO colour change: an outline / ghost / text control's icon now binds
+      // `interactive.<family>.icon.*` (docs/20 §16) instead of the outline/text label ink it happens to
+      // share a value with. Gated at `secondaryMin` against the same ground, identical to `text`.
+      put(`interactive.${name}.icon.${stKey}`, rated(c, ground),
+        `${name} interactive icon ink — ${stKey} (the glyph in an outline / ghost / text control)`, against, cfg.secondaryMin);
       byState[stKey] = c;
     }
     return byState;
@@ -1170,6 +1177,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         : walk(palette, textNum, stateRungs(st), -dir, guardFrom(contrast(textRest.rgb, textGround), textGround, cfg.secondaryMin));
       put(`inverse.interactive.${name}.text.${stKey}`, rated(c, textGround),
         `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, textAgainst, cfg.secondaryMin);
+      // #1471 — the inverse GLYPH ink twin, value-identical to the inverse outline/text ink above (the
+      // same candidate `c`). A `surface=inverse` component's glyph resolves here through the projector's
+      // `color.* → color.inverse.*` rewrite, so the inverse icon column must exist for the rewrite to land;
+      // it mirrors `text` exactly — a name add, no colour change.
+      put(`inverse.interactive.${name}.icon.${stKey}`, rated(c, textGround),
+        `${name} interactive icon ink on a dark / inverse surface — ${stKey} (the glyph in an outline / ghost / text control on a dark hero)`, textAgainst, cfg.secondaryMin);
       invInk[stKey] = c;
     }
     // A light filled CTA on the dark band (a dark fill on the light band in dark mode) — anchored at the
