@@ -597,7 +597,7 @@ for (const b of brands) {
   for (const c of ['primary', 'neutral', 'destructive']) {
     for (const st of ['rest', 'hover', 'pressed', 'focused', 'selected'])
       if (!(`interactive.${c}.fill.${st}` in light)) shapeMissing.push(`interactive.${c}.fill.${st}`);
-    for (const slot of ['on-fill', 'text.rest', 'text.hover', 'text.pressed', 'border.rest', 'border.hover', 'border.pressed'])
+    for (const slot of ['on-fill', 'text.rest', 'text.hover', 'text.pressed', 'icon.rest', 'icon.hover', 'icon.pressed', 'border.rest', 'border.hover', 'border.pressed'])
       if (!(`interactive.${c}.${slot}` in light)) shapeMissing.push(`interactive.${c}.${slot}`);
     // The bare leaf is GONE, not merely superseded (#576). Asserted explicitly because the loop
     // above cannot see it: adding `border.rest` while leaving `border` behind would satisfy every
@@ -605,7 +605,7 @@ for (const b of brands) {
     // flattens, dropping all three states for a conforming consumer.
     if (`interactive.${c}.border` in light) shapeMissing.push(`interactive.${c}.border STILL PRESENT as a bare leaf`);
   }
-  ok(shapeMissing.length === 0, 'interactive: primary/neutral/destructive each carry fill(+5 states)/on-fill/text.{rest,hover,pressed}/border.{rest,hover,pressed}' + (shapeMissing.length ? ` — MISSING ${shapeMissing.slice(0, 4).join(',')}` : ''));
+  ok(shapeMissing.length === 0, 'interactive: primary/neutral/destructive each carry fill(+5 states)/on-fill/text.{rest,hover,pressed}/icon.{rest,hover,pressed}/border.{rest,hover,pressed}' + (shapeMissing.length ? ` — MISSING ${shapeMissing.slice(0, 4).join(',')}` : ''));
   // (b2) per-colour disabled fill is retired — no interactive.<color>.fill.disabled.
   const perColourDisabled = ['primary', 'neutral', 'destructive'].map((c) => `interactive.${c}.fill.disabled`).filter((k) => k in light);
   ok(perColourDisabled.length === 0, 'interactive: per-colour fill.disabled retired (cross-cutting disabled.* instead)' + (perColourDisabled.length ? ` — STILL PRESENT ${perColourDisabled.join(',')}` : ''));
@@ -980,6 +980,11 @@ for (const b of brands) {
   for (const st of ['rest', 'hover', 'pressed'])
     if (scopeOf(`color/interactive/primary/border/${st}`) !== JSON.stringify(['STROKE_COLOR'])) scopeBad.push(`primary/border/${st}`);
   if (scopeOf('color/interactive/primary/fill/rest') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) scopeBad.push('primary/fill/rest');
+  // #1471 — the minted interactive ICON role scopes as a GLYPH ([FRAME,SHAPE,STROKE]) like `icon.*` /
+  // `disabled.icon`, NOT as TEXT — a glyph can paint or stroke, so its picker context differs from the label
+  // (`text` = TEXT_FILL above). Every state carries it, like `border`.
+  for (const st of ['rest', 'hover', 'pressed'])
+    if (scopeOf(`color/interactive/primary/icon/${st}`) !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'])) scopeBad.push(`primary/icon/${st}`);
   ok(scopeBad.length === 0, 'interactive: Figma slots carry slot-aware scopes' + (scopeBad.length ? ` — ${scopeBad.join(',')}` : ''));
 
   // (e2) disabled.<slot> is also slot-scoped — surface/on-disabled paint, text=TEXT_FILL,
@@ -2291,6 +2296,54 @@ for (const b of brands) {
   const italicRows = italicPlan.filter((r) => r.name.includes('-italic'));
   ok(italicRows.length > 0 && italicRows.every((r) => /Italic/.test(r.fontStyle)), 'font-plan: italic composites carry an Italic style-name');
   ok(buildTextStylePlan(nb).every((r) => !/Italic/.test(r.fontStyle)), 'font-plan: a no-italics brand carries no Italic style-names');
+
+  // #1476 — emitted text styles read LARGEST → SMALLEST within each type group (docs/34: the expected
+  // order is authored HERE, independently of the emitter — this RANK table is a deliberate second copy of
+  // the size ladder, NOT an import of the emitter's SIZE_RANK, so reversing the emitter's sort makes this
+  // gate fail by name). We assert the SIZE axis is non-increasing within each group and that the group
+  // (tier) order itself is unchanged from the walk — we do not re-order tiers here. A second path segment
+  // that is not a known size (e.g. `code/inline`) is ignored for the monotonic check (rank undefined).
+  {
+    const EXPECT_RANK: Record<string, number> = { '3xl': 7, '2xl': 6, xl: 5, lg: 4, md: 3, sm: 2, xs: 1, '2xs': 0 };
+    const rankOf = (name: string): number | undefined => EXPECT_RANK[name.split('/')[1] ?? ''];
+    const orderViolations = (names: string[]): string[] => {
+      const bad: string[] = [];
+      const perGroupLastRank = new Map<string, number>();
+      for (const name of names) {
+        const group = name.split('/')[0] ?? '';
+        if (!perGroupLastRank.has(group)) perGroupLastRank.set(group, Infinity);
+        const r = rankOf(name);
+        if (r === undefined) continue;               // non-size second segment — not on the size axis
+        const last = perGroupLastRank.get(group)!;
+        if (r > last) bad.push(`${name} (rank ${r}) after rank ${last} within '${group}'`);
+        perGroupLastRank.set(group, r);
+      }
+      // A group must be contiguous — once we leave a group we must not return to it — or "within each
+      // group, descending" is satisfiable by interleaving. Independent of the rank check above.
+      const firstSeen = new Set<string>();
+      let prevGroup = '';
+      for (const name of names) {
+        const g = name.split('/')[0] ?? '';
+        if (g !== prevGroup) {
+          if (firstSeen.has(g)) bad.push(`group '${g}' is not contiguous (re-entered after '${prevGroup}')`);
+          firstSeen.add(g);
+          prevGroup = g;
+        }
+      }
+      return bad;
+    };
+    const nbNames = buildFigmaTextStyles(nb).styles.map((s) => s.name);
+    const nbViol = orderViolations(nbNames);
+    ok(nbViol.length === 0, 'font-plan #1476: NB text styles are size-descending within each contiguous group' + (nbViol.length ? ` — ${nbViol.slice(0, 3).join('; ')}` : ''));
+    // Prove the gate can FAIL (docs/34 shape 4): a hand-authored ASCENDING fixture, independent of the
+    // emitter, must report a violation — otherwise `orderViolations` is vacuous and the pass above is
+    // silence. A DESCENDING twin of the same names must come back clean (the detector is not stuck-on).
+    ok(orderViolations(['display/sm/x', 'display/md/x', 'display/lg/x']).length > 0, 'font-plan #1476: the order gate fires on a hand-authored ascending list');
+    ok(orderViolations(['display/lg/x', 'display/md/x', 'display/sm/x']).length === 0, 'font-plan #1476: the order gate is clean on a hand-authored descending list');
+    // A brand whose largest family exceeds three rungs, to exercise the rank map past lg/md/sm.
+    const wideNames = buildFigmaTextStyles(brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input)).styles.map((s) => s.name);
+    ok(orderViolations(wideNames).length === 0, 'font-plan #1476: multi-rung families (3xl/2xl/xl…) are size-descending too');
+  }
 
   // verifyTypographyReadback guard: absent → all-pass (typography-less read isn't a failure); a
   // dangling weight-role alias fails; a well-formed snapshot passes.
@@ -7431,6 +7484,73 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(layout[0].variables.length === 11, `CR-08: aurora emits 11 vars per mode (6 breakpoint + 3 grid + 2 container), got ${layout[0].variables.length}`);
 }
 
+// (19c) #1479 — BREAKPOINT-COUNT FLEX. The breakpoint count is a per-brand lever (`layout.breakpoints`)
+// and `bpNames` auto-names by slicing the t-shirt ladder to the count (≤5 anchors at sm; 6+ prepends xs),
+// so 2/3/4/5/6-floor brands are all "supported by construction". CR-08 above proves the SIX case (aurora);
+// this proves the sub-5 cases — the ones nothing exercised — for the whole layout collection: auto-names,
+// per-breakpoint grid columns, and the gutter/margin ramps, on a brand whose ONLY departure from minimal
+// is the floor count. "Exercised by construction" is not a test; this is the test.
+//
+// Each case's FIRST arm asserts `names.length === n`, which is the "the count reaches the names" claim —
+// a count-blind emitter (a hardcoded 5) makes a 2-floor brand emit 5 modes and fails it by name. No
+// separate distinctness arm is kept: it would be redundant with these per-case length checks, and the one
+// mutation that would isolate it (making `buildLayout` ignore `input.breakpoints`) gives aurora 5 floors
+// and crashes the CR-08 block above before this block runs — so it could not be shown to fail cleanly, and
+// docs/34 warns that an arm which cannot be made to fail is worse than none.
+//
+// INDEPENDENCE (docs/34 shape 1). `expect` is HAND-AUTHORED — transcribed from the DOCUMENTED contract in
+// theme.ts (the `bpNames` comment; the `cols` ladder `4 / 8 / … / base`; the `GUTTER_PX`/`MARGIN_PX` ramps),
+// NEVER computed by calling `bpNames`/`buildLayout`. A gate whose expected value is derived from the emitter
+// it checks cannot see the emitter break. base columns = 12 (minimal's default), so the ladder tops at 12,
+// and for n=2 the top floor is BOTH `i===1` and `i===n-1` — the `n-1` branch wins (12, not 8).
+//
+// MUTATION REGISTER (docs/34: a gate that cannot see its subject cannot fail). Each was applied to the
+// SUBJECT's real code, the whole suite re-run, and the named assertion confirmed among the failures, then
+// reverted. NOTE the trap that made a plausible-looking mutation useless: `buildLayout` maps over the FLOOR
+// list, so `bpNames`'s slice length beyond `floors.length` is never read — mutating `.slice(0, n)` to
+// `.slice(0, 5)` changes NOTHING for a 2-floor brand and was discarded. The mutations below move names or
+// values WITHIN the used range, which is what this gate actually sees:
+//   M1  `bpNames`'s sm-anchor list `['sm','md','lg',…]` → `['sm','lg','md',…]` (swap md/lg). n=2 names become
+//       [sm,lg], n=3 [sm,lg,md]; the auto-name AND the DTCG-coherence arms fail BY NAME for n=2/3/4. Verified.
+//   M2  `buildLayout`'s `cols` top rung `i === n - 1 ? base` → `: base - 1`. Every case's top columns drop by
+//       one (n=2 [4,11], n=4 [4,8,12,11], …); the grid-columns arm fails BY NAME for all four. Verified.
+{
+  const MIN: BrandInput = { id: 'bpflex', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
+  type Expect = { names: string[]; cols: number[]; gutter: number[]; margin: number[] };
+  const CASES: { n: number; floors: number[]; expect: Expect }[] = [
+    { n: 2, floors: [0, 768],
+      expect: { names: ['sm', 'md'], cols: [4, 12], gutter: [16, 16], margin: [16, 24] } },
+    { n: 3, floors: [0, 768, 1024],
+      expect: { names: ['sm', 'md', 'lg'], cols: [4, 8, 12], gutter: [16, 16, 24], margin: [16, 24, 24] } },
+    { n: 4, floors: [0, 768, 1024, 1440],
+      expect: { names: ['sm', 'md', 'lg', 'xl'], cols: [4, 8, 12, 12], gutter: [16, 16, 24, 24], margin: [16, 24, 24, 32] } },
+    { n: 6, floors: [0, 768, 1024, 1440, 1920, 2560],
+      expect: { names: ['xs', 'sm', 'md', 'lg', 'xl', '2xl'], cols: [4, 8, 12, 12, 12, 12], gutter: [16, 16, 24, 24, 32, 32], margin: [16, 24, 24, 32, 48, 48] } },
+  ];
+  for (const { n, floors, expect } of CASES) {
+    const theme = brandTheme({ ...MIN, id: `bpflex${n}`, layout: { breakpoints: floors } } as BrandInput);
+    const root = theme.root;
+    const files = buildFigmaLayout(theme);
+    const gridVal = (f: (typeof files)[number], key: string): number =>
+      f.variables.find((v) => v.name === `${root}/grid/${key}`)!.value as number;
+    const names = files.map((f) => f.$mode);
+    const cols = files.map((f) => gridVal(f, 'columns'));
+    const gutter = files.map((f) => gridVal(f, 'gutter'));
+    const margin = files.map((f) => gridVal(f, 'margin'));
+    // Coherence: the DTCG breakpoint node keys are the SAME auto-names as the Figma layout modes — the
+    // collection is one thing, not two lists that happen to agree.
+    const bpKeys = Object.keys((buildTree(theme).tree as any)[root].breakpoint);
+    ok(names.length === n && names.join(',') === expect.names.join(','),
+      `#1479 n=${n}: the layout collection auto-names ${n} breakpoints [${expect.names.join(',')}] with NO desktop/mobile rename (got [${names.join(',')}])`);
+    ok(bpKeys.join(',') === expect.names.join(','),
+      `#1479 n=${n}: the DTCG breakpoint node carries the same ${n} auto-names (got [${bpKeys.join(',')}]) — coherent collection, not just the Figma modes`);
+    ok(cols.join(',') === expect.cols.join(','),
+      `#1479 n=${n}: per-breakpoint grid columns [${expect.cols.join(',')}] (4/8/…/base ladder, base 12) — got [${cols.join(',')}]`);
+    ok(gutter.join(',') === expect.gutter.join(',') && margin.join(',') === expect.margin.join(','),
+      `#1479 n=${n}: grid gutter/margin ramps [${expect.gutter.join(',')}]/[${expect.margin.join(',')}] — got [${gutter.join(',')}]/[${margin.join(',')}]`);
+  }
+}
+
 // (20) EMIT-FIGMA MODE OPT-OUT (post-#42 follow-up; #45 audit; reviewer flag on #46).
 // BrandInput.modes lets a brand ship any subset of {light, dark, hc-light, hc-dark}.
 // emit-figma's colour axis previously hardcoded all four; a light-only brand's
@@ -8663,20 +8783,21 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         `#1427 ${def.id}: the DEFAULT-surface filled container binds the PAGE role color/interactive/${fam}/fill/rest — so the inverse binding above is the surface rewrite, not a constant`);
     }
 
-    // (3) THE GLYPH INK WALKS STATE on outline/ghost (item 1). At rest it is text.rest; at hover/pressed it is
-    // text.<state>, not text.rest — for every family. `filled` ink stays on-fill across states (unchanged).
+    // (3) THE GLYPH INK WALKS STATE on outline/ghost (item 1). At rest it is icon.rest; at hover/pressed it is
+    // icon.<state>, not icon.rest — for every family. `filled` ink stays on-fill across states (unchanged).
     // NOTE (#1432): the icon-button tertiary appearance VALUE is `ghost`, not `text` (renamed — an icon-only
-    // control has no text); the ink ROLE it binds is still `interactive.<fam>.text.*` (button's `text` role,
-    // the mechanical mapping the rename preserves), which is why the role assertions below still read `text/`.
+    // control has no text). NOTE (#1471): the glyph ink ROLE is now the dedicated `interactive.<fam>.icon.*`
+    // column (value-identical to `text.*`, so no colour change) rather than the `text.*` it used to borrow —
+    // which is why the role assertions below read `icon/`. The per-state WALK is unchanged (icon mirrors text).
     let inkChecked = 0;
     for (const [def, fam] of IB_FAMILIES)
       for (const appearance of ['outline', 'ghost']) {
-        ok(glyphInk(def, appearance, 'rest', 'default').includes(`color/interactive/${fam}/text/rest`),
-          `#1427 ${def.id} ${appearance}: the glyph ink at rest is text.rest (color/interactive/${fam}/text/rest)`);
+        ok(glyphInk(def, appearance, 'rest', 'default').includes(`color/interactive/${fam}/icon/rest`),
+          `#1471 ${def.id} ${appearance}: the glyph ink at rest is icon.rest (color/interactive/${fam}/icon/rest)`);
         for (const state of ['hover', 'pressed']) {
           inkChecked++;
-          ok(glyphInk(def, appearance, state, 'default').includes(`color/interactive/${fam}/text/${state}`),
-            `#1427 ${def.id} ${appearance}: the glyph ink at ${state} WALKS to text.${state} (color/interactive/${fam}/text/${state}), not text.rest`);
+          ok(glyphInk(def, appearance, state, 'default').includes(`color/interactive/${fam}/icon/${state}`),
+            `#1471 ${def.id} ${appearance}: the glyph ink at ${state} WALKS to icon.${state} (color/interactive/${fam}/icon/${state}), not icon.rest`);
         }
       }
     ok(inkChecked === IB_FAMILIES.length * 2 * 2, `#1427 the per-state ink pin ran over 3 families × {outline,text} × {hover,pressed} (${inkChecked})`);
@@ -8695,13 +8816,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       `#1427 a surface=default icon-button nests the surface=default focus-ring — got ${JSON.stringify(ibRing('default')?.nestVariant)}`);
 
     // ── MUTATION ARMS (docs/34), each flipping a NAMED assertion true→false on the SUBJECT (the def) ──
-    //   ARM A (item 1) — make the outline glyph ink STATIC again: bind outline.icon.hover back to text.rest.
-    //   The projected outline hover glyph then binds text/rest, flipping the '#1427 … outline: the glyph ink
-    //   at hover WALKS to text.hover' assertion BY NAME.
-    const inkStatic = { ...iconButton, tokens: { ...iconButton.tokens, 'outline.icon.hover': 'color.interactive.primary.text.rest' } };
-    ok(glyphInk(inkStatic as ComponentDef, 'outline', 'hover', 'default').includes('color/interactive/primary/text/rest')
-      && !glyphInk(inkStatic as ComponentDef, 'outline', 'hover', 'default').includes('color/interactive/primary/text/hover'),
-      "#1427 MUTATION ARM A: pinning outline.icon.hover back to text.rest makes the hover glyph bind text/rest (not text/hover), flipping '#1427 icon-button outline: the glyph ink at hover WALKS to text.hover' to failing");
+    //   ARM A (item 1) — make the outline glyph ink STATIC again: bind outline.icon.hover back to icon.rest.
+    //   The projected outline hover glyph then binds icon/rest, flipping the '#1471 … outline: the glyph ink
+    //   at hover WALKS to icon.hover' assertion BY NAME. (#1471 — the role moved text→icon; ARM still fires.)
+    const inkStatic = { ...iconButton, tokens: { ...iconButton.tokens, 'outline.icon.hover': 'color.interactive.primary.icon.rest' } };
+    ok(glyphInk(inkStatic as ComponentDef, 'outline', 'hover', 'default').includes('color/interactive/primary/icon/rest')
+      && !glyphInk(inkStatic as ComponentDef, 'outline', 'hover', 'default').includes('color/interactive/primary/icon/hover'),
+      "#1471 MUTATION ARM A: pinning outline.icon.hover back to icon.rest makes the hover glyph bind icon/rest (not icon/hover), flipping '#1471 icon-button outline: the glyph ink at hover WALKS to icon.hover' to failing");
     //   ARM B (item 2) — DROP the surface axis. The enumerated set then carries NO surface=inverse member, so
     //   the inverse fill/glyph and the doubling assertions above have no member to fire on — the '#1427 surface
     //   DOUBLES the set' assertion (which reads the enumeration, not a hand-passed coordinate) flips BY NAME.
@@ -9268,8 +9389,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const seg = (ref?: string) => ref?.split('.').pop();
       ok(seg(border) === st && seg(label) === st && seg(icon) === st,
         `#1282 ${d.id} outline ${st}: border, label and icon all resolve the '${st}' interactive role — the edge and the ink it surrounds move together (got border=${seg(border)}, label=${seg(label)}, icon=${seg(icon)})`);
-      ok(label === `color.interactive.${fam}.text.${st}` && border === `color.interactive.${fam}.border.${st}`,
-        `#1282 ${d.id} outline ${st}: the ink binds text.${st} and the edge binds border.${st} — the two roles the engine derives from ONE candidate (iBorder consumes iText), so matching bindings is matching colour`);
+      ok(label === `color.interactive.${fam}.text.${st}` && border === `color.interactive.${fam}.border.${st}` && icon === `color.interactive.${fam}.icon.${st}`,
+        `#1282/#1471 ${d.id} outline ${st}: the label binds text.${st}, the glyph binds the dedicated icon.${st} role (#1471 — value-identical to text, so no colour change), and the edge binds border.${st} — all three roles the engine derives from ONE candidate, so matching bindings is matching colour`);
     }
   }
   // The colour tokens: each def binds ONLY its own family, and binds the full 16-key skin (not zero).
@@ -14326,10 +14447,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // first cut of this intersected paths WITH the configurable root included (`nbds.*` vs `prism.*`)
   // and returned 0, which would have made every assertion below vacuously true.
   ok(guaranteedCount > 400, `contract: the guaranteed surface is non-empty and substantial (${guaranteedCount} paths — a root-prefix bug here yields 0)`);
-  // SIX since #1102's contract accept, which added `minimal-levers` — the sparse input WITH the two
-  // suppressing levers pulled. It is the member that separates SPARSE from SUPPRESSED: `minimal` omits
-  // every optional field, so every lever takes its default, and a default is a value like any other.
-  ok(live.corpus.length === 6, `contract: the corpus spans both dialects, the legacy fixture, the minimal input and the minimal input with the suppressing levers pulled (${live.corpus.length} brands)`);
+  // SEVEN since #1479's contract accept, which added `minimal-bp2` — the sparse input WITH a
+  // two-breakpoint layout. It is the member that separates SPARSE from the DEFAULT COUNT on the layout
+  // axis, the same way `minimal-levers` (#1102) separated SPARSE from SUPPRESSED on the lever axis:
+  // `minimal` omits `layout.breakpoints`, so the count takes its 5-floor default, and a default is a
+  // value like any other. Without `minimal-bp2` the upper breakpoint tiers would read as guaranteed
+  // purely because every richer brand ships 5+ floors.
+  ok(live.corpus.length === 7, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, and the minimal input with a two-breakpoint layout (${live.corpus.length} brands)`);
   for (const { id, theme } of corpus()) {
     const paths = pathsOf(theme);
     const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
@@ -15628,7 +15752,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
       return { brand: id.split(' ')[0], px: ext };
     });
-    ok(px.length === 6 && px.every((b) => b.px === 16),
+    ok(px.length === 7 && px.every((b) => b.px === 16),
       `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
   }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),
