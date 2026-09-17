@@ -2925,8 +2925,19 @@
  * comments that ship in the plugin bundle. All respelled to en-US — meaning identical, letters moved.
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
+ *
+ * 0.105.0 — #1479: the breakpoint COUNT is made a truly brand-flexible axis (2/3/4/5/6 all supported and
+ * auto-named), and the upper breakpoint tiers are reclassified `brandDependent` (CONTRACT 11.0.0, below).
+ * The capability already existed by construction — `layout.breakpoints` is a per-brand lever and `bpNames`
+ * slices the t-shirt ladder to the count — but was untested below 5 floors; this adds the gate that builds
+ * 2-, 3-, and 4-floor brands (and confirms 6) and asserts the emitted `layout` collection's auto-names and
+ * per-breakpoint grid values, plus a `minimal-bp2` corpus member that demotes the upper tiers. NO emitted
+ * token value and NO projected component member moves — a 5-floor brand emits exactly what it did before.
+ * The ENGINE bump accompanies the contract reclassification and restamps `out/**`'s
+ * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
+ * (#1479)
  */
-export const ENGINE_VERSION = '0.104.0';
+export const ENGINE_VERSION = '0.105.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -3368,8 +3379,22 @@ export const ENGINE_VERSION = '0.104.0';
  * the darkest permissible) without moving a path, and select's hover reuses the existing
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
+ *
+ * 11.0.0 — #1479 (owner-decided MAJOR, no consumers): DEMOTE the upper breakpoint tiers out of `guaranteed`.
+ * `breakpoint.{lg,xl,2xl}` and `grid.{lg,xl,2xl}.{columns,gutter,margin}` — 12 paths — move to
+ * `brandDependent`. The breakpoint COUNT is a per-brand lever (`layout.breakpoints`), and `bpNames` slices
+ * the t-shirt ladder to the count, so a 2/3/4-floor brand emits none of these tiers. They were guaranteed
+ * only because every corpus brand happened to ship 5+ floors — the identical over-claim `minimal` exists to
+ * catch (a lever's DEFAULT is a value like any other), one axis in; `breakpoint.xs`/`grid.xs.*` are already
+ * brand-dependent for the mirror reason (only aurora's 6 floors reach them). The demotion is realized the
+ * only honest way — a new `minimal-bp2` corpus member (2 floors) drops the 12 paths out of the intersection —
+ * NOT by hand-editing the baseline. A guaranteed removal is MAJOR whether or not the path is still emitted
+ * elsewhere (it reports as DEMOTED, still emitted, no migration): 10.3.0 → 11.0.0. Owner confirmed no
+ * consumers bind these names, so there is no real breakage; after this, a brand changing its breakpoint
+ * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
+ * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '10.3.0';
+export const CONTRACT_VERSION = '11.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

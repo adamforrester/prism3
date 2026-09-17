@@ -7431,6 +7431,73 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(layout[0].variables.length === 11, `CR-08: aurora emits 11 vars per mode (6 breakpoint + 3 grid + 2 container), got ${layout[0].variables.length}`);
 }
 
+// (19c) #1479 — BREAKPOINT-COUNT FLEX. The breakpoint count is a per-brand lever (`layout.breakpoints`)
+// and `bpNames` auto-names by slicing the t-shirt ladder to the count (≤5 anchors at sm; 6+ prepends xs),
+// so 2/3/4/5/6-floor brands are all "supported by construction". CR-08 above proves the SIX case (aurora);
+// this proves the sub-5 cases — the ones nothing exercised — for the whole layout collection: auto-names,
+// per-breakpoint grid columns, and the gutter/margin ramps, on a brand whose ONLY departure from minimal
+// is the floor count. "Exercised by construction" is not a test; this is the test.
+//
+// Each case's FIRST arm asserts `names.length === n`, which is the "the count reaches the names" claim —
+// a count-blind emitter (a hardcoded 5) makes a 2-floor brand emit 5 modes and fails it by name. No
+// separate distinctness arm is kept: it would be redundant with these per-case length checks, and the one
+// mutation that would isolate it (making `buildLayout` ignore `input.breakpoints`) gives aurora 5 floors
+// and crashes the CR-08 block above before this block runs — so it could not be shown to fail cleanly, and
+// docs/34 warns that an arm which cannot be made to fail is worse than none.
+//
+// INDEPENDENCE (docs/34 shape 1). `expect` is HAND-AUTHORED — transcribed from the DOCUMENTED contract in
+// theme.ts (the `bpNames` comment; the `cols` ladder `4 / 8 / … / base`; the `GUTTER_PX`/`MARGIN_PX` ramps),
+// NEVER computed by calling `bpNames`/`buildLayout`. A gate whose expected value is derived from the emitter
+// it checks cannot see the emitter break. base columns = 12 (minimal's default), so the ladder tops at 12,
+// and for n=2 the top floor is BOTH `i===1` and `i===n-1` — the `n-1` branch wins (12, not 8).
+//
+// MUTATION REGISTER (docs/34: a gate that cannot see its subject cannot fail). Each was applied to the
+// SUBJECT's real code, the whole suite re-run, and the named assertion confirmed among the failures, then
+// reverted. NOTE the trap that made a plausible-looking mutation useless: `buildLayout` maps over the FLOOR
+// list, so `bpNames`'s slice length beyond `floors.length` is never read — mutating `.slice(0, n)` to
+// `.slice(0, 5)` changes NOTHING for a 2-floor brand and was discarded. The mutations below move names or
+// values WITHIN the used range, which is what this gate actually sees:
+//   M1  `bpNames`'s sm-anchor list `['sm','md','lg',…]` → `['sm','lg','md',…]` (swap md/lg). n=2 names become
+//       [sm,lg], n=3 [sm,lg,md]; the auto-name AND the DTCG-coherence arms fail BY NAME for n=2/3/4. Verified.
+//   M2  `buildLayout`'s `cols` top rung `i === n - 1 ? base` → `: base - 1`. Every case's top columns drop by
+//       one (n=2 [4,11], n=4 [4,8,12,11], …); the grid-columns arm fails BY NAME for all four. Verified.
+{
+  const MIN: BrandInput = { id: 'bpflex', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
+  type Expect = { names: string[]; cols: number[]; gutter: number[]; margin: number[] };
+  const CASES: { n: number; floors: number[]; expect: Expect }[] = [
+    { n: 2, floors: [0, 768],
+      expect: { names: ['sm', 'md'], cols: [4, 12], gutter: [16, 16], margin: [16, 24] } },
+    { n: 3, floors: [0, 768, 1024],
+      expect: { names: ['sm', 'md', 'lg'], cols: [4, 8, 12], gutter: [16, 16, 24], margin: [16, 24, 24] } },
+    { n: 4, floors: [0, 768, 1024, 1440],
+      expect: { names: ['sm', 'md', 'lg', 'xl'], cols: [4, 8, 12, 12], gutter: [16, 16, 24, 24], margin: [16, 24, 24, 32] } },
+    { n: 6, floors: [0, 768, 1024, 1440, 1920, 2560],
+      expect: { names: ['xs', 'sm', 'md', 'lg', 'xl', '2xl'], cols: [4, 8, 12, 12, 12, 12], gutter: [16, 16, 24, 24, 32, 32], margin: [16, 24, 24, 32, 48, 48] } },
+  ];
+  for (const { n, floors, expect } of CASES) {
+    const theme = brandTheme({ ...MIN, id: `bpflex${n}`, layout: { breakpoints: floors } } as BrandInput);
+    const root = theme.root;
+    const files = buildFigmaLayout(theme);
+    const gridVal = (f: (typeof files)[number], key: string): number =>
+      f.variables.find((v) => v.name === `${root}/grid/${key}`)!.value as number;
+    const names = files.map((f) => f.$mode);
+    const cols = files.map((f) => gridVal(f, 'columns'));
+    const gutter = files.map((f) => gridVal(f, 'gutter'));
+    const margin = files.map((f) => gridVal(f, 'margin'));
+    // Coherence: the DTCG breakpoint node keys are the SAME auto-names as the Figma layout modes — the
+    // collection is one thing, not two lists that happen to agree.
+    const bpKeys = Object.keys((buildTree(theme).tree as any)[root].breakpoint);
+    ok(names.length === n && names.join(',') === expect.names.join(','),
+      `#1479 n=${n}: the layout collection auto-names ${n} breakpoints [${expect.names.join(',')}] with NO desktop/mobile rename (got [${names.join(',')}])`);
+    ok(bpKeys.join(',') === expect.names.join(','),
+      `#1479 n=${n}: the DTCG breakpoint node carries the same ${n} auto-names (got [${bpKeys.join(',')}]) — coherent collection, not just the Figma modes`);
+    ok(cols.join(',') === expect.cols.join(','),
+      `#1479 n=${n}: per-breakpoint grid columns [${expect.cols.join(',')}] (4/8/…/base ladder, base 12) — got [${cols.join(',')}]`);
+    ok(gutter.join(',') === expect.gutter.join(',') && margin.join(',') === expect.margin.join(','),
+      `#1479 n=${n}: grid gutter/margin ramps [${expect.gutter.join(',')}]/[${expect.margin.join(',')}] — got [${gutter.join(',')}]/[${margin.join(',')}]`);
+  }
+}
+
 // (20) EMIT-FIGMA MODE OPT-OUT (post-#42 follow-up; #45 audit; reviewer flag on #46).
 // BrandInput.modes lets a brand ship any subset of {light, dark, hc-light, hc-dark}.
 // emit-figma's colour axis previously hardcoded all four; a light-only brand's
@@ -14324,10 +14391,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // first cut of this intersected paths WITH the configurable root included (`nbds.*` vs `prism.*`)
   // and returned 0, which would have made every assertion below vacuously true.
   ok(guaranteedCount > 400, `contract: the guaranteed surface is non-empty and substantial (${guaranteedCount} paths — a root-prefix bug here yields 0)`);
-  // SIX since #1102's contract accept, which added `minimal-levers` — the sparse input WITH the two
-  // suppressing levers pulled. It is the member that separates SPARSE from SUPPRESSED: `minimal` omits
-  // every optional field, so every lever takes its default, and a default is a value like any other.
-  ok(live.corpus.length === 6, `contract: the corpus spans both dialects, the legacy fixture, the minimal input and the minimal input with the suppressing levers pulled (${live.corpus.length} brands)`);
+  // SEVEN since #1479's contract accept, which added `minimal-bp2` — the sparse input WITH a
+  // two-breakpoint layout. It is the member that separates SPARSE from the DEFAULT COUNT on the layout
+  // axis, the same way `minimal-levers` (#1102) separated SPARSE from SUPPRESSED on the lever axis:
+  // `minimal` omits `layout.breakpoints`, so the count takes its 5-floor default, and a default is a
+  // value like any other. Without `minimal-bp2` the upper breakpoint tiers would read as guaranteed
+  // purely because every richer brand ships 5+ floors.
+  ok(live.corpus.length === 7, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, and the minimal input with a two-breakpoint layout (${live.corpus.length} brands)`);
   for (const { id, theme } of corpus()) {
     const paths = pathsOf(theme);
     const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
@@ -15626,7 +15696,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
       return { brand: id.split(' ')[0], px: ext };
     });
-    ok(px.length === 6 && px.every((b) => b.px === 16),
+    ok(px.length === 7 && px.every((b) => b.px === 16),
       `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
   }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),
