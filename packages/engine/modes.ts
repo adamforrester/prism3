@@ -1188,27 +1188,42 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // white fill on the near-white dark-mode band is degenerate and fails the 3:1 non-text contract against
     // the band). "White" is the contrasting absolute the band asks for — white on the dark band, black on the
     // light one — the same mode-mirroring `neutralStepR(50/850)` already carried, promoted from a tinted step
-    // to a pure literal, and FLAT across states (see the loop below for why the #1389 step cannot survive a
-    // pure absolute).
+    // to a pure literal. REST keeps this crisp absolute (#1384); only hover/pressed step off it (below).
     const fillRestAbs: Cand = cfg.family === 'light' ? cand(`${ns}.white`, WHITE) : cand(`${ns}.black`, BLACK);
     // `FILL_STATES`, not a hand-written three (#892) — every state (rest / hover / pressed / focused /
     // selected) is emitted, so a keyboard-focused inverse button always resolves a fill.
     //
-    // #1384 SUPERSEDES #1389's per-state STEP for this fill — and it is the MECHANISM that changes, not the
-    // decision that feedback is good. #1389 (owner B4a) made the inverse fill a NEUTRAL step (050/850) and
-    // walked it toward the ground for hover/pressed feedback; that walk is only expressible on a ramp. #1384
-    // makes the default a pure ABSOLUTE (`white`/`black`), and there is no rung "whiter than white" to walk
-    // to, so the fill is FLAT — every state is the same crisp absolute. Keeping the step measured a real a11y
-    // failure: on the near-white dark-mode band the fill stepped black → neutral.750, and the family ink
-    // (gated on pure black) dropped to 1.78:1 on that mid-gray hover — under even the lenient 2:1 rendered
-    // floor (`studio` smoke). A flat absolute keeps the ink on ONE ground, AA-clean at every state. The
-    // hover/pressed FEEDBACK a white filled button should carry (an overlay wash, the #1342 idiom, since a
-    // pure fill cannot darken) is a design question deferred with the icon-button work (#1427-adjacent),
-    // not smuggled in here. See the on-fill note below for how the per-family ink is gated.
+    // #1456 REVERSES #1384's FLAT fill and RESTORES per-state feedback the SAME way page buttons carry it:
+    // each engaged state is `STATE_RUNGS` (a "2-step") further along the NEUTRAL ramp than the one before,
+    // stepping AWAY FROM THE EXTREME the resting absolute sits at. REST is unchanged — still the crisp
+    // `white`/`black` #1384 established; only hover/pressed (and their focused/selected twins) move into the
+    // adjacent neutral rungs:
+    //   - LIGHT-family modes (rest = white, the light extreme): step DARKER — hover = neutral.100, pressed
+    //     = neutral.200 (the same 2-rungs-per-state interval the page fill walks 050 → 150 → 250).
+    //   - DARK-family modes (rest = black, the dark extreme): step LIGHTER — hover = neutral.900, pressed
+    //     = neutral.800 (the mirror, away from black).
+    // The step ANCHORS at the extreme (white ≈ neutral rung 0, black ≈ rung 1000) and `walk`s `dir` rungs
+    // INWARD — `dir` is +1 in a light mode (darker) and −1 in a dark mode (lighter), so a light-mode fill
+    // steps toward the dark end and a dark-mode fill toward the light end, exactly "away from the extreme".
+    // No contrast GUARD is passed: the step is the pure #1281 interval (so it lands on the clean 100/200 /
+    // 900/800 the owner named), and the fill's own non-text contract against the band is trivially met at
+    // every step (both stepped rungs stay near the extreme, far from the band). `walk` already REFLECTS
+    // inward on overshoot (L-01), which is the issue's edge rule for free: a base too close to one end to
+    // step the default direction steps the other way. For the default white/black bases — which sit AT the
+    // extremes — inward is always accommodated, so they always step 100/200 (light) / 900/800 (dark).
+    //
+    // WHY the #1384 flat decision does not apply here. #1384 read the dark-band HOVER ink dropping to
+    // ~1.78:1 as a failure and flattened the fill to keep the ink AA at every state. #1456 (owner) makes
+    // the on-fill ink pass REST ONLY — hover/pressed are transient states EXEMPT from the ink contract
+    // (standard a11y practice; the resting state carries the contract) — so the fill can step freely and a
+    // stepped hover/pressed fill whose ink dips below AA is BY DESIGN. The per-family ink below stays
+    // derived to pass at REST and rides the stepped states without a per-state gate. See the on-fill note.
+    const extremeAnchor = cfg.family === 'light' ? 0 : 1000;   // white ≈ rung 0, black ≈ rung 1000
     for (const st of FILL_STATES) {
       const stKey = st === 'default' ? 'rest' : st;
-      put(`inverse.interactive.${name}.fill.${stKey}`, rated(fillRestAbs, invRgb),
-        `${name} interactive fill on a dark / inverse surface — ${stKey} (the crisp white / black default, flat across states — #1384)`, 'inverse.background.primary', cfg.nonTextMin);
+      const c: Cand = st === 'default' ? fillRestAbs : walk(r2p.neutral, extremeAnchor, stateRungs(st), dir);
+      put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb),
+        `${name} interactive fill on a dark / inverse surface — ${stKey} (${stKey === 'rest' ? 'the crisp white / black default' : 'stepped 2 neutral rungs per state away from the extreme'} — #1456)`, 'inverse.background.primary', cfg.nonTextMin);
     }
     // PRIMARY ONLY (#1244). `destructive` and `neutral` keep the neutral ink until their own decision
     // lands — filed as #1253 and #1254 rather than mirrored here, and they are two different questions.

@@ -2836,7 +2836,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
+      "description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
       "value": {
         "r": 1,
         "g": 1,
@@ -2855,16 +2855,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
+      "description": "primary interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/100"
       }
     },
     {
@@ -2874,16 +2874,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
+      "description": "primary interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/200"
       }
     },
     {
@@ -2893,16 +2893,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
+      "description": "primary interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/100"
       }
     },
     {
@@ -2912,16 +2912,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
+      "description": "primary interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/200"
       }
     },
     {
@@ -3116,7 +3116,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
+      "description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3135,16 +3135,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
+      "description": "destructive interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/100"
       }
     },
     {
@@ -3154,16 +3154,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
+      "description": "destructive interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/200"
       }
     },
     {
@@ -3173,16 +3173,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
+      "description": "destructive interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/100"
       }
     },
     {
@@ -3192,16 +3192,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
+      "description": "destructive interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/200"
       }
     },
     {
@@ -3396,7 +3396,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
+      "description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3415,16 +3415,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
+      "description": "neutral interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/100"
       }
     },
     {
@@ -3434,16 +3434,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
+      "description": "neutral interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/200"
       }
     },
     {
@@ -3453,16 +3453,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
+      "description": "neutral interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/100"
       }
     },
     {
@@ -3472,16 +3472,16 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
+      "description": "neutral interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
+        "name": "nbds/core/palette/neutral/200"
       }
     },
     {

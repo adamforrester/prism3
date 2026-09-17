@@ -3053,7 +3053,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.black}",
-                "$description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
+                "$description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3076,8 +3076,8 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "primary interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.900}",
+                "$description": "primary interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3091,8 +3091,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.900",
+                    "contrast": 16.74,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3100,8 +3100,8 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "primary interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.800}",
+                "$description": "primary interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3115,8 +3115,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.800",
+                    "contrast": 12.94,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3124,8 +3124,8 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "primary interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.900}",
+                "$description": "primary interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3139,8 +3139,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.900",
+                    "contrast": 16.74,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3148,8 +3148,8 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "primary interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.800}",
+                "$description": "primary interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3163,8 +3163,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.800",
+                    "contrast": 12.94,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3405,7 +3405,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.black}",
-                "$description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
+                "$description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3428,8 +3428,8 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "destructive interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.900}",
+                "$description": "destructive interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3443,8 +3443,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.900",
+                    "contrast": 16.74,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3452,8 +3452,8 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "destructive interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.800}",
+                "$description": "destructive interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3467,8 +3467,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.800",
+                    "contrast": 12.94,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3476,8 +3476,8 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "destructive interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.900}",
+                "$description": "destructive interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3491,8 +3491,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.900",
+                    "contrast": 16.74,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3500,8 +3500,8 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "destructive interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.800}",
+                "$description": "destructive interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3515,8 +3515,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.800",
+                    "contrast": 12.94,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3757,7 +3757,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.black}",
-                "$description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default, flat across states — #1384)",
+                "$description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3780,8 +3780,8 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "neutral interactive fill on a dark / inverse surface — hover (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.900}",
+                "$description": "neutral interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3795,8 +3795,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.900",
+                    "contrast": 16.74,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3804,8 +3804,8 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "neutral interactive fill on a dark / inverse surface — pressed (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.800}",
+                "$description": "neutral interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3819,8 +3819,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.800",
+                    "contrast": 12.94,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3828,8 +3828,8 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "neutral interactive fill on a dark / inverse surface — focused (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.900}",
+                "$description": "neutral interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3843,8 +3843,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.900",
+                    "contrast": 16.74,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -3852,8 +3852,8 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.black}",
-                "$description": "neutral interactive fill on a dark / inverse surface — selected (the crisp white / black default, flat across states — #1384)",
+                "$value": "{nbds.core.palette.neutral.800}",
+                "$description": "neutral interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3867,8 +3867,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.black",
-                    "contrast": 19.57,
+                    "aliasOf": "nbds.core.palette.neutral.800",
+                    "contrast": 12.94,
                     "against": "inverse.background.primary",
                     "min": 3
                   }

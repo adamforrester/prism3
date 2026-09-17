@@ -2839,8 +2839,28 @@
  * retyped (the inverse fills rebind a VALUE); the orchestrator's provisional 10.4.0 assumed white was a new
  * name — it was not, so the contract stands at 10.3.0, settled by the empty `token-contract --accept` diff
  * (the #1429 precedent: the objective gate result decides the bump, not the provisional guess).
+ *
+ * 0.100.0 — #1456: the inverse interactive fill STEPS per state again (reverses #1384's FLAT fill). REST
+ * keeps the crisp `white`/`black` absolute #1384 established, but hover/pressed (and their focused/selected
+ * twins) now step 2 NEUTRAL rungs per state AWAY FROM THE EXTREME the absolute sits at — mirroring the page
+ * fill's 050 → 150 → 250 walk: a light-family band (rest white) steps DARKER (hover neutral.100, pressed
+ * neutral.200); a dark-family band (rest black) steps LIGHTER (hover neutral.900, pressed neutral.800). The
+ * fill is UNIFORM across primary/neutral/destructive; the per-family ink stays (primary → brand, destructive
+ * → danger, neutral → extreme). WHY the #1384 flat decision no longer holds (owner, #1456): the on-fill ink
+ * must clear AA on the REST fill ONLY — hover/pressed are transient states EXEMPT from the ink contract
+ * (standard a11y practice), so a stepped hover/pressed fill whose ink dips below AA is BY DESIGN and the fill
+ * steps freely. #1384 had flattened the fill precisely to keep the dark-band HOVER ink from dropping to
+ * ~1.78:1; under the REST-ONLY exemption that drop is acceptable. Emitted VALUES move (the inverse fill
+ * hover/pressed/focused/selected states across the corpus), an ENGINE trigger via `lint-emission-version`.
+ * Provisional integer 0.100.0 (next free above main's 0.99.0, MINOR increment continuing 0.94 → … → 0.99) —
+ * a rebase relay reassigns it to the true next-free above main before merge. NO CONTRACT bump: hover/pressed
+ * rebind to EXISTING neutral ramp rungs and rest keeps the absolute, so no guaranteed token NAME is added,
+ * removed or retyped — `token-contract.ts --check` reports the guaranteed surface unchanged and the contract
+ * stands at 10.3.0. GATE A (test.ts) is reconciled from "flat absolute" to "absolute at rest + 2-rung step
+ * away from the extreme"; GATE B stays REST-ONLY. Mutations (docs/34): flattening any non-rest state back to
+ * the absolute fails GATE A's FLAT arm by name; inverting the mode-mirror fails GATE A's DIRECTION arm.
  */
-export const ENGINE_VERSION = '0.99.0';
+export const ENGINE_VERSION = '0.100.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
