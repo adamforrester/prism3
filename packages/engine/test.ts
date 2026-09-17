@@ -8840,6 +8840,41 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(validateComponentDef(glyphPxNeg as ComponentDef).errors.some((e) => /declares glyphPx -1/.test(e) && /must be > 0/.test(e)),
       "#1340 a NEGATIVE glyphPx (-1) is refused BY NAME — a negative literal would invert the frame; the bound is `> 0`, not `!== 0`");
 
+    // ---- #1409: the `PartDef.glyphScale` refusal (#1346/#1408) pinned BY NAME (docs/34) ----
+    // #1408 shipped `glyphScale` with a range refusal in `anatomyErrors` (`0 < glyphScale ≤ 1`, and only on
+    // a `vector` part) and argued it was "exercised by construction (0.8 is in range)". That is the
+    // it's-exercised fallacy: a passing in-range value proves the happy path, never the refusal, so the
+    // bound could be deleted or mis-written (`>= 0`, `< 1`) with the suite green. EXPECTED here is the
+    // boundary AS SPECIFIED — 0 exclusive, 1 inclusive — authored below as literals from the schema's
+    // doc-comment contract, never read from the subject; the SUBJECT is the real checkbox-control mark
+    // (the one live `glyphScale` author) patched to each probe value. The two just-inside / just-outside
+    // pairs are what pin the bound's TYPE: `1` accepted + `1.0001` refused fails on `< 1`; `0` refused +
+    // `0.0001` accepted fails on `>= 0`. Widening either comparison to admit a probe fails the arm by name.
+    const checkboxControlDef = componentDefs.find((d) => d.id === 'checkbox-control')!;
+    const cbMark = checkboxControlDef.anatomy.parts.mark;
+    ok(cbMark.kind === 'vector' && typeof cbMark.glyphScale === 'number',
+      `#1409 the probe subject is real — checkbox-control's mark is a vector carrying a glyphScale (got kind '${cbMark.kind}', glyphScale ${String(cbMark.glyphScale)}); a subject with no glyphScale to patch would make every arm below vacuous`);
+    const withMarkScale = (glyphScale: number) => ({ ...checkboxControlDef, anatomy: { ...checkboxControlDef.anatomy, parts: { ...checkboxControlDef.anatomy.parts, mark: { ...cbMark, glyphScale } } } } as ComponentDef);
+    const scaleErrors = (glyphScale: number) => validateComponentDef(withMarkScale(glyphScale)).errors.filter((e) => /glyphScale/.test(e));
+    const RANGE_REFUSAL = /must be in \(0, 1\]/;
+    // (a) IN RANGE is accepted — including the inclusive top (`1`, the documented no-op default) and a
+    // value just above the exclusive bottom. Not a truthiness check: the filter is the glyphScale family
+    // only, so an unrelated authoring error on the patched def cannot mask a wrongly-firing refusal.
+    for (const accepted of [0.0001, 0.5, 1])
+      ok(scaleErrors(accepted).length === 0,
+        `#1409 glyphScale ${accepted} is IN (0, 1] and validates clean (got [${scaleErrors(accepted).join('; ')}]) — a bound tightened to '< 1' or moved off 0 fails here`);
+    // (b) OUT OF RANGE is refused by the named range arm, value echoed. `0` divides at emit (the projector
+    // pads to `grid / scale`); above 1 pads the artboard SMALLER than the grid and clips the ink.
+    for (const refused of [0, -0.1, 1.0001, 1.5])
+      ok(scaleErrors(refused).some((e) => new RegExp(`declares glyphScale ${String(refused).replace('.', '\\.')} `).test(e) && RANGE_REFUSAL.test(e)),
+        `#1409 glyphScale ${refused} is OUTSIDE (0, 1] and is refused BY NAME with the value echoed (got [${scaleErrors(refused).join('; ')}]) — widening the bound to admit it (\`>= 0\`, \`<= 2\`, or deleting the arm) leaves this red`);
+    // (c) glyphScale on a NON-vector — read only by the vector branch's glyph-document emitter, so on any
+    // other kind it validates clean, is ignored, and leaves an author believing the mark is inset. The
+    // control BOX is the host of the mark, so an author moving the inset one level up is the realistic slip.
+    const scaleOnBox = { ...checkboxControlDef, anatomy: { ...checkboxControlDef.anatomy, parts: { ...checkboxControlDef.anatomy.parts, control: { ...checkboxControlDef.anatomy.parts.control, glyphScale: 0.8 } } } } as ComponentDef;
+    ok(validateComponentDef(scaleOnBox).errors.some((e) => /declares 'glyphScale'/.test(e) && /kind 'box'/.test(e) && /only a 'vector'/.test(e)),
+      `#1409 glyphScale on a NON-vector part (the control box, an in-range 0.8) is refused BY NAME — deleting the wrong-kind arm lets the field validate clean and be silently ignored (got [${validateComponentDef(scaleOnBox).errors.filter((e) => /glyphScale/.test(e)).join('; ')}])`);
+
     // ---- #1424: the labelled ROW wraps a long label instead of overflowing ----
     // Prism 2's radio-button-row / checkbox-row let a long label WRAP to a second line with the control
     // top-anchored (the description text is `layoutSizingHorizontal: FILL`). The engine expresses that as
