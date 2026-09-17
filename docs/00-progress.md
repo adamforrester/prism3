@@ -22,6 +22,43 @@
 **Safety net (docs/34, by name).** `SELF_CHECK` gains seven samples driving the shared `enGb`: four positive (`travelling`, `unlabelled`/`cancelled`, `centred`, `kilometres` — the last because only a substring scan sees a compound) and three negative (`controlled`/`compelled`/`caller`, `cancellation`/`totally`/`equally`, `diameter`/`parameter`/`centered`). **Mutations, each restored from a `wip:` commit:** (A) `travelling` appended to `packages/engine/README.md`, `labelled` to the root `README.md`, `centre` to `skills/prism3-theme/SKILL.md` → gate exits 1 naming all three by file, line and word. (B) `DOUBLE_L` removed from the `enGb` loop → `❌ the gate's detection is broken` naming the two doubled-L samples, before any file is scanned. (C) `RE_ENDINGS` removed → the same, naming `centred` and `kilometres`. Neither neutering goes quiet.
 
 **Traps for re-verifiers.** (1) A mechanical `centre → center` rewrite turns `centred` into `centerd`; the first regen on this branch shipped that into `out/**` for a few minutes before the word-diff review caught it. Respell `centred → centered` as its own rule, and read the word-level diff (`git diff --word-diff`) before trusting a sed. (2) The 506 count is the FIRST run's total across `out/**` + both bundles; `out/**` alone accounts for ~330 of it because every brand repeats the same source strings. (3) `test.ts` and the `lint-*.ts` headers still say `centred`/`labelled` in their `ok()` messages and comments — not shipped, not gated, left alone (surgical). (4) Not covered by this issue and STILL blind, measured on the same corpus after this pass: `catalogue` ×8, `licence` ×3, `artefact` ×1 (plus `-yse`: `analyse`/`paralyse`, and the reverse single-L class `skilful`/`fulfil`/`enrol`, none currently shipping). Filed as #1463 rather than folded in — one concern per PR.
+## (2026-09-17) — #1451: the #1429 gate's comment said "12 per icon-button family"; the gate measures 48
+
+**STATUS: PR open on branch `fix/1451-icon-button-wash-count`, do NOT merge (orchestrator verifies + merges). Comment-only correctness fix — NO ENGINE bump (0.103.0 stands), CONTRACT 10.3.0, no emitted artifact moves, no gate behavior moves.**
+
+**THE DRIFT.** The prose atop the #1429 overlay-wash block in `apps/plugin/test-roundtrip.ts` stated the wash was "measured here as 96 bindings per button family and **12** per icon-button family". The issue (filed off the #1448 review) said the gate reports **24**. On current main it reports **48** — and the brief's rule was "use the number the code produces, not the issue title", so 48 is what the comment now says. The 12 was measured at 0.93.0 before the icon-button def gained two axes; the gate prints per-family figures at run time, so the assertion was always right and only the comment drifted.
+
+**WHY 48, derived independently of the gate (docs/34 — the number is checked against the def, not copied from the output).** A wash binds on `container.fills` at every outline/ghost × hover/pressed coordinate, and icon-button's axes are `appearance ×3 · size ×3 · shape ×2 · surface ×2` (216 members). So: 2 wash appearances × 2 wash states × 3 sizes × 2 shapes × 2 surfaces = **48**. The two doublings since the comment was written, in merge order on main: `#1353` (`shape`, 12 → 24, merged BEFORE the #1429 gate — so the comment was stale on arrival, which is what the review caught) and `#1427` (`surface`, 24 → 48, merged after). Button's 96 is unchanged and still matches. The `test:roundtrip` output on this branch: `button=96 ×3, icon-button=48 ×3, 432 bindings, 0 dangling`.
+
+**Scope.** One comment edited; the new wording carries the derivation so the next axis change has a formula to re-check against rather than a bare number, and points at assertion (1) as the live figure. The dated #1429 entry below (2026-09-16) still says 12 — it is a record of what was measured at 0.93.0 and is left as history. Nothing else in `apps/plugin/` or `packages/engine/` carries the stale count (grepped for the "12 per icon-button" shape repo-wide; this comment was the sole instance). Full `npm run verify` FOREGROUND: **59/59 PASS**.
+
+**Trap for re-verifiers.** The number in that comment will go stale AGAIN the next time an icon-button axis is added or removed (it is a product of the def's axis sizes, and nothing gates a comment). Whoever changes the axes: re-run `test:roundtrip`, read the `#1429 … every named family (… icon-button=N …)` line, and update the comment's count and formula in the same PR.
+## (2026-09-17) — the `glyphScale` range refusal gets its own by-name mutation test (#1409)
+
+**STATUS: test-only PR on branch `1409-glyphscale-refusal-test` — do NOT merge (orchestrator verifies + merges). No ENGINE bump, CONTRACT 10.3.0, `regen --check` byte-identical, no emission change.**
+
+**The untested guard.** #1408 added `PartDef.glyphScale` (a `vector` part's drawn grid occupies this fraction of its artboard; checkbox-control's mark and dash author `0.8`) with a refusal in `anatomyErrors` (`packages/engine/component-schema.ts`, the `if (p.glyphScale !== undefined)` block): the value must be in `(0, 1]`, and the field is refused on any non-`vector` kind. Its progress note argued the guard was "exercised by construction (0.8 is in range)" — the it's-exercised fallacy docs/34 names: a passing in-range value proves the happy path, never the refusal. Hand-verified at merge, committed nowhere. Either comparison could be deleted or mis-written (`>= 0`, `< 1`) and 3,742 assertions stayed green — a guard with no test is one a future cleanup deletes silently.
+
+**The test added** (`packages/engine/test.ts`, beside the #1340 `glyphPx` refusal battery it mirrors — same file, same vocabulary). Three arms, nine assertions, all `#1409`-prefixed so a mutation report names them:
+
+- **(a) in range accepted** — `0.0001`, `0.5`, `1` validate with no `glyphScale`-family error. Not a truthiness check: the filter is the glyphScale message family only, so an unrelated authoring error on the patched def cannot mask a wrongly-firing refusal.
+- **(b) out of range refused by name** — `0`, `-0.1`, `1.0001`, `1.5` each produce the range message with the VALUE ECHOED (`declares glyphScale 1.5 … must be in (0, 1]`), so a refusal that fires on the wrong probe cannot satisfy it.
+- **(c) wrong kind refused by name** — an in-range `0.8` on the control BOX (the mark's host, the realistic one-level-up slip) produces the `only a 'vector'` message.
+
+**Why the boundary is independent (docs/34 shape 1 / shape 2).** EXPECTED is `(0, 1]` authored as literals in the test from the schema's own doc-comment contract (`0 < glyphScale ≤ 1`), never read from the comparison the subject runs. The two just-inside / just-outside PAIRS are what pin the bound's *type* rather than its existence: `1` accepted + `1.0001` refused fails on a `< 1` rewrite, `0` refused + `0.0001` accepted fails on `>= 0`. The subject is the REAL checkbox-control mark patched per probe, with a probe-subject assertion first (it is a vector carrying a numeric `glyphScale`), so a def rename or a mark that stops authoring the field fails there rather than leaving every arm vacuous on an undefined patch.
+
+**Mutation confirmation — four mutations, each failing BY NAME and nothing else** (wip commit between each; every restore is `git checkout -- component-schema.ts`, which reaches HEAD):
+
+| Mutation on the subject | Suite | Named failures |
+|---|---|---|
+| `<= 1` → `<= 2` (admit above 1) | 3749 / 2 failed | `#1409 glyphScale 1.0001 … refused BY NAME`, `#1409 glyphScale 1.5 … refused BY NAME` |
+| `> 0` → `>= 0` (admit 0) | 3750 / 1 failed | `#1409 glyphScale 0 … refused BY NAME` |
+| `<= 1` → `< 1` (tighten — proves the ACCEPT arm can fail) | 3750 / 1 failed | `#1409 glyphScale 1 is IN (0, 1] and validates clean` |
+| delete the wrong-kind arm | 3750 / 1 failed | `#1409 glyphScale on a NON-vector part … refused BY NAME` |
+
+Restored: 3751 passed, 0 failed. The third row is the one worth keeping: a test that only asserts refusals is half a gate — a refusal widened to `> 0 && < 2` and one tightened to `> 0 && < 1` are both wrong, and only an acceptance arm at the inclusive edge sees the second.
+
+**Not folded in.** #1409's optional `edge ÷ 8` comment-phrasing note in `checkbox-control.ts` / `component-schema.ts` / `version.ts` is left as filed — prose in three files is a separate concern from a test-only PR (principle 3).
 
 ## (2026-09-17) — a shipped $description bricked the plugin (Figma import-expression reject); hotfix #1460 + the gate that would have caught it (#1461)
 
