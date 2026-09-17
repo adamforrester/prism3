@@ -7,6 +7,17 @@
 
 ---
 
+## (2026-09-17) — #1451: the #1429 gate's comment said "12 per icon-button family"; the gate measures 48
+
+**STATUS: PR open on branch `fix/1451-icon-button-wash-count`, do NOT merge (orchestrator verifies + merges). Comment-only correctness fix — NO ENGINE bump (0.103.0 stands), CONTRACT 10.3.0, no emitted artifact moves, no gate behavior moves.**
+
+**THE DRIFT.** The prose atop the #1429 overlay-wash block in `apps/plugin/test-roundtrip.ts` stated the wash was "measured here as 96 bindings per button family and **12** per icon-button family". The issue (filed off the #1448 review) said the gate reports **24**. On current main it reports **48** — and the brief's rule was "use the number the code produces, not the issue title", so 48 is what the comment now says. The 12 was measured at 0.93.0 before the icon-button def gained two axes; the gate prints per-family figures at run time, so the assertion was always right and only the comment drifted.
+
+**WHY 48, derived independently of the gate (docs/34 — the number is checked against the def, not copied from the output).** A wash binds on `container.fills` at every outline/ghost × hover/pressed coordinate, and icon-button's axes are `appearance ×3 · size ×3 · shape ×2 · surface ×2` (216 members). So: 2 wash appearances × 2 wash states × 3 sizes × 2 shapes × 2 surfaces = **48**. The two doublings since the comment was written, in merge order on main: `#1353` (`shape`, 12 → 24, merged BEFORE the #1429 gate — so the comment was stale on arrival, which is what the review caught) and `#1427` (`surface`, 24 → 48, merged after). Button's 96 is unchanged and still matches. The `test:roundtrip` output on this branch: `button=96 ×3, icon-button=48 ×3, 432 bindings, 0 dangling`.
+
+**Scope.** One comment edited; the new wording carries the derivation so the next axis change has a formula to re-check against rather than a bare number, and points at assertion (1) as the live figure. The dated #1429 entry below (2026-09-16) still says 12 — it is a record of what was measured at 0.93.0 and is left as history. Nothing else in `apps/plugin/` or `packages/engine/` carries the stale count (grepped for the "12 per icon-button" shape repo-wide; this comment was the sole instance). Full `npm run verify` FOREGROUND: **59/59 PASS**.
+
+**Trap for re-verifiers.** The number in that comment will go stale AGAIN the next time an icon-button axis is added or removed (it is a product of the def's axis sizes, and nothing gates a comment). Whoever changes the axes: re-run `test:roundtrip`, read the `#1429 … every named family (… icon-button=N …)` line, and update the comment's count and formula in the same PR.
 ## (2026-09-17) — the `glyphScale` range refusal gets its own by-name mutation test (#1409)
 
 **STATUS: test-only PR on branch `1409-glyphscale-refusal-test` — do NOT merge (orchestrator verifies + merges). No ENGINE bump, CONTRACT 10.3.0, `regen --check` byte-identical, no emission change.**

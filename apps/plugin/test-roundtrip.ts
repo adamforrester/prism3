@@ -502,8 +502,10 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // THE DIAGNOSIS IS (b), A TELEMETRY READING — NOT A DROPPED WASH, and the evidence is below in this very
 // block. The `container` box declares `paintSlots: ['overlay','fill','border']` (button.ts / icon-button.ts),
 // so on an outline/text hover/pressed coordinate the projection binds `interactive.<c>.overlay.<state>`
-// (the translucent wash) onto `container.fills` — measured here as 96 bindings per button family and 12 per
-// icon-button family, exactly where the QA said nothing landed. On every brand that USES the wash
+// (the translucent wash) onto `container.fills` — measured here as 96 bindings per button family and 48 per
+// icon-button family (2 wash appearances × 2 wash states × 3 sizes × 2 shapes × 2 surfaces; the count moves
+// with the def's axes — it was 24 before #1427 added `surface`, and assertion (1) prints the live per-family
+// figures, #1451), exactly where the QA said nothing landed. On every brand that USES the wash
 // (`outlineInteraction: 'overlay-neutral'`, the default and the whole committed corpus) that variable IS
 // emitted and the binding RESOLVES: 0 dangling. The 96/24 QA misses came from a brand built with
 // `outlineInteraction: 'none'` (the `minimal-levers` corpus member), which DELIBERATELY does not emit the
