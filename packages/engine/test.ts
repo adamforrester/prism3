@@ -1025,6 +1025,43 @@ for (const b of brands) {
   if (scopeOf('color/field/placeholder') !== JSON.stringify(['TEXT_FILL'])) fieldScopeBad.push('field/placeholder');
   ok(fieldScopeBad.length === 0, 'field: Figma slots carry slot-aware scopes' + (fieldScopeBad.length ? ` — ${fieldScopeBad.join(',')}` : ''));
 
+  // (e4) TOP-LEVEL ROLE-FAMILY scopes (#1484). The blocks above pin the SLOT-scoped families
+  //      (interactive/disabled/field). This pins the families dispatched by `COLOR_SCOPES` on
+  //      `seg[1]` — background/scrim/veil/foreground/text/icon/border — so none can silently regain
+  //      the wrong picker context. The bug this closes: `foreground.*` are on-color SURFACE/fill
+  //      colours (the ground UNDER on-color content), not ink, yet carried a `TEXT_FILL` that offered
+  //      them in Figma's text-fill picker. `foreground` must scope like its surface twins
+  //      (background/scrim/veil), NOT like `text`.
+  //
+  //      docs/34 independence: the EXPECTED sets here are HAND-WRITTEN literals, deliberately NOT
+  //      imported from `COLOR_SCOPES` — deriving the oracle from the table it checks would be shape 2
+  //      (the DRY trap: `table === table`, unfalsifiable). Mutating `COLOR_SCOPES.foreground` back to
+  //      include `TEXT_FILL` fails THIS assertion by name (`foreground`), and the same for any family.
+  //      A stale/renamed family name reads back `null` (scopeOf misses) → mismatch → named failure, so
+  //      the family is proven REPRESENTED, not merely self-consistent. The `familyScopeChecked` floor
+  //      asserts the set actually ran over a non-empty family list (docs/34 shape 9), so an empty sweep
+  //      cannot pass as clean.
+  const roleFamilyScopes: Record<string, { leaf: string; scopes: string[] }> = {
+    background: { leaf: 'color/background/primary', scopes: ['FRAME_FILL', 'SHAPE_FILL'] },
+    scrim: { leaf: 'color/scrim/default', scopes: ['FRAME_FILL', 'SHAPE_FILL'] },
+    veil: { leaf: 'color/veil/dark/subtle', scopes: ['FRAME_FILL', 'SHAPE_FILL'] },
+    // The fix's whole point: a surface, NOT ink — Frame/Shape only, no TEXT_FILL (#1484).
+    foreground: { leaf: 'color/foreground/primary', scopes: ['FRAME_FILL', 'SHAPE_FILL'] },
+    text: { leaf: 'color/text/primary', scopes: ['TEXT_FILL'] },
+    icon: { leaf: 'color/icon/primary', scopes: ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'] },
+    border: { leaf: 'color/border/primary', scopes: ['STROKE_COLOR'] },
+  };
+  const familyScopeBad: string[] = [];
+  let familyScopeChecked = 0;
+  for (const [fam, { leaf, scopes }] of Object.entries(roleFamilyScopes)) {
+    familyScopeChecked++;
+    if (scopeOf(leaf) !== JSON.stringify(scopes)) familyScopeBad.push(`${fam} (${leaf}=${scopeOf(leaf)})`);
+  }
+  ok(familyScopeChecked === 7 && familyScopeBad.length === 0,
+    'color role-families carry surface/ink/stroke scopes by family (#1484: foreground is a surface, not text)'
+    + (familyScopeChecked !== 7 ? ` — swept ${familyScopeChecked} families, expected 7` : '')
+    + (familyScopeBad.length ? ` — WRONG SCOPE: ${familyScopeBad.join('; ')}` : ''));
+
   // (f) overlays (docs/20 §6): each colour has hover/pressed/selected washes, mode-adaptive
   //     (black-alpha light / white-alpha dark), and the COMPOSITED result is a gated contract
   //     — text.primary stays ≥ AA on the tinted surface in every mode (the wash-out guard).
@@ -6465,6 +6502,43 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'hc-light', name: 'color/icon/info-subtle', nb: 'palette/info/450', engine: 'palette/info/500' },
 ];
 
+// Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
+// The hand-built NB Token Press export scoped every `foreground.*` variable FRAME/SHAPE/TEXT, but
+// `foreground.*` are on-color SURFACE/fill colours — the ground painted UNDER on-color content — not
+// ink (that is `text.*`). A `TEXT_FILL` there wrongly offered them in Figma's text-fill picker, so the
+// engine now scopes them like their surface twins `background`/`scrim`/`veil` (FRAME/SHAPE, no Text).
+//
+// Recorded here rather than edited into the frozen fixture (docs/34 shape 6: rewriting the fixture to
+// agree with our own change would leave this gate reading a file the change had itself edited — green
+// on any future scope regression, the one thing it exists to catch — the same reason NB_KNOWN_RENAMES
+// exists above). Keyed by FIXTURE name: the three `foreground/inverse/*` carry their pre-#1140 names
+// because that is how the frozen export spells them, and the scope loop reaches the renamed engine var
+// through NB_KNOWN_RENAMES. Scopes are mode-invariant, so each entry is expected to be hit in all four
+// color modes; the comparison below accepts the divergence ONLY when it is EXACTLY nb→engine (a changed
+// scope is a new finding, not a covered one) and a waiver never hit is stale and fails as loudly as a
+// missing one. Written one name per line, not a `.map` over a slug list, so each stays an INDEPENDENT
+// statement of a var the emitter really moved (docs/34 shape 1), staleness-checked on its own.
+const FG_NB_SCOPES = ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'];
+const FG_ENGINE_SCOPES = ['FRAME_FILL', 'SHAPE_FILL'];
+const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[] }[] = [
+  { name: 'color/foreground/primary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/secondary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/tertiary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/inverse/primary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/inverse/secondary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/inverse/tertiary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/brand', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/success', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/warning', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/info', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/danger', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/brand-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/success-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/warning-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/danger-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/info-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+];
+
 // Token Press export (fixtures/figma/nb): same variable names per collection/mode, same
 // scopes, and — the load-bearing property — every semantic aliases the SAME palette
 // variable by name in every mode (0 broken/mismatched). Values compared to float32
@@ -6485,6 +6559,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // NB opts into the default four modes (no wireframe), so `color` here has 4 entries.
   // Iterate the modes actually emitted rather than the full COLOR_MODES set — the
   // wireframe mode is opt-in and has no NB fixture (docs/11 Pillar 1b).
+  // Accumulated across every color mode — a scope divergence is mode-invariant, so each waiver should be
+  // hit in all four; one never hit anywhere is stale (checked once after the loop).
+  const scopeDivHit = new Set<string>();
   for (const key of ['palette', ...color.map((c) => `color.${c.$mode}`)]) {
     const fix = JSON.parse(readFileSync(resolve(FIXDIR, `${key}.json`), 'utf8'));
     const out = emitted[key];
@@ -6687,7 +6764,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // Follows `NB_KNOWN_RENAMES`, so a renamed var stays scope/alias/value checked rather than
       // being skipped by the `continue` — a rename must not become a way to stop being verified.
       const ov = outByName.get(name) ?? outByName.get(NB_KNOWN_RENAMES[name] ?? '\0'); if (!ov) continue;
-      if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) scopeBad.push(name);
+      if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) {
+        // A scope the engine intentionally diverges on (#1484: foreground drops TEXT_FILL) is accepted
+        // ONLY when it matches an NB_KNOWN_SCOPE_DIVERGENCES entry EXACTLY (fixture nb → engine). A
+        // different divergence than recorded is a new finding and still fails.
+        const sd = NB_KNOWN_SCOPE_DIVERGENCES.find((d) => d.name === name);
+        if (sd && JSON.stringify([...fv.scopes].sort()) === JSON.stringify([...sd.nb].sort())
+              && JSON.stringify([...ov.scopes].sort()) === JSON.stringify([...sd.engine].sort()))
+          scopeDivHit.add(name);
+        else scopeBad.push(name + (sd ? ' [scope divergence CHANGED]' : ''));
+      }
       // A role may diverge from real NB only if it is enumerated below AND diverges EXACTLY as
       // recorded. A changed divergence is a new finding, not a covered one, so it still fails.
       const known = NB_KNOWN_DIVERGENCES.find((d) => d.mode === modeOf && d.name === name);
@@ -6711,6 +6797,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(aliasBad.length === 0, `figma ${key}: every alias targets the same palette var as the fixture` + (aliasBad.length ? ` — ${aliasBad.slice(0, 3).join(',')}` : ''));
     ok(valBad.length === 0, `figma ${key}: resolved values match fixture (float32 tol)` + (valBad.length ? ` — ${valBad.slice(0, 3).join(',')}` : ''));
   }
+  // A scope-divergence waiver that no longer applies is as much a bug as a missing one: it claims the
+  // engine still diverges where it doesn't, and would silently cover a REAL future scope regression at
+  // that var. Fail until it is removed (docs/34, mirrors the alias-divergence staleness above).
+  const staleScopeDiv = NB_KNOWN_SCOPE_DIVERGENCES.filter((d) => !scopeDivHit.has(d.name)).map((d) => d.name);
+  ok(staleScopeDiv.length === 0, 'figma color: no stale NB scope-divergence waivers'
+    + (staleScopeDiv.length ? ` — ${staleScopeDiv.join(', ')} no longer diverge; remove them` : ''));
 }
 
 // (12) EMIT-FIGMA TYPOGRAPHY (docs/10 §4) — byte-reproduce the frozen font.json +

@@ -2926,6 +2926,18 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.111.0 — #1484: `foreground.*` Figma variable scopes drop `TEXT_FILL`. The `foreground` semantic
+ * family are on-color SURFACE/fill colours — the ground painted UNDER on-color content — not ink, so
+ * carrying a `TEXT_FILL` wrongly offered them in Figma's text-fill picker. They now scope like their
+ * surface twins `background`/`scrim`/`veil` (FRAME_FILL + SHAPE_FILL), and `text.*` remains the only
+ * top-level color family that scopes as `TEXT_FILL`. Only the emitted `scopes` metadata on the
+ * `color/foreground/*` variables changes across every brand's `out/figma/**` — no token value, no
+ * name, no projected component member moves — so this restamps `out/**` and moves those scope arrays.
+ * A new by-name gate (`test.ts` (e4)) pins the top-level `COLOR_SCOPES` role-families so a family
+ * cannot silently regain the wrong scope; mutating `foreground` back to text-fill fails it by name.
+ * CONTRACT STANDS at 11.2.0 — a Figma scope is emitted metadata, not a guaranteed token name
+ * (`token-contract --check` level `none`).
+ *
  * 0.110.0 — #1485: BIND the text-style cut (weight/style) to a STRING variable, so a WIDTH cut like ITC
  * Garamond Std *Light Condensed* is bindable and themeable in Figma — the numeric weight axis can never
  * reach a width. A Figma Text Style has ONE weight/style control; the engine used to bind it via the
@@ -3007,7 +3019,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.110.0';
+export const ENGINE_VERSION = '0.111.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
