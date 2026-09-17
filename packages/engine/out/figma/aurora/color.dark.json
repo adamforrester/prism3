@@ -1325,6 +1325,66 @@
       }
     },
     {
+      "name": "ads/color/interactive/primary/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)",
+      "value": {
+        "r": 0,
+        "g": 0.5333333611488342,
+        "b": 0.7450980544090271,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/450"
+      }
+    },
+    {
+      "name": "ads/color/interactive/primary/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)",
+      "value": {
+        "r": 0.33725491166114807,
+        "g": 0.6313725709915161,
+        "b": 0.7960784435272217,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/350"
+      }
+    },
+    {
+      "name": "ads/color/interactive/primary/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "primary interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
+      "value": {
+        "r": 0.5372549295425415,
+        "g": 0.7254902124404907,
+        "b": 0.8392156958580017,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/250"
+      }
+    },
+    {
       "name": "ads/color/interactive/primary/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -1605,6 +1665,66 @@
       }
     },
     {
+      "name": "ads/color/interactive/destructive/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive icon ink — rest (the glyph in an outline / ghost / text control)",
+      "value": {
+        "r": 0.8784313797950745,
+        "g": 0.4117647111415863,
+        "b": 0.3686274588108063,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/400"
+      }
+    },
+    {
+      "name": "ads/color/interactive/destructive/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive icon ink — hover (the glyph in an outline / ghost / text control)",
+      "value": {
+        "r": 0.9019607901573181,
+        "g": 0.5647059082984924,
+        "b": 0.5254902243614197,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/300"
+      }
+    },
+    {
+      "name": "ads/color/interactive/destructive/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
+      "value": {
+        "r": 0.9254902005195618,
+        "g": 0.7058823704719543,
+        "b": 0.6745098233222961,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/200"
+      }
+    },
+    {
       "name": "ads/color/interactive/destructive/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -1873,6 +1993,66 @@
         "TEXT_FILL"
       ],
       "description": "neutral interactive ink — pressed (outline / text appearance)",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/025"
+      }
+    },
+    {
+      "name": "ads/color/interactive/neutral/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "neutral interactive icon ink — rest (the glyph in an outline / ghost / text control)",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/025"
+      }
+    },
+    {
+      "name": "ads/color/interactive/neutral/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "neutral interactive icon ink — hover (the glyph in an outline / ghost / text control)",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/025"
+      }
+    },
+    {
+      "name": "ads/color/interactive/neutral/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "neutral interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
       "value": {
         "r": 0.9686274528503418,
         "g": 0.9686274528503418,
@@ -2830,6 +3010,66 @@
       }
     },
     {
+      "name": "ads/color/inverse/interactive/primary/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "primary interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+      "value": {
+        "r": 0,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/550"
+      }
+    },
+    {
+      "name": "ads/color/inverse/interactive/primary/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "primary interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+      "value": {
+        "r": 0,
+        "g": 0.3294117748737335,
+        "b": 0.4627451002597809,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/650"
+      }
+    },
+    {
+      "name": "ads/color/inverse/interactive/primary/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "primary interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+      "value": {
+        "r": 0,
+        "g": 0.23137255012989044,
+        "b": 0.3333333432674408,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/750"
+      }
+    },
+    {
       "name": "ads/color/inverse/interactive/primary/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -3110,6 +3350,66 @@
       }
     },
     {
+      "name": "ads/color/inverse/interactive/destructive/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+      "value": {
+        "r": 0.6313725709915161,
+        "g": 0.21568627655506134,
+        "b": 0.1921568661928177,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/600"
+      }
+    },
+    {
+      "name": "ads/color/inverse/interactive/destructive/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+      "value": {
+        "r": 0.48235294222831726,
+        "g": 0.13725490868091583,
+        "b": 0.12156862765550613,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/700"
+      }
+    },
+    {
+      "name": "ads/color/inverse/interactive/destructive/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+      "value": {
+        "r": 0.34117648005485535,
+        "g": 0.05882352963089943,
+        "b": 0.05098039284348488,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/800"
+      }
+    },
+    {
       "name": "ads/color/inverse/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -3378,6 +3678,66 @@
         "TEXT_FILL"
       ],
       "description": "neutral interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/950"
+      }
+    },
+    {
+      "name": "ads/color/inverse/interactive/neutral/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "neutral interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/950"
+      }
+    },
+    {
+      "name": "ads/color/inverse/interactive/neutral/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "neutral interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/950"
+      }
+    },
+    {
+      "name": "ads/color/inverse/interactive/neutral/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "neutral interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
