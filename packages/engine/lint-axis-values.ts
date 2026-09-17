@@ -174,16 +174,35 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'appearance',
     values: ['filled', 'outline', 'text'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'],
-    relation: 'sole',
+    defs: ['button', 'button-destructive', 'button-neutral'],
+    relation: 'canonical',
     reason:
       'The emphasis ladder, descending: filled carries the page\'s primary action, outline the secondary, '
-      + 'text the tertiary. One entry covers six defs, all off two factories: the three #1223 button siblings '
-      + '(`button`, `button-destructive`, `button-neutral`) come off `makeButton`, and the three #1225 '
-      + 'icon-button siblings (`icon-button`, `icon-button-destructive`, `icon-button-neutral`) come off '
-      + '`makeIconButton` — same axis, only the colour FAMILY differs, which is the component identity now, '
-      + 'not a coordinate. A second entry for any of them would let the shared set drift while all still '
-      + 'passed; the shared set IS the relationship.',
+      + 'text the tertiary. CANONICAL since #1432 split this axis — one entry covers the three #1223 button '
+      + 'siblings (`button`, `button-destructive`, `button-neutral`), all off `makeButton`, same axis with '
+      + 'only the colour FAMILY differing (the component identity now, not a coordinate). It WAS shared with '
+      + 'the icon-button family until #1432 renamed their tertiary value `text` → `ghost` (a "text" appearance '
+      + 'is meaningless on an icon-only control); Button KEEPS `text`, so the two ladders now diverge on that '
+      + 'one rung and this is the reference the icon-button `overlapping` entry below is described against. A '
+      + 'second entry for the three button defs would let this shared set drift while all still passed; the '
+      + 'shared set IS the relationship.',
+  },
+  {
+    axis: 'appearance',
+    values: ['filled', 'outline', 'ghost'],
+    defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'],
+    relation: 'overlapping',
+    reason:
+      'The icon-button emphasis ladder (#1432, owner-decided 2026-09-17): filled, outline, then `ghost` — '
+      + 'the borderless/fill-less icon action, the industry term for what Button calls `text`. OVERLAPPING '
+      + 'with the canonical button ladder BY DESIGN, and named as the expensive relation deliberately: the '
+      + 'two agree on `filled`/`outline` and diverge on the tertiary rung alone, which is exactly the "reads '
+      + 'as aligned while disagreeing on one value" shape this register exists to flag. Here the divergence '
+      + 'is the decision, not an accident — a "text" appearance names nothing on an icon-only control (there '
+      + 'is no text), so the VALUE is renamed while the mechanical mapping to button\'s `text` ink role is '
+      + 'unchanged (icon-button.ts binds `ghost.*` paint keys to `color.interactive.<family>.text.*`). The '
+      + 'owner accepted that Button and IconButton diverge on this one appearance-value name; shared by the '
+      + 'three `makeIconButton` siblings, so one entry records all three.',
   },
   {
     axis: 'emphasis',

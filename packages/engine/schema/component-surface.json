@@ -23,15 +23,15 @@
     },
     "icon-button": {
       "members": 216,
-      "sha256": "9916b827801e167c177d29a1868d132b6479696b6304ecc46d8b6fce31c57ad5"
+      "sha256": "11c5dd563f6c8796d75c8630099e626880fea095da77a036514e6618a943afc0"
     },
     "icon-button-destructive": {
       "members": 216,
-      "sha256": "21b78faa177153e79d5095774a169108b3604b4e5b118bf72555b52dc646b2e4"
+      "sha256": "28fc3367173dc931b79096fc031c2ed831f484ca6312b17d1f04b3290b892e9f"
     },
     "icon-button-neutral": {
       "members": 216,
-      "sha256": "75d4714af343f7c64430d63a72c302d3e14c86c96d036968ebc28440cc096203"
+      "sha256": "72556a00b5e4b57a644fce804b622a732e2aaa4af1ce04e82b0e0b7b6d7cad7e"
     },
     "field-label": {
       "members": 24,
