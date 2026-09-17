@@ -765,6 +765,16 @@ jobs:
       - name: Every visually-significant property on a built node traces to a decision
         run: npx --yes tsx@4 apps/plugin/lint-unclaimed-defaults.ts
 
+      # THE FIGMA MAIN-THREAD SANDBOX REJECT SCAN (#1461). Figma's plugin sandbox
+      # (rejectImportExpressions) scans the built main.js source text — string literals included — for
+      # `import` followed by `(` and refuses to load the WHOLE plugin. A shipped $description carrying
+      # "the Figma import (2026-09-15)" bricked the plugin with 58 gates + CI green (PR #1460), because
+      # no gate reads main.js the way Figma does: plugin-no-node-builtins scans it for `node:` builtins,
+      # the verdict/start suites drive the UI, us-english/voice read it as prose. Runs after the plugin
+      # build; scoped to main.js (ui.html is a browser iframe where import() is valid syntax).
+      - name: The built main.js carries no Figma-sandbox-rejected token sequence (#1461)
+        run: npx --yes tsx@4 apps/plugin/lint-sandbox-reject.ts
+
       # A stated advisory window, once it closes, fails the build. The step below this one is
       # advisory with a date on it, and that date is written in six places — this workflow twice,
       # verify.ts, test-smoke.mjs twice, and the three contributor documents. On the stated morning

@@ -711,6 +711,13 @@ export const GATES: Gate[] = [
     cmd: [...TSX, 'apps/plugin/lint-unclaimed-defaults.ts'],
   },
   {
+    id: 'lint-sandbox-reject',
+    ciStep: "The built main.js carries no Figma-sandbox-rejected token sequence (#1461)",
+    cmd: [...TSX, 'apps/plugin/lint-sandbox-reject.ts'],
+    after: ['build-plugin'],
+    why: 'it scans the dist/main.js the plugin build just wrote, exactly as Figma reads it',
+  },
+  {
     // It fired for real on 2026-08-20, naming all 8 live sites that described #775's window — this
     // row's own `ciStep` string among them — and that firing is what produced the flip below. It
     // now guards windows nobody has opened yet.
