@@ -7,6 +7,27 @@
 
 ---
 
+## (2026-09-17) — placeholder / label DEFAULT copy goes to generic illustrative scaffolding (#1434, all five approved)
+
+**STATUS: PR #1445 (reset onto current main), do NOT merge (orchestrator verifies + merges). Branch `claude/fix-1434-placeholder-copy` off main (ENGINE 0.101.0 / CONTRACT 10.3.0, after the whole button/icon-button arc).** **ENGINE bump 0.101.0 → 0.102.0 (the projected component surface moves — five defs' member text defaults change, a `lint-component-surface` #1252 trigger). CONTRACT STANDS at 10.3.0 — copy is neither a token name nor a prop, so no guaranteed name moves.** Implements Adam's sign-off (2026-09-16, all five approved on #1434).
+
+**WHAT CHANGED — five emitted DEFAULT strings, generic scaffolding replacing realistic-reading copy:**
+| Component | Was | → |
+|---|---|---|
+| `field-message` default | "Use 8+ characters" | "This is a standard message." |
+| `field-label` default | "Email address" | "Label" |
+| `checkbox-row` | "I agree to the Terms of Service" | "Checkbox label" |
+| `radio` | "Standard shipping" | "Radio option" |
+| `switch` | "Airplane mode" | "Toggle label" |
+
+Emitted-artifact prose under `docs/voice-standard.md` — the **recessive** attribute (§1): the tool's shipped placeholder must read as obviously replaceable scaffolding, never as a real product's copy competing with the brand a customer is building. "Use 8+ characters" read as a real password rule; "Airplane mode" as a real setting — the #1434 failure. Already-generic strings (error/warning/success messages, `Placeholder`, `Button`, `*`, `name@example.com` guidance) are unchanged. Only the `default:` member values move; the prop DESCRIPTIONS that use the old strings as teaching examples are left (they explain the prop, they are not the shipped placeholder).
+
+**REVERSES filed decision #798** — the three selection-control labels (checkbox-row / radio / switch) had preferred a canonical realistic label to demonstrate the content rule; the owner's sign-off flips that to generic scaffolding, consistent with the recessive rule. #798 updated to record the reversal.
+
+**Safety net.** No new copy-invariant gate (owner: not unless separately requested). The existing `test-write-components.ts` `#1018` caption assertion is the by-name check on the `field-message` default — it reads the built TEXT node and asserts the four status members' captions; it fails by name when the default moves (updated here to the new parallel set "This is a standard message. | This is an error message. | …"). `lint-voice` + `lint-us-english` cover the new strings (all US, on-voice, recessive). The three selection-control defaults carry no test assertion (pre-existing; not gated) — a stray future edit there is caught only by review, noted for whoever adds selection-control copy gates.
+
+**Traps for re-verifiers.** (1) The component text defaults are NOT emitted to `out/**` — the plugin builds payloads from the defs at run time, so they live in `schema/component-surface.json` (re-`--accept`ed, five defs moved, member counts unchanged), not the token trees; a grep of `out/` for the new strings finds nothing and that is correct. (2) `token-contract.json` is a stamp-only `--accept` (engineVersion 0.101.0 → 0.102.0; guaranteed surface unchanged at 587). (3) The stale branch was reset onto current main rather than rebased — it was six merges behind (off 0.95.0).
+
 ## (2026-09-17) — RENAME the icon-button appearance value `text` → `ghost` (icon-button family only; Button keeps `text`) (#1432)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges). Branch `claude/fix-1432-icon-button-ghost` off main (ENGINE 0.100.0 / CONTRACT 10.3.0, after #1341/#1384/#1427/#1456).** **ENGINE bump 0.100.0 → provisional 0.101.0 (the projected component surface moves — the icon-button appearance member names `appearance=text` → `appearance=ghost` and the `ghost.*` paint keys — a `lint-component-surface` #1252 trigger; a rebase relay reassigns the ENGINE integer to the true next-free above main before merge). CONTRACT STANDS at 10.3.0 — NO bump (see the load-bearing correction below).** Implements the OWNER DECISION recorded in the #1432 body (2026-09-17): rename the appearance axis VALUE `text` → `ghost` for the three icon-button families ONLY.

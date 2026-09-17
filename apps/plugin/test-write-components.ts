@@ -1897,15 +1897,16 @@ ok(fmMembers.length === 4 && fmMembers.map((m) => m.name).join(' | ') === 'statu
   `#1010 the members are named for the status axis (renamed from tone in #1334), in order (${fmMembers.map((m) => m.name).join(' | ')})`);
 
 // (#1018) EACH MEMBER RENDERS ITS OWN CAPTION COPY, read at the NODE. A component set carries ONE text
-// default, so before this every member's caption read "Use 8+ characters" — the error member shipping the
+// default, so before this every member's caption read the status=default string — the error member shipping the
 // helper string, the opposite of the errorPattern the def exists to enforce. `byVariant.status` now gives each
 // status its own placeholder. Read back off the built TEXT node, NOT the plan: a plan-level check sees
 // `placeholder` resolve for every member (that is how this shipped), so only the node distinguishes a
-// per-member default from a set-wide one.
+// per-member default from a set-wide one. (#1434: the default is now the generic scaffold "This is a
+// standard message.", so the four members read as one parallel set of placeholders.)
 const fmCaption = (m: Node): string => String(fmKids(m).find((c) => c.type === 'TEXT')?.characters ?? '<none>');
 const fmCaptions = fmMembers.map(fmCaption);
-ok(fmCaptions.join(' | ') === 'Use 8+ characters | This is an error message. | This is a warning message. | This is a success message.',
-  `#1018 each status member renders its OWN caption copy at the node — the error member no longer ships the status=default helper string (${fmCaptions.join(' | ')})`);
+ok(fmCaptions.join(' | ') === 'This is a standard message. | This is an error message. | This is a warning message. | This is a success message.',
+  `#1018/#1434 each status member renders its OWN caption copy at the node — the four are one parallel set of generic scaffolds and the error member does not ship the status=default helper string (${fmCaptions.join(' | ')})`);
 ok(new Set(fmCaptions).size === 4,
   `#1018 ...and the four captions are pairwise distinct, so no single set-wide default leaks onto the wrong member (${new Set(fmCaptions).size} distinct)`);
 

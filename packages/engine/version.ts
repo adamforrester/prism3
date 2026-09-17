@@ -2890,8 +2890,19 @@
  * docs/00-progress entry: reconciling "the component appearance value is a versioned name" with the token
  * contract would need a NEW mechanism (a component-API section in token-contract.ts), which is out of scope
  * for this rename.
+ *
+ * 0.102.0 — #1434: the field + selection-control placeholder/label DEFAULTS become generic illustrative
+ * scaffolding, per owner sign-off (2026-09-16, all five approved). `field-message` "Use 8+ characters" →
+ * "This is a standard message.", `field-label` "Email address" → "Label", `checkbox-row` "I agree to the
+ * Terms of Service" → "Checkbox label", `radio` "Standard shipping" → "Radio option", `switch` "Airplane
+ * mode" → "Toggle label". Emitted-artifact prose under docs/voice-standard.md, the recessive attribute (§1):
+ * the tool's shipped placeholder must read as obviously replaceable scaffolding, never as a real product's
+ * copy competing with the brand a customer is building. The three selection-control labels REVERSE filed
+ * decision #798 (a canonical realistic label is no longer preferred — generic scaffolding wins). The
+ * projected component surface moves (member text defaults) → ENGINE bump; CONTRACT STANDS at 10.3.0 — copy
+ * is neither a token name nor a prop, so no guaranteed name moves.
  */
-export const ENGINE_VERSION = '0.101.0';
+export const ENGINE_VERSION = '0.102.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

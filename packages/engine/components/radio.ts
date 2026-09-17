@@ -303,7 +303,10 @@ export const radio: ComponentDef = {
       // property projects a blank node, and the corollary is that the default is the only copy anyone
       // reviewing the set will see. A shipping method is the canonical example in `docs.usage`, and it
       // demonstrates the content rule at the same time: parallel, brief, sentence case, no terminal stop.
-      label: { part: 'label', default: 'Standard shipping' },
+      // GENERIC illustrative scaffold ("Radio option"), not a realistic choice (#1434, owner-directed;
+      // REVERSES #798): the shipped placeholder reads as obviously replaceable, not as a real product's
+      // option (voice-standard §1 recessive).
+      label: { part: 'label', default: 'Radio option' },
     },
     // No `swaps` — the Row nests `radio-control` and exposes its selection/state (the def picks the
     // control, the consumer drives it), and the dot gated by `presentWhen` lives in that atom now. No
