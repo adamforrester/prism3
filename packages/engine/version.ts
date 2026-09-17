@@ -2901,8 +2901,20 @@
  * decision #798 (a canonical realistic label is no longer preferred — generic scaffolding wins). The
  * projected component surface moves (member text defaults) → ENGINE bump; CONTRACT STANDS at 10.3.0 — copy
  * is neither a token name nor a prop, so no guaranteed name moves.
+ *
+ * 0.103.0 — hotfix: the `radio-control` `checked.border` $description shipped the literal phrase "the Figma
+ * import (2026-09-15)". Bundled into the plugin's main-thread `dist/main.js`, Figma's sandbox scans source
+ * text for `import` followed by `(` and REJECTS the whole plugin as a "possible import expression"
+ * (`rejectImportExpressions`) — so the plugin failed to load on import, a QA-blocking runtime failure the
+ * build/CI gates never saw (they check `node:` builtins and drive the UI, not the main-thread sandbox
+ * eval). Reworded the description (and its twin doc comment) to "the 2026-09-15 Figma import" — meaning
+ * identical, the `import (` adjacency gone. Emitted-artifact/projected-surface prose change → ENGINE bump.
+ * CONTRACT STANDS at 10.3.0 (no name moves). FOLLOW-UP FILED: a gate that scans the built bundles + emitted
+ * prose for Figma-sandbox-rejected token sequences (`import\s*\(` and kin), so this class can't recur; the
+ * latent occurrences in `version.ts` changelog + `anatomy-figma.ts` comments (not currently reachable into
+ * `main.js`) are named there.
  */
-export const ENGINE_VERSION = '0.102.0';
+export const ENGINE_VERSION = '0.103.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
