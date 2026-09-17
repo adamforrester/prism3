@@ -20,6 +20,7 @@
  *   wendys        — STANDARD dialect (flat `colors:` map classified into anchors), a different typeface
  *   minimal       — the three required fields and nothing else: the sparsest input the engine accepts
  *   minimal-levers— the sparsest input WITH two suppressing levers pulled (#957, see below)
+ *   minimal-bp2   — the sparsest input WITH a two-breakpoint layout, demoting the upper tiers (#1479)
  *
  * Paths are compared BELOW the configurable root, because the root is itself a lever (`nbds` vs
  * `prism`) — comparing with it included yields an empty intersection, which is how this was nearly
@@ -43,6 +44,16 @@
  * The member is deliberately the sparse input PLUS the two levers, not a sixth rich brand: the point
  * is to vary exactly the two things, so what drops out is attributable. It adds no path that no
  * existing member emits, so the demotion is the whole of its effect on the surface.
+ *
+ * `minimal-bp2` earns its place the same way, on a different axis (#1479). The breakpoint COUNT is a
+ * per-brand lever (`layout.breakpoints`); `bpNames` auto-names by slicing the t-shirt ladder, so a
+ * 2-floor brand ships only `sm`/`md` and emits neither `breakpoint.{lg,xl,2xl}` nor `grid.{lg,xl,2xl}.*`.
+ * Those 12 tiers were guaranteed only because every prior corpus brand happened to ship 5+ floors — the
+ * same over-claim `minimal` exists to prevent (SPARSE is not the DEFAULT COUNT), one axis in. They are
+ * `brandDependent` now — still emitted by the 5-and-6-floor brands, no longer promised — mirroring
+ * `breakpoint.xs`/`grid.xs.*`, which are brand-dependent because only aurora's 6 floors reach them.
+ * Built off `MINIMAL_BRAND` so the ONLY difference is the floor list and the demotion is attributable
+ * to the count alone.
  *
  * WHY THIS IS NOT PART OF `regen.ts`. The baseline must not be able to regenerate itself. `regen`
  * rewrites every generated artifact and `regen --check` proves the committed copies match; run that
@@ -103,6 +114,20 @@ export const MINIMAL_LEVERS_BRAND: BrandInput = {
   typography: { displayCeiling: 'sm' },
 } as BrandInput;
 
+/**
+ * The same sparse input with a TWO-BREAKPOINT layout (#1479). The breakpoint count is a per-brand
+ * lever and `bpNames` slices the t-shirt ladder to the count, so this brand ships only `sm`/`md` and
+ * emits none of `breakpoint.{lg,xl,2xl}` / `grid.{lg,xl,2xl}.*`. It is what pushes those 12 upper-tier
+ * paths out of the guaranteed intersection and into `brandDependent` — see the header. Built off
+ * `MINIMAL_BRAND` so the floor list is the only thing that varies, and the demotion is attributable
+ * to it alone; it adds no path no existing member emits.
+ */
+export const MINIMAL_BP2_BRAND: BrandInput = {
+  ...MINIMAL_BRAND,
+  id: 'minimal-bp2',
+  layout: { breakpoints: [0, 768] },
+} as BrandInput;
+
 /** The corpus, in a fixed order so the emitted `corpus` list is deterministic. */
 export const corpus = (): Array<{ id: string; theme: Theme }> => {
   const std = parseStandardDesignMd(readFileSync(resolve(here, 'examples', 'wendys.design.md'), 'utf8'));
@@ -113,6 +138,7 @@ export const corpus = (): Array<{ id: string; theme: Theme }> => {
     { id: 'wendys (standard dialect)', theme: brandTheme(standardToBrandInput(std).input) },
     { id: 'minimal (required fields only)', theme: brandTheme(MINIMAL_BRAND) },
     { id: 'minimal-levers (outlineInteraction none, displayCeiling sm)', theme: brandTheme(MINIMAL_LEVERS_BRAND) },
+    { id: 'minimal-bp2 (two-breakpoint layout, upper tiers demoted)', theme: brandTheme(MINIMAL_BP2_BRAND) },
   ];
 };
 
