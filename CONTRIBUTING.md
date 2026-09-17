@@ -675,6 +675,25 @@ npx tsx packages/engine/lint-lineheight-bake.ts     # a text style's line height
                                                     # the documented contract, not a computed value.
                                                     # Mutation-verified BY NAME (bound:false→true fires
                                                     # A; PERCENT→PIXELS fires B).
+npx tsx packages/engine/lint-cut-binding.ts         # a text style's cut (weight/style) is BOUND to a
+                                                    # STRING variable, never baked (#1485). The numeric
+                                                    # weight axis cannot reach a WIDTH cut like "Light
+                                                    # Condensed"; the STRING cut can, so it is themeable
+                                                    # and reachable from Figma's binding UI. The sibling
+                                                    # of the line-height gate, opposite verdict: line
+                                                    # height must STAY unbound, the cut must BE bound.
+                                                    # Asserts the cut is bound to a per-category STRING
+                                                    # cut variable (A), that variable exists in core as
+                                                    # STRING/FONT_STYLE with a non-empty value (B),
+                                                    # fontWeight stays unbound parallel data (C), and the
+                                                    # cut is per-CATEGORY so two categories in one weight
+                                                    # role cannot collapse onto one value — the silent
+                                                    # "Light Condensed"->"Light" downgrade (D).
+                                                    # Independent of the emitter: reads the committed
+                                                    # out/figma export, EXPECTED is #1485's contract, not
+                                                    # a computed value. Mutation-verified BY NAME
+                                                    # (bound:true→false fires A; binding fontWeight fires
+                                                    # C).
 npx tsx packages/engine/lint-standalone-floor.ts    # a def offered as a build target must project
                                                     # members that acquire an EXTENT, and a def that
                                                     # cannot must declare

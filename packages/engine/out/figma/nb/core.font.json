@@ -440,6 +440,96 @@
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/font/weight/900"
       }
+    },
+    {
+      "name": "nbds/core/font/style/display/strong",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "display strong — the Figma style cut this text style binds",
+      "value": "Bold",
+      "alias": null
+    },
+    {
+      "name": "nbds/core/font/style/title/strong",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "title strong — the Figma style cut this text style binds",
+      "value": "Bold",
+      "alias": null
+    },
+    {
+      "name": "nbds/core/font/style/body/default",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "body default — the Figma style cut this text style binds",
+      "value": "Regular",
+      "alias": null
+    },
+    {
+      "name": "nbds/core/font/style/body/strong",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "body strong — the Figma style cut this text style binds",
+      "value": "Bold",
+      "alias": null
+    },
+    {
+      "name": "nbds/core/font/style/label/emphasis",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "label emphasis — the Figma style cut this text style binds",
+      "value": "Semi Bold",
+      "alias": null
+    },
+    {
+      "name": "nbds/core/font/style/caption/default",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "caption default — the Figma style cut this text style binds",
+      "value": "Regular",
+      "alias": null
+    },
+    {
+      "name": "nbds/core/font/style/caption/strong",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "caption strong — the Figma style cut this text style binds",
+      "value": "Bold",
+      "alias": null
+    },
+    {
+      "name": "nbds/core/font/style/eyebrow/emphasis",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "eyebrow emphasis — the Figma style cut this text style binds",
+      "value": "Semi Bold",
+      "alias": null
+    },
+    {
+      "name": "nbds/core/font/style/code/default",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "code default — the Figma style cut this text style binds",
+      "value": "Regular",
+      "alias": null
     }
   ]
 }

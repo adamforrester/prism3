@@ -678,6 +678,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-lineheight-bake.ts'),
   },
   {
+    id: 'lint-cut-binding',
+    ciStep: "A text style's cut is bound to a per-category STRING variable",
+    cmd: engine('lint-cut-binding.ts'),
+  },
+  {
     id: 'lint-standalone-floor',
     ciStep: 'A def offered as a build target projects something with an extent',
     cmd: engine('lint-standalone-floor.ts'),

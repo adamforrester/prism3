@@ -56,6 +56,86 @@ export const fontStyleName = (mono: boolean, numericWeight: number, italic = fal
  *  description, only the primary face is bound as the value). */
 const stackDescription = (stack: string[]): string => `stack: ${stack.join(', ')}`;
 
+// ── #1485 — the STRING CUT (Figma style name) the Text Style's single weight/style control binds ──
+// A Figma Text Style has ONE weight/style control. Before #1485 the engine bound it via the FLOAT
+// weight-role variable (numeric, e.g. 300) and baked the `fontStyle` string beside it — but a numeric
+// weight can never reach a WIDTH cut like "Light Condensed", so a facePin (#1368) could only bake a
+// literal, unthemeable and unreachable from Figma's binding UI. #1485 binds that control to a STRING
+// variable holding the Figma style name instead, so any cut — condensed included — is bindable and
+// themeable. The numeric weight-role FLOAT variable stays EMITTED as parallel data (web/DTCG), just no
+// longer bound on the Text Style (one authoritative style binding, no conflicting double-bind).
+
+/** The `core` variable NAME a composite's cut binds — one STRING variable per (category, weight-role,
+ *  italic) slot. link does NOT vary the cut (it only underlines), so it is excluded. Per-CATEGORY,
+ *  unlike the per-role weight variable, because a facePin is keyed (category, weight-role): two
+ *  categories sharing a role may pin different cuts, so a per-role-only cut variable would collapse
+ *  them into one — a silent cut swap, exactly the downgrade #1485's gate guards. */
+const cutSlug = (category: string, weightRole: string, italic: boolean): string =>
+  `font/style/${category}/${weightRole}${italic ? '-italic' : ''}`;
+
+/** The Figma style-name cut for a slot: a verbatim facePin (#1368) OVERRIDES the numeric-weight →
+ *  style-name derivation — the single source both the bound STRING cut variable (`buildFigmaFont`) and
+ *  the Text Style's `fontStyle` binding (`buildFigmaTextStyles`) read, so the two cannot disagree.
+ *  `numeric` is the weight-role's numeric FOR THE MODE being emitted, so a derived cut tracks a mode's
+ *  re-pointed weight; a facePin is verbatim and mode-invariant. */
+const cutName = (mono: boolean, numeric: number, italic: boolean, facePin?: { style: string }): string =>
+  facePin ? facePin.style : fontStyleName(mono, numeric, italic);
+
+/** Is the face this CATEGORY binds a monospace one? Walks category -> `font.family.<cat>` -> its
+ *  `font.typeface.<slug>` -> the curated fallback tail, and asks whether that tail ends in `monospace`
+ *  — which is how `MONO_FALLBACK` is defined, so the answer comes from the stack the brand actually
+ *  ships rather than from a name that happens to contain "mono". Unknown category => not mono, which
+ *  is the same default the sans table already was. */
+const isMonoCategory = (font: any, category: string): boolean => {
+  const famLeaf = font?.family?.[category];
+  const slug = typeof famLeaf?.$value === 'string' ? /font\.typeface\.([^.}]+)\}?$/.exec(famLeaf.$value)?.[1] : undefined;
+  const stack: string[] = (slug && font?.typeface?.[slug]?.$extensions?.prism3?.fallbackStack) || [];
+  return stack[stack.length - 1] === 'monospace';
+};
+// Resolve a composite's family CATEGORY by dereferencing its fontFamily alias
+// (`{root.font.family.<role>}`) — the role, not the face, is what determines
+// fontStyle-name resolution and the bound STRING variable name.
+const familyCategoryFromAlias = (aliasStr: string): string => {
+  const m = /font\.family\.([^.}]+)\}?$/.exec(aliasStr);
+  return m ? m[1] : 'body';
+};
+const weightRoleFromAlias = (aliasStr: string): string => {
+  const m = /font\.weight-role\.([^.}]+)\}?$/.exec(aliasStr);
+  return m ? m[1] : 'default';
+};
+
+const collectComposites = (typeNode: any, prefix: string, out: Array<{ path: string; leaf: any }> = []): Array<{ path: string; leaf: any }> => {
+  for (const k in typeNode) {
+    if (k[0] === '$') continue;
+    const child = typeNode[k];
+    if (child && child.$type === 'typography') {
+      out.push({ path: `${prefix}${k}`, leaf: child });
+    } else if (child && typeof child === 'object') {
+      collectComposites(child, `${prefix}${k}/`, out);
+    }
+  }
+  return out;
+};
+
+/** A distinct cut slot, keyed by `cutSlug`. The (category, weight-role, italic) descriptor is
+ *  mode-invariant; the numeric (and hence a derived cut) is resolved per-mode where the variable is
+ *  emitted. `facePin` rides the slot because it is keyed (category, weight-role). */
+type CutSlot = { slug: string; category: string; weightRole: string; italic: boolean; facePin?: { family: string; style: string } };
+const collectCutSlots = (composites: Array<{ leaf: any }>): CutSlot[] => {
+  const bySlug = new Map<string, CutSlot>();
+  for (const { leaf } of composites) {
+    const v = leaf.$value as Record<string, string>;
+    const ext = leaf.$extensions?.prism3 ?? {};
+    const category = familyCategoryFromAlias(v.fontFamily);
+    const weightRole = weightRoleFromAlias(v.fontWeight);
+    const italic = !!ext.italic || v.fontStyle === 'italic';
+    const facePin = ext.facePin as { family: string; style: string } | undefined;
+    const slug = cutSlug(category, weightRole, italic);
+    if (!bySlug.has(slug)) bySlug.set(slug, { slug, category, weightRole, italic, facePin });
+  }
+  return [...bySlug.values()];
+};
+
 // The font primitives are a PER-MODE collection (Phase D — same convention as `radius`): a customizable
 // mode that overrides the font FAMILY (`core/font/family/*`) or WEIGHT (`core/font/weight-role/*`) via
 // `modeLevers` gets its own mode file. A brand with no per-mode typography returns a single
@@ -71,6 +151,9 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
   const familiesByMode = theme.typography.familiesByMode ?? {};
   const weightRolesByMode = theme.typography.weightRolesByMode ?? {};
   const fontModes = [...new Set([...Object.keys(familiesByMode), ...Object.keys(weightRolesByMode)])];
+  // #1485 — the distinct STRING cut slots the Text Styles bind. Descriptor is mode-invariant; the
+  // per-mode value (a derived cut follows a mode's re-pointed weight) is resolved inside varsFor.
+  const cutSlots = collectCutSlots(collectComposites(tree[root].type, ''));
 
   /** Every name in this collection is assembled from keys rather than walked, so the namespace and the
    *  primitive tier go on explicitly (#1097 + #1102) — `<root>/core/font/size/16` for the DTCG path
@@ -157,6 +240,25 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
         alias: { type: 'VARIABLE_ALIAS', name: ns(`font/weight/${numeric}`) },
       });
     }
+
+    // font/style/<category>/<role>[-italic] — SEMANTIC STRING cut (#1485). This is what the Text
+    // Style's single weight/style control binds, so a WIDTH cut (a facePin's "Light Condensed") is a
+    // bindable, themeable variable rather than a baked literal the numeric weight axis can never reach.
+    // The derived value follows the SAME weight-role numeric the FLOAT `weight-role` var carries for
+    // this mode (a per-mode weight re-point moves both together); a facePin is verbatim + mode-invariant.
+    for (const slot of cutSlots) {
+      const roleLeaf = font['weight-role'][slot.weightRole];
+      const ov = mode === 'Default' ? undefined : (roleLeaf?.$extensions?.prism3?.modes as any)?.[mode];
+      const numeric = ov ? (ov.weight as number) : (roleLeaf?.$extensions?.prism3?.numeric as number);
+      variables.push({
+        name: ns(slot.slug),
+        resolvedType: 'STRING',
+        scopes: ['FONT_STYLE'],
+        description: `${slot.category} ${slot.weightRole}${slot.italic ? ' italic' : ''} — the Figma style cut this text style binds${slot.facePin ? ' (verbatim face pin)' : ''}`,
+        value: cutName(isMonoCategory(font, slot.category), numeric, slot.italic, slot.facePin),
+        alias: null,
+      });
+    }
     return variables;
   };
 
@@ -223,9 +325,9 @@ export type FigmaTextStyle = {
   description: string;
   properties: {
     fontFamily: FigmaTextStyleProp;
-    fontStyle: FigmaTextStyleProp;      // baked — derived from weight-role numeric
+    fontStyle: FigmaTextStyleProp;      // bound (font/style/<cat>/<role>[-italic]) — the STRING cut (#1485)
     fontSize: FigmaTextStyleProp;       // bound (font or font-fluid)
-    fontWeight: FigmaTextStyleProp;     // bound (font/weight-role/*)
+    fontWeight: FigmaTextStyleProp;     // baked numeric — parallel data, NOT bound (#1485; one style binding)
     lineHeight: FigmaTextStyleProp;     // baked PERCENT (fix 3a)
     letterSpacing: FigmaTextStyleProp;  // baked PERCENT (fix 3b partial)
     textCase: { bindable: false; value: 'ORIGINAL' | 'UPPER' | 'LOWER' };
@@ -234,53 +336,20 @@ export type FigmaTextStyle = {
 };
 export type FigmaTextStylesFile = { $collection: 'text-styles'; styles: FigmaTextStyle[] };
 
-/** Is the face this CATEGORY binds a monospace one? Walks category → `font.family.<cat>` → its
- *  `font.typeface.<slug>` → the curated fallback tail, and asks whether that tail ends in `monospace`
- *  — which is how `MONO_FALLBACK` is defined, so the answer comes from the stack the brand actually
- *  ships rather than from a name that happens to contain "mono". Unknown category ⇒ not mono, which
- *  is the same default the sans table already was. */
-const isMonoCategory = (font: any, category: string): boolean => {
-  const famLeaf = font?.family?.[category];
-  const slug = typeof famLeaf?.$value === 'string' ? /font\.typeface\.([^.}]+)\}?$/.exec(famLeaf.$value)?.[1] : undefined;
-  const stack: string[] = (slug && font?.typeface?.[slug]?.$extensions?.prism3?.fallbackStack) || [];
-  return stack[stack.length - 1] === 'monospace';
-};
-// Resolve a composite's family CATEGORY by dereferencing its fontFamily alias
-// (`{root.font.family.<role>}`) — the role, not the face, is what determines
-// fontStyle-name resolution and the bound STRING variable name.
-const familyCategoryFromAlias = (aliasStr: string): string => {
-  const m = /font\.family\.([^.}]+)\}?$/.exec(aliasStr);
-  return m ? m[1] : 'body';
-};
 // Resolve a composite's size — bound to `<root>/font/size/<n>` (static) or `<root>/font-fluid/<path>`
 // (fluid). Returns { variable, collection } for the bind. The VARIABLE name carries the brand
 // namespace (#1097) even though the enclosing style's name does not: a bind names a variable.
+// (isMonoCategory / familyCategoryFromAlias / weightRoleFromAlias / collectComposites moved above
+//  buildFigmaFont at #1485 — the cut-variable emission needs them too.)
 const sizeBinding = (root: string, compositePath: string, sizeAlias: string, fluid: boolean): { variable: string; collection: typeof CORE_COLLECTION | 'type-sets' } => {
   if (fluid) return { variable: nsName(root, `font-fluid/${compositePath}`), collection: 'type-sets' };
   const m = /font\.size\.([^.}]+)\}?$/.exec(sizeAlias);
   return { variable: coreName(root, `font/size/${m ? m[1] : ''}`), collection: CORE_COLLECTION };
 };
-const weightRoleFromAlias = (aliasStr: string): string => {
-  const m = /font\.weight-role\.([^.}]+)\}?$/.exec(aliasStr);
-  return m ? m[1] : 'default';
-};
 
 // One text style per composite. Walks tree[root].type; each typography leaf
 // becomes a style whose path is `group/variant/weight-role[-link]`.
 const compositeToStyleName = (compositePath: string): string => compositePath;
-
-const collectComposites = (typeNode: any, prefix: string, out: Array<{ path: string; leaf: any }> = []): Array<{ path: string; leaf: any }> => {
-  for (const k in typeNode) {
-    if (k[0] === '$') continue;
-    const child = typeNode[k];
-    if (child && child.$type === 'typography') {
-      out.push({ path: `${prefix}${k}`, leaf: child });
-    } else if (child && typeof child === 'object') {
-      collectComposites(child, `${prefix}${k}/`, out);
-    }
-  }
-  return out;
-};
 
 /** Numeric weight (100..900) for a weight-role by reading the weight-role leaf. */
 const numericWeightForRole = (fontNode: any, role: string): number => {
@@ -305,7 +374,10 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
     // fontFamily still binds the category's `font/family/*` variable, whose value equals the pin's
     // family (enforced in buildComposites), so the host loads {family: <that>, style: <pinned>}.
     const facePin = (ext.facePin as { family: string; style: string } | undefined);
-    const styleName = facePin ? facePin.style : fontStyleName(isMonoCategory(font, familyCategory), numeric, italic);
+    // #1485 — the cut is now BOUND to a STRING variable (not baked). Same source as the emitted cut
+    // variable's value (`cutName`), so the Text Style's binding and the variable it names cannot
+    // disagree. The variable's slug is per (category, weight-role, italic) — `cutSlug`.
+    const cutVar = coreName(root, cutSlug(familyCategory, weightRole, italic));
     const fluid: boolean = !!ext.responsive?.fluid;
     const sb = sizeBinding(root, path, v.fontSize, fluid);
     // Line-height: PERCENT = unitless × 100 (fix 3a). Unbound — Figma has no
@@ -351,12 +423,16 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
       description,
       properties: {
         fontFamily: { bound: true, variable: coreName(root, `font/family/${familyCategory}`), collection: CORE_COLLECTION, resolvedType: 'STRING' },
-        // fontStyle baked — derived from weight-role (+ italic modifier) via the
-        // named-instance table (e.g. Bold, Bold Italic); the plugin write lane
-        // resolves this guess against the family's real styles (see fontStyleName).
-        fontStyle: { bound: false, value: styleName },
+        // fontStyle BOUND to the STRING cut variable (#1485) — the single authoritative style binding.
+        // A facePin's WIDTH cut ("Light Condensed") is themeable/bindable here, where the numeric weight
+        // axis could never reach it. The plugin still resolves this cut against the family's real styles
+        // for the loaded/baked fallback (see write-text-styles.ts).
+        fontStyle: { bound: true, variable: cutVar, collection: CORE_COLLECTION, resolvedType: 'STRING' },
         fontSize: { bound: true, variable: sb.variable, collection: sb.collection, resolvedType: 'FLOAT' },
-        fontWeight: { bound: true, variable: coreName(root, `font/weight-role/${weightRole}`), collection: CORE_COLLECTION, resolvedType: 'FLOAT' },
+        // fontWeight is PARALLEL DATA, not bound (#1485): the numeric weight-role FLOAT variable is
+        // still emitted in `core` and the DTCG $value still aliases it, but binding it here as well
+        // would double-bind Figma's single weight/style control against the STRING cut above.
+        fontWeight: { bound: false, value: numeric },
         lineHeight: { bound: false, value: { unit: 'PERCENT', value: Math.round(lhMult * 100) } },
         letterSpacing: { bound: false, value: { unit: 'PERCENT', value: Math.round(lsEm * 10000) / 100 } },
         textCase: { bindable: false, value: textCase },
