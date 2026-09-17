@@ -2,8 +2,8 @@
   "$collection": "text-styles",
   "styles": [
     {
-      "name": "display/sm/strong",
-      "description": "display sm strong",
+      "name": "display/xl/strong",
+      "description": "display xl strong",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -17,57 +17,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/font-fluid/display/sm/strong",
-          "collection": "type-sets",
-          "resolvedType": "FLOAT"
-        },
-        "fontWeight": {
-          "bound": true,
-          "variable": "ads/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "lineHeight": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 115
-          }
-        },
-        "letterSpacing": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": -2
-          }
-        },
-        "textCase": {
-          "bindable": false,
-          "value": "ORIGINAL"
-        },
-        "textDecoration": {
-          "bindable": false,
-          "value": "NONE"
-        }
-      }
-    },
-    {
-      "name": "display/md/strong",
-      "description": "display md strong",
-      "properties": {
-        "fontFamily": {
-          "bound": true,
-          "variable": "ads/core/font/family/display",
-          "collection": "core",
-          "resolvedType": "STRING"
-        },
-        "fontStyle": {
-          "bound": false,
-          "value": "Bold"
-        },
-        "fontSize": {
-          "bound": true,
-          "variable": "ads/font-fluid/display/md/strong",
+          "variable": "ads/font-fluid/display/xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
@@ -88,7 +38,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -2
+            "value": -3
           }
         },
         "textCase": {
@@ -152,8 +102,8 @@
       }
     },
     {
-      "name": "display/xl/strong",
-      "description": "display xl strong",
+      "name": "display/md/strong",
+      "description": "display md strong",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -167,7 +117,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/font-fluid/display/xl/strong",
+          "variable": "ads/font-fluid/display/md/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
@@ -188,7 +138,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -3
+            "value": -2
           }
         },
         "textCase": {
@@ -202,12 +152,12 @@
       }
     },
     {
-      "name": "title/2xs/strong",
-      "description": "title 2xs strong",
+      "name": "display/sm/strong",
+      "description": "display sm strong",
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "ads/core/font/family/title",
+          "variable": "ads/core/font/family/display",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -217,157 +167,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/16",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "fontWeight": {
-          "bound": true,
-          "variable": "ads/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "lineHeight": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 125
-          }
-        },
-        "letterSpacing": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": -1
-          }
-        },
-        "textCase": {
-          "bindable": false,
-          "value": "ORIGINAL"
-        },
-        "textDecoration": {
-          "bindable": false,
-          "value": "NONE"
-        }
-      }
-    },
-    {
-      "name": "title/xs/strong",
-      "description": "title xs strong",
-      "properties": {
-        "fontFamily": {
-          "bound": true,
-          "variable": "ads/core/font/family/title",
-          "collection": "core",
-          "resolvedType": "STRING"
-        },
-        "fontStyle": {
-          "bound": false,
-          "value": "Bold"
-        },
-        "fontSize": {
-          "bound": true,
-          "variable": "ads/core/font/size/20",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "fontWeight": {
-          "bound": true,
-          "variable": "ads/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "lineHeight": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 125
-          }
-        },
-        "letterSpacing": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": -1
-          }
-        },
-        "textCase": {
-          "bindable": false,
-          "value": "ORIGINAL"
-        },
-        "textDecoration": {
-          "bindable": false,
-          "value": "NONE"
-        }
-      }
-    },
-    {
-      "name": "title/sm/strong",
-      "description": "title sm strong",
-      "properties": {
-        "fontFamily": {
-          "bound": true,
-          "variable": "ads/core/font/family/title",
-          "collection": "core",
-          "resolvedType": "STRING"
-        },
-        "fontStyle": {
-          "bound": false,
-          "value": "Bold"
-        },
-        "fontSize": {
-          "bound": true,
-          "variable": "ads/font-fluid/title/sm/strong",
-          "collection": "type-sets",
-          "resolvedType": "FLOAT"
-        },
-        "fontWeight": {
-          "bound": true,
-          "variable": "ads/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "lineHeight": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 125
-          }
-        },
-        "letterSpacing": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": -1
-          }
-        },
-        "textCase": {
-          "bindable": false,
-          "value": "ORIGINAL"
-        },
-        "textDecoration": {
-          "bindable": false,
-          "value": "NONE"
-        }
-      }
-    },
-    {
-      "name": "title/md/strong",
-      "description": "title md strong",
-      "properties": {
-        "fontFamily": {
-          "bound": true,
-          "variable": "ads/core/font/family/title",
-          "collection": "core",
-          "resolvedType": "STRING"
-        },
-        "fontStyle": {
-          "bound": false,
-          "value": "Bold"
-        },
-        "fontSize": {
-          "bound": true,
-          "variable": "ads/font-fluid/title/md/strong",
+          "variable": "ads/font-fluid/display/sm/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
@@ -388,7 +188,7 @@
           "bound": false,
           "value": {
             "unit": "PERCENT",
-            "value": -1
+            "value": -2
           }
         },
         "textCase": {
@@ -402,8 +202,8 @@
       }
     },
     {
-      "name": "title/lg/strong",
-      "description": "title lg strong",
+      "name": "title/2xl/strong",
+      "description": "title 2xl strong",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -417,7 +217,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/font-fluid/title/lg/strong",
+          "variable": "ads/font-fluid/title/2xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
@@ -502,8 +302,8 @@
       }
     },
     {
-      "name": "title/2xl/strong",
-      "description": "title 2xl strong",
+      "name": "title/lg/strong",
+      "description": "title lg strong",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -517,7 +317,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/font-fluid/title/2xl/strong",
+          "variable": "ads/font-fluid/title/lg/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
@@ -552,8 +352,208 @@
       }
     },
     {
-      "name": "body/sm/default",
-      "description": "body sm default",
+      "name": "title/md/strong",
+      "description": "title md strong",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "ads/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Bold"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "ads/font-fluid/title/md/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "ads/core/font/weight-role/strong",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/sm/strong",
+      "description": "title sm strong",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "ads/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Bold"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "ads/font-fluid/title/sm/strong",
+          "collection": "type-sets",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "ads/core/font/weight-role/strong",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 125
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/xs/strong",
+      "description": "title xs strong",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "ads/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Bold"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "ads/core/font/size/20",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "ads/core/font/weight-role/strong",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 125
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "title/2xs/strong",
+      "description": "title 2xs strong",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "ads/core/font/family/title",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Bold"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "ads/core/font/size/16",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "ads/core/font/weight-role/strong",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 125
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": -1
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/lg/default",
+      "description": "body lg default",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -567,7 +567,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/14",
+          "variable": "ads/core/font/size/18",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -602,8 +602,8 @@
       }
     },
     {
-      "name": "body/sm/default-link",
-      "description": "body sm default link",
+      "name": "body/lg/default-link",
+      "description": "body lg default link",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -617,7 +617,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/14",
+          "variable": "ads/core/font/size/18",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -652,8 +652,8 @@
       }
     },
     {
-      "name": "body/sm/strong",
-      "description": "body sm strong",
+      "name": "body/lg/strong",
+      "description": "body lg strong",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -667,7 +667,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/14",
+          "variable": "ads/core/font/size/18",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -702,8 +702,8 @@
       }
     },
     {
-      "name": "body/sm/strong-link",
-      "description": "body sm strong link",
+      "name": "body/lg/strong-link",
+      "description": "body lg strong link",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -717,7 +717,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/14",
+          "variable": "ads/core/font/size/18",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -952,8 +952,8 @@
       }
     },
     {
-      "name": "body/lg/default",
-      "description": "body lg default",
+      "name": "body/sm/default",
+      "description": "body sm default",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -967,7 +967,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/18",
+          "variable": "ads/core/font/size/14",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1002,8 +1002,8 @@
       }
     },
     {
-      "name": "body/lg/default-link",
-      "description": "body lg default link",
+      "name": "body/sm/default-link",
+      "description": "body sm default link",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1017,7 +1017,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/18",
+          "variable": "ads/core/font/size/14",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1052,8 +1052,8 @@
       }
     },
     {
-      "name": "body/lg/strong",
-      "description": "body lg strong",
+      "name": "body/sm/strong",
+      "description": "body sm strong",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1067,7 +1067,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/18",
+          "variable": "ads/core/font/size/14",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1102,8 +1102,8 @@
       }
     },
     {
-      "name": "body/lg/strong-link",
-      "description": "body lg strong link",
+      "name": "body/sm/strong-link",
+      "description": "body sm strong link",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1117,7 +1117,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/18",
+          "variable": "ads/core/font/size/14",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1152,8 +1152,8 @@
       }
     },
     {
-      "name": "label/sm/emphasis",
-      "description": "label sm emphasis",
+      "name": "label/lg/emphasis",
+      "description": "label lg emphasis",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1167,7 +1167,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/12",
+          "variable": "ads/core/font/size/18",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1252,8 +1252,8 @@
       }
     },
     {
-      "name": "label/lg/emphasis",
-      "description": "label lg emphasis",
+      "name": "label/sm/emphasis",
+      "description": "label sm emphasis",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1267,7 +1267,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/18",
+          "variable": "ads/core/font/size/12",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1298,206 +1298,6 @@
         "textDecoration": {
           "bindable": false,
           "value": "NONE"
-        }
-      }
-    },
-    {
-      "name": "caption/md/default",
-      "description": "caption md default",
-      "properties": {
-        "fontFamily": {
-          "bound": true,
-          "variable": "ads/core/font/family/caption",
-          "collection": "core",
-          "resolvedType": "STRING"
-        },
-        "fontStyle": {
-          "bound": false,
-          "value": "Regular"
-        },
-        "fontSize": {
-          "bound": true,
-          "variable": "ads/core/font/size/11",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "fontWeight": {
-          "bound": true,
-          "variable": "ads/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "lineHeight": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 140
-          }
-        },
-        "letterSpacing": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 0
-          }
-        },
-        "textCase": {
-          "bindable": false,
-          "value": "ORIGINAL"
-        },
-        "textDecoration": {
-          "bindable": false,
-          "value": "NONE"
-        }
-      }
-    },
-    {
-      "name": "caption/md/default-link",
-      "description": "caption md default link",
-      "properties": {
-        "fontFamily": {
-          "bound": true,
-          "variable": "ads/core/font/family/caption",
-          "collection": "core",
-          "resolvedType": "STRING"
-        },
-        "fontStyle": {
-          "bound": false,
-          "value": "Regular"
-        },
-        "fontSize": {
-          "bound": true,
-          "variable": "ads/core/font/size/11",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "fontWeight": {
-          "bound": true,
-          "variable": "ads/core/font/weight-role/default",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "lineHeight": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 140
-          }
-        },
-        "letterSpacing": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 0
-          }
-        },
-        "textCase": {
-          "bindable": false,
-          "value": "ORIGINAL"
-        },
-        "textDecoration": {
-          "bindable": false,
-          "value": "UNDERLINE"
-        }
-      }
-    },
-    {
-      "name": "caption/md/strong",
-      "description": "caption md strong",
-      "properties": {
-        "fontFamily": {
-          "bound": true,
-          "variable": "ads/core/font/family/caption",
-          "collection": "core",
-          "resolvedType": "STRING"
-        },
-        "fontStyle": {
-          "bound": false,
-          "value": "Bold"
-        },
-        "fontSize": {
-          "bound": true,
-          "variable": "ads/core/font/size/11",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "fontWeight": {
-          "bound": true,
-          "variable": "ads/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "lineHeight": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 140
-          }
-        },
-        "letterSpacing": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 0
-          }
-        },
-        "textCase": {
-          "bindable": false,
-          "value": "ORIGINAL"
-        },
-        "textDecoration": {
-          "bindable": false,
-          "value": "NONE"
-        }
-      }
-    },
-    {
-      "name": "caption/md/strong-link",
-      "description": "caption md strong link",
-      "properties": {
-        "fontFamily": {
-          "bound": true,
-          "variable": "ads/core/font/family/caption",
-          "collection": "core",
-          "resolvedType": "STRING"
-        },
-        "fontStyle": {
-          "bound": false,
-          "value": "Bold"
-        },
-        "fontSize": {
-          "bound": true,
-          "variable": "ads/core/font/size/11",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "fontWeight": {
-          "bound": true,
-          "variable": "ads/core/font/weight-role/strong",
-          "collection": "core",
-          "resolvedType": "FLOAT"
-        },
-        "lineHeight": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 140
-          }
-        },
-        "letterSpacing": {
-          "bound": false,
-          "value": {
-            "unit": "PERCENT",
-            "value": 0
-          }
-        },
-        "textCase": {
-          "bindable": false,
-          "value": "ORIGINAL"
-        },
-        "textDecoration": {
-          "bindable": false,
-          "value": "UNDERLINE"
         }
       }
     },
@@ -1702,8 +1502,208 @@
       }
     },
     {
-      "name": "eyebrow/sm/emphasis",
-      "description": "eyebrow sm emphasis",
+      "name": "caption/md/default",
+      "description": "caption md default",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "ads/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Regular"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "ads/core/font/size/11",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "ads/core/font/weight-role/default",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "caption/md/default-link",
+      "description": "caption md default link",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "ads/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Regular"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "ads/core/font/size/11",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "ads/core/font/weight-role/default",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "caption/md/strong",
+      "description": "caption md strong",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "ads/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Bold"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "ads/core/font/size/11",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "ads/core/font/weight-role/strong",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "caption/md/strong-link",
+      "description": "caption md strong link",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "ads/core/font/family/caption",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Bold"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "ads/core/font/size/11",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "ads/core/font/weight-role/strong",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 140
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "eyebrow/lg/emphasis",
+      "description": "eyebrow lg emphasis",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1717,8 +1717,8 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/core/font/size/14",
-          "collection": "core",
+          "variable": "ads/font-fluid/eyebrow/lg/emphasis",
+          "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
@@ -1802,8 +1802,8 @@
       }
     },
     {
-      "name": "eyebrow/lg/emphasis",
-      "description": "eyebrow lg emphasis",
+      "name": "eyebrow/sm/emphasis",
+      "description": "eyebrow sm emphasis",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1817,8 +1817,8 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "ads/font-fluid/eyebrow/lg/emphasis",
-          "collection": "type-sets",
+          "variable": "ads/core/font/size/14",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
