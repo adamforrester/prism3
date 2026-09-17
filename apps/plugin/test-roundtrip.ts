@@ -378,6 +378,43 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     `#1428: select's own \`value\` TEXT reference is created on every member despite the nested field-label/field-message \`text\` collision — 0 dropped (${textRefMisses.length ? textRefMisses.slice(0, 2).join(' | ') : 'none'}; wiredMembers=${res.wiredMembers}/${plans.length})`);
 }
 
+// ── #1473: A MEMBER-LEVEL id-SETTLE AFTER COMBINE LEAVES NO REFERENCE UNWIRED — HOST-TRUTH ──────────
+//
+// #1337's `detachPartsOnCombine` detaches a member's DESCENDANTS while keeping the member's OWN identity, so
+// the wire-loop recovery re-finds an attached part THROUGH the combine-time member handle and lands. The
+// field-label persistent misses (27 on a live aurora build, `emphasis=secondary/weight=bold`) are the level
+// up: the host reassigns some members' OWN identity after combine, so the handle a run snapshotted at combine
+// (`members = [...set.children]`) is detached while a fresh `set.children` read holds a live twin. The #1337
+// recovery re-found through that SAME stale handle and threw again — a permanent "Could not create a new
+// component property reference". The fix re-resolves the MEMBER from a fresh `set.children` read
+// (`write-components.ts`, `liveByName`). The shim's `settleAfterCombine: 'all'` models the host behavior (see
+// `component-shim.ts`); this reads the references back through `anatomy-readback.ts` — a reader entirely
+// separate from the executor (docs/34) — and asserts none is DISCARDED. Mutation-by-name: revert the
+// `liveByName` re-resolution and every member reports its `propertyRef` fields `→ DISCARDED`, failing the
+// read-back assertion by name. The floor (`refsRepaired === refs > 0`) proves the settle actually detached
+// every reference — without it there is nothing to recover and a green read-back is vacuous.
+{
+  const def = componentDefs.find((d) => d.id === 'field-label')!;
+  const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(plans), page, settleAfterCombine: 'all' });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const res = await applyComponentPlan(plans, shim as any, {});
+  const created = res.misses.filter((m) => /Could not create a new component property reference/.test(m));
+  ok(res.refsRepaired > 0 && res.refsRepaired === res.refs && created.length === 0,
+    `#1473 host-truth floor: the member-level settle detached and the fix recovered every reference (refsRepaired=${res.refsRepaired}/${res.refs}, ${created.length} "could not create")`);
+  const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
+  const texts = await (shim as unknown as { getLocalTextStylesAsync: () => Promise<{ id: string; name: string }[]> }).getLocalTextStylesAsync();
+  const varById = new Map(vars.map((v) => [v.id, v.name] as const));
+  const styleById = new Map(texts.map((s) => [s.id, s.name] as const));
+  const ports: ReadPorts = { varName: (id) => varById.get(id) ?? null, styleName: (id) => styleById.get(id) ?? null };
+  const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+  const divergences = diffAnatomy(plans, members, planComponentName, ports, {});
+  const refDiv = divergences.filter((d) => d.field === 'propertyRef' || d.field === 'visibleProp' || d.field === 'visible');
+  ok(members.length === plans.length && refDiv.length === 0,
+    `#1473 host-truth: reading the settled set back, every declared reference is retained — 0 propertyRef DISCARDED (${refDiv.length ? refDiv.slice(0, 3).map((d) => `${d.member}: ${d.actual}`).join(' | ') : 'none'})`);
+}
+
 // ── STROKE-WEIGHT PER-SIDE READ-BACK (#1332) — HOST-TRUTH ──────────────────────────────────────
 //
 // The 2026-09-09 host-truth Figma-console audit established that `setBoundVariable('strokeWeight', v)`
