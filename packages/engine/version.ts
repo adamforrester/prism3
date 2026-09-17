@@ -2925,8 +2925,19 @@
  * comments that ship in the plugin bundle. All respelled to en-US — meaning identical, letters moved.
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
+ *
+ * 0.105.0 — #1476: the emitted text styles now read LARGEST → SMALLEST within each type group, so the
+ * Figma styles list reads top-to-bottom the way a designer reads a type ramp (within a role, lg before md
+ * before sm). The composite walk (`emit-figma-font.ts` `orderComposites`) stable-sorts by a size-rank map
+ * (3xl…2xs, largest first) applied WITHIN each group; the tier order and the weight-role variant order are
+ * preserved (only the size axis flips). This is the single deterministic driver of Figma creation order,
+ * so the emitted `text-styles.json` AND every plan consumer (the plugin's `applyTextStylePlan`, the paste
+ * path) inherit it — and, the owner confirms, both the right-panel local-styles list and the Assets panel
+ * follow creation order, so style names stay CLEAN (no numeric/zero-padded prefix). Every brand's
+ * emitted `text-styles.json` under `out/figma` reorders → ENGINE bump. CONTRACT STANDS at 10.3.0 —
+ * ordering is not a token name (no guaranteed name moves; `token-contract --check` level `none`).
  */
-export const ENGINE_VERSION = '0.104.0';
+export const ENGINE_VERSION = '0.105.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

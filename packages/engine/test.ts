@@ -2292,6 +2292,54 @@ for (const b of brands) {
   ok(italicRows.length > 0 && italicRows.every((r) => /Italic/.test(r.fontStyle)), 'font-plan: italic composites carry an Italic style-name');
   ok(buildTextStylePlan(nb).every((r) => !/Italic/.test(r.fontStyle)), 'font-plan: a no-italics brand carries no Italic style-names');
 
+  // #1476 — emitted text styles read LARGEST → SMALLEST within each type group (docs/34: the expected
+  // order is authored HERE, independently of the emitter — this RANK table is a deliberate second copy of
+  // the size ladder, NOT an import of the emitter's SIZE_RANK, so reversing the emitter's sort makes this
+  // gate fail by name). We assert the SIZE axis is non-increasing within each group and that the group
+  // (tier) order itself is unchanged from the walk — we do not re-order tiers here. A second path segment
+  // that is not a known size (e.g. `code/inline`) is ignored for the monotonic check (rank undefined).
+  {
+    const EXPECT_RANK: Record<string, number> = { '3xl': 7, '2xl': 6, xl: 5, lg: 4, md: 3, sm: 2, xs: 1, '2xs': 0 };
+    const rankOf = (name: string): number | undefined => EXPECT_RANK[name.split('/')[1] ?? ''];
+    const orderViolations = (names: string[]): string[] => {
+      const bad: string[] = [];
+      const perGroupLastRank = new Map<string, number>();
+      for (const name of names) {
+        const group = name.split('/')[0] ?? '';
+        if (!perGroupLastRank.has(group)) perGroupLastRank.set(group, Infinity);
+        const r = rankOf(name);
+        if (r === undefined) continue;               // non-size second segment — not on the size axis
+        const last = perGroupLastRank.get(group)!;
+        if (r > last) bad.push(`${name} (rank ${r}) after rank ${last} within '${group}'`);
+        perGroupLastRank.set(group, r);
+      }
+      // A group must be contiguous — once we leave a group we must not return to it — or "within each
+      // group, descending" is satisfiable by interleaving. Independent of the rank check above.
+      const firstSeen = new Set<string>();
+      let prevGroup = '';
+      for (const name of names) {
+        const g = name.split('/')[0] ?? '';
+        if (g !== prevGroup) {
+          if (firstSeen.has(g)) bad.push(`group '${g}' is not contiguous (re-entered after '${prevGroup}')`);
+          firstSeen.add(g);
+          prevGroup = g;
+        }
+      }
+      return bad;
+    };
+    const nbNames = buildFigmaTextStyles(nb).styles.map((s) => s.name);
+    const nbViol = orderViolations(nbNames);
+    ok(nbViol.length === 0, 'font-plan #1476: NB text styles are size-descending within each contiguous group' + (nbViol.length ? ` — ${nbViol.slice(0, 3).join('; ')}` : ''));
+    // Prove the gate can FAIL (docs/34 shape 4): a hand-authored ASCENDING fixture, independent of the
+    // emitter, must report a violation — otherwise `orderViolations` is vacuous and the pass above is
+    // silence. A DESCENDING twin of the same names must come back clean (the detector is not stuck-on).
+    ok(orderViolations(['display/sm/x', 'display/md/x', 'display/lg/x']).length > 0, 'font-plan #1476: the order gate fires on a hand-authored ascending list');
+    ok(orderViolations(['display/lg/x', 'display/md/x', 'display/sm/x']).length === 0, 'font-plan #1476: the order gate is clean on a hand-authored descending list');
+    // A brand whose largest family exceeds three rungs, to exercise the rank map past lg/md/sm.
+    const wideNames = buildFigmaTextStyles(brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input)).styles.map((s) => s.name);
+    ok(orderViolations(wideNames).length === 0, 'font-plan #1476: multi-rung families (3xl/2xl/xl…) are size-descending too');
+  }
+
   // verifyTypographyReadback guard: absent → all-pass (typography-less read isn't a failure); a
   // dangling weight-role alias fails; a well-formed snapshot passes.
   ok(verifyTypographyReadback({ collections: [], palette: [], color: [] }).ok, 'verifyTypographyReadback: typography-absent snapshot passes (not a failure)');
