@@ -1202,6 +1202,56 @@
       }
     },
     {
+      "name": "label/lg/emphasis",
+      "description": "label lg emphasis",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "wds/core/font/family/label",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Semi Bold"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "wds/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "wds/core/font/weight-role/emphasis",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
       "name": "label/md/emphasis",
       "description": "label md emphasis",
       "properties": {

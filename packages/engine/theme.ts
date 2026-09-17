@@ -1150,7 +1150,14 @@ const TYPE_VARIANTS: Record<TypeGroup, [string, number][]> = {
   display: [['sm', 48], ['md', 64], ['lg', 80], ['xl', 96], ['2xl', 128], ['3xl', 160]],
   title: [['xs', 18], ['sm', 20], ['md', 24], ['lg', 28], ['xl', 32], ['2xl', 40]],
   body: [['sm', 14], ['md', 16], ['lg', 18]],
-  label: [['sm', 12], ['md', 14]],
+  // `lg` = 18 at the label tier's own weight (emphasis/600), added #1260 for the large button label,
+  // whose target the owner resolved to 18px/emphasis (2026-09-17). This is deliberately the body-lg
+  // SIZE at the label WEIGHT — the two rejected routes were `lg`=16 (following the 12/14 progression,
+  // too small) and moving button to `type.body.*` (18px but default/strong, the wrong weight). Label
+  // is reading/UI text, so it is EXEMPT from the typeScale shift (see `isHeading` below): `type.label.lg`
+  // resolves to 18px in every density (compact/default/expressive alike), which is what lands the owner's
+  // 18px at the comfortable (default) density they targeted rather than a rung that drifts under the shift.
+  label: [['sm', 12], ['md', 14], ['lg', 18]],
   caption: [['md', 11], ['lg', 12]],          // small print; lg=12 (standard), md=11 (denser). sm=10 (fine print) is a future opt-in.
   // Eyebrow is part of the HEADING system, not the UI-text system (#328): a kicker sits above a
   // title and scales with the heading it accompanies. It was a single SIZELESS rung, which made

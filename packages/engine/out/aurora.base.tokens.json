@@ -12824,6 +12824,46 @@
               }
             }
           }
+        },
+        "lg": {
+          "emphasis": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{ads.core.font.family.label}",
+              "fontSize": "{ads.core.font.size.18}",
+              "fontWeight": "{ads.core.font.weight-role.emphasis}",
+              "lineHeight": "{ads.core.font.line-height-role.snug}",
+              "letterSpacing": "{ads.core.font.letter-spacing-role.normal}"
+            },
+            "$description": "label lg emphasis — 18px Inter, snug line-height, emphasis weight, normal tracking — consumer-facing type style",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "label",
+                "variant": "lg",
+                "weightRole": "emphasis",
+                "sizePx": 18,
+                "responsive": {
+                  "fluid": false,
+                  "px": 18
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontWeight"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontWeight bind their primitives (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle: a facePin (#1368) bakes the pinned style verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach); else when $value carries fontStyle:italic (weight-paired italic variant) the Figma style is the weight’s italic named-instance (e.g. Bold Italic); otherwise it is derived from the bound fontWeight at import via a weight→style-name table."
+                }
+              }
+            }
+          }
         }
       },
       "caption": {
@@ -15320,7 +15360,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.108.0",
+      "version": "0.109.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -15342,7 +15382,7 @@
         "shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1.3; tinted base (hue 285, amount 0.5). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.",
         "gradient: 2 brand gradient(s) [brand linear 135° 2-stop, glow radial 2-stop] — OPT-IN. DTCG composite spine, stop colors alias the ramp; kind/angle/oklch interpolation in $extensions (DTCG omits them — issue #101). OKLCH-interpolated + 5-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colors bind). Worst-case-stop contrast computed for text-on-gradient.",
         "layout: 6 breakpoints (xs 0, sm 480, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32/32 · 16/24/24/32/48/48); container max 1280px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.",
-        "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/500/700/900; families display=Clash Display, title=Clash Display, body=Inter, label=Inter, caption=Inter, eyebrow=Clash Display, code=JetBrains Mono (variable: display/title/body/label/caption/eyebrow); typeScale 'expressive'. 37 semantic composites (title/display sizes shifted by typeScale; display capped at rung 'xl' (112px); title tier includes title.2xs). responsive: 11 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 360–1440px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
+        "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/500/700/900; families display=Clash Display, title=Clash Display, body=Inter, label=Inter, caption=Inter, eyebrow=Clash Display, code=JetBrains Mono (variable: display/title/body/label/caption/eyebrow); typeScale 'expressive'. 38 semantic composites (title/display sizes shifted by typeScale; display capped at rung 'xl' (112px); title tier includes title.2xs). responsive: 11 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 360–1440px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
         "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
         "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque interactive.<color>.subtle-fill.{hover,pressed,selected}) or 'none' to opt out.",
         "action anchored at accent 'accent' step 500 (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor",
