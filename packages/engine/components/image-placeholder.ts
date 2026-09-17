@@ -64,7 +64,7 @@ export const imagePlaceholder: ComponentDef = {
   category: 'media',
   status: 'draft',
   description:
-    'An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (a native Figma action, not a modelled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker, and it clips its content so a mismatched photo cannot overflow the frame.',
+    'An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (a native Figma action, not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker, and it clips its content so a mismatched photo cannot overflow the frame.',
 
   props: [
     { name: 'ratio', type: "enum: '1:1' | '4:3' | '16:9'", values: ['1:1', '4:3', '16:9'], default: '4:3', required: false, description: 'The width-to-height PROPORTION the frame holds while its actual size flexes — a square (1:1), the classic photo ratio (4:3), or widescreen (16:9). It is an aspect-ratio LOCK, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold.' },
@@ -90,7 +90,7 @@ export const imagePlaceholder: ComponentDef = {
     // THE NEUTRAL SURFACE FILL — one step off the page, so the empty frame reads as filled rather than a
     // hole. An existing semantic role, so no new token and CONTRACT stays 10.0.0.
     fill: 'color.background.secondary',
-    // THE MUTED "NO IMAGE" MARKER — the most de-emphasized icon ink, signalling absence.
+    // THE MUTED "NO IMAGE" MARKER — the most de-emphasized icon ink, signaling absence.
     icon: 'color.icon.tertiary',
     // THE SINGLE NOMINAL DIMENSION (the veil idiom, #1030/#1280). `container.narrow` (720px) is a
     // semantic role, not a raw primitive, so it does not trip the primitive-leak warning `test.ts`
@@ -154,7 +154,7 @@ export const imagePlaceholder: ComponentDef = {
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word.
       'aspect-lock derive — the frame holds its RATIO while its real size flexes, and Figma expresses that as an aspect-ratio LOCK (`lockAspectRatio()`) that DERIVES the second dimension from the first. The engine binds ONE nominal dimension and locks the ratio; that a variable BINDING on the single axis makes Figma derive the other at PASTE time (as a resize does) is a live-file behavior no offline host can witness, filed for the real-host round-trip arm (`tools/component-roundtrip/`). What the offline gates hold is the lock capturing the right ratio, read back as `targetAspectRatio`.',
-      'raster swap — dropping an actual photograph onto the frame is a NATIVE Figma action (an image fill), not a modelled slot or variant. This def models the frame and its empty state; the image the designer supplies is theirs.',
+      'raster swap — dropping an actual photograph onto the frame is a NATIVE Figma action (an image fill), not a modeled slot or variant. This def models the frame and its empty state; the image the designer supplies is theirs.',
       'scrim/veil and play-circle overlays — DEFERRED to a follow-up (#1316 residue, owner-held). A wash for text over the image nests the `veil` component, and a video affordance nests the `play-circle` glyph; both are compositions this core empty-state frame does not carry. Named here so the absence reads as a deferral rather than a gap.',
       'the ratio is a magnitude of SHAPE, not a state — 1:1 / 4:3 / 16:9 is a proportion a designer selects, carried by Figma as a variant coordinate, never a runtime state. An image placeholder has no interaction states at all (`states: []`).',
     ],

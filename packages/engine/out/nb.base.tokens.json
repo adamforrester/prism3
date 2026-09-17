@@ -13619,7 +13619,7 @@
           "inset": {
             "$type": "dimension",
             "$value": "{nbds.core.dimension.3}",
-            "$description": "control.size.sm inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
+            "$description": "control.size.sm inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13672,7 +13672,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "21px",
-            "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+            "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -13724,7 +13724,7 @@
           "inset": {
             "$type": "dimension",
             "$value": "{nbds.core.dimension.4}",
-            "$description": "control.size.md inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
+            "$description": "control.size.md inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13777,7 +13777,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "24px",
-            "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+            "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -13829,7 +13829,7 @@
           "inset": {
             "$type": "dimension",
             "$value": "{nbds.core.dimension.5}",
-            "$description": "control.size.lg inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
+            "$description": "control.size.lg inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -13882,7 +13882,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "27px",
-            "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+            "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -13897,7 +13897,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.103.0",
+      "version": "0.104.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

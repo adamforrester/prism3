@@ -1,13 +1,13 @@
 /**
  * Checkbox.Control — the ATOMIC box (#901, #1226 step 2). The bare painted square with its check /
- * dash glyphs and its focus ring, extracted from `checkbox` so the labelled Row can NEST it rather
+ * dash glyphs and its focus ring, extracted from `checkbox` so the labeled Row can NEST it rather
  * than redraw it. A fix to this box — its corner (#1015), its border weight (#1228), its fill grammar
  * (#1011) — now propagates to the Row, and later to the Group, by single-sourcing rather than by three
  * copies kept in step by hand.
  *
  * ── WHAT MOVED HERE, AND WHY THE ROW STILL EXISTS ──────────────────────────────────────────────────
  *
- * `checkbox` WAS the labelled Row with the atom inlined: `row → controlBox → control → {mark, dash,
+ * `checkbox` WAS the labeled Row with the atom inlined: `row → controlBox → control → {mark, dash,
  * focusRing}`. #1226's composition model (owner, 2026-09-02) splits that into two public components plus
  * this exposed atom. This def is the atom — `control` and everything beneath it, rooted at `control` —
  * and `checkbox` keeps its `id` and becomes the Row that nests one of these in-flow (`kind: 'nest'`).
@@ -70,7 +70,7 @@
  * which forces a CONTRACT MINOR bump — the exact class #910's `dot` and #997's `inset` each bumped for.
  * The plan is brand-agnostic (a frame binds a variable, never a per-brand literal), so there is no
  * value-only way to shrink the frame. Instead `glyphScale` pads the emitted glyph DOCUMENT's artboard to
- * `grid ÷ 0.8` centred (the path `d` and the shared vocabulary untouched), so the host's existing box
+ * `grid ÷ 0.8` centered (the path `d` and the shared vocabulary untouched), so the host's existing box
  * binding renders the grid at 0.80. That is a def-local literal, not a token: ENGINE bumps for the moved
  * geometry, CONTRACT holds at 10.0.0 (`token-contract.ts --check` confirms the guaranteed 577 unchanged).
  * Switch's own thumb glyph keeps its full-frame inset — Prism 2 sizes that differently (16/24 in the
@@ -85,7 +85,7 @@ export const checkboxControl: ComponentDef = {
   category: 'form',
   status: 'draft',
   description:
-    'The atomic checkbox control — the painted square with its check or dash glyph and its focus ring, and nothing else. Nested by the labelled Checkbox row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the three-value selection axis (unchecked / checked / indeterminate) whose mark is a real part gated on the coordinate, the per-rung clamped corner, and the 2px control border.',
+    'The atomic checkbox control — the painted square with its check or dash glyph and its focus ring, and nothing else. Nested by the labeled Checkbox row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the three-value selection axis (unchecked / checked / indeterminate) whose mark is a real part gated on the coordinate, the per-rung clamped corner, and the 2px control border.',
 
   // The atom's surface, not the field's. It has no `label`, no `description`, no form wiring — those
   // are the Row's and the Group's. What it exposes is the visual state a host drives through the nest.
@@ -134,7 +134,7 @@ export const checkboxControl: ComponentDef = {
     // ── THE CHECKED BOX — a filled control off the primary interactive family. No structural border
     // (#1011): a primary fill clears SC 1.4.11 against the page everywhere, so the fill IS the boundary
     // and a same-family border can only agree invisibly or disagree visibly. `border.error` stays — a
-    // cross-family danger edge is signalling, not bounding.
+    // cross-family danger edge is signaling, not bounding.
     'checked.fill': 'color.interactive.primary.fill.selected',
     'checked.fill.hover': 'color.interactive.primary.fill.hover',
     'checked.fill.pressed': 'color.interactive.primary.fill.pressed',
@@ -205,7 +205,7 @@ export const checkboxControl: ComponentDef = {
         strokeWidth: 'border-width',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['mark', 'dash', 'focusRing'],
-        note: 'The control square AND the nominal hit-target marker. The real hit target is the whole labelled ROW, which lives on `checkbox`; this square is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part carries.',
+        note: 'The control square AND the nominal hit-target marker. The real hit target is the whole labeled ROW, which lives on `checkbox`; this square is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part carries.',
       },
       // THE CHECK. The FRAME is bound to the control box (`size.{size}.control`), and `glyphScale: 0.8`
       // (#1346) pads the emitted artboard so the drawn grid — and the ~71% of it the `check` artwork
@@ -250,7 +250,7 @@ export const checkboxControl: ComponentDef = {
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
       'read-only — deliberately not a state of this atom. It is the field/row-level concern the brief calls "the awkward one" (static text over a styled locked control), so there is no box treatment to project and the state is absent rather than admitted-and-unbound. The Row and the Group decide it.',
       'The check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). Neither the def schema nor a Figma variant carries motion, so the two glyph parts are static outlines at every coordinate.',
-      'The whole-row hit target. A bare control square is a 12-24px box that fails SC 2.5.8 in isolation; the accessible target is the labelled ROW, which is `checkbox-row` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
+      'The whole-row hit target. A bare control square is a 12-24px box that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `checkbox-row` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
     ],
   },
 
@@ -283,24 +283,24 @@ export const checkboxControl: ComponentDef = {
   },
 
   docs: {
-    usage: 'Do not place this on its own. It is the box a Checkbox row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring — the ~10% case the labelled Checkbox does not cover.',
+    usage: 'Do not place this on its own. It is the box a Checkbox row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring — the ~10% case the labeled Checkbox does not cover.',
     do: [
       'Nest this from the Checkbox row rather than redrawing the box per host',
       'Let the host row pass `selection`, `size` and `state` through by `follow`, so the nested control tracks the row',
-      'Supply an external aria-label only when using the control genuinely alone, with no labelled row to name it',
+      'Supply an external aria-label only when using the control genuinely alone, with no labeled row to name it',
     ],
     dont: [
-      'Place a bare control square as the clickable element — it fails SC 2.5.8 in isolation; the labelled row is the hit target',
+      'Place a bare control square as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target',
       'Double-label a nested control — the host row already provides the accessible name',
-      'Reach for this atom when you want the ~90% labelled case — that is the Checkbox row',
+      'Reach for this atom when you want the ~90% labeled case — that is the Checkbox row',
     ],
     contentGuidelines: 'The atom has no copy of its own; all label, description and error text belongs to the row and the group that compose it.',
   },
 
   ai: {
     primaryPurpose: 'Render the atomic checkbox control — the painted square with its check or dash glyph and focus ring — for a host row to nest.',
-    whenToUse: 'Nested by the labelled Checkbox row (the common case), or standalone only for a control with an external label and its own aria wiring.',
-    avoidWhen: 'You want the labelled ~90% case (that is Checkbox), a mutually-exclusive one-of-many (Radio.Control), or an immediate-effect toggle (Switch). Never place a bare control square as the clickable element — the hit target is the labelled row.',
+    whenToUse: 'Nested by the labeled Checkbox row (the common case), or standalone only for a control with an external label and its own aria wiring.',
+    avoidWhen: 'You want the labeled ~90% case (that is Checkbox), a mutually-exclusive one-of-many (Radio.Control), or an immediate-effect toggle (Switch). Never place a bare control square as the clickable element — the hit target is the labeled row.',
     commonPartners: ['checkbox-row', 'focus-ring', 'checkbox-group'],
     triggerKeywords: ['checkbox control', 'checkbox box', 'check box atom', 'checkbox square'],
     generationPriority: 3,
@@ -318,13 +318,13 @@ export const checkboxControl: ComponentDef = {
   notes: {
     contested: [
       'THE ATOM IS A SEPARATE COMPONENT rather than kept inline in the row. Settled by #1226\'s composition model (owner): a shared piece is single-sourced so a fix propagates to every host that nests it. The rejected alternative — keeping the control inline and copying it into radio and switch — is exactly the per-def duplication #1011 found had shipped the identical fill/border pairing across three defs. The nest costs one indirection; the copy costs three chances to drift.',
-      'THE NOMINAL `role: target`. A bare control square is not independently the hit target — SC 2.5.8 wants the whole labelled row — so `target` here is the interaction marker the schema requires exactly one of, not a claim the square is clickable. The same nominal marker `focus-ring`\'s `ring` part carries, and stated so a reader does not infer a 12-24px clickable square.',
+      'THE NOMINAL `role: target`. A bare control square is not independently the hit target — SC 2.5.8 wants the whole labeled row — so `target` here is the interaction marker the schema requires exactly one of, not a claim the square is clickable. The same nominal marker `focus-ring`\'s `ring` part carries, and stated so a reader does not infer a 12-24px clickable square.',
     ],
     unverified: [
-      'NESTED-INSTANCE SIZING IS UNVERIFIED ON A REAL HOST. No def used `kind: nest` in flow before #1226 step 2, so an in-flow nested control has never been built in Figma. The control instance must HUG (sit at its own square) rather than FILL the row\'s line-box wrapper — it binds `size` on the nest part so its own square is pinned, and the wrapper centres it — but whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centred within it.',
+      'NESTED-INSTANCE SIZING IS UNVERIFIED ON A REAL HOST. No def used `kind: nest` in flow before #1226 step 2, so an in-flow nested control has never been built in Figma. The control instance must HUG (sit at its own square) rather than FILL the row\'s line-box wrapper — it binds `size` on the nest part so its own square is pinned, and the wrapper centers it — but whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it.',
       'THE INHERITED FOCUS-RING BINDING, now two layers deep (#1280). The ring binds a nominal square side and an instance inherits its main component\'s bindings; #1280 left it open whether that nominal side survives `resize()` when inherited through an instance. After this split the ring is nested inside the control and the control inside the row, so an inherited dimension binding would have to be cleared twice. Batches with #1290. The symptom: a nested ring sitting at the md control height instead of hugging its host\'s box.',
       'RADIO AND SWITCH ARE NOT SPLIT HERE. This is checkbox step 2 only; `radio-control` is the mirror (one `dot` box, no dash) and is filed as the next in the sequence. `switch` stays out of scope — its thumb moves between selection values, an unsolved positioning wall that splitting would inherit without addressing.',
-      'THE PADDED-ARTBOARD GLYPH INSET IS UNVERIFIED ON A REAL HOST (#1346). `glyphScale: 0.8` emits the mark/dash on an artboard padded to `grid ÷ 0.8` with a NEGATIVE viewBox origin (`-3 -3 30 30`) so the same path centres in the larger canvas. The offline model asserts the document, the read-back box (`glyphViewBox` = the padded dims) and the ink-fit; what it cannot see is whether `figma.createNodeFromSvg` positions a negative-origin viewBox as centred and whether the imported vector holds 0.80 through the frame\'s subsequent resize to the box. Same posture as the nest-sizing note above. The symptom to look for: a check that renders full-bleed (the pad was ignored) or off-centre toward the top-left (the negative origin was dropped).',
+      'THE PADDED-ARTBOARD GLYPH INSET IS UNVERIFIED ON A REAL HOST (#1346). `glyphScale: 0.8` emits the mark/dash on an artboard padded to `grid ÷ 0.8` with a NEGATIVE viewBox origin (`-3 -3 30 30`) so the same path centers in the larger canvas. The offline model asserts the document, the read-back box (`glyphViewBox` = the padded dims) and the ink-fit; what it cannot see is whether `figma.createNodeFromSvg` positions a negative-origin viewBox as centered and whether the imported vector holds 0.80 through the frame\'s subsequent resize to the box. Same posture as the nest-sizing note above. The symptom to look for: a check that renders full-bleed (the pad was ignored) or off-center toward the top-left (the negative origin was dropped).',
     ],
   },
 };

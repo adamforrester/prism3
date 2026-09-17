@@ -42,8 +42,8 @@ const sc = (state?: string) => (state && STATE_WHEN[state] ? ` ${STATE_WHEN[stat
 // `meaning` answers "what does this SIGNIFY / what is it for" (vs `$description`,
 // which is "what it is"). Semantic signal per intent; structural purpose otherwise.
 const SIGNAL: Record<string, string> = {
-  brand: 'Brand identity', success: 'Success / positive signalling', warning: 'Warning / caution signalling',
-  danger: 'Destructive / error signalling', info: 'Informational signalling',
+  brand: 'Brand identity', success: 'Success / positive signaling', warning: 'Warning / caution signaling',
+  danger: 'Destructive / error signaling', info: 'Informational signaling',
 };
 const genMeaning = (group: string, variant: string): string => {
   if (group === 'disabled') return 'Unavailable / inactive state';

@@ -174,7 +174,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 /* #718 — the Components page's internal notice and its control row.
    --muted on --paper, NOT --faint: at 13px this is a paragraph to read rather than a caption to
    glance at, and lint:contrast holds --muted on --paper (the worse of the two grounds) to 4.5:1.
-   Modelled on .sl-note / .tf-note, which are the same shape — an inset explanatory block inside a
+   Modeled on .sl-note / .tf-note, which are the same shape — an inset explanatory block inside a
    .psec — so this adds a rule and not a third pattern. The bold lifts only the "Internal —
    experimental." lead-in to --ink2, which lint:contrast also holds at 4.5:1 on both grounds. */
 .cw-note{font-size:13px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;line-height:1.55;margin:14px 0 0}
@@ -1374,7 +1374,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tf-cbo:hover,.tf-cbo.on{background:var(--paper)}
 .tf-cbo.on{box-shadow:inset 0 0 0 1px var(--line2)}
 .tf-adderr{font-size:12px;color:var(--danger);margin:8px 0 0}
-/* #405 — the add-face SUBMIT CTA, modelled on .bm-load (the app's existing inline solid button) so it
+/* #405 — the add-face SUBMIT CTA, modeled on .bm-load (the app's existing inline solid button) so it
    reads as "commit this" rather than borrowing .adv-add's dashed reveal look. flex:none keeps its
    intrinsic width out of the row's sizing, the trap #369/#388 kept hitting. White on --ink is
    17.72:1. */

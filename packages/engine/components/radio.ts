@@ -1,7 +1,7 @@
 /**
- * Radio — the labelled ROW that NESTS `radio-control` (#1348, the #1226/#1330 decomposition a fourth
+ * Radio — the labeled ROW that NESTS `radio-control` (#1348, the #1226/#1330 decomposition a fourth
  * time). A control for choosing exactly one from a small set of mutually exclusive, all-visible options.
- * The painted circle-and-dot moved to `radio-control`; this def is the labelled row that nests one
+ * The painted circle-and-dot moved to `radio-control`; this def is the labeled row that nests one
  * instance of it in flow, `nest-exposed`, and paints the label.
  *
  * The brief's framing, and it is the whole shape of this def: *"a lone checkbox is a valid control
@@ -100,7 +100,7 @@ export const radio: ComponentDef = {
   status: 'draft',
   inherits: 'checkbox-row',
   description:
-    'A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. This def is the labelled OPTION: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is MANDATORY, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox), not an immediate on/off (Switch), not the same choice collapsed (Select) or in a compact skin (Segmented Control).',
+    'A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. This def is the labeled OPTION: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is MANDATORY, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox), not an immediate on/off (Switch), not the same choice collapsed (Select) or in a compact skin (Segmented Control).',
 
   // THE DELTA ONLY. The form-field substrate reaches this def through `checkbox` and is not restated.
   // THREE PROPS ARE DELIBERATELY ABSENT — `checked`, `onChange` and `name` all live on the group (see
@@ -161,17 +161,17 @@ export const radio: ComponentDef = {
     'size.large.min-height': 'size.lg.height',
 
     // ── THE ALIGNMENT BOX (#1201, building #1009's filed fix). One line of the LABEL tall, per rung — the
-    // baked `body.{rung}` line-box. The nested control centres inside a box this tall while the ROW stays
-    // top-aligned, so a single-line option reads centred and a wrapping one holds the first line rather
+    // baked `body.{rung}` line-box. The nested control centers inside a box this tall while the ROW stays
+    // top-aligned, so a single-line option reads centered and a wrapping one holds the first line rather
     // than floating mid-paragraph. Option labels wrap by design here, so this matters more than on
-    // checkbox. The control centres within its OWN box, never the row — `test.ts` #1009 half-1.
+    // checkbox. The control centers within its OWN box, never the row — `test.ts` #1009 half-1.
     'size.small.control-box': 'control.size.sm.line-box',
     'size.medium.control-box': 'control.size.md.line-box',
     'size.large.control-box': 'control.size.lg.line-box',
 
     // ── THE NESTED CONTROL'S OWN SQUARE (#1348). The `control` nest part binds this so the nested instance
     // is PINNED to the control square — 16/20/24 on nb, 12/16/20 on aurora — and does NOT stretch to fill
-    // the taller `control-box` line box it is centred within. Radio's control is SQUARE (a circle
+    // the taller `control-box` line box it is centered within. Radio's control is SQUARE (a circle
     // inscribed in it), so the Row pins via `size` (both axes from one key), exactly as checkbox does —
     // where switch, a non-square track, pinned `height` alone. `control.size.*.height` and NOT `icon.size.*`
     // for the same reason the atom binds it (the control ladder shifts a rung with brand density where the
@@ -188,14 +188,14 @@ export const radio: ComponentDef = {
     'size.large.text': 'type.body.lg.default',
   },
 
-  // ── ANATOMY — THE LABELLED ROW THAT NESTS THE CONTROL (#910, #1348) ─────────────────────────────────
+  // ── ANATOMY — THE LABELED ROW THAT NESTS THE CONTROL (#910, #1348) ─────────────────────────────────
   //
   // Three parts now, not five: the whole ROW is the hit target, `controlBox` is the #1201 line-box
   // wrapper, and its CHILD is a `nest` of `radio-control` where the circle, dot and focus ring used to be
   // authored in place. The atom paints itself; the Row paints the label. This is the composition #1226
   // asked for and #1330/#1354 proved twice — a shared control single-sourced, a fix to it propagating here.
   //
-  // THE ROW MUST NOT CENTRE. Option labels wrap by design (the guidance is to wrap rather than truncate,
+  // THE ROW MUST NOT CENTER. Option labels wrap by design (the guidance is to wrap rather than truncate,
   // keeping per-option detail in `description`), so `align: center` here would float the disc to the
   // middle of a two-line option, the wrong repair `test.ts` #1009 half-1 forbids. The row stays
   // top-aligned (`align: start`) and the centring lives one level down, in `controlBox`, which is one
@@ -225,7 +225,7 @@ export const radio: ComponentDef = {
       },
       // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). One line of the label tall
       // (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the disc on its cross
-      // axis. Draws nothing — it exists only to give the disc a line-tall box to centre within, so the
+      // axis. Draws nothing — it exists only to give the disc a line-tall box to center within, so the
       // top-aligned row holds it on the FIRST line of a wrapping option. Height FIXED; width HUGs the disc.
       controlBox: {
         kind: 'box',
@@ -248,7 +248,7 @@ export const radio: ComponentDef = {
       //
       // IT PINS ITS OWN SQUARE and does NOT stretch. `size: 'size.{size}.control'` (→ `control.size.*.height`,
       // 16/20/24 on nb) binds the instance to the control square, which is SHORTER than the `control-box`
-      // line box (21/24/27) it is centred within — so the small control reads centred on the first line
+      // line box (21/24/27) it is centered within — so the small control reads centered on the first line
       // rather than filling the taller box. Radio's control is square, so the pin is `size` (both axes),
       // like checkbox; `test.ts` #1201 asserts the pin by name, so a change binding the line box here
       // instead — which would stretch the control — fails rather than ships.
@@ -257,7 +257,7 @@ export const radio: ComponentDef = {
         nests: 'radio-control',
         size: 'size.{size}.control',
         nesting: { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest' }, expose: ['selection', 'state'], follow: ['size'] },
-        note: 'An in-flow instance of `radio-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size, and binds its own square so it is centred within the taller wrapper rather than stretched to fill it.',
+        note: 'An in-flow instance of `radio-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size, and binds its own square so it is centered within the taller wrapper rather than stretched to fill it.',
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
       // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the control and not
@@ -329,7 +329,7 @@ export const radio: ComponentDef = {
   },
 
   content: {
-    labelPattern: 'Parallel, mutually exclusive, scannable — the same grammatical shape across the set, brief, sentence case, no terminal punctuation, and no overlap that would let two options both apply. Long labels wrap rather than ellipsis-truncate, with the control centered within the first line-box so it stays on the first line rather than floating mid-paragraph (#1201). The GROUP label names the decision or asks the question ("Shipping method", "How should we contact you?") and may be visually hidden when an enclosing labelled section already frames it, but must stay programmatically present.',
+    labelPattern: 'Parallel, mutually exclusive, scannable — the same grammatical shape across the set, brief, sentence case, no terminal punctuation, and no overlap that would let two options both apply. Long labels wrap rather than ellipsis-truncate, with the control centered within the first line-box so it stays on the first line rather than floating mid-paragraph (#1201). The GROUP label names the decision or asks the question ("Shipping method", "How should we contact you?") and may be visually hidden when an enclosing labeled section already frames it, but must stay programmatically present.',
     errorPattern: 'Group-level and specific — "Select a preferred contact method", never "Invalid input" (SC 3.3.3). Never per-option.',
     emptyPattern: 'A group starts EMPTY by default, so no option carries a pre-selected state — the practice forces a deliberate choice and pre-selects only where a genuinely safe recommended default exists. Empty is a one-way door, because a radio cannot be deselected: an OPTIONAL group must therefore carry an explicit "None" or "N/A" option, or a stray click permanently pollutes the data with no way back. If a "None" option would corrupt the data model, the choice belongs in a clearable Select instead.',
   },
@@ -356,7 +356,7 @@ export const radio: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'Present one option within a mutually exclusive set via a labelled row that nests the circle-and-dot control, deriving its selected state from the group that owns the value.',
+    primaryPurpose: 'Present one option within a mutually exclusive set via a labeled row that nests the circle-and-dot control, deriving its selected state from the group that owns the value.',
     whenToUse: 'Exactly one of 2 to about 7 all-visible options where seeing them together aids the decision, and the choice is committed on submit rather than applied instantly. Always as a child of a RadioGroup.',
     avoidWhen: 'Any number of options may be selected (Checkbox — never model an exclusive choice as several checkboxes), the change applies immediately (Switch — and never two radios for a true/false toggle), the set runs past about 5 to 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (Segmented Control, which carries a different accessibility model), or it is really an action (Button). Also do not reach for this def when what is wanted is the GROUP: the group is a separate component that is not authored yet, and it — not this — owns the name, the value and the validation.',
     commonPartners: ['radio-control', 'field-label', 'field-message', 'focus-ring', 'icon', 'form', 'card'],
@@ -387,7 +387,7 @@ export const radio: ComponentDef = {
       'Selection-follows-focus is the practice default and the external research pass argued the opposite (explicit selection, Space to commit), citing the screen-reader-exploration trap and Windows gamepad behavior. Recorded because the contrary position is legitimate and reasoned rather than wrong: the resolution is that follows-focus is native and the APG default, and the exploration cost is better paid by keeping `onChange` cheap than by reimplementing the platform.',
     ],
     unverified: [
-      'THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`\'s and `switch-control`\'s were: the nested control instance must pin its own SQUARE (the control edge) rather than stretch to the `control-box` line box, and whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centred within it. Radio\'s control is SQUARE, so the Row pins via `size` (both axes), the same as checkbox.',
+      'THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`\'s and `switch-control`\'s were: the nested control instance must pin its own SQUARE (the control edge) rather than stretch to the `control-box` line box, and whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. Radio\'s control is SQUARE, so the Row pins via `size` (both axes), the same as checkbox.',
       'THE FOCUS RING MUST APPEAR INSTANTLY (brief §6, §8) — a fade lags rapid arrow navigation through a group, which is a radio-specific constraint that checkbox does not have. The engine emits `motion.duration-ms.*` and the Row has no motion field to point at, so the requirement lives in `accessibility.focus` prose and nothing checks it. The ring\'s SHAPE, by contrast, is handled: F2 (#1388) derives it concentrically, so a full-round control yields a circular ring (`radio-control.ts`).',
       'The select micro-motion (a spring/scale-up of the dot at roughly 100-150ms, and — uniquely — a sibling\'s dot animating OUT, the only exit animation a radio has) now lives on `radio-control` with the dot, and has no expression in the def schema at all.',
       '`RadioGroup` and `Radio.Control` are the two companions. `radio-control` is now a real def (#1348, the atom this Row nests). `RadioGroup` is still deferred (#901), and for radio it is MANDATORY rather than optional: the shared `name`, the single scalar value, the roving-tabindex single tab stop, `orientation`, and all validation live there, and none of it is expressible from an option. Recorded in the header at length for that reason.',

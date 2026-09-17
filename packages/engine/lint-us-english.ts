@@ -52,6 +52,21 @@
  *     33 sit in comments (the open question below) and **55 and 53 are prose in string literals**,
  *     which no open question covers.
  *
+ *  6. THE PATTERN SET WAS NARROWER THAN THE STANDARD IT ENFORCED (#1447). Traps 1 and 1b each widened
+ *     the DETECTION by one shape and stopped at CLAUDE.md's three named rules (`-ise`, `-our`, `grey`)
+ *     — reading three EXAMPLES of "US English" as its extent. Two whole en-GB classes fall outside all
+ *     three: doubled-L-before-suffix (`travelling`, `labelled`, `signalling`) and the `-re` endings
+ *     (`centre`, `centred`, `metre`). Neither pattern could see them, so `travelling` shipped green in
+ *     #1425 and `centred`/`centres` sat in `out/nb.tokens.json` on main through every scan — docs/34
+ *     shape 8 (the gate written from the same mental model as its subject: the rule set encoded the
+ *     examples its author had in mind). The first run of the widened rule found 506 real hits in shipped
+ *     text. Both rules live in `prose-rules.ts` with the others (`DOUBLE_L`, `RE_ENDINGS`); each is
+ *     anchored to WHOLE WORDS so `parameter`/`diameter` (`meter`, not `metre`) and `controlled`/
+ *     `cancellation` (doubled in en-US too) cannot trip them, and SELF_CHECK samples both directions.
+ *     The durable lesson is trap 1's, one level up: a list of RULES under-counts the same way a list
+ *     of WORDS does. When a class ships past this gate, the question is which shape is missing, not
+ *     which word.
+ *
  * OPEN, AND DELIBERATELY NOT DECIDED HERE. CLAUDE.md's US-English section carves comments out of the
  * standard, then narrows the carve-out for `apps/studio/src` — because a bundle cannot tell a comment
  * from a string, so an exemption this gate cannot see is not enforceable — and records as OPEN whether
@@ -274,6 +289,15 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'a greyscale mode', expect: true },          // STEMS — the one with no suffix to match
   { sample: 'otherwise the source', expect: false },     // NOT_EN_GB must still subtract
   { sample: 'four hours of tours', expect: false },      // the plurals `s?` newly exposes must not trip
+  // #1447 — the two classes NONE of the above could see, each sampled in both directions. These were
+  // real: `travelling` shipped green in #1425 and `centred` sat in `out/nb.tokens.json` on main.
+  { sample: 'a travelling thumb', expect: true },        // DOUBLE_L — the #1425 word
+  { sample: 'an unlabelled, cancelled step', expect: true }, // …prefixed, and a second stem
+  { sample: 'the centred mark', expect: true },          // RE_ENDINGS — the word on main
+  { sample: 'two kilometres apart', expect: true },      // …as a compound, which only a substring sees
+  { sample: 'a controlled, compelled caller', expect: false }, // en-US doubles these too — must NOT trip
+  { sample: 'cancellation, totally, equally', expect: false }, // suffixes DOUBLE_L must NOT reach
+  { sample: 'the diameter parameter is centered', expect: false }, // `meter`, not `metre`; en-US `-er`
 ];
 // Drives `enGb` — the same function `scan()` calls — so neutering either regex fails HERE. See the
 // comment on `enGb`; reimplementing the match inline is what let a real `greyscale` ship clean.

@@ -15,7 +15,7 @@
  * combine ordering, the position writing and every read-back. That is where the two paths are
  * independent implementations, and it is what `test.ts`'s parity gate compares.
  *
- * MODELLED ON THE CHUNKED PASTE, NOT THE SINGLE-SHOT ONE, for a reason that is about the host rather
+ * MODELED ON THE CHUNKED PASTE, NOT THE SINGLE-SHOT ONE, for a reason that is about the host rather
  * than the code: it needs to survive a designer pressing the button twice, which the single-shot payload
  * does not (a second paste combines a second set beside the first). So this is find-or-create the set by
  * name, skip members already present, append, re-lay-out the UNION and resize. Re-running is idempotent
@@ -1029,7 +1029,7 @@ export const applyComponentPlan = async (
  * They moved because the paste path has both of these swap sites too, and for one release the two executors
  * told a designer different things about the same file state — the asymmetry #1288 was filed on. Their full
  * header (the four cases, why the COMPONENT_SET row is the one that gets hit, why each sentence names its
- * own target, and why the emit-time premise the issue was filed on turned out to be false) travelled with
+ * own target, and why the emit-time premise the issue was filed on turned out to be false) traveled with
  * them; read it there.
  */
 const writeComponentSet = async (

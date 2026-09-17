@@ -172,7 +172,7 @@ export const focusRing: ComponentDef = {
     'style': 'focus.ring.style',
     'offset.control': 'focus.ring.offset',
     'offset.field': 'focus.ring.offset-field',
-    // THE NOMINAL SIDE (#1280) — the one binding here that is not a design decision, and it is labelled
+    // THE NOMINAL SIDE (#1280) — the one binding here that is not a design decision, and it is labeled
     // so rather than left to be inferred. A ring has no intrinsic size: nested, its extent is its host's
     // grown by the offset, and the host's executor writes it. This exists ONLY so a standalone build is
     // a ring-shaped artifact instead of Figma's 100x100 default frame, which is what let the def be

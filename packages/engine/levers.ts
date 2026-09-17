@@ -2,7 +2,7 @@
  * Prism3 engine — the LEVER MANIFEST (docs/08 §4).
  *
  * The shared-control contract: a machine-readable description of every `BrandInput`
- * knob — grouped, labelled, typed, ranged, with defaults and enum options — that
+ * knob — grouped, labeled, typed, ranged, with defaults and enum options — that
  * the Figma plugin, the web playground, and the MCP tool schema all RENDER FROM.
  * One source, so a lever added once appears in every surface and the two visual
  * editors stay in continuity by construction (not a manual sync).

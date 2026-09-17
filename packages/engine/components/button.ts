@@ -370,7 +370,7 @@ const makeButton = (id: string, name: string, description: string, family: Inten
         role: 'target',
         children: ['leadingVisual', 'label', 'trailingVisual', 'focusRing'],
         // justify: center is the CONSTANT (docs/28 §5.2). Primer ties alignment to purpose —
-        // centre for CTAs, left for selection toggles — but that would make `align` the first
+        // center for CTAs, left for selection toggles — but that would make `align` the first
         // LAYOUT prop in ComponentDef, a precedent propagating across ~40 components. Deferred
         // until a real surface needs it, not settled by preference.
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },

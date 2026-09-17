@@ -752,7 +752,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // 'conventional' path — `pickClosest(..., 2)` with `min: 0` — is gone: this system no longer
   // uses the WCAG 1.4.3/1.4.11 inactive-component exemption, so there is no un-contracted disabled
   // ink. (That path also made the two strategies indistinguishable at the bottom of the old 2–4.5
-  // dial, while still labelling the result "accessible".) HC escalates BOTH branches to >=4.5 —
+  // dial, while still labeling the result "accessible".) HC escalates BOTH branches to >=4.5 —
   // previously only the gated one escalated, so 'conventional' shipped ~2:1 disabled text even in
   // a high-contrast mode.
   const disabledFloor = theme.disabledStrategy === 'full' ? 4.5 : theme.disabledMin;

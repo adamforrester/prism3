@@ -268,11 +268,11 @@ export type StylesPlan = { effects: EffectStyleRow[]; paints: PaintStyleRow[] };
  * progression direction for CSS angle θ is `(sinθ, −cosθ)` (screen y-down). A Figma gradientTransform
  * whose first row's linear part is `(cosφ, −sinφ)` progresses along `(cosφ, −sinφ)`; setting
  * `φ = 90° − θ` makes that equal `(sinθ, −cosθ)` — i.e. we rotate the identity (horizontal) gradient
- * by `90 − angleDeg` about the layer centre (0.5, 0.5), translation `t = c − R·c` keeping the centre
+ * by `90 − angleDeg` about the layer center (0.5, 0.5), translation `t = c − R·c` keeping the center
  * fixed. So θ=90→L→R, θ=0→to-top, θ=135→bottom-right corner — matching the CSS/web preview.
  *
- * RADIAL: a centre-anchored transform — the gradient radiates from `center` (default 0.5,0.5). We use
- * an identity-scaled transform translated so gradient-space origin sits at the centre; Figma treats
+ * RADIAL: a center-anchored transform — the gradient radiates from `center` (default 0.5,0.5). We use
+ * an identity-scaled transform translated so gradient-space origin sits at the center; Figma treats
  * the radial gradient's handles from this. (Baked, non-variable — a faithful default; per-shape
  * ellipse tuning is out of scope for this lane.)
  */
@@ -294,7 +294,7 @@ export const gradientTransformFor = (
     const ty = cy - (sin * cx + cos * cy);
     return [[r(cos), r(-sin), r(tx)], [r(sin), r(cos), r(ty)]];
   }
-  // Radial: identity orientation, origin at the declared centre.
+  // Radial: identity orientation, origin at the declared center.
   const [cx, cy] = center;
   return [[1, 0, r(cx - 0.5)], [0, 1, r(cy - 0.5)]];
 };

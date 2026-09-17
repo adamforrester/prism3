@@ -2913,8 +2913,20 @@
  * prose for Figma-sandbox-rejected token sequences (`import\s*\(` and kin), so this class can't recur; the
  * latent occurrences in `version.ts` changelog + `anatomy-figma.ts` comments (not currently reachable into
  * `main.js`) are named there.
+ *
+ * 0.104.0 — #1447: `lint-us-english` was blind to two whole en-GB classes — doubled-L-before-suffix
+ * (`travelling`, `labelled`, `signalling`, `modelled`) and the `-re` endings (`centre`, `centred`,
+ * `centres`, `metre`) — because `prose-rules.ts` scanned only `-ise`/`-our` and the `grey` stem. The gate
+ * now carries a `DOUBLE_L` stem alternation and an `RE_ENDINGS` substring scan (both word-boundary
+ * anchored; `diameter`/`parameter`/`controlled`/`cancellation` cannot reach either), and the first run over
+ * the built corpus found 506 REAL en-GB spellings in shipped text: `signalling` ×56 per `*.ai.json`
+ * (`ai-metadata.ts` family meanings), `centred`/`centres` ×6 per token tree (`tree.ts` control-size
+ * descriptions), and ~100 across the component defs' `description`/`note`/`aria`/`avoidWhen` prose plus the
+ * comments that ship in the plugin bundle. All respelled to en-US — meaning identical, letters moved.
+ * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
+ * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  */
-export const ENGINE_VERSION = '0.103.0';
+export const ENGINE_VERSION = '0.104.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

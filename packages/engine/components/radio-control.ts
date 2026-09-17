@@ -1,6 +1,6 @@
 /**
  * Radio.Control — the ATOMIC disc (#1348, the #1226/#1330 mechanism a fourth time). The painted circle,
- * its inner selection dot and its focus ring, extracted from `radio` so the labelled Row can NEST it
+ * its inner selection dot and its focus ring, extracted from `radio` so the labeled Row can NEST it
  * rather than redraw it — exactly as `checkbox` nests `checkbox-control` and `switch` nests
  * `switch-control`. A fix to this disc — its border weight (#1228), its round radius, its dot geometry
  * (#910) — now propagates to the Row by single-sourcing rather than by a copy kept in step by hand.
@@ -103,7 +103,7 @@ export const radioControl: ComponentDef = {
   category: 'form',
   status: 'draft',
   description:
-    'The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labelled Radio row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Adopts the Prism 2 visual: a constant-weight outlined ring (no fill) at both selections that RECOLORS on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.',
+    'The atomic radio control — the painted circle with its inner selection dot and its focus ring, and nothing else. Nested by the labeled Radio row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Adopts the Prism 2 visual: a constant-weight outlined ring (no fill) at both selections that RECOLORS on select — a neutral edge when unchecked, the interactive brand edge when checked — with an inner filled circle also appearing on select, never a filled disc. Carries the two-value selection axis (unchecked / checked) whose dot is a real part gated on the coordinate, and the 2px control border.',
 
   // The atom's surface, not the field's. No `label`, no `description`, no form wiring — those are the
   // Row's and the Group's. What it exposes is the visual state a host drives through the nest.
@@ -233,7 +233,7 @@ export const radioControl: ComponentDef = {
         strokeWidth: 'border-width',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['dot', 'focusRing'],
-        note: 'The outlined ring AND the nominal hit-target marker. The real hit target is the whole labelled ROW, which lives on `radio`; this circle is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `checkbox-control`\'s `control` carries. No fill: the Prism 2 visual is a constant-WEIGHT outlined ring at both selections that RECOLORS on select — neutral `field.border.*` when unchecked, the interactive brand edge `interactive.primary.border.*` when checked — with the inner dot as an additional selection cue (#1348, #1423).',
+        note: 'The outlined ring AND the nominal hit-target marker. The real hit target is the whole labeled ROW, which lives on `radio`; this circle is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `checkbox-control`\'s `control` carries. No fill: the Prism 2 visual is a constant-WEIGHT outlined ring at both selections that RECOLORS on select — neutral `field.border.*` when unchecked, the interactive brand edge `interactive.primary.border.*` when checked — with the inner dot as an additional selection cue (#1348, #1423).',
       },
       // THE INNER DOT. A `box`, not a `vector`, and sized from its OWN key rather than the control's — a
       // filled shape has no artboard to carry an optical inset, so full-bleed would draw the disc rather
@@ -274,7 +274,7 @@ export const radioControl: ComponentDef = {
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
       'read-only — deliberately not a state of this atom. A radio has no working native readonly, so there is no treatment to project; the field/row/group decides it. The Row admits it in its own `codeOnly`.',
       'The select micro-motion (a spring/scale-up of the dot at roughly 100-150ms, and — uniquely — a SIBLING\'s dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). Neither the def schema nor a Figma variant carries motion, so the dot is static at every coordinate.',
-      'The whole-row hit target. A bare control circle is a 12-24px disc that fails SC 2.5.8 in isolation; the accessible target is the labelled ROW, which is `radio` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
+      'The whole-row hit target. A bare control circle is a 12-24px disc that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `radio` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
     ],
   },
 
@@ -315,7 +315,7 @@ export const radioControl: ComponentDef = {
       'Supply an external aria-label only when using the control genuinely alone',
     ],
     dont: [
-      'Place a bare circle as the clickable element — it fails SC 2.5.8 in isolation; the labelled row is the hit target',
+      'Place a bare circle as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target',
       'Double-label a nested control — the host row already provides the accessible name',
       'Fill the disc on select — the Prism 2 visual keeps the ring outlined and shows an inner circle instead',
       'Thicken the border to signal selection — the border WEIGHT is constant across states; selection recolors the ring to brand and adds the inner dot',
@@ -325,8 +325,8 @@ export const radioControl: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Render the atomic radio control — the outlined circle, its inner selection dot and its focus ring — for a host row to nest.',
-    whenToUse: 'Nested by the labelled Radio row (the common case), or standalone only for a control with an external label and its own aria wiring.',
-    avoidWhen: 'You want the labelled case (that is Radio), a staged binary opt-in (Checkbox / Checkbox.Control), or an immediate-effect toggle (Switch / Switch.Control). Never place a bare circle as the clickable element — the hit target is the labelled row.',
+    whenToUse: 'Nested by the labeled Radio row (the common case), or standalone only for a control with an external label and its own aria wiring.',
+    avoidWhen: 'You want the labeled case (that is Radio), a staged binary opt-in (Checkbox / Checkbox.Control), or an immediate-effect toggle (Switch / Switch.Control). Never place a bare circle as the clickable element — the hit target is the labeled row.',
     commonPartners: ['radio', 'focus-ring'],
     triggerKeywords: ['radio control', 'radio circle', 'radio disc', 'radio dot', 'option control'],
     generationPriority: 3,

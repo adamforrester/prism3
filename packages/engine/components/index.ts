@@ -99,37 +99,37 @@ export const componentDefs: readonly ComponentDef[] = [
   // `textarea` follows `text-field` for the same reason `icon-button` follows `button`: composition
   // order, and it `inherits` the def above it.
   textarea,
-  // `checkbox-control` is the ATOMIC box (#1226 step 2, #901), extracted from `checkbox` so the labelled
+  // `checkbox-control` is the ATOMIC box (#1226 step 2, #901), extracted from `checkbox` so the labeled
   // Row can nest it rather than redraw it. It leads `checkbox` on composition order — `checkbox` nests
   // `checkbox-control`, which nests `focus-ring` — though nothing reads this array's order (see above).
   checkboxControl,
   // `checkbox-row` (renamed from `checkbox`, #1347) likewise `inherits` the field substrate. It sits after
   // `textarea` rather than beside it because composition order is the ordering rule and nothing more: both
   // are children of the same parent, so their relative order carries no claim. Since #1226 step 2 it is the
-  // labelled ROW that nests `checkbox-control` in flow, rather than inlining the painted box.
+  // labeled ROW that nests `checkbox-control` in flow, rather than inlining the painted box.
   checkboxRow,
   // `checkbox-group` (#1347) — the set: a `field-label` above a stack of `checkbox-row`s. It follows
   // `checkbox-row` on composition order because it NESTS the Row (which nests `checkbox-control`, which
   // nests `focus-ring`), the deepest nest chain in the corpus — though nothing reads this array's order
   // (see the header). It owns the value array and group validation the Row cannot express.
   checkboxGroup,
-  // `radio-control` is the ATOMIC circle-and-dot (#1348), extracted from `radio` so the labelled Row can
+  // `radio-control` is the ATOMIC circle-and-dot (#1348), extracted from `radio` so the labeled Row can
   // nest it rather than redraw it — the #1226/#1330 mechanism a fourth time, built after confirming the
   // radio Row nests it (the composition check). It leads `radio` on composition order — `radio` nests
   // `radio-control`, which nests `focus-ring` — though nothing reads this array's order (see above).
   radioControl,
   // `radio` follows `checkbox` because it `inherits` it — the one place in this list where the order
   // does carry a claim beyond convention, since the chain is real: radio inherits the field substrate
-  // THROUGH checkbox rather than directly. Since #1348 it is the labelled ROW that nests `radio-control`
+  // THROUGH checkbox rather than directly. Since #1348 it is the labeled ROW that nests `radio-control`
   // in flow, rather than inlining the painted disc.
   radio,
-  // `switch-control` is the ATOMIC track-and-thumb (#1354), extracted from `switch` so the labelled Row
+  // `switch-control` is the ATOMIC track-and-thumb (#1354), extracted from `switch` so the labeled Row
   // can nest it rather than redraw it — the #1226/#1330 mechanism a third time, built after confirming
   // the switch Row nests it (the composition check). It leads `switch` on composition order — `switch`
   // nests `switch-control`, which nests `focus-ring` — though nothing reads this array's order (see above).
   switchControl,
   // `switch` follows `radio` because it `inherits` checkbox too — the same two-link chain, and the
-  // order here says only that all three share a parent. Since #1354 it is the labelled ROW that nests
+  // order here says only that all three share a parent. Since #1354 it is the labeled ROW that nests
   // `switch-control` in flow. It is exported as `switchDef` rather than `switch` because `switch` is a
   // reserved word: the def's `id` is still `'switch'`, which is what every gate and every consumer reads.
   switchDef,

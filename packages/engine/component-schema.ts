@@ -307,7 +307,7 @@ export type PartDef = {
    *  nothing anyone can see today. It is a CLAIM in #1009's sense — the property stops being a silence,
    *  and the first text node given a height inherits a stated rule rather than Figma's default.
    *  `textarea`'s anatomy is the one anybody can already name: a multi-line field's text starts at the
-   *  TOP, and that def will say `verticalAlign: 'top'` here instead of discovering it was centred.
+   *  TOP, and that def will say `verticalAlign: 'top'` here instead of discovering it was centered.
    *
    *  IT IS NOT THE FIX FOR A ROW THAT TOP-ALIGNS ITS CONTROL. That is #1009's half 1, it lives on the
    *  PARENT's `layout.align`, and no value of this field reaches it — see `checkbox.ts`'s `row`. The two
@@ -395,7 +395,7 @@ export type PartDef = {
    *  that proportion and call `lockAspectRatio()` so Figma DERIVES the second dimension from the first.
    *
    *  AN AXIS NAME, NOT A LITERAL PAIR, and that is forced by the requirement rather than a style choice.
-   *  It is modelled on `glyphViewBox`'s literal `[w, h]` in that a ratio is a proportion the def states
+   *  It is modeled on `glyphViewBox`'s literal `[w, h]` in that a ratio is a proportion the def states
    *  structurally — but a single literal cannot VARY per member, and the three ratios are three members
    *  of one set. Naming the axis lets one field express all three: the values `1:1`/`4:3`/`16:9` ARE the
    *  ratios, so `parseRatio` reads them rather than a def carrying a second per-variant map that could
@@ -438,7 +438,7 @@ export type PartDef = {
    *  artwork inset — and expressing it by SHRINKING THE FRAME would mint a per-rung control token (a
    *  guaranteed name, a CONTRACT bump), because the plan is brand-agnostic and a frame binds a VARIABLE.
    *  So the inset is baked into the emitted glyph DOCUMENT instead: the projector pads the artboard to
-   *  `grid / glyphScale` (centred, so the path `d` and the shared vocabulary are untouched), and the
+   *  `grid / glyphScale` (centered, so the path `d` and the shared vocabulary are untouched), and the
    *  same host binding renders the grid at `glyphScale` of the frame. A def-local literal, not a token —
    *  `token-contract.ts --check` stays put. Prism 2's checkbox is the motivating case: its `checkFill`
    *  (16) sits at 0.80 of its control box (20 = focus frame 28 − 2×4), so `mark`/`dash` carry
