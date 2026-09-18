@@ -7,6 +7,24 @@
 
 ---
 
+## (2026-09-18) — Studio surfaces the global link role + its states on the Interactive page (#1487)
+
+**STATUS: LANDED. STUDIO-ONLY — no engine code, def, gate baseline, or committed `out/` artifact changed; ENGINE and CONTRACT both STAND. Read-only preview, not an editor (see the held decision below).**
+
+**THE CHANGE.** The single global link role (#1486) — `text.link.*` / `icon.link.*` with their inverse twins — is now surfaced on the Interactive page (`apps/studio`), in the same role-block vocabulary the palette sections use. A new read-only `Links` `.psec` section renders four rows (Text link, Text link · inverse, Icon link, Icon link · inverse); each row carries the `default` swatch + token pill + description, a live specimen (`exLink` for text, `exIconLabel` for icon, both on the matching page/inverse ground), and a five-cell state strip (default → hover → pressed → visited → focused) with a token pill + contrast receipt per state. `exIconLabel` gained an optional `dark` param (mirroring `exLink`/`exBtn`) so the inverse icon specimen sits on the inverse ground; its one existing caller is unaffected. Also fixed a stale sibling surface: the Preview → Style guide "Links" row enumerated only default/hover/visited/focused — #1486 added `pressed` and the row's own adjacent callout already named it, so the row now includes Pressed too.
+
+**THE GAP IT CLOSES.** Owner QA (2026-09-17): "can't find a way to see/customize link interactive colors/states in the studio." Same class as #1467 (facePin has no studio control) — a real, brand-relevant role the engine computes but the UI could not reach. Links resolve per mode from the action ramp; the studio rendered them nowhere on the color-editing pages, so a designer could not verify hover/pressed/visited perceptibility (the exact thing #1486 fixed) without exporting.
+
+**WHY READ-ONLY, AND THE ONE HELD DESIGN DECISION.** The link role has NO lever — #1486 shipped the perceptibility walk as a tuned constant and explicitly deferred the lever ("lever later"). So the honest surface is a preview: rendering a Source/step picker with nothing behind it would be a control that does nothing (the #576 trap). Links track the action palette, and the section says so. **Whether links should become independently customizable (a per-state link override, which needs an engine lever first) is a design + engine decision, flagged for the owner — not decided here.** This lane implemented only the surfacing #1487 names; it did not invent a new editing control or a new visual layout (it reuses the existing `.psec`/`.arow`/`.astates` vocabulary and the existing example atoms).
+
+**SCOPE — no contract, no engine.** No token name, prop, def, or emitted value moved; `version.ts` untouched. `token-contract --check` level `none`. The diff is `apps/studio/src/main.ts` (the section + the `exIconLabel` param + the style-guide row), `apps/studio/test-smoke.mjs` (section 8), and this entry.
+
+**GATE + BY-NAME MUTATION (docs/34).** Section 8 of the studio smoke suite (`test:smoke`, drives the built `dist/main.js`). EXPECTED is the engine's EMITTED link surface, read from `packages/engine/out/aurora.tokens.json` — which families exist and which states each carries — never the studio's own render; the link role set is brand-independent, so one emitted file is a valid oracle for either corpus brand. ACTUAL is the Links section's DOM (rows keyed by the `default` token pill the renderer already prints). The suite requires the surfaced families to equal the emitted set, every emitted state to appear by name, no extra state, the studio's own order/label promise (restated constants, so a reorder fails by name), and #1486's decided value contract on the RENDERED swatches (default/hover/pressed/visited four distinct colors; focused === default). By-name mutation: dropping `pressed` from the studio's `LINK_STATE_ROWS` fails BY NAME — *"aurora text: surfaces color.text.link.pressed (an emitted state must appear in the section)"* (plus the count/order/label cells) across all four families and both brands — then restored. Full `npm run verify`: 60/60 gates reached a verdict, all PASS (studio typecheck/test/build/test:smoke-after-build/check:ignore/lint:contrast, and lint-us-english/lint-voice after the web+plugin builds).
+
+**NOT TOUCHED.** #1367 and #1385 are out of this lane's scope. #1467 (facePin studio control) is the sibling gap and stays its own issue.
+
+---
+
 ## (2026-09-18) — rename `radio` → `radio-row` and `switch` → `switch-row` to match `checkbox-row` (#1468)
 
 **STATUS: LANDED. ENGINE 0.115.0 → 0.116.0; CONTRACT STANDS at 11.3.0. Owner-decided naming (QA 2026-09-17) — "Rename to radio-row + switch-row"; implemented, not re-litigated.**

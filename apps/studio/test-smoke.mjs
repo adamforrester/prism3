@@ -1521,6 +1521,146 @@ for (const brand of BRANDS) {
 }
 
 // =============================================================================================
+// 8. The Links section surfaces the global link role + its states (#1487)
+// =============================================================================================
+// #1487's studio-surface work: the single global link role (#1486) — `text.link.*` / `icon.link.*`
+// with their inverse twins — is now surfaced read-only on the Interactive page, in the same role-block
+// vocabulary the palette sections use. The gap it closes is that a designer had no way to SEE the link
+// role or its states in the studio at all; the role has no lever, so this is a preview, not an editor.
+//
+// THE ORACLE IS THE ENGINE'S EMITTED TOKEN TREE, NOT THE STUDIO'S RENDER (docs/34 shape 1). Which link
+// families exist, and which states each carries, is read from `packages/engine/out/aurora.tokens.json`
+// — the engine's own committed emission — and the studio DOM is then required to surface exactly that
+// set. Reading the expected set from the thing being checked (the Links section itself) would pass on a
+// section that dropped `pressed` or misspelled a role, which is the whole class of defect here. The link
+// role SET is brand-independent (only the values differ per brand), so one emitted file is a valid
+// oracle for whichever corpus brand the DOM happens to show.
+//
+// TWO restated constants, each a deliberate duplication that turns an assertion into a comparison:
+// FAMILY_ORDER (the studio's row order) and PRESENTATION_ORDER (default → hover → pressed → visited →
+// focused, the studio's chosen state order — distinct from the engine's emit order). Both are the
+// studio's OWN promise, not an engine fact, so they live here; a mutation that reorders or drops a row
+// or a state cell fails BY NAME against them. FAMILY_ORDER is tied back to the oracle by a set-equality
+// check, so the engine growing a link family fails the test until the studio (and this list) grow too.
+//
+// AND THE VALUES ARE CHECKED BEHAVIORALLY, not by hardcoded hex: #1486's decided contract — the engaged
+// states (hover, pressed, visited) are each distinct from default and from each other, while `focused`
+// is a color no-op equal to default — is asserted on the rendered swatches. That holds across the whole
+// corpus in light mode (verified on all four emitted brands), so it is a real promise, not a sample.
+console.log(`\nThe Links section (#1487)\n${'='.repeat(78)}`);
+
+// The engine's emitted link surface, read from its own committed output. Throws if it parses to nothing
+// — an oracle that quietly finds no link roles would assert nothing and pass on a blanked section.
+const LINK_ORACLE_FILE = join(ROOT, '..', '..', 'packages', 'engine', 'out', 'aurora.tokens.json');
+const emittedLinks = await (async () => {
+  const tree = JSON.parse(await readFile(LINK_ORACLE_FILE, 'utf8'));
+  const fams = {};
+  const walk = (o, path) => {
+    if (!o || typeof o !== 'object') return;
+    if ('$value' in o) {
+      const m = /\.color\.((?:inverse\.)?(?:text|icon))\.link\.([a-z]+)$/.exec(path);
+      if (m) (fams[m[1]] ??= new Set()).add(m[2]);
+      return;
+    }
+    for (const k of Object.keys(o)) walk(o[k], path ? `${path}.${k}` : k);
+  };
+  walk(tree, '');
+  return fams;
+})();
+const ORACLE_FAMILIES = Object.keys(emittedLinks).sort();
+ok(ORACLE_FAMILIES.length === 4,
+  `the oracle read ${ORACLE_FAMILIES.length} link families from the engine's emission (${ORACLE_FAMILIES.join(', ') || 'NONE'})`);
+ok(ORACLE_FAMILIES.every((f) => emittedLinks[f].size >= 5),
+  `every emitted link family carries at least 5 states (${ORACLE_FAMILIES.map((f) => `${f}:${emittedLinks[f].size}`).join(', ')})`);
+
+// The studio's own promises: the four rows in order, and the five states in depth order. Restated here
+// so a reorder or a dropped row/state fails by name; FAMILY_ORDER is set-checked against the oracle below.
+const FAMILY_ORDER = ['text', 'inverse.text', 'icon', 'inverse.icon'];
+const PRESENTATION_ORDER = ['default', 'hover', 'pressed', 'visited', 'focused'];
+const STATE_LABEL = { default: 'Default', hover: 'Hover', pressed: 'Pressed', visited: 'Visited', focused: 'Focused' };
+ok(new Set(FAMILY_ORDER).size === new Set(ORACLE_FAMILIES).size
+  && FAMILY_ORDER.every((f) => emittedLinks[f]),
+  `the four surfaced families are exactly the ones the engine emits (surfaced ${FAMILY_ORDER.join(', ')}; emitted ${ORACLE_FAMILIES.join(', ')})`);
+
+/** ACTUAL — the Links section as a reader sees it. Rows keyed by the `default` token pill the renderer
+ *  already prints, so nothing is added to the DOM to identify them. */
+const READ_LINKS = () => {
+  const sec = [...document.querySelectorAll('.psec')]
+    .find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Links');
+  if (!sec) return null;
+  return {
+    rows: [...sec.querySelectorAll('.arow')].map((row) => ({
+      pill: row.querySelector('.amid .tpill')?.textContent?.trim() ?? null,
+      swatch: getComputedStyle(row.querySelector('.asw')).backgroundColor,
+      states: [...row.querySelectorAll('.astates .astate')].map((c) => ({
+        name: c.querySelector('.astate-n')?.textContent?.trim() ?? '',
+        pill: c.querySelector('.tpill')?.textContent?.trim() ?? null,
+        swatch: getComputedStyle(c.querySelector('.astate-sw')).backgroundColor,
+      })),
+    })),
+  };
+};
+
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoPage(page, 'Interactive');
+
+  const shown = await page.evaluate(READ_LINKS);
+  ok(shown !== null, `${brand}: the Interactive page carries a Links section`);
+  if (!shown) { await ctx.close(); continue; }
+
+  ok(shown.rows.length === FAMILY_ORDER.length,
+    `${brand}: the Links section shows ${shown.rows.length} rows (expected ${FAMILY_ORDER.length}: one per emitted link family)`);
+
+  for (let i = 0; i < FAMILY_ORDER.length; i++) {
+    const fam = FAMILY_ORDER[i];
+    const row = shown.rows[i];
+    const where = `${brand} ${fam}`;
+    if (!row) { ok(false, `${where}: the ${fam} link row is present`); continue; }
+
+    // Row identity: the default pill names this exact family — a mislabeled or reordered row fails here.
+    ok(row.pill === `color.${fam}.link.default`,
+      `${where}: the row is identified by its default token pill (got "${row.pill}")`);
+
+    // Every state the ENGINE emits for this family is surfaced, by name — the oracle drives this, so a
+    // dropped `pressed` cell (or any missing state) fails naming the role the studio failed to show.
+    const surfaced = new Set(row.states.map((s) => s.pill));
+    for (const st of [...emittedLinks[fam]].sort()) {
+      ok(surfaced.has(`color.${fam}.link.${st}`),
+        `${where}: surfaces color.${fam}.link.${st} (an emitted state must appear in the section)`);
+    }
+    // ...and no extra state the engine does NOT emit (a stray cell is as wrong as a missing one).
+    ok(row.states.length === emittedLinks[fam].size,
+      `${where}: surfaces exactly the ${emittedLinks[fam].size} emitted states, no more (${row.states.length} cells)`);
+
+    // The studio's OWN order promise, restated: depth order, default → hover → pressed → visited → focused.
+    const order = row.states.map((s) => s.pill?.split('.').pop());
+    ok(order.join(',') === PRESENTATION_ORDER.join(','),
+      `${where}: states are shown in depth order (${order.join(' → ')})`);
+    ok(row.states.map((s) => s.name).join(',') === PRESENTATION_ORDER.map((st) => STATE_LABEL[st]).join(','),
+      `${where}: each cell's label matches its state (${row.states.map((s) => s.name).join(', ')})`);
+
+    // The big swatch is the default state's color — the row's headline agrees with its own default cell.
+    const cell = Object.fromEntries(row.states.map((s) => [s.pill?.split('.').pop(), s.swatch]));
+    ok(row.swatch === cell.default,
+      `${where}: the row swatch is the default state's color (row ${row.swatch}, default cell ${cell.default})`);
+
+    // #1486's decided contract, on the RENDERED swatches (not hardcoded hex): the engaged states are
+    // each distinct from default and from one another, and focused is a color no-op equal to default.
+    const engaged = ['default', 'hover', 'pressed', 'visited'].map((k) => cell[k]);
+    ok(new Set(engaged).size === 4,
+      `${where}: default/hover/pressed/visited are four distinct colors (${engaged.join(', ')}) (#1486)`);
+    ok(cell.focused === cell.default,
+      `${where}: focused resolves to the same color as default — the ring carries focus, not the ink (${cell.focused}) (#1486)`);
+  }
+
+  const errs = drain();
+  ok(errs.length === 0, `${brand}: reading the Links section raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  console.log(`  ${brand}: ${shown.rows.length} link rows, ${shown.rows.reduce((n, r) => n + r.states.length, 0)} state cells surfaced.`);
+  await ctx.close();
+}
+
+// =============================================================================================
 await browser.close();
 server.close();
 
