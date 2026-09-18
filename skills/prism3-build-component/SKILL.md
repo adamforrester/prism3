@@ -67,7 +67,7 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 **The root part is named for its role, never `root`.** The anatomy's `root` field names the
 part every other part hangs beneath, and the corpus names that part semantically: `container`
 for button, icon-button and select (`packages/engine/components/select.ts`); `row` for
-checkbox-row, radio and switch; `label` for field-label; `message` for field-message; `ring` for
+checkbox-row, radio-row and switch-row; `label` for field-label; `message` for field-message; `ring` for
 focus-ring; `glyph` for icon; `frame` for image-placeholder; `wash` for veil. A bare `root`
 misdescribes the part — a column stack is a `container`, not a `row` — so pick the existing
 key that fits the shape rather than inventing one.

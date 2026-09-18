@@ -6,8 +6,9 @@ question and exits 0; a gate asserts an answer and fails.** `tools/exporter-comp
 harness with a gate sibling, and it lives in a *separate file* from the measurement for exactly that
 reason — `compare.ts` (the tool) and `gate.ts` (the gate) import the same analysis but make different
 promises, and conflating them would make the tool's honest "here's what differs" read as the gate's
-"here's what's wrong." The other three harnesses below have no gate sibling, each for its own stated
-reason — read the reason, not just the absence, before assuming one is missing by oversight.
+"here's what's wrong." The remaining harnesses below have no gate sibling, each for its own stated
+reason — read the reason, not just the absence, before assuming one is missing by oversight. (Named
+rather than counted on purpose: this line once said "three" and went stale as harnesses were added.)
 
 ## `tools/exporter-comparison/`
 
@@ -101,3 +102,26 @@ documentation of a detector to be caught by the detector.
 A fourth harness in this directory, undocumented here until now — see its own `README.md` for what it
 does and how to run it (records block-layout structure from a real browser for the `docs/37` corpus,
 #693). Filed as #946 to get proper treatment in this file rather than folded in as an afterthought.
+
+## `tools/binding-audit/`
+
+Builds the EXPECTED `(component, member, node, slot) → bound-variable` ledger from the engine's
+projection (`figmaAnatomyPlan`) and diffs the ACTUAL emitted binding against it, reporting **unbound**
+slots (a declared color bind the projector returns at no coordinate — the baked-where-it-should-bind
+class) and **mis-bound** slots (a slot bound to a role whose family mismatches its kind — the #1471
+glyph-inks-a-`text`-role class). `audit.ts` reports and exits 0; `--ledger` emits the per-member
+ledger JSON that its README's read-only Figma companion script diffs a live file against (the ledger
+is brand-invariant — the plan carries variable names, not values). #1499.
+
+**No gate sibling, on purpose, and the reason is the mis-bind pass's nature rather than its youth.**
+It is a HEURISTIC: `ALLOWED` (slot-kind → role-family) is authored from design semantics, and the
+corpus carries deliberate cross-slot bindings that a first-principles map would flag but that are
+already pinned elsewhere — the disabled outline edge binding `color.disabled.icon` not
+`color.disabled.border` (#1349, pinned by name in `packages/engine/test.ts`), the switch thumb's
+`on-fill` fill, the switch glyphs' `fill` ink. `ALLOWED` admits those *with a stated reason*, so a run
+over today's corpus is clean; a gate here would either re-encode those exemptions (duplicating
+`test.ts`/`lint-paint.ts`) or assert a bare zero. The unbound half deliberately OVERLAPS
+`lint-paint.ts`'s arm-3 reachability — the value is one consolidated ledger + survey, not a second
+enforcement. If a specific mis-binding hardens into a contract, a gate enforces THAT one separately,
+as #1499 states. The instrument earns its keep by lighting up on a regression (revert #1471 and it
+names every icon-button glyph) or on a drifted live Figma file, not by being red today.

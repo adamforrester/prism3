@@ -39,7 +39,7 @@
     },
     "field-message": {
       "members": 4,
-      "sha256": "334830b63f13de2b52807af889abdce8c908f94d5248319f8a29e6912ab51cdf"
+      "sha256": "1c3334eb4af653f14032067a8552b6cb79d0b28af7a56e4c8ef5cade16800fe9"
     },
     "text-field": {
       "members": 20,
@@ -62,17 +62,17 @@
       "members": 36,
       "sha256": "87100c6b1a9ad7d92bd79a9a685f8c0d0ff9ef175d9b589798fc17fed8704127"
     },
-    "radio": {
+    "radio-row": {
       "members": 3,
-      "sha256": "133b45a5cba88addd1a651df69cbabe741f368f5103bd8483674aaa2d22ec283"
+      "sha256": "490060e77a6b2a4a59106ef0644a9069b7a3ba1537a8f4aa3d7022af17d98eca"
     },
     "switch-control": {
       "members": 24,
       "sha256": "22024b3fa3659a3c42ca9c6685a69fd2318344851ff7ae19b75355895fa34a9e"
     },
-    "switch": {
+    "switch-row": {
       "members": 2,
-      "sha256": "4a5209d6621022a2ad08fb90a2404942e2266d8e7ec45899753691165e37aaed"
+      "sha256": "7964330b07707d735de2836b3ba5d73963ac725ceb6556a05c7ce947a795ad3a"
     },
     "select": {
       "members": 16,

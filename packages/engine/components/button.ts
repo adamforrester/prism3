@@ -599,7 +599,7 @@ const makeButton = (id: string, name: string, description: string, family: Inten
 
   composition: {
     composesWith: ['icon', 'spinner', 'tooltip', 'button-group', 'menu', 'popover'],
-    alternativeTo: ['link', 'link-button', 'icon-button', 'toggle-button', 'split-button', 'switch', 'chip'],
+    alternativeTo: ['link', 'link-button', 'icon-button', 'toggle-button', 'split-button', 'switch-row', 'chip'],
     supersedes: ['input[type=button|submit]', 'div[role=button]'],
   },
 

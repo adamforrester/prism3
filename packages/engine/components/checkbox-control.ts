@@ -308,7 +308,7 @@ export const checkboxControl: ComponentDef = {
 
   composition: {
     composesWith: ['focus-ring'],
-    alternativeTo: ['radio-control', 'switch'],
+    alternativeTo: ['radio-control', 'switch-row'],
     supersedes: [
       'the painted control inlined in a checkbox row',
     ],

@@ -2926,24 +2926,31 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.116.0 — #1474: the `field-message` per-status text DEFAULTS become slot-naming scaffolds — "Helper
- * message" (default) / "Error message" / "Warning message" / "Success message" (was #1434's "This is a
- * standard / an error / a warning / a success message." sentences). Owner-directed from QA: each status
- * should carry status-appropriate default scaffold copy so a reviewer seeing the projected set can tell
- * the statuses apart at a glance. This is the `field-message` analog of #1470's `switch` wording call —
- * the placeholder names the slot, matching the `Switch label` / `Checkbox label` / `Radio option`
- * scaffolding on the sibling controls. It refines #1434's specific wording ONLY; the stance is unchanged
- * (generic illustrative scaffold, voice-standard §1 recessive, never a real product's rule). The four
- * defaults stay PAIRWISE DISTINCT — the #1018 per-member fix (`byVariant.status`) is untouched, so the
- * error / warning / success members still carry their own copy rather than the helper default.
- * NEEDS OWNER SIGN-OFF ON THE COPY. The projected component surface moves (member text defaults) → ENGINE
- * bump; `lint-component-surface` sees it via the plan digest (#1252/#1434/#1470 shape), and
- * `test-write-components` pins the four caption strings at the built node. CONTRACT STANDS at 11.3.0 — a
- * copy default is neither a token name nor a prop, so no guaranteed name moves (`token-contract --check`
- * level `none`, stamp-only sync). The US-English + voice gates cover the new strings. NOTE: issue #1474
- * as filed diagnoses a Figma PROJECTION drop; the engine already expands `byVariant` per-status
- * (`anatomy-figma.ts` `textDefaultOf`, gated by `test-write-components`), so this lane refines the copy
- * only — see the docs/00-progress entry for the projection/plugin scope note.
+ * 0.117.0 — #1474: the `field-message` per-status text DEFAULTS become four DISTINCT scaffold strings so a
+ * reviewer seeing the projected set can tell the statuses apart. Owner-directed from QA, and the copy is
+ * owner-CHOSEN (Set A): default "This is a standard message." / error "Something needs fixing." / warning
+ * "Double-check this." / success "All set." (was #1434's single "This is a standard message." rendered
+ * across all four members). Still generic illustrative scaffold (voice-standard §1 recessive), never a
+ * real product's rule — the placeholder a designer replaces. The #1018 per-member mechanism
+ * (`byVariant.status`) is unchanged; only the four strings move. The projected component surface moves
+ * (member text defaults) → ENGINE bump; `lint-component-surface` sees it via the plan digest
+ * (#1252/#1434/#1470 shape), and `test-write-components` pins the four caption strings at the built node.
+ * CONTRACT STANDS at 11.3.0 — a copy default is neither a token name nor a prop (`token-contract --check`
+ * level `none`, stamp-only sync). The US-English + voice gates cover the new strings.
+ *
+ * 0.116.0 — #1468: the selection-control ROW composites are renamed to the `checkbox-row` convention —
+ * `radio` → `radio-row` and `switch` → `switch-row`. Owner-decided during QA (2026-09-17): viewed side by
+ * side, the bare `radio`/`switch` row ids read as an accidental divergence from `checkbox-row`, so the
+ * `-row` suffix is made uniform. The atoms (`radio-control` / `switch-control`) are UNCHANGED, and the row
+ * still nests its control exactly as before (nest-exposed, exposing selection/state, following size) — only
+ * the composite id + component-set name move (`Radio` → `Radio.Row`, `Switch` → `Switch.Row`, matching
+ * `Checkbox.Row`). The pre-#1468 bare ids are retained as `aliases` (the `checkbox-row` precedent). This is a
+ * COMPONENT-SURFACE rename (the projected Figma component-set name), which is ENGINE-tracked (this bump +
+ * `lint-component-surface`), NOT token-contract-tracked: no component id lives in the guaranteed token-NAME
+ * surface (docs/30, #1252/#1347). CONTRACT STANDS at 11.3.0 — `token-contract --check` reports level `none`
+ * (no token path added, removed or retyped). Every register/gate that named the old row ids moves with them
+ * (`lint-axis-values`, `lint-standalone-floor`, `lint-rung-names`, `lint-hit-target`, `test.ts`,
+ * `test-roundtrip.ts`, the skill root-part list, and the sibling defs' `composition` cross-refs).
  *
  * 0.115.0 — #1470: the `switch` default label placeholder becomes "Switch label" (was "Toggle label",
  * set by #1434). Owner-directed during QA: the placeholder names the component itself, matching the
@@ -3100,7 +3107,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.116.0';
+export const ENGINE_VERSION = '0.117.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

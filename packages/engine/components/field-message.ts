@@ -263,10 +263,11 @@ export const fieldMessage: ComponentDef = {
   // `Message` (the meaningful name this comment first reached for and the coupling used to forbid), so the
   // key is `Message` too. `icon` was already a fine designer-facing name and stays as it is.
   //
-  // The TEXT defaults are GENERIC illustrative scaffolds that NAME the slot per status ("Helper message" /
-  // "Error message" / "Warning message" / "Success message", #1474, owner-directed; refining #1434's "This
-  // is a … message." wording), not `content.labelPattern`'s format example: the shipped placeholder must
-  // read as obviously illustrative for a white-label engine, never as a real product's rule.
+  // The TEXT defaults are GENERIC illustrative scaffolds, one DISTINCT per status (default "This is a
+  // standard message." / error "Something needs fixing." / warning "Double-check this." / success "All
+  // set.", #1474, owner-directed and owner-chosen), not `content.labelPattern`'s format example: the
+  // shipped placeholder must read as obviously illustrative for a white-label engine, never as a real
+  // product's rule.
   // `content.labelPattern` still carries the format-up-front ADVICE for the consumer's own copy — that
   // guidance is separate from the scaffold this member ships. An empty default is what #510 shipped and
   // what the schema now rejects.
@@ -283,33 +284,30 @@ export const fieldMessage: ComponentDef = {
     // `icon.size.xs` on both axes (`apps/plugin/test-write-components.ts`) and that ref resolves to 16px in
     // all five corpus brands (`test.ts`). See `FigmaProperties.footprintVaries`.
     footprintVaries: ['status'],
-    // PER-MEMBER copy (#1018). Each status carries a GENERIC illustrative scaffold that NAMES the slot —
-    // "Helper message" / "Error message" / "Warning message" / "Success message" (#1474, owner-directed) —
-    // not a demonstration of a real format rule. The four members read as one parallel set, each status
-    // uniquely identifiable at a glance, all obviously placeholder scaffolding a designer replaces, none of
-    // it competing with the brand a customer is building (voice-standard §1 recessive). This is the
-    // `field-message` analog of #1470's `switch` "Toggle label" → "Switch label" call: the placeholder
-    // names the slot, matching the `Switch label` / `Checkbox label` / `Radio option` scaffolding on the
-    // sibling controls. It refines #1434's specific wording (the four "This is a … message." sentences,
-    // themselves grounded in the Prism 2 `helper-message.json` spec's `thisIsAnErrorMessage` node) without
-    // reversing #1434's STANCE — generic scaffold, never a real product's rule. The pre-#1434 default,
-    // "Use 8+ characters", read as a real product's password rule (the #1434 failure) — a placeholder
-    // demonstrating a format is the owner's copy, not the tool's; `content.labelPattern` still carries that
-    // format-up-front advice for the consumer's own copy. The #1018 per-member fix still holds: before it,
-    // one text default meant the error / warning / success members ALSO rendered the default's copy — a red
-    // alert triangle beside helper text, the opposite of `content.errorPattern`. `byVariant.status` gives
-    // each of the other three members its own copy; a coordinate not named here still falls back to
-    // `default`. Keyed on `status`, this def's only variant axis. NEEDS OWNER SIGN-OFF ON THE WORDING (#1474).
+    // PER-MEMBER copy (#1018). Each status carries its OWN distinct generic scaffold (#1474,
+    // owner-directed and owner-chosen — Set A): default "This is a standard message.", error "Something
+    // needs fixing.", warning "Double-check this.", success "All set." The four members read as one
+    // parallel set, each status uniquely identifiable at a glance, all obviously placeholder scaffolding a
+    // designer replaces, none of it competing with the brand a customer is building (voice-standard §1
+    // recessive). This gives each status distinct wording in the spirit of #1470's `switch` "Toggle label"
+    // → "Switch label" call, without reversing #1434's STANCE — generic scaffold, never a real product's
+    // rule. The pre-#1434 default, "Use 8+ characters", read as a real product's password rule (the #1434
+    // failure) — a placeholder demonstrating a format is the owner's copy, not the tool's;
+    // `content.labelPattern` still carries that format-up-front advice for the consumer's own copy. The
+    // #1018 per-member fix still holds: before it, one text default meant the error / warning / success
+    // members ALSO rendered the default's copy — a red alert triangle beside helper text, the opposite of
+    // `content.errorPattern`. `byVariant.status` gives each of the other three members its own copy; a
+    // coordinate not named here still falls back to `default`. Keyed on `status`, this def's only variant axis.
     texts: {
       // `message` lowercase per #1333 — validated against `props` above, so it renames with the prop.
       message: {
         part: 'text',
-        default: 'Helper message',
+        default: 'This is a standard message.',
         byVariant: {
           status: {
-            error: 'Error message',
-            warning: 'Warning message',
-            success: 'Success message',
+            error: 'Something needs fixing.',
+            warning: 'Double-check this.',
+            success: 'All set.',
           },
         },
       },

@@ -311,7 +311,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio', 'field-label'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'field-label'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — ten of the defs with a size axis, the '
@@ -322,9 +322,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium'],
-    // The `switch` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
+    // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
-    defs: ['switch', 'switch-control'],
+    defs: ['switch-row', 'switch-control'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form: a switch above medium stops reading '

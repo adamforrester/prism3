@@ -181,7 +181,7 @@
         "sha256": "75e60095ba2ce8e7a4a1873c8a76cc72c6883d5d86b61a848bb5d3dc0673d5e2"
       }
     },
-    "radio": {
+    "radio-row": {
       "set": {
         "members": 3,
         "assignments": 3,
@@ -205,7 +205,7 @@
         "sha256": "2dce3ea0c7c41bd3208ec32d195e955974ddaa105a059821639d6b08fc3eabec"
       }
     },
-    "switch": {
+    "switch-row": {
       "set": {
         "members": 2,
         "assignments": 2,

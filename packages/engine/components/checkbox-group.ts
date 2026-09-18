@@ -256,7 +256,7 @@ export const checkboxGroup: ComponentDef = {
 
   composition: {
     composesWith: ['checkbox-row', 'field-label', 'field-message', 'form'],
-    alternativeTo: ['radio', 'select', 'combobox', 'switch'],
+    alternativeTo: ['radio-row', 'select', 'combobox', 'switch-row'],
     supersedes: [
       'a bare set of <input type="checkbox"> with no shared label or group wiring',
       'per-row required / error scattered across the options instead of owned by the group',
