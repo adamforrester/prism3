@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.119.0 — #1503: PROJECT CROSS-AXIS CHILD FILL (`layoutAlign: 'STRETCH'`), the missing twin of `wrap`'s
+ * 0.122.0 — #1503: PROJECT CROSS-AXIS CHILD FILL (`layoutAlign: 'STRETCH'`), the missing twin of `wrap`'s
  * main-axis `layoutGrow`. The auto-layout audit (#1475) found every column-stacked form component hugs its
  * width with children that do NOT fill it, where Prism 2 gives a fixed-320 root with rows / inputs set to
  * `layoutSizingHorizontal: FILL`; the owner decided Option B (follow Prism 2). Two engine gaps closed: a new
@@ -2945,6 +2945,52 @@
  * the PR body): text-field's width FLOOR (#1494 deferred it — the "exact fixed width per component" decision)
  * and field-message's cross-axis ALIGNMENT (MIN vs CENTER, flagged by the audit as an owner design call; its
  * caption fill is main-axis anyway) — the capability is ready for both the moment those are settled.
+ * 0.121.0 — #1520: the fluid `type-sets` variable collection now emits DESKTOP as its first (default) mode,
+ * flipping `FONT_FLUID_MODES` from `['mobile','desktop']` to `['desktop','mobile']`. Figma treats a
+ * collection's first mode as its default, so every text style whose `fontSize` binds a `type-sets` variable
+ * resolved to its MOBILE value until the viewer switched — which is what made display type look capped at the
+ * ~48px mobile hero band. Owner's call (QA 2026-09-18): start desktop-first and have users switch to mobile.
+ * The per-mode value is keyed by mode NAME (`value: mode === 'mobile' ? …`), not array index, so the order
+ * flips the DEFAULT without moving any emitted value; the mirror copy in `materialise-to-figma.ts` (paste-path
+ * file reader) flips too, and `test.ts` asserts the plan's mode order BY NAME (`desktop,mobile`). The
+ * per-mode `type-sets.<mode>.json` files keep identical names/values, so the only `out/**` churn is this
+ * file's own `$extensions.generator.version` re-stamp; the plan/plugin behavior (default mode) is where the
+ * change is observable. CONTRACT STANDS at 11.0.0 — mode order is not a guaranteed token name
+ * (`token-contract --check` level `none`).
+ * 0.120.0 — #1517: STATUS-LED BORDER for `warning` and `success` in `text-field` + `select` (owner-directed,
+ * Prism 2 parity). Until now only `error` swapped the field border (`error.border.{state}` → `color.border.
+ * danger`) while `warning`/`success` were message-only. This extends the status-led, border-ONLY swap to the
+ * other two non-default statuses, mirroring `error` per non-disabled state: `warning.border.{state}` →
+ * `color.border.warning`, `success.border.{state}` → `color.border.success` (text-field's five states rest /
+ * hover / focus-visible / read-only / empty; select's four rest / hover / focus-visible / empty). The field now
+ * signals status on BOTH the border and the nested field-message. NO NEW TOKEN NAME: `color.border.warning` /
+ * `color.border.success` already ship for every brand (the `SEMANTICS` border ladder in `modes.ts`, the same
+ * roles the message reaches for `text.warning`/`text.success`), so CONTRACT STANDS at 11.3.0 (`token-contract
+ * --check` level `none`, stamp-only). Projected-surface + paint change (the warning/success members gain a
+ * border binding) → ENGINE bump: `lint-component-surface` re-`--accept`ed (member plans move) and `lint-paint`
+ * census re-`--accept`ed (the paint grids gain the new keys). `lint-paint` PROVENANCE_EXCEPTIONS is NOT extended
+ * — `warning.border.*` → `color.border.warning` and `success.border.*` → `color.border.success` are SAME-family
+ * (the ref carries the axis value as a segment), so arm 1's normal rule covers them and a per-key exception
+ * would be flagged as stale (line 506-507); only `error` → `danger` (cross-vocabulary) keeps its exception. No
+ * committed `out/**` VALUE moves (component payloads are not committed; the def binds existing roles), so
+ * `regen --check` moves only each artifact's generator stamp. MUTATION (docs/34): repointing `warning.border.rest`
+ * from `color.border.warning` to `color.border.success` (a role that RESOLVES) fails `lint-paint.ts` arm 1 BY
+ * NAME (`status='warning' is absent from 'color.border.success'`) and arm 2 (the `select`/`text-field` paint
+ * hash moves); restored.
+ * 0.119.0 — #1515: `image-placeholder` declares `footprintVaries: ['ratio']`, clearing two false footprint
+ * misses. Owner QA read the projected set back with two misses — `ratio=4:3 measures 720×540 but ratio=1:1
+ * measures 720×720 (same)` and the 16:9 twin — because the footprint cohort compared members expecting equal
+ * size while the `ratio` axis (1:1/4:3/16:9) LEGITIMATELY changes the frame's height through its aspect lock.
+ * The exemption is the field-message/#1010 mechanism (`footprintVaries` threads into `planSetLayout`'s cohort
+ * key so each ratio becomes its own cohort), but the REASON it validates is new: the frame derives its
+ * `aspectRatio` lock from the axis, not a `presentWhen`-gated part. So the schema's footprint-exemption check
+ * gains a second legitimate mover — an axis some box's `aspectRatio` is derived from — beside the existing
+ * `presentWhen` one; an axis that does NEITHER is still a blanket and still refused (mutation-proven by name:
+ * strip the frame's lock and `ratio` is rejected). A projected-component-surface change (#1252 case) → ENGINE
+ * bump; the projected member GEOMETRY moves (`schema/component-surface.json` per-member footprint), so that
+ * baseline regenerates and is `--accept`ed. No emitted `out/**` VALUE moves — committed trees restamp only
+ * `$extensions.generator.version`. CONTRACT STANDS at 11.3.0 — `ratio` is a component-structure property, not
+ * a token name or React prop, so no guaranteed name moves (`token-contract --check` level `none`).
  *
  * 0.118.0 — #1469: ADD `radio-group`, the single-select twin of `checkbox-group`. `radio` had no group
  * ("Radio Group: None available" in the QA build status); the owner directed adding it during QA. It is a
@@ -3149,7 +3195,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.119.0';
+export const ENGINE_VERSION = '0.122.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

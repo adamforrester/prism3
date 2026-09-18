@@ -764,5 +764,69 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #1513: EACH field-message STATUS CAPTION SURVIVES THE REFERENCE WIRING — HOST-TRUTH ──────────
+//
+// #1474 gave field-message four DISTINCT per-status captions (Set A) via `byVariant.status`, and the engine
+// + offline shim carried them (`test-write-components.ts`). But in a LIVE projection every status rendered
+// the `default` string "This is a standard message." (#1513): wiring `componentPropertyReferences.characters`
+// binds a text node to the SET-LEVEL TEXT property, whose ONE `defaultValue` is the canonical fallback
+// (`planSetProperties` → `textDefault`, #1018), and Figma ADOPTS that default onto the bound node — discarding
+// the per-coordinate copy `build` wrote before combine. The shim now models that reset-on-bind
+// (`component-shim.ts`), and `write-components.ts` re-asserts each member's own copy AFTER wiring; this reads
+// the built captions back off the host and pins the four distinct strings.
+//
+// The oracle — the four Set A strings — is authored HERE, not read off the def (docs/34): reverting a caption
+// in `field-message.ts` diverges from this by name. The FLOORS make the check non-vacuous: (1) the set-level
+// property default IS the fallback, and (2) the reset is LIVE — re-binding a caption ref collapses the node to
+// that fallback — so a green positive arm is the fix defeating a REAL reset, not a shim that never resets.
+// Mutation-by-name: revert the #1513 re-assert in `write-components.ts` and every member reads the fallback,
+// failing the positive assertion by name.
+{
+  const def = componentDefs.find((d) => d.id === 'field-message');
+  ok(!!def, '#1513 host-truth: the field-message def is registered and projects');
+  if (def) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+    const findText = (n: any): any => (n?.type === 'TEXT' ? n : (n?.children ?? []).map((c: any) => findText(c)).find(Boolean));
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's set
+    const set = page.children[0] as any;
+    const members = (set?.children ?? []) as unknown as HostNode[];
+    const texts = members.map((m) => findText(m));
+    // SCOPE FLOOR — a caption TEXT was built into every member, or "they all carry copy" is a claim about an empty set.
+    ok(members.length === 4 && texts.every(Boolean),
+      `#1513 host-truth: field-message builds a caption TEXT into every status member (${texts.filter(Boolean).length}/${members.length})`);
+    const captions = texts.map((t) => String(t?.characters ?? '<none>'));
+    // THE OWNER-DECIDED SET A ORACLE (#1474), authored here — not derived from the def (docs/34).
+    const WANT = ['This is a standard message.', 'Something needs fixing.', 'Double-check this.', 'All set.'];
+
+    // FLOOR (1): the set-level TEXT property default is the fallback the reset would collapse every member onto.
+    const defs = set.componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+    const textKey = Object.keys(defs ?? {}).find((k) => defs[k].type === 'TEXT');
+    ok(!!textKey && defs[textKey].defaultValue === WANT[0],
+      `#1513 floor: the set carries ONE TEXT property whose default is the fallback "${WANT[0]}" (host holds ${JSON.stringify(textKey && defs[textKey].defaultValue)})`);
+
+    // FLOOR (2): the reset is LIVE. Re-binding a member's caption reference collapses its text to that default,
+    // proving the positive arm below is the fix defeating a real reset rather than a shim that never resets.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim node
+    const probe = texts[1] as any;
+    const before = String(probe.characters);
+    probe.characters = 'sentinel — should be reset on re-bind';
+    probe.componentPropertyReferences = { ...(probe.componentPropertyReferences ?? {}), characters: textKey };
+    ok(before === WANT[1] && String(probe.characters) === WANT[0],
+      `#1513 floor: re-binding a caption reference collapses the node from its own copy to the set default — reset-on-bind is live (was "${before}", now "${String(probe.characters)}")`);
+
+    // THE FIX: after the executor's full run, the four members carry the four DISTINCT Set A captions — not the
+    // fallback on every one. (`captions` was read before the FLOOR (2) probe mutated members[1].)
+    ok(captions.join(' | ') === WANT.join(' | '),
+      `#1513: each field-message status member's own caption survives the reference wiring — the four distinct Set A strings reach the host, not the fallback on every member (${captions.join(' | ')})`);
+    ok(new Set(captions).size === 4,
+      `#1513: the four captions are pairwise distinct, so no single set-wide default leaked onto the wrong member (${new Set(captions).size} distinct)`);
+  }
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);

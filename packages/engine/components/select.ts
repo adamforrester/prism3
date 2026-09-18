@@ -29,28 +29,29 @@
  * was named `tone` until #1334, which split the overloaded `tone` name — this validation axis to
  * `status`, `field-label`'s emphasis axis to `emphasis` — and moved the `follow` with it.)
  *
- * ── VALIDATION → BORDER: A BORDER-ONLY SWAP FOR error, FOLLOWING text-field EXACTLY ───────────────
+ * ── VALIDATION → BORDER: A BORDER-ONLY SWAP PER NON-DEFAULT STATUS, FOLLOWING text-field EXACTLY ───
  *
- * `text-field`'s validation is a BORDER swap for `error` (→ `border.danger`) and nothing else — warning
- * and success are MESSAGE-only, carried by the nested field-message's status, with the border left
- * neutral. Select follows this. There is deliberately NO `border.warning` / `border.success` role: the
- * token tier does not emit them and text-field does not color the border for those statuses. The border's
- * whole vocabulary is:
+ * `text-field`'s validation is a BORDER swap for every non-default status, and select follows it key-for-
+ * key. #1517 (owner-directed, "like it is in Prism 2") extended the swap from `error` ONLY to `warning`
+ * and `success` too: the token tier DOES emit `color.border.warning` / `color.border.success` (the
+ * `SEMANTICS` border ladder — the same roles the message already reaches for `text.warning`/`text.success`),
+ * so each status colors its own boundary. The border's whole vocabulary is:
  *
  *   rest          → `field.border.rest`      (the bare `border` key — the rest fallback)
  *   hover         → `field.border.hover`     (`border.hover`)
  *   focus-visible → `border.focus`           (`border.focus-visible`)
  *   error         → `border.danger`          (`error.border.{state}` — a status-led, border-ONLY swap)
+ *   warning       → `border.warning`         (`warning.border.{state}`)
+ *   success       → `border.success`         (`success.border.{state}`)
  *   disabled      → the cross-cutting disabled border
  *
  * The PRECEDENCE, where the two axes meet (state × status can co-occur here, unlike text-field where
- * `error` is folded into one state axis): `disabled` > `error` > the interactive state progression. The
- * status-led-and-state-qualified template leads the paint keys, so an errored field shows the danger
- * boundary at rest, hover AND focus — the error condition persists while the pointer moves — and the
- * separate focus RING (an absolute sibling) carries the focus signal on top. `default` / `warning` /
- * `success` bind no status-led border and fall through to the neutral state border, letting the nested
- * message carry the status. This is the same "error is a border-only swap; warning/success are
- * message-only" contract text-field ships.
+ * `error` is folded into one state axis): `disabled` > the non-default status > the interactive state
+ * progression. The status-led-and-state-qualified template leads the paint keys, so a status-bearing field
+ * shows its boundary at rest, hover AND focus — the status condition persists while the pointer moves — and
+ * the separate focus RING (an absolute sibling) carries the focus signal on top. `default` binds no
+ * status-led border and falls through to the neutral state border. The nested message carries the status
+ * text in parallel, so the field signals status on BOTH the border and the message.
  *
  * ── HOVER: A TRANSLUCENT WASH + THE BORDER; THE FILL IS TRANSPARENT (#1341/#1342, owner-decided) ───
  *
@@ -138,7 +139,7 @@ export const select: ComponentDef = {
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure.' },
     // The UI reads "Validation"; the Figma variant axis is `status` so it drives the nested message's own
     // `status` by name (see the header). Values match field-message's status values exactly.
-    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. `error` swaps the control border to the danger boundary (border-only) and sets the nested message to its error status; `warning` / `success` are message-only (the border stays neutral, the message carries the status); `default` is neutral. The values align with FieldMessage\'s status axis, so this drives the nested message directly.' },
+    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. Each non-default status swaps the control border to its own boundary (border-only — `error` → danger, `warning` → warning, `success` → success) AND sets the nested message to the matching status; `default` is neutral. The values align with FieldMessage\'s status axis, so this drives the nested message directly.' },
     { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success. For error, say what is wrong AND how to fix it (SC 3.3.3), never "Invalid".' },
     // #1426 — a node-visibility boolean (the #1412 mechanism) that hides the composed FieldMessage
     // entirely. Default ON (the message is part of the field), so a select that carries neither helper
@@ -181,11 +182,11 @@ export const select: ComponentDef = {
   // 2-placeholder templates cannot coexist — `paintKeyErrors` checks every 2-segment key against BOTH,
   // so a state-led `label.empty` fails the `{status}.{slot}` reading (`{status}='label'`) and a status-led
   // `error.border` fails the `{slot}.{state}` reading. Making the status template 3-segment keeps the two
-  // vocabularies at different lengths. So `error` binds its danger border once PER non-disabled state
-  // (rest / hover / focus-visible / empty), which is what makes the swap persist through hover and focus
-  // rather than yielding to the neutral interactive border — the error condition does not blink off when
-  // the pointer moves. `default` / `warning` / `success` bind no status-led border and fall through to the
-  // neutral state border, which is text-field's exact "error-only border swap" model.
+  // vocabularies at different lengths. So each non-default status binds its border once PER non-disabled
+  // state (rest / hover / focus-visible / empty), which is what makes the swap persist through hover and
+  // focus rather than yielding to the neutral interactive border — the status condition does not blink off
+  // when the pointer moves. `default` binds no status-led border and falls through to the neutral state
+  // border. `warning` / `success` swap the border alongside `error` since #1517 (Prism 2 parity).
   paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
 
   tokens: {
@@ -227,21 +228,33 @@ export const select: ComponentDef = {
     'fill': 'color.field.fill',
     'overlay.hover': 'color.interactive.neutral.overlay.hover',
 
-    // ── BORDER — stateful, with the error swap (border-ONLY). See the header for the vocabulary and the
-    // precedence. `border` (bare) is the rest value; `border.hover` / `border.focus-visible` are the
-    // interactive states; `error.border` is the status-led danger swap that leads the templates so it wins
-    // over hover and focus. `default` / `warning` / `success` bind no status-led border and stay neutral.
+    // ── BORDER — stateful, with the status-led swaps (border-ONLY). See the header for the vocabulary and
+    // the precedence. `border` (bare) is the rest value; `border.hover` / `border.focus-visible` are the
+    // interactive states; `{error,warning,success}.border` are the status-led swaps that lead the templates
+    // so they win over hover and focus. `default` binds no status-led border and stays neutral.
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
-    // The error swap, bound per non-disabled state so it wins over the neutral progression above and
-    // persists through hover and focus (the focus RING, a separate part, still carries the focus signal).
-    // At `disabled` the cross-cutting `disabled.border` takes over. All four resolve to the one danger
-    // boundary — the status value `error` maps to the `danger` role, a `lint-paint` provenance exception.
+    // The status-led swaps, each bound per non-disabled state so it wins over the neutral progression above
+    // and persists through hover and focus (the focus RING, a separate part, still carries the focus signal).
+    // At `disabled` the cross-cutting `disabled.border` takes over. #1517 (owner-directed, Prism 2 parity):
+    // `warning` and `success` now swap the border TOO, mirroring `error` — the field signals status on BOTH
+    // the border and the nested message. Each status value maps to its OWN border role (`error` → `danger`,
+    // `warning` → `warning`, `success` → `success`). The `error` → `danger` mapping is cross-vocabulary (a
+    // `lint-paint` provenance exception, per key); `warning`/`success` are SAME-family, so they satisfy
+    // `lint-paint` arm 1 directly and take NO exception (a stale one there would be flagged).
     'error.border.rest': 'color.border.danger',
     'error.border.hover': 'color.border.danger',
     'error.border.focus-visible': 'color.border.danger',
     'error.border.empty': 'color.border.danger',
+    'warning.border.rest': 'color.border.warning',
+    'warning.border.hover': 'color.border.warning',
+    'warning.border.focus-visible': 'color.border.warning',
+    'warning.border.empty': 'color.border.warning',
+    'success.border.rest': 'color.border.success',
+    'success.border.hover': 'color.border.success',
+    'success.border.focus-visible': 'color.border.success',
+    'success.border.empty': 'color.border.success',
 
     // ── VALUE INK — full-contrast value by default, the muted placeholder ink at the `empty` state.
     // Text-field's exact polarity (`label.empty` is the placeholder, the bare `label` is the value). Both
@@ -507,7 +520,7 @@ export const select: ComponentDef = {
     dont: [
       'Use the placeholder as the label, or put a real, selectable option in it',
       'Model the open menu as a state of this control — it is a separate listbox / popover surface',
-      'Color the border for warning or success — those are message-only; only error swaps the border',
+      'Signal a status with the border color alone — the nested message carries the text + icon',
       'Reach for a select when the user types to filter (Combobox) or the set is two mutually-exclusive options (Radio)',
     ],
     contentGuidelines: 'Label = noun phrase, sentence case, no trailing colon. Placeholder = a prompt ("Select an option"). Error says what + how to fix, never "Invalid".',
@@ -534,7 +547,7 @@ export const select: ComponentDef = {
   notes: {
     contested: [
       'Native <select> vs a custom listbox — this def models the closed control both share and leaves the open menu to the platform (native-first). A fully custom, styleable menu is a separate listbox/popover surface, chosen when the native menu\'s look is unacceptable and the extra ARIA cost is accepted.',
-      'error as a border swap vs a full validation border set — settled as text-field settles it: error is the ONLY status that colors the border, warning and success are message-only. A brand wanting colored warning/success borders would be adding border roles the tier does not emit, which is a token-tier decision, not this def\'s.',
+      'error as a border swap vs a full validation border set — settled as text-field settles it. Until #1517 error was the ONLY status that colored the border; #1517 (owner-directed, Prism 2 parity) extended the swap to warning and success, which the token tier already emits as `border.warning`/`border.success`, so every non-default status now colors its own boundary AND carries the message.',
     ],
     unverified: [
       'The nested label and message now FILL the field\'s width (#1503, `crossAxisFill` → `layoutAlign: STRETCH`), spanning the 320 control rather than hugging narrower — the gap this note used to record (a `nest` cannot bind sizing, #1299, so it once sat at its natural width) is closed. The control is floored at 320 (`minWidth`) and the column hugs to it, so the field reads at 320 and the two nested parts stretch to match; `test:roundtrip` reads `layoutAlign: STRETCH` back off the offline host, but whether a real host keeps the stretch on a nested INSTANCE is the standing offline-arm caveat (below).',

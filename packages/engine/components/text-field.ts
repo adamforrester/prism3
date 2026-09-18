@@ -29,13 +29,15 @@
  * never an interactive state (it co-occurs with rest/hover/focus, it does not replace them), and folding
  * it into the state axis was the pre-projection shortcut a single unprojected axis could afford.
  *
- * error → border is a status-led, border-ONLY swap (→ `color.border.danger`), bound PER non-disabled
- * state (rest / hover / focus-visible / read-only / empty) so the danger boundary persists while the
- * pointer moves and while the value is read-only, rather than yielding to the neutral interactive
- * border; the focus RING (an absolute sibling) carries the focus signal on top. `default` / `warning` /
- * `success` bind no status-led border and fall through to the neutral state border — the message
- * carries those. This is select's exact "error is a border-only swap; warning/success are
- * message-only" contract, which was this def's own contract before select inherited it.
+ * status → border is a status-led, border-ONLY swap, bound PER non-disabled state (rest / hover /
+ * focus-visible / read-only / empty) so the status boundary persists while the pointer moves and while the
+ * value is read-only, rather than yielding to the neutral interactive border; the focus RING (an absolute
+ * sibling) carries the focus signal on top. #1517 (owner-directed, Prism 2 parity) extended the swap from
+ * `error` ONLY to all three non-default statuses: `error` → `color.border.danger`, `warning` →
+ * `color.border.warning`, `success` → `color.border.success`. `default` binds no status-led border and
+ * falls through to the neutral state border. The nested field-message carries the status text in parallel,
+ * so the field now signals status on BOTH the border and the message (was error-only-border, with warning
+ * and success message-only). Select mirrors this def key-for-key, as it always has.
  *
  * Scope: the BASE field only. NumberField is a separate component (different keyboard + locale
  * parsing); SearchField / PasswordField are thin specializations; email / url / tel stay as
@@ -126,20 +128,20 @@ export const textField: ComponentDef = {
 
   // INPUT CHROME ONLY — label + message color/type live in field-label / field-message (composed).
   // Border is the one stateful slot: rest/hover from field.*, focus/read-only from generic border roles,
-  // the danger swap from the status-led `error.border.*` keys, disabled from the shared disabled skin. The
+  // the status swaps from the status-led `error`/`warning`/`success`.border.* keys, disabled from the shared disabled skin. The
   // value ink is full-contrast text.primary in every non-disabled state (read-only included — it is NOT
   // dimmed); disabled swaps to the contrast-exempt disabled ink. The focus ring is a nested `focus-ring`
   // that owns its own color, so no `focus-ring` color key is bound here.
 
   // THE PAINT GRAMMAR (#1494) — select's, adopted verbatim now that this def projects: status-led-and-
-  // state-qualified first (so the `error` border swap WINS over the interactive state progression at every
-  // coordinate — the error condition does not blink off as the pointer moves), then slot-and-state, then
+  // state-qualified first (so the status border swap WINS over the interactive state progression at every
+  // coordinate — the status condition does not blink off as the pointer moves), then slot-and-state, then
   // the bare slot as the rest value. The status template is 3-SEGMENT deliberately: two 2-placeholder
   // templates cannot coexist (`paintKeyErrors` checks every 2-segment key against BOTH, so a state-led
   // `label.empty` fails `{status}.{slot}` and a status-led `error.border` fails `{slot}.{state}`), so
-  // keeping the two vocabularies at different lengths is what lets them share a def. `error` binds its
-  // danger border once per non-disabled state; `default` / `warning` / `success` bind none and fall through
-  // to the neutral state border, which is the "error-only border swap" model this def has always shipped.
+  // keeping the two vocabularies at different lengths is what lets them share a def. `error` / `warning` /
+  // `success` each bind their status border once per non-disabled state (#1517); `default` binds none and
+  // falls through to the neutral state border.
   //
   // WHY THE SLOT VOCABULARY IS THE PROJECTOR'S (#784, kept because this def is why the rule exists). Until
   // #784 the keys were `text`/`placeholder`/`border.focus`/`border.readonly` — words the projector never
@@ -186,25 +188,41 @@ export const textField: ComponentDef = {
     'label': 'color.text.primary',
     'label.empty': 'color.field.placeholder',
 
-    // ── BORDER — stateful, with the status-led error swap (border-ONLY). `border` (bare) is the rest value;
-    // `border.hover` / `border.focus-visible` / `border.read-only` are the interactive states; `error.border.*`
-    // is the status-led danger swap that leads the templates so it wins over hover, focus AND read-only.
+    // ── BORDER — stateful, with the status-led swaps (border-ONLY). `border` (bare) is the rest value;
+    // `border.hover` / `border.focus-visible` / `border.read-only` are the interactive states;
+    // `{error,warning,success}.border.*` are the status-led swaps that lead the templates so they win over
+    // hover, focus AND read-only.
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
     // read-only's quieter boundary, with full-contrast value ink above it — the component's live edge.
     'border.read-only': 'color.border.secondary',
-    // The error swap, bound PER non-disabled state so it wins over the neutral progression and persists
-    // through hover, focus and read-only (the focus RING, a separate part, still carries the focus signal).
-    // At `disabled` the cross-cutting `disabled.border` takes over; `pending` is not bound (async validation
-    // in progress does not assert the danger boundary) and falls through to the neutral border. All resolve
-    // to the one danger boundary — the status value `error` maps to the `danger` role, a `lint-paint`
-    // provenance exception (registered per key, exactly as select's `error.border.*` are).
+    // The status-led border swaps, each bound PER non-disabled state so it wins over the neutral progression
+    // and persists through hover, focus and read-only (the focus RING, a separate part, still carries the
+    // focus signal). At `disabled` the cross-cutting `disabled.border` takes over; `pending` is not bound
+    // (async validation in progress does not assert a status boundary) and falls through to the neutral
+    // border. #1517 (owner-directed, Prism 2 parity): `warning` and `success` now swap the border TOO,
+    // mirroring `error` exactly — the field signals status on BOTH the border and the nested message, rather
+    // than error-only-border + warning/success-message-only. Each status value maps to its OWN border role
+    // (`error` → `danger`, `warning` → `warning`, `success` → `success`). The `error` → `danger` mapping is
+    // a cross-vocabulary one (`lint-paint` provenance exception, per key); `warning` → `border.warning` and
+    // `success` → `border.success` are SAME-family, so they satisfy `lint-paint` arm 1 directly and take no
+    // exception (an exception there would be flagged as stale — the family already matches).
     'error.border.rest': 'color.border.danger',
     'error.border.hover': 'color.border.danger',
     'error.border.focus-visible': 'color.border.danger',
     'error.border.read-only': 'color.border.danger',
     'error.border.empty': 'color.border.danger',
+    'warning.border.rest': 'color.border.warning',
+    'warning.border.hover': 'color.border.warning',
+    'warning.border.focus-visible': 'color.border.warning',
+    'warning.border.read-only': 'color.border.warning',
+    'warning.border.empty': 'color.border.warning',
+    'success.border.rest': 'color.border.success',
+    'success.border.hover': 'color.border.success',
+    'success.border.focus-visible': 'color.border.success',
+    'success.border.read-only': 'color.border.success',
+    'success.border.empty': 'color.border.success',
 
     // ── THE ICON INK — the leading glyph AND the trailing affix glyph, ONE binding for both. `primary`,
     // not `secondary`, so the glyphs match the value ink (`text.primary`) rather than sitting a step muted

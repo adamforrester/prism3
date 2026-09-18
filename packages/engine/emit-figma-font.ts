@@ -294,7 +294,12 @@ const collectFluidRows = (typeNode: any, prefix: string, out: FluidRow[] = []): 
   return out;
 };
 
-export const FONT_FLUID_MODES = ['mobile', 'desktop'] as const;
+// DESKTOP FIRST — Figma treats a collection's first mode as its DEFAULT, and the owner's call is that
+// text should resolve to its DESKTOP value by default with the viewer switching to mobile (#1520). The
+// per-mode value below is keyed by mode NAME, not array index, so the order flips the default without
+// touching any value. The mirror copy in `materialise-to-figma.ts` (the paste path's file reader) must
+// match — the suite asserts the two agree.
+export const FONT_FLUID_MODES = ['desktop', 'mobile'] as const;
 
 export const buildFigmaFontFluid = (theme: Theme): FigmaCollectionFile[] => {
   const { tree } = buildTree(theme);

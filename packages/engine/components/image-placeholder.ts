@@ -165,6 +165,14 @@ export const imagePlaceholder: ComponentDef = {
     // — the frame carries no text and no swappable slot (the raster swap is native, not a component
     // property).
     variantAxes: ['ratio'],
+    // THE BOX LEGITIMATELY MOVES ON `ratio` (#1515). The aspect lock derives a different height per ratio
+    // (720×720 / 720×540 / 720×405), so the footprint cohort must partition the three members rather than
+    // compare them — the same exemption `field-message` declares with `['status']`, but the reason here is
+    // the `aspectRatio` lock on the frame, not a `presentWhen`-gated part. Without this the footprint
+    // read-back false-flags 4:3 and 16:9 as differing from 1:1 (two misses in owner QA, the bug this fixes).
+    // The schema validates that `ratio` both projects and drives some box's `aspectRatio`, so this is not a
+    // blanket that switches the footprint rule off.
+    footprintVaries: ['ratio'],
     // Considered, and none survive — the frame has one fill, one marker, and no togglable node. Stated
     // rather than omitted, as the schema asks.
     booleans: {},
