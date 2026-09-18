@@ -7,6 +7,26 @@
 
 ---
 
+## (2026-09-18) — `image-placeholder`: `footprintVaries: ['ratio']` clears two false footprint misses (#1515)
+
+**STATUS: LANDED. ENGINE 0.118.0 → 0.119.0; CONTRACT STANDS at 11.3.0. Bug fix (false-positive QA miss) found in owner QA 2026-09-18 — same class as #1474/field-message.**
+
+**THE SYMPTOM.** `image-placeholder` projected with **two footprint misses** in owner QA: `ratio=4:3 measures 720×540 but ratio=1:1 measures 720×720 (same)` and the 16:9 twin (`720×405`). The footprint read-back (`write-components.ts`, exercised by `test-roundtrip.ts`) compares members expecting an EQUAL box — a filled button must not measure wider than its outline sibling — and flagged the two ratios as differing from 1:1.
+
+**THE DIAGNOSIS.** The differences are correct: the `ratio` axis (1:1/4:3/16:9) is an aspect-ratio LOCK, so it is SUPPOSED to change the frame's height — that is the whole point of the component. The cohort check was comparing the right thing (the full box) in the wrong cohort. This is exactly the #1010 class field-message hit: an axis that legitimately varies the footprint needs the `footprintVaries` exemption so the cohort key partitions the members rather than comparing them.
+
+**THE FIX — one declaration, plus the reason the schema had to learn.** `figmaProperties.footprintVaries: ['ratio']` on `image-placeholder`. This threads into `planSetLayout`'s cohort key (`anatomy-figma.ts`) so each ratio becomes its own cohort — no cross-ratio comparison, misses cleared. But `field-message`'s `status` moves the box because a `presentWhen`-gated part appears/disappears, and the schema validator (`figmaPropertyErrors`) enforced *exactly* that: `footprintVaries` was accepted only for an axis some part's `presentWhen` gates. `ratio` gates no part — it moves the box through the frame's `aspectRatio` LOCK. The validator's own comment anticipated this ("a def whose box moves for some other reason should have to **extend this check and say what the reason is**"), so the check gained a SECOND legitimate mover: an axis some box derives its `aspectRatio` from. An axis that does NEITHER is still a blanket and still refused — the exemption is not switched to always-on.
+
+**INDEPENDENCE / BY-NAME MUTATION (docs/34).** Three arms in `test.ts`'s image-placeholder block, EXPECTED authored there, SUBJECT the real def (and its mutant): (a) the def declares the exemption; (b) it reaches the engine's cohort key (`ratio=1:1 | ratio=4:3 | ratio=16:9` — each ratio its own cohort, which is what clears the misses); (c) **MUTATION** — strip the frame's `aspectRatio` lock and `ratio` moves the box for no reason, so `footprintVaries: ['ratio']` is refused BY NAME (`'ratio' neither gates a part … nor drives a box's aspect-ratio lock`). Deleting the new `|| p.aspectRatio === axis` acceptance clause leaves (c) red — the acceptance is load-bearing on the lock, not a hole that exempts the whole def. The chunked-payload parity block (#1010) stays on `field-message` and its stale "the one def" landmark is corrected to name `image-placeholder` as the second.
+
+**SCOPE — projected surface, no token move.** A projected-component-surface change (#1252 case) → ENGINE bump. The projected member GEOMETRY moves (the cohort/footprint changes the plan digest), so `schema/component-surface.json` regenerated and `--accept`ed (`image-placeholder` 3 members → 3 members, different plans). `schema/paint-census.json` did NOT move (the frame's paint is unchanged; `lint-paint` clean). No emitted `out/**` VALUE moves — committed trees restamp only `$extensions.generator.version` 0.118.0 → 0.119.0. `schema/token-contract.json` `--accept`ed as a stamp-only `engineVersion` sync (no guaranteed path moved; `ratio` is a component-structure property, not a token name or React prop). CONTRACT STANDS at 11.3.0. No lint gate enumerates `footprintVaries` defs, so there was no scope floor to extend.
+
+**GATES.** Full `npm run verify`: 60/60 gates reached a verdict, all PASS.
+
+**NOT TOUCHED.** #1367 and #1385 are out of this lane's scope.
+
+**FILES.** `components/image-placeholder.ts` (the declaration), `component-schema.ts` (the validator's second legitimate mover + doc-comment), `version.ts` (bump + changelog), `test.ts` (the three by-name arms + the corrected chunk-parity landmark), the regenerated/accepted `out/**` + `schema/component-surface.json` + `schema/token-contract.json`.
+
 ## (2026-09-18) — field-message per-status captions reach the LIVE Figma projection (#1513)
 
 **STATUS: LANDED. PLUGIN-ONLY (`apps/plugin/`) — no engine code, def, plan, baseline, or emitted `out/**` artifact changed; ENGINE and CONTRACT both STAND (this is a write-path fix, not a projection or emission change). Gate count stays 60. Follows #1474 (the Set A copy) and its scope note, which predicted exactly this.**
