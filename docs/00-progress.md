@@ -7,6 +7,28 @@
 
 ---
 
+## (2026-09-18) — reconcile.ts: normalize the brand ROOT before comparing — clean file was 100% false WRONG-TOKEN (#1522)
+
+**STATUS: LANDED. TOOLS-ONLY (`tools/binding-audit/reconcile.ts`) — no engine code, def, gate, baseline, or emitted `out/**` artifact changed; ENGINE and CONTRACT both STAND. Measurement harness, NOT a gate — gate count stays 60. Follow-up of #1511.**
+
+**THE BUG.** Run against a CLEAN, correct projection, `--reconcile` reported **5,433 WRONG-TOKEN / 0 MATCH** in the owner's 2026-09-18 QA (live NB file, 8,622 nodes / 21 sets) — a 100% false-positive rate. Every WRONG-TOKEN had the identical shape: `got ads/color/interactive/primary/fill/rest · want color/interactive/primary/fill/rest`, differing ONLY by the leading `ads/` brand root. Not drift — a uniform normalization difference.
+
+**ROOT CAUSE (the whole diagnosis, and why the fix is small).** `reconcile.ts` did no variable-name normalization. The two sides sit on OPPOSITE sides of the #1097 rename. The expected **ledger** is built from `figmaAnatomyPlan`, which is **pre-materialization** — root-less names (`color/...`). The **live file** is **post-materialization**: `materialization-renames.ts:228` (namespace-and-core-tier, #1097) maps `name → ${root}/${name}`, *adding* the brand root, and `test.ts:120` asserts that as intended. `--reconcile` (#1511) is newer than the rename but inherited the root-less ledger, so it compared names from two sides of the same rename. The whole 5,433 differ by exactly one leading segment; strip it and the same file is 5,433 MATCH · 0 WRONG-TOKEN.
+
+**THE FIX — derive the root, never hardcode it (it is a lever).** `reconcile()` now normalizes the brand root before comparing. `deriveRoot(ledger, export)` derives the root the SAME way #1097 defines it: **the leading segment the materialization ADDED** — present on the file's bound names but ABSENT from the ledger's own top-level groups (`color`). Keying off the ledger's groups is what tells a real brand root (`ads`) apart from a ledger group a root-less export leads with (`color`): a root-less export derives NO root and normalizes to a no-op, which is why the pre-existing root-less selftest arms still hold unchanged. It is **modal** among candidates, so a lone drifted bind under a different first segment cannot outvote the real root and its drift still surfaces. `stripRoot` removes only that derived prefix — a name NOT wearing the root is left intact, so a bind un-rooted or rooted differently still mismatches rather than being silently normalized. Brand-agnostic: works for `ads`/`hds`/`wds`/`nbds`/`prism`, no `BRAND_ROOTS` lookup and no live-brand knowledge (the reconciler is brand-invariant by construction — the plan carries names, not values).
+
+**WHY STRIP THE FILE SIDE, NOT ADD TO THE LEDGER.** The issue offered either. Adding the materialized root to the ledger needs the SAME root the engine materialized with, i.e. knowing which brand the file is — the reconciler cannot know that and stays brand-invariant. Deriving the added segment from the export and stripping it needs no brand knowledge and no per-brand table, so it is the smaller, brand-agnostic move.
+
+**TEETH PRESERVED (docs/34 — normalization must not mask drift).** Two new `--selftest` arms, both built from the LIVE ledger (never stale against a hand-written fixture): (1) *root-prefixed but correct → all MATCH* — the exact class that was 100% WRONG-TOKEN, now proven to reconcile clean; (2) *root-prefixed with one wrong → exactly one WRONG-TOKEN by name* — a single perturbed bind under the same root still surfaces, so the root strip does not swallow real drift. The four original arms (all-correct, one-wrong-but-valid, one-blanked, one-stray, plus one-uncovered-EXTRA) are unchanged and still pass. End-to-end over a synthesized full rooted export (5,558 rooted binds, mimicking the live file): 5,558 MATCH · 0 WRONG-TOKEN clean; corrupt one bind → exactly 1 WRONG-TOKEN by name.
+
+**SCOPE — no contract, no engine, no emitted artifact.** `version.ts` untouched; `tools/` is scanned by no gate. One file changed: `tools/binding-audit/reconcile.ts` (`deriveRoot` + `stripRoot` helpers, the normalized comparison, two selftest arms). No gate added or moved — a live-file reconciler is a tool, not an assertion (`tools/CLAUDE.md`); gate count stays 60.
+
+**GATES.** Full `npm run verify`: 60/60 gates reached a verdict, all PASS. `reconcile.ts --selftest`: 7/7 arms pass.
+
+**NOT TOUCHED.** #1367 and #1385 are out of this lane's scope.
+
+---
+
 ## (2026-09-18) — binding-audit: live-file RECONCILE — diff a real Figma file's actual binds vs the expected ledger (#1511)
 
 **STATUS: LANDED. TOOLS-ONLY (`tools/binding-audit/`) — no engine code, def, gate, baseline, or emitted `out/**` artifact changed; ENGINE and CONTRACT both STAND. Measurement harness, NOT a gate — gate count stays 60. Follow-up of #1499.**
