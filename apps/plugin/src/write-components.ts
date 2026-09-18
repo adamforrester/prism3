@@ -1085,14 +1085,25 @@ const writeComponentSet = async (
   // boolean, so a part-only key would collapse the two to whichever was walked last and hand the wire loop
   // the wrong field. For every single-property part this is a unique-ified part key.
   const refByMember = new Map<string, Map<string, { field: string; prop: string }>>();
+  // #1513: THIS MEMBER'S OWN CAPTION per text part — the per-coordinate copy `byVariant` gives each member
+  // (`anatomy-figma.ts` `textDefaultOf`). Wiring a `characters` reference RESETS the node to the set-level
+  // property default (Figma adopts the one `defaultValue` onto the bound node), so `build`'s pre-combine
+  // write is overwritten by the fallback and every `field-message` status rendered "This is a standard
+  // message." live (#1513). Kept here, keyed exactly as `refByMember`, so the re-assert pass below can
+  // re-write each member's own copy AFTER wiring. Byte-identical to the fallback for a def with no
+  // `byVariant`, so the re-assert is a no-op there.
+  const textByMember = new Map<string, Map<string, string>>();
   for (const plan of plans) {
     const perPart = new Map<string, { field: string; prop: string }>();
-    const walk = (n: { name: string; propertyRef?: { field: string; prop: string }; children: unknown[] }): void => {
+    const perText = new Map<string, string>();
+    const walk = (n: { name: string; propertyRef?: { field: string; prop: string }; characters?: string; children: unknown[] }): void => {
       if (n.propertyRef) perPart.set(`${n.name}|${n.propertyRef.field}`, n.propertyRef);
+      if (typeof n.characters === 'string') perText.set(n.name, n.characters);
       for (const c of n.children as (typeof n)[]) walk(c);
     };
     walk(plan.root as unknown as Parameters<typeof walk>[0]);
     refByMember.set(planComponentName(plan), perPart);
+    textByMember.set(planComponentName(plan), perText);
   }
   // AFTER the offline guards, because a throw from them leaves nothing to name (#913).
   trail.component = component;
@@ -2088,6 +2099,26 @@ const writeComponentSet = async (
     const member = liveMember(mName) ?? members.find((c) => c.name === mName);   // #1473: the LIVE settled member
     const node = findOwnPart(member, part);   // #1428: read back the member's OWN part, not a nested twin
     const held = (node?.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
+    // #1513 — RE-ASSERT THIS MEMBER'S OWN CAPTION. Wiring `componentPropertyReferences.characters` binds the
+    // node to the SET-LEVEL TEXT property, whose one `defaultValue` is the canonical fallback
+    // (`planSetProperties` uses `textDefault`, #1018); Figma adopts that default onto the bound node at bind
+    // time, discarding the per-coordinate copy `build` wrote before combine — so `field-message`'s error/
+    // warning/success members all rendered the `status=default` string "This is a standard message." in a
+    // projected file (#1513), the gap #1474's scope note predicted for the live write path. Re-write the
+    // member's own copy HERE, reusing the node this read-back already found (no extra host search, #701) and
+    // AFTER the seam the reset lives on — `build`'s pre-combine write is the right value on the wrong side of
+    // it. Byte-identical to the fallback for a def with no `byVariant`, so it is inert there; read back like
+    // every other write in this file — a caption Figma re-reset would surface as a DISCARDED miss rather than
+    // shipping the fallback silently.
+    if (field === 'characters' && node) {
+      const chars = textByMember.get(mName)?.get(part);
+      if (typeof chars === 'string') {
+        try { wr(node).characters = chars; }
+        catch (err) { misses.push(`text ${mName}/${part}.characters -> ${JSON.stringify(chars)} (${(err as Error).message})`); }
+        if (node.characters !== chars)
+          misses.push(`text ${mName}/${part}.characters -> DISCARDED (set ${JSON.stringify(chars)}, reads ${JSON.stringify(node.characters)})`);
+      }
+    }
     if (held?.[field] === id) continue;   // retained — the common case, nothing to do
     // The reference did not read back. #866 CAUSE-INDEPENDENT HARDENING: if the node the wire loop wrote
     // to is NOT the node `findOne` returns now — they disagree BY ID — the write landed on a stale
