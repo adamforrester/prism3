@@ -7,6 +7,26 @@
 
 ---
 
+## (2026-09-18) — rename `radio` → `radio-row` and `switch` → `switch-row` to match `checkbox-row` (#1468)
+
+**STATUS: LANDED. ENGINE 0.115.0 → 0.116.0; CONTRACT STANDS at 11.3.0. Owner-decided naming (QA 2026-09-17) — "Rename to radio-row + switch-row"; implemented, not re-litigated.**
+
+**THE CHANGE.** The selection-control ROW composites are renamed to the `checkbox-row` convention: `radio` → `radio-row`, `switch` → `switch-row`. The atoms (`radio-control` / `switch-control`) are UNCHANGED, and the row still nests its control exactly as before (nest-exposed, exposing selection/state, following size). Only the composite id + projected component-set name move: `id` `radio`→`radio-row` / `switch`→`switch-row`, `name` `Radio`→`Radio.Row` / `Switch`→`Switch.Row` (matching `Checkbox.Row`, and the sibling atoms `Radio.Control`/`Switch.Control`). The pre-#1468 bare ids are retained as `aliases` (`['radio', …]`, `['switch', …]`) — the `checkbox-row` precedent, whose aliases keep `checkbox`. Files renamed `radio.ts`→`radio-row.ts`, `switch.ts`→`switch-row.ts`; exports `radio`→`radioRow`, `switchDef`→`switchRow` (the `-row` id makes the export a plain `switchRow` — the old `switchDef` name existed only to dodge the `switch` reserved word, which the renamed id no longer collides with).
+
+**WHY.** Surfaced in QA (2026-09-17) when the three families were viewed side by side: `checkbox` uses `checkbox-control`/`checkbox-row`/`checkbox-group`, but `radio` and `switch` named their row element bare, and the divergence read as accidental. The owner chose to make the `-row` convention uniform. This is a naming decision the owner CONFIRMED — no design choice beyond it was made here (the composition model, anatomy, axes and paint are untouched).
+
+**SCOPE — ENGINE-ONLY, CONTRACT UNMOVED.** A component-set name is the projected Figma surface, not a DTCG token-name path, and no component id lives in the versioned token contract (docs/30, #1252/#1347). `token-contract --check` confirms level `none` — no guaranteed path added, removed or retyped — so CONTRACT STANDS at 11.3.0. ENGINE bumps 0.115.0 → 0.116.0 because the projected component surface moves (`lint-component-surface` tracks it).
+
+**BASELINES.** `schema/component-surface.json` re-`--accept`ed after the forward ENGINE bump: `radio` (3 members) → `radio-row` (3 members), `switch` (2 members) → `switch-row` (2 members); every other def byte-identical. `schema/paint-census.json` re-`--accept`ed for the two renamed rows only. `schema/token-contract.json` re-`--accept`ed as a stamp sync (the #1470/#1476 precedent: an ENGINE bump makes `baseline.engineVersion` differ from live, which flips the check's `informationalOnly` branch on and surfaces the brand-dependent `color.*.inverse.overlay.*` conditional-path fields for refresh). That inverse-overlay churn in the token-contract diff is PRE-EXISTING and independent of this rename — verified by reproducing the identical 36-conditional informational diff on a clean `origin/main` under nothing but a version bump (with the version left at 0.115.0 the check is green; the fields are informational, `brandDependent`, and never force a bump). No guaranteed path moved.
+
+**CROSS-REFS UPDATED (every register/gate/consumer that named the old row ids).** Gates: `lint-axis-values` (the `size` canonical + `switch` subset def lists), `lint-standalone-floor` (`MUST_PROJECT`), `lint-rung-names` (`MUST_COVER`), `lint-hit-target` (the row-floor map). Tests: `test.ts` (the `CONTROL_DEFS`/selection id lists and every `radio`/`switchDef` symbol usage → `radioRow`/`switchRow`), `apps/plugin/test-roundtrip.ts` (`WRAPS`). Sibling defs' `composition`/`ai` cross-refs (`checkbox-row`, `checkbox-control`, `checkbox-group`, `radio-control`, `switch-control`, `button`, `text-field`, `select`). Skill: `prism3-build-component/SKILL.md` root-part list (`row` for checkbox-row, radio-row and switch-row). `docs/40`'s MVP catalogue uses informal family names (`checkbox`/`radio`/`switch`, never updated to `-row`) and is left as-is; `docs/00` historical entries are frozen record and not rewritten.
+
+**GATES + BY-NAME MUTATION (docs/34).** Full `npm run verify`: 60/60 gates reached a verdict, all PASS. By-name mutation proving the rename is pinned: reverting the `radio-row` def `id` back to `'radio'` fails `lint-component-surface` BY NAME — *"surface/radio-row: in the baseline and no longer in `componentDefs` — a def that stopped existing is a surface change"* and *"surface/radio: projects a surface and is absent from the baseline"* — then restored via `git checkout --`. (The same mutation also trips `lint-standalone-floor`/`lint-rung-names`/`lint-hit-target`, which now name `radio-row`; component-surface is the on-point gate for a projected-surface rename.)
+
+**NOT TOUCHED.** #1367 and #1385 are out of this lane's scope. The `radio-group` the issue mentions is tracked separately (#901-family) and is not authored here.
+
+---
+
 ## (2026-09-18) — `switch` default label "Toggle label" → "Switch label" (#1470)
 
 **STATUS: LANDED. ENGINE 0.114.0 → 0.115.0 (rebased past #1494); CONTRACT STANDS at 11.3.0. Owner-decided (QA 2026-09-17), reversing the specific wording #1434 gave this one placeholder.**

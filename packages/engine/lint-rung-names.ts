@@ -258,7 +258,7 @@ const LADDER_STATED_ONCE: Record<string, string> = {
  * The scope floor. `docs/34`: a gate with a scope asserts each promised surface is REPRESENTED, never
  * merely counts. Every def carrying a size axis today.
  */
-const MUST_COVER = ['icon', 'button', 'icon-button', 'field-label', 'text-field', 'textarea', 'checkbox-row', 'checkbox-group', 'radio', 'switch'];
+const MUST_COVER = ['icon', 'button', 'icon-button', 'field-label', 'text-field', 'textarea', 'checkbox-row', 'checkbox-group', 'radio-row', 'switch-row'];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */
 const tierPaths = (tree: Record<string, unknown>): Set<string> => {

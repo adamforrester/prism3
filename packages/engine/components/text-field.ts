@@ -447,7 +447,7 @@ export const textField: ComponentDef = {
 
   composition: {
     composesWith: ['field-label', 'field-message', 'icon', 'button', 'spinner', 'form', 'tooltip'],
-    alternativeTo: ['textarea', 'select', 'combobox', 'number-field', 'search-field', 'date-picker', 'password-field', 'checkbox-row', 'switch'],
+    alternativeTo: ['textarea', 'select', 'combobox', 'number-field', 'search-field', 'date-picker', 'password-field', 'checkbox-row', 'switch-row'],
     supersedes: ['bare input without label wiring', 'placeholder-as-label', 'type=number for formatted numeric'],
   },
 

@@ -89,13 +89,14 @@
  */
 import { ComponentDef } from '../component-schema';
 
-export const radio: ComponentDef = {
-  id: 'radio',
-  name: 'Radio',
-  // The brief's list, kept intact. `radio-group` sits in it and this def is NOT the group — kept anyway
-  // because an agent reaching for the group should land on the nearest thing that exists and read its
-  // header, rather than matching nothing at all. The description says what this is.
-  aliases: ['radio-button', 'radio-group', 'option', 'choice-list'],
+export const radioRow: ComponentDef = {
+  id: 'radio-row',
+  name: 'Radio.Row',
+  // The brief's list, kept intact, with the pre-#1468 bare id `radio` retained as an alias (the
+  // `checkbox-row` precedent, whose aliases keep `checkbox`). `radio-group` sits in it and this def is NOT
+  // the group — kept anyway because an agent reaching for the group should land on the nearest thing that
+  // exists and read its header, rather than matching nothing at all. The description says what this is.
+  aliases: ['radio', 'radio-button', 'radio-group', 'option', 'choice-list'],
   category: 'form',
   status: 'draft',
   inherits: 'checkbox-row',
@@ -366,7 +367,7 @@ export const radio: ComponentDef = {
 
   composition: {
     composesWith: ['radio-control', 'field-label', 'field-message', 'focus-ring', 'icon', 'form'],
-    alternativeTo: ['checkbox-row', 'switch', 'select', 'segmented-control', 'toggle-button'],
+    alternativeTo: ['checkbox-row', 'switch-row', 'select', 'segmented-control', 'toggle-button'],
     supersedes: [
       'a set of checkboxes misused for a mutually exclusive choice',
       'a bare <input type="radio"> set with no group label',
