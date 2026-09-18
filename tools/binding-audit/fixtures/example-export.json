@@ -1,0 +1,37 @@
+{
+  "format": "prism3-binding-export",
+  "version": 1,
+  "capturedFrom": "worked example — a partial, hand-seeded icon-button export exercising every verdict",
+  "nodes": [
+    {
+      "component": "icon-button",
+      "member": "appearance=filled, shape=square, surface=default, size=small, state=rest",
+      "node": "/",
+      "fields": { "fills": "color/interactive/primary/fill/rest", "strokes": "UNBOUND" }
+    },
+    {
+      "component": "icon-button",
+      "member": "appearance=filled, shape=square, surface=default, size=small, state=rest",
+      "node": "/icon",
+      "fields": { "descendantFills": "color/interactive/primary/on-fill" }
+    },
+    {
+      "component": "icon-button",
+      "member": "appearance=filled, shape=square, surface=default, size=small, state=hover",
+      "node": "/",
+      "fields": { "fills": "color/interactive/primary/fill/pressed", "strokes": "color/disabled/icon" }
+    },
+    {
+      "component": "icon-button",
+      "member": "appearance=filled, shape=square, surface=default, size=small, state=hover",
+      "node": "/icon",
+      "fields": { "descendantFills": "UNBOUND" }
+    },
+    {
+      "component": "icon-button",
+      "member": "appearance=filled, shape=square, surface=default, size=small, state=rest",
+      "node": "/__hand-added-badge__",
+      "fields": { "fills": "color/disabled/fill" }
+    }
+  ]
+}

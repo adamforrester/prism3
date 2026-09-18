@@ -1,9 +1,10 @@
 /**
  * BINDING AUDIT (#1499) — the expected part→variable ledger, plus unbound / mis-bound detection.
  *
- *   npx tsx tools/binding-audit/audit.ts            # the human report (ledger summary + findings), exit 0
- *   npx tsx tools/binding-audit/audit.ts --json     # the same findings as machine JSON
- *   npx tsx tools/binding-audit/audit.ts --ledger    # the full per-member expected ledger as JSON
+ *   npx tsx tools/binding-audit/audit.ts                          # the human report (ledger summary + findings), exit 0
+ *   npx tsx tools/binding-audit/audit.ts --json                   # the same findings as machine JSON
+ *   npx tsx tools/binding-audit/audit.ts --ledger                 # the full per-member expected ledger as JSON
+ *   npx tsx tools/binding-audit/audit.ts --reconcile export.json  # diff a LIVE file's actual binds vs the ledger (#1511 → reconcile.ts)
  *
  * ── WHY THIS EXISTS ─────────────────────────────────────────────────────────────────────────────
  *
@@ -19,10 +20,13 @@
  *
  *   1. THE EXPECTED LEDGER — from the projection plan (`figmaAnatomyPlan` → each member's nodes),
  *      the `(component, member, node, slot) → bound-variable` map. This is the source of truth for
- *      "what should bind to what", and the reference a LIVE Figma file is diffed against (the
- *      read-only companion script in this folder's README reads each node's actual `boundVariables`
- *      and diffs it against `--ledger`'s output). The plan carries variable NAMES, not resolved
- *      values, so the ledger is brand-invariant — one ledger audits a live file of any corpus brand.
+ *      "what should bind to what", and the reference a LIVE Figma file is diffed against: `--reconcile`
+ *      (#1511, in `reconcile.ts`) ingests a small versioned JSON export of a file's ACTUAL bindings
+ *      — produced by the read-only console snippet this folder's README documents — and reports
+ *      MATCH / WRONG-TOKEN / UNBOUND / EXTRA / UNKNOWN-NODE per coordinate, plus coverage. The ledger
+ *      builder lives in `ledger.ts` so `--ledger` and `--reconcile` share ONE ledger and cannot drift.
+ *      The plan carries variable NAMES, not resolved values, so the ledger is brand-invariant — one
+ *      ledger audits a live file of any corpus brand.
  *
  *   2. UNBOUND detection — a color binding a def DECLARES that the projector returns at NO
  *      coordinate. In the emitted plan every painted slot is a bound variable (the plan cannot bake
@@ -64,25 +68,18 @@
  */
 import { componentDefs } from '../../packages/engine/components/index';
 import {
-  figmaAnatomySet,
   figmaAnatomyPlan,
-  planComponentName,
   type FigmaNodePlan,
 } from '../../packages/engine/anatomy-figma';
 import type { ComponentDef } from '../../packages/engine/component-schema';
-
-// ── THE PHYSICAL SLOT A NODE PAINTS ───────────────────────────────────────────────────────────────
-// Read off the plan node's TYPE and which paint field carries the variable — never off a key string,
-// so the slot kind is what the projector actually built rather than what a name suggests.
-type SlotKind = 'surface-fill' | 'border' | 'text-ink' | 'glyph-ink';
-
-/** A projected Figma variable NAME (`color/interactive/primary/icon/rest`) → its dotted role
- *  (`interactive.primary.icon.rest`). Non-color variables (`radius/md`) return null and are ignored:
- *  this audit is about color binding. */
-const roleOf = (variable: string): string | null => {
-  const dotted = variable.replace(/\//g, '.');
-  return dotted.startsWith('color.') ? dotted.slice('color.'.length) : null;
-};
+import {
+  type SlotKind,
+  type SlotBinding,
+  nodeBindings,
+  memberLedger,
+  buildLedger,
+} from './ledger';
+import { runReconcile } from './reconcile';
 
 /**
  * The ROLE FAMILY WORD — the structural slot a role paints, independent of intent, state and the
@@ -147,38 +144,9 @@ const ALLOWED: Record<SlotKind, Record<string, string>> = {
 };
 
 // ── THE LEDGER ──────────────────────────────────────────────────────────────────────────────────
-type SlotBinding = { node: string; field: 'fills' | 'strokes' | 'descendantFills'; slotKind: SlotKind; variable: string; role: string };
-type MemberLedger = { member: string; bindings: SlotBinding[] };
-
-/** Classify a plan node's paints into slot bindings. A node type + paint field decide the slot kind:
- *  a FRAME's `fills` is a surface, its `strokes` a border; a TEXT's `fills` is text ink; any
- *  `descendantFills` is glyph ink (the vector inside a swapped/nested instance or a glyph artboard). */
-const nodeBindings = (n: FigmaNodePlan, path: string, out: SlotBinding[]): void => {
-  const here = `${path}/${n.name}`;
-  const push = (field: SlotBinding['field'], slotKind: SlotKind, variable?: string): void => {
-    if (!variable) return;
-    const role = roleOf(variable);
-    if (!role) return; // non-color binding (dimension, radius) — not this audit's subject
-    out.push({ node: here, field, slotKind, variable, role });
-  };
-  if (n.type === 'TEXT') push('fills', 'text-ink', n.paints?.fills);
-  else push('fills', 'surface-fill', n.paints?.fills);
-  push('strokes', 'border', n.paints?.strokes);
-  push('descendantFills', 'glyph-ink', n.descendantFills);
-  for (const c of n.children) nodeBindings(c, here, out);
-};
-
-/** The full per-member ledger for a def, over the Figma set that actually ships (member names match
- *  the live file). `null` for a def that projects no set. */
-const memberLedger = (def: ComponentDef): MemberLedger[] | null => {
-  if (!def.figmaProperties) return null;
-  const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
-  return set.map((plan) => {
-    const bindings: SlotBinding[] = [];
-    nodeBindings(plan.root, '', bindings);
-    return { member: planComponentName(plan), bindings };
-  });
-};
+// `SlotBinding`, `MemberLedger`, `nodeBindings`, `memberLedger` and `buildLedger` now live in
+// `ledger.ts` — the single builder `reconcile.ts` shares, so the diffed ledger cannot drift from the
+// emitted one (#1511). They are imported above.
 
 // ── GRID ENUMERATION — every coordinate the def DECLARES ──────────────────────────────────────────
 // Wider than the Figma set (it enumerates axes the set does not, e.g. icon's `tone`), so the analysis
@@ -321,19 +289,25 @@ const main = (): void => {
   const asJson = process.argv.includes('--json');
   const asLedger = process.argv.includes('--ledger');
 
+  // RECONCILE (--reconcile <export.json>): diff a live Figma file's ACTUAL bindings (a console export,
+  // see README) against the expected ledger, per (component, member, node, slot). Delegates to
+  // reconcile.ts, which owns the diff so it stays fixture-testable apart from this reporter (#1511).
+  const reconcileIdx = process.argv.indexOf('--reconcile');
+  if (reconcileIdx !== -1) {
+    const exportPath = process.argv[reconcileIdx + 1];
+    if (!exportPath) {
+      console.error('--reconcile needs a path: npx tsx tools/binding-audit/audit.ts --reconcile <export.json>');
+      process.exitCode = 2;
+      return;
+    }
+    runReconcile(exportPath, componentDefs, { asJson });
+    return;
+  }
+
   // FULL LEDGER (--ledger): per-member expected binding map, the reference a live file is diffed
   // against. Written to stdout as JSON so it can be piped or saved next to a captured live snapshot.
   if (asLedger) {
-    const ledger: Record<string, MemberLedger[]> = {};
-    for (const def of componentDefs) {
-      const ml = memberLedger(def);
-      if (ml) ledger[def.id] = ml;
-    }
-    process.stdout.write(`${JSON.stringify({
-      note: 'EXPECTED part→variable ledger (brand-invariant). Diff a live Figma file\'s node boundVariables against `bindings[*].variable`; see tools/binding-audit/README.md for the read-only companion script.',
-      generatedBy: 'tools/binding-audit/audit.ts --ledger',
-      components: ledger,
-    }, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(buildLedger(componentDefs), null, 2)}\n`);
     return;
   }
 
