@@ -7,6 +7,20 @@
 
 ---
 
+## (2026-09-18) — `switch` default label "Toggle label" → "Switch label" (#1470)
+
+**STATUS: LANDED. ENGINE 0.114.0 → 0.115.0 (rebased past #1494); CONTRACT STANDS at 11.3.0. Owner-decided (QA 2026-09-17), reversing the specific wording #1434 gave this one placeholder.**
+
+**THE CHANGE.** One string. `#1434` set the `switch` component's default label placeholder to `"Toggle label"`; the owner decided during QA to make it `"Switch label"` — the placeholder now names the component itself, matching the `Checkbox label` / `Radio option` scaffolding on the sibling selection controls. `components/switch.ts` `texts.label.default` `'Toggle label'` → `'Switch label'`, plus the comment there recording the #1470 wording call.
+
+**WHY IT'S STILL SCAFFOLD, NOT COPY.** This does NOT reverse #1434's stance (generic illustrative scaffold, which itself reversed #798's canonical realistic label). "Switch label" still reads as obviously replaceable scaffolding, never as a real product's setting — the recessive attribute (voice-standard §1) holds. Only #1434's *specific wording* for this one control moves; the other four #1434 defaults (`field-message`, `field-label`, `checkbox-row`, `radio`) are untouched.
+
+**VERSIONING.** ENGINE 0.114.0 → 0.115.0 (rebased past #1494): the projected component surface moves (the switch member's text default), which `lint-component-surface` sees even though no committed `out/` artifact carries the label default — the plugin builds the plan from the def at run time, so the string lives only in `switch.ts` and rides the plan digest (the #1252/#1434 shape). The `switch` plan digest moved; baseline `--accept`ed after the forward ENGINE bump (the gate refuses a backward/absent bump). Emitted `out/**` restamps `$extensions.generator.version` 0.114.0 → 0.115.0 (no token VALUE moves). CONTRACT STANDS at 11.3.0: a label default is neither a token name nor a prop — `token-contract --check` level `none`, so the baseline's informational `engineVersion` field is stamp-only synced (the #1476 precedent; the guard refuses a real move and permits a `none` stamp sync).
+
+**GATES.** The US-English + voice gates cover the new string (their scope includes the projected/emitted prose and the built bundles). No new gate FILE — this is a copy change to an existing member, caught by the existing `lint-component-surface` digest (which fired by name on `surface/switch` before the accept) and the prose gates. Full `npm run verify`: 60/60 reached a verdict, all PASS (see the PR body).
+
+**Files.** `packages/engine/components/switch.ts` (the string + comment), `packages/engine/version.ts` (ENGINE bump + changelog), `packages/engine/schema/component-surface.json` (`--accept`, switch digest), `packages/engine/schema/token-contract.json` (stamp-only `engineVersion` sync), and the regen artifacts (`out/**` version stamps).
+
 ## (2026-09-18) — TextField PROJECTS into Figma: anatomy + figmaProperties, status-led validation (#1494)
 
 **STATUS: LANDED (#1498). ENGINE 0.113.0 → 0.114.0 (rebased past #1486); CONTRACT STANDS at 11.3.0 (stamp-only `--accept`). Owner-confirmed projection decisions.**

@@ -72,7 +72,7 @@
     },
     "switch": {
       "members": 2,
-      "sha256": "f428a7dadc7d6b1b3ce5a0a47cb46883e768d8c57496e4e6d176375fa70ef318"
+      "sha256": "4a5209d6621022a2ad08fb90a2404942e2266d8e7ec45899753691165e37aaed"
     },
     "select": {
       "members": 16,

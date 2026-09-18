@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.115.0 — #1470: the `switch` default label placeholder becomes "Switch label" (was "Toggle label",
+ * set by #1434). Owner-directed during QA: the placeholder names the component itself, matching the
+ * `Checkbox label` / `Radio option` scaffolding on the sibling selection controls. Still generic
+ * illustrative scaffold, not a realistic setting name (#1434's stance, reversing #798), so the
+ * recessive attribute (voice-standard §1) holds — this only reverses #1434's specific wording. One
+ * string in `components/switch.ts`; the projected component surface + emitted prose move (member text
+ * default) → ENGINE bump. CONTRACT STANDS at 11.3.0 — a label default is neither a token name nor a
+ * prop, so no guaranteed name moves. The US-English + voice gates cover the new string.
+ *
  * 0.114.0 — #1494: TextField PROJECTS into Figma. It had an `anatomy` block only in `composition` (naming
  * its parts) and no `figmaProperties`, so it reached no Figma member; this gives it the full select shape —
  * a root column composing the nested `field-label` (nest-exposed) and `field-message` (nest-fixed, following
@@ -3072,7 +3081,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.114.0';
+export const ENGINE_VERSION = '0.115.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
