@@ -68,12 +68,13 @@
  */
 import { ComponentDef } from '../component-schema';
 
-export const switchDef: ComponentDef = {
-  id: 'switch',
-  name: 'Switch',
-  // The brief's aliases (§10), plus `switch-group` so an agent reaching for a group lands on the
-  // nearest thing that exists and reads why there is none, rather than matching nothing.
-  aliases: ['toggle', 'toggle-switch', 'on-off', 'switch-group'],
+export const switchRow: ComponentDef = {
+  id: 'switch-row',
+  name: 'Switch.Row',
+  // The brief's aliases (§10), with the pre-#1468 bare id `switch` retained as an alias (the
+  // `checkbox-row` precedent, whose aliases keep `checkbox`), plus `switch-group` so an agent reaching
+  // for a group lands on the nearest thing that exists and reads why there is none.
+  aliases: ['switch', 'toggle', 'toggle-switch', 'on-off', 'switch-group'],
   category: 'form',
   status: 'draft',
   inherits: 'checkbox-row',
@@ -314,7 +315,7 @@ export const switchDef: ComponentDef = {
 
   composition: {
     composesWith: ['switch-control', 'field-label', 'field-message', 'focus-ring', 'icon'],
-    alternativeTo: ['checkbox-row', 'toggle-button', 'radio', 'segmented-control'],
+    alternativeTo: ['checkbox-row', 'toggle-button', 'radio-row', 'segmented-control'],
     supersedes: [
       'a checkbox misused for an immediate-effect setting',
       'two radios standing in for an obvious binary on/off',

@@ -120,9 +120,9 @@ const INTERACTIVE: Record<string, Binding> = {
   'icon-button-neutral': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
   'text-field': { key: () => 'min-height', why: 'size.md.min-height, the interactive floor (#1494/#1437) — text-field projects a single md rung like select, so its representative tap target is that rung, not the code-API size ladder', single: true },
   'select': { key: () => 'min-height', why: 'size.md.min-height, the interactive floor (#1437)', single: true },
-  'switch': { key: (s) => `size.${s}.min-height`, why: 'the labelled switch row floor' },
+  'switch-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled switch row floor' },
   'checkbox-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled checkbox row floor' },
-  'radio': { key: (s) => `size.${s}.min-height`, why: 'the labelled radio row floor' },
+  'radio-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled radio row floor' },
 };
 
 /** The one family carved out as a size-level exception (owner, #1443): a small button sits below the

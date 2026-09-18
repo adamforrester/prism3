@@ -56,9 +56,9 @@ import { checkboxControl } from './checkbox-control';
 import { checkboxRow } from './checkbox-row';
 import { checkboxGroup } from './checkbox-group';
 import { radioControl } from './radio-control';
-import { radio } from './radio';
+import { radioRow } from './radio-row';
 import { switchControl } from './switch-control';
-import { switchDef } from './switch';
+import { switchRow } from './switch-row';
 import { select } from './select';
 import { veil } from './veil';
 import { imagePlaceholder } from './image-placeholder';
@@ -69,7 +69,7 @@ import { imagePlaceholder } from './image-placeholder';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radio, switchControl, switchDef, select, veil, imagePlaceholder };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, switchControl, switchRow, select, veil, imagePlaceholder };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -113,26 +113,27 @@ export const componentDefs: readonly ComponentDef[] = [
   // nests `focus-ring`), the deepest nest chain in the corpus — though nothing reads this array's order
   // (see the header). It owns the value array and group validation the Row cannot express.
   checkboxGroup,
-  // `radio-control` is the ATOMIC circle-and-dot (#1348), extracted from `radio` so the labeled Row can
+  // `radio-control` is the ATOMIC circle-and-dot (#1348), extracted from `radio-row` so the labeled Row can
   // nest it rather than redraw it — the #1226/#1330 mechanism a fourth time, built after confirming the
-  // radio Row nests it (the composition check). It leads `radio` on composition order — `radio` nests
+  // radio Row nests it (the composition check). It leads `radio-row` on composition order — `radio-row` nests
   // `radio-control`, which nests `focus-ring` — though nothing reads this array's order (see above).
   radioControl,
-  // `radio` follows `checkbox` because it `inherits` it — the one place in this list where the order
-  // does carry a claim beyond convention, since the chain is real: radio inherits the field substrate
-  // THROUGH checkbox rather than directly. Since #1348 it is the labeled ROW that nests `radio-control`
-  // in flow, rather than inlining the painted disc.
-  radio,
-  // `switch-control` is the ATOMIC track-and-thumb (#1354), extracted from `switch` so the labeled Row
+  // `radio-row` (renamed from `radio`, #1468, to match the `checkbox-row` convention) follows `checkbox` because
+  // it `inherits` it — the one place in this list where the order does carry a claim beyond convention, since
+  // the chain is real: radio inherits the field substrate THROUGH checkbox rather than directly. Since #1348 it
+  // is the labeled ROW that nests `radio-control` in flow, rather than inlining the painted disc.
+  radioRow,
+  // `switch-control` is the ATOMIC track-and-thumb (#1354), extracted from `switch-row` so the labeled Row
   // can nest it rather than redraw it — the #1226/#1330 mechanism a third time, built after confirming
-  // the switch Row nests it (the composition check). It leads `switch` on composition order — `switch`
+  // the switch Row nests it (the composition check). It leads `switch-row` on composition order — `switch-row`
   // nests `switch-control`, which nests `focus-ring` — though nothing reads this array's order (see above).
   switchControl,
-  // `switch` follows `radio` because it `inherits` checkbox too — the same two-link chain, and the
-  // order here says only that all three share a parent. Since #1354 it is the labeled ROW that nests
-  // `switch-control` in flow. It is exported as `switchDef` rather than `switch` because `switch` is a
-  // reserved word: the def's `id` is still `'switch'`, which is what every gate and every consumer reads.
-  switchDef,
+  // `switch-row` (renamed from `switch`, #1468, to match the `checkbox-row` convention) follows `radio-row`
+  // because it `inherits` checkbox too — the same two-link chain, and the order here says only that all three
+  // share a parent. Since #1354 it is the labeled ROW that nests `switch-control` in flow. The `-row` id makes
+  // the export a plain `switchRow`; the pre-#1468 `switchDef` name existed only to dodge the `switch` reserved
+  // word, which the renamed id no longer collides with.
+  switchRow,
   // `select` (#761 mechanism resolved) — the composed, native-first field. It sits after the selection
   // controls because composition order puts it here: it NESTS `field-label`, `field-message` and
   // `focus-ring` (all above it), the first def to nest the two shared field parts rather than only name

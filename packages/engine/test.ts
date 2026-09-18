@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioControl, radio, switchControl, switchDef, select } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, switchControl, switchRow, select } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -1684,7 +1684,7 @@ for (const b of brands) {
     // so both read the varying family and both belong here, exactly as checkbox + checkbox-control do.
     // #1348 split `radio` the same way: `radio-control` (the circle/dot, binding control+dot) and the
     // `radio` Row (which KEEPS a `size.*.control` binding, the nest pinning the nested control's square).
-    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio', 'switch-control', 'switch'];
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox-row', 'radio-control', 'radio-row', 'switch-control', 'switch-row'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -9336,7 +9336,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     {
       const wrapFind = (n: FigmaNodePlan, name: string): FigmaNodePlan | undefined =>
         n.name === name ? n : (n.children ?? []).map((c) => wrapFind(c, name)).find(Boolean);
-      for (const def of [radio, checkboxRow] as ComponentDef[]) {
+      for (const def of [radioRow, checkboxRow] as ComponentDef[]) {
         const p = figmaAnatomySet(def, {})[0];
         const row = wrapFind(p.root, 'row');
         const label = wrapFind(p.root, 'label');
@@ -9364,15 +9364,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // with the suite green. The precedent is #1343a/#1340's wrong-kind and precondition arms above.
       // (a) wrap on a NON-text part — `layoutGrow`/`textAutoResize` are the fill-and-reflow of a TEXT node; on a
       //     box the projector would carry them onto a frame the readback never expects them on.
-      const wrapOnBox = { ...radio, anatomy: { ...radio.anatomy, parts: { ...radio.anatomy.parts, controlBox: { ...radio.anatomy.parts.controlBox, wrap: true } } } };
+      const wrapOnBox = { ...radioRow, anatomy: { ...radioRow.anatomy, parts: { ...radioRow.anatomy.parts, controlBox: { ...radioRow.anatomy.parts.controlBox, wrap: true } } } };
       ok(validateComponentDef(wrapOnBox as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /only a 'text' part/.test(e)),
         "#1424 'wrap' on a NON-text part is refused BY NAME — only a text part fills its row and reflows; on any other kind it would validate clean and reach the wrong branch");
       // (b) wrap under a FLOORLESS parent — the #989 silent no-op: `layoutGrow` fills REMAINING space and a
       //     hugging row has none, so the label hugs its glyphs and overflows though it validated. Stripping the
       //     row's real `minWidth: 320` (keeping the label's `wrap`) fires this on exactly the row that carries
       //     the floor — which is what makes the row's minWidth LOAD-BEARING rather than decorative.
-      const floorlessRow = { ...radio.anatomy.parts.row, minWidth: undefined };
-      const floorless = { ...radio, anatomy: { ...radio.anatomy, parts: { ...radio.anatomy.parts, row: floorlessRow } } };
+      const floorlessRow = { ...radioRow.anatomy.parts.row, minWidth: undefined };
+      const floorless = { ...radioRow, anatomy: { ...radioRow.anatomy, parts: { ...radioRow.anatomy.parts, row: floorlessRow } } };
       ok(validateComponentDef(floorless as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /does not bound its main-axis width/.test(e)),
         "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; removing the row's minWidth fires this, so the floor is load-bearing");
     }
@@ -10363,12 +10363,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       { def: buttonDestructive, part: 'label', axes: { size: 3 } },
       { def: buttonNeutral, part: 'label', axes: { size: 3 } },
       { def: checkboxRow, part: 'label', axes: { size: 3 } },
-      { def: radio, part: 'label', axes: { size: 3 } },
-      // TWO, and not a collapse: `switch` declares `size: [small, medium]` only, on its brief's own
+      { def: radioRow, part: 'label', axes: { size: 3 } },
+      // TWO, and not a collapse: `switch-row` declares `size: [small, medium]` only, on its brief's own
       // words ("switches rarely warrant a large"). Two values, two styles — full discrimination over
       // a shorter ladder, which is why the authored number is the right oracle and "one per declared
       // value" would have read this as a pass and button's real gap as one too.
-      { def: switchDef, part: 'label', axes: { size: 2 } },
+      { def: switchRow, part: 'label', axes: { size: 2 } },
       // The two text nodes of `field-label`, the only bindings in the corpus that cross two axes.
       { def: fieldLabel, part: 'text', axes: { size: 3, weight: 2 } },
       { def: fieldLabel, part: 'indicator', axes: { size: 3, weight: 2 } },
@@ -13903,8 +13903,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // The NON-SQUARE BOX rules (#990). `width` is what a 2:1 track needs and `size` is what a square
       // needs; each is refused where the other belongs, and every arm is a binding silently discarded.
       // The text-part arm stays on the ROW's `label` — the only text part in the family (switch-control
-      // has none). The token is one `switch` binds, so the kind rule fires, not a missing-slot error.
-      ibBroke('a non-box binding `width` fails', /is kind 'text' but binds 'width'/, patched(switchDef, 'label', { width: 'size.{size}.text' }));
+      // has none). The token is one `switch-row` binds, so the kind rule fires, not a missing-slot error.
+      ibBroke('a non-box binding `width` fails', /is kind 'text' but binds 'width'/, patched(switchRow, 'label', { width: 'size.{size}.text' }));
       ibBroke('binding both `size` and `width` fails — one of the two is silently discarded', /binds both 'size' and 'width'/, swPart('thumb', { width: 'size.{size}.dot' }));
       // The same FIXED precondition as the square's, from the box's own side rather than the child's — a
       // track may bind a width with nothing positioned inside it.
@@ -13920,7 +13920,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // the `width` arm above uses, deliberately: a key that is not a slot trips the binding resolver too,
       // and an arm that fires on either of two errors is not evidence about the one it names — with a real
       // slot the mutation leaves EXACTLY this arm red.
-      ibBroke('a non-box binding `strokeWidth` fails — only a box projects a bound strokeWeight', /is kind 'text' but binds 'strokeWidth'/, patched(switchDef, 'label', { strokeWidth: 'size.{size}.text' }));
+      ibBroke('a non-box binding `strokeWidth` fails — only a box projects a bound strokeWeight', /is kind 'text' but binds 'strokeWidth'/, patched(switchRow, 'label', { strokeWidth: 'size.{size}.text' }));
 
       // The VECTOR-SIZE split (#910). The old rule refused `size` on any vector, with the reason "its
       // rendered size comes from the host that instances it" — true of a def's ROOT glyph, where a host
@@ -17575,7 +17575,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 // halves are needed: without this, deleting the box and its wrapper leaves the row-not-centred gate green
 // while the control silently returns to cap height.
 {
-  const selection = componentDefs.filter((d) => ['checkbox-row', 'radio', 'switch'].includes(d.id));
+  const selection = componentDefs.filter((d) => ['checkbox-row', 'radio-row', 'switch-row'].includes(d.id));
   ok(selection.length === 3, `#1201: the three selection controls are present to check (got ${selection.map((d) => d.id).join(', ')})`);
   for (const def of selection) {
     const ps = def.anatomy!.parts;
@@ -17680,7 +17680,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
   // (1) THE NEST-EXPOSED SPLIT. The Row nests switch-control as nest-exposed, exposing the control's
   // consumer axes and following size. A revert to nest-fixed, or dropping an exposed axis, fails here.
-  const ctrl = switchDef.anatomy!.parts.control;
+  const ctrl = switchRow.anatomy!.parts.control;
   const rel = ctrl?.nesting as { kind?: string; expose?: readonly string[]; follow?: readonly string[] } | undefined;
   ok(ctrl?.kind === 'nest' && ctrl.nests === 'switch-control' && rel?.kind === 'nest-exposed'
     && ['selection', 'state', 'showStateLabel'].every((a) => rel!.expose?.includes(a)) && !!rel.follow?.includes('size'),
@@ -17688,10 +17688,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
   // (2) THE MEMBER COLLAPSE, a multiply INDEPENDENT of the enumeration. The Row is size-only; the atom
   // carries selection×size×state. 24 → 2.
-  const rowN = figmaAnatomySet(switchDef).length;
+  const rowN = figmaAnatomySet(switchRow).length;
   const ctlN = figmaAnatomySet(sc).length;
   const ctlProduct = sc.variants!.selection!.length * sc.variants!.size!.length * sc.figmaProperties!.stateAxis!.values.length;
-  ok(rowN === switchDef.variants!.size!.length && rowN === 2,
+  ok(rowN === switchRow.variants!.size!.length && rowN === 2,
     `#1354 the switch ROW projects SIZE-ONLY — ${rowN} members (its one axis), the 24→2 collapse against the atom's set`);
   ok(ctlN === ctlProduct && ctlProduct === 24,
     `#1354 switch-control carries the 24 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
@@ -17782,7 +17782,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // `radio-control`, nest-exposed — a registry composition walk over the Row's anatomy, not a trust of the
   // header. Zero or two nested controls, or one not named `radio-control`, would mean the split was forced
   // rather than genuine, and this fails.
-  const rowNestParts = Object.entries(radio.anatomy!.parts)
+  const rowNestParts = Object.entries(radioRow.anatomy!.parts)
     .filter(([, p]) => p.kind === 'nest' && (p.nests ?? '').endsWith('-control'));
   ok(rowNestParts.length === 1 && rowNestParts[0][1].nests === 'radio-control'
      && rowNestParts[0][1].nesting?.kind === 'nest-exposed',
@@ -17790,7 +17790,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
   // (1) THE NEST-EXPOSED SPLIT. The Row nests radio-control as nest-exposed, exposing selection+state and
   // following size. A revert to nest-fixed, or dropping an exposed axis, fails here by name.
-  const ctrl = radio.anatomy!.parts.control;
+  const ctrl = radioRow.anatomy!.parts.control;
   const rel = ctrl?.nesting as { kind?: string; expose?: readonly string[]; follow?: readonly string[] } | undefined;
   ok(ctrl?.kind === 'nest' && ctrl.nests === 'radio-control' && rel?.kind === 'nest-exposed'
     && ['selection', 'state'].every((a) => rel!.expose?.includes(a)) && !!rel.follow?.includes('size'),
@@ -17798,10 +17798,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
   // (2) THE MEMBER COLLAPSE, a multiply INDEPENDENT of the enumeration. The Row is size-only; the atom
   // carries selection×size×state. 36 → 3.
-  const rowN = figmaAnatomySet(radio).length;
+  const rowN = figmaAnatomySet(radioRow).length;
   const ctlN = figmaAnatomySet(rc).length;
   const ctlProduct = rc.variants!.selection!.length * rc.variants!.size!.length * rc.figmaProperties!.stateAxis!.values.length;
-  ok(rowN === radio.variants!.size!.length && rowN === 3,
+  ok(rowN === radioRow.variants!.size!.length && rowN === 3,
     `#1348 the radio ROW projects SIZE-ONLY — ${rowN} members (its one axis), the 36→3 collapse against the atom's set`);
   ok(ctlN === ctlProduct && ctlProduct === 36,
     `#1348 radio-control carries the 36 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
