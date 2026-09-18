@@ -251,6 +251,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
  */
 const LADDER_STATED_ONCE: Record<string, string> = {
   icon: 'its Figma grid is the 40-glyph `name` axis (#864), and a def cannot declare a `variants` axis it does not project — so the ladder lives in `props.size` and `tokens` only',
+  'text-field': 'since #1494 it PROJECTS a single `md` rung (mirroring select), and a def cannot declare a `variants` axis it does not project (`figmaAnatomySet`/`figmaAnatomyPlan` refuse a declared-but-unprojected size, #795) — so the small/medium/large ladder lives in `props.size` + the `size.{small,medium,large}.*` tokens only, while the projected control binds the bare `md` geometry keys',
 };
 
 /**

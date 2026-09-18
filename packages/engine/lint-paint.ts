@@ -274,6 +274,24 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the focus-visible coordinate, bound so the error border persists through focus (the ring carries the focus signal on top)',
   'select|error.border.empty':
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left unchosen" error',
+  // `text-field`'s validation axis is spelled `status` for the same reason select's is (its values are the
+  // validation states a consumer names; both align to `field-message`), and `danger` is the token tier's
+  // name for that boundary colour — the same axis-value→role mapping select's `error.border.*` records, one
+  // def over (#1494). Bound PER non-disabled state (rest / hover / focus-visible / read-only / empty) so the
+  // danger boundary persists through hover, focus and read-only rather than yielding to the neutral interactive
+  // border; `default`/`warning`/`success` bind no status-led border, so these five are the only text-field
+  // keys arm 1 examines. `pending` is deliberately unbound (async validation in progress does not assert the
+  // boundary), so there is no `text-field|error.border.pending` entry.
+  'text-field|error.border.rest':
+    "status `error` maps to the `danger` border role — the rest coordinate of text-field's border-only error swap",
+  'text-field|error.border.hover':
+    'status `error` maps to the `danger` border role — the hover coordinate, bound so the error border persists through hover',
+  'text-field|error.border.focus-visible':
+    'status `error` maps to the `danger` border role — the focus-visible coordinate, bound so the error border persists through focus (the ring carries the focus signal on top)',
+  'text-field|error.border.read-only':
+    "status `error` maps to the `danger` border role — the read-only coordinate, bound so an errored read-only field keeps the danger boundary (read-only is text-field's live edge, submitted and validated)",
+  'text-field|error.border.empty':
+    'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
 };
 
 /**
@@ -409,7 +427,8 @@ const gridCensus = (def: ComponentDef): Tally => {
  * `figmaAnatomyPlan` needs and the whole of what it needs. Everything outside is still covered by arm 1,
  * which reads `tokens` directly and needs no projection — but NOT by arms 2 and 3.
  *
- *   - `text-field`, `textarea` — no anatomy at all, so `figmaAnatomyPlan` cannot be called. Arc 2 step 5.
+ *   - `textarea` — no anatomy at all, so `figmaAnatomyPlan` cannot be called. Arc 2 step 5. (`text-field`
+ *     joined the census in #1494 when it gained an `anatomy` block and began projecting.)
  *
  * THIS USED TO ALSO REQUIRE A `size` AXIS, AND THAT CLAUSE HAD GONE FALSE (#864). It was true when it was
  * written and its stated reason — *"`figmaAnatomyPlan` requires a declared `size` while

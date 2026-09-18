@@ -14,15 +14,33 @@
  *
  * State model = the input border, which is the one stateful field slot:
  *   rest → field.border.rest · hover → field.border.hover (a subtly stronger boundary, never the
- *   sole cue) · focus → border.focus + the field focus ring · error → border.danger (a border-ONLY
- *   swap; the message carries the text) · read-only → border.secondary with FULL-contrast
- *   text.primary (read-only ≠ disabled: focusable, copyable, submitted, passes contrast — the
- *   component's live edge, §4) · disabled → the shared disabled.* skin (contrast-exempt).
+ *   sole cue) · focus → border.focus + the field focus ring · read-only → border.secondary with
+ *   FULL-contrast text.primary (read-only ≠ disabled: focusable, copyable, submitted, passes
+ *   contrast — the component's live edge, §4) · disabled → the shared disabled.* skin
+ *   (contrast-exempt). Validation is NOT a state: it is the `status` axis (see below).
+ *
+ * ── VALIDATION IS THE `status` AXIS, ALIGNED TO field-message (#1494, mirroring select) ───────────
+ *
+ * This def now PROJECTS into Figma (it had an `anatomy` block and named its parts only in
+ * `composition` until #1494). Bringing it up to select's shape moved validation off the state axis and
+ * onto its own `status` variant axis, carrying `[default, error, warning, success]` — the SAME four
+ * values field-message's `status` carries, so the nested message follows this axis by name (a
+ * same-name, same-value passthrough via `nest-fixed` `follow`). `error` therefore left `states`: it was
+ * never an interactive state (it co-occurs with rest/hover/focus, it does not replace them), and folding
+ * it into the state axis was the pre-projection shortcut a single unprojected axis could afford.
+ *
+ * error → border is a status-led, border-ONLY swap (→ `color.border.danger`), bound PER non-disabled
+ * state (rest / hover / focus-visible / read-only / empty) so the danger boundary persists while the
+ * pointer moves and while the value is read-only, rather than yielding to the neutral interactive
+ * border; the focus RING (an absolute sibling) carries the focus signal on top. `default` / `warning` /
+ * `success` bind no status-led border and fall through to the neutral state border — the message
+ * carries those. This is select's exact "error is a border-only swap; warning/success are
+ * message-only" contract, which was this def's own contract before select inherited it.
  *
  * Scope: the BASE field only. NumberField is a separate component (different keyboard + locale
  * parsing); SearchField / PasswordField are thin specializations; email / url / tel stay as
  * `type` + inputmode + autocomplete here (brief §3). Validation is PRESENTATIONAL by default —
- * the field renders the `error` it is handed; a form library owns timing. No validation engine
+ * the field renders the validation it is handed; a form library owns timing. No validation engine
  * is baked in.
  */
 import { ComponentDef } from '../component-schema';
@@ -44,7 +62,12 @@ export const textField: ComponentDef = {
     { name: 'type', type: "enum: 'text' | 'email' | 'url' | 'tel' | 'search' | 'password'", values: ['text', 'email', 'url', 'tel', 'search', 'password'], default: 'text', required: false, description: 'Attribute-only variants (mobile keyboard + autofill). NOT number — use NumberField. search / password are better served by their thin specializations.' },
     { name: 'placeholder', type: 'string', required: false, description: 'An example only ("name@example.com"); vanishes on input; nothing load-bearing lives here.' },
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default tone); wired via aria-describedby. Show the format BEFORE failure.' },
-    { name: 'error', type: 'string | node', required: false, description: 'Error message (rendered as FieldMessage, error tone). Sets aria-invalid + adds the id to aria-describedby. Say what and how to fix (SC 3.3.3); the message pairs an icon, so it is not color-only. The input itself swaps to a border-only error boundary.' },
+    { name: 'error', type: 'string | node', required: false, description: 'Error message (rendered as FieldMessage, error tone). Sets aria-invalid + adds the id to aria-describedby. Say what and how to fix (SC 3.3.3); the message pairs an icon, so it is not color-only. The input itself swaps to a border-only error boundary (the `status` axis, not a state).' },
+    // #1494 — a node-visibility boolean (the #1412 mechanism), mirroring select's `showMessage`. Hides the
+    // composed FieldMessage entirely; default ON (the message is part of the field). Turning it off is for a
+    // field with genuinely nothing to say — an error still sets aria-invalid and the message carries the
+    // reason, so never hides a message the field needs. See `figmaProperties.booleans`.
+    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. ON — the default — renders the helper / validation message below the input; turning it off hides the message entirely (a field with no helper or validation text). Never hides a message the field needs.' },
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required; the label marks the minority (§7).' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled — removed from tab order, not submitted, silent to AT, contrast-exempt. Reserve for fields irrelevant in the current state.' },
     { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'DISTINCT from disabled — focusable, selectable/copyable, SUBMITTED, passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component\'s live edge (§4).' },
@@ -52,6 +75,17 @@ export const textField: ComponentDef = {
     { name: 'inputMode', type: "enum: 'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url' | 'search'", values: ['text', 'numeric', 'decimal', 'tel', 'email', 'url', 'search'], required: false, description: 'Selects the mobile virtual keyboard.' },
     { name: 'prefix', type: 'slot (adornment)', required: false, description: 'Leading adornment — a decorative/purpose glyph (currency, search), aria-hidden. Signals the field\'s PURPOSE; validation never mutates it.' },
     { name: 'suffix', type: 'slot (adornment | action)', required: false, description: 'Trailing adornment. May be decorative (aria-hidden) OR a real labeled action (clear / reveal) — a focusable button, not decoration. The decorative-vs-interactive split is load-bearing (§2).' },
+    // #1494 — the Figma-projected presence + swap of the LEADING glyph (the `prefix` adornment above),
+    // mirroring select's `leadingIcon`. A node-visibility boolean (#1331/#1412) whose glyph the file
+    // nominates: the leadingVisual node is emitted at every member hidden, and the `leading icon` switch flips
+    // it in place, so presence does not multiply the projected set. Signals the field's purpose; validation
+    // never mutates it.
+    { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value (a purpose or category mark), aria-hidden. Hidden by default; the file nominates the swap target. The Figma-projected form of the `prefix` adornment (its presence boolean + content swap).' },
+    // #1494 — the TRAILING affix slot select does not have: the clear-button / password-reveal edge control.
+    // In CODE this is an INTERACTIVE control (its own tab stop + accessible name — see `suffix` / `clearable`
+    // and the a11y block); Figma projects only its GLYPH (a presence boolean + swap on an optional trailing
+    // slot, exactly as `leadingIcon` models the leading glyph). See `anatomy.codeOnly`.
+    { name: 'trailingIcon', type: 'slot', required: false, description: 'An optional trailing affix at the field\'s trailing edge (the glyph of a clear / reveal action, or a decorative mark), aria-hidden as a glyph. Hidden by default; the file nominates the swap target. The Figma-projected glyph of the `suffix` / `clearable` action, whose interactive behavior Figma cannot carry.' },
     { name: 'clearable', type: 'boolean', default: false, required: false, description: 'Adds a labeled Clear button that announces the cleared state and RETURNS FOCUS to the input (the recurring trap is stranding focus).' },
     // `isPending`, not `loading` — the same concept Button's `isPending` names, spelled the same way
     // (#843). Button's own prop description already recorded the preference ("Preferred over `loading`")
@@ -64,82 +98,132 @@ export const textField: ComponentDef = {
     { name: 'name', type: 'string', required: false, description: 'A real <input name> so the field works uncontrolled, in a native <form>, with useFormStatus / Server Actions, and the Constraint Validation API.' },
   ],
 
-  // The FULL generic state set actually applies here (unlike Button). read-only and disabled are
-  // distinct rows — the component's live edge. warning is optional (folded into helper/error by many).
-  // `pending`, not `loading` (#843). One concept was spelled twice across the corpus — button and
-  // icon-button say `pending`, this def said `loading` — and `button.ts`'s own state list had already
-  // adjudicated the pair once, in the other direction: its `figmaProperties` comment records that the
-  // legacy sheet's `loading` is *that sheet's name for* `pending`, and #487 §0.4 forbids codifying it.
-  // So this spelling was the one the repo had already rejected, arriving through a second door.
+  // The interactive state set. read-only and disabled are distinct rows — the component's live edge —
+  // and both PROJECT (read-only is the distinctive field state select lacks). `pending`, not `loading`
+  // (#843): button and icon-button say `pending`, and #487 §0.4 forbids codifying the legacy sheet's
+  // `loading` name. `pending` and `empty` stay in `states` (the paint model carries them — `label.empty`
+  // re-points the value ink to the placeholder role, and a spinner replaces an adornment while pending)
+  // but are admitted OUT of the projected `stateAxis` via `anatomy.codeOnly`, the same posture as
+  // button's `inactive` and select's `empty`.
   //
-  // WHY THIS DEF MOVED RATHER THAN THE OTHER TWO, and the direction is measured rather than argued:
-  // `pending` is a value on button's and icon-button's projected `stateAxis`, so it is a Figma variant
-  // member name on 810 members. This def has no `figmaProperties` block at all, so `loading` reaches
-  // no member — renaming it moves 0 projected members against 810 the other way.
-  states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'pending', 'error', 'empty'],
+  // `error` IS NO LONGER A STATE (#1494) — validation is the `status` axis (see the header and `variants`
+  // below), so the border's error swap is a status-led paint key rather than a state row. It co-occurs
+  // with the interactive states rather than replacing one of them, which is exactly what a state cannot do.
+  states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
+  // `status` is field-message's status axis by name and value — the alignment that lets the nested message
+  // follow it (see the header). `style` stays as a code-API axis (one value, not projected — admitted in
+  // `anatomy.codeOnly`). SIZE IS NOT A VARIANTS AXIS: the `size` PROP + the `size.{small,medium,large}.*`
+  // geometry tokens are the code-API size ladder, and Figma projects the single `md` rung (the bare geometry
+  // keys). It is deliberately NOT in `variants`, because `size` is `figmaAnatomyPlan`'s positional argument:
+  // a def that DECLARES sizes must PROJECT one (the #795 guard throws on a declared-but-unprojected size), so
+  // "size in variants but not projected" is unrepresentable. This is exactly select's shape — select carries
+  // no `size` axis either and binds bare `md` geometry — so the single-projected-size field is expressed by
+  // the prop + tokens, not by a variant axis. The `size —` codeOnly entry records this for a reader.
   variants: {
-    size: ['small', 'medium', 'large'],
-    style: ['outline'], // default; filled/underline are theming, not an API axis
+    style: ['outline'], // default; filled/underline are theming, not an API axis (not projected)
+    status: ['default', 'error', 'warning', 'success'],
   },
 
   // INPUT CHROME ONLY — label + message color/type live in field-label / field-message (composed).
-  // Border is the one stateful slot: rest/hover from field.*, focus/error/read-only from generic
-  // border roles, disabled from the shared disabled skin. The value ink is full-contrast text.primary
-  // in every non-disabled state (read-only included — it is NOT dimmed); disabled swaps to the
-  // contrast-exempt disabled ink. The focus ring uses the field-specific offset.
+  // Border is the one stateful slot: rest/hover from field.*, focus/read-only from generic border roles,
+  // the danger swap from the status-led `error.border.*` keys, disabled from the shared disabled skin. The
+  // value ink is full-contrast text.primary in every non-disabled state (read-only included — it is NOT
+  // dimmed); disabled swaps to the contrast-exempt disabled ink. The focus ring is a nested `focus-ring`
+  // that owns its own color, so no `focus-ring` color key is bound here.
 
-  // THE PAINT GRAMMAR (#758) — SLOT-LED with a state suffix, the mirror image of Button's, whose state
-  // suffix follows two axis values. This def's paint varies by state and by nothing else: `size` is
-  // geometry and `style` has one value. So the qualified template leads and the bare slot is the rest
-  // value, the same fallback shape `focus-ring` uses over a color axis instead of a state.
+  // THE PAINT GRAMMAR (#1494) — select's, adopted verbatim now that this def projects: status-led-and-
+  // state-qualified first (so the `error` border swap WINS over the interactive state progression at every
+  // coordinate — the error condition does not blink off as the pointer moves), then slot-and-state, then
+  // the bare slot as the rest value. The status template is 3-SEGMENT deliberately: two 2-placeholder
+  // templates cannot coexist (`paintKeyErrors` checks every 2-segment key against BOTH, so a state-led
+  // `label.empty` fails `{status}.{slot}` and a status-led `error.border` fails `{slot}.{state}`), so
+  // keeping the two vocabularies at different lengths is what lets them share a def. `error` binds its
+  // danger border once per non-disabled state; `default` / `warning` / `success` bind none and fall through
+  // to the neutral state border, which is the "error-only border swap" model this def has always shipped.
   //
-  // THE FOUR DEFECTS THIS DECLARATION SURFACED, all fixed in #784 — and the interesting part is that
-  // #758's comment here NAMED two of them and deferred both, which is how the other two survived. Six
-  // of twelve color bindings were reachable at no coordinate at all:
-  //
-  //   `border.focus`    → `border.focus-visible`  the STATE segment named a state this def does not
-  //   `border.readonly` → `border.read-only`      declare, so `{slot}.{state}` never produced the key
-  //                                               and a focused field painted its REST border.
-  //   `text`            → `label`                 the SLOT segment named a slot the projector never
-  //   `placeholder`     → `label.empty`           dispatches, so the value ink never painted at all.
-  //
-  // The two halves are one defect wearing two hats: a segment filled with a word nothing supplies. #758
-  // could see the state half by eye and could not see the slot half, because `paintOf`'s vocabulary was
-  // not written down anywhere a def author could read it. `PAINT_SLOTS` is now that list and
-  // `paintKeyErrors` checks both segments against it — see its header for why widening the list is the
-  // wrong fix.
-  //
-  // `label.empty` is the placeholder, and keying it as a STATE of the value ink rather than as a slot of
-  // its own is the accurate model: a placeholder is the input's own text node rendered dim while the
-  // field holds no value, which is precisely what the `empty` state this def already declares means. One
-  // node, one slot, two states — so the bare `label` is the value ink in every other state.
-  paintKeys: ['{slot}.{state}', '{slot}'],
+  // WHY THE SLOT VOCABULARY IS THE PROJECTOR'S (#784, kept because this def is why the rule exists). Until
+  // #784 the keys were `text`/`placeholder`/`border.focus`/`border.readonly` — words the projector never
+  // dispatches — and six of twelve color bindings were reachable at no coordinate. `PAINT_SLOTS` is now the
+  // list `paintKeyErrors` checks the `{slot}` segment against; `label.empty` is the placeholder (the value
+  // ink rendered dim at the `empty` state), and the bare `label` is the value ink in every other state.
+  paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
 
   tokens: {
-    'fill': 'color.field.fill',
-    'label': 'color.text.primary',
-    'label.empty': 'color.field.placeholder',
-    'border.rest': 'color.field.border.rest',
-    'border.hover': 'color.field.border.hover',
-    'border.focus-visible': 'color.border.focus',
-    'border.error': 'color.border.danger',
-    'border.read-only': 'color.border.secondary',
-    // focus ring — field-specific offset so the ring hugs the inset field, not a button edge
-    'focus-ring': 'color.border.focus',
+    // ── GEOMETRY (bare keys — the SINGLE PROJECTED SIZE, the `md` rung, mirroring select) ──────────
+    'radius': 'radius.sm',
+    // #1437's 44px interactive-target floor, bound as select binds it: `size.md.min-height` = max(md, 44),
+    // so the input control meets the WCAG 2.5.5 enhanced target at every density. A field control IS the
+    // tap target. The code-API `size.{small,medium,large}.height` rungs below stay on the plain height.
+    'min-height': 'size.md.min-height',
+    'pad-x': 'size.md.padding-x',
+    'pad-y': 'size.md.padding-y',
+    'gap': 'size.md.gap',
+    // The stack spacing between label, control and message.
+    'root-gap': 'space.100',
+    // The leading and trailing glyphs share one artboard rung.
+    'icon-size': 'icon.size.sm',
+    // 1px field hairline — the field/button edge weight, not the 2px selection-control weight.
+    'border-width': 'border-width.hairline',
+    // The nested focus ring's geometry (it owns its own COLOR): the width compensates the inset (#801) and
+    // the FIELD offset is 0 — an input's own border supplies the separation.
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset-field',
-    // disabled skin (contrast-exempt) — the shared cross-cutting family.
-    //
-    // `disabled.label.on-fill` was `disabled.text` until #784 — an unreachable slot segment, so the field
-    // painted its REST ink when disabled. Note this def's ref was already the ON-FILL one: a field always
-    // has a fill, so its disabled ink always sits on `disabled.fill`, and the pairing this key names was
-    // right while the key that named it could not be reached. There is no plain-ground form for the same
-    // reason — an input with no fill is not a state this def has.
+    // The value ink's type — running body text, one line.
+    'type': 'type.body.md.default',
+
+    // ── FILL + HOVER WASH — the field chrome (#1341/#1342, inherited from select). `field.fill` is
+    // TRANSPARENT by default, so at rest the control shows the page; hover does NOT swap to a solid but lays
+    // a translucent `overlay` wash over the control (precedence overlay > fill), reusing the interactive
+    // overlay mechanism so it tints relative to whatever ground the field sits on. The border strengthens in
+    // parallel (`border.hover`). `pressed` is not a field state, so only `hover` washes.
+    'fill': 'color.field.fill',
+    'overlay.hover': 'color.interactive.neutral.overlay.hover',
+
+    // ── VALUE INK — full-contrast value by default, the muted placeholder ink at the `empty` state.
+    // `label.empty` is the placeholder (the input's own text node rendered dim while the field holds no
+    // value), the bare `label` the value. read-only is full-contrast: at state=read-only the bare `label`
+    // resolves, so the value is NOT dimmed (read-only ≠ disabled).
+    'label': 'color.text.primary',
+    'label.empty': 'color.field.placeholder',
+
+    // ── BORDER — stateful, with the status-led error swap (border-ONLY). `border` (bare) is the rest value;
+    // `border.hover` / `border.focus-visible` / `border.read-only` are the interactive states; `error.border.*`
+    // is the status-led danger swap that leads the templates so it wins over hover, focus AND read-only.
+    'border': 'color.field.border.rest',
+    'border.hover': 'color.field.border.hover',
+    'border.focus-visible': 'color.border.focus',
+    // read-only's quieter boundary, with full-contrast value ink above it — the component's live edge.
+    'border.read-only': 'color.border.secondary',
+    // The error swap, bound PER non-disabled state so it wins over the neutral progression and persists
+    // through hover, focus and read-only (the focus RING, a separate part, still carries the focus signal).
+    // At `disabled` the cross-cutting `disabled.border` takes over; `pending` is not bound (async validation
+    // in progress does not assert the danger boundary) and falls through to the neutral border. All resolve
+    // to the one danger boundary — the status value `error` maps to the `danger` role, a `lint-paint`
+    // provenance exception (registered per key, exactly as select's `error.border.*` are).
+    'error.border.rest': 'color.border.danger',
+    'error.border.hover': 'color.border.danger',
+    'error.border.focus-visible': 'color.border.danger',
+    'error.border.read-only': 'color.border.danger',
+    'error.border.empty': 'color.border.danger',
+
+    // ── THE ICON INK — the leading glyph AND the trailing affix glyph, ONE binding for both. `primary`,
+    // not `secondary`, so the glyphs match the value ink (`text.primary`) rather than sitting a step muted
+    // beside it — the same choice select makes for its chevron + leading glyph (#1343).
+    'icon': 'color.icon.primary',
+
+    // ── DISABLED SKIN (contrast-exempt) — the shared cross-cutting family. The control has a fill, so the
+    // ink takes the ON-FILL form (gated against `disabled.fill`, #784). No plain `disabled.label` /
+    // `disabled.icon`: the field always has a fill, so the on-fill form is the only one reached — binding the
+    // plain form would be an unreachable key (`lint-paint` arm 3).
     'disabled.fill': 'color.disabled.fill',
-    'disabled.label.on-fill': 'color.disabled.on-fill',
     'disabled.border': 'color.disabled.border',
-    // geometry
-    'radius': 'radius.sm',
+    'disabled.label.on-fill': 'color.disabled.on-fill',
+    'disabled.icon.on-fill': 'color.disabled.on-fill',
+
+    // ── CODE-API SIZE GEOMETRY — the small/medium/large rungs a code consumer picks from, kept as the size
+    // axis (#1494). NOT projected: Figma renders the single `md` rung above; the `size` axis is admitted out
+    // in `anatomy.codeOnly`. Unreferenced by the anatomy (which binds the bare `md` keys), which is fine —
+    // `anatomyErrors` requires the keys the anatomy names to exist, not the reverse.
     'size.small.height': 'size.sm.height',
     'size.small.pad-x': 'size.sm.padding-x',
     'size.small.pad-y': 'size.sm.padding-y',
@@ -149,6 +233,169 @@ export const textField: ComponentDef = {
     'size.large.height': 'size.lg.height',
     'size.large.pad-x': 'size.lg.padding-x',
     'size.large.pad-y': 'size.lg.padding-y',
+  },
+
+  // ── ANATOMY (#1494) — a column composing the two nested field parts around the input control ─────
+  //
+  // container (column) → nested FieldLabel · control (the bordered input box) · nested FieldMessage. The
+  // control holds a `content` wrapper (leading glyph + value text) and the trailing affix, distributed to
+  // the control's two ends by `space-between`, so the affix pins to the trailing edge at every value length
+  // rather than tracking the text. The focus ring is an absolute sibling of the control's contents, rings the
+  // control, and appears only on focus-visible. Mirrors select exactly, except that select's disclosure
+  // affordance (the trailing chevron) is here the interactive trailing AFFIX slot — the clear / reveal edge
+  // control select does not have (see `codeOnly`).
+  anatomy: {
+    root: 'container',
+    parts: {
+      // The stack. Structure only — it paints nothing (no `paintSlots`); the ink lives on the control and on
+      // the two nested parts. Fills its column so the control and message span the field's width.
+      container: {
+        kind: 'box',
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        gap: 'root-gap',
+        children: ['label', 'control', 'message'],
+      },
+      // THE NESTED LABEL (nest-exposed, mirroring select #1438). An in-flow instance of `field-label` whose
+      // three author axes (size / emphasis / weight) plus its label text and `required` boolean the consumer
+      // drives FROM the text-field; `state` stays fixed at `rest` (the disabled dim is code-driven from the
+      // field's context — see codeOnly). The `variant` coordinate accounts for every field-label axis, as
+      // `nestVariantMatch` requires.
+      label: {
+        kind: 'nest',
+        nests: 'field-label',
+        nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the text-field; a fix to FieldLabel still reaches this without a copy. Starts at the field default (small / secondary / regular).',
+      },
+      // THE CONTROL — the bordered, interactive input box. The single target: it owns the hit area, the focus
+      // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
+      // precedence overlay > fill — #1341/#1342); fills the column width and holds a fixed single-line height
+      // floored at 44px (#1437). `space-between` pins the trailing affix to the field's trailing edge
+      // independent of the value length (`content` fills in code but hugs in Figma — #989).
+      control: {
+        kind: 'box',
+        role: 'target',
+        paintSlots: ['overlay', 'fill', 'border'],
+        layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'fixed' } },
+        height: 'min-height',
+        radius: 'radius',
+        // The edge weight (#1266's field) — 1px field hairline, bound rather than left to the executors'
+        // fallback so a brand re-runging its border floor moves it.
+        strokeWidth: 'border-width',
+        // Symmetric padding — the leading glyph sits inside `content`, not against the box edge, so no #326
+        // slot-aware asymmetry; both inline sides fall back to the label inset.
+        padding: { block: 'pad-y', inlineLabel: 'pad-x' },
+        gap: 'gap',
+        children: ['content', 'trailingVisual', 'focusRing'],
+      },
+      // THE VALUE ROW — leading glyph + value text. Fills the control in code; in Figma it hugs (#989) and
+      // the control's `space-between` pins the trailing affix to the trailing edge. Structure only.
+      content: {
+        kind: 'box',
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        gap: 'gap',
+        children: ['leadingVisual', 'text'],
+      },
+      // THE OPTIONAL LEADING GLYPH. A swap slot whose PRESENCE is a node-visibility BOOLEAN (#1331): the node
+      // is emitted at every member with `visible: false` and the `leading icon` switch toggles it. `optional:
+      // true` is required by the boolean mechanism. The file nominates its swap target; its ink is the `icon`
+      // slot, applied as `descendantFills`.
+      leadingVisual: {
+        kind: 'slot',
+        optional: true,
+        size: 'icon-size',
+        nesting: { kind: 'swap' },
+        note: 'An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.',
+      },
+      // THE DISPLAYED TEXT — placeholder or value. `paintSlot` defaults to `label`, which the paint grammar
+      // re-points: bare `label` is the full-contrast value ink, `label.empty` the muted placeholder ink at
+      // the `empty` state.
+      text: {
+        kind: 'text',
+        type: 'type',
+        note: 'The value the input shows, or the placeholder. One line, ellipsized in code; a plain text node in Figma. The placeholder-vs-value distinction is the internal `empty` state, carried in code, not projected as a Figma variant.',
+      },
+      // THE TRAILING AFFIX — the clear-button / password-reveal edge control that select's chevron slot is
+      // NOT. Modeled exactly as the leading glyph (an optional swap slot painted the `icon` ink, its presence
+      // a node-visibility boolean), pinned to the control's trailing edge by the control's `space-between`. In
+      // CODE it is an INTERACTIVE control (own tab stop + accessible name); Figma projects only the glyph
+      // (see codeOnly).
+      trailingVisual: {
+        kind: 'slot',
+        optional: true,
+        size: 'icon-size',
+        nesting: { kind: 'swap' },
+        note: 'An optional trailing affix at the trailing edge (a clear / reveal glyph), aria-hidden as a glyph. Absent by default; the caller nominates the icon. Its interactive behavior is code-only.',
+      },
+      // THE FOCUS RING — the shared indicator, nested as an absolute sibling of the control's contents so it
+      // rings the CONTROL (not the whole field) and takes no cell. `field` offset (0) because an input's own
+      // border already supplies the separation. Fixed to the default surface (the field carries no surface
+      // axis). The ring owns its own COLOR, so no `focus-ring` color key is bound in `tokens`.
+      focusRing: {
+        kind: 'absolute',
+        when: 'focus-visible',
+        nests: 'focus-ring',
+        inset: 'ring-offset',
+        strokeInset: 'ring-width',
+        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
+        note: 'An absolutely-positioned sibling nesting the shared `focus-ring`. Rings the control, takes no cell, and has its own stroke — so the focus signal never contends with the input\'s own border.',
+      },
+      // THE NESTED MESSAGE (nest-fixed, FOLLOWING status). An in-flow instance of `field-message` whose single
+      // projected axis, `status`, is DRIVEN by text-field's `status` axis via `follow` — a same-name,
+      // same-value passthrough (the alignment the header is about). `optional: true` is the anatomy half of the
+      // #1412 node-visibility mechanism (`showMessage` in `figmaProperties.booleans` is the other): built
+      // VISIBLE, hidden when the switch is turned off.
+      message: {
+        kind: 'nest',
+        nests: 'field-message',
+        nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
+        optional: true,
+        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name, so error / warning / success reach the message without a value mapping. Shown by default; the `showMessage` boolean hides the whole part where the field has nothing to say.',
+      },
+    },
+    codeOnly: [
+      'size — the small / medium / large ladder is a code-API PROP + geometry tokens (`size.{small,medium,large}.*`), NOT a variants axis and NOT a projected Figma variant. Figma renders the single `md` rung (the bare geometry keys — the field control is one interactive target, and a projected size axis would triple the set for geometry a designer reads off one member); a code consumer picks the density via the `size` prop. It is kept off `variants` deliberately: `size` is `figmaAnatomyPlan`\'s positional argument, so a declared size axis MUST project a rung (#795), which is why select — the template for this def — also expresses its single size as bare `md` geometry rather than a `size` variant. Same not-projected posture as the `style` axis, reached a different way.',
+      'style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline` and filled/underline are a brand skin over the same anatomy, so there is nothing for a Figma variant to enumerate. Admitted here rather than projected.',
+      'pending — a real STATE (a spinner replaces an adornment while async validation/value resolves, and the field sets aria-busy), deliberately NOT a Figma variant. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix — the pending member would differ from `rest` only by a node Figma cannot animate — so it stays in `states` (the code tier carries it) and is admitted OUT of the projected `stateAxis`.',
+      'empty — a real STATE (the displayed text is the placeholder, not a typed value), deliberately NOT a Figma variant, the same posture as select\'s `empty`. Its whole delta is the value INK: `label.empty` swaps the muted placeholder role in for `text.primary`, and `error.border.empty` keeps the danger boundary at the "required field left blank" coordinate. That is a content condition the code (or an instance\'s typed value) drives, not a skin a designer toggles — and Figma cannot show one text node as two strings across a column anyway. So `empty` stays in `states` (the paint model carries the distinction, and `lint-paint` reaches `label.empty` / `error.border.empty` at the empty coordinate of the declared grid) and is admitted out of the projected `stateAxis` — it and `pending` are the two states held back, leaving the projected set at status(4) × state(5) = 20 members over rest / hover / focus-visible / disabled / read-only.',
+      'the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `suffix` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host\'s.',
+      'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
+      'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not the field\'s, so it cannot be followed by value. In code a disabled field dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
+      'the KEYBOARD MODEL — native text editing, Escape-to-clear when clearable, and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
+    ],
+  },
+
+  // How this projects into Figma (#1494). `status` is the one variant axis; `state` projects the five
+  // interactive states (read-only INCLUDED — the field state select lacks). The leading and trailing glyphs'
+  // PRESENCE and the message's are node-visibility BOOLEANS, NOT variant axes, so none multiplies the set:
+  // status(4) × state(5) = 20 members. `pending` and `empty` are real states (see `states` and the codeOnly
+  // entries leading with those names) but are deliberately absent from this projected axis.
+  figmaProperties: {
+    variantAxes: ['status'],
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only'] },
+    // `state` across the columns — the axis a designer reads a control's skin across, and the widest here.
+    gridAxis: 'state',
+    // The displayed text. `value`, a designer-facing name, lowercase per #1333 — the placeholder is the copy
+    // every member ships, and a typed string is what a designer types over it. Projects FIRST in the panel.
+    texts: { value: { part: 'text', default: 'Placeholder' } },
+    // THREE NODE-VISIBILITY BOOLEANS (#1331/#1412/#1494), none a variant axis — each toggles a part's
+    // `visible` in place, so none multiplies the set (still 20 members).
+    //   · `leadingIcon`: `leadingVisual` is emitted hidden (default false) and the `leading icon` switch shows it.
+    //   · `trailingIcon`: `trailingVisual` is emitted hidden (default false) and the `trailing icon` switch shows it.
+    //   · `showMessage`: the composed `message` nest is emitted VISIBLE (default true — the message is part of the
+    //     field) and the `message` switch hides the whole part (the INVERSE direction, like field-label's `required`).
+    // Each shares its node with a swap where one exists (`visible` and `mainComponent` are different Figma fields).
+    booleans: {
+      leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false },
+      trailingIcon: { part: 'trailingVisual', figmaName: 'trailing icon', default: false },
+      showMessage: { part: 'message', figmaName: 'message', default: true },
+    },
+    // The two glyphs' CONTENT — orthogonal to their presence booleans above. `figmaName` gives each the canon
+    // panel label nested beneath its switch; the code props stay `leadingIcon` / `trailingIcon` (one prop, two
+    // Figma properties each: a presence boolean and a content swap).
+    swaps: {
+      leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' },
+      trailingIcon: { part: 'trailingVisual', figmaName: '↳ swap trailing icon' },
+    },
   },
 
   accessibility: {
@@ -213,6 +460,9 @@ export const textField: ComponentDef = {
     ],
     unverified: [
       'Polaris migration to framework-agnostic Web Components (<s-text-field>, Shadow DOM) — needs _source-text backing, shared with the Button brief (brief §11, §14).',
+      'The nested field parts hug rather than fill in Figma (a `nest` cannot bind sizing, #1299), so the projected label and message sit at their natural width rather than spanning the control. A consumer setting them to fill is a code-side layout concern; check a built member before assuming the stack reads full-width. Unlike select the control carries no `minWidth` floor (#1494 did not project a default width — a follow-up if one is wanted), so a member hugs its content width in Figma.',
+      'The value text does not ellipsize in the Figma projection — `maxLines` / `textOverflow` have no PartDef expression — so a long placeholder in a narrow member overflows rather than truncating. The ellipsis is a code-side behavior.',
+      'The leading and trailing glyphs are node-visibility BOOLEANS (#1331/#1494): each node is built hidden and shown by its switch. In Figma auto-layout a `visible:false` child is excluded from the flow, so a hidden glyph should add no gap — but whether a real host reflows `content` / the control when a switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where a hidden glyph sits, or the trailing affix not pinning tight when off.',
     ],
   },
 };

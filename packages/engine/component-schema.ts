@@ -2230,9 +2230,12 @@ export type VariantAxis = (typeof VARIANT_AXES)[number];
  * away from the table, is a second copy that rots. Read the entries.
  */
 const NESTED_WITHOUT_ANATOMY: Record<string, string[]> = {
-  'text-field': ['focus-ring'],
-  // Same case: `textarea` binds the substrate's ring and has no `anatomy` yet, so `nests` cannot see it
-  // either. Its entry goes when its own block lands, which the UNREACHABLE direction now compels.
+  // `text-field`'s entry LEFT in #1494 when its `anatomy` block landed: the `focusRing` part now declares
+  // `nests: 'focus-ring'`, so `nestedIds` sees the nesting and the def no longer binds a `focus-ring` COLOR
+  // key at all (the nested ring owns its stroke). The UNREACHABLE direction below compels the removal —
+  // exactly as #910 retired `checkbox` and #1221 retired `radio`/`switch` when their blocks landed.
+  // Same case still open: `textarea` binds the substrate's ring and has no `anatomy` yet, so `nests` cannot
+  // see it either. Its entry goes when its own block lands, which the UNREACHABLE direction now compels.
   'textarea': ['focus-ring'],
   // WHAT HAS ALREADY LEFT, and why the trigger needed teeth. `checkbox` came out in #910 when its
   // anatomy landed — the guard retiring an entry as designed, and at the time the only such removal.

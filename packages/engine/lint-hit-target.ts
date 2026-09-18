@@ -107,8 +107,9 @@ const resolvePx = (tree: any, root: string, path: string): number | undefined =>
 
 // ── THE INTERACTIVE CONTROLS AND THEIR HIT-TARGET BINDING ────────────────────────────────────────
 // Per control, the KEY in `def.tokens` whose value is the token bound as the hit-target dimension at a
-// given size. Read THROUGH `def.tokens` so a reverted binding is caught. `single` marks the one control
-// with no `size` variant axis (`select`); every other control is measured at its declared DEFAULT size.
+// given size. Read THROUGH `def.tokens` so a reverted binding is caught. `single` marks a control with no
+// `size` variant axis whose projected control binds the one `md` min-height rung (`select`, and `text-field`
+// since #1494); every other control is measured at its declared DEFAULT size.
 type Binding = { key: (size: string) => string; why: string; single?: boolean };
 const INTERACTIVE: Record<string, Binding> = {
   'button': { key: (s) => `size.${s}.height`, why: 'the button box height' },
@@ -117,7 +118,7 @@ const INTERACTIVE: Record<string, Binding> = {
   'icon-button': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
   'icon-button-destructive': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
   'icon-button-neutral': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
-  'text-field': { key: (s) => `size.${s}.height`, why: 'the single-line field height' },
+  'text-field': { key: () => 'min-height', why: 'size.md.min-height, the interactive floor (#1494/#1437) — text-field projects a single md rung like select, so its representative tap target is that rung, not the code-API size ladder', single: true },
   'select': { key: () => 'min-height', why: 'size.md.min-height, the interactive floor (#1437)', single: true },
   'switch': { key: (s) => `size.${s}.min-height`, why: 'the labelled switch row floor' },
   'checkbox-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled checkbox row floor' },

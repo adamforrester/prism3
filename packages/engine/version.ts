@@ -2926,6 +2926,27 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.114.0 — #1494: TextField PROJECTS into Figma. It had an `anatomy` block only in `composition` (naming
+ * its parts) and no `figmaProperties`, so it reached no Figma member; this gives it the full select shape —
+ * a root column composing the nested `field-label` (nest-exposed) and `field-message` (nest-fixed, following
+ * `status`) around a bordered input `control`, plus a projected surface of status(4) × state(5) = 20
+ * members. Three owner-decided moves: (1) VALIDATION IS THE `status` AXIS — `[default,error,warning,success]`
+ * aligned to field-message, so `error` LEFT `states` (it co-occurs with the interactive states rather than
+ * replacing one) and the paint grammar became select's status-led `['{status}.{slot}.{state}',
+ * '{slot}.{state}', '{slot}']`; the state-led `border.error` became status-led `error.border.{state}` bound
+ * per non-disabled state → `color.border.danger` (border-only swap; warning/success message-only). (2)
+ * read-only IS PROJECTED — the distinctive field state select lacks. (3) a TRAILING AFFIX slot
+ * (`trailingVisual`, a presence boolean + swap) for the clear/reveal edge control select has no equivalent of;
+ * Figma projects only its glyph, the interaction is code-only. `size`/`style`/`pending`/`empty` are admitted
+ * OUT in `anatomy.codeOnly`. A projected-component-surface change (#1252 case) → ENGINE bump; no emitted
+ * `out/**` value moves, so committed artifacts move only their version stamp. CONTRACT STANDS at 11.2.0:
+ * TextField composes existing field tokens and adds NO new guaranteed token NAME (`token-contract --check`
+ * level `none`; stamp-only `--accept` to sync the baseline's `engineVersion`). Baselines regenerated and
+ * `--accept`ed: `schema/component-surface.json` (TextField gains 20 projected members) and
+ * `schema/paint-census.json` (TextField enters the census — a `set` + a wider `grid`). Gate discipline:
+ * arm 1 (provenance) gains five `text-field|error.border.*` exceptions (status `error` → `danger` role);
+ * mutation-confirmed by name against `lint-paint` (see the progress entry).
+ *
  * 0.113.0 — #1486: link interactive states made perceptible, and a `pressed` link state added. The engaged
  * link states used to step the action ramp a FIXED 1 rung (hover) / 2 rungs (visited) off the base, which is
  * barely a perceptual step and imperceptible where a saturated link is pinned near the ramp extreme (a brand
@@ -3051,7 +3072,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.113.0';
+export const ENGINE_VERSION = '0.114.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
