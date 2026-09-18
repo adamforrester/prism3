@@ -43,7 +43,7 @@
     },
     "text-field": {
       "members": 20,
-      "sha256": "4eb256d6390c5153b35187fedf5e926fc39798a9056487f3a4ba4db164a98ef7"
+      "sha256": "2990692e7e846d2b80ce4421dbff25d2c54745cb94ddabccd82f36e523a7eb6b"
     },
     "textarea": null,
     "checkbox-control": {
@@ -80,7 +80,7 @@
     },
     "select": {
       "members": 16,
-      "sha256": "76c8509363167296dbc56c0f4689e45c692a8da5168d8bbab04fa4d2e3d7b6ea"
+      "sha256": "e8240acd1592450ee0b8ce06d5561f93c91c2fdba3d60bdd36832cb43c12b67f"
     },
     "veil": {
       "members": 6,

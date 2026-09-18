@@ -2926,6 +2926,26 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.120.0 — #1517: STATUS-LED BORDER for `warning` and `success` in `text-field` + `select` (owner-directed,
+ * Prism 2 parity). Until now only `error` swapped the field border (`error.border.{state}` → `color.border.
+ * danger`) while `warning`/`success` were message-only. This extends the status-led, border-ONLY swap to the
+ * other two non-default statuses, mirroring `error` per non-disabled state: `warning.border.{state}` →
+ * `color.border.warning`, `success.border.{state}` → `color.border.success` (text-field's five states rest /
+ * hover / focus-visible / read-only / empty; select's four rest / hover / focus-visible / empty). The field now
+ * signals status on BOTH the border and the nested field-message. NO NEW TOKEN NAME: `color.border.warning` /
+ * `color.border.success` already ship for every brand (the `SEMANTICS` border ladder in `modes.ts`, the same
+ * roles the message reaches for `text.warning`/`text.success`), so CONTRACT STANDS at 11.3.0 (`token-contract
+ * --check` level `none`, stamp-only). Projected-surface + paint change (the warning/success members gain a
+ * border binding) → ENGINE bump: `lint-component-surface` re-`--accept`ed (member plans move) and `lint-paint`
+ * census re-`--accept`ed (the paint grids gain the new keys). `lint-paint` PROVENANCE_EXCEPTIONS is NOT extended
+ * — `warning.border.*` → `color.border.warning` and `success.border.*` → `color.border.success` are SAME-family
+ * (the ref carries the axis value as a segment), so arm 1's normal rule covers them and a per-key exception
+ * would be flagged as stale (line 506-507); only `error` → `danger` (cross-vocabulary) keeps its exception. No
+ * committed `out/**` VALUE moves (component payloads are not committed; the def binds existing roles), so
+ * `regen --check` moves only each artifact's generator stamp. MUTATION (docs/34): repointing `warning.border.rest`
+ * from `color.border.warning` to `color.border.success` (a role that RESOLVES) fails `lint-paint.ts` arm 1 BY
+ * NAME (`status='warning' is absent from 'color.border.success'`) and arm 2 (the `select`/`text-field` paint
+ * hash moves); restored.
  * 0.119.0 — #1515: `image-placeholder` declares `footprintVaries: ['ratio']`, clearing two false footprint
  * misses. Owner QA read the projected set back with two misses — `ratio=4:3 measures 720×540 but ratio=1:1
  * measures 720×720 (same)` and the 16:9 twin — because the footprint cohort compared members expecting equal
@@ -3144,7 +3164,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.119.0';
+export const ENGINE_VERSION = '0.120.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
