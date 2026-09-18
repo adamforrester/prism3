@@ -560,7 +560,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
   // A reference naming a property that does not exist THROWS in real Figma. Installed per-set rather
   // than in `mkNode` because it needs the set that owns the definitions, which does not exist yet when
   // a node is built.
-  const guardRefs = (set: Node): void => {
+  //
+  // `propLookup` (#1513) resolves a property id → its `{ type, defaultValue }` so the setter can MODEL
+  // Figma's RESET-ON-BIND: wiring a TEXT node's `characters` reference adopts the set-level property's one
+  // `defaultValue` onto the node, discarding the per-coordinate copy `build` wrote before combine (#1018
+  // `byVariant`). It is threaded from every call site because `defs` lives inside `combineAsVariants`,
+  // below this helper; omitting it (a plain node guard) keeps the pre-#1513 behavior.
+  const guardRefs = (set: Node, propLookup?: (id: string) => { type: string; defaultValue?: unknown } | undefined): void => {
     for (const n of [set, ...(set.findAll as () => Node[])()]) {
       // #1428 — a node INSIDE a nested instance is a sublayer of ANOTHER component, so it cannot hold one
       // of THIS set's references: Figma refuses the write with its own message. Modelled so a re-find by
@@ -583,6 +589,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
           for (const id of Object.values(v ?? {}))
             if (!known.includes(id)) throw new Error(`in set_componentPropertyReferences: Could not find a component property with name: '${id}'`);
           held = v;
+          // #1513 — RESET-ON-BIND. Live Figma replaces a TEXT node's displayed `characters` with the
+          // set-level property's single `defaultValue` the moment its `characters` reference is wired, so a
+          // per-member caption written before combine is lost to the fallback (`field-message`'s error/warning/
+          // success members all rendered "This is a standard message." in QA — #1513). Only the `characters`
+          // field, only a TEXT property; the fix in `write-components.ts` re-asserts each member's own copy
+          // AFTER wiring, and this host behavior is what makes that re-assert load-bearing rather than a no-op.
+          const charId = (v ?? {}).characters;
+          const pd = charId ? propLookup?.(charId) : undefined;
+          if (pd?.type === 'TEXT') (n as Record<string, unknown>).characters = pd.defaultValue;
         },
       });
     }
@@ -833,7 +848,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           const twin = twinAttached(m);
           // GUARD the twin's subtree exactly as `guardRefs(set)` guarded the originals — a validating setter,
           // so a wire ONTO the twin succeeds while a wire onto the detached original throws.
-          guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [twin, ...((twin.findAll as () => Node[])())] } as Node);
+          guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [twin, ...((twin.findAll as () => Node[])())] } as Node, (id) => defs[id]);
           live[i] = twin;   // MUTATE the live array in place — the combine-time snapshot still references `m`
           // DETACH the original member's whole subtree (`builtParts` holds these descendants): the wire loop's
           // fast-path write, and any recovery re-finding a part THROUGH the stale `m`, now throws.
@@ -851,7 +866,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       set.appendChild = (c: Node) => {
         (set.children as Node[]).push(c);
         takeFromPage([c]);
-        guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [c, ...((c.findAll as () => Node[])?.() ?? [])] } as Node);
+        guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [c, ...((c.findAll as () => Node[])?.() ?? [])] } as Node, (id) => defs[id]);
       };
       const defs: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
       let seq = 100;
@@ -889,7 +904,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         return key;
       };
       set.declaredIds = () => Object.keys(defs);
-      guardRefs(set);
+      guardRefs(set, (id) => defs[id]);
       page?.children.push(set);
       return set;
     },

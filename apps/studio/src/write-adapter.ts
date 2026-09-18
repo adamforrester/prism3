@@ -113,6 +113,12 @@ export interface HostCommit {
    *  difference is that "which def" has an answer `componentDefs` already holds, and "which variants"
    *  does not — see `messages.ts`. */
   postComponents(def?: string): void;
+  /** Ask the host to PRUNE the styles/variables/collections the current config no longer emits (#1521;
+   *  Figma only, no-op on web — the web host writes CSS custom properties, which have no stale-item
+   *  problem). `confirm: false` asks for a preview (a `prune-result` with `applied: false`); `confirm:
+   *  true` performs the delete. `input` is the `BrandInput`, typed `unknown` here for the same reason
+   *  `postTheme` is — to keep this DOM layer free of the engine type import. */
+  postPrune(input: unknown, confirm: boolean): void;
   /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
    *  read-back seed summary, the #131 knob-rehydration (the persisted `BrandInput`, typed `unknown`
    *  here to keep this DOM layer free of the engine type import) or its #480 loud refusal when the
@@ -139,6 +145,10 @@ export interface HostCommit {
         | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'component-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'component-progress'; phase: 'build' | 'wire'; done: number; total: number; chunkMs: number }
+        // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
+        // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
+        // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
+        | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string }
         // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
         // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
         // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
@@ -165,6 +175,8 @@ type UiApplyMsg = { type: 'apply-theme'; input: unknown };
 /** Kept in sync with `messages.ts` `UiToMain` (`build-components`) — `def` is a `componentDefs` id and
  *  is optional (absent means Button), see `postComponents` above. */
 type UiComponentsMsg = { type: 'build-components'; def?: string };
+/** Kept in sync with `messages.ts` `UiToMain` (`prune`, #1521) — `confirm` false previews, true deletes. */
+type UiPruneMsg = { type: 'prune'; input: unknown; confirm: boolean };
 /** Kept in sync with `messages.ts` `UiToMain` (`resize-ui`). */
 type UiResizeMsg = { type: 'resize-ui'; width: number; height: number; commit: boolean };
 
@@ -181,12 +193,16 @@ const figmaCommit = (): HostCommit => ({
     // so an explicit `undefined` would arrive as a present key holding nothing.
     parent.postMessage({ pluginMessage: { type: 'build-components', ...(def ? { def } : {}) } as UiComponentsMsg }, '*');
   },
+  postPrune(input, confirm) {
+    parent.postMessage({ pluginMessage: { type: 'prune', input, confirm } as UiPruneMsg }, '*');
+  },
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
       const m = (e.data && e.data.pluginMessage) as
         | {
             type?: string; ok?: boolean; present?: boolean; headline?: string; summary?: string; input?: unknown; message?: string;
             families?: unknown; styles?: unknown; phase?: unknown; done?: unknown; total?: unknown; chunkMs?: unknown;
+            applied?: unknown; count?: unknown;
           }
         | undefined;
       if (!m) return;
@@ -214,6 +230,13 @@ const figmaCommit = (): HostCommit => ({
         const phase = m.phase === 'build' || m.phase === 'wire' ? m.phase : null;
         if (phase && done !== null && total !== null && total > 0) {
           cb({ kind: 'component-progress', phase, done, total, chunkMs: n(m.chunkMs) ?? 0 });
+        }
+      } else if (m.type === 'prune-result') {
+        // #1521. `count` and `applied` are validated at the boundary like the other numeric/flag fields
+        // above — a preview with a bad count is dropped rather than opening a confirm dialog on nonsense.
+        const count = typeof m.count === 'number' && Number.isFinite(m.count) && m.count >= 0 ? Math.floor(m.count) : null;
+        if (count !== null) {
+          cb({ kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? '') });
         }
       } else if (m.type === 'seed-info') {
         // `present` defaults FALSE when a host omits it (an older plugin build against a newer UI):
@@ -262,6 +285,7 @@ const webCommit = (): HostCommit => ({
   isFigma: false,
   postTheme() {/* web commits via the export bar (download design.md / tokens.json) */},
   postComponents() {/* no canvas on web — the component tier is a Figma-only write */},
+  postPrune() {/* no figma.variables on web — CSS custom properties have no stale-item problem (#1521) */},
   onHostMessage() {/* no host messages on web */},
   requestResize() {/* the browser window is the user's to size on web */},
 });
