@@ -739,6 +739,14 @@ let componentState: { ok: boolean; headline: string; summary: string } | 'pendin
  *  be in. Kept beside it, `componentState === 'pending'` still means exactly "in flight" and this only
  *  says how far. */
 let componentProgress: { phase: 'build' | 'wire'; done: number; total: number } | null = null;
+/** OPT-IN PRUNE (#1521) — Figma-only, and three slots for the same reason `applyState` is not
+ *  `seedInfo`: the prune is its own action and its verdict must not land in another write's pill.
+ *  `pruneBusy` is the in-flight state — a preview being computed or a delete running — and disables the
+ *  button; `prunePreview` holds a ready preview whose confirm dialog is open; `pruneVerdict` is the pill
+ *  text after a preview finds nothing stale or after a delete completes. */
+let pruneBusy: false | 'preview' | 'delete' = false;
+let prunePreview: { count: number; summary: string } | null = null;
+let pruneVerdict: { ok: boolean; count: number; summary: string } | null = null;
 /** WHICH result's full detail is expanded, at most one. Collapsed by default: the headline answers the
  *  question ninety-nine times out of a hundred, and the detail is counts across five or six axes.
  *
@@ -868,6 +876,24 @@ commit.onHostMessage((m) => {
       if (node.isConnected) node.textContent = text;
       else componentPendingEls.delete(node);
     }
+    return;
+  }
+  if (m.kind === 'prune-result') {
+    // #1521. Three outcomes, told apart by `applied` and `count`: a finished delete (verdict pill), a
+    // preview with something to remove (open the confirm dialog), or a preview with nothing stale (a
+    // pill saying so — never a dialog with nothing in it).
+    pruneBusy = false;
+    if (m.applied) {
+      pruneVerdict = { ok: m.ok, count: m.count, summary: m.summary };
+      prunePreview = null;
+    } else if (m.count > 0) {
+      prunePreview = { count: m.count, summary: m.summary };
+      pruneVerdict = null;
+    } else {
+      prunePreview = null;
+      pruneVerdict = { ok: m.ok, count: 0, summary: m.summary };
+    }
+    if (barHost) renderBar();
     return;
   }
   if (m.kind === 'seed-info') {
@@ -8537,6 +8563,49 @@ const renderExportDialog = (): HTMLElement => {
   return wrap;
 };
 
+/** The prune confirm dialog (#1521) — the review a designer sees before an opt-in delete runs.
+ *
+ *  Reuses the export dialog's `exdlg-*` chrome (scrim, panel, head, footer) rather than a second modal
+ *  vocabulary — the deliberate cross-surface reuse the class-name law (#770) names. Its body is one
+ *  column, `exdlg-col` appended straight to the flex `.exdlg` (not the two-column `exdlg-body`), holding
+ *  the review sentence the main thread built (`prunePreviewSummary`). The footer pairs Cancel with the
+ *  destructive CTA, whose label names the outcome — "Delete N items", per the voice standard's
+ *  Destructive tone — not a bare "Confirm". Nothing here deletes; only the CTA's `postPrune(…, true)`
+ *  does, and the main thread recomputes the plan from a fresh read before it acts. */
+const renderPruneDialog = (): HTMLElement => {
+  const p = prunePreview!;
+  const wrap = el('div', 'exdlg-scrim');
+  const dlg = el('div', 'exdlg');
+  dlg.setAttribute('role', 'dialog');
+  dlg.setAttribute('aria-modal', 'true');
+  dlg.setAttribute('aria-label', 'Prune stale items');
+
+  const head = el('div', 'exdlg-head');
+  head.append(el('h2', 'exdlg-t', 'Prune stale items'));
+  const close = el('button', 'exdlg-x', '✕') as HTMLButtonElement;
+  close.setAttribute('aria-label', 'Close');
+  close.onclick = () => { prunePreview = null; renderBar(); };
+  head.append(close);
+  dlg.append(head);
+
+  const col = el('div', 'exdlg-col');
+  col.append(el('p', 'exdlg-desc', p.summary));
+  dlg.append(col);
+
+  const foot = el('div', 'exdlg-foot');
+  const cancel = el('button', 'barbtn', 'Cancel') as HTMLButtonElement;
+  cancel.onclick = () => { prunePreview = null; renderBar(); };
+  const del = el('button', 'exdlg-go', `Delete ${p.count} item${p.count === 1 ? '' : 's'}`) as HTMLButtonElement;
+  del.onclick = () => { pruneBusy = 'delete'; prunePreview = null; renderBar(); commit.postPrune(lastGoodInput, true); };
+  foot.append(cancel, del);
+  dlg.append(foot);
+
+  // The scrim IS the outside — a click on it cancels, a click inside the panel does not.
+  wrap.onmousedown = (e) => { if (e.target === wrap) { prunePreview = null; renderBar(); } };
+  wrap.append(dlg);
+  return wrap;
+};
+
 /** The Apply-to-Figma status pill — reached only in the plugin, via the `commit.isFigma` branch.
  *
  *  Not dead-code-eliminated on web, whatever the branch's own comment used to claim. Measured: the web
@@ -8792,6 +8861,24 @@ function renderBar(): void {
     // that vanished with its control would be worse than the control's old placement: a 648-member build
     // runs ~105s cold (#700), and nobody watches a rail page for that long.
     if (componentState) actions.append(renderApplyStatus(componentState, 'components'));
+
+    // PRUNE (#1521) — a secondary action beside Apply: remove the styles and variables a config change
+    // dropped. It never writes, only deletes, and only after the designer confirms the count in the
+    // dialog below — so the #479 / #1152 "never blind-delete on an apply" rule holds. Its verdict is its
+    // own `.bar-seed` pill (a preview that finds nothing stale, or the outcome of a delete), never the
+    // theme write's, for the same reason the component build keeps its own.
+    if (pruneVerdict) {
+      const pill = el('span', 'bar-seed' + (pruneVerdict.ok ? '' : ' bad'), pruneVerdict.summary);
+      pill.title = pruneVerdict.summary;   // `.bar-seed` ellipsizes at 220px; the full sentence is worth reading
+      actions.append(pill);
+    }
+    const pruneBtn = el('button', 'barbtn', pruneBusy === 'preview' ? '⋯ Checking…' : pruneBusy === 'delete' ? '⋯ Removing…' : 'Prune stale') as HTMLButtonElement;
+    // Disabled while a prune is in flight AND while a theme apply is pending — a prune reads the same
+    // variables an apply writes, so overlapping the two would race a delete against a create.
+    pruneBtn.disabled = !!pruneBusy || applyState === 'pending';
+    pruneBtn.title = 'Removes styles and variables this config no longer emits. Shows the count before deleting.';
+    pruneBtn.onclick = () => { pruneBusy = 'preview'; pruneVerdict = null; prunePreview = null; renderBar(); commit.postPrune(lastGoodInput, false); };
+    actions.append(pruneBtn);
   }
 
   barHost.append(actions);
@@ -8803,6 +8890,10 @@ function renderBar(): void {
   // way to the scrim's own handler. Ordering the two would have been the bug; not overlapping them is
   // the fix. `renderBar()` clears `barHost` on every call, so the dialog's lifetime is still one flag.
   if (exportMenuOpen) barHost.append(renderExportDialog());
+  // The prune confirm dialog (#1521), appended for the same reasons the export dialog is — a modal scrim
+  // that must sit outside the relative `.barmenu-wrap` stacking context. Present only when a preview with
+  // something to remove has landed; `renderBar()` clears `barHost` each call, so its lifetime is the flag.
+  if (prunePreview) barHost.append(renderPruneDialog());
 
   if (!outsideBound) {
     document.addEventListener('mousedown', (e) => {
@@ -8821,6 +8912,9 @@ function renderBar(): void {
     // re-renders constantly and a per-render listener would accumulate one per render.
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && exportMenuOpen) { exportMenuOpen = false; importOpen = false; renderBar(); }
+      // Escape cancels the prune review too (#1521) — a review is not a commitment, so closing it
+      // deletes nothing. Same bound-once handler, for the same reason the click dismissal is.
+      else if (e.key === 'Escape' && prunePreview) { prunePreview = null; renderBar(); }
     });
     outsideBound = true;
   }

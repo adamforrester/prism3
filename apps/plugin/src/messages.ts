@@ -59,6 +59,17 @@ export type UiToMain =
    *  offers only ids it derived from `componentDefs`, so a bad one means the two sides disagree about the
    *  catalogue, and the designer needs to be told that rather than watch a build never answer. */
   | { type: 'build-components'; def?: string }
+  /** OPT-IN PRUNE (#1521) — remove the styles/variables/collections a config change dropped.
+   *
+   *  A SEPARATE ACTION FROM `apply-theme`, never a flag on it, for the #479 / #1152 reason: a theme apply
+   *  runs after every knob change and must never delete, because it cannot tell a stale ghost from a
+   *  hand-bound variable at that moment. This is the designer choosing to, with the count in front of
+   *  them — which is why it carries `confirm`. `confirm: false` computes what WOULD be removed and posts a
+   *  `prune-result` preview; `confirm: true` recomputes from a fresh read and deletes. The main thread
+   *  recomputes on apply rather than trusting the preview's list, so the delete acts on the file's current
+   *  orphan set. Carries the live `BrandInput` (like `apply-theme`) because the prune is defined against
+   *  the plan that brand emits — what is stale is exactly what the current plan no longer names. */
+  | { type: 'prune'; input: BrandInput; confirm: boolean }
   /** Designer is dragging the UI's resize grip (#144). Sent continuously during the drag so the
    *  window tracks the pointer; `commit` is true only on pointer-up, which is when the main thread
    *  persists the size to `clientStorage`. Splitting it this way keeps the drag smooth without
@@ -90,6 +101,13 @@ export type MainToUi =
    *  `headline` obeys the same ≤24-char pill budget (`componentHeadline`, gated in
    *  `test-apply-summary.ts`); `summary` carries the counts and the misses behind it. */
   | { type: 'component-result'; ok: boolean; headline: string; summary: string }
+  /** Result of a `prune` message (#1521) — a preview when `applied` is false, the outcome of the delete
+   *  when it is true, told apart by that flag rather than by parsing `summary`. `count` is the number of
+   *  items the preview WOULD remove, or the number the apply DID remove. `summary` is the review text
+   *  (preview) or the verdict text (applied). A DISTINCT variant from `apply-result` / `component-result`
+   *  for the same reason those two are distinct: one kind per fact — a prune preview must not overwrite a
+   *  theme write's verdict, and the prune's own confirm dialog reads `count` to decide whether to open. */
+  | { type: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string }
   /** A component build is UNDERWAY (#684) — posted at every chunk boundary, many times per build.
    *
    *  THE ONLY NON-TERMINAL MESSAGE ON THIS BRIDGE, and the reason it had to exist: `build-components`
