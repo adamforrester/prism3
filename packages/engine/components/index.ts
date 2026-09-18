@@ -57,6 +57,7 @@ import { checkboxRow } from './checkbox-row';
 import { checkboxGroup } from './checkbox-group';
 import { radioControl } from './radio-control';
 import { radioRow } from './radio-row';
+import { radioGroup } from './radio-group';
 import { switchControl } from './switch-control';
 import { switchRow } from './switch-row';
 import { select } from './select';
@@ -69,7 +70,7 @@ import { imagePlaceholder } from './image-placeholder';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, switchControl, switchRow, select, veil, imagePlaceholder };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -123,6 +124,12 @@ export const componentDefs: readonly ComponentDef[] = [
   // the chain is real: radio inherits the field substrate THROUGH checkbox rather than directly. Since #1348 it
   // is the labeled ROW that nests `radio-control` in flow, rather than inlining the painted disc.
   radioRow,
+  // `radio-group` (#1469) — the set: a `field-label` above a stack of `radio-row`s, `checkbox-group`'s
+  // single-select twin. It follows `radio-row` on composition order because it NESTS the Row (which nests
+  // `radio-control`, which nests `focus-ring`), the same four-deep chain `checkbox-group` has — though
+  // nothing reads this array's order (see the header). It owns the shared name, the single scalar value and
+  // group validation the Row cannot express, and without which a lone radio is meaningless.
+  radioGroup,
   // `switch-control` is the ATOMIC track-and-thumb (#1354), extracted from `switch-row` so the labeled Row
   // can nest it rather than redraw it — the #1226/#1330 mechanism a third time, built after confirming
   // the switch Row nests it (the composition check). It leads `switch-row` on composition order — `switch-row`

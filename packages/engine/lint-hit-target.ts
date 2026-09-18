@@ -141,6 +141,7 @@ const EXCLUDED: Record<string, string> = {
   'radio-control': 'a nested-only atom — the tap target is the labelled row (radio), gated here',
   'switch-control': 'a nested-only atom — the tap target is the labelled row (switch), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
+  'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
   'textarea': 'a multi-line field whose height is rows/auto-grow (fluid); it binds no single-line height, so there is no fixed hit-target dimension to measure',
 };
 

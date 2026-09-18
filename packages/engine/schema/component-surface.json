@@ -66,6 +66,10 @@
       "members": 3,
       "sha256": "490060e77a6b2a4a59106ef0644a9069b7a3ba1537a8f4aa3d7022af17d98eca"
     },
+    "radio-group": {
+      "members": 3,
+      "sha256": "e2db4e4c64f77ac0aa4d25e7991d931fac3c065325011897d1c8803f5c210e9e"
+    },
     "switch-control": {
       "members": 24,
       "sha256": "22024b3fa3659a3c42ca9c6685a69fd2318344851ff7ae19b75355895fa34a9e"

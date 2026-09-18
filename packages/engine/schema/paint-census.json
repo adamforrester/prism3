@@ -193,6 +193,18 @@
         "sha256": "df79a42491e54e3dfc00a6c7e7ed0756a123362ab8c90a8fd626cbeaf46c02d2"
       }
     },
+    "radio-group": {
+      "set": {
+        "members": 3,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "grid": {
+        "members": 3,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
     "switch-control": {
       "set": {
         "members": 24,
