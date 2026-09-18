@@ -56,7 +56,7 @@
     },
     "checkbox-group": {
       "members": 3,
-      "sha256": "2be437e5bcbda520b5fc7b24de6d8352d14f142cc7ab1527ba42c7e8e77960ec"
+      "sha256": "aabb67f8fb73473492c4cff03eb34bf9e00251cfe06dd9952fcbddf5cd65a91b"
     },
     "radio-control": {
       "members": 36,
@@ -68,7 +68,7 @@
     },
     "radio-group": {
       "members": 3,
-      "sha256": "e2db4e4c64f77ac0aa4d25e7991d931fac3c065325011897d1c8803f5c210e9e"
+      "sha256": "de226071c558c08fca754d353a8c97c8a75ce16c43a777a4c13eeab76e48ae8c"
     },
     "switch-control": {
       "members": 24,
@@ -80,7 +80,7 @@
     },
     "select": {
       "members": 16,
-      "sha256": "e8240acd1592450ee0b8ce06d5561f93c91c2fdba3d60bdd36832cb43c12b67f"
+      "sha256": "7005e26cecb211468b195506afd3b8d93ba2ac7dae63ab4c614d2bd5b1d6a09d"
     },
     "veil": {
       "members": 6,

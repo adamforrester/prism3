@@ -389,6 +389,14 @@ export type FigmaNodePlan = {
    *  `n.textAutoResize ?? 'WIDTH_AND_HEIGHT'`. Paired with `layoutGrow: 1` for a wrapping label: the grow
    *  fixes the width and this lets the height flow. Set from `PartDef.wrap`. */
   textAutoResize?: 'WIDTH_AND_HEIGHT' | 'HEIGHT' | 'TRUNCATE' | 'NONE';
+  /** Cross-axis child FILL (#1503): `'STRETCH'` when this in-flow child should span its parent's CROSS axis
+   *  (a column's width, a row's height) rather than hug its own content — the twin of `layoutGrow`'s main-axis
+   *  fill above. Figma's `layoutAlign: 'STRETCH'` is the only non-deprecated per-child cross-axis stretch. A
+   *  CHILD-side property applied to the child by its PARENT at build time (both executors' child loops), so it
+   *  reaches a nested INSTANCE the child neutralizer returns early on. Carried ONLY when the def part sets
+   *  `crossAxisFill`, so every other node's plan is byte-identical — both executors read a plain `n.layoutAlign`
+   *  and every unstretched node keeps Figma's `INHERIT`. Set from `PartDef.crossAxisFill`. */
+  layoutAlign?: 'STRETCH';
   /** For a `GLYPH`: the literal square px the glyph frame is built at (#1340). Carried ONLY when the def
    *  sets it, so every existing glyph's plan is byte-identical; the executor resizes the imported frame to
    *  it after the SVG import (the outline's SCALE constraints scale the drawn grid to fill), instead of
@@ -1440,6 +1448,10 @@ export const figmaAnatomyPlan = (
       // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
       // width (a `minWidth` floor or `fixed`), or the fill has nothing to resolve against (#989).
       ...(p.kind === 'text' && p.wrap ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
+      // CROSS-AXIS CHILD FILL (#1503), carried ONLY on a `box`/`nest` that opts in, so every other node's
+      // plan is byte-identical. `layoutAlign: 'STRETCH'` is Figma's per-child cross-axis stretch — the twin
+      // of `wrap`'s main-axis `layoutGrow` above. `anatomyErrors` restricts the kinds and refuses the root.
+      ...(p.crossAxisFill ? { layoutAlign: 'STRETCH' as const } : {}),
       // The literal glyph size (#1340), carried ONLY when a vector sets it so every other glyph's plan is
       // byte-identical — a def-local literal the executor resizes the imported frame to (`PartDef.glyphPx`),
       // not a bound token. It replaces the `size` binding for a marker that must read at a proportion of a
@@ -2753,6 +2765,11 @@ const build=async(n)=>{
     // Zero opacity, written straight rather than bound: a brand does not get to theme a label under a
     // spinner to half-visible. See the plan field's note.
     if(c.zeroOpacity)kid.opacity=0;
+    // CROSS-AXIS CHILD FILL (#1503). Applied by the PARENT for the same reason the absolute lifts below are:
+    // \`layoutAlign\` is a CHILD's relationship to its parent's auto-layout, and applying it here reaches a
+    // nested INSTANCE (a \`nest\` row / label / message) the child neutralizer returns early on. Written only
+    // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`.
+    if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;
   }
   // A CENTERED absolute child (#612's pending spinner with no visual cell to take). Applied by the
   // parent for the same reason the inset ones are — \`layoutPositioning\` only means anything inside an

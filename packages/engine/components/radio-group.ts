@@ -150,15 +150,27 @@ export const radioGroup: ComponentDef = {
     root: 'container',
     parts: {
       // THE GROUP CONTAINER and the a11y target (role="radiogroup"). Structure only — no `paintSlots`; it
-      // keys no fill or border and draws nothing. Column, filling its width so the rows span it; hugs its
-      // height. `pad-y` is Prism 2's 8px block padding; `pad-x` is `space.0` (0px), so the inline sides are
-      // truly zero and the rows fill the group's full width — Prism 2's `{start: 0, end: 0}`.
+      // keys no fill or border and draws nothing. A column that carries a comfortable WIDTH FLOOR
+      // (`minWidth`, below) so the rows have a real width to span; hugs its height. `pad-y` is Prism 2's 8px
+      // block padding; `pad-x` is `space.0` (0px), so the inline sides are truly zero and the rows fill the
+      // group's full width — Prism 2's `{start: 0, end: 0}`.
+      //
+      // THE WIDTH FLOOR + ROW FILL (#1503, owner Option B: follow Prism 2) — INHERITED FROM `checkbox-group`
+      // verbatim, per #1475's mandate that the two groups match by SHARING one resolution. Prism 2's
+      // `radio-button-group.json` is a FIXED 320px root with each `radioButtonRow` set to FILL (byte-for-byte
+      // `checkbox-group.json`); this realizes it with the container floored at `minWidth: 320` and each row
+      // `crossAxisFill` (→ `layoutAlign: STRETCH`, the #1503 capability). A `minWidth` floor rather than a
+      // bound width keeps the group responsive (reads at 320, flexes above), the `select` #1345 precedent.
+      // 320 is the owner-cited Prism 2 literal, not a semantic role, so `CONTRACT_VERSION` stands. Whatever
+      // `checkbox-group` settles is copied here — building a DIFFERENT width model is the one outcome that
+      // guarantees the two never match (#1475).
       container: {
         kind: 'box',
         role: 'target',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'size.{size}.gap',
         padding: { block: 'pad-y', inlineLabel: 'pad-x' },
+        minWidth: 320,
         children: ['label', 'row1', 'row2', 'row3'],
       },
       // THE NESTED GROUP LABEL (nest-fixed, FOLLOWING size). An in-flow instance of `field-label`, configured
@@ -181,23 +193,30 @@ export const radioGroup: ComponentDef = {
       // place, and a code consumer derives them from the single scalar value. `variant: { size: 'medium' }` is
       // the fallback the follow overrides per member; `radio-row` projects only `size`, so that one axis is
       // the whole coordinate. Three rows stand in for Prism 2's variable count (see the header).
+      //
+      // `crossAxisFill: true` (#1503) — each row STRETCHES to the group's width (`layoutAlign: STRETCH`),
+      // reproducing Prism 2's `radioButtonRow: FILL`, mirroring `checkbox-group` exactly (the two match by
+      // sharing this resolution). The LABEL is NOT stretched (Prism 2's label hugs above the filled rows).
       row1: {
         kind: 'nest',
         nests: 'radio-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        note: 'The first Radio row — always present. Nests the labeled row (which nests the control), following the group\'s size. Its checked state is derived from the group\'s scalar value (`checked = value === row.value`), not wired here.',
+        crossAxisFill: true,
+        note: 'The first Radio row — always present. Nests the labeled row (which nests the control), following the group\'s size. Fills the group\'s width (Prism 2\'s FILL rows). Its checked state is derived from the group\'s scalar value (`checked = value === row.value`), not wired here.',
       },
       row2: {
         kind: 'nest',
         nests: 'radio-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        note: 'A second Radio row — one of the representative stack (see the header `[HELD]` on Prism 2\'s variable row count). Same nest configuration as the first.',
+        crossAxisFill: true,
+        note: 'A second Radio row — one of the representative stack (see the header `[HELD]` on Prism 2\'s variable row count). Same nest configuration as the first, including the group-width fill.',
       },
       row3: {
         kind: 'nest',
         nests: 'radio-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        note: 'A third Radio row — completing the representative stack. In code the stack is `children: RadioRow[]` of any length; the three fixed nests stand in for that count in the projection.',
+        crossAxisFill: true,
+        note: 'A third Radio row — completing the representative stack. In code the stack is `children: RadioRow[]` of any length; the three fixed nests stand in for that count in the projection. Fills the group\'s width like its siblings.',
       },
     },
     codeOnly: [
@@ -291,7 +310,7 @@ export const radioGroup: ComponentDef = {
       'THE GROUP PAINTS NOTHING and so declares no `paintKeys` — like `checkbox-group`, its whole color surface is its nested children\'s. The alternative (inventing a group fill or border) is exactly the surface Prism 2\'s transparent container does not have; a stack is structure, and its ink lives one level down in `field-label` and `radio-row` (whose control ink is `radio-control`\'s).',
     ],
     unverified: [
-      'THE WIDTH/FILL MODEL IS `checkbox-group`\'S UNRESOLVED ONE, COPIED DELIBERATELY (#1503, #1475). The auto-layout audit found every column-stacking form group hugs its width and its rows do NOT fill it, where Prism 2 gives a fixed 320px root with rows set to FILL — because the projection cannot emit cross-axis child FILL (`layoutAlign: STRETCH`). `checkbox-group` has this exact divergence and #1469\'s guidance is emphatic: `radio-group` must mirror `checkbox-group` AS IT STANDS rather than invent a different width model, so the two match by sharing whatever resolution lands on `checkbox-group` first (fixed-320-and-fill for Prism 2 parity, or hug-and-stretch once STRETCH is supported). Building `radio-group` to a DIFFERENT width model is the one outcome that guarantees they never match. This is an OPEN DECISION FOR THE OWNER, filed as #1503 and carried here unchanged.',
+      'THE WIDTH/FILL MODEL IS `checkbox-group`\'S RESOLVED ONE, COPIED DELIBERATELY (#1503, #1475, owner Option B). The audit found every column-stacking form group hugged its width with rows that did NOT fill it, where Prism 2 gives a fixed 320px root with rows set to FILL — because the projection could not emit cross-axis child FILL. #1503 added that capability (`crossAxisFill` → `layoutAlign: STRETCH`) plus a `minWidth` width floor, and landed it on `checkbox-group` FIRST; this def mirrors it verbatim (container `minWidth: 320`, rows `crossAxisFill`), so the two match by sharing ONE resolution rather than each guessing — building `radio-group` to a different width model is the one outcome that guarantees they never match. `test:roundtrip` asserts each row reads back `layoutAlign: STRETCH` on the offline host (a real-host confirmation is the standing nesting caveat below).',
       'THE INTER-ROW GAP IS PROVISIONAL AND `[HELD]`, inherited from `checkbox-group`. Prism 2\'s group gap is 0 because its rows are fixed boxes that self-space; our `radio-row` hugs, so a 0 gap leaves them touching. The `size.*.gap` rung (8/8/12px on nb) is bound so the group\'s `size` axis reaches a binding and the stack reads legibly, but the value is the owner\'s to set — and it is set ONCE, on `checkbox-group`, with `radio-group` following. Do not read the rung as measured from Prism 2.',
       'GROUP-LEVEL ERROR / VALIDATION DISPLAY IS `[HELD]`. The brief puts validation and the error message on the group; Prism 2 settles no visual for it. This def carries `required` (settled) and no error skin (unsettled). Whether the group nests a `field-message` for the group error, and what an errored group looks like, needs the owner — the same open question `checkbox-group` holds.',
       'THE VARIABLE ROW COUNT IS `[HELD]`. The three fixed row nests stand in for Prism 2\'s six-rows-with-booleans (rows 3–6 default off, so 2 visible by default). In code the count is simply `children: RadioRow[]` of any length. If the projection should carry a designer-toggleable count, the mechanism is the node-visibility boolean on each row nest (schema-legal, unbuilt) — the same held mechanism as `checkbox-group`. There is no radio select-all to hold (a select-all is a multi-select affordance and does not apply).',
