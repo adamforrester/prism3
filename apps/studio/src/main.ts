@@ -2087,7 +2087,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     ['Neutral', [['Primary', 'text.primary'], ['Secondary', 'text.secondary'], ['Tertiary', 'text.tertiary']], false],
     ['Semantic', SEM.map(([n, s]) => [n, `text.${s}`] as [string, string]), false],
     ['Semantic — subtle', SEM.map(([n, s]) => [n, `text.${s}-subtle`] as [string, string]), false],
-    ['Links', [['Link', 'text.link.default'], ['Hover', 'text.link.hover'], ['Visited', 'text.link.visited'], ['Focused', 'text.link.focused']], true],
+    ['Links', [['Link', 'text.link.default'], ['Hover', 'text.link.hover'], ['Pressed', 'text.link.pressed'], ['Visited', 'text.link.visited'], ['Focused', 'text.link.focused']], true],
   ];
   for (const [glab, items, ul] of tcGroups) {
     secText.append(subHead(glab));
@@ -2598,8 +2598,8 @@ const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string,
   b.append(document.createTextNode('Outline'), iconEl('arrow', ink));
   box.append(b); return box;
 };
-const exIconLabel = (iconColor: string, textColor: string): HTMLElement => {
-  const box = el('div', 'exbox'); box.style.background = exGround(false);
+const exIconLabel = (iconColor: string, textColor: string, dark = false): HTMLElement => {
+  const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
   const row = el('span', 'inote'); row.style.color = textColor;
   const ic = el('span', 'inote-ic'); ic.style.color = iconColor; ic.append(iconEl('bell', iconColor));
   row.append(ic, document.createTextNode('Notifications')); box.append(row); return box;
@@ -2873,6 +2873,85 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
   return sec;
 };
 
+// ---- Links — the single global link role (#1487) -------------------------
+// Links are ONE global role (#1486): `text.link.*` / `icon.link.*` with their inverse twins, derived
+// from the action ramp at the ink bar and stepped by a perceptual interval so the engaged states stay
+// distinct even where the base sits deep in the ramp. There are no neutral or accent link roles — a
+// "destructive link" is the destructive palette in a text treatment, which the sections above already
+// carry. The role has no lever of its own: the engine computes it and the studio has no override for it
+// (the lever is deferred, #1486), so this section SURFACES it read-only, in the same role-block
+// vocabulary the palette sections use, rather than offering a Source picker with nothing behind it.
+//
+// State order is the depth order the engine walks — default → hover → pressed → visited — with
+// `focused` last. Focused is a color no-op by design (the focus ring carries focus; the ink does not
+// shift), so it reads as a duplicate of default, which is exactly why it is shown rather than dropped.
+const LINK_STATE_ROWS: Array<[string, string]> = [
+  ['Default', 'default'], ['Hover', 'hover'], ['Pressed', 'pressed'], ['Visited', 'visited'], ['Focused', 'focused'],
+];
+
+/** The read-only five-state strip for one link family + ground (`text.link` / `icon.link`, page or
+ *  inverse). Mirrors `iStates`' `.astates` layout but carries a token pill + contrast receipt in place
+ *  of the override select every editable state has — links have no lever to pin. null when the family
+ *  does not resolve in this mode. */
+const linkStatesStrip = (roles: RoleMap, prefix: string): HTMLElement | null => {
+  const g = el('div', 'astates-g'); let any = false;
+  for (const [name, st] of LINK_STATE_ROWS) {
+    const key = `${prefix}.link.${st}`;
+    const r = roles[key]; if (!r) continue; any = true;
+    const cell = el('div', 'astate');
+    const head = el('div', 'astate-h'); head.append(swatch(r.hex, 'astate-sw'), el('span', 'astate-n', name));
+    cell.append(head, tokenPill(colorPath(key)));
+    const badge = iBadge(r); if (badge) cell.append(badge);
+    g.append(cell);
+  }
+  if (!any) return null;
+  const wrap = el('div', 'astates'); wrap.append(el('div', 'astates-h', 'Link states'), g); return wrap;
+};
+
+/** One read-only link row: the `default` swatch + label + token pill + description on the left, a live
+ *  specimen (rest → hover → pressed, pinnable) on the right, and the five-state strip below — the same
+ *  shape as a palette slot row minus the Source select. null when the family does not resolve. */
+const linkRow = (o: { prefix: string; label: string; desc: string; example: (rs: RoleMap) => HTMLElement }): HTMLElement | null => {
+  const roles = iRoles();
+  const restKey = `${o.prefix}.link.default`;
+  const rest = roles[restKey]; if (!rest) return null;
+  const row = el('div', 'arow');
+  const main = el('div', 'arow-main');
+  main.append(swatch(rest.hex, 'asw'));
+  const mid = el('div', 'amid');
+  mid.append(el('div', 'alabel', o.label), tokenPill(colorPath(restKey)), el('p', 'adesc', o.desc));
+  main.append(mid, iExample(o.example(roles), iBadge(rest)));
+  row.append(main);
+  const strip = linkStatesStrip(roles, o.prefix); if (strip) row.append(strip);
+  return row;
+};
+
+/** The Links section — the global link role surfaced read-only on the Interactive page (#1487), text
+ *  and icon twins on the page ground and the inverse one. null when the brand emits no link role. */
+const renderLinksSection = (): HTMLElement | null => {
+  const roles = iRoles();
+  if (!roles['text.link.default']) return null;
+  const sec = el('div', 'psec');
+  const head = el('div', 'psec-h'); head.append(el('p', 'psec-t', 'Links'));
+  sec.append(head, el('p', 'psec-d',
+    'The single global link role, derived from the action palette above — there are no neutral or accent link roles. '
+    + 'Its engaged states step by a perceptual interval, so hover, pressed and visited stay distinct even where the link sits deep in the ramp. '
+    + 'Focused resolves to the same color as default: the focus ring carries that state, so the link text does not shift. '
+    + 'Links have no separate control — they track the action palette, so tune that to move them.'));
+  const rows: Array<HTMLElement | null> = [
+    linkRow({ prefix: 'text', label: 'Text link', desc: 'Links in running text on light surfaces.',
+      example: (rs) => exLink(rs['text.link.default']?.hex ?? '#000000', false, rs['text.link.hover']?.hex, rs['text.link.pressed']?.hex) }),
+    linkRow({ prefix: 'inverse.text', label: 'Text link · inverse', desc: 'Links in running text on dark / inverse surfaces.',
+      example: (rs) => exLink(rs['inverse.text.link.default']?.hex ?? '#ffffff', true, rs['inverse.text.link.hover']?.hex, rs['inverse.text.link.pressed']?.hex) }),
+    linkRow({ prefix: 'icon', label: 'Icon link', desc: 'The icon twin of the link ink — an icon inside a link on light surfaces.',
+      example: (rs) => exIconLabel(rs['icon.link.default']?.hex ?? '#000000', rs['text.link.default']?.hex ?? '#000000') }),
+    linkRow({ prefix: 'inverse.icon', label: 'Icon link · inverse', desc: 'The icon twin on dark / inverse surfaces.',
+      example: (rs) => exIconLabel(rs['inverse.icon.link.default']?.hex ?? '#ffffff', rs['inverse.text.link.default']?.hex ?? '#ffffff', true) }),
+  ];
+  for (const rw of rows) if (rw) sec.append(rw);
+  return sec;
+};
+
 // ---- lead controls + global behaviors ------------------------------------
 /** An enum lever as a `.cap` select that writes the input + rebuilds (a lever change re-derives roles the
  *  matrix reads, so applyFull, not apply). */
@@ -3123,6 +3202,7 @@ const renderInteractiveMatrix = (host: HTMLElement): void => {
     }));
   });
   if (!perMode) host.append(renderAddAccentRow());
+  add(renderLinksSection());
 };
 
 // === Mode context control (#171) ==========================================================
