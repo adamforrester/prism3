@@ -9643,6 +9643,26 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       `#1437 MUTATION basis: reverting select's binding to size.md.height would resolve ${aMd.height.$extensions.prism3.px}px on a compact brand — below the ${AAA_TARGET_PX}px target, the regression the floor binding prevents`);
   }
 
+  // ---- #1517: warning/success swap the SELECT border too (Prism 2 parity, mirrors text-field) ----
+  // Until #1517 only `error` swapped the select border; warning/success were message-only. Now each
+  // non-default status colours its own boundary, bound per non-disabled state (select's are rest / hover /
+  // focus-visible / empty — no read-only state). `error` maps to `danger`, `warning`/`success` to their
+  // own roles. Pinned so a dropped key or a wrong-role repoint fails by name; the SAME status-led model as
+  // text-field, one def over.
+  {
+    const nonDisabled = ['rest', 'hover', 'focus-visible', 'empty'];
+    ok(nonDisabled.every((s) => select.tokens![`error.border.${s}`] === 'color.border.danger'),
+      '#1517 select error is a status-led border-only swap (error.border.* → border.danger) per non-disabled state');
+    ok(nonDisabled.every((s) => select.tokens![`warning.border.${s}`] === 'color.border.warning'),
+      '#1517 select warning swaps the border (warning.border.* → border.warning) per non-disabled state');
+    ok(nonDisabled.every((s) => select.tokens![`success.border.${s}`] === 'color.border.success'),
+      '#1517 select success swaps the border (success.border.* → border.success) per non-disabled state');
+    // No per-status MESSAGE ink is re-declared here — those live in field-message, nested and followed. Every
+    // status-led key is a `.border.` key, so a stray `warning.label` re-declaration fails.
+    ok(Object.keys(select.tokens!).filter((k) => /^(error|warning|success)\./.test(k)).every((k) => /^(error|warning|success)\.border\./.test(k)),
+      '#1517 select declares no per-status message inks — every status-led key is a border swap');
+  }
+
   // ---- #1438: the composed FieldLabel is NEST-EXPOSED (owner-decided 2026-09-15) ----
   // The label nest exposes field-label's author axes; marking the instance exposed ALSO surfaces its label
   // text + required in Figma (the host-truth for that lives in #1392, which now includes select, and in
@@ -9838,13 +9858,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // ramps and the message's per-tone inks — so it now reads the thing it means.
   ok(!Object.values(textField.tokens).some((v) => /^type\.(label|caption)\./.test(String(v))), 'component: TextField binds input chrome only — no label/caption TYPE ramps (those live in the part defs)');
   // #1494 — validation is the `status` axis now (mirroring select), so the ONLY per-status keys this def
-  // declares are its border-only error swap (`error.border.*`). It still declares no per-status MESSAGE inks
-  // (`error.label`/`error.icon`, `warning.*`, `success.*`): those live in field-message, which this def
-  // nests and drives by `follow`. Asserted as "every status-led key is an error-border key" so a stray
-  // `warning.label` re-declaration would fail rather than pass a bare "no status keys" that the error swap
-  // now legitimately violates.
-  ok(Object.keys(textField.tokens).filter((k) => /^(error|warning|success)\./.test(k)).every((k) => k.startsWith('error.border.'))
-    && Object.keys(textField.tokens).some((k) => k.startsWith('error.border.')), 'component: TextField declares no per-status MESSAGE inks — its only status-led keys are the error border swap (#1494)');
+  // declares are border swaps. #1517 (Prism 2 parity) extended the swap from `error` ONLY to `warning` and
+  // `success` too, so every non-default status colours its own boundary (`{error,warning,success}.border.*`).
+  // It still declares no per-status MESSAGE inks (`error.label`/`error.icon`, `warning.label`, `success.icon`,
+  // …): those live in field-message, which this def nests and drives by `follow`. Asserted as "every status-led
+  // key is a `.border.` key" so a stray `warning.label` re-declaration would fail, while the legitimate border
+  // swaps pass — a bare "no status keys" would wrongly reject the whole feature.
+  ok(Object.keys(textField.tokens).filter((k) => /^(error|warning|success)\./.test(k)).every((k) => /^(error|warning|success)\.border\./.test(k))
+    && Object.keys(textField.tokens).some((k) => k.startsWith('error.border.')), 'component: TextField declares no per-status MESSAGE inks — its only status-led keys are the border swaps (#1494/#1517)');
   ok(textField.tokens['border'] === 'color.field.border.rest' && textField.tokens['border.hover'] === 'color.field.border.hover', 'component: TextField binds the stateful field border (bare border = rest, + border.hover) (#1494)');
   // read-only ≠ disabled — the live edge: read-only keeps full-contrast text.primary, not a dimmed disabled ink.
   ok(textField.tokens['label'] === 'color.text.primary' && textField.tokens['border.read-only'] === 'color.border.secondary', 'component: TextField read-only stays full-contrast (text.primary + border.secondary), not disabled.*');
@@ -9856,6 +9877,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // #1494 — `error` is a status VALUE now, not a state, so the swap is status-led (`error.border.{state}`)
   // and bound per non-disabled state so it persists through hover/focus/read-only. Checked at two coordinates.
   ok(textField.tokens['error.border.rest'] === 'color.border.danger' && textField.tokens['error.border.focus-visible'] === 'color.border.danger', 'component: TextField error is a status-led border-only swap (error.border.* → border.danger) (#1494)');
+  // #1517 (Prism 2 parity) — `warning` and `success` now swap the border TOO, each to its OWN role, bound
+  // per non-disabled state exactly like `error`. Pinned at two coordinates each so a dropped key or a
+  // wrong-role repoint fails by name. The five non-disabled states are rest / hover / focus-visible /
+  // read-only / empty (pending is deliberately unbound).
+  ok(['rest', 'hover', 'focus-visible', 'read-only', 'empty'].every((s) => textField.tokens[`warning.border.${s}`] === 'color.border.warning'),
+    'component: TextField warning is a status-led border-only swap (warning.border.* → border.warning) per non-disabled state (#1517)');
+  ok(['rest', 'hover', 'focus-visible', 'read-only', 'empty'].every((s) => textField.tokens[`success.border.${s}`] === 'color.border.success'),
+    'component: TextField success is a status-led border-only swap (success.border.* → border.success) per non-disabled state (#1517)');
   // FieldMessage: every validation status re-points BOTH ink + icon at the matching semantic role.
   // `${status}.label`, not `${status}.text`, since #784 — the SLOT segment has to be the word the projector
   // dispatches for a text node. The ROLE it points at is still `color.text.<role>`; those are two

@@ -7,6 +7,26 @@
 
 ---
 
+## (2026-09-18) — text-field + select: warning/success swap the field BORDER too, mirroring error (#1517)
+
+**STATUS: LANDED. ENGINE 0.118.0 → 0.119.0; CONTRACT STANDS at 11.3.0. Owner-directed (owner QA 2026-09-18), Prism 2 parity ("like it is in Prism 2").**
+
+**THE CHANGE.** Until now only `error` (danger) swapped the field BORDER in `text-field` and `select` (`error.border.{state}` → `color.border.danger`), while `warning` and `success` were MESSAGE-only — they set the nested field-message's status but left the input border neutral. Now every non-default status swaps its own boundary, following error's exact status-led model: `warning.border.{state}` → `color.border.warning`, `success.border.{state}` → `color.border.success`, bound PER non-disabled state (text-field: rest / hover / focus-visible / read-only / empty; select: rest / hover / focus-visible / empty — no read-only state). The field now signals status on BOTH the border and the message. Files: `components/text-field.ts`, `components/select.ts` (tokens + header/inline/docs prose).
+
+**THE PREREQUISITE WAS ALREADY MET.** `color.border.warning` / `color.border.success` already ship for every corpus brand — the `SEMANTICS` border ladder in `modes.ts` (`for (const r of SEMANTICS) put(\`border.${r}\`, …)`, `SEMANTICS = ['brand','success','warning','danger','info']`), the same family the message already reaches for `text.warning` / `text.success`. So NO token-tier change and no new emitted NAME: `token-contract --check` reports level `none`, CONTRACT STANDS at 11.3.0 (only the baseline's informational `engineVersion` stamp refreshed).
+
+**THE ONE NON-OBVIOUS CALL — no new lint-paint provenance exception (the issue's assumption, corrected).** The issue asked to "update `lint-paint` PROVENANCE_EXCEPTIONS for the new status→role border keys, as the `error.border.*` keys are registered." That would have BROKEN the gate. `error.border.*` needs an exception because `error` → `danger` is a CROSS-vocabulary mapping (the axis value `error` is absent from `color.border.danger`, so arm 1's segment-wise check would otherwise flag it). But `warning` → `color.border.warning` and `success` → `color.border.success` are SAME-family — the ref carries the axis value as a path segment — so arm 1's NORMAL rule covers them (`ref.split('.').includes(lead)` is true) and they need no exemption. And `lint-paint`'s stale-exception arm (line 506-507) FAILS on any exempted key that satisfies provenance, so adding them would have turned the gate red. Only `error` keeps its exception; the now-stale comments there (which claimed `default`/`warning`/`success` bind no status-led border) were corrected to say so.
+
+**ENGINE and not CONTRACT (#1252 shape).** A projected-surface + paint change with no emitted token name moving: the warning/success projected members (same COUNT — status(4)×state, unchanged) gain a border binding, so their plans move. `lint-component-surface` re-`--accept`ed (text-field 20 members, select 16 — plans move, count holds) and `lint-paint` census re-`--accept`ed (the paint grids gain the new keys; provenance stayed green throughout, confirming no exception was needed). No committed `out/**` VALUE moved — component payloads are not committed under `out/`, and the def binds existing roles — so `regen --check` moved only each artifact's generator stamp (0.118.0 → 0.119.0).
+
+**MUTATION (docs/34, by-name).** Repointing `text-field|warning.border.rest` from `color.border.warning` to `color.border.success` (a role that RESOLVES) fails `lint-paint.ts` arm 1 BY NAME — `provenance: text-field|warning.border.rest — status='warning' is absent from 'color.border.success'` — and arm 2 (the text-field paint hash moves); restored. `test.ts` additionally pins each status's border swap at its coordinates for both defs (a dropped key or wrong-role repoint fails by name), and the reworked "no per-status MESSAGE inks" assertion now checks every status-led key is a `.border.` key (so a stray `warning.label` re-declaration fails, while the legitimate border swaps pass).
+
+**GATES.** Full `npm run verify`: 60/60 gates reached a verdict, all PASS.
+
+**NOT TOUCHED.** #1367 and #1385 are out of this lane's scope.
+
+---
+
 ## (2026-09-18) — binding-audit: live-file RECONCILE — diff a real Figma file's actual binds vs the expected ledger (#1511)
 
 **STATUS: LANDED. TOOLS-ONLY (`tools/binding-audit/`) — no engine code, def, gate, baseline, or emitted `out/**` artifact changed; ENGINE and CONTRACT both STAND. Measurement harness, NOT a gate — gate count stays 60. Follow-up of #1499.**
