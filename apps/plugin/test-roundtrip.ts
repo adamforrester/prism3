@@ -666,7 +666,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // diverges from this and fails BY NAME (docs/34). It builds through the shared shim exactly as the corpus
 // loop does, then reads each row's label and controlBox back off the host.
 {
-  const WRAPS = ['radio', 'checkbox-row'];
+  const WRAPS = ['radio-row', 'checkbox-row'];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
   const findByName = (n: any, name: string): any => (n?.name === name ? n : (n?.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
   for (const id of WRAPS) {

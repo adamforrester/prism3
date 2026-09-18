@@ -416,7 +416,7 @@ export const checkboxRow: ComponentDef = {
 
   composition: {
     composesWith: ['checkbox-control', 'field-label', 'field-message', 'focus-ring', 'icon', 'form'],
-    alternativeTo: ['switch', 'radio', 'toggle-button', 'combobox', 'select'],
+    alternativeTo: ['switch-row', 'radio-row', 'toggle-button', 'combobox', 'select'],
     supersedes: [
       'a bare <input type="checkbox"> with no label wiring',
       'a role="checkbox" div where a styled native input would do',

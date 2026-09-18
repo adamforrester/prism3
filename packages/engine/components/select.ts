@@ -516,7 +516,7 @@ export const select: ComponentDef = {
 
   composition: {
     composesWith: ['field-label', 'field-message', 'focus-ring', 'icon', 'form'],
-    alternativeTo: ['text-field', 'combobox', 'radio', 'checkbox-group', 'segmented-control', 'menu'],
+    alternativeTo: ['text-field', 'combobox', 'radio-row', 'checkbox-group', 'segmented-control', 'menu'],
     supersedes: ['a bare <select> with no label wiring', 'placeholder-as-label'],
     // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by
     // intent and scale, not replacements.

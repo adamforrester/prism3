@@ -2926,6 +2926,20 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.116.0 — #1468: the selection-control ROW composites are renamed to the `checkbox-row` convention —
+ * `radio` → `radio-row` and `switch` → `switch-row`. Owner-decided during QA (2026-09-17): viewed side by
+ * side, the bare `radio`/`switch` row ids read as an accidental divergence from `checkbox-row`, so the
+ * `-row` suffix is made uniform. The atoms (`radio-control` / `switch-control`) are UNCHANGED, and the row
+ * still nests its control exactly as before (nest-exposed, exposing selection/state, following size) — only
+ * the composite id + component-set name move (`Radio` → `Radio.Row`, `Switch` → `Switch.Row`, matching
+ * `Checkbox.Row`). The pre-#1468 bare ids are retained as `aliases` (the `checkbox-row` precedent). This is a
+ * COMPONENT-SURFACE rename (the projected Figma component-set name), which is ENGINE-tracked (this bump +
+ * `lint-component-surface`), NOT token-contract-tracked: no component id lives in the guaranteed token-NAME
+ * surface (docs/30, #1252/#1347). CONTRACT STANDS at 11.3.0 — `token-contract --check` reports level `none`
+ * (no token path added, removed or retyped). Every register/gate that named the old row ids moves with them
+ * (`lint-axis-values`, `lint-standalone-floor`, `lint-rung-names`, `lint-hit-target`, `test.ts`,
+ * `test-roundtrip.ts`, the skill root-part list, and the sibling defs' `composition` cross-refs).
+ *
  * 0.115.0 — #1470: the `switch` default label placeholder becomes "Switch label" (was "Toggle label",
  * set by #1434). Owner-directed during QA: the placeholder names the component itself, matching the
  * `Checkbox label` / `Radio option` scaffolding on the sibling selection controls. Still generic
@@ -3081,7 +3095,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.115.0';
+export const ENGINE_VERSION = '0.116.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
