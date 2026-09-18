@@ -2405,9 +2405,9 @@ for (const b of brands) {
   ok(wr.length > 0 && wr.every((r) => r.aliasByMode.every((a) => a === null || a.startsWith(nbVar('core/font/weight/')))) && wrDangling.length === 0,
     'font-plan: weight-role rows alias core/font/weight/N, all resolving within the `core` collection');
 
-  // type-sets is FLOAT, mobile/desktop.
-  ok(typeSets.modes.join(',') === 'mobile,desktop' && typeSets.rows.every((r) => r.resolvedType === 'FLOAT'),
-    `font-plan: type-sets is FLOAT with mobile/desktop modes (${typeSets.modes.join('/')})`);
+  // type-sets is FLOAT, DESKTOP-first (Figma default mode = first) then mobile (#1520).
+  ok(typeSets.modes.join(',') === 'desktop,mobile' && typeSets.rows.every((r) => r.resolvedType === 'FLOAT'),
+    `font-plan: type-sets is FLOAT with desktop/mobile modes — desktop is the default (${typeSets.modes.join('/')})`);
 
   // Text Style plan — one row per composite; bound vars named + fontStyle cut var + lineHeight baked.
   // #1485 — fontStyle now BINDS a STRING cut variable (`font/style/<cat>/<role>[-italic]`), and the plan
@@ -14625,7 +14625,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // fixture both paths can build, so this is a true equality rather than a shape comparison.
   const rd = (f: string): unknown => JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/${f}`), 'utf8'));
   const coreFont = rd('core.font.json') as Parameters<typeof fontVarPlanFrom>[0][number];
-  const fluidFiles = ['mobile', 'desktop'].map((m) => rd(`type-sets.${m}.json`) as typeof coreFont);
+  const fluidFiles = ['desktop', 'mobile'].map((m) => rd(`type-sets.${m}.json`) as typeof coreFont);
   ok(JSON.stringify(fontVarPlanFrom([coreFont], fluidFiles)) === JSON.stringify(buildFontVarPlan(t)),
     'materialise: the file-read font plan is IDENTICAL to the theme-built font plan (the two write paths cannot drift)');
   ok(JSON.stringify(stylesPlanFromFiles(rd('shadow-styles.json') as never, rd('gradient-styles.json') as never)) === JSON.stringify(buildStylesPlan(t)),

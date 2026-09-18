@@ -7,6 +7,21 @@
 
 ---
 
+## (2026-09-18) — fluid `type-sets` collection defaults to DESKTOP, not mobile (#1520)
+
+**STATUS: LANDED. ENGINE 0.120.0 → 0.121.0 (rebased); CONTRACT STANDS at 11.3.0 (`token-contract --check` level `none`). Owner-directed during NB QA (2026-09-18).**
+
+**THE PROBLEM.** The fluid `type-sets` variable collection emitted its viewport modes in the order `['mobile', 'desktop']` (`emit-figma-font.ts` `FONT_FLUID_MODES`). Figma treats a collection's FIRST mode as its DEFAULT, so every text style whose `fontSize` binds a `type-sets` variable resolved to its MOBILE value until the viewer explicitly switched the collection to desktop. This is what made display type look like it "maxed out at 48px" during QA: the top display rungs converge to the ~48px mobile hero band (working as designed), and because mobile was the default, that 48 was what everyone saw first — the correct desktop values (96/128/160) were hidden behind a mode switch.
+
+**THE CHANGE (one constant, two mirrored copies).** `FONT_FLUID_MODES` flips `['mobile','desktop']` → `['desktop','mobile']` so DESKTOP is the collection default. The per-mode value is keyed by mode NAME (`value: mode === 'mobile' ? r.mobile : r.desktop`), NOT by array index, so the reorder flips the DEFAULT without moving any emitted value. The mirror copy in `materialise-to-figma.ts` (the paste-path's ARTIFACT file reader — kept local by design so that shell reads the emitted files, not the emitter's internals) flips in lockstep, since it drives the paste-path plan's mode order; the suite asserts the two agree.
+
+**WHY NO `out/figma/**` CONTENT MOVES.** `type-sets` emits SEPARATE per-mode files (`type-sets.desktop.json`, `type-sets.mobile.json`), each with fixed names and values — reordering the constant changes only the in-memory PLAN's `modes` array order (where Figma reads the default), not either file's bytes. So `regen --check` shows no figma churn; the only `out/**` diff is the `$extensions.generator.version` re-stamp from the ENGINE bump. The observable behavior change lives in the plan/plugin (default mode at materialization), which is precisely why ENGINE bumps though the corpus emission barely moves (principle 5: any behavior change bumps ENGINE, and a plugin-side change legitimately produces near-zero `out/` diff).
+
+**EXPORTER-COMPARISON IS UNAFFECTED (verified, not assumed).** `adapt-figma-emission.ts` reads emitted FILES from disk (alphabetical, so `desktop` already sorts first) — its `firstModeValue` therefore already picked DESKTOP for `type-sets` before this change (its own comment says so). Reordering the emitter constant does not touch file NAMES or the disk read order, so the exporter-comparison gate's baseline stands. No TokenPress round-trip or exporter baseline keys off mobile-being-first.
+
+**SCOPE.** `token-contract --check` level `none` — mode order is not a guaranteed token-name path. `schema/token-contract.json` `--accept`ed as a stamp-only `engineVersion` sync (0.120.0 → 0.121.0; contract stays 11.3.0) — the same `informationalOnly`-branch precedent as #1469/#1470/#1476, and the pre-existing inverse-overlay conditional churn in that diff is independent of this change. Files: `emit-figma-font.ts`, `materialise-to-figma.ts`, `test.ts` (order assertion), `version.ts`, `out/**` (stamp), `schema/token-contract.json` (stamp).
+
+**GATES + BY-NAME MUTATION (docs/34).** Full `npm run verify`: 60/60 gates reached a verdict, all PASS. By-name mutation: reverting `FONT_FLUID_MODES` to `['mobile','desktop']` fails the engine `test.ts` assertion BY NAME — *"font-plan: type-sets is FLOAT with desktop/mobile modes — desktop is the default"* (`typeSets.modes.join(',') === 'desktop,mobile'`). That assertion is the single independent check keyed to the mode ORDER, so a reorder regression cannot pass green.
 ## (2026-09-18) — text-field + select: warning/success swap the field BORDER too, mirroring error (#1517)
 
 **STATUS: LANDED. ENGINE 0.119.0 → 0.120.0 (rebased); CONTRACT STANDS at 11.3.0. Owner-directed (owner QA 2026-09-18), Prism 2 parity ("like it is in Prism 2").**
