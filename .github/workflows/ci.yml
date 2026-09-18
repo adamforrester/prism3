@@ -326,8 +326,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "108 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 108. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "111 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 111. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
@@ -664,6 +664,17 @@ jobs:
       # the committed out/figma export; EXPECTED is the documented contract, not a computed value).
       - name: A text style's line height is an unbound, mode-invariant PERCENT bake
         run: npx --yes tsx@4 packages/engine/lint-lineheight-bake.ts
+
+      # #1485 — a text style's cut (weight/style) is BOUND to a STRING variable, never baked. The
+      # numeric weight axis cannot reach a WIDTH cut like "Light Condensed"; the STRING cut can, so it
+      # is themeable and reachable from Figma's binding UI. The sibling of the line-height gate above,
+      # opposite verdict: line height must STAY unbound, the cut must BE bound. Fails BY NAME if an edit
+      # reverts the bind to a baked literal, drops the cut variable, double-binds fontWeight against the
+      # cut, or drops the per-category isolation that stops two categories in one weight role collapsing
+      # onto one value (the silent "Light Condensed"->"Light" downgrade). Independent of the emitter
+      # (reads the committed out/figma export; EXPECTED is #1485's contract, not a computed value).
+      - name: A text style's cut is bound to a per-category STRING variable
+        run: npx --yes tsx@4 packages/engine/lint-cut-binding.ts
 
       # A def offered as a build target must project members that acquire an EXTENT, and a def that
       # cannot must declare `figmaProperties.notStandalone`. #869: building `focus-ring` produced a

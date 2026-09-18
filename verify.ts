@@ -323,7 +323,7 @@ export const environmentProblems = async (): Promise<string[]> => {
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 108;
+const EXPECTED_ARTIFACTS = 111;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -676,6 +676,11 @@ export const GATES: Gate[] = [
     id: 'lint-lineheight-bake',
     ciStep: "A text style's line height is an unbound, mode-invariant PERCENT bake",
     cmd: engine('lint-lineheight-bake.ts'),
+  },
+  {
+    id: 'lint-cut-binding',
+    ciStep: "A text style's cut is bound to a per-category STRING variable",
+    cmd: engine('lint-cut-binding.ts'),
   },
   {
     id: 'lint-standalone-floor',

@@ -210,3 +210,61 @@ export const buildFigmaGradient = (theme: Theme): FigmaPaintStylesFile => {
 
   return { $collection: 'gradient-styles', styles };
 };
+
+// ---------------------------------------------------------------------------
+// GRID STYLES (#1480) — reusable Figma layout-grid styles, ONE per breakpoint.
+//
+// Layout already emits as FLOAT variables (`emit-figma-dims.ts` `buildFigmaLayout`: the `layout`
+// collection with `grid/columns`, `grid/gutter`, `grid/margin`, `container/*`, `breakpoint/*` per
+// breakpoint mode). Those numbers are the responsive source of truth, but a number cannot BECOME a
+// live Figma column grid — Figma has no variable→layout-grid binding. So a designer got the values
+// and no applicable grid. This emits the missing artifact: one reusable Grid Style per breakpoint,
+// sourced from the SAME layout data (columns/gutter/margin), so a designer applies `Grid / md` to a
+// frame and sees the md column grid.
+//
+// STATIC, BY THE PLATFORM — a Figma grid style cannot mode-switch off a variable, so N breakpoints
+// emit N SEPARATE grid styles (`Grid / sm`, `Grid / md`, …), coexisting with the `layout` variable
+// collection. Two representations of the one dataset: the variables stay responsive-by-mode, the grid
+// styles are the fixed, apply-able form. Names follow the auto breakpoint names (`theme.layout.grid`
+// `bp`), so a 2-breakpoint brand yields exactly `Grid / sm` + `Grid / md`.
+//
+// COLUMNS/STRETCH: the columns stretch to fill the container, `gutterSize` between them and `offset`
+// (the margin) inset from the container edges — the mobile-first responsive grid the layout data
+// describes. `color`/`visible` are the on-canvas overlay display, not a token: a grid style carries no
+// themeable colour, so this bakes Figma's own default column-grid overlay (red at 10%).
+// ---------------------------------------------------------------------------
+
+export type FigmaColumnGrid = {
+  pattern: 'COLUMNS';
+  alignment: 'STRETCH';
+  count: number;
+  gutterSize: number;
+  offset: number;   // the grid margin — inset from the container edges
+  visible: boolean;
+  color: FigmaColor;
+};
+export type FigmaGridStyle = { name: string; description: string; layoutGrids: FigmaColumnGrid[] };
+export type FigmaGridStylesFile = { $collection: 'grid-styles'; styles: FigmaGridStyle[] };
+
+// Figma's default column-grid overlay colour — red at 10% opacity. Baked (a grid style has no
+// variable-bindable colour), and identical for every breakpoint: it is display chrome, not brand.
+const GRID_OVERLAY_COLOR: FigmaColor = { r: 1, g: 0, b: 0, a: 0.1 };
+
+export const buildFigmaGridStyles = (theme: Theme): FigmaGridStylesFile => {
+  const styles: FigmaGridStyle[] = theme.layout.grid.map((g) => ({
+    name: `Grid / ${g.bp}`,
+    description:
+      `${g.columns}-column layout grid for the ${g.bp} breakpoint — ${g.gutterPx}px gutter, ${g.marginPx}px margin. ` +
+      `A static Figma grid style; the layout variable collection stays the responsive source of truth.`,
+    layoutGrids: [{
+      pattern: 'COLUMNS',
+      alignment: 'STRETCH',
+      count: g.columns,
+      gutterSize: g.gutterPx,
+      offset: g.marginPx,
+      visible: true,
+      color: GRID_OVERLAY_COLOR,
+    }],
+  }));
+  return { $collection: 'grid-styles', styles };
+};

@@ -91,7 +91,10 @@ const COLOR_SCOPES: Record<string, string[]> = {
   scrim: ['FRAME_FILL', 'SHAPE_FILL'],
   // The media veil (#1030) — a fill laid over an image frame, never a stroke and never ink.
   veil: ['FRAME_FILL', 'SHAPE_FILL'],
-  foreground: ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'],
+  // `foreground.*` are on-color SURFACE/fill colors — the ground you paint UNDER on-color content,
+  // not the ink you set ON it (that is `text.*`). So it is scoped like `background`/`scrim`/`veil`
+  // (FRAME/SHAPE, no Text); a `TEXT_FILL` here wrongly offered it in Figma's text-fill picker (#1484).
+  foreground: ['FRAME_FILL', 'SHAPE_FILL'],
   text: ['TEXT_FILL'],
   icon: ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'],
   border: ['STROKE_COLOR'],

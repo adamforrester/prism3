@@ -27,8 +27,8 @@ import type { FigmaCollectionFile, FigmaColor, FigmaVar } from './emit-figma-col
 import { CORE_COLLECTION } from './emit-figma-color';
 import type { Theme } from './theme';
 import { buildFigmaDims, buildFigmaLayout } from './emit-figma-dims';
-import { buildFigmaShadow, buildFigmaGradient } from './emit-figma-styles';
-import type { FigmaEffect, FigmaEffectStylesFile, FigmaPaintStylesFile } from './emit-figma-styles';
+import { buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles } from './emit-figma-styles';
+import type { FigmaEffect, FigmaEffectStylesFile, FigmaPaintStylesFile, FigmaColumnGrid } from './emit-figma-styles';
 import { buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles } from './emit-figma-font';
 import type { FigmaTextStyle, FigmaTextStylesFile } from './emit-figma-font';
 
@@ -337,6 +337,25 @@ export const buildStylesPlan = (theme: Theme): StylesPlan =>
   stylesPlanFrom(buildFigmaShadow(theme), buildFigmaGradient(theme));
 
 // ---------------------------------------------------------------------------
+// GRID STYLES (#1480) — reusable Figma layout-grid styles, one per breakpoint. A THIRD non-variable
+// write surface (Figma *Grid* Styles, `createGridStyle`), alongside Effect + Paint Styles. The plan is
+// the resolved emit verbatim (each style is already `{ name, description, layoutGrids }`), so — unlike
+// the colour/float plans — there is no alias graph to reshape: a grid style holds baked geometry, and
+// the numeric `layout` variable collection remains the responsive source of truth beside it. PURE
+// (node-free builder + types), so it bundles into the plugin like the other style plans.
+// ---------------------------------------------------------------------------
+
+/** One Grid Style to materialise — a breakpoint's column grid. `layoutGrids` is the resolved
+ *  `RowsColsLayoutGrid` array Figma's `GridStyle.layoutGrids` takes (COLUMNS/STRETCH). */
+export type GridStyleRow = { name: string; description: string; layoutGrids: FigmaColumnGrid[] };
+export type GridStylePlan = GridStyleRow[];
+
+/** The grid-style plan — one `GridStyleRow` per breakpoint. Flattens `buildFigmaGridStyles` into the
+ *  host-neutral shape the plugin executor (`applyGridStylePlan`) consumes. PURE. */
+export const buildGridStylePlan = (theme: Theme): GridStylePlan =>
+  buildFigmaGridStyles(theme).styles.map((s) => ({ name: s.name, description: s.description, layoutGrids: s.layoutGrids }));
+
+// ---------------------------------------------------------------------------
 // TYPOGRAPHY (#237) — `core-font`/`type-sets` VARIABLES + Text Styles. Two host-neutral plans:
 //   • buildFontVarPlan   → VarCollectionPlan[] for `core-font` (per-mode; STRING family + FLOAT
 //     size/weight + FLOAT weight-role aliased to font/weight/N) and `type-sets` (FLOAT, mobile/desktop).
@@ -409,7 +428,9 @@ export const buildFontVarPlan = (theme: Theme): VarCollectionPlan[] => {
 
 /** One Text Style to materialise. Bound props name their target var + collection (the executor binds
  *  via `setBoundVariable`); the rest are baked. `fontStyle` + `fontFamilyPrimary` drive `loadFontAsync`
- *  and the literal `fontName` fallback. */
+ *  and the literal `fontName` fallback. `fontStyleVar` is the STRING cut variable the single weight/style
+ *  control binds (#1485) — the numeric weight-role FLOAT variable stays emitted as data but is no longer
+ *  a bind target, so it is not named here. */
 export type TextStyleRow = {
   name: string;
   description: string;
@@ -417,8 +438,8 @@ export type TextStyleRow = {
   fontFamilyPrimary: string;     // the primary face (loadFontAsync + fontName.family)
   fontSizeVar: string;
   fontSizeCollection: string;    // the `core` collection, or `type-sets` for a fluid size
-  fontWeightVar: string;         // '<root>/core/font/weight-role/<role>' — in the `core` collection
-  fontStyle: string;             // baked style-name (loadFontAsync + fontName.style)
+  fontStyleVar: string;          // '<root>/core/font/style/<cat>/<role>[-italic]' — the bound STRING cut (#1485)
+  fontStyle: string;             // resolved cut style-name (loadFontAsync + fontName.style fallback)
   lineHeightPct: number;
   letterSpacingPct: number;
   textCase: 'ORIGINAL' | 'UPPER' | 'LOWER';
@@ -429,8 +450,6 @@ export type TextStylePlan = TextStyleRow[];
 /** Value of a bound `FigmaTextStyleProp` — the property is always `bound:false` with a literal here. */
 const bakedNum = (p: FigmaTextStyle['properties']['lineHeight']): number =>
   p.bound === false && typeof p.value === 'object' ? p.value.value : 0;
-const bakedStr = (p: FigmaTextStyle['properties']['fontStyle']): string =>
-  p.bound === false && typeof p.value === 'string' ? p.value : '';
 const boundVar = (p: FigmaTextStyle['properties']['fontSize']): { variable: string; collection: string } =>
   p.bound === true ? { variable: p.variable, collection: p.collection } : { variable: '', collection: CORE_COLLECTION };
 
@@ -471,10 +490,20 @@ const textStylePlanFrom = (
   const faceByVar = new Map(
     fontDefault.variables.filter((v) => isFamilyVar.test(v.name)).map((v) => [v.name, String(v.value)] as const),
   );
+  // #1485 — the RESOLVED CUT string per bound STRING cut variable, read from the Default-mode core-font
+  // file (value = the Figma style name). Same seam as `faceByVar`: `fontStyle` now BINDS a variable, so
+  // the plan's `fontStyle` (loadFontAsync + fontName.style fallback) is resolved FROM that variable's
+  // value rather than a baked literal — keeping the variable the single source of the cut. Matched at
+  // the tail (brand-invariant DTCG path) for the same reason `isFamilyVar` is.
+  const isStyleVar = /(?:^|\/)font\/style\/[^/]+\/[^/]+$/;
+  const cutByVar = new Map(
+    fontDefault.variables.filter((v) => isStyleVar.test(v.name)).map((v) => [v.name, String(v.value)] as const),
+  );
   return styles.map((s) => {
     const p = s.properties;
     const familyVar = p.fontFamily.bound === true ? p.fontFamily.variable : '';
     const size = boundVar(p.fontSize);
+    const styleVar = p.fontStyle.bound === true ? p.fontStyle.variable : '';
     return {
       name: s.name,
       description: s.description,
@@ -482,8 +511,8 @@ const textStylePlanFrom = (
       fontFamilyPrimary: faceByVar.get(familyVar) ?? '',
       fontSizeVar: size.variable,
       fontSizeCollection: size.collection === 'type-sets' ? 'type-sets' : CORE_COLLECTION,
-      fontWeightVar: p.fontWeight.bound === true ? p.fontWeight.variable : '',
-      fontStyle: bakedStr(p.fontStyle),
+      fontStyleVar: styleVar,
+      fontStyle: cutByVar.get(styleVar) ?? '',
       lineHeightPct: bakedNum(p.lineHeight),
       letterSpacingPct: bakedNum(p.letterSpacing),
       textCase: p.textCase.value,

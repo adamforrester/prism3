@@ -64,8 +64,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Default surface placed on the page — a card",
       "value": {
@@ -84,8 +83,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "A second surface — a panel / nested container",
       "value": {
@@ -104,8 +102,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "A third surface step",
       "value": {
@@ -124,8 +121,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
       "value": {
@@ -144,8 +140,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Bold success fill — clears 3:1 on the floor (neutral.050)",
       "value": {
@@ -164,8 +159,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Bold warning fill — clears 3:1 on the floor (neutral.050)",
       "value": {
@@ -184,8 +178,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Bold info fill — clears 3:1 on the floor (neutral.050)",
       "value": {
@@ -204,8 +197,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Subtle brand tint surface — banners, badges, selected rows",
       "value": {
@@ -224,8 +216,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Subtle success tint surface — banners, badges, selected rows",
       "value": {
@@ -244,8 +235,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Subtle warning tint surface — banners, badges, selected rows",
       "value": {
@@ -264,8 +254,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Subtle danger tint surface — banners, badges, selected rows",
       "value": {
@@ -284,8 +273,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Subtle info tint surface — banners, badges, selected rows",
       "value": {
@@ -304,8 +292,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Bold danger fill — clears 3:1 on the floor (neutral.050)",
       "value": {
@@ -2738,8 +2725,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Inverse / bold surface — a dark fill in light mode",
       "value": {
@@ -2758,8 +2744,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Inverse surface, second tier",
       "value": {
@@ -2778,8 +2763,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Inverse surface, third tier",
       "value": {
@@ -2798,8 +2782,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Bold brand fill on an inverse surface — clears 3:1 on the inverse floor",
       "value": {
@@ -2818,8 +2801,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Bold success fill on an inverse surface — clears 3:1 on the inverse floor",
       "value": {
@@ -2838,8 +2820,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Bold warning fill on an inverse surface — clears 3:1 on the inverse floor",
       "value": {
@@ -2858,8 +2839,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Bold danger fill on an inverse surface — clears 3:1 on the inverse floor",
       "value": {
@@ -2878,8 +2858,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Bold info fill on an inverse surface — clears 3:1 on the inverse floor",
       "value": {
@@ -2898,8 +2877,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
       "value": {
@@ -2918,8 +2896,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
       "value": {
@@ -2938,8 +2915,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
       "value": {
@@ -2958,8 +2934,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
       "value": {
@@ -2978,8 +2953,7 @@
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
+        "SHAPE_FILL"
       ],
       "description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
       "value": {

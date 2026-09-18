@@ -181,6 +181,11 @@ export const COLLECTION_AXIS: Record<string, Axis> = {
   'text-styles': 'none',
   'shadow-styles': 'none',
   'gradient-styles': 'none',
+  // Grid styles (#1480) — one COLUMNS grid style per breakpoint. Like the other style collections it
+  // has no `$mode` key (Figma styles cannot mode-switch), so `'none'`. The per-breakpoint variation is
+  // carried as SEPARATE styles (`Grid / sm`, `Grid / md`, …), not as a mode axis — the same shape as
+  // shadow's light/dark, except grid has no DTCG projection to pair against (like gradients).
+  'grid-styles': 'none',
 };
 
 /** Style collections where an axis crosses as a NAME PREFIX because Figma styles have no modes.

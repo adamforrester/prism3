@@ -414,6 +414,20 @@ border-width). The **4** uncovered — `motion`, `breakpoint`, `grid`, `containe
    grid var aliases into `space/*` correctly, every alias resolves. Materialise-to-verify:
    a spread frame renders 4/8/12-column grids at three breakpoints with `gutter` and
    `margin` bound to the layout collection's per-mode values.
+
+   **✅ ALSO — Grid Styles (2026-09-17, #1480).** The layout FLOAT variables above are the
+   responsive source of truth, but a variable cannot **become** a live Figma column grid —
+   Figma has no variable→layout-grid binding — so a designer got the numbers and no
+   applicable grid. `buildFigmaGridStyles` (`emit-figma-styles.ts`) now emits the missing
+   artifact: **one reusable Grid Style per breakpoint**, `Grid / <bp>` (following the auto
+   breakpoint names), a `COLUMNS`/`STRETCH` grid whose `count`/`gutterSize`/`offset` are the
+   breakpoint's columns/gutter/margin — sourced from the same layout data. **Figma grid styles
+   are STATIC: they cannot mode-switch off a variable**, so `N` breakpoints emit `N` separate
+   grid styles (a 2-breakpoint brand → `Grid / sm` + `Grid / md`), coexisting with the numeric
+   `layout` variable collection. Two representations of one dataset: the variables stay
+   responsive-by-mode, the grid styles are the fixed, apply-able form. Materialised by the
+   plugin via `figma.createGridStyle()` (`apps/plugin/src/write-grid-styles.ts`). A new emitted
+   STYLE surface, not token names → ENGINE bump, CONTRACT unchanged.
 5. **Motion.** Figma added motion variables at Config 2026 (TIME scope per the KB
    `_research/2026-06-28-figma-variables-styles-roundtrip` finding). Emit a `motion`
    collection with `motion/duration/*` (6 FLOAT × TIME) + `motion/duration-reduced/*` (the

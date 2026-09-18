@@ -115,12 +115,13 @@ export { buildFigmaDims, buildFigmaLayout, LAYOUT_MODES } from './emit-figma-dim
 // SHADOW (Effect Styles) + GRADIENT (Paint Styles) — extracted node-free (shadow/gradient lane) so
 // they bundle into the plugin. Imported for the CLI below + re-exported so every `from './emit-figma'`
 // importer (and `test.ts`) stay unchanged.
-import { buildFigmaShadow, buildFigmaGradient } from './emit-figma-styles';
+import { buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles } from './emit-figma-styles';
 export type {
   FigmaEffect, FigmaEffectStyle, FigmaEffectStylesFile,
   FigmaPaintStop, FigmaPaintStyle, FigmaPaintStylesFile,
+  FigmaColumnGrid, FigmaGridStyle, FigmaGridStylesFile,
 } from './emit-figma-styles';
-export { buildFigmaShadow, buildFigmaGradient } from './emit-figma-styles';
+export { buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles } from './emit-figma-styles';
 // TYPOGRAPHY (docs/10 §4) — `core-font`/`type-sets` variables + Text Styles. Extracted node-free
 // (#237) so they bundle into the plugin. Imported for the CLI below + re-exported so every
 // `from './emit-figma'` importer (and `test.ts`) stay unchanged.
@@ -240,7 +241,12 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
   add('shadow-styles.json', shadows);
   const gradients = buildFigmaGradient(theme);
   add('gradient-styles.json', gradients);
-  const summary = `core ${palette.variables.length + dims.dimension.variables.length + fontFiles[0].variables.length} (palette ${palette.variables.length} + dimension ${dims.dimension.variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''}) + color ${color.length}×${color[0].variables.length} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length - 1} colls) + layout ${layout.length}×${layout[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length}`;
+  // GRID STYLES (#1480) — one reusable layout-grid style per breakpoint, sourced from the same layout
+  // data as the numeric `layout` collection. STATIC (Figma grid styles can't mode-switch), so N
+  // breakpoints = N styles; the variables stay the responsive source of truth.
+  const gridStyles = buildFigmaGridStyles(theme);
+  add('grid-styles.json', gridStyles);
+  const summary = `core ${palette.variables.length + dims.dimension.variables.length + fontFiles[0].variables.length} (palette ${palette.variables.length} + dimension ${dims.dimension.variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''}) + color ${color.length}×${color[0].variables.length} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length - 1} colls) + layout ${layout.length}×${layout[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length} + grid ${gridStyles.styles.length}`;
   return { artifacts, summary };
 };
 
