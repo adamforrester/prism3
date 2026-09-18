@@ -27,8 +27,8 @@ import type { FigmaCollectionFile, FigmaColor, FigmaVar } from './emit-figma-col
 import { CORE_COLLECTION } from './emit-figma-color';
 import type { Theme } from './theme';
 import { buildFigmaDims, buildFigmaLayout } from './emit-figma-dims';
-import { buildFigmaShadow, buildFigmaGradient } from './emit-figma-styles';
-import type { FigmaEffect, FigmaEffectStylesFile, FigmaPaintStylesFile } from './emit-figma-styles';
+import { buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles } from './emit-figma-styles';
+import type { FigmaEffect, FigmaEffectStylesFile, FigmaPaintStylesFile, FigmaColumnGrid } from './emit-figma-styles';
 import { buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles } from './emit-figma-font';
 import type { FigmaTextStyle, FigmaTextStylesFile } from './emit-figma-font';
 
@@ -335,6 +335,25 @@ export const stylesPlanFromFiles = (
  */
 export const buildStylesPlan = (theme: Theme): StylesPlan =>
   stylesPlanFrom(buildFigmaShadow(theme), buildFigmaGradient(theme));
+
+// ---------------------------------------------------------------------------
+// GRID STYLES (#1480) — reusable Figma layout-grid styles, one per breakpoint. A THIRD non-variable
+// write surface (Figma *Grid* Styles, `createGridStyle`), alongside Effect + Paint Styles. The plan is
+// the resolved emit verbatim (each style is already `{ name, description, layoutGrids }`), so — unlike
+// the colour/float plans — there is no alias graph to reshape: a grid style holds baked geometry, and
+// the numeric `layout` variable collection remains the responsive source of truth beside it. PURE
+// (node-free builder + types), so it bundles into the plugin like the other style plans.
+// ---------------------------------------------------------------------------
+
+/** One Grid Style to materialise — a breakpoint's column grid. `layoutGrids` is the resolved
+ *  `RowsColsLayoutGrid` array Figma's `GridStyle.layoutGrids` takes (COLUMNS/STRETCH). */
+export type GridStyleRow = { name: string; description: string; layoutGrids: FigmaColumnGrid[] };
+export type GridStylePlan = GridStyleRow[];
+
+/** The grid-style plan — one `GridStyleRow` per breakpoint. Flattens `buildFigmaGridStyles` into the
+ *  host-neutral shape the plugin executor (`applyGridStylePlan`) consumes. PURE. */
+export const buildGridStylePlan = (theme: Theme): GridStylePlan =>
+  buildFigmaGridStyles(theme).styles.map((s) => ({ name: s.name, description: s.description, layoutGrids: s.layoutGrids }));
 
 // ---------------------------------------------------------------------------
 // TYPOGRAPHY (#237) — `core-font`/`type-sets` VARIABLES + Text Styles. Two host-neutral plans:
