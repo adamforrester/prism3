@@ -7,6 +7,31 @@
 
 ---
 
+## (2026-09-18) — `field-message` per-status defaults → slot-naming scaffolds (#1474)
+
+**STATUS: BRANCH COMPLETE + GATED — NEEDS OWNER SIGN-OFF ON THE COPY. ENGINE 0.115.0 → 0.116.0; CONTRACT STANDS at 11.3.0. The four proposed strings are the owner's decision (voice/copy, principle 6); this lane proposes and gates them, it does not settle them.**
+
+**THE CHANGE (proposed).** The `field-message` per-status text defaults become slot-naming scaffolds, one per status, refining #1434's "This is a … message." sentences:
+
+| status | #1434 (was) | #1474 (proposed) |
+|---|---|---|
+| default | This is a standard message. | Helper message |
+| error | This is an error message. | Error message |
+| warning | This is a warning message. | Warning message |
+| success | This is a success message. | Success message |
+
+This is the `field-message` analog of #1470's `switch` "Toggle label" → "Switch label" call: the placeholder now NAMES the slot, matching the `Switch label` / `Checkbox label` / `Radio option` scaffolding on the sibling controls, so a reviewer seeing the projected set can tell the statuses apart at a glance. `components/field-message.ts` `figmaProperties.texts.message` (the `default` + `byVariant.status` strings) plus the two comments recording the wording call, and `apps/plugin/test-write-components.ts`'s caption assertion (which pins the four strings at the built node).
+
+**WHY IT'S STILL SCAFFOLD, NOT COPY.** This does NOT reverse #1434's stance (generic illustrative scaffold, itself reversing pre-#1434's "Use 8+ characters" which read as a real password rule). Each proposed string still reads as obviously replaceable scaffolding, never as a real product's message — the recessive attribute (voice-standard §1) holds. Only #1434's *specific wording* for this one def moves; the other #1434 defaults (`field-label`, `checkbox-row`, `radio`, and `switch` per #1470) are untouched. The four stay PAIRWISE DISTINCT — the #1018 `byVariant.status` per-member fix is untouched, so the error/warning/success members carry their own copy, never the helper default.
+
+**SCOPE NOTE — the filed issue #1474 vs this lane (read before sign-off).** Issue #1474 *as filed* is a Figma PROJECTION bug ("all statuses render the default string in Figma") and explicitly states the def strings are INTENDED and should not be made identical. Its root-cause sketch (byVariant dropped in projection) is **already handled at the engine level**: `anatomy-figma.ts` `textDefaultOf` expands `byVariant.status` into each member's `characters`, and `apps/plugin/test-write-components.ts` (green) pins that the four built member nodes carry four distinct captions. So the engine + shim projection is correct today. If QA still sees identical copy *in Figma*, the remaining gap is the live plugin write path (`apps/plugin/src/write-components.ts`) writing each member's per-coordinate `characters` — a technical fix out of this copy lane's scope. This lane, per its brief, refines the per-status scaffold COPY only (a component-surface/emitted-prose change), and the wording is held for owner sign-off. If the owner's true intent is the projection fix, that is a separate PR.
+
+**VERSIONING.** ENGINE 0.115.0 → 0.116.0: the projected component surface moves (member text defaults), which `lint-component-surface` sees via the plan digest even though no committed `out/` artifact carries the copy — the plugin builds the plan from the def at run time (the #1252/#1434/#1470 shape). The `field-message` digest moved (4 members → 4 members, same count, different plans); baseline `--accept`ed after the forward ENGINE bump (the gate refuses a backward/absent bump). Emitted `out/**` restamps `$extensions.generator.version` 0.115.0 → 0.116.0 (no token VALUE moves). CONTRACT STANDS at 11.3.0: a copy default is neither a token name nor a prop — `token-contract --check` reports level `none` ("no guaranteed path moved"), so the baseline's informational `engineVersion` field is stamp-only synced (the #1470/#1476 precedent).
+
+**GATES.** No new gate FILE — this is a copy change to an existing member, caught by the existing `lint-component-surface` digest and `test-write-components` caption assertion, plus the US-English + voice gates (their scope includes the projected/emitted prose and the built bundles). docs/34 by-name mutation: reverting the `field-message` `default` string in `field-message.ts` fires `lint-component-surface` `surface/field-message` by name (same-count-different-plans digest miss), and separately breaks `test-write-components`'s caption assertion by name; restored green. Full `npm run verify`: 60/60, all PASS (see the PR body).
+
+**Files.** `packages/engine/components/field-message.ts` (the four strings + two comments), `apps/plugin/test-write-components.ts` (caption assertion + comment), `packages/engine/version.ts` (ENGINE bump + changelog), `packages/engine/schema/component-surface.json` (`--accept`, field-message digest), `packages/engine/schema/token-contract.json` (stamp-only `engineVersion` sync), and the regen artifacts (`out/**` version stamps).
+
 ## (2026-09-18) — `switch` default label "Toggle label" → "Switch label" (#1470)
 
 **STATUS: LANDED. ENGINE 0.114.0 → 0.115.0 (rebased past #1494); CONTRACT STANDS at 11.3.0. Owner-decided (QA 2026-09-17), reversing the specific wording #1434 gave this one placeholder.**
