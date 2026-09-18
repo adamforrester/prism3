@@ -7,6 +7,33 @@
 
 ---
 
+## (2026-09-18) — OPT-IN PRUNE: a plugin button that deletes the styles/variables a config change dropped (#1521)
+
+**STATUS: LANDED. PLUGIN + SHARED-UI, no engine code, def, gate, baseline, or emitted `out/**` artifact changed; ENGINE and CONTRACT both STAND. Gate count stays 60. Owner chose Option 1 (opt-in prune button, not the report variant).**
+
+**THE FRICTION.** A re-emit ADDS and UPDATES but never DELETES. Lower `typography.displayCeiling` from `3xl` to `xl` and the `2xl`/`3xl` display styles + type-set variables the new plan no longer emits stay in the file — so it keeps looking like it still has six display sizes, and the designer deletes the stale rungs by hand. #479 / #1152 made that deletion deliberate: a re-emit runs after every knob change and must never blind-delete, because at that moment it cannot tell a stale engine ghost from a variable a designer hand-bound.
+
+**THE CHANGE.** An explicit, opt-in **Prune stale** action in the plugin UI (Figma-only), beside Apply to Figma. Clicking it computes what the current plan no longer emits and opens a confirm dialog showing the count + scope; the delete runs only on the designer's confirm — so the "never blind-delete on an apply" rule holds, and the user is the one accepting the action. Covers **text styles AND variables AND stranded collections**.
+
+**WHAT MAKES IT SAFE — DETECTION REUSED, NAMESPACE GUARD ADDED (the whole argument).** Nothing new is scanned: the detector REUSES `orphansOf` / `strandedCollections` from `write-figma.ts` — the same set subtractions the executors' drift reports are built on — and the text-style arm reuses `orphansOf` over style names (the "text-style equivalent" the brief asked for). The one addition is the engine's own emitted NAMESPACE, and it is what keeps a hand-added item from ever being swept up:
+- **Variables** — an `orphansOf` orphan in a plan-owned collection, RESTRICTED to names carrying the brand root (`rootOf(name) === root`). A designer's hand-added `my-brand/x` in the `color` collection is reported by `orphansOf` too, and this spares it.
+- **Stranded collections** — a `strandedCollections` result that is NON-EMPTY and whose every variable is in the brand-root namespace (the #1148 `color.surface` shape). A hand-made "My Tokens" holding foreign-root variables, or an empty collection (provenance unreadable), is left.
+- **Text styles** — an `orphansOf` orphan whose TOP-LEVEL GROUP the plan still emits. Text styles carry NEITHER root NOR the `core` tier (`figma-names.ts`), so the root guard cannot apply; their namespace is the group the plan emits. Dropped `display/2xl` shares the `display` group with the surviving `display/xl` and prunes; a hand-added `Marketing/Hero` shares no group and is left. Dropping the WHOLE `display` group prunes nothing there — the conservative direction, and #1521's named case (a partial drop) is covered.
+
+**ARCHITECTURE.** `apps/plugin/src/prune-figma.ts` is pure detection (`computePrunePlan` over plain snapshots — no `figma.*`, the whole namespace policy unit-testable) + a thin executor (`applyPrunePlan`, deleting through a minimal `.remove()` port the real Figma satisfies, recording — never throwing — any name it cannot find). The three pruned sets are disjoint by construction (variable orphans only inside plan-OWNED collections; a stranded collection is one no plan owns). The main thread (`main.ts`) builds the SAME plans `applyTheme` builds (so "stale" means exactly "not in the plan this brand emits"), reads the file once, computes on preview, and **recomputes from a fresh read on apply** rather than trusting the preview's list — so the delete acts on the file's current orphan set, not a stale preview.
+
+**UI (shared studio surface, the one-UI-no-fork pattern).** A new `prune` / `prune-result` message pair on the typed bridge (`messages.ts`), a `postPrune(input, confirm)` seam on `HostCommit` (`write-adapter.ts`, no-op on web — CSS custom properties have no stale-item problem), and, in `apps/studio/src/main.ts`, a Figma-only **Prune stale** bar button, its own verdict pill (its own slot, like the theme write and the component build — one kind per fact), and a confirm dialog reusing the export dialog's `exdlg-*` chrome (the deliberate cross-surface reuse the #770 class-name law names). The destructive CTA names the outcome ("Delete N items", per the voice standard's Destructive tone), never a bare "Confirm".
+
+**ACCEPTANCE — `test-prune.ts` + a by-name mutation (docs/34).** Added to `npm run -w @prism3/plugin test`. A SYNTHETIC arm states the namespace policy crisply and a REAL-PLAN arm drives the detector off the shipped NB plans (so `root` derivation and the `<root>/…` names are the engine's own, not a fixture that could drift). Each "NOT pruned" assertion names the item a dropped guard would delete; verified by mutation — removing the variable `inRoot` filter turns *"variable: a hand-added variable OUTSIDE the namespace is NOT pruned"* red BY NAME (and eight more), restored after. The executor arm proves it deletes EXACTLY the plan and leaves planned + hand-added + empty-collection items untouched.
+
+**SCOPE — no contract, no engine, no emitted artifact.** `version.ts` untouched; `token-contract --check` stays level `none`. New: `apps/plugin/src/prune-figma.ts`, `apps/plugin/test-prune.ts`. Edited: `apps/plugin/src/{messages.ts, main.ts}`, `apps/plugin/tsconfig.main.json` (include the new module), `apps/plugin/package.json` (test script), `apps/studio/src/{write-adapter.ts, main.ts}`. Editing `apps/studio/src` is how the plugin gets UI — the iframe IS the shared studio app (one UI, no fork), the same path Apply and the component build take.
+
+**GATES.** Full `npm run verify`: 60/60 gates reached a verdict, all PASS. No gate added or moved — a delete the designer triggers is an action, not an assertion; `test-prune.ts` rides the existing `plugin-test` gate.
+
+**NOT TOUCHED.** #1367 and #1385 are out of this lane's scope.
+
+---
+
 ## (2026-09-18) — binding-audit: live-file RECONCILE — diff a real Figma file's actual binds vs the expected ledger (#1511)
 
 **STATUS: LANDED. TOOLS-ONLY (`tools/binding-audit/`) — no engine code, def, gate, baseline, or emitted `out/**` artifact changed; ENGINE and CONTRACT both STAND. Measurement harness, NOT a gate — gate count stays 60. Follow-up of #1499.**
