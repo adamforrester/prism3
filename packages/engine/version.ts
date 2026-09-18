@@ -2926,6 +2926,21 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.119.0 — #1515: `image-placeholder` declares `footprintVaries: ['ratio']`, clearing two false footprint
+ * misses. Owner QA read the projected set back with two misses — `ratio=4:3 measures 720×540 but ratio=1:1
+ * measures 720×720 (same)` and the 16:9 twin — because the footprint cohort compared members expecting equal
+ * size while the `ratio` axis (1:1/4:3/16:9) LEGITIMATELY changes the frame's height through its aspect lock.
+ * The exemption is the field-message/#1010 mechanism (`footprintVaries` threads into `planSetLayout`'s cohort
+ * key so each ratio becomes its own cohort), but the REASON it validates is new: the frame derives its
+ * `aspectRatio` lock from the axis, not a `presentWhen`-gated part. So the schema's footprint-exemption check
+ * gains a second legitimate mover — an axis some box's `aspectRatio` is derived from — beside the existing
+ * `presentWhen` one; an axis that does NEITHER is still a blanket and still refused (mutation-proven by name:
+ * strip the frame's lock and `ratio` is rejected). A projected-component-surface change (#1252 case) → ENGINE
+ * bump; the projected member GEOMETRY moves (`schema/component-surface.json` per-member footprint), so that
+ * baseline regenerates and is `--accept`ed. No emitted `out/**` VALUE moves — committed trees restamp only
+ * `$extensions.generator.version`. CONTRACT STANDS at 11.3.0 — `ratio` is a component-structure property, not
+ * a token name or React prop, so no guaranteed name moves (`token-contract --check` level `none`).
+ *
  * 0.118.0 — #1469: ADD `radio-group`, the single-select twin of `checkbox-group`. `radio` had no group
  * ("Radio Group: None available" in the QA build status); the owner directed adding it during QA. It is a
  * `field-label` above a vertical stack of `radio-row`s, composing the ALREADY-COLLAPSED Row (size-only since
@@ -3129,7 +3144,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.118.0';
+export const ENGINE_VERSION = '0.119.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
