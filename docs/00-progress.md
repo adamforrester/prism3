@@ -26,7 +26,23 @@
 **NOT TOUCHED.** #1367 and #1385 are out of this lane's scope. The `radio-group` the issue mentions is tracked separately (#901-family) and is not authored here.
 
 ---
+## (2026-09-18) — Auto-layout parity audit: projected components vs Prism 2 (#1475)
 
+**STATUS: LANDED (docs-only). ENGINE STANDS at 0.115.0; CONTRACT STANDS at 11.3.0 — no engine code, def, gate, or committed artifact changed. Two follow-up issues filed (#1502, #1503).**
+
+**WHAT.** Owner QA (#1475) flagged three auto-layout items — `field-message`, `checkbox-group`, `image-placeholder` — plus an implicit "does `checkbox-group` match Prism 2, and what should `radio-group` (#1469) copy?" The audit measures every projected component's auto-layout **host-truth** (project via `figmaAnatomySet`, apply through the real `applyComponentPlan` against `component-shim.ts`, read back off the built members) and compares to `reference/Prism2/component-specs/*.json`. Every claim quotes a number from a run. Report: `docs/superpowers/qa-2026-09-18-autolayout-audit.md` (the harness is in its appendix; it is NOT committed, per docs-only).
+
+**THE DIAGNOSIS THAT MADE IT SMALL.** Two of the three flagged items and the whole systemic gap reduce to one engine fact: `sizingMode` maps only `'fixed' → FIXED`, so `sizing: 'fill'` and `'hug'` are the **same** projection (both `AUTO`), and there is no def field for cross-axis child FILL (`layoutAlign: 'STRETCH'` — Figma deprecated the `MIN|CENTER|MAX` form; `component-schema.ts:513`). So Prism 2's fixed-320-root + `FILL`-children shape projects as hug-both-axes + no-stretch across `checkbox-group`, `text-field`, `select`, `field-message`. Main-axis fill already matches (label `layoutGrow:1` via `wrap`, host-verified by #1424); only the cross axis — the width of a vertical stack — diverges. Filed as #1503 (capability gap + owner design call), which #1469 inherits.
+
+**ITEM 3 WAS NOT A DEFECT IN THE COMPONENT.** `image-placeholder` binds one nominal side (`width→container.narrow`=720) and locks the ratio, so `1:1`/`4:3`/`16:9` measure 720×720 / 720×540 / 720×405 — correct, and the `targetAspectRatio` reads back 1.0000/1.3333/1.7778. The footprint check groups by `footprintVaries` (+ slot/size), which the def leaves `[]`, so all three ratios share one empty group and two get flagged `(same )` — an empty group name the QA read as "same width." Fix is one line: `footprintVaries: ['ratio']` (the #1010 mechanism `field-message` already uses). Filed as #1502.
+
+**WHAT MATCHED.** `checkbox-group`'s block padding (`space.100`=8), inline padding (`space.0`=0) and vertical hug reproduce Prism 2 exactly; direction and icon-order match on `field-message`; main-axis fill matches on the rows. The divergences that remain are the width model (systemic) and two `field-message` choices (cross-axis `MIN` vs Prism 2 `CENTER`; gap 6 vs 4) that are the owner's design calls, flagged in the report, not filed.
+
+**TRAP FOR THE RE-VERIFIER.** The audit is the **offline** arm — it proves what `applyComponentPlan` writes, not what Figma keeps (accept-and-discard is out of reach; `tools/component-roundtrip/` is the real-host arm, not in CI). "Hugs its width" is read off `counterAxisSizingMode`, not a measured box. The report's "what a programmatic pass cannot see" section states the limits.
+
+**GATES.** Docs-only under `docs/` — outside the scan scope of every engine gate (`lint-us-english`/`lint-voice` measure 0 `docs/` files by design). Ran `lint-us-english` + `lint-voice` after the studio + plugin builds anyway (per #1475): PASS, and the diff touches no gate subject. No `npm run verify` version churn — nothing under `out/**`, `schema/**`, or `version.ts` moved.
+
+**Files.** `docs/superpowers/qa-2026-09-18-autolayout-audit.md` (new), `docs/00-progress.md` (this entry). No code.
 ## (2026-09-18) — `switch` default label "Toggle label" → "Switch label" (#1470)
 
 **STATUS: LANDED. ENGINE 0.114.0 → 0.115.0 (rebased past #1494); CONTRACT STANDS at 11.3.0. Owner-decided (QA 2026-09-17), reversing the specific wording #1434 gave this one placeholder.**
