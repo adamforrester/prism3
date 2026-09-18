@@ -193,6 +193,24 @@ export type InteractivePalette = { name: string; palette: string; anchorStep?: n
    *  this wrong the first time. */
   anchorPinned?: boolean };
 
+/** Per-state link override (#1510). The link role ships a global state walk (#1486): `default` sits on
+ *  the action ramp at the ink bar and the ENGAGED states — hover, pressed, visited — step away from it by
+ *  a tuned PERCEPTUAL interval. This lever lets a brand pin how far each engaged state steps, independently
+ *  of the others: the value is a RUNG COUNT — how many floor-clearing steps past the resting link that
+ *  state sits, along the engagement direction. An unset state keeps the tuned #1486 walk; `default` (which
+ *  `focused` follows) has no key — it is the resting link, moved by the action palette / anchor, not by
+ *  this lever.
+ *
+ *  A rung COUNT rather than an absolute step is the deliberate shape (#1510): a link's engagement
+ *  direction FLIPS between contexts — deeper is a higher ramp step on a light page but a lower one on a
+ *  dark band, and both grounds are emitted within a single mode — so one absolute step cannot be right for
+ *  every `link.*` family at once, while a rung count is read against each ground's own direction and stays
+ *  coherent across all four (`text` / `icon` × page / inverse) and both mode families. Each override runs
+ *  through the same walk as the tuned ladder, so it is FLOOR-CLAMPED (reflects inward at a ramp end, and
+ *  every counted step clears the link's 4.5:1 contract): an override can respace a link state but can
+ *  never drop it below its floor. */
+export type LinkStateRungs = { hover?: number; pressed?: number; visited?: number };
+
 /**
  * THE PRIMITIVE TIER'S OWN PATH SEGMENT (#1102).
  *
@@ -301,6 +319,9 @@ export type Theme = {
   // when set, the rest fill anchors at this palette step instead of the role's resolved default.
   actionAnchorStep?: number;
   destructiveAnchorStep?: number;
+  // Optional per-state link override (#1510) — pin how many rungs each engaged link state steps from the
+  // resting link, floor-clamped; unset states keep the perceptual walk (#1486). See `LinkStateRungs`.
+  linkStateRungs?: LinkStateRungs;
   dims: Dims;
   motion: MotionAxis;
   typography: Typography;
@@ -504,6 +525,15 @@ export type BrandInput = {
    *  the resolved default (byte-identical to today). */
   actionAnchorStep?: number;
   destructiveAnchorStep?: number;
+  /** Optional per-state link override (#1510). Pin how far each ENGAGED link state — `hover`, `pressed`,
+   *  `visited` — steps from the resting link, independently of the others: the value is a RUNG COUNT (how
+   *  many floor-clearing steps past `default` that state sits, along the engagement direction). An unset
+   *  state keeps the tuned perceptual walk (#1486); `default`/`focused` are the resting link (moved by the
+   *  action palette / anchor, not here). Each override is FLOOR-CLAMPED through the same walk as the tuned
+   *  ladder, so it can respace a link state but never drop it below its 4.5:1 contract. A rung count, not an
+   *  absolute step, because a link's engagement direction flips between the page and the inverse band —
+   *  see `LinkStateRungs`. Omit for the tuned default walk (byte-identical to today). */
+  linkStateRungs?: LinkStateRungs;
   /** Motion personality (schema-optional #6). `tempo` scales the duration ramp;
    *  The six curves are fixed; `easingRoles` picks which one a role uses. Reduce-motion variants are
    *  always derived. Omit for the 'standard' tempo. */
@@ -2661,6 +2691,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
     neutralEmphasis, strictInteractiveContrast, interactivePalettes,
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
+    linkStateRungs: input.linkStateRungs,
     dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, [], radiusHairline), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
     motion,
     typography,

@@ -2926,6 +2926,28 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.119.0 — #1510: the link role gains a PER-STATE OVERRIDE lever, `linkStateRungs`. #1486 shipped the
+ * global link state walk (default → hover → pressed → visited) as a tuned constant with the lever deferred;
+ * #1487 surfaced it read-only. This adds the missing lever: a brand pins how far each ENGAGED state
+ * (hover / pressed / visited) steps from the resting link, independently, as a RUNG COUNT walked the same
+ * floor-clearing way `plainLink` already is (along each ground's own `dir`), so it composes across all four
+ * `link.*` families and both mode families and is FLOOR-CLAMPED (an override can respace a link but never
+ * drop it below its 4.5:1 contract). A rung count, not an absolute step, is the deliberate shape: a link's
+ * engagement direction flips between the page and the inverse band, so one absolute step cannot be right
+ * for every family at once (design note in the PR). The #1487 studio Links section becomes an EDITOR (a
+ * rung picker per engaged state on the page text family, writing the global lever). NO corpus brand sets
+ * the lever, so every emitted VALUE is byte-identical — the ENGINE bump is the derivation gaining a
+ * behavior + the `$extensions.generator.version` restamp (`lint-emission-version`). CONTRACT STANDS at
+ * 11.3.0: the link state NAMES (`color.text.link.{default,hover,pressed,visited,focused}` + icon / inverse
+ * twins) are unchanged — the lever moves values, adds/removes/retypes no guaranteed path, so
+ * `token-contract --check` reports level `none`. Gate L-05 (test.ts, docs/34): a set override reaches the
+ * emitted `text.link.*` step at the AUTHORED rung (default ± mode-dir × rung, computed independently of
+ * `walk`), non-vacuous vs the tuned baseline, floor-clean; the mutation that drops the override lands the
+ * states back on the tuned walk and fails L-05 by name in all six base-mode states. New lever fits the MCP
+ * `tools/list` 60k ceiling by COMPRESSION (#1368 precedent): a terse `linkStateRungs` schema block with the
+ * rich prose in the lever manifest, and two adjacent over-verbose schema descriptions
+ * (`strictInteractiveContrast`, `disabledStrategy`) trimmed to their manifest-backed essentials.
+ *
  * 0.118.0 — #1469: ADD `radio-group`, the single-select twin of `checkbox-group`. `radio` had no group
  * ("Radio Group: None available" in the QA build status); the owner directed adding it during QA. It is a
  * `field-label` above a vertical stack of `radio-row`s, composing the ALREADY-COLLAPSED Row (size-only since
@@ -3129,7 +3151,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.118.0';
+export const ENGINE_VERSION = '0.119.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -1792,11 +1792,18 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const allDistinct = (o: { hover: Cand; pressed: Cand; visited: Cand }) =>
       new Set([linkBase.path, o.hover.path, o.pressed.path, o.visited.path]).size === 4;
     const linkLadder = allDistinct(perc) ? perc : plainLink;
+    // Per-state override (#1510). A brand can pin how far an engaged state steps from the resting link: a
+    // set `linkStateRungs.<st>` is a RUNG COUNT, walked the SAME way `plainLink` is — the plain
+    // floor-clearing walk along the ground's own direction (`g.dir`), so it composes across all four link
+    // families and both mode families and reflects inward at a ramp end. It BYPASSES the #1486 ΔE
+    // auto-spacing for that state (the brand is spacing it by hand) but keeps the floor clamp (`linkGuard`),
+    // so an override can respace a link but never drop it below its 4.5:1 contract. An unset state keeps the
+    // tuned ladder; `default`/`focused` are the resting link, unaffected.
+    const linkRungs = theme.linkStateRungs;
+    const engaged = (st: 'hover' | 'pressed' | 'visited'): Cand =>
+      linkRungs?.[st] !== undefined ? walk(r2p.action, linkNum, linkRungs[st]!, g.dir, linkGuard) : linkLadder[st];
     const linkStateCand = (st: typeof LINK_STATES[number]): Cand =>
-      st === 'default' || st === 'focused' ? linkBase
-      : st === 'hover' ? linkLadder.hover
-      : st === 'pressed' ? linkLadder.pressed
-      : linkLadder.visited; // visited (deepest)
+      st === 'default' || st === 'focused' ? linkBase : engaged(st);
     for (const st of LINK_STATES)
       T(`link.${st}`, rated(linkStateCand(st), g.floor), `Link ${p.label} — ${st}`, g.floorName, p.semanticMin);
     return out;

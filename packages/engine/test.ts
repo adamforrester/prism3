@@ -530,6 +530,52 @@ for (const b of brands) {
   ok(percBreaks.length === 0, `L-04: base-mode link states are ≥ ${LINK_PERCEPT_FLOOR} ΔE apart (perceptibly distinct, the #1486 promise)` + (percBreaks.length ? ` — FAILED: ${percBreaks.join(', ')}` : ''));
 }
 
+// L-05 (#1510) — the LINK STATE OVERRIDE reaches emission. `linkStateRungs` lets a brand pin how many
+// rungs an engaged link state (hover / pressed / visited) steps from the resting link; this gate proves a
+// SET override actually MOVES the emitted `text.link.*` step to the authored rung position, in every base
+// mode, and that each moved state still clears its own contrast floor (the a11y promise the lever must
+// keep). EXPECTED is authored HERE — `default`'s step ± the page direction × the rung count — computed
+// independently of `modes.ts`'s `walk`; the gate must never import the engine's link derivation (docs/34).
+// The authored rungs are chosen OFF the tuned walk this brand produces, so a mutation that drops the
+// override (the engine ignoring `linkStateRungs`) lands the states back on the tuned ladder and fails the
+// MOVE assertion by name; the non-vacuity arm proves the authored positions differ from that baseline, so
+// "reached" is never trivially true.
+{
+  const RUNGS = { hover: 1, pressed: 3, visited: 5 } as const;   // off the tuned 2/4/6 walk this brand walks
+  const inp = { id: 'l05', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const baseRoles = (t: ReturnType<typeof brandTheme>, mode: string) =>
+    resolveAllModes(t).find((x) => x.mode === mode)?.roles as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined> | undefined;
+  const stepNum = (roles: any, key: string): number | undefined => {
+    const p = roles?.[key]?.path; return p ? Number(p.split('.').pop()) : undefined;
+  };
+  const tunedT = brandTheme(inp as any);
+  const ovT = brandTheme({ ...inp, linkStateRungs: { ...RUNGS } } as any);
+  // Page-ground direction, AUTHORED here: a stronger link steps to a higher ramp step on a light page,
+  // a lower one on a dark page. Independent of `dir` in modes.ts.
+  const PAGE_DIR: Record<string, number> = { light: +1, dark: -1 };
+  let checked = 0;
+  const moveBreaks: string[] = [], floorBreaks: string[] = [], vacuBreaks: string[] = [];
+  for (const mode of ['light', 'dark'] as const) {
+    const tR = baseRoles(tunedT, mode), oR = baseRoles(ovT, mode);
+    const d0 = stepNum(oR, 'text.link.default');
+    if (!tR || !oR || d0 === undefined) continue;
+    const dir = PAGE_DIR[mode];
+    for (const [st, rung] of Object.entries(RUNGS)) {
+      checked++;
+      const expected = d0 + dir * 50 * rung;                    // authored rung arithmetic, NOT the engine's
+      const got = stepNum(oR, `text.link.${st}`);
+      if (got !== expected) moveBreaks.push(`${mode}/${st}: got ${got}, expected ${expected} (default ${d0} ${dir > 0 ? '+' : '-'} ${rung} rungs)`);
+      const r = oR[`text.link.${st}`];
+      if (r && r.ratio != null && r.min != null && r.ratio < r.min) floorBreaks.push(`${mode}/${st} ${r.ratio.toFixed(2)}<${r.min}`);
+      if (stepNum(tR, `text.link.${st}`) === expected) vacuBreaks.push(`${mode}/${st}: override coincides with the tuned baseline at ${expected}`);
+    }
+  }
+  ok(checked === 6, `L-05: the override sweep read both base modes × 3 engaged states (${checked}/6)`);
+  ok(moveBreaks.length === 0, `L-05: a set linkStateRungs reaches the emitted link step at the authored rung` + (moveBreaks.length ? ` — FAILED: ${moveBreaks.join('; ')}` : ''));
+  ok(floorBreaks.length === 0, `L-05: every overridden link state still clears its own contrast floor` + (floorBreaks.length ? ` — FAILED: ${floorBreaks.join('; ')}` : ''));
+  ok(vacuBreaks.length === 0, `L-05: the authored rungs differ from the tuned baseline (non-vacuous)` + (vacuBreaks.length ? ` — FAILED: ${vacuBreaks.join('; ')}` : ''));
+}
+
 // L-02 (#557) — the state WALK re-verifies each step against the state's own floor.
 //
 // Why this needs its own block on top of the corpus sweep above: that sweep would catch the
