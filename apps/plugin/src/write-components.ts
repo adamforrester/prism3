@@ -1491,6 +1491,13 @@ const writeComponentSet = async (
       // Written straight rather than bound: a brand does not get to theme a label under a spinner to
       // half-visible. `visible:false` would yield the cell and collapse the button.
       if (c.zeroOpacity) kid.opacity = 0;
+      // CROSS-AXIS CHILD FILL (#1503). Applied by the PARENT — like `layoutPositioning` below, `layoutAlign`
+      // is a fact about the child's relationship to this auto-layout frame, and applying it HERE (rather than
+      // in `claimDefaults`) is what reaches a nested INSTANCE: `claimDefaults` returns early on an INSTANCE so
+      // as not to override the nested component's design, but `layoutAlign` is a placement property, not a
+      // design override, and the `nest` rows / label / message are exactly the children that must STRETCH.
+      // Written only when the plan carries it (a `crossAxisFill` part); every other child keeps `INHERIT`.
+      if (c.layoutAlign) kid.layoutAlign = c.layoutAlign;
     }
     // A CENTERED absolute child (#612's pending spinner with no visual cell to take). NOT resized:
     // unlike the ring it keeps its own square size, and its `size` binding is already on it — `resize`

@@ -2926,6 +2926,26 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.119.0 — #1503: PROJECT CROSS-AXIS CHILD FILL (`layoutAlign: 'STRETCH'`), the missing twin of `wrap`'s
+ * main-axis `layoutGrow`. The auto-layout audit (#1475) found every column-stacked form component hugs its
+ * width with children that do NOT fill it, where Prism 2 gives a fixed-320 root with rows / inputs set to
+ * `layoutSizingHorizontal: FILL`; the owner decided Option B (follow Prism 2). Two engine gaps closed: a new
+ * `PartDef.crossAxisFill` (→ plan `layoutAlign: 'STRETCH'`, Figma's only non-deprecated per-child cross-axis
+ * stretch), applied to the child BY ITS PARENT in both executors' child loops so it reaches a nested INSTANCE
+ * `claimDefaults` returns early on; and the "root width affordance" via the existing `minWidth` literal (320,
+ * the `select` #1345 precedent — reads at 320, flexes above, no bound token). Landed on `checkbox-group`
+ * FIRST (container `minWidth: 320`, three rows `crossAxisFill`), then `radio-group` mirrors it verbatim so the
+ * two match by SHARING one resolution (#1475), then `select` (label + message fill the already-320-floored
+ * control). `anatomy-readback.ts` classifies `layoutAlign`; `test:roundtrip` gains a #1503 host-truth block
+ * asserting each part reads back `layoutAlign: STRETCH` and each group root `minWidth: 320`, with a docs/34
+ * by-name mutation (drop `crossAxisFill` → reads `INHERIT`, fails by name). A projected auto-layout change on
+ * several components → ENGINE bump; the surface + paint-census baselines are `--accept`ed after this forward
+ * bump. CONTRACT STANDS at 11.3.0 — `layoutAlign` is a component layout fact, not a guaranteed DTCG token PATH
+ * (`token-contract --check` level `none`, stamp-only), and 320 mints no token name. HELD for the owner (see
+ * the PR body): text-field's width FLOOR (#1494 deferred it — the "exact fixed width per component" decision)
+ * and field-message's cross-axis ALIGNMENT (MIN vs CENTER, flagged by the audit as an owner design call; its
+ * caption fill is main-axis anyway) — the capability is ready for both the moment those are settled.
+ *
  * 0.118.0 — #1469: ADD `radio-group`, the single-select twin of `checkbox-group`. `radio` had no group
  * ("Radio Group: None available" in the QA build status); the owner directed adding it during QA. It is a
  * `field-label` above a vertical stack of `radio-row`s, composing the ALREADY-COLLAPSED Row (size-only since
@@ -3129,7 +3149,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.118.0';
+export const ENGINE_VERSION = '0.119.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

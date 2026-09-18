@@ -310,7 +310,11 @@ export const select: ComponentDef = {
         kind: 'nest',
         nests: 'field-label',
         nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
-        note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts at the select default (small / secondary / regular).',
+        // #1503 — FILLS the field's width (`layoutAlign: STRETCH`), so the label spans the 320 control rather
+        // than hugging narrower above it (Prism 2's inner containers FILL). The `control` already spans via its
+        // `minWidth` floor + the hugging column; this and `message` are the two parts that hugged short.
+        crossAxisFill: true,
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts at the select default (small / secondary / regular). Fills the field\'s width (#1503).',
       },
       // THE CONTROL — the bordered, interactive box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
@@ -414,7 +418,11 @@ export const select: ComponentDef = {
         // leading glyph a slot); `present()` keeps any boolean-named part at every member regardless of
         // kind, so the nested instance is emitted and toggled in place rather than dropped.
         optional: true,
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows select\'s validation by name, so error / warning / success reach the message without a value mapping. Shown by default; the `showMessage` boolean (#1426) hides the whole part where the field has nothing to say.',
+        // #1503 — FILLS the field's width (`layoutAlign: STRETCH`), spanning the 320 control rather than
+        // hugging narrower below it (Prism 2's inner containers FILL). Coexists with `optional` (the
+        // node-visibility boolean toggles `visible`; this sets the child-side stretch) — different fields.
+        crossAxisFill: true,
+        note: 'Helper or validation text, composed rather than re-declared. Its status follows select\'s validation by name, so error / warning / success reach the message without a value mapping. Shown by default; the `showMessage` boolean (#1426) hides the whole part where the field has nothing to say. Fills the field\'s width (#1503).',
       },
     },
     codeOnly: [
@@ -529,7 +537,7 @@ export const select: ComponentDef = {
       'error as a border swap vs a full validation border set — settled as text-field settles it: error is the ONLY status that colors the border, warning and success are message-only. A brand wanting colored warning/success borders would be adding border roles the tier does not emit, which is a token-tier decision, not this def\'s.',
     ],
     unverified: [
-      'The nested field parts hug rather than fill in Figma (a `nest` cannot bind sizing, #1299 gives it only a height), so the projected label and message sit at their natural width rather than spanning the 320 control. A consumer setting them to fill is a code-side layout concern; check a built member before assuming the whole stack reads full-width. The control itself is floored at 320 (`minWidth`), so the field reads at that width even though `fill` cannot stretch the label and message to it.',
+      'The nested label and message now FILL the field\'s width (#1503, `crossAxisFill` → `layoutAlign: STRETCH`), spanning the 320 control rather than hugging narrower — the gap this note used to record (a `nest` cannot bind sizing, #1299, so it once sat at its natural width) is closed. The control is floored at 320 (`minWidth`) and the column hugs to it, so the field reads at 320 and the two nested parts stretch to match; `test:roundtrip` reads `layoutAlign: STRETCH` back off the offline host, but whether a real host keeps the stretch on a nested INSTANCE is the standing offline-arm caveat (below).',
       'The value text does not ellipsize in the Figma projection — `maxLines` / `textOverflow` have no PartDef expression — so a long placeholder in a narrow member overflows rather than truncating. The ellipsis is a code-side behavior.',
       'The leading glyph is a node-visibility BOOLEAN (#1331): the node is built at every member with `visible:false` and shown by the `leading icon` switch. In Figma auto-layout a `visible:false` child is EXCLUDED from the flow — it takes no space or gap — so a hidden glyph should add no gap to `content`, exactly as the absent slot did. The offline shims gate the boolean property, the built `visible=false` and the `componentPropertyReferences.visible` wiring, but NOT auto-layout\'s exclusion of invisible children: whether a real host reflows `content` when the switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where the hidden glyph sits, or the field not tightening when leading is off.',
     ],

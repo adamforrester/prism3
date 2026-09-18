@@ -694,5 +694,75 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #1503: CROSS-AXIS CHILD FILL, READ BACK OFF THE BUILT NODE — HOST-TRUTH ─────────────────────
+//
+// The owner decided (Option B, follow Prism 2) that the column-stacked form components should have a
+// fixed-width root with their inner children set to cross-axis FILL, so the rows / inputs SPAN the
+// container rather than rendering ragged. The projection realizes that with `crossAxisFill` →
+// `layoutAlign: STRETCH` (the missing cross-axis twin of `wrap`'s main-axis `layoutGrow`), applied to the
+// child BY ITS PARENT so it reaches a nested INSTANCE the child neutralizer returns early on.
+//
+// The generic diff above already checks `layoutAlign` against the built node (plan-as-oracle:
+// `anatomy-readback.ts`'s `layoutAlign` predicate), which catches an executor that fails to write it — the
+// #874 class. What it CANNOT catch is a def that silently STOPS filling: drop `crossAxisFill` and the plan
+// no longer carries the field, so plan-vs-built still agrees on its absence. This block closes that with an
+// oracle authored HERE and nowhere else — the owner-decided fact that these children fill their container's
+// width — so a `crossAxisFill` removed from any of these parts reads back `INHERIT`/absent, diverges from
+// this STRETCH oracle, and fails BY NAME (docs/34). It also proves the parent-applied write reaches a nested
+// INSTANCE, the whole reason `layoutAlign` is applied by the parent rather than in `claimDefaults`.
+{
+  // THE OWNER-DECIDED FILL CONTRACT — which parts of which defs must span their container's cross axis.
+  // Authored here, not derived from the defs (docs/34): the def is the SUBJECT, this is the ORACLE.
+  //   · checkbox-group / radio-group — the stacked rows fill the group's width (the label deliberately hugs).
+  //   · select — the composed label + message fill the field's width (the control already spans via minWidth).
+  // text-field and field-message are HELD (their width floor / cross-axis alignment are owner design calls,
+  // see the PR body), so they are deliberately absent — this oracle asserts only what the owner settled.
+  const FILLS: Record<string, string[]> = {
+    'checkbox-group': ['row1', 'row2', 'row3'],
+    'radio-group': ['row1', 'row2', 'row3'],
+    'select': ['label', 'message'],
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+  const findByName = (n: any, name: string): any => (n?.name === name ? n : (n?.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+  for (const [id, partNames] of Object.entries(FILLS)) {
+    const def = componentDefs.find((d) => d.id === id);
+    ok(!!def, `#1503 host-truth: the ${id} def is registered and projects`);
+    if (!def) continue;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    for (const part of partNames) {
+      const nodes = members.map((m) => findByName(m, part));
+      // SCOPE FLOOR — the part was built into every member, or "they all fill" is a statement about an empty
+      // set. This also fires if a part is renamed or dropped from the def.
+      ok(members.length > 0 && nodes.every(Boolean),
+        `#1503 host-truth: ${id} builds a '${part}' into every member (${nodes.filter(Boolean).length}/${members.length})`);
+      // THE CHILD FILLS THE CROSS AXIS — read back off the built node. A `nest` part (rows, label, message)
+      // is a nested INSTANCE, so a green here proves the PARENT-applied `layoutAlign` reached it — a write
+      // `claimDefaults` skips. Drop `crossAxisFill` from the def and this reads `INHERIT`/undefined, failing
+      // by name.
+      ok(nodes.length > 0 && nodes.every((no) => no && no.layoutAlign === 'STRETCH'),
+        `#1503 host-truth: every ${id} '${part}' reads back layoutAlign=STRETCH — it fills the container's width (e.g. layoutAlign=${String(nodes[0]?.layoutAlign)})`);
+    }
+  }
+  // THE WIDTH-FLOOR HALF — the container carries `minWidth: 320` so the STRETCH resolves against a real width
+  // (Prism 2's 320) rather than the widest label. Read back off the built group root, oracle authored here.
+  for (const id of ['checkbox-group', 'radio-group']) {
+    const def = componentDefs.find((d) => d.id === id);
+    if (!def) continue;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    ok(members.length > 0 && members.every((m) => (m as { minWidth?: unknown }).minWidth === 320),
+      `#1503 host-truth: every ${id} member reads back minWidth=320 — the width floor the rows fill (e.g. minWidth=${String((members[0] as { minWidth?: unknown })?.minWidth)})`);
+  }
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);
