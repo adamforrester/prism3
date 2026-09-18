@@ -250,10 +250,11 @@ export const switchDef: ComponentDef = {
       // A REAL SETTING, not "Label" — #798's finding is that a text part with no TEXT property projects a
       // blank node, and the corollary is that this default is the only copy anyone reviewing the set sees.
       // The brief's canonical example, in the sentence case this def's content rule requires.
-      // GENERIC illustrative scaffold ("Toggle label"), not a realistic setting name (#1434, owner-directed;
+      // GENERIC illustrative scaffold ("Switch label"), not a realistic setting name (#1434, owner-directed;
       // REVERSES #798): the shipped placeholder reads as obviously replaceable, not as a real product's
-      // setting (voice-standard §1 recessive).
-      label: { part: 'label', default: 'Toggle label' },
+      // setting (voice-standard §1 recessive). #1470 (owner-directed) set the wording to "Switch label" —
+      // it names the component itself, matching the `Checkbox label` / `Radio option` scaffolding.
+      label: { part: 'label', default: 'Switch label' },
     },
     // No `swaps` — the Row nests `switch-control` and exposes its properties (the def picks the control,
     // the consumer drives it). No `slotAxes`.
