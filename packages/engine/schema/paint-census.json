@@ -121,6 +121,18 @@
         "sha256": "b059f9499a0cf3aad244ee421a141666fe553140e084907b6641d5135081bec5"
       }
     },
+    "text-field": {
+      "set": {
+        "members": 20,
+        "assignments": 100,
+        "sha256": "fa15b8e51e025476c53c1144629c2ad1b6a6447b2af7123c1f0d056c63d7566b"
+      },
+      "grid": {
+        "members": 28,
+        "assignments": 140,
+        "sha256": "c234425775f8807b9be0aeacdcc3b19b6bc1ed9c6f69a5d465d94f54dd5ae4e7"
+      }
+    },
     "checkbox-control": {
       "set": {
         "members": 54,
