@@ -93,10 +93,11 @@ export const radioRow: ComponentDef = {
   id: 'radio-row',
   name: 'Radio.Row',
   // The brief's list, kept intact, with the pre-#1468 bare id `radio` retained as an alias (the
-  // `checkbox-row` precedent, whose aliases keep `checkbox`). `radio-group` sits in it and this def is NOT
-  // the group — kept anyway because an agent reaching for the group should land on the nearest thing that
-  // exists and read its header, rather than matching nothing at all. The description says what this is.
-  aliases: ['radio', 'radio-button', 'radio-group', 'option', 'choice-list'],
+  // `checkbox-row` precedent, whose aliases keep `checkbox`). The `radio-group` alias was a FORWARD
+  // REFERENCE — kept only so an agent reaching for the not-yet-built group landed on the nearest thing that
+  // existed. #1469 built `radio-group` as its own def, so the alias is removed: `radio-group` now resolves to
+  // the group, and this def is the OPTION (its description says so).
+  aliases: ['radio', 'radio-button', 'option', 'choice-list'],
   category: 'form',
   status: 'draft',
   inherits: 'checkbox-row',

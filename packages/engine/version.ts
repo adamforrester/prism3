@@ -2926,6 +2926,28 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.118.0 — #1469: ADD `radio-group`, the single-select twin of `checkbox-group`. `radio` had no group
+ * ("Radio Group: None available" in the QA build status); the owner directed adding it during QA. It is a
+ * `field-label` above a vertical stack of `radio-row`s, composing the ALREADY-COLLAPSED Row (size-only since
+ * #1348) so it inherits the Row's collapse rather than the atom's 36-member explosion — the same four-deep
+ * nest chain (`focus-ring` ← `radio-control` ← `radio-row` ← `radio-group`) `checkbox-group` has. Its
+ * auto-layout mirrors `checkbox-group` PART-FOR-PART per the #1475/PR#1504 audit (VERTICAL root, `pad-y`
+ * `space.100`/8, `pad-x` `space.0`/0, the provisional `size.{size}.gap` inter-row gap, a secondary·bold
+ * ·required-on nested `field-label` size-followed, three `nest-fixed` rows), which Prism 2's
+ * `radio-button-group.json` confirms is byte-for-byte `checkbox-group.json`. The ONLY deltas are what radio's
+ * single-select semantics FORCE (not design): a SCALAR `value`/`defaultValue`/`onChange` (exactly-one, where
+ * checkbox owns an array), `role="radiogroup"`, a single tab stop with roving tabindex, the load-bearing
+ * shared `name` that enforces exclusivity, and no select-all (a multi-select affordance that does not apply).
+ * The stale `radio-group` FORWARD-REFERENCE alias is removed from `radio-row` (the group now exists as its
+ * own def). A new projected component-set NAME → ENGINE bump + `lint-component-surface`; radio-group is added
+ * to the size-axis / hit-target / rung-names / standalone-floor registers (docs/34 scope floors). No emitted
+ * `out/**` VALUE moves (the group paints nothing and adds no token); the surface + paint-census baselines are
+ * `--accept`ed after this forward bump. CONTRACT STANDS at 11.3.0 — a component-set name is not a guaranteed
+ * DTCG token PATH (`token-contract --check` level `none`, stamp-only), exactly as the #1347 checkbox-group
+ * add did. OPEN OWNER DECISION carried unchanged from `checkbox-group`: the group hugs its width and its rows
+ * do not fill it (the projection cannot emit cross-axis child FILL — #1503); `radio-group` copies that model
+ * deliberately so the two match by sharing one resolution, per #1475's guidance.
+ *
  * 0.117.0 — #1474: the `field-message` per-status text DEFAULTS become four DISTINCT scaffold strings so a
  * reviewer seeing the projected set can tell the statuses apart. Owner-directed from QA, and the copy is
  * owner-CHOSEN (Set A): default "This is a standard message." / error "Something needs fixing." / warning
@@ -3107,7 +3129,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.117.0';
+export const ENGINE_VERSION = '0.118.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
