@@ -2100,12 +2100,12 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     secText.append(g);
   }
   const callout = el('div', 'sg-callout');
-  // The old copy enumerated three link roles; `LINK_STATES` has four. Focused resolves to the same
-  // color as default BY DESIGN (the focus ring carries the state, not a color shift), which is why the
-  // row reads as a duplicate — and exactly why it needs saying rather than omitting.
+  // The old copy enumerated three link roles; `LINK_STATES` has five (#1486 added `pressed`). Focused
+  // resolves to the same color as default BY DESIGN (the focus ring carries the state, not a color
+  // shift), which is why the row reads as a duplicate — and exactly why it needs saying rather than omitting.
   callout.append(document.createTextNode('Links draw only from the action ramp — the engine defines '));
-  callout.append(el('span', 'mono', 'text.link.default / hover / visited / focused'));
-  callout.append(document.createTextNode(' and no neutral or accent link roles. Focused resolves to the same color as default: the focus ring carries that state, so the link text does not shift.'));
+  callout.append(el('span', 'mono', 'text.link.default / hover / pressed / visited / focused'));
+  callout.append(document.createTextNode(' and no neutral or accent link roles. The engaged states step by a perceptual interval, so hover, pressed, and visited stay clearly distinct even where the link color sits deep in the ramp. Focused resolves to the same color as default: the focus ring carries that state, so the link text does not shift.'));
   secText.append(callout);
   host.append(ground(secText));
 
@@ -6739,12 +6739,12 @@ const paintControlShapePreview = (into: HTMLElement): void => {
     { key: 'rounded', label: 'Rounded', radiusPx: roundedPx, ref: 'radius.md', note: `radius.md · ${roundedPx}px` },
     { key: 'pill', label: 'Pill', radiusPx: 999, ref: 'radius.capsule', note: 'radius.capsule · height ÷ 2, any height' },
   ];
-  const list = el('div', 'rad-list');
+  const list = el('div', 'rad-list rad-shapes');
   for (const s of shapes) {
     const on = s.key === cur;
-    const cell = el('div', 'rad-cell');
-    if (on) cell.style.outline = '2px solid currentColor';
-    if (on) cell.style.borderRadius = '6px';
+    // #1477 — the selected card is a class toggle (`.rad-shapes .rad-cell.on`), an INSET ring on a
+    // panel ground per the #439 pattern, not the outset `outline` that collided with the preview.
+    const cell = el('div', 'rad-cell' + (on ? ' on' : ''));
     const bar = el('div', 'rad-sw');
     bar.style.width = '112px';
     bar.style.height = '52px';
