@@ -4001,26 +4001,6 @@
       "avoid_when": "Do not use for non-interactive text (use text.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.550}",
-        "dark": "{wds.core.palette.primary.350}",
-        "hc-light": "{wds.core.palette.primary.700}",
-        "hc-dark": "{wds.core.palette.primary.200}"
-      },
-      "contrast_with": [
-        {
-          "token": "neutral.050",
-          "min": "4.5:1",
-          "ratio": 5.73
-        }
-      ]
-    },
-    "text.link.visited": {
-      "$description": "Link (interactive text) (visited state).",
-      "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive text after it has been visited.",
-      "avoid_when": "Do not use for non-interactive text (use text.primary).",
-      "avoid_when_level": "MUST",
-      "mode_overrides": {
         "light": "{wds.core.palette.primary.600}",
         "dark": "{wds.core.palette.primary.300}",
         "hc-light": "{wds.core.palette.primary.750}",
@@ -4031,6 +4011,26 @@
           "token": "neutral.050",
           "min": "4.5:1",
           "ratio": 6.82
+        }
+      ]
+    },
+    "text.link.visited": {
+      "$description": "Link (interactive text) (visited state).",
+      "meaning": "Interactivity / navigation",
+      "when_to_use": "Hyperlinks and interactive text after it has been visited.",
+      "avoid_when": "Do not use for non-interactive text (use text.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.800}",
+        "dark": "{wds.core.palette.primary.100}",
+        "hc-light": "{wds.core.palette.primary.950}",
+        "hc-dark": "{wds.core.palette.primary.025}"
+      },
+      "contrast_with": [
+        {
+          "token": "neutral.050",
+          "min": "4.5:1",
+          "ratio": 12.43
         }
       ]
     },
@@ -4051,6 +4051,26 @@
           "token": "neutral.050",
           "min": "4.5:1",
           "ratio": 4.85
+        }
+      ]
+    },
+    "text.link.pressed": {
+      "$description": "Link (interactive text) (pressed state).",
+      "meaning": "Interactivity / navigation",
+      "when_to_use": "Hyperlinks and interactive text while pressed.",
+      "avoid_when": "Do not use for non-interactive text (use text.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.700}",
+        "dark": "{wds.core.palette.primary.200}",
+        "hc-light": "{wds.core.palette.primary.850}",
+        "hc-dark": "{wds.core.palette.primary.050}"
+      },
+      "contrast_with": [
+        {
+          "token": "neutral.050",
+          "min": "4.5:1",
+          "ratio": 9.41
         }
       ]
     },
@@ -4498,26 +4518,6 @@
       "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.550}",
-        "dark": "{wds.core.palette.primary.350}",
-        "hc-light": "{wds.core.palette.primary.700}",
-        "hc-dark": "{wds.core.palette.primary.200}"
-      },
-      "contrast_with": [
-        {
-          "token": "neutral.050",
-          "min": "4.5:1",
-          "ratio": 5.73
-        }
-      ]
-    },
-    "icon.link.visited": {
-      "$description": "Link (interactive icon) (visited state).",
-      "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive icon after it has been visited.",
-      "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
-      "avoid_when_level": "MUST",
-      "mode_overrides": {
         "light": "{wds.core.palette.primary.600}",
         "dark": "{wds.core.palette.primary.300}",
         "hc-light": "{wds.core.palette.primary.750}",
@@ -4528,6 +4528,26 @@
           "token": "neutral.050",
           "min": "4.5:1",
           "ratio": 6.82
+        }
+      ]
+    },
+    "icon.link.visited": {
+      "$description": "Link (interactive icon) (visited state).",
+      "meaning": "Interactivity / navigation",
+      "when_to_use": "Hyperlinks and interactive icon after it has been visited.",
+      "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.800}",
+        "dark": "{wds.core.palette.primary.100}",
+        "hc-light": "{wds.core.palette.primary.950}",
+        "hc-dark": "{wds.core.palette.primary.025}"
+      },
+      "contrast_with": [
+        {
+          "token": "neutral.050",
+          "min": "4.5:1",
+          "ratio": 12.43
         }
       ]
     },
@@ -4548,6 +4568,26 @@
           "token": "neutral.050",
           "min": "4.5:1",
           "ratio": 4.85
+        }
+      ]
+    },
+    "icon.link.pressed": {
+      "$description": "Link (interactive icon) (pressed state).",
+      "meaning": "Interactivity / navigation",
+      "when_to_use": "Hyperlinks and interactive icon while pressed.",
+      "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.700}",
+        "dark": "{wds.core.palette.primary.200}",
+        "hc-light": "{wds.core.palette.primary.850}",
+        "hc-dark": "{wds.core.palette.primary.050}"
+      },
+      "contrast_with": [
+        {
+          "token": "neutral.050",
+          "min": "4.5:1",
+          "ratio": 9.41
         }
       ]
     },
@@ -4880,26 +4920,6 @@
       "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use text.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.350}",
-        "dark": "{wds.core.palette.primary.550}",
-        "hc-light": "{wds.core.palette.primary.250}",
-        "hc-dark": "{wds.core.palette.primary.650}"
-      },
-      "contrast_with": [
-        {
-          "token": "inverse.background.secondary",
-          "min": "4.5:1",
-          "ratio": 5.5
-        }
-      ]
-    },
-    "inverse.text.link.visited": {
-      "$description": "Link (interactive text) (visited state), on an inverse surface.",
-      "meaning": "Interactivity / navigation (inverse ground)",
-      "when_to_use": "Hyperlinks and interactive text after it has been visited. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use text.primary).",
-      "avoid_when_level": "MUST",
-      "mode_overrides": {
         "light": "{wds.core.palette.primary.300}",
         "dark": "{wds.core.palette.primary.600}",
         "hc-light": "{wds.core.palette.primary.200}",
@@ -4910,6 +4930,26 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 6.59
+        }
+      ]
+    },
+    "inverse.text.link.visited": {
+      "$description": "Link (interactive text) (visited state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive text after it has been visited. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use text.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.100}",
+        "dark": "{wds.core.palette.primary.800}",
+        "hc-light": "{wds.core.palette.primary.025}",
+        "hc-dark": "{wds.core.palette.primary.900}"
+      },
+      "contrast_with": [
+        {
+          "token": "inverse.background.secondary",
+          "min": "4.5:1",
+          "ratio": 12.56
         }
       ]
     },
@@ -4930,6 +4970,26 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.56
+        }
+      ]
+    },
+    "inverse.text.link.pressed": {
+      "$description": "Link (interactive text) (pressed state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive text while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.pressed`. Do not use for non-interactive text (use text.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.200}",
+        "dark": "{wds.core.palette.primary.700}",
+        "hc-light": "{wds.core.palette.primary.100}",
+        "hc-dark": "{wds.core.palette.primary.800}"
+      },
+      "contrast_with": [
+        {
+          "token": "inverse.background.secondary",
+          "min": "4.5:1",
+          "ratio": 9.27
         }
       ]
     },
@@ -5262,26 +5322,6 @@
       "avoid_when": "Do not use on the page ground; that is `icon.link.hover`. Do not use for non-interactive icon (use icon.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.350}",
-        "dark": "{wds.core.palette.primary.550}",
-        "hc-light": "{wds.core.palette.primary.250}",
-        "hc-dark": "{wds.core.palette.primary.650}"
-      },
-      "contrast_with": [
-        {
-          "token": "inverse.background.secondary",
-          "min": "4.5:1",
-          "ratio": 5.5
-        }
-      ]
-    },
-    "inverse.icon.link.visited": {
-      "$description": "Link (interactive icon) (visited state), on an inverse surface.",
-      "meaning": "Interactivity / navigation (inverse ground)",
-      "when_to_use": "Hyperlinks and interactive icon after it has been visited. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `icon.link.visited`. Do not use for non-interactive icon (use icon.primary).",
-      "avoid_when_level": "MUST",
-      "mode_overrides": {
         "light": "{wds.core.palette.primary.300}",
         "dark": "{wds.core.palette.primary.600}",
         "hc-light": "{wds.core.palette.primary.200}",
@@ -5292,6 +5332,26 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 6.59
+        }
+      ]
+    },
+    "inverse.icon.link.visited": {
+      "$description": "Link (interactive icon) (visited state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive icon after it has been visited. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.visited`. Do not use for non-interactive icon (use icon.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.100}",
+        "dark": "{wds.core.palette.primary.800}",
+        "hc-light": "{wds.core.palette.primary.025}",
+        "hc-dark": "{wds.core.palette.primary.900}"
+      },
+      "contrast_with": [
+        {
+          "token": "inverse.background.secondary",
+          "min": "4.5:1",
+          "ratio": 12.56
         }
       ]
     },
@@ -5312,6 +5372,26 @@
           "token": "inverse.background.secondary",
           "min": "4.5:1",
           "ratio": 4.56
+        }
+      ]
+    },
+    "inverse.icon.link.pressed": {
+      "$description": "Link (interactive icon) (pressed state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive icon while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.pressed`. Do not use for non-interactive icon (use icon.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{wds.core.palette.primary.200}",
+        "dark": "{wds.core.palette.primary.700}",
+        "hc-light": "{wds.core.palette.primary.100}",
+        "hc-dark": "{wds.core.palette.primary.800}"
+      },
+      "contrast_with": [
+        {
+          "token": "inverse.background.secondary",
+          "min": "4.5:1",
+          "ratio": 9.27
         }
       ]
     },
@@ -6337,13 +6417,19 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.foreground.brand-subtle",
+        "color.icon.link.visited",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.pressed",
         "color.inverse.foreground.brand-subtle",
+        "color.inverse.icon.link.pressed",
+        "color.inverse.icon.link.visited",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.pressed",
-        "color.inverse.interactive.primary.text.pressed"
+        "color.inverse.interactive.primary.text.pressed",
+        "color.inverse.text.link.pressed",
+        "color.inverse.text.link.visited",
+        "color.text.link.visited"
       ]
     },
     "core.palette.primary.150": {
@@ -6352,10 +6438,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.icon.link.visited",
+        "color.icon.link.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
-        "color.text.link.visited"
+        "color.text.link.hover"
       ]
     },
     "core.palette.primary.200": {
@@ -6364,22 +6450,24 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.icon.link.hover",
+        "color.icon.link.pressed",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.icon.hover",
         "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.pressed",
-        "color.inverse.icon.link.visited",
+        "color.inverse.icon.link.hover",
+        "color.inverse.icon.link.pressed",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.hover",
         "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.pressed",
-        "color.inverse.text.link.visited",
-        "color.text.link.hover"
+        "color.inverse.text.link.hover",
+        "color.inverse.text.link.pressed",
+        "color.text.link.pressed"
       ]
     },
     "core.palette.primary.250": {
@@ -6395,9 +6483,7 @@
         "color.icon.link.focused",
         "color.interactive.primary.fill.rest",
         "color.inverse.icon.brand",
-        "color.inverse.icon.link.hover",
         "color.inverse.text.brand",
-        "color.inverse.text.link.hover",
         "color.text.brand",
         "color.text.link.default",
         "color.text.link.focused"
@@ -6409,7 +6495,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.icon.link.visited",
+        "color.icon.link.hover",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.pressed",
@@ -6422,7 +6508,7 @@
         "color.inverse.foreground.brand",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
-        "color.inverse.icon.link.visited",
+        "color.inverse.icon.link.hover",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.hover",
@@ -6431,8 +6517,8 @@
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
         "color.inverse.text.link.focused",
-        "color.inverse.text.link.visited",
-        "color.text.link.visited"
+        "color.inverse.text.link.hover",
+        "color.text.link.hover"
       ]
     },
     "core.palette.primary.350": {
@@ -6442,11 +6528,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.icon.brand-subtle",
-        "color.icon.link.hover",
-        "color.inverse.icon.link.hover",
-        "color.inverse.text.link.hover",
-        "color.text.brand-subtle",
-        "color.text.link.hover"
+        "color.text.brand-subtle"
       ]
     },
     "core.palette.primary.400": {
@@ -6533,13 +6615,9 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.icon.brand",
-        "color.icon.link.hover",
         "color.inverse.icon.brand",
-        "color.inverse.icon.link.hover",
         "color.inverse.text.brand",
-        "color.inverse.text.link.hover",
-        "color.text.brand",
-        "color.text.link.hover"
+        "color.text.brand"
       ]
     },
     "core.palette.primary.600": {
@@ -6548,7 +6626,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.icon.link.visited",
+        "color.icon.link.hover",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.focused",
@@ -6561,7 +6639,7 @@
         "color.inverse.foreground.brand",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
-        "color.inverse.icon.link.visited",
+        "color.inverse.icon.link.hover",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.hover",
@@ -6570,8 +6648,8 @@
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
         "color.inverse.text.link.focused",
-        "color.inverse.text.link.visited",
-        "color.text.link.visited"
+        "color.inverse.text.link.hover",
+        "color.text.link.hover"
       ]
     },
     "core.palette.primary.650": {
@@ -6586,9 +6664,7 @@
         "color.icon.link.focused",
         "color.interactive.primary.fill.rest",
         "color.inverse.icon.brand-subtle",
-        "color.inverse.icon.link.hover",
         "color.inverse.text.brand-subtle",
-        "color.inverse.text.link.hover",
         "color.text.link.default",
         "color.text.link.focused"
       ]
@@ -6600,7 +6676,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.icon.brand",
-        "color.icon.link.hover",
+        "color.icon.link.pressed",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.pressed",
@@ -6610,7 +6686,8 @@
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.pressed",
         "color.inverse.icon.brand",
-        "color.inverse.icon.link.visited",
+        "color.inverse.icon.link.hover",
+        "color.inverse.icon.link.pressed",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.hover",
@@ -6618,9 +6695,10 @@
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.brand",
-        "color.inverse.text.link.visited",
+        "color.inverse.text.link.hover",
+        "color.inverse.text.link.pressed",
         "color.text.brand",
-        "color.text.link.hover"
+        "color.text.link.pressed"
       ]
     },
     "core.palette.primary.750": {
@@ -6629,10 +6707,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.icon.link.visited",
+        "color.icon.link.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
-        "color.text.link.visited"
+        "color.text.link.hover"
       ]
     },
     "core.palette.primary.800": {
@@ -6641,12 +6719,18 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "color.icon.link.visited",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.pressed",
+        "color.inverse.icon.link.pressed",
+        "color.inverse.icon.link.visited",
         "color.inverse.interactive.primary.border.pressed",
         "color.inverse.interactive.primary.icon.pressed",
-        "color.inverse.interactive.primary.text.pressed"
+        "color.inverse.interactive.primary.text.pressed",
+        "color.inverse.text.link.pressed",
+        "color.inverse.text.link.visited",
+        "color.text.link.visited"
       ]
     },
     "core.palette.primary.850": {
@@ -6655,8 +6739,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "color.icon.link.pressed",
         "color.interactive.primary.fill.pressed",
-        "color.interactive.primary.fill.selected"
+        "color.interactive.primary.fill.selected",
+        "color.text.link.pressed"
       ]
     },
     "core.palette.primary.900": {
@@ -6666,20 +6752,32 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.foreground.brand-subtle",
-        "color.inverse.foreground.brand-subtle"
+        "color.inverse.foreground.brand-subtle",
+        "color.inverse.icon.link.visited",
+        "color.inverse.text.link.visited"
       ]
     },
     "core.palette.primary.950": {
       "$description": "Brand primary 950 — Shadow band",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token."
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "color.icon.link.visited",
+        "color.text.link.visited"
+      ]
     },
     "core.palette.primary.025": {
       "$description": "Brand primary 025 — Highlight band",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token."
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "color.icon.link.visited",
+        "color.inverse.icon.link.visited",
+        "color.inverse.text.link.visited",
+        "color.text.link.visited"
+      ]
     },
     "core.palette.primary.050": {
       "$description": "Brand primary 050 — Highlight band",
@@ -6687,8 +6785,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "color.icon.link.pressed",
         "color.interactive.primary.fill.pressed",
-        "color.interactive.primary.fill.selected"
+        "color.interactive.primary.fill.selected",
+        "color.text.link.pressed"
       ]
     },
     "core.palette.neutral.100": {

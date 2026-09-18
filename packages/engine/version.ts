@@ -2926,6 +2926,20 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.110.0 — #1486: link interactive states made perceptible, and a `pressed` link state added. The engaged
+ * link states used to step the action ramp a FIXED 1 rung (hover) / 2 rungs (visited) off the base, which is
+ * barely a perceptual step and imperceptible where a saturated link is pinned near the ramp extreme (a brand
+ * red must clear 4.5:1 AS TEXT, which lands it deep). The states now walk to a PERCEPTUAL interval instead: a
+ * `LINK_STATE_DE` (CIEDE2000) tuned constant (7.0) makes each engaged state ≥ that Δ from the one before, so
+ * `walk` consumes more rungs near a compressed extreme and hover/pressed/visited stay clearly distinct
+ * (~ΔL* 8–12). Depth order default → hover → pressed → visited; `focused` stays a colour no-op. The new
+ * `pressed` leaf lands on all four twins (`text`/`icon` link × page/inverse). Emitted link-state VALUES move
+ * in every brand (nb hover 600→650, visited 650→850, plus the new pressed) → ENGINE bump. CONTRACT bumps
+ * MINOR (11.2.0 → 11.3.0): `link.pressed` adds 4 guaranteed names (text/icon × page/inverse); the value
+ * moves carry no contract. NB's engaged link states now diverge from its hand-authored export (recorded in
+ * `NB_KNOWN_DIVERGENCES`, same owner stance as the relaxed fills: "NB's conservatism is a regression target,
+ * not a reason to keep the bar"); `link/default` is unchanged and still byte-checked.
+ *
  * 0.109.0 — #1260: mint `type.label.lg` (18px at the label tier's own emphasis/600 weight) and re-point
  * `size.large.type` from `type.label.md.emphasis` to `type.label.lg.emphasis` across the button family
  * (button / button-destructive / button-neutral, off the one `makeButton` factory). Before this there
@@ -2987,7 +3001,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.109.0';
+export const ENGINE_VERSION = '0.110.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -3430,6 +3444,15 @@ export const ENGINE_VERSION = '0.109.0';
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
  *
+ * 11.3.0 — #1486 adds FOUR guaranteed names: `color.text.link.pressed`, `color.icon.link.pressed`, and their
+ * `color.inverse.{text,icon}.link.pressed` twins — the new engaged link state. Every corpus brand emits links
+ * (the link block in `buildContent` is unconditional and runs for both the page and inverse grounds, and for
+ * both the text and icon profiles), so all four land in the GUARANTEED intersection, not `brandDependent`. A
+ * pure ADDITION — a new name cannot break an existing reference — so a clean MINOR: 11.2.0 → 11.3.0. Nothing
+ * is removed or retyped. The perceptibility stepping (#1486) moves link-state VALUES only, which carries no
+ * contract (`link.default/hover/visited` keep their names). `token-contract.ts --accept` records the four adds
+ * and refuses unless `CONTRACT_VERSION` was raised by exactly this MINOR first. (#1486)
+ *
  * 11.2.0 — #1260 adds ONE guaranteed name: `type.label.lg.emphasis`, the large-button label rung minted at
  * 18px/emphasis (the body-lg size at the label tier's own weight). The label tier binds Inter in every
  * corpus brand (including `minimal`, which takes the default face), so the new composite lands in the
@@ -3462,7 +3485,7 @@ export const ENGINE_VERSION = '0.109.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '11.2.0';
+export const CONTRACT_VERSION = '11.3.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

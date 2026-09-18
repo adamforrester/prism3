@@ -5886,55 +5886,8 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.650}",
-            "$description": "Link text — hover",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.650",
-                "contrast": 5.99,
-                "against": "neutral.100",
-                "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{hds.core.palette.primary.400}",
-                    "aliasOf": "hds.core.palette.primary.400",
-                    "contrast": 5.46,
-                    "against": "neutral.900",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{hds.core.palette.primary.750}",
-                    "aliasOf": "hds.core.palette.primary.750",
-                    "contrast": 8.53,
-                    "against": "neutral.100",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{hds.core.palette.primary.250}",
-                    "aliasOf": "hds.core.palette.primary.250",
-                    "contrast": 8.62,
-                    "against": "neutral.900",
-                    "min": 7
-                  }
-                },
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                }
-              }
-            }
-          },
-          "visited": {
-            "$type": "color",
             "$value": "{hds.core.palette.primary.700}",
-            "$description": "Link text — visited",
+            "$description": "Link text — hover",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5961,6 +5914,53 @@
                     "$value": "{hds.core.palette.primary.200}",
                     "aliasOf": "hds.core.palette.primary.200",
                     "contrast": 9.93,
+                    "against": "neutral.900",
+                    "min": 7
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "visited": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.900}",
+            "$description": "Link text — visited",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "hds.core.palette.primary.900",
+                "contrast": 12.95,
+                "against": "neutral.100",
+                "min": 4.5,
+                "modes": {
+                  "dark": {
+                    "$value": "{hds.core.palette.primary.150}",
+                    "aliasOf": "hds.core.palette.primary.150",
+                    "contrast": 11.37,
+                    "against": "neutral.900",
+                    "min": 4.5
+                  },
+                  "hc-light": {
+                    "$value": "{hds.core.palette.primary.950}",
+                    "aliasOf": "hds.core.palette.primary.950",
+                    "contrast": 13.97,
+                    "against": "neutral.100",
+                    "min": 7
+                  },
+                  "hc-dark": {
+                    "$value": "{hds.core.palette.primary.025}",
+                    "aliasOf": "hds.core.palette.primary.025",
+                    "contrast": 16.72,
                     "against": "neutral.900",
                     "min": 7
                   }
@@ -6008,6 +6008,53 @@
                     "$value": "{hds.core.palette.primary.300}",
                     "aliasOf": "hds.core.palette.primary.300",
                     "contrast": 7.44,
+                    "against": "neutral.900",
+                    "min": 7
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "pressed": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.800}",
+            "$description": "Link text — pressed",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "hds.core.palette.primary.800",
+                "contrast": 10.11,
+                "against": "neutral.100",
+                "min": 4.5,
+                "modes": {
+                  "dark": {
+                    "$value": "{hds.core.palette.primary.250}",
+                    "aliasOf": "hds.core.palette.primary.250",
+                    "contrast": 8.62,
+                    "against": "neutral.900",
+                    "min": 4.5
+                  },
+                  "hc-light": {
+                    "$value": "{hds.core.palette.primary.900}",
+                    "aliasOf": "hds.core.palette.primary.900",
+                    "contrast": 12.95,
+                    "against": "neutral.100",
+                    "min": 7
+                  },
+                  "hc-dark": {
+                    "$value": "{hds.core.palette.primary.100}",
+                    "aliasOf": "hds.core.palette.primary.100",
+                    "contrast": 13.01,
                     "against": "neutral.900",
                     "min": 7
                   }
@@ -6924,55 +6971,8 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.650}",
-            "$description": "Link icon — hover",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.650",
-                "contrast": 5.99,
-                "against": "neutral.100",
-                "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{hds.core.palette.primary.400}",
-                    "aliasOf": "hds.core.palette.primary.400",
-                    "contrast": 5.46,
-                    "against": "neutral.900",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{hds.core.palette.primary.750}",
-                    "aliasOf": "hds.core.palette.primary.750",
-                    "contrast": 8.53,
-                    "against": "neutral.100",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{hds.core.palette.primary.250}",
-                    "aliasOf": "hds.core.palette.primary.250",
-                    "contrast": 8.62,
-                    "against": "neutral.900",
-                    "min": 7
-                  }
-                },
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                }
-              }
-            }
-          },
-          "visited": {
-            "$type": "color",
             "$value": "{hds.core.palette.primary.700}",
-            "$description": "Link icon — visited",
+            "$description": "Link icon — hover",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -6999,6 +6999,53 @@
                     "$value": "{hds.core.palette.primary.200}",
                     "aliasOf": "hds.core.palette.primary.200",
                     "contrast": 9.93,
+                    "against": "neutral.900",
+                    "min": 7
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "visited": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.900}",
+            "$description": "Link icon — visited",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "hds.core.palette.primary.900",
+                "contrast": 12.95,
+                "against": "neutral.100",
+                "min": 4.5,
+                "modes": {
+                  "dark": {
+                    "$value": "{hds.core.palette.primary.150}",
+                    "aliasOf": "hds.core.palette.primary.150",
+                    "contrast": 11.37,
+                    "against": "neutral.900",
+                    "min": 4.5
+                  },
+                  "hc-light": {
+                    "$value": "{hds.core.palette.primary.950}",
+                    "aliasOf": "hds.core.palette.primary.950",
+                    "contrast": 13.97,
+                    "against": "neutral.100",
+                    "min": 7
+                  },
+                  "hc-dark": {
+                    "$value": "{hds.core.palette.primary.025}",
+                    "aliasOf": "hds.core.palette.primary.025",
+                    "contrast": 16.72,
                     "against": "neutral.900",
                     "min": 7
                   }
@@ -7046,6 +7093,53 @@
                     "$value": "{hds.core.palette.primary.300}",
                     "aliasOf": "hds.core.palette.primary.300",
                     "contrast": 7.44,
+                    "against": "neutral.900",
+                    "min": 7
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "pressed": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.800}",
+            "$description": "Link icon — pressed",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "hds.core.palette.primary.800",
+                "contrast": 10.11,
+                "against": "neutral.100",
+                "min": 4.5,
+                "modes": {
+                  "dark": {
+                    "$value": "{hds.core.palette.primary.250}",
+                    "aliasOf": "hds.core.palette.primary.250",
+                    "contrast": 8.62,
+                    "against": "neutral.900",
+                    "min": 4.5
+                  },
+                  "hc-light": {
+                    "$value": "{hds.core.palette.primary.900}",
+                    "aliasOf": "hds.core.palette.primary.900",
+                    "contrast": 12.95,
+                    "against": "neutral.100",
+                    "min": 7
+                  },
+                  "hc-dark": {
+                    "$value": "{hds.core.palette.primary.100}",
+                    "aliasOf": "hds.core.palette.primary.100",
+                    "contrast": 13.01,
                     "against": "neutral.900",
                     "min": 7
                   }
@@ -15272,55 +15366,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.400}",
-              "$description": "Link text — hover",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.400",
-                  "contrast": 5.46,
-                  "against": "inverse.background.secondary",
-                  "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{hds.core.palette.primary.650}",
-                      "aliasOf": "hds.core.palette.primary.650",
-                      "contrast": 6.81,
-                      "against": "inverse.background.secondary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{hds.core.palette.primary.300}",
-                      "aliasOf": "hds.core.palette.primary.300",
-                      "contrast": 8.72,
-                      "against": "inverse.background.secondary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{hds.core.palette.primary.700}",
-                      "aliasOf": "hds.core.palette.primary.700",
-                      "contrast": 9.96,
-                      "against": "inverse.background.secondary",
-                      "min": 7
-                    }
-                  },
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  }
-                }
-              }
-            },
-            "visited": {
-              "$type": "color",
               "$value": "{hds.core.palette.primary.350}",
-              "$description": "Link text — visited",
+              "$description": "Link text — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -15347,6 +15394,53 @@
                       "$value": "{hds.core.palette.primary.750}",
                       "aliasOf": "hds.core.palette.primary.750",
                       "contrast": 11.78,
+                      "against": "inverse.background.secondary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "visited": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.150}",
+              "$description": "Link text — visited",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.primary.150",
+                  "contrast": 11.37,
+                  "against": "inverse.background.secondary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.primary.900}",
+                      "aliasOf": "hds.core.palette.primary.900",
+                      "contrast": 14.73,
+                      "against": "inverse.background.secondary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.primary.050}",
+                      "aliasOf": "hds.core.palette.primary.050",
+                      "contrast": 17.26,
+                      "against": "inverse.background.secondary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.primary.950}",
+                      "aliasOf": "hds.core.palette.primary.950",
+                      "contrast": 19.3,
                       "against": "inverse.background.secondary",
                       "min": 7
                     }
@@ -15394,6 +15488,53 @@
                       "$value": "{hds.core.palette.primary.650}",
                       "aliasOf": "hds.core.palette.primary.650",
                       "contrast": 8.28,
+                      "against": "inverse.background.secondary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.250}",
+              "$description": "Link text — pressed",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.primary.250",
+                  "contrast": 8.62,
+                  "against": "inverse.background.secondary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.primary.800}",
+                      "aliasOf": "hds.core.palette.primary.800",
+                      "contrast": 11.49,
+                      "against": "inverse.background.secondary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.primary.150}",
+                      "aliasOf": "hds.core.palette.primary.150",
+                      "contrast": 13.33,
+                      "against": "inverse.background.secondary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.primary.850}",
+                      "aliasOf": "hds.core.palette.primary.850",
+                      "contrast": 15.92,
                       "against": "inverse.background.secondary",
                       "min": 7
                     }
@@ -16075,55 +16216,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.400}",
-              "$description": "Link icon — hover",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.400",
-                  "contrast": 5.46,
-                  "against": "inverse.background.secondary",
-                  "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{hds.core.palette.primary.650}",
-                      "aliasOf": "hds.core.palette.primary.650",
-                      "contrast": 6.81,
-                      "against": "inverse.background.secondary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{hds.core.palette.primary.300}",
-                      "aliasOf": "hds.core.palette.primary.300",
-                      "contrast": 8.72,
-                      "against": "inverse.background.secondary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{hds.core.palette.primary.700}",
-                      "aliasOf": "hds.core.palette.primary.700",
-                      "contrast": 9.96,
-                      "against": "inverse.background.secondary",
-                      "min": 7
-                    }
-                  },
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  }
-                }
-              }
-            },
-            "visited": {
-              "$type": "color",
               "$value": "{hds.core.palette.primary.350}",
-              "$description": "Link icon — visited",
+              "$description": "Link icon — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -16150,6 +16244,53 @@
                       "$value": "{hds.core.palette.primary.750}",
                       "aliasOf": "hds.core.palette.primary.750",
                       "contrast": 11.78,
+                      "against": "inverse.background.secondary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "visited": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.150}",
+              "$description": "Link icon — visited",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.primary.150",
+                  "contrast": 11.37,
+                  "against": "inverse.background.secondary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.primary.900}",
+                      "aliasOf": "hds.core.palette.primary.900",
+                      "contrast": 14.73,
+                      "against": "inverse.background.secondary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.primary.050}",
+                      "aliasOf": "hds.core.palette.primary.050",
+                      "contrast": 17.26,
+                      "against": "inverse.background.secondary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.primary.950}",
+                      "aliasOf": "hds.core.palette.primary.950",
+                      "contrast": 19.3,
                       "against": "inverse.background.secondary",
                       "min": 7
                     }
@@ -16197,6 +16338,53 @@
                       "$value": "{hds.core.palette.primary.650}",
                       "aliasOf": "hds.core.palette.primary.650",
                       "contrast": 8.28,
+                      "against": "inverse.background.secondary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{hds.core.palette.primary.250}",
+              "$description": "Link icon — pressed",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "hds.core.palette.primary.250",
+                  "contrast": 8.62,
+                  "against": "inverse.background.secondary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{hds.core.palette.primary.800}",
+                      "aliasOf": "hds.core.palette.primary.800",
+                      "contrast": 11.49,
+                      "against": "inverse.background.secondary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{hds.core.palette.primary.150}",
+                      "aliasOf": "hds.core.palette.primary.150",
+                      "contrast": 13.33,
+                      "against": "inverse.background.secondary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{hds.core.palette.primary.850}",
+                      "aliasOf": "hds.core.palette.primary.850",
+                      "contrast": 15.92,
                       "against": "inverse.background.secondary",
                       "min": 7
                     }
@@ -20907,7 +21095,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.109.0",
+      "version": "0.110.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

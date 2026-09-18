@@ -670,13 +670,13 @@
       "description": "Link text — hover",
       "value": {
         "r": 0,
-        "g": 0.3803921639919281,
-        "b": 0.5333333611488342,
+        "g": 0.3294117748737335,
+        "b": 0.4627451002597809,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/600"
+        "name": "ads/core/palette/accent/650"
       }
     },
     {
@@ -688,13 +688,13 @@
       "description": "Link text — visited",
       "value": {
         "r": 0,
-        "g": 0.3294117748737335,
-        "b": 0.4627451002597809,
+        "g": 0.1411764770746231,
+        "b": 0.21176470816135406,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/650"
+        "name": "ads/core/palette/accent/850"
       }
     },
     {
@@ -713,6 +713,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/core/palette/accent/550"
+      }
+    },
+    {
+      "name": "ads/color/text/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text — pressed",
+      "value": {
+        "r": 0,
+        "g": 0.23137255012989044,
+        "b": 0.3333333432674408,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/750"
       }
     },
     {
@@ -1106,13 +1124,13 @@
       "description": "Link icon — hover",
       "value": {
         "r": 0,
-        "g": 0.4313725531101227,
-        "b": 0.6000000238418579,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/550"
+        "name": "ads/core/palette/accent/600"
       }
     },
     {
@@ -1126,13 +1144,13 @@
       "description": "Link icon — visited",
       "value": {
         "r": 0,
-        "g": 0.3803921639919281,
-        "b": 0.5333333611488342,
+        "g": 0.1882352977991104,
+        "b": 0.2705882489681244,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/600"
+        "name": "ads/core/palette/accent/800"
       }
     },
     {
@@ -1153,6 +1171,26 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/core/palette/accent/500"
+      }
+    },
+    {
+      "name": "ads/color/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon — pressed",
+      "value": {
+        "r": 0,
+        "g": 0.27843138575553894,
+        "b": 0.4000000059604645,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/700"
       }
     },
     {
@@ -4403,14 +4441,14 @@
       ],
       "description": "Link text — hover",
       "value": {
-        "r": 0.33725491166114807,
-        "g": 0.6313725709915161,
-        "b": 0.7960784435272217,
+        "r": 0.4431372582912445,
+        "g": 0.6784313917160034,
+        "b": 0.8156862854957581,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/350"
+        "name": "ads/core/palette/accent/300"
       }
     },
     {
@@ -4421,14 +4459,14 @@
       ],
       "description": "Link text — visited",
       "value": {
-        "r": 0.4431372582912445,
-        "g": 0.6784313917160034,
-        "b": 0.8156862854957581,
+        "r": 0.800000011920929,
+        "g": 0.8705882430076599,
+        "b": 0.9137254953384399,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/300"
+        "name": "ads/core/palette/accent/100"
       }
     },
     {
@@ -4447,6 +4485,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/core/palette/accent/400"
+      }
+    },
+    {
+      "name": "ads/color/inverse/text/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text — pressed",
+      "value": {
+        "r": 0.6274510025978088,
+        "g": 0.772549033164978,
+        "b": 0.8627451062202454,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/200"
       }
     },
     {
@@ -4739,14 +4795,14 @@
       ],
       "description": "Link icon — hover",
       "value": {
-        "r": 0,
-        "g": 0.5333333611488342,
-        "b": 0.7450980544090271,
+        "r": 0.2078431397676468,
+        "g": 0.5843137502670288,
+        "b": 0.7764706015586853,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/450"
+        "name": "ads/core/palette/accent/400"
       }
     },
     {
@@ -4759,14 +4815,14 @@
       ],
       "description": "Link icon — visited",
       "value": {
-        "r": 0.2078431397676468,
-        "g": 0.5843137502670288,
-        "b": 0.7764706015586853,
+        "r": 0.6274510025978088,
+        "g": 0.772549033164978,
+        "b": 0.8627451062202454,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/400"
+        "name": "ads/core/palette/accent/200"
       }
     },
     {
@@ -4787,6 +4843,26 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/core/palette/accent/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon — pressed",
+      "value": {
+        "r": 0.4431372582912445,
+        "g": 0.6784313917160034,
+        "b": 0.8156862854957581,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/300"
       }
     },
     {

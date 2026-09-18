@@ -4723,13 +4723,13 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.600}",
+            "$value": "{nbds.core.palette.red.650}",
             "$description": "Link text — hover",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.palette.red.600",
-                "contrast": 5.64,
+                "aliasOf": "nbds.core.palette.red.650",
+                "contrast": 6.82,
                 "against": "neutral.050",
                 "min": 4.5,
                 "figma": {
@@ -4747,13 +4747,13 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.650}",
+            "$value": "{nbds.core.palette.red.850}",
             "$description": "Link text — visited",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.palette.red.650",
-                "contrast": 6.82,
+                "aliasOf": "nbds.core.palette.red.850",
+                "contrast": 13.42,
                 "against": "neutral.050",
                 "min": 4.5,
                 "figma": {
@@ -4778,6 +4778,30 @@
                 "role": "semantic",
                 "aliasOf": "nbds.core.palette.red.550",
                 "contrast": 4.62,
+                "against": "neutral.050",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "pressed": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.750}",
+            "$description": "Link text — pressed",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.core.palette.red.750",
+                "contrast": 9.94,
                 "against": "neutral.050",
                 "min": 4.5,
                 "figma": {
@@ -5255,13 +5279,13 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.600}",
+            "$value": "{nbds.core.palette.red.650}",
             "$description": "Link icon — hover",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.palette.red.600",
-                "contrast": 5.64,
+                "aliasOf": "nbds.core.palette.red.650",
+                "contrast": 6.82,
                 "against": "neutral.050",
                 "min": 4.5,
                 "figma": {
@@ -5279,13 +5303,13 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{nbds.core.palette.red.650}",
+            "$value": "{nbds.core.palette.red.850}",
             "$description": "Link icon — visited",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.core.palette.red.650",
-                "contrast": 6.82,
+                "aliasOf": "nbds.core.palette.red.850",
+                "contrast": 13.42,
                 "against": "neutral.050",
                 "min": 4.5,
                 "figma": {
@@ -5310,6 +5334,30 @@
                 "role": "semantic",
                 "aliasOf": "nbds.core.palette.red.550",
                 "contrast": 4.62,
+                "against": "neutral.050",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "pressed": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.750}",
+            "$description": "Link icon — pressed",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.core.palette.red.750",
+                "contrast": 9.94,
                 "against": "neutral.050",
                 "min": 4.5,
                 "figma": {
@@ -9566,13 +9614,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.400}",
+              "$value": "{nbds.core.palette.red.350}",
               "$description": "Link text — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.400",
-                  "contrast": 5.52,
+                  "aliasOf": "nbds.core.palette.red.350",
+                  "contrast": 6.44,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "figma": {
@@ -9590,13 +9638,13 @@
             },
             "visited": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.350}",
+              "$value": "{nbds.core.palette.red.150}",
               "$description": "Link text — visited",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.350",
-                  "contrast": 6.44,
+                  "aliasOf": "nbds.core.palette.red.150",
+                  "contrast": 11.5,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "figma": {
@@ -9621,6 +9669,30 @@
                   "role": "semantic",
                   "aliasOf": "nbds.core.palette.red.450",
                   "contrast": 4.66,
+                  "against": "inverse.background.secondary",
+                  "min": 4.5,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.250}",
+              "$description": "Link text — pressed",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.250",
+                  "contrast": 8.7,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "figma": {
@@ -9978,13 +10050,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.400}",
+              "$value": "{nbds.core.palette.red.350}",
               "$description": "Link icon — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.400",
-                  "contrast": 5.52,
+                  "aliasOf": "nbds.core.palette.red.350",
+                  "contrast": 6.44,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "figma": {
@@ -10002,13 +10074,13 @@
             },
             "visited": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.350}",
+              "$value": "{nbds.core.palette.red.150}",
               "$description": "Link icon — visited",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.350",
-                  "contrast": 6.44,
+                  "aliasOf": "nbds.core.palette.red.150",
+                  "contrast": 11.5,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "figma": {
@@ -10033,6 +10105,30 @@
                   "role": "semantic",
                   "aliasOf": "nbds.core.palette.red.450",
                   "contrast": 4.66,
+                  "against": "inverse.background.secondary",
+                  "min": 4.5,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.250}",
+              "$description": "Link icon — pressed",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.250",
+                  "contrast": 8.7,
                   "against": "inverse.background.secondary",
                   "min": 4.5,
                   "figma": {
@@ -14381,7 +14477,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.109.0",
+      "version": "0.110.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

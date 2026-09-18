@@ -669,14 +669,14 @@
       ],
       "description": "Link text — hover",
       "value": {
-        "r": 0.9098039269447327,
-        "g": 0.6392157077789307,
-        "b": 0.6235294342041016,
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/250"
+        "name": "nbds/core/palette/red/200"
       }
     },
     {
@@ -687,14 +687,14 @@
       ],
       "description": "Link text — visited",
       "value": {
-        "r": 0.9215686321258545,
-        "g": 0.7058823704719543,
-        "b": 0.6941176652908325,
+        "r": 0.9960784316062927,
+        "g": 0.95686274766922,
+        "b": 0.9529411792755127,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/200"
+        "name": "nbds/core/palette/red/025"
       }
     },
     {
@@ -713,6 +713,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/palette/red/300"
+      }
+    },
+    {
+      "name": "nbds/color/text/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text — pressed",
+      "value": {
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8274509906768799,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/100"
       }
     },
     {
@@ -1105,14 +1123,14 @@
       ],
       "description": "Link icon — hover",
       "value": {
-        "r": 0.9098039269447327,
-        "g": 0.6392157077789307,
-        "b": 0.6235294342041016,
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/250"
+        "name": "nbds/core/palette/red/200"
       }
     },
     {
@@ -1125,14 +1143,14 @@
       ],
       "description": "Link icon — visited",
       "value": {
-        "r": 0.9215686321258545,
-        "g": 0.7058823704719543,
-        "b": 0.6941176652908325,
+        "r": 0.9960784316062927,
+        "g": 0.95686274766922,
+        "b": 0.9529411792755127,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/200"
+        "name": "nbds/core/palette/red/025"
       }
     },
     {
@@ -1153,6 +1171,26 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/palette/red/300"
+      }
+    },
+    {
+      "name": "nbds/color/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon — pressed",
+      "value": {
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8274509906768799,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/100"
       }
     },
     {
@@ -4403,14 +4441,14 @@
       ],
       "description": "Link text — hover",
       "value": {
-        "r": 0.5411764979362488,
+        "r": 0.45098039507865906,
         "g": 0,
-        "b": 0.0941176488995552,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/700"
+        "name": "nbds/core/palette/red/750"
       }
     },
     {
@@ -4421,14 +4459,14 @@
       ],
       "description": "Link text — visited",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.13725490868091583,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.007843137718737125,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/950"
       }
     },
     {
@@ -4447,6 +4485,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/palette/red/650"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/text/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text — pressed",
+      "value": {
+        "r": 0.2862745225429535,
+        "g": 0,
+        "b": 0.0313725508749485,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/850"
       }
     },
     {
@@ -4739,14 +4795,14 @@
       ],
       "description": "Link icon — hover",
       "value": {
-        "r": 0.5411764979362488,
+        "r": 0.45098039507865906,
         "g": 0,
-        "b": 0.0941176488995552,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/700"
+        "name": "nbds/core/palette/red/750"
       }
     },
     {
@@ -4759,14 +4815,14 @@
       ],
       "description": "Link icon — visited",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.13725490868091583,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.007843137718737125,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/950"
       }
     },
     {
@@ -4787,6 +4843,26 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/palette/red/650"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon — pressed",
+      "value": {
+        "r": 0.2862745225429535,
+        "g": 0,
+        "b": 0.0313725508749485,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/850"
       }
     },
     {

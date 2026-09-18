@@ -669,14 +669,14 @@
       ],
       "description": "Link text — hover",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.0235294122248888,
-        "b": 0.15294118225574493,
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.125490203499794,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/550"
+        "name": "wds/core/palette/primary/600"
       }
     },
     {
@@ -687,14 +687,14 @@
       ],
       "description": "Link text — visited",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.3333333432674408,
         "g": 0,
-        "b": 0.125490203499794,
+        "b": 0.0470588244497776,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/600"
+        "name": "wds/core/palette/primary/800"
       }
     },
     {
@@ -713,6 +713,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "wds/core/palette/primary/500"
+      }
+    },
+    {
+      "name": "wds/color/text/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text — pressed",
+      "value": {
+        "r": 0.47843137383461,
+        "g": 0,
+        "b": 0.08627451211214066,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/palette/primary/700"
       }
     },
     {
@@ -1105,14 +1123,14 @@
       ],
       "description": "Link icon — hover",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.0235294122248888,
-        "b": 0.15294118225574493,
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.125490203499794,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/550"
+        "name": "wds/core/palette/primary/600"
       }
     },
     {
@@ -1125,14 +1143,14 @@
       ],
       "description": "Link icon — visited",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.3333333432674408,
         "g": 0,
-        "b": 0.125490203499794,
+        "b": 0.0470588244497776,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/600"
+        "name": "wds/core/palette/primary/800"
       }
     },
     {
@@ -1153,6 +1171,26 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "wds/core/palette/primary/500"
+      }
+    },
+    {
+      "name": "wds/color/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon — pressed",
+      "value": {
+        "r": 0.47843137383461,
+        "g": 0,
+        "b": 0.08627451211214066,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/palette/primary/700"
       }
     },
     {
@@ -4403,14 +4441,14 @@
       ],
       "description": "Link text — hover",
       "value": {
-        "r": 0.8509804010391235,
-        "g": 0.43529412150382996,
-        "b": 0.4274509847164154,
+        "r": 0.8705882430076599,
+        "g": 0.5176470875740051,
+        "b": 0.5058823823928833,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/350"
+        "name": "wds/core/palette/primary/300"
       }
     },
     {
@@ -4421,14 +4459,14 @@
       ],
       "description": "Link text — visited",
       "value": {
-        "r": 0.8705882430076599,
-        "g": 0.5176470875740051,
-        "b": 0.5058823823928833,
+        "r": 0.9411764740943909,
+        "g": 0.8196078538894653,
+        "b": 0.8117647171020508,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/300"
+        "name": "wds/core/palette/primary/100"
       }
     },
     {
@@ -4447,6 +4485,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "wds/core/palette/primary/400"
+      }
+    },
+    {
+      "name": "wds/color/inverse/text/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text — pressed",
+      "value": {
+        "r": 0.9058823585510254,
+        "g": 0.6745098233222961,
+        "b": 0.658823549747467,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/palette/primary/200"
       }
     },
     {
@@ -4739,14 +4795,14 @@
       ],
       "description": "Link icon — hover",
       "value": {
-        "r": 0.8509804010391235,
-        "g": 0.43529412150382996,
-        "b": 0.4274509847164154,
+        "r": 0.8705882430076599,
+        "g": 0.5176470875740051,
+        "b": 0.5058823823928833,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/350"
+        "name": "wds/core/palette/primary/300"
       }
     },
     {
@@ -4759,14 +4815,14 @@
       ],
       "description": "Link icon — visited",
       "value": {
-        "r": 0.8705882430076599,
-        "g": 0.5176470875740051,
-        "b": 0.5058823823928833,
+        "r": 0.9411764740943909,
+        "g": 0.8196078538894653,
+        "b": 0.8117647171020508,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/primary/300"
+        "name": "wds/core/palette/primary/100"
       }
     },
     {
@@ -4787,6 +4843,26 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "wds/core/palette/primary/400"
+      }
+    },
+    {
+      "name": "wds/color/inverse/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon — pressed",
+      "value": {
+        "r": 0.9058823585510254,
+        "g": 0.6745098233222961,
+        "b": 0.658823549747467,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/palette/primary/200"
       }
     },
     {
