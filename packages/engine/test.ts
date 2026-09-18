@@ -9324,6 +9324,35 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(validateComponentDef(scaleOnBox).errors.some((e) => /declares 'glyphScale'/.test(e) && /kind 'box'/.test(e) && /only a 'vector'/.test(e)),
       `#1409 glyphScale on a NON-vector part (the control box, an in-range 0.8) is refused BY NAME — deleting the wrong-kind arm lets the field validate clean and be silently ignored (got [${validateComponentDef(scaleOnBox).errors.filter((e) => /glyphScale/.test(e)).join('; ')}])`);
 
+    // ---- #1515: `ratio` is a legitimate footprint-mover, exempted BY the aspect lock (docs/34) ----
+    // The aspect-ratio lock derives a DIFFERENT height per ratio (720×720 / 720×540 / 720×405), so the
+    // footprint cohort must PARTITION the three members rather than compare them. Owner QA read the missing
+    // partition back as two misses (4:3 and 16:9 "differing from" 1:1). `footprintVaries: ['ratio']` is the
+    // fix — the field-message/#1010 mechanism, but the reason it validates is the frame's `aspectRatio` lock,
+    // not a `presentWhen`-gated part. Three arms: the exemption is DECLARED, it REACHES the engine's cohort
+    // key (each ratio its own cohort, which is what clears the misses), and the validator's new aspect-lock
+    // acceptance is LOAD-BEARING — strip the lock and `ratio` moves the box for no reason, so it is refused
+    // BY NAME. EXPECTED is authored here; the SUBJECT is the real def (and its mutant), not one derivation.
+    {
+      // (a) the real def declares the exemption over its one axis.
+      ok((imgPlaceholder.figmaProperties?.footprintVaries ?? []).join(',') === 'ratio',
+        `#1515 image-placeholder declares footprintVaries: ['ratio'] (got [${(imgPlaceholder.figmaProperties?.footprintVaries ?? []).join(', ')}]) — the aspect lock moves the box per ratio, so the cohort must partition it`);
+      // (b) THE EXEMPTION REACHES THE COHORT KEY — every ratio is its own cohort, so the footprint read-back
+      // (`write-components.ts`, exercised by `test-roundtrip.ts`) only ever compares members that share a
+      // group and the two QA misses cannot recur. The same assertion shape field-message's #1010 block makes.
+      const ipGroups = planSetLayout(figmaAnatomySet(imgPlaceholder, {}), 'test').cells.map((c) => c.group).join(' | ');
+      ok(ipGroups === 'ratio=1:1 | ratio=4:3 | ratio=16:9',
+        `#1515 image-placeholder: the declared exemption reaches the engine's cohort key — every ratio is its own cohort, so the footprint read-back no longer compares 720×540 against 720×720 (got '${ipGroups}')`);
+      // (c) MUTATION — DROP THE ASPECT LOCK. `ratio` still projects and still carries `footprintVaries`, but
+      // with no `aspectRatio` deriving from it and no `presentWhen` gating it, nothing about the box varies,
+      // so the exemption is a blanket the validator must refuse BY NAME. Deleting the `|| p.aspectRatio ===
+      // axis` clause (the acceptance this PR adds) turns this refusal off and leaves the arm red — proving
+      // the acceptance is load-bearing on the lock, not a hole that exempts the whole def.
+      const noLock = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, frame: { ...imgPlaceholder.anatomy.parts.frame, aspectRatio: undefined } } } } as ComponentDef;
+      ok(figmaPropertyErrors(noLock).some((e) => /footprintVaries: 'ratio' neither gates a part/.test(e) && /aspect-ratio lock/.test(e)),
+        `#1515 MUTATION: with the frame's aspectRatio lock removed, 'ratio' moves the box for no reason and footprintVaries: ['ratio'] is refused BY NAME (got [${figmaPropertyErrors(noLock).filter((e) => /footprintVaries/.test(e)).join('; ') || 'NOTHING — the aspect-lock acceptance became a blanket'}])`);
+    }
+
     // ---- #1424: the labelled ROW wraps a long label instead of overflowing ----
     // Prism 2's radio-button-row / checkbox-row let a long label WRAP to a second line with the control
     // top-anchored (the description text is `layoutSizingHorizontal: FILL`). The engine expresses that as
@@ -9643,6 +9672,26 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       `#1437 MUTATION basis: reverting select's binding to size.md.height would resolve ${aMd.height.$extensions.prism3.px}px on a compact brand — below the ${AAA_TARGET_PX}px target, the regression the floor binding prevents`);
   }
 
+  // ---- #1517: warning/success swap the SELECT border too (Prism 2 parity, mirrors text-field) ----
+  // Until #1517 only `error` swapped the select border; warning/success were message-only. Now each
+  // non-default status colours its own boundary, bound per non-disabled state (select's are rest / hover /
+  // focus-visible / empty — no read-only state). `error` maps to `danger`, `warning`/`success` to their
+  // own roles. Pinned so a dropped key or a wrong-role repoint fails by name; the SAME status-led model as
+  // text-field, one def over.
+  {
+    const nonDisabled = ['rest', 'hover', 'focus-visible', 'empty'];
+    ok(nonDisabled.every((s) => select.tokens![`error.border.${s}`] === 'color.border.danger'),
+      '#1517 select error is a status-led border-only swap (error.border.* → border.danger) per non-disabled state');
+    ok(nonDisabled.every((s) => select.tokens![`warning.border.${s}`] === 'color.border.warning'),
+      '#1517 select warning swaps the border (warning.border.* → border.warning) per non-disabled state');
+    ok(nonDisabled.every((s) => select.tokens![`success.border.${s}`] === 'color.border.success'),
+      '#1517 select success swaps the border (success.border.* → border.success) per non-disabled state');
+    // No per-status MESSAGE ink is re-declared here — those live in field-message, nested and followed. Every
+    // status-led key is a `.border.` key, so a stray `warning.label` re-declaration fails.
+    ok(Object.keys(select.tokens!).filter((k) => /^(error|warning|success)\./.test(k)).every((k) => /^(error|warning|success)\.border\./.test(k)),
+      '#1517 select declares no per-status message inks — every status-led key is a border swap');
+  }
+
   // ---- #1438: the composed FieldLabel is NEST-EXPOSED (owner-decided 2026-09-15) ----
   // The label nest exposes field-label's author axes; marking the instance exposed ALSO surfaces its label
   // text + required in Figma (the host-truth for that lives in #1392, which now includes select, and in
@@ -9838,13 +9887,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // ramps and the message's per-tone inks — so it now reads the thing it means.
   ok(!Object.values(textField.tokens).some((v) => /^type\.(label|caption)\./.test(String(v))), 'component: TextField binds input chrome only — no label/caption TYPE ramps (those live in the part defs)');
   // #1494 — validation is the `status` axis now (mirroring select), so the ONLY per-status keys this def
-  // declares are its border-only error swap (`error.border.*`). It still declares no per-status MESSAGE inks
-  // (`error.label`/`error.icon`, `warning.*`, `success.*`): those live in field-message, which this def
-  // nests and drives by `follow`. Asserted as "every status-led key is an error-border key" so a stray
-  // `warning.label` re-declaration would fail rather than pass a bare "no status keys" that the error swap
-  // now legitimately violates.
-  ok(Object.keys(textField.tokens).filter((k) => /^(error|warning|success)\./.test(k)).every((k) => k.startsWith('error.border.'))
-    && Object.keys(textField.tokens).some((k) => k.startsWith('error.border.')), 'component: TextField declares no per-status MESSAGE inks — its only status-led keys are the error border swap (#1494)');
+  // declares are border swaps. #1517 (Prism 2 parity) extended the swap from `error` ONLY to `warning` and
+  // `success` too, so every non-default status colours its own boundary (`{error,warning,success}.border.*`).
+  // It still declares no per-status MESSAGE inks (`error.label`/`error.icon`, `warning.label`, `success.icon`,
+  // …): those live in field-message, which this def nests and drives by `follow`. Asserted as "every status-led
+  // key is a `.border.` key" so a stray `warning.label` re-declaration would fail, while the legitimate border
+  // swaps pass — a bare "no status keys" would wrongly reject the whole feature.
+  ok(Object.keys(textField.tokens).filter((k) => /^(error|warning|success)\./.test(k)).every((k) => /^(error|warning|success)\.border\./.test(k))
+    && Object.keys(textField.tokens).some((k) => k.startsWith('error.border.')), 'component: TextField declares no per-status MESSAGE inks — its only status-led keys are the border swaps (#1494/#1517)');
   ok(textField.tokens['border'] === 'color.field.border.rest' && textField.tokens['border.hover'] === 'color.field.border.hover', 'component: TextField binds the stateful field border (bare border = rest, + border.hover) (#1494)');
   // read-only ≠ disabled — the live edge: read-only keeps full-contrast text.primary, not a dimmed disabled ink.
   ok(textField.tokens['label'] === 'color.text.primary' && textField.tokens['border.read-only'] === 'color.border.secondary', 'component: TextField read-only stays full-contrast (text.primary + border.secondary), not disabled.*');
@@ -9856,6 +9906,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // #1494 — `error` is a status VALUE now, not a state, so the swap is status-led (`error.border.{state}`)
   // and bound per non-disabled state so it persists through hover/focus/read-only. Checked at two coordinates.
   ok(textField.tokens['error.border.rest'] === 'color.border.danger' && textField.tokens['error.border.focus-visible'] === 'color.border.danger', 'component: TextField error is a status-led border-only swap (error.border.* → border.danger) (#1494)');
+  // #1517 (Prism 2 parity) — `warning` and `success` now swap the border TOO, each to its OWN role, bound
+  // per non-disabled state exactly like `error`. Pinned at two coordinates each so a dropped key or a
+  // wrong-role repoint fails by name. The five non-disabled states are rest / hover / focus-visible /
+  // read-only / empty (pending is deliberately unbound).
+  ok(['rest', 'hover', 'focus-visible', 'read-only', 'empty'].every((s) => textField.tokens[`warning.border.${s}`] === 'color.border.warning'),
+    'component: TextField warning is a status-led border-only swap (warning.border.* → border.warning) per non-disabled state (#1517)');
+  ok(['rest', 'hover', 'focus-visible', 'read-only', 'empty'].every((s) => textField.tokens[`success.border.${s}`] === 'color.border.success'),
+    'component: TextField success is a status-led border-only swap (success.border.* → border.success) per non-disabled state (#1517)');
   // FieldMessage: every validation status re-points BOTH ink + icon at the matching semantic role.
   // `${status}.label`, not `${status}.text`, since #784 — the SLOT segment has to be the word the projector
   // dispatches for a text node. The ROLE it points at is still `color.text.<role>`; those are two
@@ -16531,9 +16589,11 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
   // THE SEGMENT THE THREE ARMS ABOVE CANNOT SEE (#1010). `focus-ring` declares no `footprintVaries`, so
   // both sides append nothing and the parity holds byte-identically whether the payload honors the list,
-  // ignores it, or spells it wrong — the two derivations agree about a segment neither one emits. So the
-  // one def in the corpus that DOES declare an exemption is asserted here, and it is not coverage for its
-  // own sake: it is the only place the new segment exists to disagree about.
+  // ignores it, or spells it wrong — the two derivations agree about a segment neither one emits. So a def
+  // that DOES declare an exemption is asserted here, and it is not coverage for its own sake: it is the only
+  // place the new segment exists to disagree about. `field-message` (`['status']`) is the one used because it
+  // also exercises the CHUNKED payload; `image-placeholder` (`['ratio']`, #1515) is the second such def, its
+  // cohort-key partition pinned in its own block above.
   const fmLayout = planSetLayout(figmaAnatomySet(fieldMessage, { swapTarget: 'FPO-default-icon' }), 'test');
   const fmGroups = fmLayout.cells.map((c) => c.group).join(' | ');
   ok(fmGroups === 'status=default | status=error | status=warning | status=success',

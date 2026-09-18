@@ -124,6 +124,42 @@ const memberRelative = (fullPath: string): string => {
   return `/${segs.slice(1).join('/')}`;
 };
 
+/** DERIVE THE BRAND ROOT the live file materialized under (#1522). The ledger is built from
+ *  `figmaAnatomyPlan`, which is PRE-materialization — its variable names are root-less (`color/...`).
+ *  The live file is POST-materialization: `materialization-renames.ts:228` (#1097) prepends `${root}/`
+ *  to every variable name (`test.ts:120` asserts it), so a CLEAN file's bound names are exactly
+ *  `${root}/${ledgerName}`. Comparing the two sides raw reports 100% false WRONG-TOKEN differing only by
+ *  that leading segment. The root is a configurable LEVER (ads/hds/wds/nbds/prism/…), so we DERIVE it —
+ *  never hardcode `ads` — the same way #1097 defines it: the leading segment the materialization ADDED,
+ *  i.e. present on the file's bound names but ABSENT from the ledger's own top-level groups (`color`).
+ *  Keying off the ledger's groups is what tells a real brand root (`ads`) apart from a ledger group a
+ *  root-less export leads with (`color`), so a root-less export derives NO root and normalizes to a
+ *  no-op — which is why the pre-existing root-less selftest arms still hold. Modal among the candidates,
+ *  so a lone drifted bind pointing under a different first segment cannot outvote the real root and its
+ *  drift still surfaces. Returns null when the export binds nothing rooted (nothing to normalize). */
+export const deriveRoot = (ledger: Ledger, exp: BindingExport): string | null => {
+  const ledgerGroups = new Set<string>();
+  for (const members of Object.values(ledger.components))
+    for (const m of members) for (const b of m.bindings) ledgerGroups.add(b.variable.split('/')[0]);
+  const tally = new Map<string, number>();
+  for (const en of exp.nodes)
+    for (const v of Object.values(en.fields)) {
+      if (!v || v === UNBOUND) continue;
+      const seg = v.split('/')[0];
+      if (!ledgerGroups.has(seg)) tally.set(seg, (tally.get(seg) ?? 0) + 1);
+    }
+  let root: string | null = null;
+  let best = 0;
+  for (const [seg, n] of tally) if (n > best) { best = n; root = seg; }
+  return root;
+};
+
+/** Strip the derived brand root from one bound variable name so it lines up with the root-less ledger.
+ *  A name that does NOT wear the root is left intact — so a bind un-rooted or rooted differently than
+ *  the file's own root still mismatches and surfaces, rather than being silently normalized away. */
+const stripRoot = (variable: string, root: string | null): string =>
+  root && variable.startsWith(`${root}/`) ? variable.slice(root.length + 1) : variable;
+
 /** THE DIFF. Pure: a ledger + an export in, a result out — the whole reason it is fixture-testable
  *  apart from the reporter and from any live file. */
 export const reconcile = (ledger: Ledger, exp: BindingExport): ReconcileResult => {
@@ -144,6 +180,10 @@ export const reconcile = (ledger: Ledger, exp: BindingExport): ReconcileResult =
       }
     }
   }
+
+  // Normalize the brand root the materialization ADDED (#1522) so the root-less ledger and the rooted
+  // live file compare like-for-like. Derived from this export, never hardcoded — see `deriveRoot`.
+  const root = deriveRoot(ledger, exp);
 
   const counts: Record<Verdict, number> = { MATCH: 0, 'WRONG-TOKEN': 0, UNBOUND: 0, EXTRA: 0, 'UNKNOWN-NODE': 0 };
   const findings: Finding[] = [];
@@ -175,7 +215,8 @@ export const reconcile = (ledger: Ledger, exp: BindingExport): ReconcileResult =
 
     coveredMemberKeys.add(memberKey);
 
-    // Expected fields at this node, compared against what the export reports.
+    // Expected fields at this node, compared against what the export reports. The file's bound name is
+    // root-normalized (#1522) so a materialized `${root}/color/...` lines up with the root-less ledger.
     for (const [field, want] of expFields) {
       const actual = en.fields[field];
       if (actual === undefined) continue; // field not inspected by the snippet here → not covered
@@ -183,11 +224,11 @@ export const reconcile = (ledger: Ledger, exp: BindingExport): ReconcileResult =
       if (actual === UNBOUND) {
         counts.UNBOUND++;
         findings.push({ verdict: 'UNBOUND', component: en.component, member: en.member, node: en.node, field, want });
-      } else if (actual === want) {
+      } else if (stripRoot(actual, root) === want) {
         counts.MATCH++;
       } else {
         counts['WRONG-TOKEN']++;
-        findings.push({ verdict: 'WRONG-TOKEN', component: en.component, member: en.member, node: en.node, field, got: actual, want });
+        findings.push({ verdict: 'WRONG-TOKEN', component: en.component, member: en.member, node: en.node, field, got: stripRoot(actual, root), want });
       }
     }
 
@@ -354,8 +395,22 @@ const selftest = (): void => {
   const firstNode = rel(first.node);
   const otherVar = allVars.find((v) => v !== first.variable)!; // a DIFFERENT but valid ledger variable
 
+  // Prepend a brand root to every bound value, exactly as #1097 materialization does to the plan's
+  // root-less names — a synthetic stand-in for the live NB `ads/` root. `ROOT` is not a ledger group,
+  // so `deriveRoot` picks it up; a clean rooted export must now normalize back to all-MATCH (it was
+  // 100% WRONG-TOKEN before #1522), and a rooted export with one wrong bind must still surface it.
+  const ROOT = 'ads';
+  const rooted = (nodes: ExportNode[]): ExportNode[] =>
+    clone(nodes).map((n) => ({ ...n, fields: Object.fromEntries(Object.entries(n.fields).map(([f, v]) => [f, `${ROOT}/${v}`])) as ExportNode['fields'] }));
+
   const scenarios: { name: string; exp: BindingExport; expect: Partial<Record<Verdict, number>> }[] = [
     { name: 'all-correct → all MATCH', exp: mk(clone(allCorrectNodes)), expect: { MATCH: picked.bindings.length, 'WRONG-TOKEN': 0, UNBOUND: 0, EXTRA: 0, 'UNKNOWN-NODE': 0 } },
+    { name: 'root-prefixed but correct → all MATCH (#1522, was 100% WRONG-TOKEN)', exp: mk(rooted(allCorrectNodes)), expect: { MATCH: picked.bindings.length, 'WRONG-TOKEN': 0, UNBOUND: 0, EXTRA: 0, 'UNKNOWN-NODE': 0 } },
+    {
+      name: 'root-prefixed with one wrong → exactly one WRONG-TOKEN (#1522 — normalization must not mask drift)',
+      exp: (() => { const n = rooted(allCorrectNodes); n.find((x) => x.node === firstNode)!.fields[first.field] = `${ROOT}/${otherVar}`; return mk(n); })(),
+      expect: { 'WRONG-TOKEN': 1, MATCH: picked.bindings.length - 1, UNBOUND: 0, EXTRA: 0, 'UNKNOWN-NODE': 0 },
+    },
     {
       name: 'one wrong-but-valid → exactly one WRONG-TOKEN',
       exp: (() => { const n = clone(allCorrectNodes); n.find((x) => x.node === firstNode)!.fields[first.field] = otherVar; return mk(n); })(),

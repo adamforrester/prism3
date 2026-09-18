@@ -265,7 +265,10 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
   // border is bound PER non-disabled state (rest / hover / focus-visible / empty) so the swap persists
   // rather than yielding to the neutral interactive border, which is why there are four keys and not one
   // — the status template is 3-segment to avoid colliding with the 2-segment state keys (see `select.ts`).
-  // `default`/`warning`/`success` bind no status-led border, so these four are the only select keys arm 1 examines.
+  // ONLY `error` is exempt here. Since #1517 (Prism 2 parity) `warning`/`success` ALSO bind status-led
+  // borders (`warning.border.*` → `color.border.warning`, `success.border.*` → `color.border.success`), but
+  // those are SAME-family — the ref carries the axis value as a segment — so arm 1's normal rule covers them
+  // and they take NO exception (line 506-507 would flag a stale one). `default` binds no status-led border.
   'select|error.border.rest':
     "status `error` maps to the `danger` border role — the rest coordinate of select's border-only error swap",
   'select|error.border.hover':
@@ -279,9 +282,11 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
   // name for that boundary colour — the same axis-value→role mapping select's `error.border.*` records, one
   // def over (#1494). Bound PER non-disabled state (rest / hover / focus-visible / read-only / empty) so the
   // danger boundary persists through hover, focus and read-only rather than yielding to the neutral interactive
-  // border; `default`/`warning`/`success` bind no status-led border, so these five are the only text-field
-  // keys arm 1 examines. `pending` is deliberately unbound (async validation in progress does not assert the
-  // boundary), so there is no `text-field|error.border.pending` entry.
+  // border. ONLY `error` is exempt here. Since #1517 (Prism 2 parity) `warning`/`success` ALSO bind status-led
+  // borders (→ `color.border.warning` / `color.border.success`), but those are SAME-family and satisfy arm 1's
+  // normal rule, so they take NO exception (a stale one would be flagged, line 506-507). `default` binds none.
+  // `pending` is deliberately unbound (async validation in progress does not assert the boundary), so there is
+  // no `text-field|{status}.border.pending` entry for any status.
   'text-field|error.border.rest':
     "status `error` maps to the `danger` border role — the rest coordinate of text-field's border-only error swap",
   'text-field|error.border.hover':

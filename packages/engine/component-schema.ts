@@ -834,9 +834,11 @@ export type FigmaProperties = {
    *  whose ancestors hug) would change `checkbox`'s cohort silently the day someone unbound the control's
    *  size. Declared, so it is reviewable and so the reason lives with the def that claims it.
    *
-   *  Validated as a projected axis AND as one some part's `presentWhen` gates — an exemption over an axis
-   *  where nothing structurally varies is a blanket, and the second def to need this for a different
-   *  reason should have to change the check rather than inherit a hole. */
+   *  Validated as a projected axis AND as one along which the box legitimately moves — either a part's
+   *  `presentWhen` gates it (#1010, field-message) or a box derives its `aspectRatio` lock from it (#1515,
+   *  image-placeholder). An exemption over an axis where nothing about the box varies is a blanket, and the
+   *  third def to need this for a NEW reason should have to add that reason to the check rather than inherit
+   *  a hole. */
   footprintVaries?: string[];
   /** prop name → the part whose `visible` this BOOLEAN drives (#1331). A NODE-VISIBILITY toggle: the
    *  part is EMITTED at every member and its `visible` is driven by the boolean — NOT a variant axis that
@@ -1468,15 +1470,20 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // TWO conditions, and the second is what keeps the field from becoming a way to switch the footprint
   // rule off. PROJECTED, for `gridAxis`'s reason: an axis Figma does not carry writes no segment into the
   // member name, so the payload cannot parse it back out and the two cohort derivations would disagree.
-  // And GATED BY `presentWhen`, because that is the only mechanism by which a variant changes which nodes
-  // a member has — a def whose box moves for some other reason should have to extend this check and say
-  // what the reason is, rather than reach an exemption that was written for a different one.
+  // And the axis must be one along which the box LEGITIMATELY moves, by one of the two mechanisms the
+  // engine has for moving it: a part `presentWhen`-gated on the axis (a variant adds or drops a node — the
+  // field-message/#1010 case), or a box whose `aspectRatio` lock is DERIVED from the axis (the ratio
+  // changes the frame's proportion so its height moves per member — the image-placeholder/#1515 case). An
+  // axis that does neither leaves nothing about the box varying, so exempting it would switch the footprint
+  // rule off for the whole def — the blanket this condition exists to refuse. A def whose box moves for a
+  // THIRD reason should extend this list and name the reason here, never reach an exemption written for a
+  // different one.
   for (const axis of fp.footprintVaries ?? []) {
     const names = figmaAxisNames(def);
     if (!names.includes(axis))
       e.push(`figmaProperties.footprintVaries: '${axis}' is not an axis this def projects [${names.join(', ')}] — an exempted axis Figma does not carry cannot be recovered from the member name`);
-    else if (!Object.values(parts).some((p) => axis in (p.presentWhen ?? {})))
-      e.push(`figmaProperties.footprintVaries: '${axis}' gates no part (\`presentWhen\`) — nothing structurally varies along it, so exempting it from the footprint comparison would exempt the whole def for no stated reason`);
+    else if (!Object.values(parts).some((p) => axis in (p.presentWhen ?? {}) || p.aspectRatio === axis))
+      e.push(`figmaProperties.footprintVaries: '${axis}' neither gates a part (\`presentWhen\`) nor drives a box's aspect-ratio lock (\`aspectRatio\`) — nothing about the box varies along it, so exempting it from the footprint comparison would exempt the whole def for no stated reason`);
   }
 
   // ---- the part-targeting maps ----
