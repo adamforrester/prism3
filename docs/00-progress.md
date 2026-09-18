@@ -7,6 +7,24 @@
 
 ---
 
+## (2026-09-18) — studio control-shape preset picker: selected card follows the #439 inset-ring pattern, not an outset ring (#1477)
+
+**STATUS: PR open on branch `lane/1477-studio-selected`, do NOT merge (orchestrator verifies + merges). Studio-surface only — no engine/token change, no version bump.** Owner QA find (2026-09-17).
+
+**THE DEFECT (grounded, owner QA).** On the Size & radius page, the control-shape preset picker (Boxed / Hairline / Rounded / Pill) marked the SELECTED card with `cell.style.outline = '2px solid currentColor'` set inline in `paintControlShapePreview` (`apps/studio/src/main.ts`). An `outline` is painted OUTSIDE the border box, so the 2px ink ring sat tight against — and appeared to touch — the preview silhouette and the adjacent cell, reading like a stray focus ring rather than a considered selection affordance. It is exactly the treatment #439 rejected for the mode chip.
+
+**THE PATTERN IT NOW MATCHES (#439, `styles.css` ~:823-835).** The app already has a decided selection treatment on `.mctx-b.on`: a `--panel` (white) ground + an ink border + an **INSET** 1px ring (`box-shadow: inset 0 0 0 1px var(--ink)`), deliberately chosen so selection is findable "without out-shouting the page," and deliberately inset because an outset ring painted outside the box gets clipped or collides. The preset card was doing the thing that note rejects.
+
+**THE FIX (surgical, one specimen).** Replaced the two inline `cell.style.*` lines with a class toggle: the selected cell now carries `.on`, and the list carries a `rad-shapes` modifier (kept in the `rad-` scope so the mint law / `checkScope` accepts it without a `mix()`). Two CSS rules, scoped to `.rad-shapes` so the corner-radius ramp above — which shares `.rad-*` but never has a selected state — is untouched:
+- `.rad-shapes .rad-cell` reserves a 1px **transparent** border + `--r-sm` radius + `11px 13px` padding, so selecting a card shifts NO layout and the ring can never touch the silhouette.
+- `.rad-shapes .rad-cell.on` fills in `--panel` ground + `--ink` border + `inset 0 0 0 1px var(--ink)` — byte-for-byte the #439 treatment (2px of contiguous ink, entirely inside the border box).
+
+**MODE COVERAGE.** This specimen paints from the studio-CHROME tokens (`--ink`/`--panel`), which are a single fixed light palette (`:root` only — the studio UI has no dark/HC chrome; the mode bar re-resolves the *preview*, not the chrome). So the selected card renders identically in light, dark and HC — verified by a Playwright probe reading the computed style of the selected `.rad-cell.on`: `outline: none`, `box-shadow: rgb(24,24,27) 0 0 0 1px inset`, `border: 1px solid rgb(24,24,27)`, `background: rgb(255,255,255)`, one selected cell of four.
+
+**VERIFICATION.** Studio gates green (`typecheck` · `test` · `build` · `test:smoke` · `check:ignore` · `lint:contrast`), and full `npm run verify` — **60/60 gates PASS**. No new gate: this is a visual affordance change to one specimen, verified by the existing smoke suite (which drives the built `dist`) plus the computed-style probe above; there is no falsifiable engine invariant to mutate.
+
+**Files.** `apps/studio/src/main.ts` (`paintControlShapePreview`: inline outline → `.on` class + `rad-shapes` list modifier) and `apps/studio/src/styles.css` (the two `.rad-shapes` rules + the #1477/#439 rationale comment). No engine, token, or version change.
+
 ## (2026-09-18) — link interactive states made perceptible (perceptual-interval walk) + a `pressed` link state (#1486)
 
 **STATUS: PR open on branch `lane/1486-link-perceptibility`, do NOT merge (orchestrator verifies + merges). ENGINE 0.112.0 → 0.113.0 (rebased); CONTRACT 11.2.0 → 11.3.0 (MINOR — 4 guaranteed name ADDs). Owner-decided.**

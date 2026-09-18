@@ -6739,12 +6739,12 @@ const paintControlShapePreview = (into: HTMLElement): void => {
     { key: 'rounded', label: 'Rounded', radiusPx: roundedPx, ref: 'radius.md', note: `radius.md · ${roundedPx}px` },
     { key: 'pill', label: 'Pill', radiusPx: 999, ref: 'radius.capsule', note: 'radius.capsule · height ÷ 2, any height' },
   ];
-  const list = el('div', 'rad-list');
+  const list = el('div', 'rad-list rad-shapes');
   for (const s of shapes) {
     const on = s.key === cur;
-    const cell = el('div', 'rad-cell');
-    if (on) cell.style.outline = '2px solid currentColor';
-    if (on) cell.style.borderRadius = '6px';
+    // #1477 — the selected card is a class toggle (`.rad-shapes .rad-cell.on`), an INSET ring on a
+    // panel ground per the #439 pattern, not the outset `outline` that collided with the preview.
+    const cell = el('div', 'rad-cell' + (on ? ' on' : ''));
     const bar = el('div', 'rad-sw');
     bar.style.width = '112px';
     bar.style.height = '52px';
