@@ -55,7 +55,7 @@
  * HIGH CONTRAST the neutral surface ladders flatten to the base — HC separates
  * regions by BORDER (the ≥4.5:1 border target), not by near-invisible tints.
  */
-import { RGB, contrast, hex, hexToRgb, composite } from './color';
+import { RGB, contrast, hex, hexToRgb, composite, deltaE2000 } from './color';
 import { Step } from './ramp';
 import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role } from './theme';
 
@@ -359,7 +359,12 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
 // Interactive fill states (docs/20 §2): rest/hover/pressed + focused/selected. Disabled is
 // NOT a per-fill state — it's the one cross-cutting disabled.* family (one treatment, any intent).
 const FILL_STATES = ['default', 'hover', 'pressed', 'focused', 'selected'] as const;
-const LINK_STATES = ['default', 'hover', 'visited', 'focused'] as const;
+// `pressed` is appended (#1486) so the existing four keep their emission order and only the new leaf
+// is added. Link DEPTH order is default → hover → pressed → visited (see `linkStateCand`): hover and
+// pressed are the even engagement ladder (like a button's rest → hover → pressed), and visited sits
+// beyond as the deepest, most-settled state. `focused` stays a colour no-op (== default) — the focus
+// ring carries focus, not an ink shift.
+const LINK_STATES = ['default', 'hover', 'visited', 'focused', 'pressed'] as const;
 const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as const;
 
 /**
@@ -637,9 +642,36 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   /** How many genome rungs past `rest` a given interactive state sits. */
   const stateRungs = (st: string): number =>
     st === 'default' ? 0 : (st === 'hover' || st === 'focused') ? STATE_RUNGS : STATE_RUNGS * 2;
+  // ---- LINK STATE PERCEPTIBILITY (#1486) ---------------------------------------------------------
+  //
+  // Interactive FILLS step a FIXED number of genome rungs (`STATE_RUNGS` above), because a fill sits
+  // mid-ramp where every rung is a comfortable perceptual interval. A LINK does not: `linkBase` is
+  // forced toward the ramp END (a saturated brand red must clear 4.5:1 AS TEXT, which pins it deep),
+  // and the ramp COMPRESSES perceptually there — so a fixed 1-/2-rung link step can land two adjacent
+  // rungs that look identical (the owner's QA: 950 → 900 → 850 indistinguishable). The floor is *slack*
+  // at the extreme (~8–10:1), so the defect is step SIZE vs ramp compression, not the floor or direction.
+  //
+  // The fix targets a PERCEPTUAL interval instead of a rung count: each engaged link state must be at
+  // least `LINK_STATE_DE` (CIEDE2000) from the state before it. `walk` counts the Nth step that clears
+  // the floor AND clears this Δ (below), so near an extreme it consumes MORE rungs to reach a visible
+  // change while a healthy ramp is unaffected in spirit (mid-ramp two rungs already exceed the Δ). The
+  // metric is CIEDE2000 — the engine already owns it (`color.ts`) and it is the same measure the docs/34
+  // gate uses to read the emitted colours back; a link state is text, so lightness dominates the ΔE here.
+  //
+  // TUNED CONSTANT, not a lever yet — the `STATE_RUNGS` precedent exactly: no brand has asked to tune
+  // it, a lever costs a manifest entry + a studio control + a documented contract, and the derivation
+  // has to be right before it is configurable. Calibrated by rendering the corpus (nb + a second brand):
+  // 7.0 lands every corpus link on a clean two-rung engagement step (ΔE ≈ 7.5–9.5, i.e. ΔL* ≈ 9–11,
+  // squarely the issue's ~ΔL* 8–12 target) and, on a synthetic ramp pinned at the 950 extreme, reflects
+  // inward and still spreads the states perceptibly while every one clears its contrast floor.
+  //
+  // This is PRODUCTION code sharing `deltaE2000` with the gate, NOT a gate sharing a derivation with its
+  // subject: `test.ts` reads the EMITTED colours and measures their ΔE against its OWN authored floor,
+  // and must never import `LINK_STATE_DE` (docs/34).
+  const LINK_STATE_DE = 7.0;
   // `d` overrides the walk direction — the page dir by default; the inverse-context text walks the OTHER
   // way (toward MORE contrast with the dark band, i.e. lighter in a light mode) so its ink comes forward.
-  const walk = (palette: string, fromNum: number, steps: number, d: number = dir, guard?: { surf: RGB; min: number }): Cand => {
+  const walk = (palette: string, fromNum: number, steps: number, d: number = dir, guard?: { surf: RGB; min: number }, percept?: number): Cand => {
     const pal = palOf(palette);
     const ramp = ramps.get(pal)!;
     const near = (n: number) => ramp.reduce((a, b) => (Math.abs(b.num - n) < Math.abs(a.num - n) ? b : a));
@@ -681,14 +713,27 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // the nth qualifying step IS the nth step, so a monotonic ramp is byte-identical and only the
     // non-monotonic region moves.
     const clears = (r: RGB) => !guard || contrast(r, guard.surf) >= guard.min;
+    // ---- PERCEPTIBILITY QUALIFIER (#1486) ---------------------------------------------------------
+    // `percept` (link states only) tightens "a qualifying step" from "clears the floor" to "clears the
+    // floor AND is at least `percept` ΔE (CIEDE2000) from the PREVIOUS qualifying state". `prev` starts
+    // at the origin (`default`) and advances to each step as it qualifies, so the Nth qualifying step is
+    // guaranteed ≥ `percept` from the (N-1)th — an EVEN perceptual ladder, not a fixed rung count. Where
+    // the ramp is healthy this is inert in spirit (the two rungs a link normally steps already exceed the
+    // Δ); where it compresses near an extreme it consumes more rungs to reach a visible change. Without
+    // `percept` the behaviour is byte-identical to before — the ΔE test short-circuits and `prev` is
+    // never read — so every non-link fill/outline walk is unchanged.
+    const clearsPercept = (a: RGB, b: RGB) => percept === undefined || deltaE2000(a, b) >= percept;
     const scan = (dd: number): Step | undefined => {
       let seen = 0;
+      let prev = near(fromNum).rgb;                       // the previous qualifying state; origin = default
       for (let k = 1; ; k++) {
         const at = fromNum + dd * 50 * k;
         if (at < lo || at > hi) return undefined;         // ran out of ramp this way
         const s = near(at);
         if (!clears(s.rgb)) continue;                     // not a candidate; keep looking
-        if (++seen === steps) return s;                   // the nth step that actually clears
+        if (!clearsPercept(s.rgb, prev)) continue;        // clears the floor but not perceptibly distinct yet
+        prev = s.rgb;                                     // this step qualifies — it becomes the new reference
+        if (++seen === steps) return s;                   // the nth step that actually clears (floor + Δ)
       }
     };
     // Forward first (the affordance direction — the control comes forward as the user engages),
@@ -696,7 +741,22 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // Last resort (neither direction can supply `steps` qualifying steps): the plain landing.
     // Keep it rather than invent a colour — `put` then reports the miss through the normal
     // contract channel, which is how an over-constrained brand is supposed to surface.
-    const s = scan(d) ?? scan(-d) ?? near(fromNum + d * 50 * steps);
+    //
+    // For the PERCEPT case (links, #1486) the plain landing is `50·steps` RUNGS from origin, but the
+    // found states are counted by PERCEPTUAL step, so a later state that hit the fallback can undershoot
+    // an earlier one that walked further (near an extreme: `pressed` finds a floor-clearing step 4 rungs
+    // out while `visited`'s fallback lands 3 rungs out — LIGHTER than pressed, reading out of order).
+    // When the ramp genuinely cannot supply `steps` perceptual steps (a link base pinned near the
+    // extreme under a high floor, e.g. HC), degrade to the DEEPEST floor-clearing step in the forward
+    // direction instead: monotonic with the shallower states and as separated as the ramp allows. This
+    // path is links-only (guarded on `percept`), so every fill/outline walk keeps the plain landing and
+    // is byte-identical.
+    const deepestClearing = ((): Step | undefined => {
+      if (percept === undefined) return undefined;
+      const beyond = ramp.filter((r) => (d > 0 ? r.num > fromNum : r.num < fromNum) && clears(r.rgb));
+      return beyond.length ? beyond.reduce((a, b) => ((d > 0 ? b.num > a.num : b.num < a.num) ? b : a)) : undefined;
+    })();
+    const s = scan(d) ?? scan(-d) ?? deepestClearing ?? near(fromNum + d * 50 * steps);
     return cand(`${ns}.${pal}.${s.key}`, s.rgb);
   };
   // #557 × #331: guard a walk ONLY when its ORIGIN actually cleared the floor.
@@ -1702,10 +1762,41 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // Guarded (#557) at the profile's OWN semanticMin — so `icon.link.*` under iconContrast '3:1'
     // is verified at 3, and `text.link.*` at the text bar, each against the floor `put` uses.
     const linkGuard = guardFrom(contrast(linkBase.rgb, g.floor), g.floor, p.semanticMin);
+    // The engaged link states walk the action ramp by PERCEPTUAL interval, not a fixed rung count
+    // (#1486): each is the Nth step that clears the floor AND is ≥ `LINK_STATE_DE` from the one before.
+    // Depth order default → hover → pressed → visited: hover (1st) and pressed (2nd) are the even
+    // engagement ladder (a link's rest → hover → pressed, mirroring a button), and visited (3rd) sits
+    // beyond as the deepest, most-settled state. `focused` is a colour no-op (the ring carries focus).
+    //
+    // The perceptual ladder is preferred, but on a link base pinned so near the ramp extreme that the
+    // ramp cannot supply three perceptually-separated floor-clearing steps (a near-black brand's action
+    // ramp, or an HC mode's high floor), the wider walk can land two states on the SAME rung. There the
+    // ladder falls back to the plain floor-clearing walk for ALL THREE — the pre-#1486 behaviour, whose
+    // Nth-floor-clearing-step counting is distinct by construction — so the states never collide. The
+    // strong perceptual promise is thus kept wherever the ramp affords it and gracefully relaxed to
+    // "distinct + floor-clearing" where it does not; the docs/34 gate asserts the strong promise on the
+    // shipping corpus (real ramps) and distinct+floor on every stress fixture.
+    const linkNum = linkBase.num;
+    const perc = {
+      hover: walk(r2p.action, linkNum, 1, g.dir, linkGuard, LINK_STATE_DE),
+      pressed: walk(r2p.action, linkNum, 2, g.dir, linkGuard, LINK_STATE_DE),
+      visited: walk(r2p.action, linkNum, 3, g.dir, linkGuard, LINK_STATE_DE),
+    };
+    const plainLink = {
+      hover: walk(r2p.action, linkNum, 1, g.dir, linkGuard),
+      pressed: walk(r2p.action, linkNum, 2, g.dir, linkGuard),
+      visited: walk(r2p.action, linkNum, 3, g.dir, linkGuard),
+    };
+    // Distinctness is compared by PATH (the emitted step key) — a `walk` result is a `Cand` with no
+    // `num` field, and the base is a `RatedNum`; the path is the identity both share.
+    const allDistinct = (o: { hover: Cand; pressed: Cand; visited: Cand }) =>
+      new Set([linkBase.path, o.hover.path, o.pressed.path, o.visited.path]).size === 4;
+    const linkLadder = allDistinct(perc) ? perc : plainLink;
     const linkStateCand = (st: typeof LINK_STATES[number]): Cand =>
       st === 'default' || st === 'focused' ? linkBase
-      : st === 'hover' ? walk(r2p.action, linkBase.num, 1, g.dir, linkGuard)
-      : walk(r2p.action, linkBase.num, 2, g.dir, linkGuard); // visited
+      : st === 'hover' ? linkLadder.hover
+      : st === 'pressed' ? linkLadder.pressed
+      : linkLadder.visited; // visited (deepest)
     for (const st of LINK_STATES)
       T(`link.${st}`, rated(linkStateCand(st), g.floor), `Link ${p.label} — ${st}`, g.floorName, p.semanticMin);
     return out;

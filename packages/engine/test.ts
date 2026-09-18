@@ -446,9 +446,88 @@ for (const b of brands) {
       const [d, h, p] = [path(`${g}.fill.rest`), path(`${g}.fill.hover`), path(`${g}.fill.pressed`)];
       if (d && h && p) ok(d !== h && d !== p && h !== p, `[${b.id}/${m.mode}] ${g} fill states are distinct (rest/hover/pressed = ${d?.split('.').pop()}/${h?.split('.').pop()}/${p?.split('.').pop()})`);
     }
-    const [ld, lh, lv] = [path('text.link.default'), path('text.link.hover'), path('text.link.visited')];
-    if (ld && lh && lv) ok(ld !== lh && ld !== lv && lh !== lv, `[${b.id}/${m.mode}] text.link states are distinct`);
+    // #1486: the four DISTINCT-by-design link states (focused == default is intentional) must never
+    // collapse onto one another — the L-01 guarantee, now including `pressed`.
+    const [ld, lh, lp, lv] = [path('text.link.default'), path('text.link.hover'), path('text.link.pressed'), path('text.link.visited')];
+    if (ld && lh && lp && lv) {
+      const set = new Set([ld, lh, lp, lv]);
+      ok(set.size === 4, `[${b.id}/${m.mode}] text.link states (default/hover/pressed/visited) are distinct — got ${[ld, lh, lp, lv].map((x) => x.split('.').pop()).join('/')}`);
+    }
   }
+}
+
+// L-04 (#1486) — LINK STATE PERCEPTIBILITY. Engaged link states walk the action ramp by a PERCEPTUAL
+// interval, not a fixed rung count, so hover/pressed/visited stay clearly distinct even where `linkBase`
+// is pinned deep (a saturated brand red must clear 4.5:1 AS TEXT, which lands it near the ramp end where
+// the ramp compresses perceptually — the owner's QA: 950 → 900 → 850 indistinguishable). This gate reads
+// the EMITTED colours back and measures their CIEDE2000 separation against its OWN authored floor. It
+// must NOT import `LINK_STATE_DE` from `modes.ts` (docs/34): the gate's PROMISE and the engine's TUNING
+// are two independent numbers, and a gate that derived its expectation from the subject could not see the
+// subject drift. `deltaE2000` is a shared primitive (like `contrast` in every contrast gate), not a
+// shared derivation — the two sides compared here are the emitted artifact and a hand-authored floor.
+{
+  // The PROMISE, authored here and deliberately BELOW the engine's ~7.0 tuning: engaged link states are a
+  // CLEAR perceptual step apart — comfortably past the ~2.3 ΔE just-noticeable difference. Placed to sit
+  // ABOVE what the OLD fixed 1-/2-rung walk produced (~4.5 ΔE — the defect) and BELOW what the fix
+  // delivers in base modes (~7.5–8.5), so REMOVING the perceptibility qualifier drops every base-mode
+  // link pair under this bar and fails the gate by name, while the fix clears it with margin.
+  const LINK_PERCEPT_FLOOR = 6.0;
+
+  // SELF-CHECK (docs/34 shape 9) — prove the ΔE detector actually fires before trusting a green run over
+  // the corpus. A hand-authored near-identical pair must read BELOW the floor, a clearly-separated pair
+  // ABOVE it. Both directions: a detector stuck-on or stuck-off is as useless as no detector.
+  const near1 = hexToRgb('#b8002a'), near2 = hexToRgb('#b30028'); // ~1 ΔE apart
+  const far1 = hexToRgb('#cf0b2c'), far2 = hexToRgb('#8f0020');   // ~13 ΔE apart
+  ok(deltaE2000(near1, near2) < LINK_PERCEPT_FLOOR,
+    `L-04 self-check: the ΔE detector flags a near-identical link pair (ΔE ${deltaE2000(near1, near2).toFixed(2)} < ${LINK_PERCEPT_FLOOR})`);
+  ok(deltaE2000(far1, far2) >= LINK_PERCEPT_FLOOR,
+    `L-04 self-check: the ΔE detector passes a clearly-separated pair (ΔE ${deltaE2000(far1, far2).toFixed(2)} ≥ ${LINK_PERCEPT_FLOOR})`);
+
+  // The DEPTH ladder default → hover → pressed → visited (focused is a colour no-op, excluded). The sweep
+  // covers BOTH the four SHIPPING brands (real ramps, where the perceptual promise is meaningful and the
+  // owner's QA lives) AND the synthetic stress fixtures (extreme white-labels that pin `linkBase` at a
+  // ramp end — the distinct + floor invariants under duress).
+  const LADDER = ['default', 'hover', 'pressed', 'visited'] as const;
+  const LINK_THEMES: Array<[string, ReturnType<typeof brandTheme>]> = [];
+  for (const b of brands) { try { LINK_THEMES.push([b.id, brandTheme(b)]); } catch { /* covered elsewhere */ } }
+  LINK_THEMES.push(['nb', nbTheme()]);
+  LINK_THEMES.push(['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)]);
+  LINK_THEMES.push(['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input)]);
+  LINK_THEMES.push(['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)]);
+
+  let checkedBase = 0, checkedAll = 0;
+  const percBreaks: string[] = [], floorBreaks: string[] = [], distinctBreaks: string[] = [];
+  for (const [id, theme] of LINK_THEMES) {
+    for (const m of resolveAllModes(theme)) {
+      const rs = LADDER.map((s) => (m.roles as any)[`text.link.${s}`]).filter(Boolean);
+      if (rs.length !== LADDER.length) continue;
+      checkedAll++;
+      const rgbs = rs.map((r: any) => hexToRgb(r.hex));
+      const steps = rs.map((r: any) => Number(r.path.split('.').pop()));
+      // ALL modes: the four link states are DISTINCT and each clears its OWN contrast floor. (No
+      // monotonicity claim — a base pinned at the extreme legitimately REFLECTS off the ramp end, so a
+      // degenerate near-black brand may deepen then lighten; distinctness + floor is the honest universal.)
+      if (new Set(steps).size !== LADDER.length) distinctBreaks.push(`${id}/${m.mode} ${steps.join('/')}`);
+      for (const r of rs as any[]) if (r.ratio < r.min) floorBreaks.push(`${id}/${m.mode} ${r.path.split('.').pop()} ${r.ratio.toFixed(2)}<${r.min}`);
+      // BASE modes only (light/dark): the STRONG perceptual floor between CONSECUTIVE depth states. HC
+      // pins `linkBase` near the extreme under a 7:1 floor, so the ramp physically cannot supply three
+      // ΔE-6 steps there — the walk degrades to maximal-available separation (still distinct + floor,
+      // asserted above), and the strong promise is kept where the ramp affords it. Stated, not skipped.
+      if (m.mode === 'light' || m.mode === 'dark') {
+        checkedBase++;
+        for (let i = 1; i < rgbs.length; i++) {
+          const dE = deltaE2000(rgbs[i - 1], rgbs[i]);
+          if (dE < LINK_PERCEPT_FLOOR) percBreaks.push(`${id}/${m.mode} ${LADDER[i - 1]}→${LADDER[i]} ΔE${dE.toFixed(2)}<${LINK_PERCEPT_FLOOR} (${steps[i - 1]}→${steps[i]})`);
+        }
+      }
+    }
+  }
+  // NON-VACUITY (docs/34 shape 9): the sweep must have SEEN link ladders, or "no breaks" is a true
+  // statement about an empty set. 4 shipping brands + 6 stress fixtures × 2 base modes ⇒ ≥ 16.
+  ok(checkedBase >= 16, `L-04: the perceptibility sweep read base-mode link ladders (${checkedBase} base modes, ${checkedAll} total)`);
+  ok(distinctBreaks.length === 0, `L-04: every mode's link ladder is DISTINCT (default/hover/pressed/visited)` + (distinctBreaks.length ? ` — FAILED: ${distinctBreaks.join(', ')}` : ''));
+  ok(floorBreaks.length === 0, `L-04: every link state clears its OWN contrast floor` + (floorBreaks.length ? ` — FAILED: ${floorBreaks.join(', ')}` : ''));
+  ok(percBreaks.length === 0, `L-04: base-mode link states are ≥ ${LINK_PERCEPT_FLOOR} ΔE apart (perceptibly distinct, the #1486 promise)` + (percBreaks.length ? ` — FAILED: ${percBreaks.join(', ')}` : ''));
 }
 
 // L-02 (#557) — the state WALK re-verifies each step against the state's own floor.
@@ -6500,6 +6579,32 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'hc-light', name: 'color/icon/warning-subtle', nb: 'palette/amber/450', engine: 'palette/amber/500' },
   { mode: 'hc-light', name: 'color/icon/danger-subtle', nb: 'palette/red/450', engine: 'palette/red/500' },
   { mode: 'hc-light', name: 'color/icon/info-subtle', nb: 'palette/info/450', engine: 'palette/info/500' },
+  // SIXTH group (#1486): link INTERACTIVE STATES. NB hand-authored the engaged link states one/two rungs
+  // off the base (hover +1, visited +2) — barely a perceptual step, and imperceptible where a saturated
+  // link is pinned near the ramp extreme (the owner's QA). The engine now walks each engaged state to a
+  // real perceptual interval (≥ ~ΔL* 8–12 from the state before it), so hover lands +2 and visited +3
+  // qualifying steps out. Same owner stance as groups 1 and 4: "NB fidelity is NB's own conservatism
+  // showing up as a regression target, not a reason to keep the bar." `link/default` is UNCHANGED (the
+  // base is not walked) and stays byte-checked; only the engaged states move, in every mode, and both the
+  // `text` and `icon` link families move together (NB's `iconContrast` is 'text', so icon == text). The
+  // NEW `link/pressed` leaf is an engine addition NB's export predates — it is not a divergence of an
+  // existing var, so it lives in `ENGINE_ADDED_VARS` below, not here.
+  { mode: 'light', name: 'color/text/link/hover', nb: 'palette/red/600', engine: 'palette/red/650' },
+  { mode: 'light', name: 'color/text/link/visited', nb: 'palette/red/650', engine: 'palette/red/850' },
+  { mode: 'light', name: 'color/icon/link/hover', nb: 'palette/red/600', engine: 'palette/red/650' },
+  { mode: 'light', name: 'color/icon/link/visited', nb: 'palette/red/650', engine: 'palette/red/850' },
+  { mode: 'dark', name: 'color/text/link/hover', nb: 'palette/red/400', engine: 'palette/red/350' },
+  { mode: 'dark', name: 'color/text/link/visited', nb: 'palette/red/350', engine: 'palette/red/150' },
+  { mode: 'dark', name: 'color/icon/link/hover', nb: 'palette/red/400', engine: 'palette/red/350' },
+  { mode: 'dark', name: 'color/icon/link/visited', nb: 'palette/red/350', engine: 'palette/red/150' },
+  { mode: 'hc-light', name: 'color/text/link/hover', nb: 'palette/red/750', engine: 'palette/red/800' },
+  { mode: 'hc-light', name: 'color/text/link/visited', nb: 'palette/red/800', engine: 'palette/red/950' },
+  { mode: 'hc-light', name: 'color/icon/link/hover', nb: 'palette/red/750', engine: 'palette/red/800' },
+  { mode: 'hc-light', name: 'color/icon/link/visited', nb: 'palette/red/800', engine: 'palette/red/950' },
+  { mode: 'hc-dark', name: 'color/text/link/hover', nb: 'palette/red/250', engine: 'palette/red/200' },
+  { mode: 'hc-dark', name: 'color/text/link/visited', nb: 'palette/red/200', engine: 'palette/red/025' },
+  { mode: 'hc-dark', name: 'color/icon/link/hover', nb: 'palette/red/250', engine: 'palette/red/200' },
+  { mode: 'hc-dark', name: 'color/icon/link/visited', nb: 'palette/red/200', engine: 'palette/red/025' },
 ];
 
 // Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
@@ -6706,6 +6811,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // had (the default `color.field.fill` aliases it). A palette var, so it appears only in the palette
       // collection; EXACT name, so a spurious sibling still fails.
       'palette/transparent',
+      // #1486 — the new `pressed` link state, on both the text and icon link families. NB's export
+      // predates a pressed link, so these are engine additions (the changed hover/visited values are
+      // divergences of EXISTING vars, recorded in `NB_KNOWN_DIVERGENCES` above). EXACT names, not a
+      // `color/text/link/` prefix: `link` is a family NB fully exports, so a spurious sibling still fails.
+      'color/text/link/pressed',
+      'color/icon/link/pressed',
     ];
     // A var NB really exports that the engine still emits under a DIFFERENT NAME.
     //
