@@ -110,8 +110,18 @@ projection (`figmaAnatomyPlan`) and diffs the ACTUAL emitted binding against it,
 slots (a declared color bind the projector returns at no coordinate — the baked-where-it-should-bind
 class) and **mis-bound** slots (a slot bound to a role whose family mismatches its kind — the #1471
 glyph-inks-a-`text`-role class). `audit.ts` reports and exits 0; `--ledger` emits the per-member
-ledger JSON that its README's read-only Figma companion script diffs a live file against (the ledger
-is brand-invariant — the plan carries variable names, not values). #1499.
+ledger JSON (the ledger is brand-invariant — the plan carries variable names, not values). #1499.
+
+**`--reconcile <export.json>` / `reconcile.ts` (#1511)** extend the tool from the engine's emission to
+a LIVE file. A read-only console snippet (documented in the README) dumps a Figma file's ACTUAL
+per-node bindings as small, versioned JSON; `--reconcile` diffs that against the ledger and reports
+**MATCH / WRONG-TOKEN / UNBOUND / EXTRA / UNKNOWN-NODE** per `(component, member, node, slot)`, plus
+coverage — WRONG-TOKEN (bound to the wrong variable) is the check the owner's unbound-only QA script
+lacked. `ledger.ts` holds the one ledger builder both `--ledger` and `--reconcile` share, so the
+snippet and the reconciler cannot key on different coordinates. Still a tool, not a gate: a live file
+is not in CI, so it answers and exits 0. `reconcile.ts --selftest` is a fixture round-trip built from
+the live ledger (all-correct → MATCH; one wrong → one WRONG-TOKEN; one blank → one UNBOUND; one stray
+→ one UNKNOWN-NODE) — a self-check the author runs, NOT wired into `ci.yml`; the gate count stays 60.
 
 **No gate sibling, on purpose, and the reason is the mis-bind pass's nature rather than its youth.**
 It is a HEURISTIC: `ALLOWED` (slot-kind → role-family) is authored from design semantics, and the

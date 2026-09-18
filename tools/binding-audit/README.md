@@ -4,9 +4,11 @@ A **measurement harness** (#1499). It answers one question — *are any tokens u
 wrong role?* — and exits 0. It is not wired into `ci.yml`; see [why it has no gate sibling](#why-a-tool-and-not-a-gate).
 
 ```bash
-npx tsx tools/binding-audit/audit.ts            # the report: ledger summary + findings
-npx tsx tools/binding-audit/audit.ts --json     # the findings as machine JSON
-npx tsx tools/binding-audit/audit.ts --ledger    # the full per-member expected ledger (JSON, for the live-file diff)
+npx tsx tools/binding-audit/audit.ts                         # the report: ledger summary + findings
+npx tsx tools/binding-audit/audit.ts --json                  # the findings as machine JSON
+npx tsx tools/binding-audit/audit.ts --ledger                # the full per-member expected ledger (JSON)
+npx tsx tools/binding-audit/audit.ts --reconcile export.json # diff a LIVE file's actual binds vs the ledger (#1511)
+npx tsx tools/binding-audit/reconcile.ts --selftest          # the reconcile fixture round-trip (exit 1 on fail)
 ```
 
 ## What it does
@@ -72,60 +74,76 @@ independently of this survey. The independence discipline (`docs/34`) is still h
 constraint (`ALLOWED`) and the reachability sentinels are authored apart from the defs they check —
 see `audit.ts`'s header.
 
-## Live-file companion (read-only)
+## Live-file reconcile (#1511)
 
-The ledger (`--ledger`) is what makes a **live Figma file** auditable. Paste the script below into the
-Figma **console** (Plugins → Development → Open console, or a quick-plugin scratch) with the audit
-selection on the page, or run it from a plugin. It **reads only** — it never writes — surfacing (a)
-nodes bound to the wrong variable and (b) nodes unbound where the ledger expects a bind.
+`audit.ts` audits the **engine's emission** — correct by construction. The real QA risk is a **live
+file drifting** from that intent: a manual rebind, a stale projection, a wrong swap. The interim
+console script the owner ran during QA found nodes with **no** variable bound, but never checked
+whether the bound ones point at the **right** variable. The reconcile mode closes that gap, in two
+halves that stay in sync because they share one documented interface:
 
-1. Generate the ledger next to the file you are auditing:
-   ```bash
-   npx tsx tools/binding-audit/audit.ts --ledger > ledger.json
-   ```
-2. Load `ledger.json` into the plugin (via `figma.ui` file input, a fetch, or by pasting the JSON
-   into the `LEDGER` constant), select the component set(s) to check, and run:
+1. a **console export snippet** (below) the owner pastes into Figma — it **reads only** and dumps the
+   file's *actual* per-node bindings as small, versioned JSON;
+2. **`--reconcile <export.json>`** — ingests that JSON and diffs it against the expected `--ledger`,
+   reporting per `(component, member, node, slot)`:
+
+   | verdict | meaning |
+   |---|---|
+   | **MATCH** | bound to the variable the ledger expects |
+   | **WRONG-TOKEN** | bound, but to a *different* variable (reports got X / want Y) — *the check that did not exist before* |
+   | **UNBOUND** | the ledger expects a bind; the file reports none (the class the console script found) |
+   | **EXTRA** | the file binds a field the ledger does not cover at that node |
+   | **UNKNOWN-NODE** | a node in the export the ledger cannot place (renamed set, hand-added node, stale member) |
+
+   plus a **COVERAGE** summary. **Partial exports are normal** — a QA file may hold only some
+   components — so a ledger coordinate simply *absent* from the export is reported as *not covered*,
+   **never** as UNBOUND. Only a node the export actually carries, with that field reported `UNBOUND`,
+   is an UNBOUND finding.
+
+### The matching key (snippet ↔ ledger)
+
+The diff is a plain key join on the projection's **deterministic name-path** — the coordinates
+`ledger.ts` builds and the console snippet reproduces:
+
+- **component** = the Figma **set name** = the engine's `def.id` (`set.name = plan.component`).
+- **member** = the variant-**coordinate string** (`appearance=filled, size=small, …`) — both
+  `planComponentName`'s output and Figma's own member name.
+- **node** = the name-path of a node **within** the member, **member-relative**: the member root is
+  `/`, its child `foo` is `/foo`. This is load-bearing — the plugin converts the plan's root frame
+  (`container`/`glyph`) *in place* into the member component and renames it to the coordinate
+  (`createComponentFromNode` in `apps/plugin/src/write-components.ts`), so the live member **is** the
+  plan root. The ledger stores the root name as its first path segment (`/container/icon`); the
+  reconciler strips it (`memberRelative`) to line up with a live walk that starts *at* the member,
+  and the snippet emits member-relative paths directly.
+- **field** ∈ `{fills, strokes, descendantFills}` — the same three the snippet reports.
+
+A coordinate the ledger cannot place becomes **UNKNOWN-NODE**, never a crash.
+
+### The console export snippet (read-only)
+
+Paste into the Figma **console** (Plugins → Development → Show/Hide console) with the component set(s)
+to audit **selected** on the page. It **writes nothing**. It logs the JSON `--reconcile` ingests;
+`copy(JSON.stringify(await exportBindings(), null, 2))` puts it on the clipboard.
 
 ```js
-// tools/binding-audit — READ-ONLY live-file diff against the expected ledger.
-// LEDGER = the parsed output of `npx tsx tools/binding-audit/audit.ts --ledger`.
-// It reads node.boundVariables and reports mismatches; it writes nothing.
-async function auditSelection(LEDGER) {
-  const key = (...parts) => JSON.stringify(parts); // composite map key, no delimiter collisions
-  const byName = new Map(); // variableId -> slash-pathed name, resolved lazily
+// tools/binding-audit — READ-ONLY console EXPORT of a live file's ACTUAL bindings (#1511).
+// Select the projected Prism 3 component set(s), run, save the logged JSON to a file, then:
+//   npx tsx tools/binding-audit/audit.ts --reconcile <that-file>.json
+async function exportBindings() {
+  const nameById = new Map();                          // variableId -> slash-pathed name (Figma names ARE slash-pathed)
   async function varName(id) {
-    if (byName.has(id)) return byName.get(id);
+    if (nameById.has(id)) return nameById.get(id);
     const v = await figma.variables.getVariableByIdAsync(id);
-    byName.set(id, v ? v.name : null); // Figma variable names are already slash-pathed
-    return byName.get(id);
+    nameById.set(id, v ? v.name : null);
+    return nameById.get(id);
   }
-  // A node's OWN first bound fill/stroke variable name, or null.
+  // A node's OWN bound variable name for a paint field, or null.
   async function ownBind(node, field) {
-    const bv = node.boundVariables || {};
-    const entry = bv[field] && bv[field][0];
-    return entry && entry.id ? await varName(entry.id) : null;
+    const e = node.boundVariables && node.boundVariables[field] && node.boundVariables[field][0];
+    return e && e.id ? await varName(e.id) : null;
   }
-  // Expected binds split by where they land: own fill/stroke ON the node, vs. glyph ink on a VECTOR
-  // DESCENDANT of the node (`descendantFills` — the ink is a per-instance override on the vector inside
-  // the swapped/nested instance, NOT the node's own fills; this is the #1471 class, so it must be
-  // followed rather than skipped).
-  const own = new Map();        // key(component, member, node, "fills"|"strokes") -> variable
-  const descendant = new Map(); // key(component, member, node) -> variable
-  for (const [component, members] of Object.entries(LEDGER.components)) {
-    for (const m of members) for (const b of m.bindings) {
-      if (b.field === 'descendantFills') descendant.set(key(component, m.member, b.node), b.variable);
-      else own.set(key(component, m.member, b.node, b.field), b.variable);
-    }
-  }
-
-  const findings = [];
-  function pathOf(node, root) {
-    const parts = [];
-    for (let n = node; n && n.id !== root.id; n = n.parent) parts.unshift(n.name);
-    return '/' + parts.join('/');
-  }
-  // The variable bound to the FIRST descendant that carries a bound fill (the glyph vector inside an
-  // instance). Read-only; returns null if nothing beneath the node is bound.
+  // The glyph ink of a swapped/nested INSTANCE: the first bound fill on any descendant (the #1471
+  // class — the ink is a per-instance override on the vector INSIDE the instance, not the node's own).
   async function descendantInk(node) {
     const stack = 'children' in node ? [...node.children] : [];
     while (stack.length) {
@@ -136,55 +154,116 @@ async function auditSelection(LEDGER) {
     }
     return null;
   }
+  // Vector/shape leaves whose OWN fill IS the glyph ink (a glyph drawn in place, not swapped).
+  const SHAPE = new Set(['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'ELLIPSE', 'POLYGON', 'LINE', 'RECTANGLE']);
+  const nodes = [];
+  function pathOf(node, root) {                         // MEMBER-RELATIVE — the member root is '/'
+    const parts = [];
+    for (let n = node; n && n.id !== root.id; n = n.parent) parts.unshift(n.name);
+    return '/' + parts.join('/');
+  }
+  // The three fields the ledger keys on, chosen by node type so a container never reports a spurious
+  // `descendantFills` picked up from a bound label beneath it (which would read as EXTRA).
+  async function fieldsOf(node) {
+    const f = {};
+    if (node.type === 'TEXT') {
+      f.fills = (await ownBind(node, 'fills')) || 'UNBOUND';                 // text ink
+    } else if (node.type === 'INSTANCE') {
+      f.fills = (await ownBind(node, 'fills')) || 'UNBOUND';
+      f.strokes = (await ownBind(node, 'strokes')) || 'UNBOUND';
+      f.descendantFills = (await descendantInk(node)) || 'UNBOUND';          // swapped glyph ink (#1471)
+    } else if (SHAPE.has(node.type)) {
+      f.descendantFills = (await ownBind(node, 'fills')) || 'UNBOUND';       // a glyph drawn in place
+    } else {                                                                 // FRAME / COMPONENT / GROUP
+      f.fills = (await ownBind(node, 'fills')) || 'UNBOUND';                 // surface
+      f.strokes = (await ownBind(node, 'strokes')) || 'UNBOUND';            // border
+    }
+    return f;
+  }
   async function walk(node, component, member, root) {
-    const path = pathOf(node, root);
-    for (const field of ['fills', 'strokes']) {
-      const want = own.get(key(component, member, path, field));
-      if (!want) continue;
-      const got = await ownBind(node, field);
-      if (!got) findings.push({ kind: 'UNBOUND', component, member, node: path, field, want });
-      else if (got !== want) findings.push({ kind: 'MIS-BOUND', component, member, node: path, field, want, got });
-    }
-    const wantInk = descendant.get(key(component, member, path));
-    if (wantInk) {
-      const got = await descendantInk(node);
-      if (!got) findings.push({ kind: 'UNBOUND', component, member, node: path, field: 'descendantFills', want: wantInk });
-      else if (got !== wantInk) findings.push({ kind: 'MIS-BOUND', component, member, node: path, field: 'descendantFills', want: wantInk, got });
-    }
+    nodes.push({ component, member, node: pathOf(node, root), fields: await fieldsOf(node) });
     if ('children' in node) for (const c of node.children) await walk(c, component, member, root);
   }
-
   for (const sel of figma.currentPage.selection) {
+    const component = sel.name;                          // the SET name = the engine's def.id
     const members = sel.type === 'COMPONENT_SET' ? sel.children : [sel];
     for (const member of members) {
-      // Figma names a variant member by its coordinate string ("appearance=filled, size=small, …"),
-      // which is exactly what --ledger stores as `member`. Match by whichever ledger component carries
-      // that coordinate (matching by set name is unreliable across brands/renames).
       const coord = member.type === 'COMPONENT' && member.variantProperties
         ? Object.entries(member.variantProperties).map(([k, v]) => `${k}=${v}`).join(', ')
-        : member.name;
-      for (const component of Object.keys(LEDGER.components)) {
-        if (LEDGER.components[component].some((m) => m.member === coord)) {
-          await walk(member, component, coord, member);
-          break;
-        }
-      }
+        : member.name;                                   // the member coordinate = the ledger `member`
+      await walk(member, component, coord, member);      // member IS the ledger root -> '/'
     }
   }
-
-  console.table(findings);
-  console.log(`${findings.length} finding(s): ` +
-    `${findings.filter((f) => f.kind === 'MIS-BOUND').length} mis-bound, ` +
-    `${findings.filter((f) => f.kind === 'UNBOUND').length} unbound.`);
-  return findings;
+  const out = { format: 'prism3-binding-export', version: 1, capturedFrom: figma.root.name, nodes };
+  console.log(JSON.stringify(out, null, 2));
+  return out;
 }
-
-// Usage: await auditSelection(LEDGER);
+// Usage:  await exportBindings();
+//   or:   copy(JSON.stringify(await exportBindings(), null, 2));
 ```
 
-The companion is intentionally small — it is the read-only diff #1499 asks the README to carry, not a
-shipped plugin, and it makes two simplifying assumptions worth stating: it takes the first bound fill
-beneath a node as the glyph ink (right for the corpus's single-glyph slots), and it matches a member
-by its variant-coordinate string. The interim unbound-only console script the owner was running catches
-only the baked (unbound) class; this ledger diff catches the **mis-bound** class too, because it
-compares the actual variable against the one the ledger names — including the glyph ink that #1471 was.
+The export shape is small, stable and **versioned** (`format`/`version`), so the snippet and the
+reconciler can evolve together without silently disagreeing:
+
+```json
+{
+  "format": "prism3-binding-export",
+  "version": 1,
+  "nodes": [
+    { "component": "icon-button", "member": "appearance=filled, …, state=rest",
+      "node": "/", "fields": { "fills": "color/interactive/primary/fill/rest", "strokes": "UNBOUND" } },
+    { "component": "icon-button", "member": "appearance=filled, …, state=rest",
+      "node": "/icon", "fields": { "descendantFills": "color/interactive/primary/on-fill" } }
+  ]
+}
+```
+
+Two simplifying assumptions the snippet makes, worth stating: it takes the **first** bound fill beneath
+an instance as the glyph ink (right for the corpus's single-glyph slots), and it classifies a node's
+field by **type**. A glyph whose ink sits on the *member root itself* (the standalone `icon`/glyph
+sets, whose member IS a shape) is reported under `fills` while the ledger classifies it as
+`descendantFills` — so those leaf sets read as EXTRA; the composite controls this audit targets
+(buttons, icon-buttons, fields — where the glyph is a swapped `INSTANCE`) reconcile cleanly. The field
+mapping is documented here precisely so it can be adjusted in lockstep with the reconciler if a live
+file's structure ever differs.
+
+### Worked example (export → reconcile → report)
+
+A committed fixture — a partial `icon-button` export seeded to exercise every verdict —
+`fixtures/example-export.json`, run through the reconciler:
+
+```bash
+npx tsx tools/binding-audit/audit.ts --reconcile tools/binding-audit/fixtures/example-export.json
+```
+
+```
+Prism3 binding reconcile (#1511) — live file vs. expected ledger
+
+── Coverage ───────────────────────────────────────────────────────────────────
+  2/2190 ledger members touched · 4/5558 expected binds evaluated (0%).
+  Partial exports are normal — a coordinate absent from the export is NOT counted as unbound.
+  Components present in the export:
+    icon-button              2/216 members
+
+── Verdicts ───────────────────────────────────────────────────────────────────
+  2 MATCH · 1 WRONG-TOKEN · 1 UNBOUND · 1 EXTRA · 1 UNKNOWN-NODE
+
+── Findings (drift from the ledger) ───────────────────────────────────────────
+  ✗ WRONG-TOKEN   icon-button · appearance=filled, …, state=hover · / [fills]
+                   got color/interactive/primary/fill/pressed  ·  want color/interactive/primary/fill/hover
+  · UNBOUND       icon-button · appearance=filled, …, state=hover · /icon [descendantFills]
+                   want color/interactive/primary/on-fill  ·  file binds nothing
+  + EXTRA         icon-button · appearance=filled, …, state=hover · / [strokes]
+                   binds color/disabled/icon  ·  ledger covers no binding here
+  ? UNKNOWN-NODE  icon-button · appearance=filled, …, state=rest · /__hand-added-badge__
+                   binds fills=color/disabled/fill  ·  ledger cannot place this node
+```
+
+### The fixture round-trip (acceptance)
+
+`reconcile.ts --selftest` builds four scenarios from the **live ledger** (so they never go stale
+against a hand-written fixture) and asserts each verdict in isolation — all-correct → all MATCH; one
+wrong-but-valid → exactly one WRONG-TOKEN; one blanked → one UNBOUND; one stray node → one
+UNKNOWN-NODE (plus one uncovered field → one EXTRA). It exits non-zero on any mismatch. It is a
+self-check the author runs, **not** a wired gate — the reconciler diffs a *live* file, which is not in
+CI, so the gate count stays 60 (`tools/CLAUDE.md`).
