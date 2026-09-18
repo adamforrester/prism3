@@ -2926,6 +2926,19 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.119.0 — #1520: the fluid `type-sets` variable collection now emits DESKTOP as its first (default) mode,
+ * flipping `FONT_FLUID_MODES` from `['mobile','desktop']` to `['desktop','mobile']`. Figma treats a
+ * collection's first mode as its default, so every text style whose `fontSize` binds a `type-sets` variable
+ * resolved to its MOBILE value until the viewer switched — which is what made display type look capped at the
+ * ~48px mobile hero band. Owner's call (QA 2026-09-18): start desktop-first and have users switch to mobile.
+ * The per-mode value is keyed by mode NAME (`value: mode === 'mobile' ? …`), not array index, so the order
+ * flips the DEFAULT without moving any emitted value; the mirror copy in `materialise-to-figma.ts` (paste-path
+ * file reader) flips too, and `test.ts` asserts the plan's mode order BY NAME (`desktop,mobile`). The
+ * per-mode `type-sets.<mode>.json` files keep identical names/values, so the only `out/**` churn is this
+ * file's own `$extensions.generator.version` re-stamp; the plan/plugin behavior (default mode) is where the
+ * change is observable. CONTRACT STANDS at 11.0.0 — mode order is not a guaranteed token name
+ * (`token-contract --check` level `none`).
+ *
  * 0.118.0 — #1469: ADD `radio-group`, the single-select twin of `checkbox-group`. `radio` had no group
  * ("Radio Group: None available" in the QA build status); the owner directed adding it during QA. It is a
  * `field-label` above a vertical stack of `radio-row`s, composing the ALREADY-COLLAPSED Row (size-only since
@@ -3129,7 +3142,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.118.0';
+export const ENGINE_VERSION = '0.119.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
