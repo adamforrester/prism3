@@ -41,7 +41,10 @@
       "members": 4,
       "sha256": "07d5119cb90e73390dea36a63494b88a8832e7db48bf7fea6bcdf342f23e943a"
     },
-    "text-field": null,
+    "text-field": {
+      "members": 20,
+      "sha256": "4eb256d6390c5153b35187fedf5e926fc39798a9056487f3a4ba4db164a98ef7"
+    },
     "textarea": null,
     "checkbox-control": {
       "members": 54,

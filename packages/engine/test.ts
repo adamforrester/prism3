@@ -9837,8 +9837,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // `paintOf` calls that. What the claim is actually about is not re-declaring the PARTS — their type
   // ramps and the message's per-tone inks — so it now reads the thing it means.
   ok(!Object.values(textField.tokens).some((v) => /^type\.(label|caption)\./.test(String(v))), 'component: TextField binds input chrome only — no label/caption TYPE ramps (those live in the part defs)');
-  ok(!Object.keys(textField.tokens).some((k) => /^(error|warning|success)\./.test(k)), 'component: TextField declares no per-status message inks (field-message owns the status axis)');
-  ok(textField.tokens['border.rest'] === 'color.field.border.rest' && textField.tokens['border.hover'] === 'color.field.border.hover', 'component: TextField binds the stateful field border (rest + hover)');
+  // #1494 — validation is the `status` axis now (mirroring select), so the ONLY per-status keys this def
+  // declares are its border-only error swap (`error.border.*`). It still declares no per-status MESSAGE inks
+  // (`error.label`/`error.icon`, `warning.*`, `success.*`): those live in field-message, which this def
+  // nests and drives by `follow`. Asserted as "every status-led key is an error-border key" so a stray
+  // `warning.label` re-declaration would fail rather than pass a bare "no status keys" that the error swap
+  // now legitimately violates.
+  ok(Object.keys(textField.tokens).filter((k) => /^(error|warning|success)\./.test(k)).every((k) => k.startsWith('error.border.'))
+    && Object.keys(textField.tokens).some((k) => k.startsWith('error.border.')), 'component: TextField declares no per-status MESSAGE inks — its only status-led keys are the error border swap (#1494)');
+  ok(textField.tokens['border'] === 'color.field.border.rest' && textField.tokens['border.hover'] === 'color.field.border.hover', 'component: TextField binds the stateful field border (bare border = rest, + border.hover) (#1494)');
   // read-only ≠ disabled — the live edge: read-only keeps full-contrast text.primary, not a dimmed disabled ink.
   ok(textField.tokens['label'] === 'color.text.primary' && textField.tokens['border.read-only'] === 'color.border.secondary', 'component: TextField read-only stays full-contrast (text.primary + border.secondary), not disabled.*');
   // #784: the key naming that state must BE the state, or `{slot}.{state}` never reaches it. `border.readonly`
@@ -9846,7 +9853,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // `states` rather than against the literal, so the two cannot drift apart again.
   ok(Object.keys(textField.tokens).filter((k) => k.startsWith('border.') && k !== 'border.rest')
     .every((k) => textField.states.includes(k.slice('border.'.length))), 'component: TextField every state-qualified border key names a DECLARED state (#784)');
-  ok(textField.tokens['border.error'] === 'color.border.danger', 'component: TextField error is a border-only swap (border.danger)');
+  // #1494 — `error` is a status VALUE now, not a state, so the swap is status-led (`error.border.{state}`)
+  // and bound per non-disabled state so it persists through hover/focus/read-only. Checked at two coordinates.
+  ok(textField.tokens['error.border.rest'] === 'color.border.danger' && textField.tokens['error.border.focus-visible'] === 'color.border.danger', 'component: TextField error is a status-led border-only swap (error.border.* → border.danger) (#1494)');
   // FieldMessage: every validation status re-points BOTH ink + icon at the matching semantic role.
   // `${status}.label`, not `${status}.text`, since #784 — the SLOT segment has to be the word the projector
   // dispatches for a text node. The ROLE it points at is still `color.text.<role>`; those are two
@@ -17522,6 +17531,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // which is the mechanical half of the same fact (no room to grow into a second line).
     'select.content':
       "a select shows one option's label ellipsized to a single line, so the value row does not wrap — the first line IS the block and centring the leading glyph against it cannot float it mid-paragraph. The control's fixed single-line height is the mechanical half of the same fact.",
+    // `text-field`'s value row is select's shape exactly (#1494): an optional leading glyph paired with the
+    // single-line value/placeholder text, in a control box of fixed single-line height. It does not wrap
+    // (the value ellipsizes to one line), so centring the leading glyph against the first — and only — line
+    // cannot float it mid-paragraph. The fixed control height is the mechanical half of the same fact.
+    'text-field.content':
+      "text-field's value row shows the single-line value/placeholder ellipsized to one line, so it does not wrap — the first line IS the block and centring the leading glyph against it cannot float it mid-paragraph. The control's fixed single-line height is the mechanical half of the same fact (identical to select.content).",
   };
   let pairedRows = 0;
   const centred: string[] = [];

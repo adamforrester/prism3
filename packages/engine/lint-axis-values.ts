@@ -311,7 +311,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio', 'field-label'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio', 'field-label'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — ten of the defs with a size axis, the '
@@ -398,7 +398,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
-    defs: ['field-message', 'select'],
+    defs: ['field-message', 'select', 'text-field'],
     relation: 'sole',
     reason:
       'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '
@@ -406,9 +406,10 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + '— it agrees on `success`/`warning` and spells the failure ink `error` where the ink axis spells it '
       + '`danger` — and that overlap-that-read-as-alignment was #934\'s finding and #756\'s failure mode. '
       + 'The split resolves it: a validation outcome is not an ink role, so it is its own axis. `sole` now, '
-      + 'and shared by two defs BY DESIGN, not by coincidence — `select`\'s validation axis is spelled '
-      + '`status` so the nested `field-message` follows it by name (`nest-fixed` `follow`), a same-name '
-      + 'same-value passthrough, so the two must carry identical values and this one entry records both. '
+      + 'and shared by three defs BY DESIGN, not by coincidence — `select` (and `text-field` since #1494) each '
+      + 'spell their validation axis `status` so the nested `field-message` follows it by name (`nest-fixed` '
+      + '`follow`), a same-name same-value passthrough, so all three must carry identical values and this one '
+      + 'entry records them. '
       + '`error` (not `danger`) mirrors the closed `STATES` vocabulary a validation outcome tracks; the '
       + '`error → danger` ink mapping lives in `lint-paint.ts` as a named provenance exception.',
   },

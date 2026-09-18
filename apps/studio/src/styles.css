@@ -657,6 +657,16 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .rad-sw{width:72px;height:52px;background:var(--ink);opacity:.85}
 .rad-lab{font-size:11.5px;color:var(--muted)}
 .rad-cons{font-size:11px;color:var(--faint);text-align:center;max-width:88px;line-height:1.35}
+/* #1477 — the SELECTED control-shape preset card follows the #439 selection pattern (the mode chip,
+   :823): a panel ground with an ink border plus an INSET 1px ring, never the outset ring it used to
+   draw. An outline is painted OUTSIDE the border box, so at 2px it sat tight against the silhouette
+   and the next cell and read as a stray focus ring, colliding with the preview (owner QA). Inset
+   paints the 2px of contiguous ink (1px border + 1px ring) ENTIRELY within the border box, so it
+   cannot touch content and changes no outer dimension. The base cell reserves the same 1px border
+   (transparent) + padding, so selecting a card shifts no layout. Scoped to .rad-shapes so the
+   corner-radius ramp above — which shares .rad-* but has no selected state — is untouched. */
+.rad-shapes .rad-cell{border:1px solid transparent;border-radius:var(--r-sm);padding:11px 13px}
+.rad-shapes .rad-cell.on{background:var(--panel);border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 /* D (density) — the control-size specimen: mini controls at their resolved height + padding. */
 .sz-list{display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
 .sz-cell{display:flex;flex-direction:column;align-items:center;gap:9px}
