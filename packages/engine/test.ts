@@ -258,7 +258,10 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
     },
   };
   const theme = brandTheme(pinBase);
-  // (a) EMISSION — the DTCG composite carries the pin; the Figma Text Style bakes the pinned STYLE.
+  // (a) EMISSION — the DTCG composite carries the pin; the Figma Text Style BINDS the pinned STYLE via a
+  // STRING cut variable (#1485; was a baked literal at #1368). The oracle is the INPUT pin 'Light
+  // Condensed', independent of the emit; the cut VARIABLE's value carries it, and the style BINDS that
+  // variable — so a mutation that drops the override (deriving 'Light') fails HERE by name.
   const tree = buildTree(theme).tree as any;
   const root = Object.keys(tree)[0];
   const dispLeaf = tree[root].type.display.md.subtle;   // a display/subtle composite
@@ -266,22 +269,35 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
     && dispLeaf?.$extensions?.prism3?.facePin?.family === 'ITC Garamond Std',
     `#1368(a): the pinned display composite carries facePin {family,style} (got ${JSON.stringify(dispLeaf?.$extensions?.prism3?.facePin)})`);
   const styles = buildFigmaTextStyles(theme).styles;
+  const fontVars = buildFigmaFont(theme)[0].variables;
+  const cutValue = (name: string): unknown => fontVars.find((v) => v.name === name)?.value;
   const dispStyle = styles.find((s) => s.name === 'display/md/subtle');
-  ok((dispStyle?.properties.fontStyle as any)?.value === 'Light Condensed',
-    `#1368(a): the display/md/subtle Text Style bakes fontStyle='Light Condensed' (got ${JSON.stringify((dispStyle?.properties.fontStyle as any)?.value)})`);
-  // (b) HOST-TRUTH — the write-plan row is what the plugin loads/sets as fontName. family comes FROM the
-  // bound font/family/* variable, so pin.family reaching the host proves the family-match invariant too.
+  const dispCut = dispStyle?.properties.fontStyle as any;
+  ok(dispCut?.bound === true && /core\/font\/style\/display\/subtle$/.test(dispCut?.variable ?? '') && dispCut?.resolvedType === 'STRING'
+    && cutValue(dispCut?.variable) === 'Light Condensed',
+    `#1485(a): display/md/subtle BINDS the STRING cut variable and its value is 'Light Condensed' (got bound=${dispCut?.bound}, var=${JSON.stringify(dispCut?.variable)}, value=${JSON.stringify(cutValue(dispCut?.variable))})`);
+  // (b) HOST-TRUTH — the write-plan row is what the plugin loads/sets as fontName + binds. family comes
+  // FROM the bound font/family/* variable, so pin.family reaching the host proves the family-match
+  // invariant too; the resolved cut string comes FROM the bound cut variable's value (#1485).
   const rows = buildTextStylePlan(theme);
   const dispRow = rows.find((r) => r.name === 'display/md/subtle');
-  ok(dispRow?.fontStyle === 'Light Condensed' && dispRow?.fontFamilyPrimary === 'ITC Garamond Std',
-    `#1368(b): host-truth row = {family:'ITC Garamond Std', style:'Light Condensed'} (got {family:${JSON.stringify(dispRow?.fontFamilyPrimary)}, style:${JSON.stringify(dispRow?.fontStyle)}})`);
-  // (c) TRUTHFUL NUMERIC — the slot still binds its weight-role numeric (Light = subtle = 300); the pin
-  // moves the STYLE only, never the weight.
-  ok(/font\/weight-role\/subtle$/.test(dispRow?.fontWeightVar ?? ''),
-    `#1368(c): the pinned slot still binds the subtle weight-role numeric, untouched (got ${dispRow?.fontWeightVar})`);
-  // (d) SLOT-SCOPED — an UNPINNED category derives its style from the weight as before (not pinned).
-  ok((styles.find((s) => s.name === 'title/md/subtle')?.properties.fontStyle as any)?.value === 'Light',
-    `#1368(d): an unpinned category (title) still derives fontStyle from the weight ('Light'), proving the pin is per-slot`);
+  ok(dispRow?.fontStyle === 'Light Condensed' && dispRow?.fontFamilyPrimary === 'ITC Garamond Std'
+    && /core\/font\/style\/display\/subtle$/.test(dispRow?.fontStyleVar ?? ''),
+    `#1485(b): host-truth row = {family:'ITC Garamond Std', style:'Light Condensed', styleVar:.../display/subtle} (got {family:${JSON.stringify(dispRow?.fontFamilyPrimary)}, style:${JSON.stringify(dispRow?.fontStyle)}, styleVar:${JSON.stringify(dispRow?.fontStyleVar)}})`);
+  // (c) TRUTHFUL NUMERIC, RETAINED AS DATA — the slot's weight-role numeric (Light = subtle = 300) is
+  // still EMITTED as a FLOAT variable; the pin moves only the STYLE, and the numeric is no longer bound
+  // on the Text Style (one authoritative style binding — the STRING cut). The FLOAT variable existing is
+  // the parallel-data guarantee #1485 keeps.
+  const subtleWeightVar = `${root}/core/font/weight-role/subtle`;
+  ok(cutValue(subtleWeightVar) === 300
+    && (dispStyle?.properties.fontWeight as any)?.bound === false && (dispStyle?.properties.fontWeight as any)?.value === 300,
+    `#1485(c): the subtle weight-role FLOAT (300) is still emitted as data and the style keeps it unbound (got var=${JSON.stringify(cutValue(subtleWeightVar))}, styleWeight=${JSON.stringify(dispStyle?.properties.fontWeight)})`);
+  // (d) SLOT-SCOPED — an UNPINNED category (title) in the SAME weight role derives 'Light', NOT the
+  // pinned 'Light Condensed'. This is the per-CATEGORY cut variable proving its worth: a per-role-only
+  // cut would collapse display/subtle and title/subtle into one value — the silent cut swap #1485 guards.
+  const titleCut = (styles.find((s) => s.name === 'title/md/subtle')?.properties.fontStyle as any);
+  ok(titleCut?.bound === true && /core\/font\/style\/title\/subtle$/.test(titleCut?.variable ?? '') && cutValue(titleCut?.variable) === 'Light',
+    `#1485(d): the unpinned title/subtle cut derives 'Light' (its OWN variable, not display's 'Light Condensed'), proving the pin is per-slot (got var=${JSON.stringify(titleCut?.variable)}, value=${JSON.stringify(cutValue(titleCut?.variable))})`);
   // (e) NB seed EMITS it — the real brand that motivated #1368 now binds the condensed cut engine-side.
   {
     const nb = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input);
@@ -1008,6 +1024,43 @@ for (const b of brands) {
   if (scopeOf('color/field/border/hover') !== JSON.stringify(['STROKE_COLOR'])) fieldScopeBad.push('field/border/hover');
   if (scopeOf('color/field/placeholder') !== JSON.stringify(['TEXT_FILL'])) fieldScopeBad.push('field/placeholder');
   ok(fieldScopeBad.length === 0, 'field: Figma slots carry slot-aware scopes' + (fieldScopeBad.length ? ` — ${fieldScopeBad.join(',')}` : ''));
+
+  // (e4) TOP-LEVEL ROLE-FAMILY scopes (#1484). The blocks above pin the SLOT-scoped families
+  //      (interactive/disabled/field). This pins the families dispatched by `COLOR_SCOPES` on
+  //      `seg[1]` — background/scrim/veil/foreground/text/icon/border — so none can silently regain
+  //      the wrong picker context. The bug this closes: `foreground.*` are on-color SURFACE/fill
+  //      colours (the ground UNDER on-color content), not ink, yet carried a `TEXT_FILL` that offered
+  //      them in Figma's text-fill picker. `foreground` must scope like its surface twins
+  //      (background/scrim/veil), NOT like `text`.
+  //
+  //      docs/34 independence: the EXPECTED sets here are HAND-WRITTEN literals, deliberately NOT
+  //      imported from `COLOR_SCOPES` — deriving the oracle from the table it checks would be shape 2
+  //      (the DRY trap: `table === table`, unfalsifiable). Mutating `COLOR_SCOPES.foreground` back to
+  //      include `TEXT_FILL` fails THIS assertion by name (`foreground`), and the same for any family.
+  //      A stale/renamed family name reads back `null` (scopeOf misses) → mismatch → named failure, so
+  //      the family is proven REPRESENTED, not merely self-consistent. The `familyScopeChecked` floor
+  //      asserts the set actually ran over a non-empty family list (docs/34 shape 9), so an empty sweep
+  //      cannot pass as clean.
+  const roleFamilyScopes: Record<string, { leaf: string; scopes: string[] }> = {
+    background: { leaf: 'color/background/primary', scopes: ['FRAME_FILL', 'SHAPE_FILL'] },
+    scrim: { leaf: 'color/scrim/default', scopes: ['FRAME_FILL', 'SHAPE_FILL'] },
+    veil: { leaf: 'color/veil/dark/subtle', scopes: ['FRAME_FILL', 'SHAPE_FILL'] },
+    // The fix's whole point: a surface, NOT ink — Frame/Shape only, no TEXT_FILL (#1484).
+    foreground: { leaf: 'color/foreground/primary', scopes: ['FRAME_FILL', 'SHAPE_FILL'] },
+    text: { leaf: 'color/text/primary', scopes: ['TEXT_FILL'] },
+    icon: { leaf: 'color/icon/primary', scopes: ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'] },
+    border: { leaf: 'color/border/primary', scopes: ['STROKE_COLOR'] },
+  };
+  const familyScopeBad: string[] = [];
+  let familyScopeChecked = 0;
+  for (const [fam, { leaf, scopes }] of Object.entries(roleFamilyScopes)) {
+    familyScopeChecked++;
+    if (scopeOf(leaf) !== JSON.stringify(scopes)) familyScopeBad.push(`${fam} (${leaf}=${scopeOf(leaf)})`);
+  }
+  ok(familyScopeChecked === 7 && familyScopeBad.length === 0,
+    'color role-families carry surface/ink/stroke scopes by family (#1484: foreground is a surface, not text)'
+    + (familyScopeChecked !== 7 ? ` — swept ${familyScopeChecked} families, expected 7` : '')
+    + (familyScopeBad.length ? ` — WRONG SCOPE: ${familyScopeBad.join('; ')}` : ''));
 
   // (f) overlays (docs/20 §6): each colour has hover/pressed/selected washes, mode-adaptive
   //     (black-alpha light / white-alpha dark), and the COMPOSITED result is a gated contract
@@ -2277,7 +2330,11 @@ for (const b of brands) {
   ok(typeSets.modes.join(',') === 'mobile,desktop' && typeSets.rows.every((r) => r.resolvedType === 'FLOAT'),
     `font-plan: type-sets is FLOAT with mobile/desktop modes (${typeSets.modes.join('/')})`);
 
-  // Text Style plan — one row per composite; bound vars named + fontStyle/lineHeight baked.
+  // Text Style plan — one row per composite; bound vars named + fontStyle cut var + lineHeight baked.
+  // #1485 — fontStyle now BINDS a STRING cut variable (`font/style/<cat>/<role>[-italic]`), and the plan
+  // resolves the cut STRING (for loadFontAsync + fontName fallback) from that variable. The numeric
+  // weight-role FLOAT variable stays emitted as data (asserted in the byte-repro block below), but the
+  // plan no longer names a weight bind target — the STRING cut is the single authoritative style binding.
   const ts = buildTextStylePlan(nb);
   ok(ts.length > 0, `font-plan: text-style plan has rows (${ts.length})`);
   const tbad: string[] = [];
@@ -2285,11 +2342,11 @@ for (const b of brands) {
     if (!r.fontFamilyVar.startsWith(nbVar('core/font/family/'))) tbad.push(`${r.name}: familyVar`);
     if (!r.fontFamilyPrimary) tbad.push(`${r.name}: no primary face`);
     if (!(r.fontSizeCollection === 'core' || r.fontSizeCollection === 'type-sets')) tbad.push(`${r.name}: sizeColl`);
-    if (!r.fontWeightVar.startsWith(nbVar('core/font/weight-role/'))) tbad.push(`${r.name}: weightVar`);
-    if (!r.fontStyle) tbad.push(`${r.name}: no fontStyle`);
+    if (!r.fontStyleVar.startsWith(nbVar('core/font/style/'))) tbad.push(`${r.name}: styleVar`);
+    if (!r.fontStyle) tbad.push(`${r.name}: no fontStyle cut`);
     if (typeof r.lineHeightPct !== 'number') tbad.push(`${r.name}: lineHeight`);
   }
-  ok(tbad.length === 0, 'font-plan: every text-style row names bound vars + a primary face + baked fontStyle/lineHeight' + (tbad.length ? ` — ${tbad.slice(0, 3).join('; ')}` : ''));
+  ok(tbad.length === 0, 'font-plan: every text-style row names its bound cut var + a primary face + a resolved cut + baked lineHeight' + (tbad.length ? ` — ${tbad.slice(0, 3).join('; ')}` : ''));
 
   // Italic axis: an italics-opted brand carries italic style-names on the italic composites.
   const italicPlan = buildTextStylePlan(brandTheme({ id: 'ts-it', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, typography: { italics: ['body'], links: ['body'] } }));
@@ -6445,6 +6502,43 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'hc-light', name: 'color/icon/info-subtle', nb: 'palette/info/450', engine: 'palette/info/500' },
 ];
 
+// Figma SCOPES the engine intentionally emits DIFFERENTLY from the frozen real-NB export (#1484).
+// The hand-built NB Token Press export scoped every `foreground.*` variable FRAME/SHAPE/TEXT, but
+// `foreground.*` are on-color SURFACE/fill colours — the ground painted UNDER on-color content — not
+// ink (that is `text.*`). A `TEXT_FILL` there wrongly offered them in Figma's text-fill picker, so the
+// engine now scopes them like their surface twins `background`/`scrim`/`veil` (FRAME/SHAPE, no Text).
+//
+// Recorded here rather than edited into the frozen fixture (docs/34 shape 6: rewriting the fixture to
+// agree with our own change would leave this gate reading a file the change had itself edited — green
+// on any future scope regression, the one thing it exists to catch — the same reason NB_KNOWN_RENAMES
+// exists above). Keyed by FIXTURE name: the three `foreground/inverse/*` carry their pre-#1140 names
+// because that is how the frozen export spells them, and the scope loop reaches the renamed engine var
+// through NB_KNOWN_RENAMES. Scopes are mode-invariant, so each entry is expected to be hit in all four
+// color modes; the comparison below accepts the divergence ONLY when it is EXACTLY nb→engine (a changed
+// scope is a new finding, not a covered one) and a waiver never hit is stale and fails as loudly as a
+// missing one. Written one name per line, not a `.map` over a slug list, so each stays an INDEPENDENT
+// statement of a var the emitter really moved (docs/34 shape 1), staleness-checked on its own.
+const FG_NB_SCOPES = ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'];
+const FG_ENGINE_SCOPES = ['FRAME_FILL', 'SHAPE_FILL'];
+const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[] }[] = [
+  { name: 'color/foreground/primary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/secondary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/tertiary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/inverse/primary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/inverse/secondary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/inverse/tertiary', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/brand', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/success', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/warning', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/info', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/danger', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/brand-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/success-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/warning-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/danger-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+  { name: 'color/foreground/info-subtle', nb: FG_NB_SCOPES, engine: FG_ENGINE_SCOPES },
+];
+
 // Token Press export (fixtures/figma/nb): same variable names per collection/mode, same
 // scopes, and — the load-bearing property — every semantic aliases the SAME palette
 // variable by name in every mode (0 broken/mismatched). Values compared to float32
@@ -6465,6 +6559,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // NB opts into the default four modes (no wireframe), so `color` here has 4 entries.
   // Iterate the modes actually emitted rather than the full COLOR_MODES set — the
   // wireframe mode is opt-in and has no NB fixture (docs/11 Pillar 1b).
+  // Accumulated across every color mode — a scope divergence is mode-invariant, so each waiver should be
+  // hit in all four; one never hit anywhere is stale (checked once after the loop).
+  const scopeDivHit = new Set<string>();
   for (const key of ['palette', ...color.map((c) => `color.${c.$mode}`)]) {
     const fix = JSON.parse(readFileSync(resolve(FIXDIR, `${key}.json`), 'utf8'));
     const out = emitted[key];
@@ -6667,7 +6764,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // Follows `NB_KNOWN_RENAMES`, so a renamed var stays scope/alias/value checked rather than
       // being skipped by the `continue` — a rename must not become a way to stop being verified.
       const ov = outByName.get(name) ?? outByName.get(NB_KNOWN_RENAMES[name] ?? '\0'); if (!ov) continue;
-      if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) scopeBad.push(name);
+      if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) {
+        // A scope the engine intentionally diverges on (#1484: foreground drops TEXT_FILL) is accepted
+        // ONLY when it matches an NB_KNOWN_SCOPE_DIVERGENCES entry EXACTLY (fixture nb → engine). A
+        // different divergence than recorded is a new finding and still fails.
+        const sd = NB_KNOWN_SCOPE_DIVERGENCES.find((d) => d.name === name);
+        if (sd && JSON.stringify([...fv.scopes].sort()) === JSON.stringify([...sd.nb].sort())
+              && JSON.stringify([...ov.scopes].sort()) === JSON.stringify([...sd.engine].sort()))
+          scopeDivHit.add(name);
+        else scopeBad.push(name + (sd ? ' [scope divergence CHANGED]' : ''));
+      }
       // A role may diverge from real NB only if it is enumerated below AND diverges EXACTLY as
       // recorded. A changed divergence is a new finding, not a covered one, so it still fails.
       const known = NB_KNOWN_DIVERGENCES.find((d) => d.mode === modeOf && d.name === name);
@@ -6691,6 +6797,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(aliasBad.length === 0, `figma ${key}: every alias targets the same palette var as the fixture` + (aliasBad.length ? ` — ${aliasBad.slice(0, 3).join(',')}` : ''));
     ok(valBad.length === 0, `figma ${key}: resolved values match fixture (float32 tol)` + (valBad.length ? ` — ${valBad.slice(0, 3).join(',')}` : ''));
   }
+  // A scope-divergence waiver that no longer applies is as much a bug as a missing one: it claims the
+  // engine still diverges where it doesn't, and would silently cover a REAL future scope regression at
+  // that var. Fail until it is removed (docs/34, mirrors the alias-divergence staleness above).
+  const staleScopeDiv = NB_KNOWN_SCOPE_DIVERGENCES.filter((d) => !scopeDivHit.has(d.name)).map((d) => d.name);
+  ok(staleScopeDiv.length === 0, 'figma color: no stale NB scope-divergence waivers'
+    + (staleScopeDiv.length ? ` — ${staleScopeDiv.join(', ')} no longer diverge; remove them` : ''));
 }
 
 // (12) EMIT-FIGMA TYPOGRAPHY (docs/10 §4) — byte-reproduce the frozen font.json +
@@ -6719,9 +6831,27 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const fontFix = JSON.parse(readFileSync(resolve(FIXDIR, 'font.json'), 'utf8'));
   const fontByName = new Map<string, any>(fontFix.variables.map((v: any) => [nbFixName(v.name), v]));
   const emitByName = new Map<string, any>(font.variables.map((v: any) => [v.name, v]));
+  // #1485 — the STRING cut variables (`font/style/<cat>/<role>[-italic]`) POSTDATE the frozen fixture,
+  // so they are not in it. The byte-repro below is on the family/size/weight/weight-role vars the fixture
+  // froze; the cut vars are excluded here and asserted independently just after (their own representation
+  // floor + a per-slot value check). `docs/34`: a fixture predating a feature does not get to silence it.
+  const isCutVar = (n: string) => /(?:^|\/)font\/style\/[^/]+\/[^/]+$/.test(n);
   const missingF = [...fontByName.keys()].filter((n) => !emitByName.has(n));
-  const extraF = [...emitByName.keys()].filter((n) => !fontByName.has(n));
-  ok(missingF.length === 0 && extraF.length === 0, `figma font: variable names match fixture (${fontFix.variables.length})` + (missingF.length ? ` — MISSING ${missingF.slice(0, 3).join(',')}` : '') + (extraF.length ? ` — EXTRA ${extraF.slice(0, 3).join(',')}` : ''));
+  const extraF = [...emitByName.keys()].filter((n) => !fontByName.has(n) && !isCutVar(n));
+  ok(missingF.length === 0 && extraF.length === 0, `figma font: variable names match fixture (${fontFix.variables.length}) modulo the #1485 cut vars` + (missingF.length ? ` — MISSING ${missingF.slice(0, 3).join(',')}` : '') + (extraF.length ? ` — EXTRA ${extraF.slice(0, 3).join(',')}` : ''));
+  // The cut variables ARE emitted (representation floor) — STRING, FONT_STYLE scope, alias-free, one per
+  // distinct (category, weight-role, italic) slot. A mutation that stops emitting them fails HERE.
+  const cutVars = font.variables.filter((v: any) => isCutVar(v.name));
+  ok(cutVars.length > 0 && cutVars.every((v: any) => v.resolvedType === 'STRING' && v.scopes.includes('FONT_STYLE') && !v.alias && typeof v.value === 'string' && v.value.length > 0),
+    `#1485 figma font: STRING cut variables are emitted (FONT_STYLE, alias-free, non-empty value) — ${cutVars.length} slot(s)`);
+  // NB derives its cuts from the weight roles (no facePin in the nb fixture), so the values are the
+  // named-instance guesses. Independent oracle = a hand-written role→style map, NOT the emitter.
+  const NB_CUT_BY_ROLE: Record<string, string> = { subtle: 'Light', default: 'Regular', emphasis: 'Semi Bold', strong: 'Bold', max: 'Black' };
+  const cutValBad = cutVars.filter((v: any) => {
+    const role = /font\/style\/[^/]+\/([^/]+)$/.exec(v.name)?.[1] ?? '';
+    return NB_CUT_BY_ROLE[role] !== undefined && v.value !== NB_CUT_BY_ROLE[role];
+  }).map((v: any) => `${v.name}=${v.value}`);
+  ok(cutValBad.length === 0, `#1485 figma font: each derived cut is the role's named-instance style (subtle→Light … strong→Bold)` + (cutValBad.length ? ` — ${cutValBad.slice(0, 3).join(', ')}` : ''));
 
   // Scopes are restored to their real per-family targets across primitive +
   // semantic (this PR keeps the fixture-match here — hidden-from-publishing
@@ -6780,9 +6910,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const wrapped = ts.styles.filter((s) => s.name.startsWith('text/'));
   ok(wrapped.length === 0, 'figma text-styles: fix #1 — no emitted style name starts with `text/`');
 
-  const collBad: string[] = [], famBad: string[] = [], sizeBind: string[] = [], weightBind: string[] = [];
-  const lhWrong: string[] = [], lsWrong: string[] = [], styleWrong: string[] = [];
+  const collBad: string[] = [], famBad: string[] = [], sizeBind: string[] = [], weightData: string[] = [];
+  const lhWrong: string[] = [], lsWrong: string[] = [], styleWrong: string[] = [], styleBind: string[] = [];
   const upperMismatch: string[] = [], decoMismatch: string[] = [];
+  // #1485 — the cut a style BINDS is a STRING variable; resolve its value from the same emitted font
+  // collection to compare against the fixture's baked fontStyle (which the derived cut must still equal).
+  const cutValueByName = new Map<string, unknown>(font.variables.map((v: any) => [v.name, v.value]));
   for (const s of ts.styles) {
     const p = s.properties;
     // fix #2 — collection is `core` (the merged primitive collection, #1097 — it was `core-font`,
@@ -6794,13 +6927,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     if (!fx) continue;
     if (!(p.fontFamily as any).bound || (p.fontFamily as any).collection !== 'core') collBad.push(`${s.name}:family`);
     if (!(p.fontSize as any).bound || !['core', 'type-sets'].includes((p.fontSize as any).collection)) collBad.push(`${s.name}:size`);
-    if (!(p.fontWeight as any).bound || (p.fontWeight as any).collection !== 'core') collBad.push(`${s.name}:weight`);
+    // #1485 — fontStyle now BINDS (the STRING cut, in `core`); fontWeight is unbound parallel data.
+    if (!(p.fontStyle as any).bound || (p.fontStyle as any).collection !== 'core' || (p.fontStyle as any).resolvedType !== 'STRING') collBad.push(`${s.name}:style`);
     // The pre-fix fixture bound fontSize to the same collection the corrected
     // emit chooses (font-fluid for fluid composites, font for static) — that
     // structure survives the fixes. Verify same binding target.
     if ((p.fontSize as any).variable !== nbFixName(fx.properties.fontSize.variable)) sizeBind.push(`${s.name}: ${(p.fontSize as any).variable} ≠ ${nbFixName(fx.properties.fontSize.variable)}`);
-    if ((p.fontWeight as any).variable !== nbFixName(fx.properties.fontWeight.variable)) weightBind.push(`${s.name}: ${(p.fontWeight as any).variable} ≠ ${nbFixName(fx.properties.fontWeight.variable)}`);
+    // #1485 — fontWeight is PARALLEL DATA on the style: unbound, numeric, matching the fixture's weight
+    // value (the fixture bound it as a variable; the DATA it stood for is the numeric weight). The FLOAT
+    // weight-role variable itself is still emitted (byte-repro above); it is just no longer bound here.
+    if ((p.fontWeight as any).bound !== false || typeof (p.fontWeight as any).value !== 'number') weightData.push(`${s.name}: fontWeight not unbound-numeric (${JSON.stringify(p.fontWeight)})`);
     if ((p.fontFamily as any).variable !== nbFixName(fx.properties.fontFamily.variable)) famBad.push(`${s.name}: ${(p.fontFamily as any).variable} ≠ ${nbFixName(fx.properties.fontFamily.variable)}`);
+    // #1485 — the cut the style binds must exist AND its resolved value must equal the fixture's baked
+    // fontStyle (the derived cut, which NB's weights + Inter make e.g. Bold/Regular/Semi Bold). Binding
+    // + value together: a mutation that drops the bind, or emits the wrong cut value, fails by name.
+    const styleVar = (p.fontStyle as any).variable as string;
+    if (!/(?:^|\/)font\/style\/[^/]+\/[^/]+$/.test(styleVar ?? '')) styleBind.push(`${s.name}: styleVar='${styleVar}' is not a cut-variable name`);
+    else if (cutValueByName.get(styleVar) !== fx.properties.fontStyle.value) styleBind.push(`${s.name}: cut '${styleVar}'=${JSON.stringify(cutValueByName.get(styleVar))} ≠ fixture ${JSON.stringify(fx.properties.fontStyle.value)}`);
 
     // fix #3a — lineHeight PERCENT, matches fontSize×multiplier / fontSize×100.
     const lh = (p.lineHeight as any).value;
@@ -6821,23 +6964,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const expectedLsPct = Math.round((fxLsPx / fxDesktopSize) * 10000) / 100;
     if (Math.abs(ls.value - expectedLsPct) > 0.01) lsWrong.push(`${s.name}:${ls.value}%≠${expectedLsPct}% (fixture ${fxLsPx}px/${fxDesktopSize}px)`);
 
-    // fix #5 — fontStyle derived from weight-role numeric via named-instance table.
-    // Compare against the derived expectation (not the fixture's baked string —
-    // it happens to agree today for NB's weights + Inter).
+    // fix #5 / #1485 — the cut value is checked via `styleBind` above (the bound cut variable's value
+    // must equal the fixture's baked fontStyle). `styleWrong` is retained as a redundant direct compare
+    // of the same value, so a regression is named twice if it ever occurs.
     const fxStyle = fx.properties.fontStyle.value;
-    if ((p.fontStyle as any).value !== fxStyle) styleWrong.push(`${s.name}: emitted ${(p.fontStyle as any).value} ≠ fixture ${fxStyle}`);
+    if (cutValueByName.get((p.fontStyle as any).variable) !== fxStyle) styleWrong.push(`${s.name}: cut ${JSON.stringify(cutValueByName.get((p.fontStyle as any).variable))} ≠ fixture ${fxStyle}`);
 
     // Preserved from spec: eyebrow uppercase + link underline.
     if ((p.textCase as any).value !== fx.properties.textCase.value) upperMismatch.push(`${s.name}: ${(p.textCase as any).value} ≠ ${fx.properties.textCase.value}`);
     if ((p.textDecoration as any).value !== fx.properties.textDecoration.value) decoMismatch.push(`${s.name}: ${(p.textDecoration as any).value} ≠ ${fx.properties.textDecoration.value}`);
   }
-  ok(collBad.length === 0, 'figma text-styles: fix #2 — every bound property uses the prescribed collection (`core` / type-sets)' + (collBad.length ? ` — ${collBad.slice(0, 3).join(', ')}` : ''));
+  ok(collBad.length === 0, 'figma text-styles: fix #2 / #1485 — fontFamily/fontSize/fontStyle bind the prescribed collection (`core` / type-sets), fontStyle STRING' + (collBad.length ? ` — ${collBad.slice(0, 3).join(', ')}` : ''));
   ok(famBad.length === 0, 'figma text-styles: fix #4 — fontFamily binds <root>/core/font/family/<category> (primary face; full stack in variable description)' + (famBad.length ? ` — ${famBad.slice(0, 3).join('; ')}` : ''));
   ok(sizeBind.length === 0, 'figma text-styles: fontSize binds the same var as the fixture (core/font/size/<n> or font-fluid/<path>, both rooted)' + (sizeBind.length ? ` — ${sizeBind.slice(0, 3).join('; ')}` : ''));
-  ok(weightBind.length === 0, 'figma text-styles: fontWeight binds <root>/core/font/weight-role/<role>' + (weightBind.length ? ` — ${weightBind.slice(0, 3).join('; ')}` : ''));
+  ok(weightData.length === 0, 'figma text-styles: #1485 — fontWeight is unbound parallel-data numeric (not bound; the FLOAT weight-role var stays emitted)' + (weightData.length ? ` — ${weightData.slice(0, 3).join('; ')}` : ''));
+  ok(styleBind.length === 0, 'figma text-styles: #1485 — fontStyle binds a core/font/style/<cat>/<role> cut variable whose value equals the fixture cut' + (styleBind.length ? ` — ${styleBind.slice(0, 3).join('; ')}` : ''));
   ok(lhWrong.length === 0, 'figma text-styles: fix #3a — lineHeight baked as PERCENT (unit=PERCENT, value = round(multiplier×100))' + (lhWrong.length ? ` — ${lhWrong.slice(0, 3).join('; ')}` : ''));
   ok(lsWrong.length === 0, 'figma text-styles: fix #3b — letterSpacing baked as PERCENT (unit=PERCENT, value = em×100)' + (lsWrong.length ? ` — ${lsWrong.slice(0, 3).join('; ')}` : ''));
-  ok(styleWrong.length === 0, 'figma text-styles: fix #5 — fontStyle derived from weight-role via the named-instance table' + (styleWrong.length ? ` — ${styleWrong.slice(0, 3).join('; ')}` : ''));
+  ok(styleWrong.length === 0, 'figma text-styles: fix #5 / #1485 — the bound cut variable resolves to the weight-role named-instance style' + (styleWrong.length ? ` — ${styleWrong.slice(0, 3).join('; ')}` : ''));
   ok(upperMismatch.length === 0, 'figma text-styles: textCase preserved (eyebrow UPPER, else ORIGINAL)' + (upperMismatch.length ? ` — ${upperMismatch.slice(0, 3).join('; ')}` : ''));
   ok(decoMismatch.length === 0, 'figma text-styles: textDecoration preserved (-link → UNDERLINE, else NONE)' + (decoMismatch.length ? ` — ${decoMismatch.slice(0, 3).join('; ')}` : ''));
 
@@ -6860,11 +7004,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const monoBody = brandTheme({ id: 'mono-body', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
       typography: { families: { body: 'JetBrains Mono' }, weights: { body: ['default', 'emphasis'], display: ['emphasis'] } } } as any);
     const st = buildFigmaTextStyles(monoBody).styles;
+    // #1485 — the cut is now the bound STRING variable's value; resolve it from the emitted font vars.
+    const monoCut = new Map<string, unknown>(buildFigmaFont(monoBody)[0].variables.map((v: any) => [v.name, v.value]));
+    const cutOf = (x: any): unknown => monoCut.get((x.properties.fontStyle as any).variable);
     const bodyEmph = st.filter((x: any) => /^body\/.*\/emphasis$/.test(x.name));
     const dispEmph = st.filter((x: any) => /^display\/.*\/emphasis$/.test(x.name));
-    ok(bodyEmph.length > 0 && bodyEmph.every((x: any) => (x.properties.fontStyle as any).value === 'Semi Bold'),
-      `figma fontStyleName: a MONO face on body no longer collapses 600→Medium — got ${(bodyEmph[0]?.properties.fontStyle as any)?.value}`);
-    ok(dispEmph.length > 0 && dispEmph.every((x: any) => (x.properties.fontStyle as any).value === 'Semi Bold'),
+    ok(bodyEmph.length > 0 && bodyEmph.every((x: any) => cutOf(x) === 'Semi Bold'),
+      `figma fontStyleName: a MONO face on body no longer collapses 600→Medium — got ${cutOf(bodyEmph[0])}`);
+    ok(dispEmph.length > 0 && dispEmph.every((x: any) => cutOf(x) === 'Semi Bold'),
       'figma fontStyleName: …and a SANS face in the same brand still says Semi Bold — mono and non-mono agree (#538)');
   }
 }
@@ -14329,7 +14476,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const codeMap = JSON.parse(fontVars.match(/const FSC=(\{[^}]*\});/)![1].replace(/(\w+):/g, '"$1":').replace(/'/g, '"')) as Record<string, string>;
   ok(new Set(Object.values(codeMap)).size === Object.keys(codeMap).length,
     `materialise: the font scope code map is a bijection (${Object.keys(codeMap).length} codes → ${new Set(Object.values(codeMap)).size} distinct scopes)`);
-  ok(codeMap.m === 'FONT_FAMILY', 'materialise: FONT_FAMILY (the one STRING scope) has its own code, not a float code reused');
+  ok(codeMap.m === 'FONT_FAMILY', 'materialise: FONT_FAMILY (a STRING scope) has its own code, not a float code reused');
+  ok(codeMap.y === 'FONT_STYLE', 'materialise: #1485 — FONT_STYLE (the STRING cut scope) has its own code, not a float code reused');
 
   // The weight-role aliases are intra-collection (`font/weight-role/strong` → `font/weight/700`), so
   // one payload does create-then-bind in two loops. Every target must be created by the same pass.
@@ -14340,7 +14488,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // a lever, so the pattern must not spell one. A pattern anchored at `font/weight/` would match
   // NOTHING here and `fontTargets.size === 5` would be the only thing that noticed.
   for (const m of fontVars.matchAll(/,\["([a-z0-9/\-.]*core\/font\/weight\/\d+)"\]\]/g)) fontTargets.add(m[1]);
-  ok(fontCreated.size === 50, `materialise: font-vars creates all 50 typography variables (${fontCreated.size})`);
+  // 59 = 50 pre-#1485 (7 family + 22 size + 5 weight + 5 weight-role + 11 type-sets fluid) + 9 STRING
+  // cut variables (#1485), one per distinct NB (category, weight-role, italic) slot.
+  ok(fontCreated.size === 59, `materialise: font-vars creates all 59 typography variables incl. the 9 #1485 cut vars (${fontCreated.size})`);
   ok(fontTargets.size === 5 && [...fontTargets].every((x) => fontCreated.has(x)),
     `materialise: every weight-role alias target is created by the same pass (${fontTargets.size} roles)`);
 
@@ -14348,7 +14498,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(passOrder().indexOf('font-vars') < passOrder().indexOf('text-styles'),
     'materialise: font-vars is pasted before text-styles (setBoundVariable resolves its targets by name)');
   const plan = buildTextStylePlan(t);
-  const boundTargets = new Set(plan.flatMap((r) => [r.fontFamilyVar, r.fontSizeVar, r.fontWeightVar]).filter(Boolean));
+  // #1485 — a Text Style binds fontFamily + fontSize + fontStyle (the STRING cut); fontWeight is unbound
+  // parallel data, so it is not among the bound targets that must be created by font-vars first.
+  const boundTargets = new Set(plan.flatMap((r) => [r.fontFamilyVar, r.fontSizeVar, r.fontStyleVar]).filter(Boolean));
   const unreachable = [...boundTargets].filter((v) => !fontCreated.has(v));
   ok(unreachable.length === 0, `materialise: every variable a Text Style binds is created by font-vars${unreachable.length ? ` — UNREACHABLE: ${unreachable.join(', ')}` : ` (${boundTargets.size} vars)`}`);
 

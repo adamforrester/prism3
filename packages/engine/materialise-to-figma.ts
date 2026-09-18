@@ -127,7 +127,9 @@ const encodeFloatScopes = (scopes: string[]): string =>
 // folded into the float map, for the same reason the float map isn't folded into the colour one: an
 // unknown scope must decode to '?' loudly instead of quietly landing on a scope that shares a letter.
 // The font pass encodes across BOTH maps because one collection carries both types of row.
-const FONT_SCOPE_CODE: Record<string, string> = { ...FLOAT_SCOPE_CODE, FONT_FAMILY: 'm' };
+// FONT_STYLE ('y') is the second STRING scope (#1485) — the cut variable the Text Style's weight/style
+// control binds. Like FONT_FAMILY it is a STRING scope that shares this one mixed-type collection.
+const FONT_SCOPE_CODE: Record<string, string> = { ...FLOAT_SCOPE_CODE, FONT_FAMILY: 'm', FONT_STYLE: 'y' };
 const encodeFontScopes = (scopes: string[]): string =>
   scopes.map((s) => FONT_SCOPE_CODE[s] ?? '?').sort().join('');
 
@@ -639,7 +641,7 @@ return {effects:{total:E.length,created:effectsCreated},paints:{total:P.length,c
 const textStylesPass = (brand: string): string => {
   const T = textStylePlan(brand).map((r) => [
     r.name, r.description, r.fontFamilyVar, r.fontFamilyPrimary, r.fontSizeVar,
-    r.fontWeightVar, r.fontStyle, r.lineHeightPct, r.letterSpacingPct, r.textCase, r.textDecoration,
+    r.fontStyleVar, r.fontStyle, r.lineHeightPct, r.letterSpacingPct, r.textCase, r.textDecoration,
   ]);
   return `const T=${JSON.stringify(T)};
 const byName=new Map((await figma.getLocalTextStylesAsync()).map(s=>[s.name,s]));
@@ -654,7 +656,7 @@ for(const r of T){
   try{await figma.loadFontAsync({family:r[3],style:r[6]});faces.set(key,true);}
   catch(e){faces.set(key,false);}
 }
-for(const [name,desc,famVar,face,sizeVar,weightVar,style,lhPct,lsPct,tCase,tDec] of T){
+for(const [name,desc,famVar,face,sizeVar,styleVar,style,lhPct,lsPct,tCase,tDec] of T){
   if(!faces.get(face+'\\u0000'+style)){skipped.push({name:name,reason:'font unavailable: '+face+' '+style});continue;}
   let s=byName.get(name);
   if(!s){s=figma.createTextStyle();s.name=name;byName.set(name,s);created++;}
@@ -663,7 +665,7 @@ for(const [name,desc,famVar,face,sizeVar,weightVar,style,lhPct,lsPct,tCase,tDec]
   s.lineHeight={unit:'PERCENT',value:lhPct};
   s.letterSpacing={unit:'PERCENT',value:lsPct};
   s.textCase=tCase;s.textDecoration=tDec;
-  for(const [field,target] of [['fontFamily',famVar],['fontSize',sizeVar],['fontWeight',weightVar]]){
+  for(const [field,target] of [['fontFamily',famVar],['fontSize',sizeVar],['fontStyle',styleVar]]){
     if(!target)continue;
     const v=varByName.get(target);
     if(!v){misses.push(name+'.'+field+' -> '+target);continue;}

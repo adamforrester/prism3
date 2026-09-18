@@ -428,7 +428,9 @@ export const buildFontVarPlan = (theme: Theme): VarCollectionPlan[] => {
 
 /** One Text Style to materialise. Bound props name their target var + collection (the executor binds
  *  via `setBoundVariable`); the rest are baked. `fontStyle` + `fontFamilyPrimary` drive `loadFontAsync`
- *  and the literal `fontName` fallback. */
+ *  and the literal `fontName` fallback. `fontStyleVar` is the STRING cut variable the single weight/style
+ *  control binds (#1485) — the numeric weight-role FLOAT variable stays emitted as data but is no longer
+ *  a bind target, so it is not named here. */
 export type TextStyleRow = {
   name: string;
   description: string;
@@ -436,8 +438,8 @@ export type TextStyleRow = {
   fontFamilyPrimary: string;     // the primary face (loadFontAsync + fontName.family)
   fontSizeVar: string;
   fontSizeCollection: string;    // the `core` collection, or `type-sets` for a fluid size
-  fontWeightVar: string;         // '<root>/core/font/weight-role/<role>' — in the `core` collection
-  fontStyle: string;             // baked style-name (loadFontAsync + fontName.style)
+  fontStyleVar: string;          // '<root>/core/font/style/<cat>/<role>[-italic]' — the bound STRING cut (#1485)
+  fontStyle: string;             // resolved cut style-name (loadFontAsync + fontName.style fallback)
   lineHeightPct: number;
   letterSpacingPct: number;
   textCase: 'ORIGINAL' | 'UPPER' | 'LOWER';
@@ -448,8 +450,6 @@ export type TextStylePlan = TextStyleRow[];
 /** Value of a bound `FigmaTextStyleProp` — the property is always `bound:false` with a literal here. */
 const bakedNum = (p: FigmaTextStyle['properties']['lineHeight']): number =>
   p.bound === false && typeof p.value === 'object' ? p.value.value : 0;
-const bakedStr = (p: FigmaTextStyle['properties']['fontStyle']): string =>
-  p.bound === false && typeof p.value === 'string' ? p.value : '';
 const boundVar = (p: FigmaTextStyle['properties']['fontSize']): { variable: string; collection: string } =>
   p.bound === true ? { variable: p.variable, collection: p.collection } : { variable: '', collection: CORE_COLLECTION };
 
@@ -490,10 +490,20 @@ const textStylePlanFrom = (
   const faceByVar = new Map(
     fontDefault.variables.filter((v) => isFamilyVar.test(v.name)).map((v) => [v.name, String(v.value)] as const),
   );
+  // #1485 — the RESOLVED CUT string per bound STRING cut variable, read from the Default-mode core-font
+  // file (value = the Figma style name). Same seam as `faceByVar`: `fontStyle` now BINDS a variable, so
+  // the plan's `fontStyle` (loadFontAsync + fontName.style fallback) is resolved FROM that variable's
+  // value rather than a baked literal — keeping the variable the single source of the cut. Matched at
+  // the tail (brand-invariant DTCG path) for the same reason `isFamilyVar` is.
+  const isStyleVar = /(?:^|\/)font\/style\/[^/]+\/[^/]+$/;
+  const cutByVar = new Map(
+    fontDefault.variables.filter((v) => isStyleVar.test(v.name)).map((v) => [v.name, String(v.value)] as const),
+  );
   return styles.map((s) => {
     const p = s.properties;
     const familyVar = p.fontFamily.bound === true ? p.fontFamily.variable : '';
     const size = boundVar(p.fontSize);
+    const styleVar = p.fontStyle.bound === true ? p.fontStyle.variable : '';
     return {
       name: s.name,
       description: s.description,
@@ -501,8 +511,8 @@ const textStylePlanFrom = (
       fontFamilyPrimary: faceByVar.get(familyVar) ?? '',
       fontSizeVar: size.variable,
       fontSizeCollection: size.collection === 'type-sets' ? 'type-sets' : CORE_COLLECTION,
-      fontWeightVar: p.fontWeight.bound === true ? p.fontWeight.variable : '',
-      fontStyle: bakedStr(p.fontStyle),
+      fontStyleVar: styleVar,
+      fontStyle: cutByVar.get(styleVar) ?? '',
       lineHeightPct: bakedNum(p.lineHeight),
       letterSpacingPct: bakedNum(p.letterSpacing),
       textCase: p.textCase.value,

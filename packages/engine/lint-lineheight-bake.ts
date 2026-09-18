@@ -9,7 +9,9 @@
  * ── WHY THIS EXISTS: THE AUDIT FINDING, AND WHY BINDING IS THE WRONG FIX ─────────────────────────
  *
  * #1356: every TEXT node across all emitted sets binds `fontSize`/`fontWeight`/`fontFamily` to
- * `core/font/*`, and `boundVariables.lineHeight` is EMPTY everywhere. Line height IS applied — a
+ * `core/font/*` (as of #1485 the weight/style control binds the STRING cut `fontStyle`, not the FLOAT
+ * `fontWeight` — see `lint-cut-binding.ts`; either way lineHeight stays unbound), and
+ * `boundVariables.lineHeight` is EMPTY everywhere. Line height IS applied — a
  * field-label's 16px text sits in a 24px line box — but as a raw value, not through a variable, so at
  * first read a brand changing its line-height scale would not propagate. The audit asked the right
  * question before assuming a bug: was the omission deliberate?

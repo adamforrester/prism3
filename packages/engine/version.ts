@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.110.0 — #1480: emit reusable Figma GRID STYLES, one per breakpoint. Layout was emitted as FLOAT
+ * 0.112.0 — #1480: emit reusable Figma GRID STYLES, one per breakpoint. Layout was emitted as FLOAT
  * variables only (the `layout` collection: grid/columns, grid/gutter, grid/margin, container/*,
  * breakpoint/*); a number cannot BECOME a live Figma column grid (Figma has no variable→layout-grid
  * binding), so a designer got the numbers and no applicable grid. This adds a new emitted STYLE surface:
@@ -2943,6 +2943,39 @@
  * `engineVersion` field). Gate: `test.ts` #1480 asserts each breakpoint emits a COLUMNS/STRETCH grid
  * style with the right count/gutter/margin, expected values hand-authored from theme.ts's layout
  * contract (docs/34 shape 1), mutation-proven by name.
+ *
+ * 0.111.0 — #1484: `foreground.*` Figma variable scopes drop `TEXT_FILL`. The `foreground` semantic
+ * family are on-color SURFACE/fill colours — the ground painted UNDER on-color content — not ink, so
+ * carrying a `TEXT_FILL` wrongly offered them in Figma's text-fill picker. They now scope like their
+ * surface twins `background`/`scrim`/`veil` (FRAME_FILL + SHAPE_FILL), and `text.*` remains the only
+ * top-level color family that scopes as `TEXT_FILL`. Only the emitted `scopes` metadata on the
+ * `color/foreground/*` variables changes across every brand's `out/figma/**` — no token value, no
+ * name, no projected component member moves — so this restamps `out/**` and moves those scope arrays.
+ * A new by-name gate (`test.ts` (e4)) pins the top-level `COLOR_SCOPES` role-families so a family
+ * cannot silently regain the wrong scope; mutating `foreground` back to text-fill fails it by name.
+ * CONTRACT STANDS at 11.2.0 — a Figma scope is emitted metadata, not a guaranteed token name
+ * (`token-contract --check` level `none`).
+ *
+ * 0.110.0 — #1485: BIND the text-style cut (weight/style) to a STRING variable, so a WIDTH cut like ITC
+ * Garamond Std *Light Condensed* is bindable and themeable in Figma — the numeric weight axis can never
+ * reach a width. A Figma Text Style has ONE weight/style control; the engine used to bind it via the
+ * FLOAT weight-role variable and BAKE `fontStyle` beside it (so a facePin, #1368, could only bake a
+ * literal). Now `buildFigmaFont` emits a STRING cut variable per (category, weight-role, italic) slot
+ * — `<root>/core/font/style/<cat>/<role>[-italic]`, scope FONT_STYLE — whose value is the facePin
+ * verbatim or the weight-role's named-instance derivation, and `buildFigmaTextStyles` BINDS `fontStyle`
+ * to it. The numeric weight-role FLOAT variable is RETAINED as parallel data (still emitted in `core`,
+ * DTCG `$value.fontWeight` still aliases it) but is no longer bound on the Text Style — one authoritative
+ * style binding, no conflicting double-bind. Per-CATEGORY, not per-role, because a facePin is keyed
+ * (category, weight-role): display/subtle can pin "Light Condensed" while title/subtle derives "Light",
+ * and a per-role-only cut would collapse the two (the silent cut swap the gate guards). Plugin
+ * (`write-text-styles.ts`) + CLI paste (`materialise-to-figma.ts`) bind `fontStyle`, not `fontWeight`;
+ * `materialise` gains a FONT_STYLE scope code ('y'). The emitted `out/figma/**` cut variables + bound
+ * text styles move, and the DTCG `figma.binds`/`baked`/`note` metadata moves → ENGINE bump. CONTRACT
+ * STANDS at 11.2.0 (rebased): the cut lives in Figma variables + `$extensions.prism3.facePin`, not a
+ * guaranteed DTCG token NAME — `$value` is unchanged, so `token-contract --check` is level `none`
+ * (brand-dependent). A follow-up covers TokenPress reading a fontStyle-bound variable to round-trip the
+ * cut (a guest surface, out of scope for this PR).
+>>>>>>> origin/main
  *
  * 0.109.0 — #1260: mint `type.label.lg` (18px at the label tier's own emphasis/600 weight) and re-point
  * `size.large.type` from `type.label.md.emphasis` to `type.label.lg.emphasis` across the button family
@@ -3005,7 +3038,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.110.0';
+export const ENGINE_VERSION = '0.112.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
