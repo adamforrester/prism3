@@ -135,6 +135,12 @@ export interface CompNode {
   y?: number;
   opacity?: number;
   characters?: string;
+  /** TYPED and READABLE, so the #1514 re-assert can read its own write back (a style Figma re-detached must
+   *  surface as a DISCARDED miss). Figma types it `string | figma.mixed` (`mixed` is a `unique symbol`), so
+   *  the port carries `string | symbol` for the real `figma` to satisfy it — the same "widen the port so the
+   *  host matches" rule the `setBoundVariable` note gives. The executor only ever compares it to the id it
+   *  just set, so a `mixed` reads as "not the id" and is reported. Set through `setTextStyleIdAsync`. */
+  readonly textStyleId?: string | symbol;
   clipsContent?: boolean;
   strokesIncludedInLayout?: boolean;
   readonly width?: number;
@@ -1093,17 +1099,28 @@ const writeComponentSet = async (
   // re-write each member's own copy AFTER wiring. Byte-identical to the fallback for a def with no
   // `byVariant`, so the re-assert is a no-op there.
   const textByMember = new Map<string, Map<string, string>>();
+  // #1514: THIS MEMBER'S COMPOSITE TEXT STYLE per text part — the same holistic `display/xl/strong`-style
+  // name `build` applies via `setTextStyleIdAsync` (`anatomy-figma.ts` `figmaTextStyleName`). Wiring a
+  // `characters` reference resets the node from the set-level TEXT property, which detaches that applied
+  // style while leaving its resolved property-level variable binds on the node — so a designer sees loose
+  // family/size/style variables and no named style (owner QA 2026-09-18; every component text node carries
+  // BOTH a `textStyle` and a `characters` ref, so all of them detach). Kept here, keyed exactly as
+  // `textByMember`, so the re-assert pass below can re-apply each node's style AFTER the wiring seam.
+  const styleByMember = new Map<string, Map<string, string>>();
   for (const plan of plans) {
     const perPart = new Map<string, { field: string; prop: string }>();
     const perText = new Map<string, string>();
-    const walk = (n: { name: string; propertyRef?: { field: string; prop: string }; characters?: string; children: unknown[] }): void => {
+    const perStyle = new Map<string, string>();
+    const walk = (n: { name: string; propertyRef?: { field: string; prop: string }; characters?: string; textStyle?: string; children: unknown[] }): void => {
       if (n.propertyRef) perPart.set(`${n.name}|${n.propertyRef.field}`, n.propertyRef);
       if (typeof n.characters === 'string') perText.set(n.name, n.characters);
+      if (typeof n.textStyle === 'string') perStyle.set(n.name, n.textStyle);
       for (const c of n.children as (typeof n)[]) walk(c);
     };
     walk(plan.root as unknown as Parameters<typeof walk>[0]);
     refByMember.set(planComponentName(plan), perPart);
     textByMember.set(planComponentName(plan), perText);
+    styleByMember.set(planComponentName(plan), perStyle);
   }
   // AFTER the offline guards, because a throw from them leaves nothing to name (#913).
   trail.component = component;
@@ -2134,6 +2151,33 @@ const writeComponentSet = async (
         catch (err) { misses.push(`text ${mName}/${part}.characters -> ${JSON.stringify(chars)} (${(err as Error).message})`); }
         if (node.characters !== chars)
           misses.push(`text ${mName}/${part}.characters -> DISCARDED (set ${JSON.stringify(chars)}, reads ${JSON.stringify(node.characters)})`);
+      }
+      // #1514 — RE-ASSERT THIS NODE'S COMPOSITE TEXT STYLE, the twin of the caption re-assert above and for
+      // the same reason: wiring `componentPropertyReferences.characters` detaches the `textStyleId` `build`
+      // applied before combine (Figma re-derives the node from the set-level TEXT property), leaving the
+      // style's resolved variable binds but no named style — the #1514 symptom on every characters-bound
+      // component text node. Re-apply the emitted style HERE, AFTER the wiring seam, reusing the node this
+      // read-back already found (no extra host search, #701) and AFTER the caption re-write above so a
+      // `characters` write cannot re-clear it. The style itself carries the family/size/style variable binds
+      // (the emitted `text-styles.json` binds them at the STYLE level), so re-applying it delivers the named
+      // style AND keeps the variables live — not a trade of one for the other. Font loaded first, exactly as
+      // `build` does, because `setTextStyleIdAsync` pulls in a family/style pair that must be resident. Read
+      // back like every write in this file: a style Figma re-detached surfaces as a DISCARDED miss rather
+      // than shipping the loose-variable node silently.
+      const styleName = styleByMember.get(mName)?.get(part);
+      if (typeof styleName === 'string') {
+        const st = styleByName.get(styleName);
+        if (!st) misses.push(`text ${mName}/${part}.textStyle -> ${styleName} (no such emitted text style)`);
+        else {
+          if (st.fontName) {
+            try { await api.loadFontAsync(st.fontName); }
+            catch (err) { misses.push(`text ${mName}/${part}.font -> ${st.fontName.family} ${st.fontName.style} (${(err as Error).message})`); }
+          }
+          try { await wr(node).setTextStyleIdAsync?.(st.id); }
+          catch (err) { misses.push(`text ${mName}/${part}.textStyle -> ${styleName} (${(err as Error).message})`); }
+          if (node.textStyleId !== st.id)
+            misses.push(`text ${mName}/${part}.textStyle -> DISCARDED (set ${styleName}, reads ${node.textStyleId ? String(node.textStyleId) : 'no style'})`);
+        }
       }
     }
     if (held?.[field] === id) continue;   // retained — the common case, nothing to do
