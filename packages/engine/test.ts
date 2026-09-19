@@ -576,6 +576,83 @@ for (const b of brands) {
   ok(vacuBreaks.length === 0, `L-05: the authored rungs differ from the tuned baseline (non-vacuous)` + (vacuBreaks.length ? ` — FAILED: ${vacuBreaks.join('; ')}` : ''));
 }
 
+// L-06 (#1510) — PER-MODE ABSOLUTE link overrides + the LINK FLOOR GUARD. The rung lever (L-05) is the
+// cross-mode DEFAULT; this arm proves the per-mode `overrides` map pins an EXACT link color for ONE mode
+// while the other modes keep the derived value, for a PAGE family and an INVERSE family INDEPENDENTLY,
+// and — the load-bearing arm — that a sub-floor absolute link pick is CLAMPED to its contrast floor
+// rather than emitted below it (the a11y bar, #1510 Step 3). EXPECTED is authored HERE: the exact step
+// the gate pins, and the hard 4.5:1 text-link floor; grounds are read off each role's own `against`, and
+// the gate imports NO engine link derivation (docs/34). BY-NAME MUTATIONS: (a) drop the override
+// application (the `roles[rolePath] = …` write in modes.ts) → the MOVE arm fails by name (the mode lands
+// the derived value, not the pinned step); (b) remove the LINK floor guard → the GUARD arm fails by name
+// (the emitted value is the raw sub-floor step, below 4.5:1).
+{
+  const inp = { id: 'l06', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  type LRole = { hex: string; path?: string; ratio?: number; min?: number; against?: string };
+  const rolesOf = (t: ReturnType<typeof brandTheme>, mode: string) =>
+    resolveAllModes(t).find((x) => x.mode === mode)?.roles as Record<string, LRole | undefined> | undefined;
+  const stepOf = (roles: Record<string, LRole | undefined> | undefined, key: string): string | undefined => {
+    const p = roles?.[key]?.path; return p ? p.split('.').pop() : undefined;
+  };
+  // The ground a link role is measured on, read off its OWN `against` (data on the resolved role, not a
+  // link derivation) — so this works for the page family and the inverse band alike.
+  const groundRgbOf = (roles: Record<string, LRole | undefined> | undefined, key: string): RGB => {
+    const against = roles?.[key]?.against;
+    const gHex = (against && roles?.[against]?.hex) || roles?.['background.primary']?.hex || '#ffffff';
+    return hexToRgb(gHex);
+  };
+
+  const base = brandTheme(inp as any);
+  const actionPal = base.roleToPalette.action;
+  const actSteps = (base.palettes.find((p) => p.palette === actionPal)?.steps ?? []) as Array<{ key: string; rgb: RGB }>;
+  const baseLight = rolesOf(base, 'light')!, baseDark = rolesOf(base, 'dark')!;
+  ok(!!baseLight['text.link.default'] && !!baseLight['inverse.text.link.default'],
+    'L-06: the brand emits both the page and inverse text-link families (precondition)');
+  const pageGround = groundRgbOf(baseLight, 'text.link.default');
+
+  // ----- MOVE (page family, light): pin an EXACT clearing step that DIFFERS from the derived default.
+  // A clearing step (≥ 4.5:1 on the light page) makes the guard a no-op, so the emitted step must equal
+  // the pinned one. The step is chosen by the gate's OWN contrast math over the action ramp.
+  const derivedDef = stepOf(baseLight, 'text.link.default');
+  const clearing = actSteps.filter((s) => contrast(s.rgb, pageGround) >= 4.5 && s.key !== derivedDef);
+  const pin = clearing[clearing.length - 1];
+  ok(!!pin, 'L-06: the action ramp offers a clearing step distinct from the derived default (precondition)');
+  const movT = brandTheme({ ...inp, overrides: { light: { 'text.link.default': { palette: actionPal, step: pin.key } } } } as any);
+  const movLight = rolesOf(movT, 'light')!, movDark = rolesOf(movT, 'dark')!;
+  ok(stepOf(movLight, 'text.link.default') === pin.key,
+    `L-06: a per-mode absolute link override lands the EXACT pinned step in that mode (got ${stepOf(movLight, 'text.link.default')}, pinned ${pin.key})`);
+  ok(stepOf(movDark, 'text.link.default') === stepOf(baseDark, 'text.link.default'),
+    'L-06: the OTHER mode keeps its derived link value (a light override leaves dark untouched)');
+  ok(pin.key !== derivedDef, 'L-06: the pinned step differs from the derived baseline (non-vacuous)');
+
+  // ----- INVERSE family independently settable -----
+  const invGround = groundRgbOf(baseLight, 'inverse.text.link.default');
+  const derivedInv = stepOf(baseLight, 'inverse.text.link.default');
+  const invClearing = actSteps.filter((s) => contrast(s.rgb, invGround) >= 4.5 && s.key !== derivedInv);
+  const invPin = invClearing[0];
+  ok(!!invPin, 'L-06: the action ramp offers a clearing step for the inverse band (precondition)');
+  const invT = brandTheme({ ...inp, overrides: { light: { 'inverse.text.link.default': { palette: actionPal, step: invPin.key } } } } as any);
+  const invLight = rolesOf(invT, 'light')!;
+  ok(stepOf(invLight, 'inverse.text.link.default') === invPin.key,
+    `L-06: an INVERSE link family is independently settable (got ${stepOf(invLight, 'inverse.text.link.default')}, pinned ${invPin.key})`);
+  ok(stepOf(invLight, 'text.link.default') === derivedDef,
+    'L-06: pinning the inverse family leaves the page family derived (independent)');
+
+  // ----- FLOOR GUARD (load-bearing): a sub-floor absolute pick is clamped to clear contrast -----
+  // The lightest action step has the lowest contrast on a light page — below 4.5:1. The guard must clamp
+  // it to a step that clears 4.5:1, and the emitted step must NOT be the raw sub-floor input.
+  const belowFloor = actSteps.filter((s) => contrast(s.rgb, pageGround) < 4.5)
+    .sort((a, b) => contrast(a.rgb, pageGround) - contrast(b.rgb, pageGround));
+  const sub = belowFloor[0];
+  ok(!!sub, 'L-06: the action ramp offers a sub-floor step on the light page (precondition)');
+  const guardT = brandTheme({ ...inp, overrides: { light: { 'text.link.default': { palette: actionPal, step: sub.key } } } } as any);
+  const gLight = rolesOf(guardT, 'light')!;
+  const gStep = stepOf(gLight, 'text.link.default');
+  const gRatio = gLight['text.link.default']?.ratio ?? 0;
+  ok(gRatio >= 4.5, `L-06: a sub-floor absolute link override is CLAMPED to clear its 4.5:1 floor (emitted ${gRatio.toFixed(2)}:1 for step ${gStep}, raw pick ${sub.key})`);
+  ok(gStep !== sub.key, `L-06: the clamp moves off the raw sub-floor step (${sub.key} → ${gStep})`);
+}
+
 // L-02 (#557) — the state WALK re-verifies each step against the state's own floor.
 //
 // Why this needs its own block on top of the corpus sweep above: that sweep would catch the

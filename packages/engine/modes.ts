@@ -365,6 +365,10 @@ const FILL_STATES = ['default', 'hover', 'pressed', 'focused', 'selected'] as co
 // beyond as the deepest, most-settled state. `focused` stays a colour no-op (== default) — the focus
 // ring carries focus, not an ink shift.
 const LINK_STATES = ['default', 'hover', 'visited', 'focused', 'pressed'] as const;
+// A link role in ANY family — `text.link.*`, `icon.link.*`, and the two inverse twins — all carry the
+// `.link.` segment and nothing else does. Used by the per-mode override floor guard (#1510): a link
+// override is held to contrast, a non-link override keeps the warn-not-block posture.
+const isLinkRole = (rolePath: string): boolean => rolePath.includes('.link.');
 const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as const;
 
 /**
@@ -1998,12 +2002,31 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       if (!step) throw new Error(`overrides[${mode}]: unknown step '${ref.step}' in palette '${ref.palette}' (role '${rolePath}')`);
       const newRgb = step.rgb;
       const againstRgb = existing.against === 'self' ? newRgb : (rgbByRole.get(existing.against) ?? baseRgb);
-      const ratio = contrast(newRgb, againstRgb);
-      roles[rolePath] = { ...existing, path: `${ns}.${ref.palette}.${ref.step}`, ratio, hex: hex(newRgb) };
+      // ---- the LINK floor guard (#1510) ----
+      // The general override layer WARNS-not-blocks: a hand-tuned FOREGROUND ink may dip below its bar
+      // by the author's choice — applied, emitted, recorded as a warning (the posture just above). A LINK
+      // is not the same case. The whole link role is forced deep specifically so it clears its contract
+      // (`text.link.*` at 4.5:1, `icon.link.*` at its icon floor), and an ABSOLUTE per-mode link pick that
+      // renders below that floor is a path we do not ship — a user's link color must never fall below
+      // contrast (#1510 Step 3, the a11y bar). So a sub-floor link override is CLAMPED to its floor:
+      // walked along the SAME ramp to the nearest step that clears its own `min`, in the ground-facing
+      // direction (toward the ramp end with more contrast against this role's own `against`) — the same
+      // floor-clearing move the base link walk makes. The pick is honored as far as contrast allows, never
+      // dropped and never emitted below contract. A non-link role is untouched (warn-not-block stands).
+      // Removing this block emits the raw sub-floor step and fails L-06's guard arm BY NAME.
+      let outRgb = newRgb, outStep = ref.step;
+      if (isLinkRole(rolePath) && existing.min > 0 && contrast(newRgb, againstRgb) < existing.min) {
+        const dir = contrast(steps[steps.length - 1].rgb, againstRgb) >= contrast(steps[0].rgb, againstRgb) ? 1 : -1;
+        let i = steps.findIndex((s) => s.key === ref.step);
+        while (i >= 0 && i + dir >= 0 && i + dir < steps.length && contrast(steps[i].rgb, againstRgb) < existing.min) i += dir;
+        if (i >= 0) { outRgb = steps[i].rgb; outStep = steps[i].key; }
+      }
+      const ratio = contrast(outRgb, againstRgb);
+      roles[rolePath] = { ...existing, path: `${ns}.${ref.palette}.${outStep}`, ratio, hex: hex(outRgb) };
       // `rgbByRole` is what a LATER override in this same loop reads for its own `against`, and what
       // the re-derivation below reads. Leaving it holding the pre-override colour made override ORDER
       // silently significant (#964).
-      rgbByRole.set(rolePath, newRgb);
+      rgbByRole.set(rolePath, outRgb);
       overridden.add(rolePath);
     }
 

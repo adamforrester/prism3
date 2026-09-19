@@ -2904,11 +2904,12 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
 // from the action ramp at the ink bar and stepped by a perceptual interval so the engaged states stay
 // distinct even where the base sits deep in the ramp. There are no neutral or accent link roles — a
 // "destructive link" is the destructive palette in a text treatment, which the sections above already
-// carry. #1487 surfaced the role read-only because the lever was deferred (#1486); #1510 adds the
-// `linkStateRungs` lever, so this section is now an EDITOR — each engaged state carries a rung picker
-// that pins how far it steps, in the same role-block vocabulary the palette sections use. The picker
-// writes the GLOBAL lever (mode- and family-invariant), so it lives on the page text family only and
-// the other three families stay read-only previews that follow it.
+// carry. #1487 surfaced the role read-only because the lever was deferred (#1486); #1510 makes this
+// section an EDITOR on two axes. (1) The GLOBAL rung lever (`linkStateRungs`) — a rung picker per engaged
+// state on the page text family, mode- and family-invariant, the cross-mode default that moves every
+// family together. (2) PER-MODE ABSOLUTE pins — every family's resting-link picker pins an exact color
+// for the current mode, winning over the rung default and re-anchoring that family; the engine holds each
+// pinned link to its contrast floor, so an absolute pick can never render a link below contract.
 //
 // State order is the depth order the engine walks — default → hover → pressed → visited — with
 // `focused` last. `default` (and `focused`, which follows it) is the resting link — the action-palette
@@ -2943,12 +2944,50 @@ const linkRungPicker = (state: 'hover' | 'pressed' | 'visited'): HTMLSelectEleme
   return sel;
 };
 
+/** The per-mode ABSOLUTE link override (#1510) for ONE family. Where the rung lever is the cross-mode
+ *  DEFAULT that moves every family together, this pins an EXACT color for THIS family in the CURRENT mode
+ *  only — and it WINS over the rung/derived default, because the engine's per-mode `overrides` layer runs
+ *  after derivation. Pinning the resting link re-anchors the whole family: `default`/`focused` take the
+ *  picked step, and each engaged state keeps the SAME signed step-distance from the resting link it has in
+ *  the derived layout. That distance is re-established HERE because a per-role override layer cannot carry
+ *  a between-role relationship on its own (#1487); reading it in signed index space keeps it correct for
+ *  the page and inverse families alike, whose walks run opposite ways. The engine holds every written step
+ *  to the link's contrast floor (a sub-floor pick is clamped), so an absolute pin can never render a link
+ *  below contract. "Auto" (undefined) clears all five states for this family/mode, back to the default. */
+const setLinkFamilyOverride = (prefix: string, step: string | undefined): void => {
+  const pal = theme.roleToPalette.action;
+  const steps = (theme.palettes.find((p) => p.palette === pal)?.steps ?? []).map((s) => s.key);
+  const states = ['default', 'hover', 'pressed', 'visited', 'focused'] as const;
+  if (step === undefined) { for (const st of states) setFillOverride(`${prefix}.link.${st}`, pal, undefined); return; }
+  const idx = (k: string): number => steps.indexOf(k);
+  const clamp = (i: number): number => Math.max(0, Math.min(steps.length - 1, i));
+  const defBase = idx(baselineStepOf(`${prefix}.link.default`));   // derived resting link, override-cleared
+  const i0 = idx(step);
+  for (const st of states) {
+    if (st === 'default' || st === 'focused') { setFillOverride(`${prefix}.link.${st}`, pal, step); continue; }
+    const dist = idx(baselineStepOf(`${prefix}.link.${st}`)) - defBase;   // signed walk, captures direction
+    setFillOverride(`${prefix}.link.${st}`, pal, steps[clamp(i0 + dist)]);
+  }
+};
+/** The resting-link absolute picker for one family — the per-mode override control (#1510). "Auto" follows
+ *  the rung/derived default; a step pins this family's exact color for the current mode (the engaged states
+ *  re-anchor to it, and the engine holds each to the link's contrast floor). */
+const linkAbsPicker = (prefix: string): HTMLSelectElement => {
+  const pal = theme.roleToPalette.action;
+  const steps = (theme.palettes.find((p) => p.palette === pal)?.steps ?? []).map((s) => s.key);
+  const cur = brandState.overrides?.[currentMode]?.[`${prefix}.link.default`]?.step;
+  return stepPicker(pal, steps, baselineStepOf(`${prefix}.link.default`), typeof cur === 'string' ? cur : undefined,
+    (step) => setLinkFamilyOverride(prefix, step));
+};
+
 /** The five-state strip for one link family + ground (`text.link` / `icon.link`, page or inverse). Mirrors
- *  `iStates`' `.astates` layout, carrying a token pill + contrast receipt per state. When `editable`
- *  (the page text family, #1510) each ENGAGED state also gets a rung picker writing the global override;
- *  the other families stay read-only previews — one lever moves them all. null when the family does not
- *  resolve in this mode. */
-const linkStatesStrip = (roles: RoleMap, prefix: string, editable = false): HTMLElement | null => {
+ *  `iStates`' `.astates` layout, carrying a token pill + contrast receipt per state. EVERY family is
+ *  independently editable (#1510): the resting `default` cell carries a per-mode ABSOLUTE picker that pins
+ *  this family's exact color for the current mode and re-anchors its engaged states. When `rungEditable`
+ *  (the page text family) the engaged states also carry the GLOBAL rung picker — the cross-mode default
+ *  that moves every family together until a per-mode absolute pin overrides it here. null when the family
+ *  does not resolve in this mode. */
+const linkStatesStrip = (roles: RoleMap, prefix: string, rungEditable = false): HTMLElement | null => {
   const g = el('div', 'astates-g'); let any = false;
   for (const [name, st] of LINK_STATE_ROWS) {
     const key = `${prefix}.link.${st}`;
@@ -2957,17 +2996,20 @@ const linkStatesStrip = (roles: RoleMap, prefix: string, editable = false): HTML
     const head = el('div', 'astate-h'); head.append(swatch(r.hex, 'astate-sw'), el('span', 'astate-n', name));
     cell.append(head, tokenPill(colorPath(key)));
     const badge = iBadge(r); if (badge) cell.append(badge);
-    if (editable && LINK_ENGAGED.has(st)) cell.append(linkRungPicker(st as 'hover' | 'pressed' | 'visited'));
+    if (st === 'default') cell.append(linkAbsPicker(prefix));                 // per-mode absolute pin — every family
+    else if (rungEditable && LINK_ENGAGED.has(st)) cell.append(linkRungPicker(st as 'hover' | 'pressed' | 'visited'));
     g.append(cell);
   }
   if (!any) return null;
   const wrap = el('div', 'astates'); wrap.append(el('div', 'astates-h', 'Link states'), g); return wrap;
 };
 
-/** One read-only link row: the `default` swatch + label + token pill + description on the left, a live
+/** One link family row: the `default` swatch + label + token pill + description on the left, a live
  *  specimen (rest → hover → pressed, pinnable) on the right, and the five-state strip below — the same
- *  shape as a palette slot row minus the Source select. null when the family does not resolve. */
-const linkRow = (o: { prefix: string; label: string; desc: string; editable?: boolean; example: (rs: RoleMap) => HTMLElement }): HTMLElement | null => {
+ *  shape as a palette slot row minus the Source select. The strip's `default` cell always carries the
+ *  per-mode absolute pin; `rungEditable` (page text only) adds the global rung pickers. null when the
+ *  family does not resolve. */
+const linkRow = (o: { prefix: string; label: string; desc: string; rungEditable?: boolean; example: (rs: RoleMap) => HTMLElement }): HTMLElement | null => {
   const roles = iRoles();
   const restKey = `${o.prefix}.link.default`;
   const rest = roles[restKey]; if (!rest) return null;
@@ -2978,7 +3020,7 @@ const linkRow = (o: { prefix: string; label: string; desc: string; editable?: bo
   mid.append(el('div', 'alabel', o.label), tokenPill(colorPath(restKey)), el('p', 'adesc', o.desc));
   main.append(mid, iExample(o.example(roles), iBadge(rest)));
   row.append(main);
-  const strip = linkStatesStrip(roles, o.prefix, o.editable); if (strip) row.append(strip);
+  const strip = linkStatesStrip(roles, o.prefix, o.rungEditable); if (strip) row.append(strip);
   return row;
 };
 
@@ -2990,13 +3032,13 @@ const renderLinksSection = (): HTMLElement | null => {
   const sec = el('div', 'psec');
   const head = el('div', 'psec-h'); head.append(el('p', 'psec-t', 'Links'));
   sec.append(head, el('p', 'psec-d',
-    'The single global link role, derived from the action palette above — there are no neutral or accent link roles. '
+    'The global link role, derived from the action palette above — there are no neutral or accent link roles. '
     + 'The resting link and its focus follow the action palette; the engaged states step away from it. '
-    + 'On Auto they step by the tuned perceptual interval, so hover, pressed and visited stay distinct even where the link sits deep in the ramp. '
-    + 'Set a state to pin how many steps it moves — the engine holds each pick to the link’s contrast floor, and one control moves every link family in both modes. '
+    + 'The rung pickers on the page text link set how many steps hover, pressed and visited move — one cross-mode default for every family, so they stay distinct even where the link sits deep in the ramp. '
+    + 'Each family can also pin an exact color for the current mode on its resting-link picker; a pin wins over the rung default and re-anchors that family, and the engine holds every link to its contrast floor. '
     + 'Focused always matches the resting link: the focus ring carries that state, so the link text does not shift.'));
   const rows: Array<HTMLElement | null> = [
-    linkRow({ prefix: 'text', label: 'Text link', desc: 'Links in running text on light surfaces.', editable: true,
+    linkRow({ prefix: 'text', label: 'Text link', desc: 'Links in running text on light surfaces.', rungEditable: true,
       example: (rs) => exLink(rs['text.link.default']?.hex ?? '#000000', false, rs['text.link.hover']?.hex, rs['text.link.pressed']?.hex) }),
     linkRow({ prefix: 'inverse.text', label: 'Text link · inverse', desc: 'Links in running text on dark / inverse surfaces.',
       example: (rs) => exLink(rs['inverse.text.link.default']?.hex ?? '#ffffff', true, rs['inverse.text.link.hover']?.hex, rs['inverse.text.link.pressed']?.hex) }),

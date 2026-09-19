@@ -2926,27 +2926,37 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.125.0 — #1510: the link role gains a PER-STATE OVERRIDE lever, `linkStateRungs`. #1486 shipped the
- * global link state walk (default → hover → pressed → visited) as a tuned constant with the lever deferred;
- * #1487 surfaced it read-only. This adds the missing lever: a brand pins how far each ENGAGED state
- * (hover / pressed / visited) steps from the resting link, independently, as a RUNG COUNT walked the same
- * floor-clearing way `plainLink` already is (along each ground's own `dir`), so it composes across all four
- * `link.*` families and both mode families and is FLOOR-CLAMPED (an override can respace a link but never
- * drop it below its 4.5:1 contract). A rung count, not an absolute step, is the deliberate shape: a link's
- * engagement direction flips between the page and the inverse band, so one absolute step cannot be right
- * for every family at once (design note in the PR). The #1487 studio Links section becomes an EDITOR (a
- * rung picker per engaged state on the page text family, writing the global lever). NO corpus brand sets
- * the lever, so every emitted VALUE is byte-identical — the ENGINE bump is the derivation gaining a
- * behavior + the `$extensions.generator.version` restamp (`lint-emission-version`). CONTRACT STANDS at
- * 11.3.0: the link state NAMES (`color.text.link.{default,hover,pressed,visited,focused}` + icon / inverse
- * twins) are unchanged — the lever moves values, adds/removes/retypes no guaranteed path, so
- * `token-contract --check` reports level `none`. Gate L-05 (test.ts, docs/34): a set override reaches the
- * emitted `text.link.*` step at the AUTHORED rung (default ± mode-dir × rung, computed independently of
- * `walk`), non-vacuous vs the tuned baseline, floor-clean; the mutation that drops the override lands the
- * states back on the tuned walk and fails L-05 by name in all six base-mode states. New lever fits the MCP
- * `tools/list` 60k ceiling by COMPRESSION (#1368 precedent): a terse `linkStateRungs` schema block with the
- * rich prose in the lever manifest, and two adjacent over-verbose schema descriptions
- * (`strictInteractiveContrast`, `disabledStrategy`) trimmed to their manifest-backed essentials.
+ * 0.125.0 — #1510: the link role becomes independently customizable on TWO axes — a global rung lever AND
+ * a per-mode ABSOLUTE override, all four families editable. #1486 shipped the link state walk as a tuned
+ * constant with the lever deferred; #1487 surfaced it read-only. This PR (superseding #1531) lands both.
+ * (1) GLOBAL RUNG LEVER `linkStateRungs` (from #1531): a brand pins how far each engaged state (hover /
+ * pressed / visited) steps from the resting link, as a RUNG COUNT walked the same floor-clearing way
+ * `plainLink` is (along each ground's own `dir`), so it composes across all four `link.*` families and both
+ * mode families and is floor-clamped. A rung COUNT, not a global absolute step, because a link's engagement
+ * direction flips between the page and the inverse band. (2) PER-MODE ABSOLUTE OVERRIDES (owner-decided
+ * 2026-09-19): a brand pins an EXACT link color for a specific mode via the SAME per-mode `overrides` map
+ * the Foreground/Text editor uses; the absolute value WINS over the rung/derived default (the override
+ * layer runs after derivation). The load-bearing addition is the LINK FLOOR GUARD in `modes.ts`: the
+ * general override layer WARNS-not-blocks (a hand-tuned foreground ink may dip by choice), but a LINK
+ * override that fails its floor is CLAMPED — walked along the ramp to the nearest step clearing its own
+ * `min`, in the ground-facing direction — so a user's absolute link color can never render below contract
+ * (`text.link.*` at 4.5:1, `icon.link.*` at its icon floor). Scope: customizable modes (light/dark/custom),
+ * as every per-mode override is (hc-* are derived). (3) STUDIO: the Links section makes ALL FOUR families
+ * independently editable — each family's resting-link picker pins a per-mode absolute color (re-anchoring
+ * its engaged states by their derived signed step-distance), and the page-text rung pickers keep the global
+ * cross-mode default. NO corpus brand sets any of this, so every emitted VALUE is byte-identical — the
+ * ENGINE bump is the derivation gaining the link-override guard + the `$extensions.generator.version`
+ * restamp (`lint-emission-version`). CONTRACT STANDS at 11.3.0: the link state NAMES
+ * (`color.text.link.{default,hover,pressed,visited,focused}` + icon / inverse twins) are unchanged — VALUES
+ * only, no guaranteed path added/removed/retyped, `token-contract --check` level `none` (stamp-only
+ * `--accept`). Gate L-05 (rung lever, from #1531) STANDS; NEW gate L-06 (test.ts, docs/34): a per-mode
+ * absolute override lands the EXACT pinned step in that mode while the other mode keeps the derived value,
+ * for a PAGE and an INVERSE family independently, and a sub-floor pick is clamped to clear 4.5:1 — EXPECTED
+ * authored in the gate, grounds read off each role's own `against`, no engine link derivation imported.
+ * BY-NAME MUTATIONS: (a) drop the override application → L-06's MOVE arm fails by name (the mode lands the
+ * derived value, not the pinned step); (b) remove the link floor guard → L-06's GUARD arm fails by name
+ * (emitted 1.08:1, the raw sub-floor step). No new lever/field, so the MCP `tools/list` 60k ceiling is
+ * untouched (#1531's `linkStateRungs` block stands; the absolute override reuses the existing `overrides`).
  * 0.124.0 — #1519: ICON-SWAP SITS DIRECTLY UNDER ITS PRESENCE BOOLEAN in the Figma panel (owner-directed,
  * owner QA 2026-09-18). `planSetProperties` no longer groups all booleans then all swaps; it now pairs each
  * icon swap DIRECTLY after the boolean that gates it, so the panel reads `leading icon` → `↳ swap leading
