@@ -185,8 +185,14 @@ export const textField: ComponentDef = {
     // `label.empty` is the placeholder (the input's own text node rendered dim while the field holds no
     // value), the bare `label` the value. read-only is full-contrast: at state=read-only the bare `label`
     // resolves, so the value is NOT dimmed (read-only ≠ disabled).
+    // #1518 (owner-directed) — the placeholder resolves to `text.secondary`, the shared muted body ink, and the
+    // value to `text.primary`, full contrast: the empty-vs-value polarity is expressed with the SAME two text
+    // roles field-message already reaches for, not a field-scoped `field.placeholder`. Both roles already ship
+    // (no new guaranteed NAME → CONTRACT stands). Neither key is axis-value-led (`label`/`empty` are a slot and
+    // a state, not a variant value), so `lint-paint` arm 1 says nothing about them and neither takes a
+    // provenance exception. Select carries the same two bindings (#1518 applies it there too).
     'label': 'color.text.primary',
-    'label.empty': 'color.field.placeholder',
+    'label.empty': 'color.text.secondary',
 
     // ── BORDER — stateful, with the status-led swaps (border-ONLY). `border` (bare) is the rest value;
     // `border.hover` / `border.focus-visible` / `border.read-only` are the interactive states;
@@ -295,6 +301,16 @@ export const textField: ComponentDef = {
         paintSlots: ['overlay', 'fill', 'border'],
         layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'fixed' } },
         height: 'min-height',
+        // THE COMFORTABLE DEFAULT WIDTH (#1518, owner: parity with select) — a MIN-WIDTH not a fixed width,
+        // the `select` #1345 precedent adopted key-for-key. #1494/#1503 deferred a width floor for the field
+        // ("a follow-up if one is wanted"); the owner has now settled it at 320 (select parity), so a projected
+        // field reads at a comfortable width rather than hugging narrow. The engine cannot project a child that
+        // FILLs (`sizing: 'fill'` → AUTO, #989/#990), so the floor sits on the visible control, the one place
+        // projection can express it: the control renders at ≥320, the hugging column inherits that width, and
+        // the still-AUTO sizing lets the field grow above 320 rather than being pinned. A LITERAL, not a token —
+        // 320 is a projection default in 8px increments, not a semantic `field.width` role (#1343 owner
+        // decision) — so no emitted token NAME moves and `CONTRACT_VERSION` stands.
+        minWidth: 320,
         radius: 'radius',
         // The edge weight (#1266's field) — 1px field hairline, bound rather than left to the executors'
         // fallback so a brand re-runging its border floor moves it.
@@ -478,7 +494,7 @@ export const textField: ComponentDef = {
     ],
     unverified: [
       'Polaris migration to framework-agnostic Web Components (<s-text-field>, Shadow DOM) — needs _source-text backing, shared with the Button brief (brief §11, §14).',
-      'The nested field parts hug rather than fill in Figma (a `nest` cannot bind sizing, #1299), so the projected label and message sit at their natural width rather than spanning the control. A consumer setting them to fill is a code-side layout concern; check a built member before assuming the stack reads full-width. Unlike select the control carries no `minWidth` floor (#1494 did not project a default width — a follow-up if one is wanted), so a member hugs its content width in Figma.',
+      'The control now carries a `minWidth: 320` floor (#1518, owner: select parity), so the field reads at a comfortable 320 and flexes above it, exactly as select does (#1345). The nested label and message, however, are NOT yet set to FILL that width (`crossAxisFill` → `layoutAlign: STRETCH`, the #1503 capability select adopted): a `nest` cannot bind sizing (#1299), so they hug their content and sit narrower than the 320 control — the same pre-fill state select was in before #1503. Closing that (label/message `crossAxisFill`, mirroring select) is the remaining half of the width follow-up #1503 held for the owner; #1518 settled only the floor.',
       'The value text does not ellipsize in the Figma projection — `maxLines` / `textOverflow` have no PartDef expression — so a long placeholder in a narrow member overflows rather than truncating. The ellipsis is a code-side behavior.',
       'The leading and trailing glyphs are node-visibility BOOLEANS (#1331/#1494): each node is built hidden and shown by its switch. In Figma auto-layout a `visible:false` child is excluded from the flow, so a hidden glyph should add no gap — but whether a real host reflows `content` / the control when a switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where a hidden glyph sits, or the trailing affix not pinning tight when off.',
     ],

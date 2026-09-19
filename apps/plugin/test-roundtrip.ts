@@ -764,6 +764,41 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #1518: text-field CONTROL READS BACK minWidth=320 — HOST-TRUTH ──────────────────────────────
+//
+// The owner settled text-field's default width at 320 (parity with select, #1345): the `control` box carries a
+// `minWidth: 320` LITERAL, so a projected field reads at a comfortable width rather than hugging narrow. Unlike
+// the #1503 groups (whose floor is on the ROOT), text-field's floor sits on the visible CONTROL — the one place
+// projection can express it (the column then hugs to the 320 control). The generic plan-vs-built diff already
+// checks `minWidth` against the built node, which catches an executor that fails to WRITE it (#874 class); what
+// it CANNOT catch is the def silently STOPPING declaring it (plan omits the field → plan-vs-built agrees on its
+// absence). This block closes that with an oracle authored HERE — the owner-decided 320 — read back off the
+// built control, so dropping `minWidth` from the def reads back `undefined`, diverges from 320, and fails BY
+// NAME (docs/34). Mirrors the #1503 group-root minWidth half, one node deeper (the control, not the root).
+{
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+  const findByName = (n: any, name: string): any => (n?.name === name ? n : (n?.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+  const def = componentDefs.find((d) => d.id === 'text-field');
+  ok(!!def, '#1518 host-truth: the text-field def is registered and projects');
+  if (def) {
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const controls = members.map((m) => findByName(m, 'control'));
+    // SCOPE FLOOR — the control was built into every member, or "they all read 320" is a statement about an
+    // empty set. This also fires if the control part is renamed or dropped from the def.
+    ok(members.length > 0 && controls.every(Boolean),
+      `#1518 host-truth: text-field builds a 'control' into every member (${controls.filter(Boolean).length}/${members.length})`);
+    // THE WIDTH FLOOR — read back off the built control. Oracle 320 authored here; drop `minWidth: 320` from the
+    // control PartDef and this reads back `undefined`, failing by name.
+    ok(controls.length > 0 && controls.every((c) => (c as { minWidth?: unknown })?.minWidth === 320),
+      `#1518 host-truth: every text-field control reads back minWidth=320 — the owner-settled default width (e.g. minWidth=${String((controls[0] as { minWidth?: unknown })?.minWidth)})`);
+  }
+}
+
 // ── #1513: EACH field-message STATUS CAPTION SURVIVES THE REFERENCE WIRING — HOST-TRUTH ──────────
 //
 // #1474 gave field-message four DISTINCT per-status captions (Set A) via `byVariant.status`, and the engine

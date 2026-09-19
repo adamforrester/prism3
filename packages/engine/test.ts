@@ -2093,6 +2093,41 @@ for (const b of brands) {
   ok(washFails.length === 0, '#1342 the field hover is a translucent wash (ink-on-composite, 0 < alpha < 1), NOT a solid opaque fill, every mode' + (washFails.length ? ` — ${washFails.slice(0, 3).join(',')}` : ''));
 }
 
+// #1518 — PLACEHOLDER INK vs VALUE INK, pinned BY NAME on both field defs (docs/34: the oracle — placeholder
+// is `text.secondary`, value is `text.primary` — is authored HERE, not read off the def, so a repoint of either
+// binding fails by name). The owner settled (owner QA 2026-09-18) that the empty-state placeholder resolves to
+// the shared muted body ink `text.secondary` and the filled value to full-contrast `text.primary`, reaching the
+// SAME two roles rather than a field-scoped `field.placeholder`. `label` (bare) is the value ink; `label.empty`
+// is the placeholder ink at the `empty` state (both defs carry the identical polarity — text-field is the
+// template, select mirrors it). Mutation (b): repoint `label.empty` → `color.text.primary` (a role that
+// resolves) and BOTH the name pin and the muted-vs-full resolved check below fail by name.
+{
+  const inkFails: string[] = [];
+  for (const def of [textField, select]) {
+    const t = def.tokens as Record<string, string>;
+    if (t['label'] !== 'color.text.primary') inkFails.push(`${def.id}:label=${t['label']}≠color.text.primary`);
+    if (t['label.empty'] !== 'color.text.secondary') inkFails.push(`${def.id}:label.empty=${t['label.empty']}≠color.text.secondary`);
+  }
+  ok(inkFails.length === 0,
+    '#1518 text-field + select: value ink `label` → color.text.primary, placeholder ink `label.empty` → color.text.secondary (by name)' + (inkFails.length ? ` — ${inkFails.join(',')}` : ''));
+
+  // ...and the two roles are a REAL muted-vs-full distinction, not just two names: across every mode the value
+  // ink (`text.primary`) sits at strictly HIGHER contrast against the page than the placeholder ink
+  // (`text.secondary`). Recomputed from the roles' own colors (the lint-ratio-truth lesson, docs/34), so a
+  // repoint of `label.empty` to `text.primary` collapses the gap and fails here as well as by name above.
+  const modes = resolveAllModes(nbTheme());
+  const mutedFails: string[] = [];
+  for (const m of modes) {
+    const primary = m.roles['text.primary'], secondary = m.roles['text.secondary'], ground = m.roles['background.primary'];
+    if (!primary || !secondary || !ground) { mutedFails.push(`${m.mode}:role absent`); continue; }
+    const cPrimary = contrast(hexToRgb(primary.hex), hexToRgb(ground.hex));
+    const cSecondary = contrast(hexToRgb(secondary.hex), hexToRgb(ground.hex));
+    if (!(cPrimary > cSecondary)) mutedFails.push(`${m.mode}:primary ${cPrimary.toFixed(2)} ≤ secondary ${cSecondary.toFixed(2)}`);
+  }
+  ok(mutedFails.length === 0,
+    '#1518 the value ink (text.primary) is strictly higher-contrast than the placeholder ink (text.secondary) against the page, every mode — the placeholder reads muted, the value full-contrast' + (mutedFails.length ? ` — ${mutedFails.slice(0, 3).join(',')}` : ''));
+}
+
 // MATERIALISE-TO-FIGMA — the colour aliases MUST bind a distinct target per mode. This locks
 // the collapse-proofing into the suite (the #85 round-trip hit a hand-rolled script that bound
 // light's target to all four modes → every mode identical). Pure + Figma-free: assert on the
@@ -9471,12 +9506,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // the placeholder ink is REACHED at the empty coordinate of the declared grid (what lint-paint walks).
     ok(select.states.includes('empty'),
       "#1344 'empty' stays in `states` — the placeholder-vs-value ink is carried internally, not dropped");
-    ok(select.tokens!['label.empty'] === 'color.field.placeholder',
-      "#1344 the placeholder ink `label.empty` → color.field.placeholder is still bound");
+    ok(select.tokens!['label.empty'] === 'color.text.secondary',
+      "#1344 the placeholder ink `label.empty` → color.text.secondary is still bound (the muted body ink since #1518)");
     const emptyInk = planPaintVars(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'empty' } as never).root)
-      .filter((v) => v === 'color/field/placeholder');
+      .filter((v) => v === 'color/text/secondary');
     ok(emptyInk.length === 1,
-      '#1344 the placeholder ink is reached at the declared empty coordinate (text paints color/field/placeholder)');
+      '#1344 the placeholder ink is reached at the declared empty coordinate (text paints color/text/secondary)');
     //   MUTATION A — restore `empty` to the projected axis. The set rebuilds the empty column (16 → 20) and
     //   a member names it, flipping '#1344 select projects … 16 members' and '#1344 no projected member
     //   names the empty state' BY NAME.
