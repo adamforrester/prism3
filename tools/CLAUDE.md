@@ -123,6 +123,19 @@ is not in CI, so it answers and exits 0. `reconcile.ts --selftest` is a fixture 
 the live ledger (all-correct → MATCH; one wrong → one WRONG-TOKEN; one blank → one UNBOUND; one stray
 → one UNKNOWN-NODE) — a self-check the author runs, NOT wired into `ci.yml`; the gate count stays 60.
 
+**#1523 closed three REACH limits** the reconciler had against a live file (all correct-by-hand in the
+NB run — instrument limits, not file defects), each with its own by-name selftest arm: (1) glyph-container
+ink the export snippet reports on a non-`INSTANCE` child shape now FOLDS onto the ledger's container
+coordinate (`foldDescendantInk`) instead of being skipped; (2) loose `icon/<name>` components (a
+standalone `COMPONENT`, no variantProperties) now MAP onto the ledger's `icon`/`name=<name>` coordinate
+(`mapLooseComponents`) instead of scoring UNKNOWN-NODE; (3) the group SETS (`checkbox-group` /
+`radio-group`) carry an EMPTY ledger BY DESIGN — they declare no paint of their own, so the label and
+rows paint from their nested defs and are audited under `field-label` / `checkbox-row` / `checkbox-control`,
+never the group. INVESTIGATED and confirmed NO coverage hole (nothing binds only through a group set);
+a group set reading UNKNOWN-NODE for a nested bind is the instrument working as intended (the ~500-entry
+mechanism). Recorded so QA does not re-raise it every round; a paint slot added to a group would be an
+ENGINE projection change, not a reconciler one.
+
 **No gate sibling, on purpose, and the reason is the mis-bind pass's nature rather than its youth.**
 It is a HEURISTIC: `ALLOWED` (slot-kind → role-family) is authored from design semantics, and the
 corpus carries deliberate cross-slot bindings that a first-principles map would flag but that are

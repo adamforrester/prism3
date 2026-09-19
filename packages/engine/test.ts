@@ -6224,6 +6224,133 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       `veil: each polarity aliases its OWN alpha ramp in every mode — a light veil is white in dark mode too${wrongBase.length ? ` — WRONG BASE: ${wrongBase.slice(0, 4).join(', ')}` : ''}`);
   }
 
+  // ── #1234 — THE TWO #1231 DESK-QA FIXES, GATED. #1208 (uniform neutral inverse fill) and #576's engine
+  // half (a neutral border follows its own text ink) were both found BY EYE and closed without a check,
+  // so nothing stopped a `modes.ts` edit putting the family tint or the grey special-case back. Reading
+  // `out/*.tokens.json`, which carries base plus every mode inline on each leaf, so one walk covers all
+  // four mode slots per brand. Recovers the intent of the stale PR #1239 (written in the 52-gate /
+  // ENGINE-0.5x era) against current main — the gated derivation has moved since (see the provenance note).
+  //
+  // BOTH ARMS COMPARE SIBLINGS OR ROLES; NEITHER RECOMPUTES THE DERIVATION. Re-deriving `neutralStepR`
+  // or `fillRestAbs` here would put the answer and the check under one expression (`docs/34` shape 2)
+  // and the gate would agree with any edit to it. What is asserted instead is a RELATION the derivation
+  // must preserve: three families landing on one value, and one role landing on another role's.
+  //
+  //   ARM A — `inverse.interactive.{primary,neutral,destructive}.fill.rest` are ONE value at every mode
+  //           (UNIFORMITY), AND that value names an ACHROMATIC palette entry, never a chromatic family
+  //           palette (PROVENANCE). Both halves matter and neither implies the other: three families
+  //           could agree on a tinted value (uniform and wrong — #1239 row 2), or land on achromatic
+  //           steps separately.
+  //   ARM B — `interactive.neutral.border.rest == interactive.neutral.text.rest`, on the page ground AND
+  //           on the inverse band. #576's engine half: the border used to take a mid-grey of its own, so
+  //           an outlined neutral control drew an edge that belonged to no ink in the tier.
+  //
+  // PROVENANCE, AND WHY THE ACCEPTED SET IS {white, black, neutral} RATHER THAN {neutral} ALONE. #1208
+  // shipped the inverse rest fill on the neutral RAMP (`neutral.050/850`); #1384 then promoted it to the
+  // CRISP ABSOLUTE `white`/`black` palette leaves (the owner read the tinted near-white as "not white"),
+  // which are the achromatic EXTREMES the neutral ramp snaps to (`modes.ts` `surfAt`: 0 → white,
+  // 1000 → black). So "on the neutral ramp, not a family palette" is now "names an achromatic leaf, not a
+  // family palette", and the accepted set is the achromatic segments {white, black, neutral}. A family
+  // tint points the fill at a chromatic family palette (`action`/`brand`/`danger`/a brand ramp), which is
+  // not in that set — the defect this arm exists to catch, whichever achromatic form the fill currently
+  // takes.
+  //
+  // WHAT THAT BUYS AND WHERE IT STOPS, stated because the arms would otherwise read as reach (`docs/34`
+  // shape 17 — the three fills descend from ONE producer `fillRestAbs`, so an ancestor move carries all
+  // three in lockstep and the equality survives). A tint on one family fails ARM A. A UNIFORM move of all
+  // three to a mid neutral — `neutralStepR(500)`, the reviewer's own reproduction on #1234 — PASSES: it
+  // stays uniform and stays on an achromatic segment. That is the measured ceiling, not an assumption.
+  // Catching it needs a value oracle nothing here has, and inventing one from the derivation would be the
+  // shape these arms exist to avoid.
+  {
+    const trees = readdirSync(resolve(HERE, './out'))
+      .map((f) => /^([a-z0-9-]+)\.tokens\.json$/.exec(f)?.[1]).filter((b): b is string => !!b).sort();
+    ok(trees.length >= 3, `#1234 found brand trees to check the inverse fill + neutral border against (${trees.join(', ')})`);
+
+    const FAMILIES = ['primary', 'neutral', 'destructive'] as const;
+    // The achromatic palette segments a legitimate inverse fill may name. Authored HERE, not read from
+    // the derivation — that independence is what lets a family-tint mutation fail by name.
+    const ACHROMATIC = new Set(['white', 'black', 'neutral']);
+    // Every slot a leaf carries: its base value, plus one per mode from `$extensions.prism3.modes`.
+    const slotsOf = (leaf: any): Map<string, string> => {
+      const m = new Map<string, string>();
+      if (!leaf) return m;
+      if (typeof leaf.$value === 'string') m.set('base', leaf.$value);
+      for (const [mode, entry] of Object.entries((leaf.$extensions?.prism3?.modes ?? {}) as Record<string, { $value?: unknown }>))
+        if (typeof entry?.$value === 'string') m.set(mode, entry.$value);
+      return m;
+    };
+    // `{root.core.palette.<seg>…}` → the first palette segment (`white`, `black`, `neutral`, `red`, …).
+    // The step beneath a ramp segment is deliberately not read — provenance is about the family, not the rung.
+    const paletteSeg = (ref: string): string | undefined => /^\{[^.]+\.core\.palette\.([^.}]+)/.exec(ref)?.[1];
+    const dig = (node: any, path: string[]): any => path.reduce((n, k) => n?.[k], node);
+
+    const tinted: string[] = [], offPalette: string[] = [], partial: string[] = [], mismatched: string[] = [];
+    const perBrand = new Map<string, { triples: number; pairs: number }>();
+    for (const brand of trees) {
+      const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${brand}.tokens.json`), 'utf8'));
+      const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+      const tally = { triples: 0, pairs: 0 };
+      perBrand.set(brand, tally);
+
+      // ARM A — the three families' inverse rest fill are ONE value, and that value names an ACHROMATIC
+      // palette entry. Both halves matter and neither implies the other: three families could agree on a
+      // tinted value (uniform and wrong), or land on achromatic segments separately.
+      const fills = FAMILIES.map((f) => slotsOf(dig(tree[root], ['color', 'inverse', 'interactive', f, 'fill', 'rest'])));
+      const fillSlots = [...new Set(fills.flatMap((s) => [...s.keys()]))].sort();
+      for (const slot of fillSlots) {
+        const vals = fills.map((s) => s.get(slot));
+        // A slot present for SOME families and not others is a defect, never a skip — that is a family
+        // dropping out of the uniform set, which is #1208 arriving by omission instead of by tint.
+        if (vals.some((v) => v === undefined)) {
+          partial.push(`${brand}/${slot}: inverse fill present for [${FAMILIES.filter((_, i) => vals[i]).join(', ')}] only`);
+          continue;
+        }
+        tally.triples++;
+        if (new Set(vals).size !== 1)
+          tinted.push(`${brand}/${slot}: ${FAMILIES.map((f, i) => `${f}=${vals[i]}`).join(' · ')}`);
+        for (const [i, v] of vals.entries()) {
+          const seg = paletteSeg(v!);
+          if (seg === undefined || !ACHROMATIC.has(seg)) offPalette.push(`${brand}/${slot}/${FAMILIES[i]}: ${v} (palette '${seg ?? 'unparsed'}', not achromatic)`);
+        }
+      }
+
+      // ARM B — a neutral BORDER is its own TEXT ink, on the page and on the inverse band. #576's engine
+      // half: the border used to take a mid-grey of its own, so an outlined neutral control drew an edge
+      // that belonged to no ink in the tier.
+      for (const [ground, path] of [['page', ['color', 'interactive', 'neutral']], ['inverse', ['color', 'inverse', 'interactive', 'neutral']]] as const) {
+        const border = slotsOf(dig(tree[root], [...path, 'border', 'rest']));
+        const text = slotsOf(dig(tree[root], [...path, 'text', 'rest']));
+        for (const slot of [...new Set([...border.keys(), ...text.keys()])].sort()) {
+          const b = border.get(slot), t = text.get(slot);
+          if (b === undefined || t === undefined) {
+            partial.push(`${brand}/${ground}/${slot}: neutral ${b === undefined ? 'border' : 'text'}.rest absent while its partner is present`);
+            continue;
+          }
+          tally.pairs++;
+          if (b !== t) mismatched.push(`${brand}/${ground}/${slot}: border ${b} vs text ${t}`);
+        }
+      }
+    }
+
+    // REPRESENTED, never merely counted: a brand contributing nothing would let either arm pass over a
+    // tree it never opened, which is how a scope shrinks without anyone noticing.
+    const silent = [...perBrand].filter(([, t]) => t.triples === 0 || t.pairs === 0).map(([b, t]) => `${b} (${t.triples} triples, ${t.pairs} pairs)`);
+    ok(silent.length === 0,
+      `#1234 every brand tree contributed to BOTH arms${silent.length ? ` — SILENT: ${silent.join(', ')}` : ` (${[...perBrand.values()].reduce((a, t) => a + t.triples, 0)} fill triples, ${[...perBrand.values()].reduce((a, t) => a + t.pairs, 0)} border/text pairs across ${trees.length} brands)`}`);
+    ok(partial.length === 0,
+      `#1234 the compared roles are present as complete sets — a half-present set is a defect, not a skip${partial.length ? ` — PARTIAL: ${partial.slice(0, 4).join('; ')}` : ''}`);
+    ok(tinted.length === 0,
+      '#1234/#1208 the inverse rest FILL is UNIFORM across primary/neutral/destructive at every mode — a per-family tint on an inverse band is the defect desk QA found and no gate could see'
+      + (tinted.length ? ` — TINTED: ${tinted.slice(0, 4).join('; ')}` : ''));
+    ok(offPalette.length === 0,
+      '#1234/#1208 …and that one value names an ACHROMATIC palette entry (white/black/neutral) — uniformity alone would accept three families agreeing on a tint'
+      + (offPalette.length ? ` — OFF-PALETTE: ${offPalette.slice(0, 4).join('; ')}` : ''));
+    ok(mismatched.length === 0,
+      '#1234/#576 a neutral BORDER aliases its own TEXT ink on both grounds and in every mode — the grey special-case cannot return'
+      + (mismatched.length ? ` — DIVERGED: ${mismatched.slice(0, 4).join('; ')}` : ''));
+  }
+
   // ARM D — THE VEIL IS NOT THE SCRIM, and both halves of that are pinned. The two are one word apart
   // and behave oppositely, so "unify them" is the most likely future edit here: the veil is invariant
   // and both-polarity, the scrim varies by mode and is dark-only. Asserting the scrim still VARIES is

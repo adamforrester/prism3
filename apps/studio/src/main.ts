@@ -20,7 +20,7 @@
  * combination is caught and surfaced with the last-good render preserved.
  */
 import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '@prism3/engine/theme';
-import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput } from '@prism3/engine/theme';
+import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
@@ -4235,7 +4235,7 @@ const renderTypographyPage = (host: PageHost): void => renderScreen(host, 'typog
     h.append(renderTypefaceBindings(), renderWeightRoles(), renderLeadingTracking());
     const repoints = renderRepoints();
     if (repoints) h.append(repoints);
-  } else if (typeTab === 'styles') h.append(renderTypeSizes(), renderCategorySetup());
+  } else if (typeTab === 'styles') h.append(renderTypeSizes(), renderCategorySetup(), renderFacePins());
   else h.append(renderTypePreview());
   // No aside on any tab. The ramp used to sit in the Styles aside on the doc-26 rule that a section
   // carries its own specimen in context — but that rule is satisfied by the Preview tab now, and a
@@ -6107,6 +6107,101 @@ const renderCategorySetup = (): HTMLElement => {
   const nudgeNote = el('p', 'sl-note');
   nudgeNote.innerHTML = 'The leading and tracking nudges shift that category’s whole curve: <b>+1 opens it by one rung, −1 tightens it</b>. Bigger headings keep tightening — they start from a different place. The line under each control names the rung the category lands on, or both rungs where it spans two size bands.';
   sec.append(nudgeNote);
+  return sec;
+};
+
+/** Pin a font cut (#1467) — the studio control for the engine's `facePin` (#1368).
+ *
+ *  `facePin` binds a VERBATIM Figma family+style to one (category, weight-role) slot, and it is the
+ *  ONLY way to reach a WIDTH cut — "Light Condensed", "Bold Extended" — because Figma's `fontStyle` is
+ *  a STRING, so the numeric weight axis can never name one. NB uses it for `display/subtle` and
+ *  `title/subtle` (ITC Garamond Std Light Condensed). Until now it could only be set by hand-editing
+ *  the brand input; this closes that.
+ *
+ *  PLACEMENT (#1467 left this a minor call): a distinct "Pin a cut" section on the Text styles tab,
+ *  directly under the category table that DEFINES the (category × weight-role) slots this pins — kept
+ *  in the existing typography UI rather than a new page. Not merged INTO that table: a free-text input
+ *  in every role column would be far too wide, and a pin is a sparse, advanced choice (NB pins 2 of its
+ *  slots), so a focused section listing only the pinnable slots reads better than a grid of empty cells.
+ *
+ *  SHAPE (#1467, owner-decided): a FREE-TEXT style string, not a picker enumerated from the family's
+ *  cuts — a picker needs the bound family's cut list, which the studio does not have (out of scope).
+ *  The author types ONLY the style; the `family` is fixed to the category's bound face and written
+ *  automatically, because the engine DROPS a pin whose family diverges from the bound one
+ *  (`theme.ts` `buildComposites` ~:1315, a named refusal). A pin can never be set with a diverging
+ *  family here, and a pin left STALE by a later face change is surfaced inline — never silent. */
+const renderFacePins = (): HTMLElement => {
+  const ty = theme.typography;
+  const sec = palSection('Pin a font cut', 'Bind a verbatim Figma cut — a width like Condensed that a numeric weight cannot reach — to one weight-role slot. The face is fixed to the category’s bound family; type only the style, exactly as Figma names it (for example, Light Condensed). Leave a slot blank to derive the style from its weight.');
+  // The BOUND family for a category — `stack[0]`, the value `font.family.<cat>` carries and the value
+  // the engine's pin validation compares against (`buildComposites` `familyPrimary`). This is the same
+  // source the row's Face column reads, so the family the control WRITES cannot disagree with the one
+  // it SHOWS.
+  const boundFamily = (cat: string): string | undefined => ty.families.find((f) => f.group === cat)?.stack[0];
+  const roleOrder = ty.weightRoles.map((w) => w.role);
+  // Read/write the whole `faces` object so CLEARING a slot DELETES its key rather than leaving
+  // `{ role: undefined }` behind: the engine iterates `faces` entries and throws on a present-but-empty
+  // pin, so an undefined value would read as a broken pin, not an absent one.
+  const setPin = (cat: string, role: string, style: string): void => {
+    const faces: Record<string, Record<string, FacePin>> = structuredClone(getPath(brandState, 'typography.faces') ?? {});
+    const fam = boundFamily(cat);
+    const trimmed = style.trim();
+    if (trimmed && fam) {
+      (faces[cat] ??= {})[role] = { family: fam, style: trimmed };
+    } else if (faces[cat]) {
+      delete faces[cat][role];
+      if (!Object.keys(faces[cat]).length) delete faces[cat];
+    }
+    setPath(brandState, 'typography.faces', Object.keys(faces).length ? faces : undefined);
+    apply();
+  };
+  const wrap = el('div', 'cs-wrap');
+  const table = el('table', mix('cs-table', 'pincut'));
+  const head = el('tr');
+  head.append(el('th', undefined, 'Slot'), el('th', undefined, 'Face'), el('th', 'cs-c', 'Style pin'));
+  table.append(head);
+  let slots = 0;
+  for (const g of TYPE_GROUP_ORDER) {
+    const fam = boundFamily(g);
+    if (!fam) continue;   // an unbound category has no face to pin a cut WITHIN — the engine refuses it, so it is never offered
+    const shipped = roleOrder.filter((r) => ty.composites.some((c) => c.group === g && c.weightRole === r));
+    for (const role of shipped) {
+      slots++;
+      const tr = el('tr', 'pincut-row');
+      tr.setAttribute('data-cat', g);
+      tr.setAttribute('data-role', role);
+      const slotTd = el('td');
+      slotTd.append(el('div', 'cs-name mono', `${g} · ${role}`), el('div', 'cs-count', 'Every size in this category'));
+      tr.append(slotTd);
+      const fTd = el('td');
+      const fName = el('div', mix('cs-face', 'pincut-face'), fam);
+      fName.title = ty.families.find((f) => f.group === g)?.stack.join(', ') ?? fam;
+      fTd.append(fName);
+      tr.append(fTd);
+      const inTd = el('td', 'cs-c');
+      const cur = getPath(brandState, `typography.faces.${g}.${role}`) as FacePin | undefined;
+      const inp = el('input', mix('tf-in', 'pincut-in')) as HTMLInputElement;
+      inp.type = 'text';
+      inp.spellcheck = false;
+      inp.placeholder = 'Derived from weight';
+      inp.value = cur?.style ?? '';
+      inp.setAttribute('aria-label', `Style cut for ${g} ${role}`);
+      // Commit on `change` (blur / Enter), not per keystroke: `apply()` repaints this section, which
+      // would drop the caret mid-word the way the identity fields' skip-rebuild lineage records.
+      inp.onchange = () => setPin(g, role, inp.value);
+      inTd.append(inp);
+      // A STALE pin — the bound family moved AFTER the pin was set — is surfaced, never silent: the
+      // engine would refuse it at build (family mismatch) and drop the cut. Re-committing the style
+      // rewrites the family to the current face, so the note says exactly that.
+      if (cur && cur.family !== fam)
+        inTd.append(el('p', mix('tf-adderr', 'pincut-stale'), `Pinned to “${cur.family}”, but this category now binds “${fam}”. Re-enter the style to re-bind, or the cut is dropped at export.`));
+      tr.append(inTd);
+      table.append(tr);
+    }
+  }
+  wrap.append(table);
+  sec.append(wrap);
+  if (!slots) sec.append(el('p', 'sl-note', 'No pinnable slots yet — bind a face to a category on Semantics first.'));
   return sec;
 };
 // ---- object-value editors (#97) --------------------------------------------

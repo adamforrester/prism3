@@ -45,6 +45,35 @@
  * A file projected from this engine carries these verbatim, so the diff is a plain key join. A
  * coordinate the ledger cannot place (a renamed set, a hand-added node) becomes UNKNOWN-NODE, not a crash.
  *
+ * ── COVERAGE EXTENSIONS (#1523) — three REACH limits found in owner QA, all correct-by-hand ───────
+ *
+ * A live NB reconcile surfaced three coordinate shapes the diff could not place. None was a file
+ * defect (every one was hand-checked correct); each was the instrument failing to line the two sides
+ * up. Two are fixed here as pre-diff normalizations (`mapLooseComponents`, `foldDescendantInk` above),
+ * the third is an investigation whose conclusion is recorded and pinned by the selftest:
+ *
+ *   1. GLYPH-CONTAINER INK reported one level down (82 binds). The export snippet emits
+ *      `descendantFills` only for `INSTANCE` slots; a glyph container that is a `FRAME`/`GROUP` in the
+ *      live file has its ink reported on the child shape's `descendantFills`. `foldDescendantInk` lifts
+ *      that child ink onto the ledger's container coordinate so it is MATCHed, not skipped.
+ *   2. LOOSE `icon/<name>` COMPONENTS (43 binds). A loose icon ships as `icon/arrow-down` with no
+ *      variantProperties; the ledger keys it as component `icon`, member `name=arrow-down`.
+ *      `mapLooseComponents` remaps the loose naming onto that coordinate so the ink reconciles instead
+ *      of scoring UNKNOWN-NODE (its `/Vector` ink then folds onto the container via gap 1).
+ *   3. GROUP SETS (checkbox-group / radio-group) carry `bindings: []` in the ledger yet the live file
+ *      binds `/label/text`, each row's `/label` and each row's `/controlBox/control` stroke. INVESTIGATED and
+ *      CONFIRMED EXPECTED, no coverage hole: the group defs declare NO paint slots of their own (see
+ *      `components/checkbox-group.ts` — "THE GROUP PAINTS NOTHING OF ITS OWN", no `paintKeys`); every
+ *      one of those binds is painted by a NESTED instance from its OWN definition — the group label is
+ *      a nested `field-label`, each row a nested `checkbox-row` (which nests `checkbox-control`). So the
+ *      binds are audited under the `field-label` / `checkbox-row` / `checkbox-control` sets, never the
+ *      group set, and the empty group ledger is correct — the same mechanism behind ~500 of the run's
+ *      UNKNOWN-NODE entries (a bind reached through a group set belongs to the nested set that paints
+ *      it). No reconciler change: an empty ledger means the group has nothing OF ITS OWN to reconcile.
+ *      The selftest's group-set arm pins this both ways — the group ledgers are empty, and the roles
+ *      the live group carries are covered under the atom/row sets. (Were the group defs ever to gain a
+ *      paint slot of their own, that would be an ENGINE projection change, not a reconciler one.)
+ *
  * ── IT IS A TOOL, NOT A GATE (tools/CLAUDE.md) ──────────────────────────────────────────────────
  *
  * A live file is not in CI, so this answers a question and exits 0. The `--selftest` fixture round-trip
@@ -160,9 +189,97 @@ export const deriveRoot = (ledger: Ledger, exp: BindingExport): string | null =>
 const stripRoot = (variable: string, root: string | null): string =>
   root && variable.startsWith(`${root}/`) ? variable.slice(root.length + 1) : variable;
 
+/** GAP 2 (#1523) — MAP LOOSE-ICON NAMING to the ledger's `name=` coordinate. A loose icon ships as a
+ *  standalone `COMPONENT` named `icon/arrow-down` with NO variantProperties, so the export snippet
+ *  reports both its `component` (the selection name) and its `member` (the component's own name, since
+ *  it has no variant coordinate) as `icon/arrow-down`. The ledger keys the icon set as component `icon`
+ *  with members `name=arrow-down`, so a raw diff cannot place either coordinate and all 43 loose icons
+ *  score UNKNOWN-NODE despite correct ink. This remaps an export node whose `component` is `<base>/<slug>`
+ *  — where `<base>` is a real ledger component whose members are `name=<slug>` coordinates — onto that
+ *  `(base, name=<slug>)` coordinate. Guarded on the base being a ledger component AND carrying the exact
+ *  `name=<slug>` member, so it only fires on the loose-icon shape and never rewrites a set the ledger
+ *  already knows (a component the ledger keys directly is returned untouched). */
+export const mapLooseComponents = (ledger: Ledger, exp: BindingExport): BindingExport => {
+  const nodes = exp.nodes.map((en) => {
+    if (ledger.components[en.component]) return en; // a set the ledger keys directly — leave it
+    const slash = en.component.indexOf('/');
+    if (slash < 0) return en;
+    const base = en.component.slice(0, slash); // 'icon'
+    const slug = en.component.slice(slash + 1); // 'arrow-down'
+    const members = ledger.components[base];
+    if (!members) return en;
+    const coord = `name=${slug}`;
+    if (!members.some((m) => m.member === coord)) return en; // base is not a `name=`-keyed set
+    return { ...en, component: base, member: coord, fields: { ...en.fields } };
+  });
+  return { ...exp, nodes };
+};
+
+/** GAP 1 (#1523) — LIFT GLYPH-CONTAINER INK reported one level down. The export snippet emits
+ *  `descendantFills` only for `INSTANCE` glyph slots (via its descendant walk) and reports a plain
+ *  `SHAPE`'s own fill under `descendantFills` at the shape itself. So where the ledger expects
+ *  glyph ink on a container that is NOT an instance in the live file (a `FRAME`/`GROUP` — spinner,
+ *  checkbox mark/dash, switch glyphs, the loose-icon root, …), the snippet reports the container as a
+ *  surface (`fills`/`strokes`, both UNBOUND) and the ink one level down on the child shape's
+ *  `descendantFills` — 82 such binds in the live NB run, all correct by hand but unevaluated, plus the
+ *  child scoring UNKNOWN-NODE. This folds a child's `descendantFills` up onto the ledger's container
+ *  coordinate so the expected bind is evaluated, and removes the child copy so it is not double-counted
+ *  as UNKNOWN-NODE. It fires ONLY when the container itself reports NO `descendantFills` (an INSTANCE or
+ *  a shape-at-the-node still reconciles directly, untouched), takes the NEAREST descendant, and never
+ *  steals a descendant that is itself an expected `descendantFills` coordinate. */
+export const foldDescendantInk = (ledger: Ledger, exp: BindingExport): BindingExport => {
+  const nodes = exp.nodes.map((en) => ({ ...en, fields: { ...en.fields } }));
+  const byCoord = new Map<string, ExportNode>();
+  for (const en of nodes) byCoord.set(coordKey(en.component, en.member, en.node), en);
+
+  // Every ledger coordinate that expects glyph ink — a descendant that is itself one is never lifted.
+  const expectedDF = new Set<string>();
+  for (const [component, members] of Object.entries(ledger.components))
+    for (const m of members)
+      for (const b of m.bindings)
+        if (b.field === 'descendantFills') expectedDF.add(coordKey(component, m.member, memberRelative(b.node)));
+
+  for (const [component, members] of Object.entries(ledger.components)) {
+    for (const m of members) {
+      for (const b of m.bindings) {
+        if (b.field !== 'descendantFills') continue;
+        const N = memberRelative(b.node);
+        const ck = coordKey(component, m.member, N);
+        const container = byCoord.get(ck);
+        if (container && container.fields.descendantFills !== undefined) continue; // reported directly
+        const prefix = N === '/' ? '/' : `${N}/`;
+        let best: ExportNode | null = null;
+        for (const en of nodes) {
+          if (en.component !== component || en.member !== m.member) continue;
+          if (en.node === N || !en.node.startsWith(prefix)) continue;
+          const v = en.fields.descendantFills;
+          if (v === undefined || v === UNBOUND) continue;
+          if (expectedDF.has(coordKey(component, m.member, en.node))) continue; // a descendant's OWN bind
+          if (best === null || en.node.length < best.node.length) best = en;
+        }
+        if (!best) continue;
+        const lifted = best.fields.descendantFills!;
+        if (container) container.fields.descendantFills = lifted;
+        else {
+          const c: ExportNode = { component, member: m.member, node: N, fields: { descendantFills: lifted } };
+          nodes.push(c);
+          byCoord.set(ck, c);
+        }
+        delete best.fields.descendantFills; // consumed — not a stray UNKNOWN-NODE
+      }
+    }
+  }
+  return { ...exp, nodes };
+};
+
 /** THE DIFF. Pure: a ledger + an export in, a result out — the whole reason it is fixture-testable
  *  apart from the reporter and from any live file. */
-export const reconcile = (ledger: Ledger, exp: BindingExport): ReconcileResult => {
+export const reconcile = (ledger: Ledger, rawExp: BindingExport): ReconcileResult => {
+  // COORDINATE NORMALIZATION (#1523), before the diff: map loose-icon naming onto the ledger's `name=`
+  // coordinate, then fold a non-INSTANCE glyph container's ink up from the child shape the snippet
+  // reports it on. Order matters — the fold keys on ledger coordinates, so the loose icon must already
+  // be remapped onto `icon`/`name=<slug>` for its `/Vector` ink to fold onto the container.
+  const exp = foldDescendantInk(ledger, mapLooseComponents(ledger, rawExp));
   // INDEX THE LEDGER by (component, member, node) → field → expected variable, and by member so a node
   // whose member coordinate is known but whose path is not can be told apart in the report if wanted.
   const expected = new Map<string, Map<BindField, string>>();
@@ -449,6 +566,89 @@ const selftest = (): void => {
     const r = reconcile(ledger, mk(n));
     if (r.counts.EXTRA === 1 && r.counts.MATCH === picked.bindings.length) console.log('  ✓ one uncovered field → exactly one EXTRA');
     else { failed++; console.log(`  ✗ one uncovered field → exactly one EXTRA (got EXTRA=${r.counts.EXTRA}, MATCH=${r.counts.MATCH})`); }
+  }
+
+  // ── #1523 COVERAGE ARMS — one per reach limit closed; each fails BY NAME when its fix is reverted ──
+  const check = (name: string, exp: BindingExport, want: Partial<Record<Verdict, number>>): void => {
+    const r = reconcile(ledger, exp);
+    const bad = Object.entries(want).filter(([v, n]) => r.counts[v as Verdict] !== n);
+    if (bad.length === 0) console.log(`  ✓ ${name}`);
+    else {
+      failed++;
+      console.log(`  ✗ ${name}`);
+      for (const [v, n] of bad) console.log(`      ${v}: expected ${n}, got ${r.counts[v as Verdict]}`);
+    }
+  };
+
+  // GAP 1 — glyph-container ink the snippet reports on a NON-INSTANCE child shape (the FRAME/GROUP case)
+  // must FOLD onto the ledger's container coordinate and MATCH, not skip the expected bind and score the
+  // child UNKNOWN-NODE. Pick a NON-`icon` descendantFills bind at a non-root node so this arm is
+  // independent of the loose-icon remap. Revert `foldDescendantInk` → MATCH 0, UNKNOWN-NODE 1.
+  let df1: { component: string; member: string; node: string; variable: string } | null = null;
+  for (const [component, members] of Object.entries(ledger.components)) {
+    if (component === 'icon') continue;
+    for (const m of members) {
+      const b = m.bindings.find((x) => x.field === 'descendantFills' && rel(x.node) !== '/');
+      if (b) { df1 = { component, member: m.member, node: rel(b.node), variable: b.variable }; break; }
+    }
+    if (df1) break;
+  }
+  if (!df1) { console.error('SELFTEST: no non-icon descendantFills bind at a non-root node — cannot build gap-1 arm'); process.exit(1); }
+  check(
+    '(#1523 gap 1) non-INSTANCE glyph-container ink folds up from the child shape → MATCH, not skipped + UNKNOWN-NODE',
+    mk([
+      { component: df1.component, member: df1.member, node: df1.node, fields: { fills: UNBOUND, strokes: UNBOUND } }, // FRAME container, no own descendantFills
+      { component: df1.component, member: df1.member, node: `${df1.node}/Vector`, fields: { descendantFills: df1.variable } }, // ink one level down
+    ]),
+    { MATCH: 1, 'UNKNOWN-NODE': 0, UNBOUND: 0, 'WRONG-TOKEN': 0, EXTRA: 0 },
+  );
+
+  // GAP 2 — a loose `icon/<slug>` component with no variantProperties must REMAP onto `icon`/`name=<slug>`
+  // and MATCH (its `/Vector` ink then folding onto the container via gap 1), not score UNKNOWN-NODE.
+  // Revert `mapLooseComponents` → the coordinate cannot be placed and the ink is UNKNOWN-NODE.
+  const iconMembers = ledger.components['icon'];
+  const iconB = iconMembers?.[0]?.bindings.find((b) => b.field === 'descendantFills');
+  if (!iconMembers?.length || !iconB) { console.error('SELFTEST: icon set / descendantFills bind missing — cannot build gap-2 arm'); process.exit(1); }
+  const iconSlug = iconMembers[0].member.slice('name='.length); // 'arrow-down'
+  check(
+    '(#1523 gap 2) loose icon/<slug> with no variantProperties maps to name=<slug> → MATCH, not UNKNOWN-NODE',
+    mk([
+      { component: `icon/${iconSlug}`, member: `icon/${iconSlug}`, node: '/', fields: { fills: UNBOUND, strokes: UNBOUND } }, // COMPONENT root
+      { component: `icon/${iconSlug}`, member: `icon/${iconSlug}`, node: '/Vector', fields: { descendantFills: iconB.variable } }, // the shape's own ink
+    ]),
+    { MATCH: 1, 'UNKNOWN-NODE': 0, UNBOUND: 0, 'WRONG-TOKEN': 0, EXTRA: 0 },
+  );
+
+  // GAP 3 — the group SETS carry an EMPTY ledger BY DESIGN: they declare no paint of their own, so the
+  // label and rows paint from their NESTED defs. Pin that conclusion both ways: (a) checkbox-group /
+  // radio-group have zero bindings, so a group-tagged bind is UNKNOWN-NODE (blind by design, NOT a hole);
+  // (b) the same roles reconcile as MATCH under the atom/row sets that actually paint them. A paint slot
+  // ever added to a group def would break (a); losing the atom/row coverage would break (b).
+  const groupBindCount = ['checkbox-group', 'radio-group'].reduce(
+    (n, id) => n + (ledger.components[id] ?? []).reduce((s, m) => s + m.bindings.length, 0), 0);
+  const rowM = ledger.components['checkbox-row'][0];
+  const rowB = rowM.bindings.find((b) => b.field === 'fills'); // /row/label → text ink
+  const ctlM = ledger.components['checkbox-control'][0];
+  const ctlB = ctlM.bindings.find((b) => b.field === 'strokes'); // /control → field border stroke
+  const grpM = ledger.components['checkbox-group'][0];
+  if (!rowB || !ctlB || !grpM) { console.error('SELFTEST: checkbox row/control/group members missing — cannot build gap-3 arm'); process.exit(1); }
+  // (b) those binds under their real home — the atom/row sets — MATCH.
+  const rCovered = reconcile(ledger, mk([
+    { component: 'checkbox-row', member: rowM.member, node: rel(rowB.node), fields: { fills: rowB.variable } },
+    { component: 'checkbox-control', member: ctlM.member, node: rel(ctlB.node), fields: { strokes: ctlB.variable } },
+  ]));
+  // (a) the SAME binds, tagged to the empty group set, are UNKNOWN-NODE — the group has nothing of its own.
+  const rGroup = reconcile(ledger, mk([
+    { component: 'checkbox-group', member: grpM.member, node: '/label/text', fields: { fills: rowB.variable } },
+    { component: 'checkbox-group', member: grpM.member, node: '/row1/controlBox/control', fields: { strokes: ctlB.variable } },
+  ]));
+  const gap3ok = groupBindCount === 0 && rCovered.counts.MATCH === 2
+    && rGroup.counts['UNKNOWN-NODE'] === 2 && rGroup.counts.MATCH === 0;
+  if (gap3ok) console.log('  ✓ (#1523 gap 3) group ledgers empty by design; nested binds MATCH under the atom/row sets, UNKNOWN-NODE under the group');
+  else {
+    failed++;
+    console.log('  ✗ (#1523 gap 3) group-set conclusion');
+    console.log(`      group bindings expected 0, got ${groupBindCount}; atom/row MATCH expected 2, got ${rCovered.counts.MATCH}; group UNKNOWN-NODE expected 2, got ${rGroup.counts['UNKNOWN-NODE']} & MATCH expected 0, got ${rGroup.counts.MATCH}`);
   }
 
   console.log(`\n${failed === 0 ? 'SELFTEST PASSED' : `SELFTEST FAILED (${failed})`}`);

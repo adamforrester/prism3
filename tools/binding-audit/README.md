@@ -220,12 +220,29 @@ reconciler can evolve together without silently disagreeing:
 
 Two simplifying assumptions the snippet makes, worth stating: it takes the **first** bound fill beneath
 an instance as the glyph ink (right for the corpus's single-glyph slots), and it classifies a node's
-field by **type**. A glyph whose ink sits on the *member root itself* (the standalone `icon`/glyph
-sets, whose member IS a shape) is reported under `fills` while the ledger classifies it as
-`descendantFills` — so those leaf sets read as EXTRA; the composite controls this audit targets
-(buttons, icon-buttons, fields — where the glyph is a swapped `INSTANCE`) reconcile cleanly. The field
-mapping is documented here precisely so it can be adjusted in lockstep with the reconciler if a live
-file's structure ever differs.
+field by **type**. Because it emits `descendantFills` only for `INSTANCE` nodes (and reports a plain
+shape's own fill under `descendantFills` at the shape itself), a glyph container that is a `FRAME`/`GROUP`
+in the live file has its ink reported one level down on the child shape rather than on the container the
+ledger keys. The **reconciler** absorbs that on the ledger side (#1523) so the snippet need not know a
+slot's live node type: `foldDescendantInk` lifts a child shape's `descendantFills` onto the container
+coordinate the ledger expects, and `mapLooseComponents` remaps a loose `icon/<name>` component (a
+standalone `COMPONENT` with no variantProperties) onto the ledger's `icon`/`name=<name>` coordinate. So
+the composite controls (buttons, icon-buttons, fields — swapped `INSTANCE` glyphs), the non-instance
+glyph containers (spinner, checkbox mark/dash, switch glyphs, …) and the loose icon set all reconcile
+cleanly. The field mapping is documented here precisely so it can be adjusted in lockstep with the
+reconciler if a live file's structure ever differs again.
+
+**Group sets paint nothing of their own, so their ledger is empty by design (#1523).** A live
+`checkbox-group` / `radio-group` binds `/label/text`, each row's `/label`, and each row's
+`/controlBox/control` stroke, yet the group ledger is `[]` — and that is correct. The group defs declare
+no paint slots (`components/checkbox-group.ts`: "THE GROUP PAINTS NOTHING OF ITS OWN"); every one of
+those binds is painted by a **nested** instance from its own definition — the label a nested
+`field-label`, each row a nested `checkbox-row` (which nests `checkbox-control`). Those binds are
+therefore audited under the `field-label` / `checkbox-row` / `checkbox-control` sets, never the group,
+and reading them as UNKNOWN-NODE on the group set is the instrument working as intended (the mechanism
+behind ~500 of the run's UNKNOWN-NODE entries). No coverage hole exists: nothing binds *only* through a
+group set. Were a group def ever to gain a paint slot of its own, that would be an **engine projection**
+change (a new binding in the group ledger), not a reconciler one.
 
 ### Worked example (export → reconcile → report)
 
@@ -261,9 +278,20 @@ Prism3 binding reconcile (#1511) — live file vs. expected ledger
 
 ### The fixture round-trip (acceptance)
 
-`reconcile.ts --selftest` builds four scenarios from the **live ledger** (so they never go stale
-against a hand-written fixture) and asserts each verdict in isolation — all-correct → all MATCH; one
+`reconcile.ts --selftest` builds its scenarios from the **live ledger** (so they never go stale against
+a hand-written fixture) and asserts each verdict in isolation — all-correct → all MATCH; one
 wrong-but-valid → exactly one WRONG-TOKEN; one blanked → one UNBOUND; one stray node → one
-UNKNOWN-NODE (plus one uncovered field → one EXTRA). It exits non-zero on any mismatch. It is a
-self-check the author runs, **not** a wired gate — the reconciler diffs a *live* file, which is not in
-CI, so the gate count stays 60 (`tools/CLAUDE.md`).
+UNKNOWN-NODE; one uncovered field → one EXTRA; plus the two root-normalization arms (#1522). It also
+carries one arm per #1523 coverage extension, each of which fails **by name** when its fix is reverted:
+
+- **gap 1** — a non-`INSTANCE` glyph-container's ink, reported on a child shape, folds up and MATCHes
+  (revert `foldDescendantInk` → the bind is skipped and the child scores UNKNOWN-NODE);
+- **gap 2** — a loose `icon/<slug>` component maps to `name=<slug>` and MATCHes (revert
+  `mapLooseComponents` → UNKNOWN-NODE);
+- **gap 3** — the group-set conclusion, pinned both ways: the `checkbox-group` / `radio-group` ledgers
+  are empty, and the roles a live group carries MATCH under the atom/row sets while scoring UNKNOWN-NODE
+  under the group (a paint slot added to a group def would trip it — an engine change, not a reconciler
+  one).
+
+It exits non-zero on any mismatch. It is a self-check the author runs, **not** a wired gate — the
+reconciler diffs a *live* file, which is not in CI, so the gate count stays 60 (`tools/CLAUDE.md`).
