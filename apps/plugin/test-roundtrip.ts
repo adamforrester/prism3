@@ -863,5 +863,73 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #1516: AN ASYNC MEMBER-SETTLE DURING THE WIRE PHASE LEAVES NO PROPERTY-REFERENCE MISS — HOST-TRUTH ─
+//
+// #1473 recovers a member whose identity the host reassigns AT COMBINE by re-resolving it from a
+// live-member map the executor snapshots after the layout `resize` — on the premise that once every
+// set-level op has run, the reconciliation is done. #1516 is the instant that premise misses: the host
+// finishes reassigning SOME members' identity ASYNCHRONOUSLY, only DURING the wire loop — after that
+// snapshot, on one of the loop's `await breathe` yields. A recovery through the once-snapshotted map lands
+// on the detached original and Figma refuses the reference AGAIN ("Could not create a new component
+// property reference"), so the miss is permanent. Live it concentrated on the LAST-wired coordinates —
+// field-label `state=disabled` (~30), text-field `status=warning` / `state=disabled` (~33), select (36
+// earlier) — the members reached after the most yields (QA 2026-09-18). The fix reads `set.children` FRESH
+// at each use rather than from a snapshot (`liveMember`, write-components.ts), so a settle that lands at
+// any point in the loop is seen by the next resolution.
+//
+// The shim's `deferSettleToWire` models the host behavior (see `component-shim.ts`): it HOLDS the
+// member-level settle past `resize`/`addComponentProperty` — past the executor's snapshot — and fires it
+// on the wire loop's first ref write, detaching every original. This asserts ZERO property-reference misses
+// against the executor's OWN misses collection (the `misses.push('ref …')` path the issue's acceptance
+// names), and independently reads the references back through `anatomy-readback.ts` — a reader separate
+// from the executor (docs/34). Mutation-by-name: revert the fresh `liveMember` read to a one-time snapshot
+// and every member reports `ref …/… -> … (Could not create a new component property reference)`, failing
+// the miss assertion by name (the message surfaces the failing coordinates, disabled/warning first). The
+// FLOOR (`refsRepaired === refs > 0`) proves the deferred settle actually detached every reference —
+// without it there is nothing to recover and a clean miss list is vacuous.
+{
+  const DEFS = ['field-label', 'text-field', 'select'];
+  // A property-REFERENCE wiring miss — the two `misses.push('ref …')` sites (the wire-loop throw recovery
+  // and the read-back DISCARDED), exactly the class #1516 names. Bound-variable ('bound …') and text
+  // ('text …') misses are a different push path and out of scope here.
+  const refMissesOf = (misses: string[]): string[] => misses.filter((m) => m.startsWith('ref '));
+  // Surface the #1516 symptom coordinates (disabled / warning) first, so a reverted fix names them.
+  const symptomFirst = (a: string, b: string): number =>
+    Number(/state=disabled|status=warning/.test(b)) - Number(/state=disabled|status=warning/.test(a));
+  for (const id of DEFS) {
+    const def = componentDefs.find((d) => d.id === id);
+    ok(!!def, `#1516 host-truth: the ${id} def is registered and projects`);
+    if (!def) continue;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page, deferSettleToWire: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    const res = await applyComponentPlan(plans, shim as any, {});
+    // FLOOR: the deferred settle actually fired — every reference was detached at wire time and recovered
+    // through the member-level recovery. refsRepaired === refs (> 0) proves the shim modelled a REAL
+    // settle, so a clean miss list below is the fix defeating it rather than a shim that never settled.
+    ok(res.refsRepaired > 0 && res.refsRepaired === res.refs,
+      `#1516 floor: ${id}'s wire-phase settle detached and the fix recovered every reference (refsRepaired=${res.refsRepaired}/${res.refs})`);
+    // THE FIX, against the executor's OWN misses collection (the issue's acceptance): ZERO property-
+    // reference misses across the full projection. Message names the failing coordinate(s) — a reverted fix
+    // fails BY NAME (docs/34), disabled/warning surfaced first.
+    const refMisses = refMissesOf(res.misses).sort(symptomFirst);
+    ok(res.wiredMembers === plans.length && refMisses.length === 0,
+      `#1516: ${id} projects with ZERO set_componentPropertyReferences misses across all ${plans.length} members (wiredMembers=${res.wiredMembers}/${plans.length}; ${refMisses.length ? `${refMisses.length} miss(es): ${refMisses.slice(0, 3).join(' | ')}` : 'none'})`);
+    // INDEPENDENT READ-BACK (docs/34): a reader separate from the executor confirms every declared reference
+    // is retained on the SETTLED set — 0 propertyRef DISCARDED.
+    const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
+    const texts = await (shim as unknown as { getLocalTextStylesAsync: () => Promise<{ id: string; name: string }[]> }).getLocalTextStylesAsync();
+    const varById = new Map(vars.map((v) => [v.id, v.name] as const));
+    const styleById = new Map(texts.map((s) => [s.id, s.name] as const));
+    const ports: ReadPorts = { varName: (idv) => varById.get(idv) ?? null, styleName: (idv) => styleById.get(idv) ?? null };
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const divergences = diffAnatomy(plans, members, planComponentName, ports, {});
+    const refDiv = divergences.filter((d) => d.field === 'propertyRef' || d.field === 'visibleProp' || d.field === 'visible');
+    ok(members.length === plans.length && refDiv.length === 0,
+      `#1516 host-truth: reading the settled ${id} back, every declared reference is retained — 0 propertyRef DISCARDED (${refDiv.length ? refDiv.slice(0, 3).map((d) => `${d.member}: ${d.actual}`).join(' | ') : 'none'})`);
+  }
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);
