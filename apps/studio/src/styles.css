@@ -1461,6 +1461,11 @@ input.toggle:disabled{opacity:.5;cursor:default}
    constraint that set 92px. Left wide rather than re-measured down: shrinking it is a real change,
    not a comment fix. */
 .cs-table .select.cs-nudge{max-width:92px}
+/* #1467 — the facePin (Pin a cut) section. The style input reuses .tf-in's field treatment; capped so
+   it reads as one control in the Style-pin column rather than stretching the full table width. The
+   stale-pin note reuses .tf-adderr (danger ink) but sits under the field it qualifies. */
+.pincut .pincut-in{max-width:240px}
+.pincut .pincut-stale{max-width:280px;line-height:1.45;white-space:normal}
 .fz-list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:4px}
 .fz-row{display:grid;grid-template-columns:150px 96px 1fr;gap:12px;padding:9px 13px;border-top:1px solid var(--line);align-items:center;font-size:12px}
 .fz-row:first-child{border-top:0}

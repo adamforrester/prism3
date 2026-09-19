@@ -7,6 +7,26 @@
 
 ---
 
+## (2026-09-19) — studio exposes `facePin`: a brand can bind a condensed (or any verbatim) font cut from the UI (#1467)
+
+**STATUS: LANDED. ENGINE STANDS at 0.125.0; CONTRACT STANDS at 11.3.0 — studio-side only, writes brand input, no engine code touched. `regen --check` clean (0 artifact drift), `lint-emission-version` 0 artifacts, `lint-component-surface` 0 defs. Closes #1467.**
+
+**THE GAP.** The engine has had `facePin` since #1368 (engine 0.91.0): `typography.faces.<category>.<weightRole> = { family, style }` bakes a VERBATIM Figma family+style onto that slot's Text Style, overriding the numeric-weight→style-name derivation. It is the ONLY way to reach a WIDTH cut like "Light Condensed", because Figma's `fontStyle` is a STRING and a numeric `fontWeight` axis can only ever name weights, never widths. NB uses it today for `display/subtle` and `title/subtle` (ITC Garamond Std Light Condensed). But the studio had no control for it (`grep facePin|faces|weightRole apps/studio/src/` was empty) — a condensed cut could only be bound by hand-editing brand-input JSON. This closes that.
+
+**THE SHAPE (owner-decided, #1467).** FREE-TEXT style string, NOT a picker enumerated from the family's cuts — a picker needs the bound family's cut list, which the studio does not have (out of scope, and the deferred first-class width axis is Option B in #1368, not this). The author types ONLY the style; the `family` is written automatically from the slot's already-bound face.
+
+**THE VALIDATION — the load-bearing part.** The engine drops a pin whose `family` diverges from the category's bound family (`theme.ts` `buildComposites` ~:1315, a named refusal; the plugin host would otherwise drop it silently). So the control never lets the author type the family: it reads the bound family from the same source the row's Face column shows (`ty.families.find(f => f.group === cat).stack[0]`, the engine's own `familyPrimary`) and writes `{ family: <bound>, style: <typed> }`. A pin left STALE by a LATER face change is surfaced inline (a `.pincut-stale` note naming the old and new families and how to re-bind) and, if committed anyway, the engine's refusal reaches the global error bar — never silent. Clearing a slot DELETES the `faces.<cat>.<role>` key (writing the whole `faces` object back), not `{ role: undefined }`, which the engine reads as a present-but-empty pin and refuses.
+
+**PLACEMENT (a minor call left open by #1467).** A distinct "Pin a font cut" section on the Typography → **Text styles** tab, a new `renderFacePins()` sibling directly under the category table that DEFINES the (category × weight-role) slots being pinned. Kept inside the existing typography UI, not a new page. Not merged INTO that table: a free-text input in every role column would be far too wide, and a pin is sparse and advanced (NB pins 2 slots of many), so a focused section listing only the pinnable slots reads better than a grid of empty cells. Voice: recessive/factual per `docs/voice-standard.md`.
+
+**GATE (docs/34).** New `#1467` block in `apps/studio/test-smoke.mjs` (drives the built `dist`). FLOOR: the section is present and every pinnable slot carries a style input. WRITE (the by-name target): typing a style commits `faces.<cat>.<role> = { family: <bound face>, style: <typed> }` into the PERSISTED brand blob (`localStorage['prism3:brandInput']`, the #1196 key) — oracle authored in the gate (the bound face is read from the row the control SHOWS, the style is the string typed), so a write storing the wrong family or style fails by name. EMISSION: exporting the DTCG (default shape) carries the pin verbatim in `$extensions.prism3.facePin` on every composite leaf of the slot (the value `emit-figma-font.ts` bakes onto `fontStyle`). Plus: a valid pin surfaces no error, and clearing deletes the key.
+
+**BY-NAME MUTATION VERIFIED (wip-checkpointed per CLAUDE.md).** (1) Corrupting the style write (`style: trimmed + '!'`) fails `setting the style writes faces.display.strong.style = "Light Condensed" verbatim (got "Light Condensed!")` and the emission assertion, by name. (2) Corrupting the family wiring (`family: trimmed`) diverges → engine refuses → fails the family, no-error (bar names `typography.faces.display.strong: family 'Light Condens…'`), and both emission assertions, by name. Restored green — full smoke 1213/1213.
+
+**SCOPE — no bump.** `faces` is `brandDependent` and adds no guaranteed token name, so CONTRACT STANDS at 11.3.0. The control writes brand input only; no corpus brand sets a new pin, so `out/**` is unchanged (`regen --check` clean, `lint-emission-version` 0 artifacts) and no lever-manifest / schema / projected surface moved — STUDIO-ONLY, ENGINE STANDS at 0.125.0 (a studio bundle change alone does not bump ENGINE). Files: `apps/studio/src/main.ts` (`renderFacePins`, the `FacePin` type import, one dispatch line), `apps/studio/src/styles.css` (`.pincut*`), `apps/studio/test-smoke.mjs` (the gate). Full `npm run verify` PASS, 0 SKIP.
+
+---
+
 ## (2026-09-19) — links become independently customizable: global rung lever + PER-MODE ABSOLUTE overrides, all four families editable, with a link floor guard (#1510)
 
 **STATUS: LANDED. ENGINE 0.124.0 → 0.125.0; CONTRACT STANDS at 11.3.0. Owner-decided (2026-09-19) extension of #1510. This PR SUPERSEDES #1531 (which built only the global rung lever); it rebases that work onto current main (0.118 → 0.125) and adds the per-mode absolute + editable-inverse scope. Gate count 60 → 61 (new gate arm L-06 lives inside the existing `test.ts` gate — it is a `test.ts` assertion block, NOT a new CI gate, so the CI gate count STANDS at 60).**
@@ -32,6 +52,8 @@
 **GATES.** Full `npm run verify`: all 60 gates PASS (studio + prose gates run after the builds). Studio + plugin builds green (the Links editor is UI — the smoke suite drives the built bundle).
 
 **NOT TOUCHED.** #1367 and #1385 are out of this lane's scope. #1467 (facePin studio control) is the sibling gap and stays its own issue.
+
+---
 
 ## (2026-09-19) — projected component text nodes keep their composite text STYLE through the characters-bind seam (#1514)
 
