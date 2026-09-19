@@ -2926,6 +2926,29 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.124.0 — #1519: ICON-SWAP SITS DIRECTLY UNDER ITS PRESENCE BOOLEAN in the Figma panel (owner-directed,
+ * owner QA 2026-09-18). `planSetProperties` no longer groups all booleans then all swaps; it now pairs each
+ * icon swap DIRECTLY after the boolean that gates it, so the panel reads `leading icon` → `↳ swap leading
+ * icon` → `trailing icon` → `↳ swap trailing icon` rather than the two toggles then the two swaps detached.
+ * A swap pairs to a boolean when ONE glyph node carries both the visibility boolean (`visibleProp`) and the
+ * content swap (`propertyRef.mainComponent`), which is select's and text-field's leading/trailing glyphs.
+ * AFFECTED DEFS: `select` (`value` → `leading icon` → `↳ swap leading icon` → `message`) and `text-field`
+ * (`value` → `leading icon` → `↳ swap leading icon` → `trailing icon` → `↳ swap trailing icon` → `message`).
+ * NOT AFFECTED: `button` (×3 families) and `icon-button` (×3) — button's leading/trailing presence toggles
+ * are VARIANT switches, not boolean component properties (#1331/#1379 keeps them variant because edge-hugging
+ * presence changes container geometry a boolean cannot reach), and icon-button's icon is required (no boolean),
+ * so neither has a boolean HERE to pair against and their component-property order is byte-identical to before.
+ * For button the panel nesting of the swap beneath its switch is Figma's own render off the `↳ ` name prefix,
+ * unchanged. GATE (docs/34): `test:roundtrip`'s #1380 panel-order oracle is updated to the new boolean→swap-
+ * paired order for `select` and gains a `text-field` entry (both authored in the gate, not derived from
+ * `planSetProperties`); the button/icon-button oracles are unchanged. BY-NAME MUTATION: reorder
+ * `planSetProperties` back to the old all-booleans-then-all-swaps grouping → the #1380/#1519 order assertion
+ * fails BY NAME naming the def and the wrong order (the swap lands after `message` instead of under its
+ * boolean). The #1331 `iLi < iSwap` assertion in `test.ts` still holds (boolean stays immediately above its
+ * swap). A projected-surface (property ORDER) change on two defs → ENGINE bump; `schema/component-surface.json`
+ * is re-`--accept`ed after this forward bump if the plan/member digests move (property order is part of the set
+ * plan). CONTRACT STANDS at 11.3.0 — property ORDER is not a guaranteed token NAME; `token-contract --check`
+ * level `none`, stamp-only. `out/**` restamps only `$extensions.generator.version`.
  * 0.123.0 — #1518: TWO text-field fixes, mirrored onto select (both owner-directed, owner QA 2026-09-18).
  * (1) DEFAULT WIDTH 320 (select parity). text-field's `control` gains `minWidth: 320` — the same responsive
  * width floor select carries (#1345: reads at 320, flexes above), a LITERAL not a token so no name moves. This
@@ -3215,7 +3238,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.123.0';
+export const ENGINE_VERSION = '0.124.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

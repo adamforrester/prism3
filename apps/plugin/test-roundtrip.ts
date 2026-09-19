@@ -370,8 +370,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // component (non-variant) properties in: it is `planSetProperties`'s output order, which the digest does
 // not hash and no other read-back inspects. So read it back off the HOST — `componentPropertyDefinitions`,
 // whose key order is the executor's `addComponentProperty` order — and pin it against an oracle authored
-// HERE, not derived from `planSetProperties` (docs/34). Reordering `planSetProperties` (its text→swap→
-// boolean sort) then fails this BY NAME.
+// HERE, not derived from `planSetProperties` (docs/34). Reordering `planSetProperties` (its text → each
+// boolean → the swap it gates → any unpaired swap order, #1519) then fails this BY NAME.
 //
 // The panel INTERLEAVE of the variant switches with the component properties is host-RENDERED and not
 // asserted here (the repo's standing position that panel render order is "the owner's Figma check, not
@@ -379,14 +379,27 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // `label` is CREATED first and the swaps carry their `↳` labels.
 {
   const CANON: Record<string, { componentProps: string[]; switches: string[] }> = {
+    // button's presence toggles are VARIANT switches (edge-hugging leading/trailing change container
+    // geometry, so #1331/#1379 keeps them variant, not boolean) — they are not component properties here,
+    // so #1519's boolean→swap pairing does not reach button: its component properties stay `label` (TEXT)
+    // then the two swaps in by-part order. The panel nesting of each swap beneath its switch is Figma's
+    // own render off the `↳ ` name prefix, not an order this list controls.
     button: { componentProps: ['label', '↳ swap leading icon', '↳ swap trailing icon'], switches: ['leading icon', 'trailing icon'] },
     // select's `leading icon` is a node-visibility BOOLEAN component property since #1331 (not a variant
-    // switch): it appears in componentProps, ordered `value` (TEXT) → `leading icon` (BOOLEAN) → swap, and
-    // NO longer among the variant switches. Reverting it to a slot axis moves it back to `switches` and
-    // fails both assertions below by name. `message` is the SECOND node-visibility boolean (#1426, hiding
-    // the composed FieldMessage), so the panel shows `value` (TEXT) → `leading icon` → `message` (BOOLEANs)
-    // → `↳ swap leading icon` (SWAP); dropping the showMessage boolean removes `message` here BY NAME.
-    select: { componentProps: ['value', 'leading icon', 'message', '↳ swap leading icon'], switches: [] },
+    // switch): it appears in componentProps and is NO longer among the variant switches. Reverting it to a
+    // slot axis moves it back to `switches` and fails both assertions below by name. `message` is the
+    // SECOND node-visibility boolean (#1426, hiding the composed FieldMessage). Since #1519 each icon swap
+    // sits DIRECTLY under the boolean that gates it, so the panel reads `value` (TEXT) → `leading icon`
+    // (BOOLEAN) → `↳ swap leading icon` (SWAP) → `message` (the standalone show/hide BOOLEAN, no swap to
+    // pair). Reordering `planSetProperties` back to the old all-booleans-then-all-swaps grouping moves the
+    // swap after `message` and fails this BY NAME. Dropping the showMessage boolean removes `message` here.
+    select: { componentProps: ['value', 'leading icon', '↳ swap leading icon', 'message'], switches: [] },
+    // text-field carries BOTH icon slots as node-visibility booleans (#1494) plus the `message` show/hide
+    // boolean. #1519 pairs each swap under its boolean, so the panel reads `value` (TEXT) → `leading icon`
+    // → `↳ swap leading icon` → `trailing icon` → `↳ swap trailing icon` → `message` (standalone). This is
+    // the def where the pairing matters most (two icon slots): the old grouping would show both booleans,
+    // then both swaps, detached — reordering `planSetProperties` back to it fails this BY NAME.
+    'text-field': { componentProps: ['value', 'leading icon', '↳ swap leading icon', 'trailing icon', '↳ swap trailing icon', 'message'], switches: [] },
     'icon-button': { componentProps: ['swap icon'], switches: [] },
   };
   for (const [id, want] of Object.entries(CANON)) {

@@ -1825,6 +1825,14 @@ const visibleRefNodes = (n: FigmaNodePlan): FigmaNodePlan[] =>
  */
 export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => {
   const byName = new Map<string, FigmaPropertyPlan>();
+  // PRESENCE-BOOLEAN → SWAP PAIRING (#1519). A slot glyph node carries BOTH its visibility boolean
+  // (`visibleProp`, e.g. `leading icon`) and its content swap (`propertyRef.mainComponent`, e.g.
+  // `↳ swap leading icon`) on ONE node — select/text-field's leading/trailing glyphs. Recording the
+  // pairing here lets the ordering below sit each swap DIRECTLY under the boolean that gates it. A def
+  // whose presence toggle is a VARIANT switch rather than a boolean (button's edge-hugging leading/
+  // trailing) has no `visibleProp` on the swap's node, so it records no pairing and its swaps stay in
+  // by-part order as an unpaired trailer — unchanged from before.
+  const swapForBool = new Map<string, string>();
   for (const plan of plans) {
     for (const n of refNodes(plan.root)) {
       const ref = n.propertyRef!;
@@ -1845,6 +1853,9 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
         // exists and defaults to nothing.
         if (!n.swapTarget) continue;
         prop = { name: ref.prop, type: 'INSTANCE_SWAP', swapTarget: n.swapTarget };
+        // This swap's node also carries a presence boolean → pair them so the swap sits directly
+        // under that boolean in the panel (#1519). Keyed by boolean name (the swap follows it).
+        if (n.visibleProp) swapForBool.set(n.visibleProp, ref.prop);
       } else {
         // A propertyRef-carried boolean (legacy shape); node-visibility booleans come through the
         // `visibleProp` walk below since #1331. `true` is read off the fact the node exists, not assumed.
@@ -1866,16 +1877,32 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
       byName.set(prop.name, prop);
     }
   }
-  // ORDERED text → boolean → swap (#1380, #1331), which is the property CREATION order the executor applies
-  // and therefore the order Figma shows the component (non-variant) properties in. The icon-property canon
-  // puts `value`/`label` at the TOP (a TEXT), then a slot's PRESENCE boolean (`leading icon`) immediately
-  // above the swap it gates (`↳ swap leading icon`) — the `↳` reads as nested beneath the toggle only when
-  // the toggle is created first. So BOOLEAN ranks ABOVE INSTANCE_SWAP. No existing def is reordered: every
-  // boolean in the corpus was stated-empty until select (#1331), and a def with only TEXT + SWAP keeps
-  // TEXT(0) before SWAP(2) exactly as before. A stable sort by kind rank preserves insertion order within a
-  // kind, so a def's swaps keep their by-part order.
-  const KIND_RANK: Record<FigmaPropertyPlan['type'], number> = { TEXT: 0, BOOLEAN: 1, INSTANCE_SWAP: 2 };
-  return [...byName.values()].map((p, i) => ({ p, i })).sort((a, b) => KIND_RANK[a.p.type] - KIND_RANK[b.p.type] || a.i - b.i).map((x) => x.p);
+  // ORDERED text → each PRESENCE boolean immediately followed by the swap it gates → any unpaired swap
+  // (#1380, #1331, #1519), which is the property CREATION order the executor applies and therefore the
+  // order Figma shows the component (non-variant) properties in. The icon-property canon puts `value`/
+  // `label` at the TOP (a TEXT), then PAIRS each slot's presence boolean (`leading icon`) with the swap
+  // it gates (`↳ swap leading icon`) DIRECTLY beneath it, so the panel reads boolean→swap, boolean→swap
+  // (#1519, owner-directed) — not all booleans grouped, then all swaps grouped. The `↳` reads as nested
+  // beneath its toggle only when the toggle sits immediately above it, which the pairing guarantees.
+  // A standalone boolean with no swap on its node (`message` / `showMessage`, which hides a composed part
+  // rather than swapping a glyph) keeps its place in the boolean run. A swap with no boolean on its node
+  // (button's variant-gated leading/trailing, icon-button's required icon) has no pairing, so it trails
+  // in by-part order — unchanged from before. `byName` insertion is depth-first per member, so `filter`
+  // preserves each kind's by-part order below.
+  const all = [...byName.values()];
+  const emitted = new Set<string>();
+  const ordered: FigmaPropertyPlan[] = [];
+  for (const p of all) if (p.type === 'TEXT') { ordered.push(p); emitted.add(p.name); }
+  for (const p of all) {
+    if (p.type !== 'BOOLEAN') continue;
+    ordered.push(p);
+    emitted.add(p.name);
+    const swapName = swapForBool.get(p.name);
+    const swap = swapName === undefined ? undefined : all.find((s) => s.name === swapName);
+    if (swap) { ordered.push(swap); emitted.add(swap.name); }
+  }
+  for (const p of all) if (p.type === 'INSTANCE_SWAP' && !emitted.has(p.name)) ordered.push(p);
+  return ordered;
 };
 
 /** Every Figma text style a plan applies. */
