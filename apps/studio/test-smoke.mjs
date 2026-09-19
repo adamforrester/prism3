@@ -1661,6 +1661,98 @@ for (const brand of BRANDS) {
 }
 
 // =============================================================================================
+// The facePin control (#1467) — a typed style cut reaches brand input AND the emitted DTCG
+//
+// #1368 gave the engine `facePin`: a VERBATIM Figma family+style baked onto one (category, weight-role)
+// slot's Text Style — the only way to reach a WIDTH cut like "Light Condensed", because Figma's
+// fontStyle is a STRING and a numeric weight axis can never name a width. #1467 exposes it in the
+// studio as a free-text style input (owner-decided shape). The load-bearing behaviour, and the
+// by-name mutation target (docs/34): the control must write faces.<cat>.<role> = { family, style } into
+// the brand input, with `family` FIXED to the slot's already-bound face (else the engine drops the pin,
+// theme.ts ~:1315) and `style` the verbatim text typed. The oracle is authored here — the bound face is
+// read from the row the control SHOWS, and the style is the string this test types — so a write that
+// stored the wrong family (empty / the style / a different face) or the wrong style fails BY NAME.
+console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
+{
+  const STYLE = 'Light Condensed';   // a WIDTH cut — precisely the case a numeric weight cannot reach, which is why facePin exists
+  const brand = BRANDS[0];
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoPage(page, 'Typography');
+  await page.locator('.pvseg-b', { hasText: 'Text styles' }).click();
+  await page.waitForSelector('.pincut');
+
+  // FLOOR: the control is present and reachable for a slot that supports a pin. A studio that dropped
+  // the section, or offered no pinnable slot, fails HERE — before any write is attempted.
+  const slotCount = await page.locator('.pincut-row').count();
+  ok(slotCount > 0, `${brand}: the Pin-a-cut section offers at least one pinnable slot (found ${slotCount})`);
+  const inputCount = await page.locator('.pincut-in').count();
+  ok(inputCount === slotCount, `${brand}: every pinnable slot carries a free-text style input (${inputCount} inputs for ${slotCount} slots)`);
+
+  // Pick the first slot and read its identity + BOUND FACE from the DOM. The bound face the row shows is
+  // the oracle for the write's family — restating it from the brand would make the family assertion a
+  // tautology (docs/34 shape 3).
+  const row = page.locator('.pincut-row').first();
+  const cat = await row.getAttribute('data-cat');
+  const role = await row.getAttribute('data-role');
+  const boundFace = (await row.locator('.pincut-face').textContent())?.trim();
+  ok(!!cat && !!role && !!boundFace, `${brand}: the first slot names its category/role and shows a bound face (${cat} · ${role} — ${boundFace})`);
+
+  // Type the STYLE and commit (change fires on blur — the caret-preserving wiring, not per keystroke).
+  const input = row.locator('.pincut-in');
+  await input.fill(STYLE);
+  await input.evaluate((el) => el.blur());
+
+  // WRITE: read the pin back out of the PERSISTED blob (the same localStorage key #1196 reads), not any
+  // in-page mirror — this is the value that reaches emission and a reopened session.
+  const pin = await page.waitForFunction(({ c, r }) => {
+    try { const o = JSON.parse(localStorage.getItem('prism3:brandInput')); return o?.input?.typography?.faces?.[c]?.[r] ?? null; } catch { return null; }
+  }, { c: cat, r: role }, { timeout: 5000 }).then((h) => h.jsonValue(), () => null);
+  ok(pin?.style === STYLE, `${brand}: setting the style writes faces.${cat}.${role}.style = "${STYLE}" verbatim (got "${pin?.style ?? 'nothing'}")`);
+  ok(pin?.family === boundFace, `${brand}: the pin's family is fixed to the slot's BOUND face "${boundFace}", not author-typed (got "${pin?.family ?? 'nothing'}")`);
+
+  // A valid pin (family == bound face) is ACCEPTED, not refused — the engine throw path stays quiet.
+  const err = await page.evaluate(() => {
+    const e = document.querySelector('.errbar-global');
+    return { shown: !!e && getComputedStyle(e).display !== 'none', text: e?.textContent?.trim() ?? '' };
+  });
+  ok(!err.shown, `${brand}: a pin whose family matches the bound face is accepted, no error surfaced${err.shown ? ` — "${err.text.slice(0, 80)}"` : ''}`);
+
+  // EMISSION: the pin reaches the emitted DTCG verbatim. Export the tokens (default shape) and find the
+  // composite leaves carrying $extensions.prism3.facePin — the engine bakes the Figma Text Style's
+  // fontStyle from exactly this (emit-figma-font.ts). Oracle: the same STYLE + bound face typed above.
+  await page.locator('button[aria-label="Export"]').click();
+  await page.waitForSelector('.exdlg');
+  const pending = page.waitForEvent('download');
+  await page.locator('.exdlg-go').click();
+  const dl = await pending;
+  let emitted = null;
+  try {
+    const tree = JSON.parse(await readFile(await dl.path(), 'utf8'));
+    const found = [];
+    const walk = (n) => { if (n && typeof n === 'object') { const p = n.$extensions?.prism3?.facePin; if (p) found.push(p); for (const k of Object.keys(n)) walk(n[k]); } };
+    walk(tree);
+    emitted = found;
+  } catch { /* reported by the assertions below */ }
+  ok(Array.isArray(emitted) && emitted.length > 0, `${brand}: the exported DTCG carries the pinned cut in $extensions.prism3.facePin (${emitted?.length ?? 0} leaves)`);
+  ok(Array.isArray(emitted) && emitted.length > 0 && emitted.every((p) => p.style === STYLE), `${brand}: every emitted facePin bakes fontStyle = "${STYLE}" verbatim`);
+  ok(Array.isArray(emitted) && emitted.length > 0 && emitted.every((p) => p.family === boundFace), `${brand}: every emitted facePin binds the bound face "${boundFace}"`);
+
+  // CLEARING deletes the key — a blank input must not leave `{ role: undefined }`, which the engine
+  // refuses as a present-but-empty pin. Same slot, emptied.
+  await input.fill('');
+  await input.evaluate((el) => el.blur());
+  const cleared = await page.waitForFunction(({ c, r }) => {
+    try { const o = JSON.parse(localStorage.getItem('prism3:brandInput')); return (o?.input?.typography?.faces?.[c]?.[r] ?? null) === null; } catch { return false; }
+  }, { c: cat, r: role }, { timeout: 5000 }).then(() => true, () => false);
+  ok(cleared, `${brand}: clearing the style input deletes faces.${cat}.${role} (no stranded empty pin)`);
+
+  const errs = drain();
+  ok(errs.length === 0, `${brand}: driving the Pin-a-cut control raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  console.log(`  ${brand}: pinned ${cat} · ${role} → "${STYLE}" (face ${boundFace}), verified in brand input + ${emitted?.length ?? 0} emitted leaves, then cleared.`);
+  await ctx.close();
+}
+
+// =============================================================================================
 await browser.close();
 server.close();
 
