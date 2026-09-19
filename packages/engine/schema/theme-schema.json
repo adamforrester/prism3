@@ -88,7 +88,7 @@
           "lineHeights": {
             "type": "object",
             "additionalProperties": false,
-            "description": "OPTIONAL. Per-mode LINE-HEIGHT RE-POINT (#296) — maps a rung to ANOTHER RUNG: `{ \"normal\": \"relaxed\" }` reads \"in this mode, styles that would use `normal` use `relaxed` instead\". It names a TARGET RUNG, never a number, because the `font.line-height` rungs are mode-invariant PRIMITIVES — a mode re-points, it never re-anchors. To change what a rung is WORTH, set `typography.lineHeights` (brand-wide, numeric). The swap is emitted on the semantic `type.*` composite as a different alias; every rung primitive keeps one value across all modes. A self-map is dropped as a no-op. NOTE: a number here is the pre-#296 shape and is REJECTED with a pointer to `typography.lineHeights`.",
+            "description": "OPTIONAL. Per-mode LINE-HEIGHT RE-POINT (#296) — maps a rung to ANOTHER RUNG: `{ \"normal\": \"relaxed\" }` reads \"in this mode, styles that would use `normal` use `relaxed` instead\". It names a TARGET RUNG, never a number, because the `font.line-height` rungs are mode-invariant PRIMITIVES — a mode re-points, never re-anchors. To re-anchor a rung's value set `typography.lineHeights` (brand-wide, numeric). The swap re-aliases the semantic `type.*` composite; a self-map is a no-op; a number here is the pre-#296 shape and is REJECTED.",
             "properties": {
               "tight": { "type": "string", "enum": ["snug", "compact", "cozy", "normal", "relaxed", "loose"], "description": "OPTIONAL. The rung line-height styles use in this mode INSTEAD of `tight`. Names a rung, never a value." },
               "snug": { "type": "string", "enum": ["tight", "compact", "cozy", "normal", "relaxed", "loose"], "description": "OPTIONAL. The rung line-height styles use in this mode INSTEAD of `snug`. Names a rung, never a value." },
@@ -102,7 +102,7 @@
           "letterSpacings": {
             "type": "object",
             "additionalProperties": false,
-            "description": "OPTIONAL. Per-mode LETTER-SPACING RE-POINT (#296) — maps a rung to ANOTHER RUNG: `{ \"normal\": \"wide\" }` reads \"in this mode, styles that would use `normal` use `wide` instead\". It names a TARGET RUNG, never a number, because the `font.letter-spacing` rungs are mode-invariant PRIMITIVES — a mode re-points, it never re-anchors. To change what a rung is WORTH, set `typography.letterSpacings` (brand-wide, numeric). The swap is emitted on the semantic `type.*` composite as a different alias; every rung primitive keeps one value across all modes. A self-map is dropped as a no-op. NOTE: a number here is the pre-#296 shape and is REJECTED with a pointer to `typography.letterSpacings`.",
+            "description": "OPTIONAL. Per-mode LETTER-SPACING RE-POINT (#296) — maps a rung to ANOTHER RUNG: `{ \"normal\": \"wide\" }` reads \"in this mode, styles that would use `normal` use `wide` instead\". It names a TARGET RUNG, never a number, because the `font.letter-spacing` rungs are mode-invariant PRIMITIVES — a mode re-points, never re-anchors. To re-anchor a rung's value set `typography.letterSpacings` (brand-wide, numeric). The swap re-aliases the semantic `type.*` composite; a self-map is a no-op; a number here is the pre-#296 shape and is REJECTED.",
             "properties": {
               "tighter": { "type": "string", "enum": ["tight", "snug", "normal", "wide", "wider"], "description": "OPTIONAL. The rung letter-spacing styles use in this mode INSTEAD of `tighter`. Names a rung, never a value." },
               "tight": { "type": "string", "enum": ["tighter", "snug", "normal", "wide", "wider"], "description": "OPTIONAL. The rung letter-spacing styles use in this mode INSTEAD of `tight`. Names a rung, never a value." },
@@ -462,10 +462,11 @@
     "layout": {
       "type": "object",
       "additionalProperties": false,
-      "description": "OPTIONAL. Layout axis — breakpoints + responsive grid + containers. 5 breakpoints (min-width/mobile-first), a 12-col design grid (4/8/12 ladder), gutters/margins aliasing the spacing scale, fluid-first containers + a max cap.",
+      "description": "OPTIONAL. Layout axis — min-width breakpoints, a 12-col design grid (4/8/12 ladder, overridable per breakpoint), gutters/margins aliasing the spacing scale, fluid-first containers + a max cap.",
       "properties": {
         "breakpoints": { "type": "array", "items": { "type": "number" }, "description": "Min-width floors (px), ascending. Names are auto sm/md/lg/xl/2xl. Default [0,768,1024,1440,1920]." },
         "columns": { "type": "number", "default": 12, "description": "Base column count (12 default; 16/24 for dense-data brands). Emitted as a 4/8/…/base ladder per breakpoint — a design grid, not the load-bearing code contract." },
+        "columnOverrides": { "type": "object", "additionalProperties": { "type": "number" }, "description": "OPTIONAL. Per-breakpoint column overrides (breakpoint name → count); wins over the ladder for that breakpoint, unset keeps it. Rounded + clamped to 4..24 on emit." },
         "containerMax": { "oneOf": [ { "type": "number", "default": 1440, "description": "Content max-width cap (px); layout is fluid below it." }, { "type": "string", "enum": ["narrow", "standard", "wide", "full"], "description": "Named stop — narrow 1120 · standard 1440 · wide 1680 · full 1920." } ] },
         "containerNarrow": { "oneOf": [ { "type": "number", "default": 720, "description": "Narrow / reading-measure container (px, ~65–75ch)." }, { "type": "string", "enum": ["tight", "standard", "generous", "wide"], "description": "Named stop — tight 600 · standard 720 · generous 840 · wide 960." } ] }
       }

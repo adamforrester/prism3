@@ -553,7 +553,12 @@ export type BrandInput = {
    *  per-brand variable; names are auto sm/md/lg/xl/2xl); `columns` the base
    *  count (12 default; 16/24 for dense-data brands); `containerMax`/
    *  `containerNarrow` the content caps. Gutter/margin alias the spacing scale. */
-  layout?: { breakpoints?: number[]; columns?: number; containerMax?: number; containerNarrow?: number };
+  layout?: { breakpoints?: number[]; columns?: number; containerMax?: number; containerNarrow?: number;
+    /** Per-breakpoint column OVERRIDES, keyed by breakpoint name (`sm`/`md`/… — the same names
+     *  `buildLayout` assigns from the count). A set entry wins over the 4/8/…/base ladder for that
+     *  breakpoint; an unset breakpoint keeps the ladder value. Clamped to the base `columns` slider
+     *  bounds (4..24, rounded) so an out-of-range authored value can never emit a degenerate grid. */
+    columnOverrides?: Record<string, number> };
   /** Gradient axis lever — OPT-IN (off by default; most systems abstain and
    *  gradients are contextual). `true` ships one default brand gradient
    *  (primary.600→primary.350, linear); an explicit array ships exactly those;
@@ -596,7 +601,7 @@ export type BrandInputAuthored =
     neutral: { hue: number | string; chroma: number | string; anchor?: OKLCH; auto?: boolean };
     radiusScale?: number | string;
     shadow?: { softness?: number | string; tint?: { hue?: number; amount?: number } };
-    layout?: { breakpoints?: number[]; columns?: number; containerMax?: number | string; containerNarrow?: number | string };
+    layout?: { breakpoints?: number[]; columns?: number; containerMax?: number | string; containerNarrow?: number | string; columnOverrides?: Record<string, number> };
     /** Cross-cutting brand traits, resolved by `vocabulary.ts`. Fills only levers left absent. */
     personality?: string[];
   };
@@ -1749,6 +1754,22 @@ const bpNames = (n: number): string[] =>
 const GUTTER_PX = [16, 16, 24, 24, 32, 32];
 const MARGIN_PX = [16, 24, 24, 32, 48, 48];
 
+// The base `layout.columns` slider bounds (levers.ts / theme-schema.json). A per-breakpoint override
+// is held to the SAME range: mirroring one number in two places would drift, but the range is small,
+// load-bearing, and asserted equal to the lever bound by test.ts (the manifest is the source), so this
+// pair is the intentional restatement — not the silent drift the gate exists to catch.
+const COLUMN_MIN = 4;
+const COLUMN_MAX = 24;
+// A per-breakpoint override wins over the ladder for that breakpoint; an unset/blank/non-finite entry
+// keeps the ladder value. A set value is coerced to a sane grid: rounded to an integer and CLAMPED to
+// [COLUMN_MIN, COLUMN_MAX] so an out-of-range authored value emits a bounded grid rather than a
+// degenerate one (0-, negative-, or 100-column). Clamp, not throw — the override is a UI knob and a
+// slider that can reach an illegal value should be corrected in place, not rejected.
+const resolveColumns = (override: number | undefined, ladder: number): number => {
+  if (override === undefined || override === null || !Number.isFinite(override)) return ladder;
+  return Math.max(COLUMN_MIN, Math.min(COLUMN_MAX, Math.round(override)));
+};
+
 const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   const floors = input.breakpoints ?? [0, 768, 1024, 1440, 1920];
   const base = input.columns ?? 12;
@@ -1757,8 +1778,9 @@ const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   const breakpoints: Breakpoint[] = floors.map((px, i) => ({ name: names[i] ?? `bp${i}`, px }));
   // column ladder: smallest = 4, next = 8, top reaches the base count.
   const cols = (i: number): number => i === 0 ? Math.min(4, base) : i === n - 1 ? base : i === 1 ? Math.min(8, base) : base;
+  const overrides = input.columnOverrides ?? {};
   const grid: GridStep[] = breakpoints.map((b, i) => ({
-    bp: b.name, columns: cols(i),
+    bp: b.name, columns: resolveColumns(overrides[b.name], cols(i)),
     gutterPx: GUTTER_PX[Math.min(i, GUTTER_PX.length - 1)],
     marginPx: MARGIN_PX[Math.min(i, MARGIN_PX.length - 1)],
   }));

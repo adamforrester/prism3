@@ -8037,6 +8037,62 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `#1480 grid: a 2-breakpoint brand yields exactly [Grid / sm, Grid / md] (got [${two.styles.map((s) => s.name).join(', ')}])`);
 }
 
+// (19e) #1532 — PER-BREAKPOINT COLUMN OVERRIDES. `layout.columnOverrides` (keyed by breakpoint name)
+// lets a brand pin a breakpoint's column count over the 4/8/…/base ladder; an unset breakpoint keeps the
+// ladder, and an out-of-range value is ROUNDED + CLAMPED to the base `columns` bound [4,24] so the emitted
+// grid stays bounded. The studio Layout readout reads `theme.layout.grid` (the same data this asserts
+// through the emitted Grid Styles), which is why it cannot drift from what ships.
+//
+// INDEPENDENCE (docs/34 shape 1). EXPECTED is HAND-AUTHORED from the DOCUMENTED contract — NB's default
+// 5-floor ladder [4,8,12,12,12] (theme.ts `cols` at base 12), with the override rule (a set entry wins,
+// unset keeps the ladder) and the clamp rule (round then clamp to [4,24]) applied BY HAND here — never by
+// calling `buildLayout`/`resolveColumns`. ACTUAL is read from the EMITTED `buildFigmaGridStyles` counts —
+// the surface a brand's Figma grids actually ship from (#1480) — not from `theme.layout.grid` directly, so
+// the arm sees the whole derive→emit path.
+//
+// MUTATION REGISTER (docs/34: a gate that cannot see its subject cannot fail). Applied to the SUBJECT's
+// real code, the whole suite re-run, the named assertion confirmed among the failures, then reverted:
+//   M1 (override application) `buildLayout`'s `resolveColumns(overrides[b.name], cols(i))` → `cols(i)`
+//      (ignore the override map). The overridden `md` falls back to the ladder value 8 ≠ 6, so the
+//      OVERRIDE arm fails BY NAME while the unset breakpoints (already on the ladder) stay green.
+//   M2 (clamp guard) `resolveColumns`'s `Math.max(COLUMN_MIN, Math.min(COLUMN_MAX, …))` → return the raw
+//      rounded value. The out-of-range 99 emits as 99 ≠ 24, so the CLAMP arm fails BY NAME.
+{
+  const BASE: BrandInput = { id: 'colovr', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
+  // NB's default 5-floor ladder at base 12, hand-authored from theme.ts's `cols` contract.
+  const LADDER: Record<string, number> = { sm: 4, md: 8, lg: 12, xl: 12, '2xl': 12 };
+  // ACTUAL from the emitted Grid Styles (#1480), keyed by breakpoint — the count a brand's Figma grid ships.
+  const emittedCols = (overrides?: Record<string, number>): Record<string, number> => {
+    const g = buildFigmaGridStyles(brandTheme({ ...BASE, layout: overrides ? { columnOverrides: overrides } : {} } as BrandInput));
+    const out: Record<string, number> = {};
+    for (const s of g.styles) out[s.name.replace('Grid / ', '')] = s.layoutGrids[0].count;
+    return out;
+  };
+
+  // Baseline: no override → the emitted counts ARE the ladder (proves the oracle matches the shipped floor).
+  const base = emittedCols();
+  ok(Object.entries(LADDER).every(([bp, c]) => base[bp] === c),
+    `#1532: no override → the emitted per-breakpoint columns are the 4/8/…/base ladder [${Object.values(LADDER).join(',')}] (got [${Object.keys(LADDER).map((k) => base[k]).join(',')}])`);
+
+  // OVERRIDE (M1): pin md to 6 (a non-ladder value); md changes, every UNSET breakpoint keeps the ladder.
+  const one = emittedCols({ md: 6 });
+  ok(one.md === 6,
+    `#1532: an override on md wins over the ladder in the EMITTED grid (md ladder = ${LADDER.md}, override = 6, emitted = ${one.md})`);
+  const unsetHeld = (['sm', 'lg', 'xl', '2xl'] as const).filter((bp) => one[bp] !== LADDER[bp]);
+  ok(unsetHeld.length === 0,
+    `#1532: every UNSET breakpoint keeps its ladder value when md is overridden${unsetHeld.length ? ` — MOVED: ${unsetHeld.map((bp) => `${bp} ${one[bp]}≠${LADDER[bp]}`).join(', ')}` : ''}`);
+
+  // CLAMP (M2): out-of-range and fractional overrides are rounded then clamped to [4,24] — never degenerate.
+  const clamped = emittedCols({ sm: 99, md: 0, lg: 3.4, xl: 12.6 });
+  const clampWrong: string[] = [];
+  if (clamped.sm !== 24) clampWrong.push(`sm 99→${clamped.sm}≠24`);   // above the max
+  if (clamped.md !== 4) clampWrong.push(`md 0→${clamped.md}≠4`);      // below the min
+  if (clamped.lg !== 4) clampWrong.push(`lg 3.4→${clamped.lg}≠4`);    // rounds to 3, clamps up to 4
+  if (clamped.xl !== 13) clampWrong.push(`xl 12.6→${clamped.xl}≠13`); // rounds to 13, in range
+  ok(clampWrong.length === 0,
+    `#1532: an out-of-range override is rounded + clamped to [4,24] (never a degenerate grid)${clampWrong.length ? ` — ${clampWrong.join(', ')}` : ''}`);
+}
+
 // (20) EMIT-FIGMA MODE OPT-OUT (post-#42 follow-up; #45 audit; reviewer flag on #46).
 // BrandInput.modes lets a brand ship any subset of {light, dark, hc-light, hc-dark}.
 // emit-figma's colour axis previously hardcoded all four; a light-only brand's

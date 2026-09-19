@@ -1661,6 +1661,68 @@ for (const brand of BRANDS) {
 }
 
 // =============================================================================================
+// N. Per-breakpoint grid readout + editable column overrides (#1532)
+// =============================================================================================
+// WHAT THIS GATES. The Layout page surfaces the RESOLVED per-breakpoint columns (a readout) and lets
+// the author OVERRIDE a breakpoint's column count. Both must agree with what the engine EMITS as the
+// Figma grid styles (#1480) — the readout reads `theme.layout.grid`, the same data `buildFigmaGridStyles`
+// ships from, so it cannot drift. This drives the built dist and proves it end to end.
+//
+// INDEPENDENCE (docs/34 shape 1). EXPECTED is the ENGINE'S OWN EMITTED artifact —
+// `packages/engine/out/figma/aurora/grid-styles.json`, the grid styles a brand actually ships — NOT a
+// re-derivation in this file and NOT read back off the same DOM. A gate whose oracle is the subject
+// cannot see the subject break. aurora is the emitted studio brand (6 floors, base 12 → xs 4 / sm 8 /
+// md·lg·xl·2xl 12), so its grid-styles.json is the truth the readout must match.
+//
+// MUTATION REGISTER (docs/34: a gate that cannot see its subject cannot fail). Applied to the SUBJECT,
+// re-run, the named assertion confirmed among the failures, then reverted:
+//   M1 (readout-vs-emission tie) `paintPerBreakpointGrid`'s `String(g.columns)` → `String(ly.baseColumns)`
+//      (re-derive the readout in the UI from the base instead of the resolved grid). xs shows 12, not the
+//      emitted 4, so the READOUT arm diverges from the emitted grid value BY NAME.
+//   M2 (override application) `buildLayout`'s `resolveColumns(overrides[b.name], cols(i))` → `cols(i)`
+//      (ignore the override). Setting md's override no longer moves md's readout off the ladder value, so
+//      the OVERRIDE arm fails BY NAME while the untouched breakpoints stay green.
+if (BRANDS.includes('aurora')) {
+  console.log(`\nPer-breakpoint grid readout + column overrides (#1532)\n${'='.repeat(78)}`);
+  // The oracle: the engine's own emitted Figma grid styles for aurora — { bp: columns }.
+  const gridStylesRaw = await readFile(join(ROOT, '..', '..', 'packages', 'engine', 'out', 'figma', 'aurora', 'grid-styles.json'), 'utf8');
+  const EMITTED = Object.fromEntries(JSON.parse(gridStylesRaw).styles.map((s) => [s.name.replace('Grid / ', ''), s.layoutGrids[0].count]));
+  ok(Object.keys(EMITTED).length >= 5, `#1532: the aurora grid-styles oracle carries ${Object.keys(EMITTED).length} breakpoints (from the emitted artifact, not a re-derivation)`);
+
+  const { ctx, page, drain } = await openBrand('aurora');
+  await gotoPage(page, 'Layout');
+  // ACTUAL — the resolved columns the readout shows, keyed by breakpoint (from the `data-bpcol` cells).
+  const readout = () => page.evaluate(() =>
+    Object.fromEntries([...document.querySelectorAll('[data-bpcol]')].map((c) => [c.dataset.bpcol, Number(c.textContent)])));
+
+  // (a) READOUT === EMITTED. Every emitted breakpoint's column count appears in the readout, by name.
+  const shown = await readout();
+  const mismatch = Object.entries(EMITTED).filter(([bp, c]) => shown[bp] !== c);
+  ok(mismatch.length === 0,
+    `#1532: the per-breakpoint readout equals the engine's EMITTED grid columns [${Object.entries(EMITTED).map(([b, c]) => `${b}:${c}`).join(' ')}]`
+      + (mismatch.length ? ` — DIVERGED: ${mismatch.map(([b, c]) => `${b} shows ${shown[b] ?? '(absent)'}, emits ${c}`).join('; ')}` : ''));
+
+  // (b) OVERRIDE moves exactly one breakpoint. md's ladder value is 12; pin it to 6 (a curated, distinct
+  // count) and confirm md's readout becomes 6 while every OTHER breakpoint keeps its emitted ladder value.
+  await page.locator('[data-bpsel="md"]').selectOption('6');
+  // apply() repaints synchronously on the select's change; the bounded, non-throwing wait lets a slow
+  // repaint land WITHOUT hanging the suite if the override is broken — so a regression fails cleanly by
+  // name at the ok() below rather than as a wait timeout.
+  await page.waitForFunction(() => document.querySelector('[data-bpcol="md"]')?.textContent === '6', undefined, { timeout: 4000 }).catch(() => {});
+  const after = await readout();
+  ok(after.md === 6, `#1532: overriding md to 6 moves md's emitted column count off the ladder (was ${EMITTED.md}, now ${after.md})`);
+  const others = Object.keys(EMITTED).filter((bp) => bp !== 'md');
+  const moved = others.filter((bp) => after[bp] !== EMITTED[bp]);
+  ok(moved.length === 0,
+    `#1532: an override on md leaves every OTHER breakpoint on its emitted ladder value`
+      + (moved.length ? ` — MOVED: ${moved.map((bp) => `${bp} ${after[bp]}≠${EMITTED[bp]}`).join(', ')}` : ''));
+
+  const errs = drain();
+  ok(errs.length === 0, `#1532: reading + editing the per-breakpoint grid raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
+// =============================================================================================
 await browser.close();
 server.close();
 
