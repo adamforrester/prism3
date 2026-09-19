@@ -2926,6 +2926,37 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.125.0 — #1510: the link role becomes independently customizable on TWO axes — a global rung lever AND
+ * a per-mode ABSOLUTE override, all four families editable. #1486 shipped the link state walk as a tuned
+ * constant with the lever deferred; #1487 surfaced it read-only. This PR (superseding #1531) lands both.
+ * (1) GLOBAL RUNG LEVER `linkStateRungs` (from #1531): a brand pins how far each engaged state (hover /
+ * pressed / visited) steps from the resting link, as a RUNG COUNT walked the same floor-clearing way
+ * `plainLink` is (along each ground's own `dir`), so it composes across all four `link.*` families and both
+ * mode families and is floor-clamped. A rung COUNT, not a global absolute step, because a link's engagement
+ * direction flips between the page and the inverse band. (2) PER-MODE ABSOLUTE OVERRIDES (owner-decided
+ * 2026-09-19): a brand pins an EXACT link color for a specific mode via the SAME per-mode `overrides` map
+ * the Foreground/Text editor uses; the absolute value WINS over the rung/derived default (the override
+ * layer runs after derivation). The load-bearing addition is the LINK FLOOR GUARD in `modes.ts`: the
+ * general override layer WARNS-not-blocks (a hand-tuned foreground ink may dip by choice), but a LINK
+ * override that fails its floor is CLAMPED — walked along the ramp to the nearest step clearing its own
+ * `min`, in the ground-facing direction — so a user's absolute link color can never render below contract
+ * (`text.link.*` at 4.5:1, `icon.link.*` at its icon floor). Scope: customizable modes (light/dark/custom),
+ * as every per-mode override is (hc-* are derived). (3) STUDIO: the Links section makes ALL FOUR families
+ * independently editable — each family's resting-link picker pins a per-mode absolute color (re-anchoring
+ * its engaged states by their derived signed step-distance), and the page-text rung pickers keep the global
+ * cross-mode default. NO corpus brand sets any of this, so every emitted VALUE is byte-identical — the
+ * ENGINE bump is the derivation gaining the link-override guard + the `$extensions.generator.version`
+ * restamp (`lint-emission-version`). CONTRACT STANDS at 11.3.0: the link state NAMES
+ * (`color.text.link.{default,hover,pressed,visited,focused}` + icon / inverse twins) are unchanged — VALUES
+ * only, no guaranteed path added/removed/retyped, `token-contract --check` level `none` (stamp-only
+ * `--accept`). Gate L-05 (rung lever, from #1531) STANDS; NEW gate L-06 (test.ts, docs/34): a per-mode
+ * absolute override lands the EXACT pinned step in that mode while the other mode keeps the derived value,
+ * for a PAGE and an INVERSE family independently, and a sub-floor pick is clamped to clear 4.5:1 — EXPECTED
+ * authored in the gate, grounds read off each role's own `against`, no engine link derivation imported.
+ * BY-NAME MUTATIONS: (a) drop the override application → L-06's MOVE arm fails by name (the mode lands the
+ * derived value, not the pinned step); (b) remove the link floor guard → L-06's GUARD arm fails by name
+ * (emitted 1.08:1, the raw sub-floor step). No new lever/field, so the MCP `tools/list` 60k ceiling is
+ * untouched (#1531's `linkStateRungs` block stands; the absolute override reuses the existing `overrides`).
  * 0.124.0 — #1519: ICON-SWAP SITS DIRECTLY UNDER ITS PRESENCE BOOLEAN in the Figma panel (owner-directed,
  * owner QA 2026-09-18). `planSetProperties` no longer groups all booleans then all swaps; it now pairs each
  * icon swap DIRECTLY after the boolean that gates it, so the panel reads `leading icon` → `↳ swap leading
@@ -3238,7 +3269,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.124.0';
+export const ENGINE_VERSION = '0.125.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
