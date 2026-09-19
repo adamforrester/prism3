@@ -148,3 +148,27 @@ over today's corpus is clean; a gate here would either re-encode those exemption
 enforcement. If a specific mis-binding hardens into a contract, a gate enforces THAT one separately,
 as #1499 states. The instrument earns its keep by lighting up on a regression (revert #1471 and it
 names every icon-button glyph) or on a drifted live Figma file, not by being red today.
+
+## `tools/claude-md-freshness/`
+
+`mutations.sh` — the mutation battery for `.claude/hooks/session-start-claude-md-freshness.sh`, the
+SessionStart report that answers *"is the `CLAUDE.md` this session obeys the current one?"* (#1110). It
+builds a stale world out of a bare repo in `$TMPDIR` plus two clones taken before the remote moves, then
+runs the check in it. Local `file://` git only — no network, and it never touches this checkout.
+
+**It is the odd one out in this directory: it asserts and it exits non-zero.** That makes it gate-shaped
+by the split at the top of this file, and it is deliberately not wired into `ci.yml` — a scope decision
+in #1110 (*"no gate, no CI step"*), not an environmental impossibility, and filed as **#1123** rather
+than argued here. What genuinely cannot be a gate is the *subject*: a stale checkout is internally consistent, so
+anything running inside the tree reports clean over a stale world. `mutations.sh` is a test of the
+detector, which is a different subject from the thing the detector detects.
+
+**Two of its three arms invert the usual direction, so read the arm's own wording rather than the
+exit code.** M1 mutates the world and the check must FIRE; **M2 mutates the check** — drops the fetch,
+reads the local `origin/main` — and the mutant must GO SILENT over a world the real check fires on,
+because a mutant that still fires would mean the fetch is decoration; M3 mutates the environment and the
+check must say CANNOT DETERMINE. The trap that cost a rewrite is recorded in the file's header and is
+worth knowing before adding an arm: **running the real check in a clone fetches, which moves that
+clone's `refs/remotes/origin/main` and silently repairs the stale world for every later arm.** One
+shared clone made M2 read a repaired ref and "fire", which reads as *the fetch does not matter* — the
+opposite of the truth, out of an arm that looked green. Each arm now asserts its own precondition.
