@@ -213,7 +213,7 @@
       "type": "string",
       "enum": ["full", "reduced", "accessible", "conventional"],
       "default": "reduced",
-      "description": "OPTIONAL. Disabled-state contrast. 'reduced' (default): disabled text/icon clears `disabledMin` on the contrast floor — visibly dimmed but legible. 'full': a fixed 4.5:1, guaranteeing AA text (legibility is certain, so the disabled affordance rests on fill/border/cursor rather than dimming — confirm a disabled control still reads as disabled). NEITHER goes below 3:1: this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption (field-rare — 0/12 surveyed systems guarantee legible disabled states). LEGACY ALIASES, accepted for back-compat: 'accessible' → 'reduced' (keeps its `disabledMin`, clamped to >=3); 'conventional' → 'reduced' at 3:1, which RAISES its contrast from the old ~2:1 exempt look."
+      "description": "OPTIONAL. Disabled-state contrast. 'reduced' (default): disabled text/icon clears `disabledMin` on the floor — dimmed but legible. 'full': a fixed 4.5:1 (AA text; the disabled affordance then rests on fill/border/cursor, not dimming). Neither goes below 3:1. LEGACY ALIASES: 'accessible' → 'reduced'; 'conventional' → 'reduced' at 3:1. Full note in the lever manifest."
     },
     "disabledMin": {
       "type": "number",
@@ -243,7 +243,7 @@
     "strictInteractiveContrast": {
       "type": "boolean",
       "default": false,
-      "description": "OPTIONAL, OPT-IN (off by default). The inverse filled button steps its fill per interactive state (#1389); the primary label's vivid brand on-fill ink (#1244) clears AA (4.5:1) at rest but dips below it on the transient hover/pressed steps. Off keeps the brand ink (rest AA held; later states an accepted, contract-recorded exemption). `true` swaps primary's inverse on-fill to the neutral high-contrast extreme so every interactive state clears AA — trading the brand-colored label for guaranteed legibility. Affects the inverse primary on-fill only; neutral/destructive already use the neutral extreme and are AA-clean at every step."
+      "description": "OPTIONAL, OPT-IN (off by default). Off keeps primary's vivid brand ink on the inverse filled button (AA at rest; the transient hover/pressed steps an accepted, contract-recorded exemption). `true` swaps it to the neutral high-contrast extreme so every interactive state clears AA — trading the brand-colored label for guaranteed legibility. Inverse primary on-fill only. Full note in the lever manifest."
     },
     "accentPalette": {
       "type": "string",
@@ -270,6 +270,16 @@
     "destructiveAnchorStep": {
       "type": "number",
       "description": "OPTIONAL. Fill-step override for the built-in destructive interactive column (docs/20 §3) — anchor its rest fill at this palette step instead of the resolved default. Omit to keep today's pick."
+    },
+    "linkStateRungs": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "OPTIONAL. Per-state link override (#1510): floor-clamped rung count each engaged link state (hover / pressed / visited) steps from the resting link, set independently; unset keeps the tuned walk (#1486). A count, not an absolute step, because a link's engagement direction flips between page and inverse band. Full note in the lever manifest.",
+      "properties": {
+        "hover": { "type": "integer", "minimum": 1 },
+        "pressed": { "type": "integer", "minimum": 1 },
+        "visited": { "type": "integer", "minimum": 1 }
+      }
     },
     "motionPersonality": {
       "type": "object",

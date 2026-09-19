@@ -530,6 +530,129 @@ for (const b of brands) {
   ok(percBreaks.length === 0, `L-04: base-mode link states are ≥ ${LINK_PERCEPT_FLOOR} ΔE apart (perceptibly distinct, the #1486 promise)` + (percBreaks.length ? ` — FAILED: ${percBreaks.join(', ')}` : ''));
 }
 
+// L-05 (#1510) — the LINK STATE OVERRIDE reaches emission. `linkStateRungs` lets a brand pin how many
+// rungs an engaged link state (hover / pressed / visited) steps from the resting link; this gate proves a
+// SET override actually MOVES the emitted `text.link.*` step to the authored rung position, in every base
+// mode, and that each moved state still clears its own contrast floor (the a11y promise the lever must
+// keep). EXPECTED is authored HERE — `default`'s step ± the page direction × the rung count — computed
+// independently of `modes.ts`'s `walk`; the gate must never import the engine's link derivation (docs/34).
+// The authored rungs are chosen OFF the tuned walk this brand produces, so a mutation that drops the
+// override (the engine ignoring `linkStateRungs`) lands the states back on the tuned ladder and fails the
+// MOVE assertion by name; the non-vacuity arm proves the authored positions differ from that baseline, so
+// "reached" is never trivially true.
+{
+  const RUNGS = { hover: 1, pressed: 3, visited: 5 } as const;   // off the tuned 2/4/6 walk this brand walks
+  const inp = { id: 'l05', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const baseRoles = (t: ReturnType<typeof brandTheme>, mode: string) =>
+    resolveAllModes(t).find((x) => x.mode === mode)?.roles as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined> | undefined;
+  const stepNum = (roles: any, key: string): number | undefined => {
+    const p = roles?.[key]?.path; return p ? Number(p.split('.').pop()) : undefined;
+  };
+  const tunedT = brandTheme(inp as any);
+  const ovT = brandTheme({ ...inp, linkStateRungs: { ...RUNGS } } as any);
+  // Page-ground direction, AUTHORED here: a stronger link steps to a higher ramp step on a light page,
+  // a lower one on a dark page. Independent of `dir` in modes.ts.
+  const PAGE_DIR: Record<string, number> = { light: +1, dark: -1 };
+  let checked = 0;
+  const moveBreaks: string[] = [], floorBreaks: string[] = [], vacuBreaks: string[] = [];
+  for (const mode of ['light', 'dark'] as const) {
+    const tR = baseRoles(tunedT, mode), oR = baseRoles(ovT, mode);
+    const d0 = stepNum(oR, 'text.link.default');
+    if (!tR || !oR || d0 === undefined) continue;
+    const dir = PAGE_DIR[mode];
+    for (const [st, rung] of Object.entries(RUNGS)) {
+      checked++;
+      const expected = d0 + dir * 50 * rung;                    // authored rung arithmetic, NOT the engine's
+      const got = stepNum(oR, `text.link.${st}`);
+      if (got !== expected) moveBreaks.push(`${mode}/${st}: got ${got}, expected ${expected} (default ${d0} ${dir > 0 ? '+' : '-'} ${rung} rungs)`);
+      const r = oR[`text.link.${st}`];
+      if (r && r.ratio != null && r.min != null && r.ratio < r.min) floorBreaks.push(`${mode}/${st} ${r.ratio.toFixed(2)}<${r.min}`);
+      if (stepNum(tR, `text.link.${st}`) === expected) vacuBreaks.push(`${mode}/${st}: override coincides with the tuned baseline at ${expected}`);
+    }
+  }
+  ok(checked === 6, `L-05: the override sweep read both base modes × 3 engaged states (${checked}/6)`);
+  ok(moveBreaks.length === 0, `L-05: a set linkStateRungs reaches the emitted link step at the authored rung` + (moveBreaks.length ? ` — FAILED: ${moveBreaks.join('; ')}` : ''));
+  ok(floorBreaks.length === 0, `L-05: every overridden link state still clears its own contrast floor` + (floorBreaks.length ? ` — FAILED: ${floorBreaks.join('; ')}` : ''));
+  ok(vacuBreaks.length === 0, `L-05: the authored rungs differ from the tuned baseline (non-vacuous)` + (vacuBreaks.length ? ` — FAILED: ${vacuBreaks.join('; ')}` : ''));
+}
+
+// L-06 (#1510) — PER-MODE ABSOLUTE link overrides + the LINK FLOOR GUARD. The rung lever (L-05) is the
+// cross-mode DEFAULT; this arm proves the per-mode `overrides` map pins an EXACT link color for ONE mode
+// while the other modes keep the derived value, for a PAGE family and an INVERSE family INDEPENDENTLY,
+// and — the load-bearing arm — that a sub-floor absolute link pick is CLAMPED to its contrast floor
+// rather than emitted below it (the a11y bar, #1510 Step 3). EXPECTED is authored HERE: the exact step
+// the gate pins, and the hard 4.5:1 text-link floor; grounds are read off each role's own `against`, and
+// the gate imports NO engine link derivation (docs/34). BY-NAME MUTATIONS: (a) drop the override
+// application (the `roles[rolePath] = …` write in modes.ts) → the MOVE arm fails by name (the mode lands
+// the derived value, not the pinned step); (b) remove the LINK floor guard → the GUARD arm fails by name
+// (the emitted value is the raw sub-floor step, below 4.5:1).
+{
+  const inp = { id: 'l06', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  type LRole = { hex: string; path?: string; ratio?: number; min?: number; against?: string };
+  const rolesOf = (t: ReturnType<typeof brandTheme>, mode: string) =>
+    resolveAllModes(t).find((x) => x.mode === mode)?.roles as Record<string, LRole | undefined> | undefined;
+  const stepOf = (roles: Record<string, LRole | undefined> | undefined, key: string): string | undefined => {
+    const p = roles?.[key]?.path; return p ? p.split('.').pop() : undefined;
+  };
+  // The ground a link role is measured on, read off its OWN `against` (data on the resolved role, not a
+  // link derivation) — so this works for the page family and the inverse band alike.
+  const groundRgbOf = (roles: Record<string, LRole | undefined> | undefined, key: string): RGB => {
+    const against = roles?.[key]?.against;
+    const gHex = (against && roles?.[against]?.hex) || roles?.['background.primary']?.hex || '#ffffff';
+    return hexToRgb(gHex);
+  };
+
+  const base = brandTheme(inp as any);
+  const actionPal = base.roleToPalette.action;
+  const actSteps = (base.palettes.find((p) => p.palette === actionPal)?.steps ?? []) as Array<{ key: string; rgb: RGB }>;
+  const baseLight = rolesOf(base, 'light')!, baseDark = rolesOf(base, 'dark')!;
+  ok(!!baseLight['text.link.default'] && !!baseLight['inverse.text.link.default'],
+    'L-06: the brand emits both the page and inverse text-link families (precondition)');
+  const pageGround = groundRgbOf(baseLight, 'text.link.default');
+
+  // ----- MOVE (page family, light): pin an EXACT clearing step that DIFFERS from the derived default.
+  // A clearing step (≥ 4.5:1 on the light page) makes the guard a no-op, so the emitted step must equal
+  // the pinned one. The step is chosen by the gate's OWN contrast math over the action ramp.
+  const derivedDef = stepOf(baseLight, 'text.link.default');
+  const clearing = actSteps.filter((s) => contrast(s.rgb, pageGround) >= 4.5 && s.key !== derivedDef);
+  const pin = clearing[clearing.length - 1];
+  ok(!!pin, 'L-06: the action ramp offers a clearing step distinct from the derived default (precondition)');
+  const movT = brandTheme({ ...inp, overrides: { light: { 'text.link.default': { palette: actionPal, step: pin.key } } } } as any);
+  const movLight = rolesOf(movT, 'light')!, movDark = rolesOf(movT, 'dark')!;
+  ok(stepOf(movLight, 'text.link.default') === pin.key,
+    `L-06: a per-mode absolute link override lands the EXACT pinned step in that mode (got ${stepOf(movLight, 'text.link.default')}, pinned ${pin.key})`);
+  ok(stepOf(movDark, 'text.link.default') === stepOf(baseDark, 'text.link.default'),
+    'L-06: the OTHER mode keeps its derived link value (a light override leaves dark untouched)');
+  ok(pin.key !== derivedDef, 'L-06: the pinned step differs from the derived baseline (non-vacuous)');
+
+  // ----- INVERSE family independently settable -----
+  const invGround = groundRgbOf(baseLight, 'inverse.text.link.default');
+  const derivedInv = stepOf(baseLight, 'inverse.text.link.default');
+  const invClearing = actSteps.filter((s) => contrast(s.rgb, invGround) >= 4.5 && s.key !== derivedInv);
+  const invPin = invClearing[0];
+  ok(!!invPin, 'L-06: the action ramp offers a clearing step for the inverse band (precondition)');
+  const invT = brandTheme({ ...inp, overrides: { light: { 'inverse.text.link.default': { palette: actionPal, step: invPin.key } } } } as any);
+  const invLight = rolesOf(invT, 'light')!;
+  ok(stepOf(invLight, 'inverse.text.link.default') === invPin.key,
+    `L-06: an INVERSE link family is independently settable (got ${stepOf(invLight, 'inverse.text.link.default')}, pinned ${invPin.key})`);
+  ok(stepOf(invLight, 'text.link.default') === derivedDef,
+    'L-06: pinning the inverse family leaves the page family derived (independent)');
+
+  // ----- FLOOR GUARD (load-bearing): a sub-floor absolute pick is clamped to clear contrast -----
+  // The lightest action step has the lowest contrast on a light page — below 4.5:1. The guard must clamp
+  // it to a step that clears 4.5:1, and the emitted step must NOT be the raw sub-floor input.
+  const belowFloor = actSteps.filter((s) => contrast(s.rgb, pageGround) < 4.5)
+    .sort((a, b) => contrast(a.rgb, pageGround) - contrast(b.rgb, pageGround));
+  const sub = belowFloor[0];
+  ok(!!sub, 'L-06: the action ramp offers a sub-floor step on the light page (precondition)');
+  const guardT = brandTheme({ ...inp, overrides: { light: { 'text.link.default': { palette: actionPal, step: sub.key } } } } as any);
+  const gLight = rolesOf(guardT, 'light')!;
+  const gStep = stepOf(gLight, 'text.link.default');
+  const gRatio = gLight['text.link.default']?.ratio ?? 0;
+  ok(gRatio >= 4.5, `L-06: a sub-floor absolute link override is CLAMPED to clear its 4.5:1 floor (emitted ${gRatio.toFixed(2)}:1 for step ${gStep}, raw pick ${sub.key})`);
+  ok(gStep !== sub.key, `L-06: the clamp moves off the raw sub-floor step (${sub.key} → ${gStep})`);
+}
+
 // L-02 (#557) — the state WALK re-verifies each step against the state's own floor.
 //
 // Why this needs its own block on top of the corpus sweep above: that sweep would catch the
@@ -6099,6 +6222,133 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     }
     ok(wrongBase.length === 0,
       `veil: each polarity aliases its OWN alpha ramp in every mode — a light veil is white in dark mode too${wrongBase.length ? ` — WRONG BASE: ${wrongBase.slice(0, 4).join(', ')}` : ''}`);
+  }
+
+  // ── #1234 — THE TWO #1231 DESK-QA FIXES, GATED. #1208 (uniform neutral inverse fill) and #576's engine
+  // half (a neutral border follows its own text ink) were both found BY EYE and closed without a check,
+  // so nothing stopped a `modes.ts` edit putting the family tint or the grey special-case back. Reading
+  // `out/*.tokens.json`, which carries base plus every mode inline on each leaf, so one walk covers all
+  // four mode slots per brand. Recovers the intent of the stale PR #1239 (written in the 52-gate /
+  // ENGINE-0.5x era) against current main — the gated derivation has moved since (see the provenance note).
+  //
+  // BOTH ARMS COMPARE SIBLINGS OR ROLES; NEITHER RECOMPUTES THE DERIVATION. Re-deriving `neutralStepR`
+  // or `fillRestAbs` here would put the answer and the check under one expression (`docs/34` shape 2)
+  // and the gate would agree with any edit to it. What is asserted instead is a RELATION the derivation
+  // must preserve: three families landing on one value, and one role landing on another role's.
+  //
+  //   ARM A — `inverse.interactive.{primary,neutral,destructive}.fill.rest` are ONE value at every mode
+  //           (UNIFORMITY), AND that value names an ACHROMATIC palette entry, never a chromatic family
+  //           palette (PROVENANCE). Both halves matter and neither implies the other: three families
+  //           could agree on a tinted value (uniform and wrong — #1239 row 2), or land on achromatic
+  //           steps separately.
+  //   ARM B — `interactive.neutral.border.rest == interactive.neutral.text.rest`, on the page ground AND
+  //           on the inverse band. #576's engine half: the border used to take a mid-grey of its own, so
+  //           an outlined neutral control drew an edge that belonged to no ink in the tier.
+  //
+  // PROVENANCE, AND WHY THE ACCEPTED SET IS {white, black, neutral} RATHER THAN {neutral} ALONE. #1208
+  // shipped the inverse rest fill on the neutral RAMP (`neutral.050/850`); #1384 then promoted it to the
+  // CRISP ABSOLUTE `white`/`black` palette leaves (the owner read the tinted near-white as "not white"),
+  // which are the achromatic EXTREMES the neutral ramp snaps to (`modes.ts` `surfAt`: 0 → white,
+  // 1000 → black). So "on the neutral ramp, not a family palette" is now "names an achromatic leaf, not a
+  // family palette", and the accepted set is the achromatic segments {white, black, neutral}. A family
+  // tint points the fill at a chromatic family palette (`action`/`brand`/`danger`/a brand ramp), which is
+  // not in that set — the defect this arm exists to catch, whichever achromatic form the fill currently
+  // takes.
+  //
+  // WHAT THAT BUYS AND WHERE IT STOPS, stated because the arms would otherwise read as reach (`docs/34`
+  // shape 17 — the three fills descend from ONE producer `fillRestAbs`, so an ancestor move carries all
+  // three in lockstep and the equality survives). A tint on one family fails ARM A. A UNIFORM move of all
+  // three to a mid neutral — `neutralStepR(500)`, the reviewer's own reproduction on #1234 — PASSES: it
+  // stays uniform and stays on an achromatic segment. That is the measured ceiling, not an assumption.
+  // Catching it needs a value oracle nothing here has, and inventing one from the derivation would be the
+  // shape these arms exist to avoid.
+  {
+    const trees = readdirSync(resolve(HERE, './out'))
+      .map((f) => /^([a-z0-9-]+)\.tokens\.json$/.exec(f)?.[1]).filter((b): b is string => !!b).sort();
+    ok(trees.length >= 3, `#1234 found brand trees to check the inverse fill + neutral border against (${trees.join(', ')})`);
+
+    const FAMILIES = ['primary', 'neutral', 'destructive'] as const;
+    // The achromatic palette segments a legitimate inverse fill may name. Authored HERE, not read from
+    // the derivation — that independence is what lets a family-tint mutation fail by name.
+    const ACHROMATIC = new Set(['white', 'black', 'neutral']);
+    // Every slot a leaf carries: its base value, plus one per mode from `$extensions.prism3.modes`.
+    const slotsOf = (leaf: any): Map<string, string> => {
+      const m = new Map<string, string>();
+      if (!leaf) return m;
+      if (typeof leaf.$value === 'string') m.set('base', leaf.$value);
+      for (const [mode, entry] of Object.entries((leaf.$extensions?.prism3?.modes ?? {}) as Record<string, { $value?: unknown }>))
+        if (typeof entry?.$value === 'string') m.set(mode, entry.$value);
+      return m;
+    };
+    // `{root.core.palette.<seg>…}` → the first palette segment (`white`, `black`, `neutral`, `red`, …).
+    // The step beneath a ramp segment is deliberately not read — provenance is about the family, not the rung.
+    const paletteSeg = (ref: string): string | undefined => /^\{[^.]+\.core\.palette\.([^.}]+)/.exec(ref)?.[1];
+    const dig = (node: any, path: string[]): any => path.reduce((n, k) => n?.[k], node);
+
+    const tinted: string[] = [], offPalette: string[] = [], partial: string[] = [], mismatched: string[] = [];
+    const perBrand = new Map<string, { triples: number; pairs: number }>();
+    for (const brand of trees) {
+      const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${brand}.tokens.json`), 'utf8'));
+      const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+      const tally = { triples: 0, pairs: 0 };
+      perBrand.set(brand, tally);
+
+      // ARM A — the three families' inverse rest fill are ONE value, and that value names an ACHROMATIC
+      // palette entry. Both halves matter and neither implies the other: three families could agree on a
+      // tinted value (uniform and wrong), or land on achromatic segments separately.
+      const fills = FAMILIES.map((f) => slotsOf(dig(tree[root], ['color', 'inverse', 'interactive', f, 'fill', 'rest'])));
+      const fillSlots = [...new Set(fills.flatMap((s) => [...s.keys()]))].sort();
+      for (const slot of fillSlots) {
+        const vals = fills.map((s) => s.get(slot));
+        // A slot present for SOME families and not others is a defect, never a skip — that is a family
+        // dropping out of the uniform set, which is #1208 arriving by omission instead of by tint.
+        if (vals.some((v) => v === undefined)) {
+          partial.push(`${brand}/${slot}: inverse fill present for [${FAMILIES.filter((_, i) => vals[i]).join(', ')}] only`);
+          continue;
+        }
+        tally.triples++;
+        if (new Set(vals).size !== 1)
+          tinted.push(`${brand}/${slot}: ${FAMILIES.map((f, i) => `${f}=${vals[i]}`).join(' · ')}`);
+        for (const [i, v] of vals.entries()) {
+          const seg = paletteSeg(v!);
+          if (seg === undefined || !ACHROMATIC.has(seg)) offPalette.push(`${brand}/${slot}/${FAMILIES[i]}: ${v} (palette '${seg ?? 'unparsed'}', not achromatic)`);
+        }
+      }
+
+      // ARM B — a neutral BORDER is its own TEXT ink, on the page and on the inverse band. #576's engine
+      // half: the border used to take a mid-grey of its own, so an outlined neutral control drew an edge
+      // that belonged to no ink in the tier.
+      for (const [ground, path] of [['page', ['color', 'interactive', 'neutral']], ['inverse', ['color', 'inverse', 'interactive', 'neutral']]] as const) {
+        const border = slotsOf(dig(tree[root], [...path, 'border', 'rest']));
+        const text = slotsOf(dig(tree[root], [...path, 'text', 'rest']));
+        for (const slot of [...new Set([...border.keys(), ...text.keys()])].sort()) {
+          const b = border.get(slot), t = text.get(slot);
+          if (b === undefined || t === undefined) {
+            partial.push(`${brand}/${ground}/${slot}: neutral ${b === undefined ? 'border' : 'text'}.rest absent while its partner is present`);
+            continue;
+          }
+          tally.pairs++;
+          if (b !== t) mismatched.push(`${brand}/${ground}/${slot}: border ${b} vs text ${t}`);
+        }
+      }
+    }
+
+    // REPRESENTED, never merely counted: a brand contributing nothing would let either arm pass over a
+    // tree it never opened, which is how a scope shrinks without anyone noticing.
+    const silent = [...perBrand].filter(([, t]) => t.triples === 0 || t.pairs === 0).map(([b, t]) => `${b} (${t.triples} triples, ${t.pairs} pairs)`);
+    ok(silent.length === 0,
+      `#1234 every brand tree contributed to BOTH arms${silent.length ? ` — SILENT: ${silent.join(', ')}` : ` (${[...perBrand.values()].reduce((a, t) => a + t.triples, 0)} fill triples, ${[...perBrand.values()].reduce((a, t) => a + t.pairs, 0)} border/text pairs across ${trees.length} brands)`}`);
+    ok(partial.length === 0,
+      `#1234 the compared roles are present as complete sets — a half-present set is a defect, not a skip${partial.length ? ` — PARTIAL: ${partial.slice(0, 4).join('; ')}` : ''}`);
+    ok(tinted.length === 0,
+      '#1234/#1208 the inverse rest FILL is UNIFORM across primary/neutral/destructive at every mode — a per-family tint on an inverse band is the defect desk QA found and no gate could see'
+      + (tinted.length ? ` — TINTED: ${tinted.slice(0, 4).join('; ')}` : ''));
+    ok(offPalette.length === 0,
+      '#1234/#1208 …and that one value names an ACHROMATIC palette entry (white/black/neutral) — uniformity alone would accept three families agreeing on a tint'
+      + (offPalette.length ? ` — OFF-PALETTE: ${offPalette.slice(0, 4).join('; ')}` : ''));
+    ok(mismatched.length === 0,
+      '#1234/#576 a neutral BORDER aliases its own TEXT ink on both grounds and in every mode — the grey special-case cannot return'
+      + (mismatched.length ? ` — DIVERGED: ${mismatched.slice(0, 4).join('; ')}` : ''));
   }
 
   // ARM D — THE VEIL IS NOT THE SCRIM, and both halves of that are pinned. The two are one word apart
