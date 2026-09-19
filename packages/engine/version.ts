@@ -2926,6 +2926,19 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.126.0 — #1532: per-breakpoint COLUMN OVERRIDES for the layout grid. `buildLayout` gained
+ * `layout.columnOverrides` (keyed by breakpoint name): a set entry wins over the 4/8/…/base ladder for
+ * that breakpoint, an unset one keeps the ladder, and every value is rounded + CLAMPED to the base
+ * `columns` bound [4, 24] so an out-of-range override emits a bounded grid, never a degenerate one. The
+ * Figma grid-style emitter (#1480) and the layout float-variable emitter both already read
+ * `theme.layout.grid`, so an override flows to the emitted per-breakpoint Grid Style / `layout.<bp>`
+ * count with no emitter change. The studio Layout page surfaces the resolved per-breakpoint
+ * columns/gutter/margin as a readout sourced from `theme.layout.grid` (the same derivation the emitter
+ * reads, so it cannot drift from what ships) and makes columns editable per breakpoint. No corpus brand
+ * sets an override, so every emitted grid VALUE is byte-identical; the emitted `out/**` moves only its
+ * `$extensions.generator.version` stamp. CONTRACT STANDS at 11.3.0 — an override is a value/structure
+ * knob, adds no guaranteed token NAME (`token-contract --check` level `none`).
+ *
  * 0.125.0 — #1510: the link role becomes independently customizable on TWO axes — a global rung lever AND
  * a per-mode ABSOLUTE override, all four families editable. #1486 shipped the link state walk as a tuned
  * constant with the lever deferred; #1487 surfaced it read-only. This PR (superseding #1531) lands both.
@@ -3269,7 +3282,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.125.0';
+export const ENGINE_VERSION = '0.126.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

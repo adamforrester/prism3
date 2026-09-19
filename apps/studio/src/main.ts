@@ -4487,6 +4487,10 @@ const renderLayoutPage = (host: PageHost): void => controlSplitPage(host, 'layou
     // range only means something read against the floors it spans.
     { title: 'Responsive type sizing', sub: 'Headings interpolate between a mobile floor and a desktop ceiling across this viewport range; body, label, caption and code stay fixed by design. Eyebrow shrinks only above 14px, so small kickers hold their size and hero kickers do not.', controls: renderResponsiveControls(), stack: true, paint: paintFluidPreview },
     { title: 'Grid columns', sub: 'Base column count for the design grid (16 / 24 for dense-data brands). Each breakpoint gets a 4/8/… ladder up to this base.', controls: colsCtl, paint: paintColumnsPreview },
+    // The resolved per-breakpoint grid — the same `theme.layout.grid` the Figma grid-style emitter ships
+    // from (#1480/#1532), so the readout cannot drift from what a brand exports. Columns are editable per
+    // breakpoint (an override wins over the ladder); gutter and margin stay derived.
+    { title: 'Per-breakpoint columns', sub: 'The columns, gutter and margin the engine emits for each breakpoint — one Figma grid style each. Columns follow the base ladder; override a breakpoint to pin its count. Gutter and margin are derived.', controls: perBreakpointColsNote(), stack: true, paint: paintPerBreakpointGrid },
     { title: 'Container caps', sub: 'Content-width caps — layout is fluid below the cap. The content container is the narrower reading-measure column (~65–75ch).', controls: caps, stack: true, paint: paintContainersPreview },
   ];
 });
@@ -7195,6 +7199,51 @@ const paintColumnsPreview = (into: HTMLElement): void => {
   const cols = el('div', 'ly-cols');
   for (let i = 0; i < ly.baseColumns; i++) cols.append(el('div', 'ly-col'));
   into.append(cols);
+};
+// The control-column copy for the editable per-breakpoint grid — says what an override does and that
+// unsetting it (choosing “Auto”) returns the breakpoint to the ladder.
+const perBreakpointColsNote = (): HTMLElement => el('p', 'ic-modenote',
+  'Each breakpoint’s columns default to the base ladder (smallest 4, next 8, up to the base). Override one '
+  + 'to pin its count — the override wins for that breakpoint only; choose Auto to return it to the ladder. '
+  + 'Values are held to 4–24, so an override can never emit a degenerate grid.');
+// The resolved per-breakpoint grid, read STRAIGHT from `theme.layout.grid` — the same derivation the Figma
+// grid-style emitter consumes (#1480), so this readout is the source of truth and cannot disagree with what
+// a brand ships. Columns carry an editable override select (Auto = the ladder value); gutter/margin are
+// read-only. Lives in the volatile region, so committing an override repaints it with the re-resolved grid.
+const paintPerBreakpointGrid = (into: HTMLElement): void => {
+  const ly = theme.layout;
+  const overrides = (brandState.layout?.columnOverrides ?? {}) as Record<string, number>;
+  into.innerHTML = '';
+  const table = el('table', 'ly-table');
+  const head = el('tr');
+  head.append(el('th', undefined, 'Breakpoint'), el('th', undefined, 'Columns'), el('th', undefined, 'Gutter'), el('th', undefined, 'Margin'), el('th', undefined, 'Override'));
+  table.append(head);
+  for (const g of ly.grid) {
+    const tr = el('tr');
+    // The RESOLVED column count — the readout, straight off the engine's grid. `data-bpcol` names the row
+    // so the smoke suite can read it back per breakpoint.
+    const colCell = el('td', 'mono', String(g.columns));
+    colCell.dataset.bpcol = g.bp;
+    // The override editor — Auto (the ladder) plus the curated column counts. `data-bpsel` names the control.
+    const sel = selectEl('cap');
+    sel.dataset.bpsel = g.bp;
+    const cur = overrides[g.bp];
+    sel.append(optionEl('auto', 'Auto', cur === undefined));
+    for (const c of LAYOUT_COLUMN_CHOICES) sel.append(optionEl(String(c), String(c), cur === c));
+    sel.onchange = () => {
+      const next = { ...((brandState.layout?.columnOverrides ?? {}) as Record<string, number>) };
+      if (sel.value === 'auto') delete next[g.bp]; else next[g.bp] = Number(sel.value);
+      // Keep brandState clean: an empty override map is dropped rather than persisted as `{}`.
+      if (Object.keys(next).length) setPath(brandState, 'layout.columnOverrides', next);
+      else if (brandState.layout) delete (brandState.layout as { columnOverrides?: Record<string, number> }).columnOverrides;
+      apply();
+    };
+    const editCell = el('td'); editCell.append(sel);
+    tr.append(el('td', 'mono', g.bp), colCell, el('td', 'mono', `${g.gutterPx}px`), el('td', 'mono', `${g.marginPx}px`), editCell);
+    table.append(tr);
+  }
+  const scroll = el('div', 'ly-tscroll'); scroll.append(table);
+  into.append(scroll);
 };
 const paintContainersPreview = (into: HTMLElement): void => {
   const ly = theme.layout;
