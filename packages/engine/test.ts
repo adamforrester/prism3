@@ -11220,6 +11220,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           // Modeled as a plain settable field, so a payload that never writes it leaves `''` — which is
           // the empty-label set #510 shipped, and the state the read-back has to be able to report.
           characters: '',
+          // #1514 — RETAINED, so the plugin executor's post-wire text-style RE-ASSERT can read its own write
+          // back through the parity gate. `setTextStyleIdAsync` (below) stores here; the plugin re-assert reads
+          // `node.textStyleId` and reports a DISCARDED miss if it does not hold. This stub does NOT model the
+          // characters-bind DETACH (its `componentPropertyReferences` is a plain field, no reset-on-bind) — so
+          // the applied style simply persists and the re-assert is a clean no-op here, which is exactly what
+          // keeps the two executors at parity. The detach itself is modeled where the #1514 fix is PROVEN, in
+          // `component-shim.ts`'s `guardRefs` (the round-trip gate); this stub only needs to retain the id so
+          // that reading it back is not spuriously empty.
+          textStyleId: '',
           // #1330 / #1378 — EXPOSED NESTED INSTANCE, mirroring the plugin shim so the two offline models
           // stay in lockstep (the parity gate drives both executors against this one host). Starts a
           // definite `false` (Figma's default for a primary instance), not undefined, so a never-marked
@@ -11276,7 +11285,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             }
             bv[prop] = { id: v.id, value: v.value };
           },
-          setTextStyleIdAsync: async () => {}, setEffectStyleIdAsync: async () => {},
+          setTextStyleIdAsync: async (id: string) => { node.textStyleId = id; }, setEffectStyleIdAsync: async () => {},
           // ABSOLUTE POSITIONING, modeled with its REJECTION CASE, which is the only part worth modeling.
           // Figma ignores `layoutPositioning` on a child whose parent is not an auto-layout frame, and it
           // ignores it SILENTLY — so a stub that simply stored the value would let the payload's read-back

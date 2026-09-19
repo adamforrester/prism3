@@ -628,7 +628,20 @@ export const makeShim = (opts: ShimOpts = {}) => {
           // AFTER wiring, and this host behavior is what makes that re-assert load-bearing rather than a no-op.
           const charId = (v ?? {}).characters;
           const pd = charId ? propLookup?.(charId) : undefined;
-          if (pd?.type === 'TEXT') (n as Record<string, unknown>).characters = pd.defaultValue;
+          if (pd?.type === 'TEXT') {
+            (n as Record<string, unknown>).characters = pd.defaultValue;
+            // #1514 — THE SAME RESET-ON-BIND DETACHES THE COMPOSITE TEXT STYLE. Wiring a TEXT node's
+            // `characters` reference re-derives the node's type from the set-level property, which drops the
+            // `textStyleId` applied in `build` while LEAVING the style's resolved property-level variable binds
+            // on the node — so a designer sees loose family/size/style variables and no named style (owner QA
+            // 2026-09-18, every component text node, all of them characters-bound). Modelled here as clearing the
+            // id the reader inspects, so the round-trip goes red until `write-components.ts` re-asserts the style
+            // AFTER wiring (the twin of the caption re-assert above). The variable binds are NOT modelled as lost
+            // because they are not lost live: they live IN the emitted style, so re-applying it restores them —
+            // which is why this is a style-AND-variables restoration, not a style-XOR-variables fork.
+            (n as Record<string, unknown>)._textStyleId = '';
+            (n as Record<string, unknown>).textStyleId = '';
+          }
         },
       });
     }

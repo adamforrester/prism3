@@ -17,6 +17,7 @@
     "./design-md": "./design-md.ts",
     "./emit-brandinput": "./emit-brandinput.ts",
     "./emit-figma-color": "./emit-figma-color.ts",
+    "./emit-figma-font": "./emit-figma-font.ts",
     "./emit-figma-styles": "./emit-figma-styles.ts",
     "./figma-names": "./figma-names.ts",
     "./inverse-roles": "./inverse-roles.ts",

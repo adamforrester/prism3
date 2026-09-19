@@ -39,6 +39,7 @@ import { componentDefs } from '@prism3/engine/components/index';
 import { diffAnatomy, unclassifiedFields, fieldCoverage } from '@prism3/engine/anatomy-readback';
 import type { Divergence, HostNode, ReadPorts } from '@prism3/engine/anatomy-readback';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
+import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
 import { nbTheme } from '@prism3/engine/nb-fixture';
 import { tailOf } from '@prism3/engine/figma-names';
 import { applyComponentPlan } from './src/write-components';
@@ -249,6 +250,113 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // one fails here rather than the block quietly checking fewer frames.
     for (const ratio of Object.keys(CONTRACT))
       ok(seenRatios.has(ratio), `aspect-lock: a member for the owner-decided ratio ${ratio} was built (scope floor)`);
+  }
+}
+
+// ── #1514: THE COMPOSITE TEXT STYLE SURVIVES THE CHARACTERS-BIND SEAM — HOST-TRUTH + INDEPENDENT ORACLE ──
+//
+// THE DEFECT (owner QA 2026-09-18): every projected component text node showed its family/size/style bound to
+// variables but carried NO composite text style — loose variables, not "this text uses `label/md/emphasis`".
+// THE DIAGNOSIS: the style IS applied in `build` (`setTextStyleIdAsync`), but every component text node is also
+// bound to a set-level TEXT property (`componentPropertyReferences.characters`), and that bind resets the node
+// from the set-level property — the same reset-on-bind #1513 found for the caption — which detaches the applied
+// `textStyleId` while leaving the style's resolved property-level variable binds on the node. So the designer
+// sees the variables and no style. The fix RE-ASSERTS the style AFTER the wiring seam (`write-components.ts`,
+// beside the #1513 caption re-assert); the shared shim now models the detach (`component-shim.ts`, guardRefs),
+// so the corpus loop's generic `textStyle` predicate already goes red without the re-assert and green with it.
+//
+// WHAT THE CORPUS LOOP CANNOT CATCH, and why this block exists (docs/34): that predicate is plan-as-oracle —
+// it checks the built node's `textStyleId` against the PLAN's `textStyle`, so a def whose `type` key was flipped
+// round-trips green (the plan follows the flip). This closes that with an oracle authored HERE and nowhere else:
+// a literal per-coordinate table of the OWNER-DECIDED style each component text node must carry (button labels
+// take the emphasis LABEL style at their size rung; form controls and messages take the BODY / CAPTION reading
+// styles). A `type` flipped in a def diverges from THIS and fails by name. The INDEPENDENT floor is the emitted
+// style set (`buildFigmaTextStyles(nbTheme())` — the emitter, a code path separate from the projection, the same
+// independence #1429 uses with `buildFigmaColor`): every style the contract names must really be emitted, so a
+// green is not "the def and the oracle agree on a name nothing emits".
+{
+  // THE OWNER-DECIDED CONTRACT — a LITERAL table keyed by coordinate, never `figmaTextStyleName(def.type)`.
+  const STYLE_CONTRACT: Record<string, { parts: string[]; style: (c: Record<string, string | undefined>) => string }> = {
+    button:          { parts: ['label'], style: (c) => ({ small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' } as Record<string, string>)[c.size!] },
+    'field-message': { parts: ['text'],  style: () => 'caption/md/default' },
+    'text-field':    { parts: ['text'],  style: () => 'body/md/default' },
+    select:          { parts: ['text'],  style: () => 'body/md/default' },
+    'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    'radio-row':     { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    'field-label':   { parts: ['text', 'indicator'], style: (c) => (({
+      'small/regular': 'body/sm/default', 'small/bold': 'body/sm/strong',
+      'medium/regular': 'body/md/default', 'medium/bold': 'body/md/strong',
+      'large/regular': 'body/lg/default', 'large/bold': 'body/lg/strong',
+    } as Record<string, string>)[`${c.size}/${c.weight}`]) },
+  };
+
+  // THE INDEPENDENT ORACLE — the emitted style names, from the emitter and never from any plan.
+  const emittedStyleNames = new Set(buildFigmaTextStyles(nbTheme()).styles.map((s) => s.name));
+  ok(emittedStyleNames.size > 0, `#1514 the emitter produced composite text styles (independent-oracle floor: ${emittedStyleNames.size})`);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+  const findByName = (n: any, name: string): any => (n?.name === name ? n : (n?.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+
+  for (const [id, contract] of Object.entries(STYLE_CONTRACT)) {
+    const def = componentDefs.find((d) => d.id === id);
+    ok(!!def, `#1514: the ${id} def is registered and projects`);
+    if (!def) continue;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const texts = await (shim as unknown as { getLocalTextStylesAsync: () => Promise<{ id: string; name: string }[]> }).getLocalTextStylesAsync();
+    const styleById = new Map(texts.map((s) => [s.id, s.name] as const));
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const byName = new Map(members.map((m) => [String(m.name), m] as const));
+
+    let checked = 0;
+    for (const plan of plans) {
+      // `size` is a top-level plan field, the other axes ride `coord` — the oracle keys off both.
+      const axes = { size: (plan as { size?: string }).size, ...plan.coord } as Record<string, string | undefined>;
+      const want = contract.style(axes);
+      ok(!!want, `#1514: ${id} member ${JSON.stringify(plan.coord)} maps to an owner-decided style (oracle covers this coordinate)`);
+      if (!want) continue;
+      // INDEPENDENT FLOOR: the style the contract names is really emitted — not merely a name the def echoes.
+      ok(emittedStyleNames.has(want), `#1514: ${id}'s owner-decided style '${want}' is in the emitted style set (independent oracle)`);
+      const member = byName.get(planComponentName(plan));
+      for (const part of contract.parts) {
+        const node = member ? findByName(member, part) : undefined;
+        // SCOPE FLOOR: the text node was actually built into this member — otherwise "it carries the style"
+        // is a statement about a node that does not exist.
+        ok(!!node, `#1514: ${id}/${planComponentName(plan)} built the '${part}' text node (scope floor)`);
+        if (!node) continue;
+        const gotId = (node as { textStyleId?: unknown }).textStyleId;
+        const gotName = typeof gotId === 'string' && gotId ? (styleById.get(gotId) ?? `id ${gotId} resolves to no style`) : 'NO TEXT STYLE APPLIED';
+        ok(gotName === want,
+          `#1514: ${id}/${planComponentName(plan)}/${part} carries the composite text style '${want}' after the characters-bind seam (host holds '${gotName}')`);
+        checked++;
+      }
+    }
+    ok(checked > 0, `#1514: ${id} presented text nodes to check (scope floor: ${checked})`);
+  }
+
+  // NON-VACUITY (docs/34) — the pre-fix state, reproduced explicitly: a built text node whose `textStyleId`
+  // was detached (exactly what the shim's characters-bind models, and what shipped before this fix) is reported
+  // by the SAME read-back, by name. Without this, a check that only ever sees the applied style could be an
+  // always-pass.
+  {
+    const def = componentDefs.find((d) => d.id === 'button')!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const texts = await (shim as unknown as { getLocalTextStylesAsync: () => Promise<{ id: string; name: string }[]> }).getLocalTextStylesAsync();
+    const styleById = new Map(texts.map((s) => [s.id, s.name] as const));
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const label = findByName(members[0], 'label');
+    const before = typeof label?.textStyleId === 'string' && label.textStyleId ? styleById.get(label.textStyleId) : undefined;
+    (label as { textStyleId?: string }).textStyleId = '';   // the detach the fix defends against
+    const afterName = typeof label?.textStyleId === 'string' && label.textStyleId ? (styleById.get(label.textStyleId) ?? 'unknown') : 'NO TEXT STYLE APPLIED';
+    ok(!!before && afterName === 'NO TEXT STYLE APPLIED',
+      `#1514 mutation: a built label whose textStyleId is detached reads back 'NO TEXT STYLE APPLIED' by name (was '${before ?? '—'}') — the check is not vacuous`);
   }
 }
 
