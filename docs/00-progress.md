@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-09-19) — the overlay wash was presented as a step of the neutral ramp, and painted with no ground under it (#1210 part 2)
+
+**STATUS: LANDED.** Studio-only presentation fix. **No engine change, no `out/**` change, NO version bump** — the token was correct throughout and is untouched: ENGINE STANDS at **0.126.0**, CONTRACT STANDS at **11.3.0** (`lint-emission-version` 0 artifacts, `regen --check` clean). CI gate count STANDS at **60** — the new coverage is a `test-smoke.mjs` section inside the existing smoke gate, not a new gate. The smoke suite grows **1218 → 1444** assertions (+226). Closes #1210 part 2. **Recovers the stale PR #1233** (branch `claude/studio-overlay-wash-1210`, 2026-09-02, against an older main); this is that design re-implemented against current main. #1210 part 1 (the text-color contrast badges) is a separate concern and out of this lane's scope.
+
+── THE DEFECT: ONE PROPERTY, TWO UNTRUTHS ────────────────────────────────────────────────────────
+
+`interactive.<c>.overlay.hover` is a **translucent** role: `putWash` records `path: <ns>.black-alpha.10`, `alpha: 0.1`, and — as `modes.ts` says outright at the scrim — a `hex` that is the **opaque base**, black or white, never the color anyone sees. The Interactive page's overlay row treated it as an ordinary opaque role, and both halves of #1210 part 2 follow from exactly that:
+
+**(a) The Source picker bound the wash to the NEUTRAL RAMP**, labeled `Auto · neutral 10`. The neutral ramp has no step 10 to be. Worse than a wrong label: picking from that list wrote `{palette: neutral, step}` through `setFillOverride`, which `modes.ts` applies by **spreading over the existing role** — so `alpha` survived the override and the role came out naming an opaque ramp step while still rendering at 10%. An incoherent role, from a control that looked like every other Source picker on the page. So the picker (`roleSourceSelect`, gated on the role's own `isWash`) becomes a read-out via `washSourceRead` — removing it is not a lost capability, because the thing it wrote could not be right. `roles` is now a **required** first parameter of `roleSourceSelect`, threaded from all five call sites, precisely so a future caller cannot omit the wash check.
+
+**(b) The swatch painted the `rgba()` with no underlay,** so the browser composited it over whatever studio chrome sat behind — a card, a border — and a 10% black wash read near-opaque. The two **state cells** were worse: `iStates` painted `r.hex`, so every Hover and Pressed cell of every overlay row rendered as **solid black**. Both key off `isWash(r)` — `(r.alpha ?? 1) < 1`, the role's own data — not the row's name, so the fix reaches every translucent role the studio paints, not just the row this was reported against.
+
+── THE UNDERLAY IS THE DECLARED GROUND, NOT A FIXED LIGHT COLOR — AND THAT WAS MEASURED ──────────
+
+A fixed light underlay is **the same defect in the other direction**, and this file has the precedent: #555's `.exbox.dark` pinned `#0d0d10`, wrong in a Dark mode where "inverse" resolves LIGHT, cured by reading the *resolved* ground. The page wash flips polarity with the page — `black-alpha` on a light page, `white-alpha` on a dark one — so white under it makes Dark's wash white-on-white. So `washCss` underlays with the role's own declared `against` (`background.primary`), which is also the ground its `ratio` was measured on. **Measured, not argued:** pinning the underlay to `#ffffff` fails **27** assertions — **24 in Dark at Δluminance exactly 0.0000** (literally invisible), plus **3 on harbor in Light**, whose real ground is an off-white `rgb(233,233,232)` the pin does not match. Not one on aurora Light (pure-white ground). A Light-only check would have called Dark's invisibility green.
+
+── THE ROW ALSO KEPT A CLAIM THE ENGINE HAD ALREADY RETIRED ──────────────────────────────────────
+
+The description said the wash *"composites over any surface"* — true of the mechanism, false of the result, and the exact sentence #892 removed from the engine's own `$description` when it gave the inverse band an opposite-polarity wash of its own. The engine stopped saying it; this surface did not. It now names the ground.
+
+── THE GATE, AND WHERE ITS EXPECTED COMES FROM (docs/34) ──────────────────────────────────────────
+
+226 new assertions in `apps/studio/test-smoke.mjs`, driving the Interactive page in **both** customizable modes on both corpus brands (12 rows, 36 swatches). EXPECTED is parsed out of **`packages/engine/modes.ts`** — `OVERLAY_ALPHA` and the `overlayPal` polarity ternary — the code that MINTS these roles. Reading the primitive back out of what the row renders would be docs/34 **shape 1**: both sides from the subject, green on the very defect it exists for, since the row *did* render `neutral 10` for `black-alpha.10` and a renderer-derived oracle would have called that agreement. The oracle **throws** when its regex matches nothing rather than defaulting. Both polarities are driven because the polarity is the load-bearing half, and a `washPolarities.size === 2` floor after the loop makes a single-mode run fail by name.
+
+**MUTATIONS VERIFIED**, each on the built `dist`, each failing by name:
+
+| mutation | result |
+|---|---|
+| `roleSourceSelect`'s wash branch disabled (the ramp picker back) | **72 FAILED, all `#1210a`** |
+| `overlayRow`'s `swatchBg` back to `r.hex` (opaque base) | **36 FAILED** — the `hasWashLayer` (#1210b) arm fires on all 12 overlay-row swatches, plus the tie + Δluminance arms |
+| the underlay pinned to `#ffffff` | **27 FAILED — 24 in Dark at Δluminance 0.0000**, 3 on harbor Light (declared ground is off-white) |
+| the oracle's `OVERLAY_ALPHA` regex pointed at a name that does not exist | **throws**, does not default |
+
+The swatch carries **three** assertions rather than one because `.astate-sw` painting an opaque `#000000` still satisfies "sits on an opaque underlay"; `hasWashLayer` and `deltaLum` are what catch it.
+
+── TWO MEASURED BASELINES IN THE SUITE MOVED, AND BOTH HAD ALREADY DRIFTED ────────────────────────
+
+Form controls swept: **640 → 604**. That delta (36) is entirely this change — 36 ramp-step pickers (2 brands × 2 customizable modes × 3 action palettes × 3 slots) became read-outs — and `SWEEP_FIELD_FLOOR`'s comment now says so. Text nodes swept: the label said `15,646 on this branch` and the live run reports **16,834**; the pre-fix baseline was already 16,798, so only 36 of that gap is this change and the rest had drifted against `main` under a hand-maintained numeral. Both are the #1110 shape in an assertion label, **already filed as #1232** (the durable fix — drop or ratchet the literal — is that issue's decision, not this PR's); both were corrected to the accurate current figures here with a pointer to #1232.
+
+**NOT TOUCHED.** #1367 and #1385 are out of this lane's scope. The style-guide preview's `paint()` already does `rgba(r.hex, r.alpha)` over a real ground and is correct — checked, left alone.
+
 ## (2026-09-19) — A session-start check that fetches, so a stale `CLAUDE.md` says so (#1110)
 
 **STATUS: shipped (this lane; PR recovers the stale #1125).** A third `SessionStart` hook, a mutation
