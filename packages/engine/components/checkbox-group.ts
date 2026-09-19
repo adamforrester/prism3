@@ -137,15 +137,29 @@ export const checkboxGroup: ComponentDef = {
     root: 'container',
     parts: {
       // THE GROUP CONTAINER and the a11y target (role="group"). Structure only — no `paintSlots`; it keys
-      // no fill or border and draws nothing. Column, filling its width so the rows span it; hugs its
-      // height. `pad-y` is Prism 2's 8px block padding; `pad-x` is `space.0` (0px), so the inline sides are
-      // truly zero and the rows fill the group's full width — Prism 2's `{start: 0, end: 0}`.
+      // no fill or border and draws nothing. A column that carries a comfortable WIDTH FLOOR (`minWidth`,
+      // below) so the rows have a real width to span; hugs its height. `pad-y` is Prism 2's 8px block
+      // padding; `pad-x` is `space.0` (0px), so the inline sides are truly zero and the rows fill the
+      // group's full width — Prism 2's `{start: 0, end: 0}`.
+      //
+      // THE WIDTH FLOOR + ROW FILL (#1503, owner Option B: follow Prism 2). Prism 2's `checkbox-group` is a
+      // FIXED 320px root with each `checkboxRow` set to `layoutSizingHorizontal: FILL`, so the rows span the
+      // group rather than rendering ragged (each as wide as its own label). Until #1503 the projection could
+      // realize neither half — `sizing: 'fill'` maps to AUTO/hug (#989) and there was no cross-axis child FILL
+      // — so this def's own comment ("filling its width so the rows span it") described an intent the plan
+      // could not carry. It can now: the rows declare `crossAxisFill` (→ `layoutAlign: STRETCH`) and the
+      // container floors at `minWidth: 320`. A `minWidth` floor rather than a bound `width` + `sizing: 'fixed'`
+      // is Prism 2's 320 the RESPONSIVE way (`select`'s #1343/#1345 precedent): the group reads at 320 in
+      // Figma and FLEXES above it, rather than being pinned. 320 is a projection literal in 8px increments —
+      // the owner-cited Prism 2 value, not a semantic `field.width` role — so no emitted token NAME moves and
+      // `CONTRACT_VERSION` stands (the same posture `select.control`'s `minWidth` takes).
       container: {
         kind: 'box',
         role: 'target',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'size.{size}.gap',
         padding: { block: 'pad-y', inlineLabel: 'pad-x' },
+        minWidth: 320,
         children: ['label', 'row1', 'row2', 'row3'],
       },
       // THE NESTED GROUP LABEL (nest-fixed, FOLLOWING size). An in-flow instance of `field-label`,
@@ -167,23 +181,33 @@ export const checkboxGroup: ComponentDef = {
       // consumer derives them from the value array. `variant: { size: 'medium' }` is the fallback the
       // follow overrides per member; checkbox-row projects only `size`, so that one axis is the whole
       // coordinate. Three rows stand in for Prism 2's variable count (see the header).
+      //
+      // `crossAxisFill: true` (#1503) — each row STRETCHES to the group's width (`layoutAlign: STRETCH`),
+      // reproducing Prism 2's `checkboxRow: layoutSizingHorizontal FILL` so the rows span the 320 group
+      // rather than rendering ragged. The LABEL is deliberately NOT stretched: Prism 2's label sits in a HUG
+      // container, so it keeps its natural width above the filled rows. The rows are nested INSTANCES, which
+      // is exactly why the executor applies `layoutAlign` from the PARENT (a placement property, not a design
+      // override) — see `PartDef.crossAxisFill`.
       row1: {
         kind: 'nest',
         nests: 'checkbox-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        note: 'The first Checkbox row — always present. Nests the labeled row (which nests the control), following the group\'s size. Its checked state is derived from the group\'s value array, not wired here.',
+        crossAxisFill: true,
+        note: 'The first Checkbox row — always present. Nests the labeled row (which nests the control), following the group\'s size. Fills the group\'s width (Prism 2\'s FILL rows). Its checked state is derived from the group\'s value array, not wired here.',
       },
       row2: {
         kind: 'nest',
         nests: 'checkbox-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        note: 'A second Checkbox row — one of the representative stack (see the header `[HELD]` on Prism 2\'s variable row count). Same nest configuration as the first.',
+        crossAxisFill: true,
+        note: 'A second Checkbox row — one of the representative stack (see the header `[HELD]` on Prism 2\'s variable row count). Same nest configuration as the first, including the group-width fill.',
       },
       row3: {
         kind: 'nest',
         nests: 'checkbox-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
-        note: 'A third Checkbox row — completing the representative stack. In code the stack is `children: CheckboxRow[]` of any length; the three fixed nests stand in for that count in the projection.',
+        crossAxisFill: true,
+        note: 'A third Checkbox row — completing the representative stack. In code the stack is `children: CheckboxRow[]` of any length; the three fixed nests stand in for that count in the projection. Fills the group\'s width like its siblings.',
       },
     },
     codeOnly: [
@@ -273,7 +297,8 @@ export const checkboxGroup: ComponentDef = {
       'THE INTER-ROW GAP IS PROVISIONAL AND `[HELD]`. Prism 2\'s group gap is 0 because its rows are fixed 48px boxes that self-space; our `checkbox-row` hugs, so a 0 gap leaves them touching and Prism 2\'s spacing does not transfer. The `size.*.gap` rung (8/8/12px on nb) is bound so the group\'s `size` axis reaches a binding and the stack reads legibly, but the value — and whether the label-to-first-row gap should differ from row-to-row — is the owner\'s to set. Do not read the rung as measured from Prism 2; it is a placeholder pending that decision.',
       'GROUP-LEVEL ERROR / VALIDATION DISPLAY IS `[HELD]`. The brief puts validation and the error message on the group; Prism 2 settles no visual for it. This def carries `required` (settled) and no error skin (unsettled). Whether the group nests a `field-message` for the group error, and what an errored group looks like (a recolored label? a message below the stack? a per-row neutral hold?), needs the owner. Building one now would invent the very thing the brief left to design.',
       'THE VARIABLE ROW COUNT AND SELECT-ALL ARE `[HELD]`. The three fixed row nests stand in for Prism 2\'s six-rows-with-booleans (a Figma convenience for `children: CheckboxRow[]`). If the projection should carry a designer-toggleable count, the mechanism is the node-visibility boolean on each row nest (the corpus\'s first boolean-toggled `nest` — schema-legal, unbuilt). A select-all parent is likewise expressible (a row at `indeterminate` above the set) and deliberately not added, since Prism 2 has none.',
-      'THE NESTING IS UNVERIFIED ON A REAL HOST, the same way `checkbox-row`\'s and the other decompositions\' are: the group nests `checkbox-row` (which nests `checkbox-control` `nest-exposed`), the deepest chain in the corpus, and whether a doubly-nested instance\'s inherited sizing and exposed properties cooperate with the group\'s auto-layout is a real-host question the offline shim cannot answer. `test:roundtrip` builds every projected def and reads it back — the host-truth check #1347 named — but a three-deep nest is new ground; the symptom to look for is a row instance stretched or an exposed selection that does not surface at the group.',
+      'THE NESTING IS UNVERIFIED ON A REAL HOST, the same way `checkbox-row`\'s and the other decompositions\' are: the group nests `checkbox-row` (which nests `checkbox-control` `nest-exposed`), the deepest chain in the corpus, and whether a doubly-nested instance\'s inherited sizing and exposed properties cooperate with the group\'s auto-layout is a real-host question the offline shim cannot answer. `test:roundtrip` builds every projected def and reads it back — the host-truth check #1347 named, and #1503 extends it to assert each row reads back `layoutAlign: STRETCH` — but a three-deep nest is new ground; the symptom to look for is a row instance that does NOT fill the group (the STRETCH dropped on a real host), or an exposed selection that does not surface at the group.',
+      'THE WIDTH/FILL MODEL IS RESOLVED (#1503, owner Option B: follow Prism 2). Prism 2\'s group is a fixed-320 root with rows set to FILL; this def now realizes that with the container floored at `minWidth: 320` and each row `crossAxisFill` (→ `layoutAlign: STRETCH`), the projection capability #1503 added. A `minWidth` floor rather than a fixed width keeps the group responsive (reads at 320, flexes above), the `select` #1345 precedent. `radio-group` mirrors this exactly, so the two groups match by SHARING one resolution (#1475). The `size.{size}.gap` inter-row gap remains the separate `[HELD]` below — filling the width does not settle the vertical spacing.',
     ],
   },
 };

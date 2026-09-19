@@ -25,7 +25,10 @@ import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { MainToUi, UiToMain } from './messages';
 import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration, strandedCollections } from './write-figma';
+import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary } from './prune-figma';
+import type { PruneInput, PruneApi } from './prune-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
+import { rootOf } from '@prism3/engine/figma-names';
 import { applyStylesPlan } from './write-styles';
 import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
@@ -298,6 +301,84 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     postVerdict({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary });
   } catch (e) {
     postVerdict({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: `write failed: ${(e as Error).message}` });
+  }
+};
+
+/**
+ * OPT-IN PRUNE (#1521) — remove the styles/variables/collections the current config no longer emits.
+ *
+ * The delete #479 / #1152 deliberately refused to do on a normal apply, done here because the designer
+ * asked for it and, on `confirm`, saw the count first. It builds the SAME plans `applyTheme` builds
+ * (so "stale" means exactly "not in the plan this brand emits"), reads the file once, and hands both to
+ * the pure `computePrunePlan` — which reuses `orphansOf` / `strandedCollections` and adds the namespace
+ * guard that keeps a hand-added item safe (see `prune-figma.ts`).
+ *
+ * `confirm: false` PREVIEWS — computes and posts the count + review text, deletes nothing.
+ * `confirm: true` DELETES — recomputes from a fresh read (not from the preview's list, so the delete
+ * acts on the file's current orphan set) and runs `applyPrunePlan`.
+ *
+ * Never flips into `applyTheme`'s path and writes nothing but deletes: a prune only removes.
+ */
+const prune = async (input: BrandInput, confirm: boolean): Promise<void> => {
+  try {
+    const theme = brandTheme(input);
+    // The plans, exactly as `applyTheme` builds them — the plan is what defines "stale". No write.
+    const colorFiles = buildFigmaColor(theme);
+    const wp = buildWritePlan(colorFiles);
+    const floatPlan = buildFloatWritePlan(theme);
+    const fontPlan = buildFontVarPlan(theme);
+    const textPlan = buildTextStylePlan(theme);
+    const plannedVariables = [
+      ...wp.palette.map((r) => r.name),
+      ...wp.color.create.map((r) => r.name),
+      ...floatPlan.flatMap((p) => p.create.map((r) => r.name)),
+      ...fontPlan.flatMap((p) => p.rows.map((r) => r.name)),
+    ];
+    // Spelled with `$collection` / `plan.name` (what Figma holds), not the axis labels the orphan report
+    // uses — the same set `applyTheme` assembles for its stranded-collection report.
+    const plannedCollections = [
+      colorFiles.palette.$collection,
+      ...colorFiles.color.map((c) => c.$collection),
+      ...floatPlan.map((p) => p.name),
+      ...fontPlan.map((p) => p.name),
+    ];
+    const plannedTextStyles = textPlan.map((r) => r.name);
+    // The brand root every emitted variable carries — read positionally off any planned name (#1097), so
+    // no prefix is spelled here. Empty (no planned vars) disables the namespace guard, which prunes nothing.
+    const root = rootOf(plannedVariables[0] ?? '');
+
+    const cols = await figma.variables.getLocalVariableCollectionsAsync();
+    const vars = await figma.variables.getLocalVariablesAsync();
+    const styles = await figma.getLocalTextStylesAsync();
+    const namesByCollectionId = new Map<string, string[]>();
+    for (const c of cols) namesByCollectionId.set(c.id, []);
+    for (const v of vars) namesByCollectionId.get(v.variableCollectionId)?.push(v.name);
+    const snapshot: PruneInput = {
+      collections: cols.map((c) => ({ name: c.name, variableNames: namesByCollectionId.get(c.id) ?? [] })),
+      textStyles: styles.map((s) => s.name),
+      plannedVariables,
+      plannedCollections,
+      plannedTextStyles,
+      root,
+    };
+    const plan = computePrunePlan(snapshot);
+
+    if (!confirm) {
+      postToUi({ type: 'prune-result', ok: true, applied: false, count: prunePlanCount(plan), summary: prunePreviewSummary(plan) });
+      return;
+    }
+
+    const pruneApi: PruneApi = {
+      getLocalVariableCollectionsAsync: () => figma.variables.getLocalVariableCollectionsAsync(),
+      getLocalVariablesAsync: () => figma.variables.getLocalVariablesAsync(),
+      getLocalTextStylesAsync: () => figma.getLocalTextStylesAsync(),
+    };
+    const res = await applyPrunePlan(plan, pruneApi);
+    const removed = res.variables + res.collections + res.textStyles;
+    postToUi({ type: 'prune-result', ok: res.misses.length === 0, applied: true, count: removed, summary: pruneAppliedSummary(res) });
+  } catch (e) {
+    // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch.
+    postToUi({ type: 'prune-result', ok: false, applied: confirm, count: 0, summary: `prune failed: ${(e as Error).message}` });
   }
 };
 
@@ -672,6 +753,10 @@ onUiMessage((msg: UiToMain) => {
       // `msg.def` straight through, `undefined` included — the resolution lives in `buildComponents`
       // (absent means Button) rather than being defaulted here, so there is one place that decides it.
       void buildComponents(msg.def);
+      return;
+    case 'prune':
+      // #1521 — `confirm` decides preview vs delete; both recompute from a fresh read inside `prune`.
+      void prune(msg.input, msg.confirm);
       return;
     case 'resize-ui': {
       // Resize on every drag message so the window tracks the pointer; persist only on the

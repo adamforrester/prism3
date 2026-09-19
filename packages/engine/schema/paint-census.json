@@ -125,12 +125,12 @@
       "set": {
         "members": 20,
         "assignments": 100,
-        "sha256": "fa15b8e51e025476c53c1144629c2ad1b6a6447b2af7123c1f0d056c63d7566b"
+        "sha256": "de134bcdf8b88df6bb728c5874780bbe88060b44f55e6fb864ae4035c5f2b148"
       },
       "grid": {
         "members": 28,
         "assignments": 140,
-        "sha256": "c234425775f8807b9be0aeacdcc3b19b6bc1ed9c6f69a5d465d94f54dd5ae4e7"
+        "sha256": "62c11db232bfacec58ac6f8f5480a835fd7ec3ed8d335d14deb8c9f57a41b52d"
       }
     },
     "checkbox-control": {
@@ -233,12 +233,12 @@
       "set": {
         "members": 16,
         "assignments": 80,
-        "sha256": "47c94116eb54df541b4448a0dfc214e61687fb6a587ee5a7562e5b173095afd3"
+        "sha256": "6ab47b1d76cfe5715c3fc6ac01012356f4397b97d2f7a1b8f6fd042625399260"
       },
       "grid": {
         "members": 20,
         "assignments": 100,
-        "sha256": "61936b6296bca214cda32f7113bde4c15daac5ab072b98679a6d26a7b2ffb55e"
+        "sha256": "44c06c719675628a2b0150cd883591f53dff511c11a6041528937ef2a3e27ec4"
       }
     },
     "veil": {

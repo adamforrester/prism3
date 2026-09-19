@@ -198,6 +198,29 @@ export type ShimOpts = {
    * identity stable across combine, so the fresh read equals the snapshot and the fix is inert.
    */
   settleAfterCombine?: string[] | 'all';
+  /**
+   * MEMBER-LEVEL id-settle DEFERRED TO THE WIRE PHASE (#1516) — the host behavior `settleAfterCombine`
+   * above stops one instant short of. `settleAfterCombine` fires the settle on the first post-combine set
+   * op (the layout `resize`, `addComponentProperty`), and the executor snapshots its live-member map
+   * (`liveByName`, write-components.ts) AFTER those, so a settle that fired on `resize` is captured by the
+   * snapshot and the #1473 recovery lands. The field-label/text-field persistent misses (~30/~33 on a live
+   * QA build, concentrated on `state=disabled` / `status=warning`) are the instant later: the host keeps
+   * reconciling ASYNCHRONOUSLY and finishes reassigning some members' OWN identity only DURING the wire
+   * loop — after that snapshot was taken, while the executor is between chunks on an `await breathe`. A
+   * recovery that re-resolves the member through the once-snapshotted `liveByName` lands on the detached
+   * original and throws AGAIN ("Could not create a new component property reference"), so the miss is
+   * permanent even with #1473's member-level recovery — the snapshot itself is stale.
+   *
+   * Modelled by DEFERRING the settle past `resize`/`addComponentProperty` (they no longer trigger it) to
+   * the FIRST `componentPropertyReferences` write of the wire loop — the earliest executor act that occurs
+   * after the `liveByName` snapshot. On that first write every member is settled at once (each replaced in
+   * the live `set.children` by a fresh attached twin, every original's subtree detached with the throwing
+   * ref setter), then the triggering write throws. So the snapshot — taken before the wire loop — holds the
+   * now-detached originals for the WHOLE loop, and only a resolution that reads `set.children` FRESH at the
+   * point of use reaches the twins. Opt-in; every other case keeps identity stable across combine, so a
+   * fresh read equals the snapshot and the fix is inert.
+   */
+  deferSettleToWire?: boolean;
 };
 
 /** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
@@ -219,6 +242,12 @@ export const makeShim = (opts: ShimOpts = {}) => {
   /** THE HOST HAS ALREADY REFUSED SOMETHING (#913) — latched, never reset. What `frameOnFailurePath`
    *  hangs off, so the marking meets a host in the state it is actually written for. */
   let hostRefusing = false;
+  /** #1516 — A BEFORE-WRITE HOOK on every guarded `componentPropertyReferences` setter, set by
+   *  `combineAsVariants` only under `deferSettleToWire`. It lets the WIRE PHASE's first ref write trigger a
+   *  deferred member-level settle (see `deferSettleToWire`), which `guardRefs` cannot reach on its own —
+   *  the settle machinery lives inside `combineAsVariants`, below the guard. Undefined (a no-op) on every
+   *  other run. */
+  let onRefWrite: ((n: Node) => void) | undefined;
   const unavailable = new Set((opts.unavailableFonts ?? []).map(fontKey));
   const textStyles = (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: opts.styleFont ?? STYLE_FONT }));
   const fontOfStyle = (id: string): FontName | undefined => textStyles.find((s) => s.id === id)?.fontName;
@@ -560,7 +589,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
   // A reference naming a property that does not exist THROWS in real Figma. Installed per-set rather
   // than in `mkNode` because it needs the set that owns the definitions, which does not exist yet when
   // a node is built.
-  const guardRefs = (set: Node): void => {
+  //
+  // `propLookup` (#1513) resolves a property id → its `{ type, defaultValue }` so the setter can MODEL
+  // Figma's RESET-ON-BIND: wiring a TEXT node's `characters` reference adopts the set-level property's one
+  // `defaultValue` onto the node, discarding the per-coordinate copy `build` wrote before combine (#1018
+  // `byVariant`). It is threaded from every call site because `defs` lives inside `combineAsVariants`,
+  // below this helper; omitting it (a plain node guard) keeps the pre-#1513 behavior.
+  const guardRefs = (set: Node, propLookup?: (id: string) => { type: string; defaultValue?: unknown } | undefined): void => {
     for (const n of [set, ...(set.findAll as () => Node[])()]) {
       // #1428 — a node INSIDE a nested instance is a sublayer of ANOTHER component, so it cannot hold one
       // of THIS set's references: Figma refuses the write with its own message. Modelled so a re-find by
@@ -579,10 +614,34 @@ export const makeShim = (opts: ShimOpts = {}) => {
         configurable: true,
         get: () => held,
         set: (v: Record<string, string>) => {
+          // #1516 — a deferred wire-phase settle may fire here (and throw) BEFORE any validation.
+          onRefWrite?.(n);
           const known = (set.declaredIds as () => string[])();
           for (const id of Object.values(v ?? {}))
             if (!known.includes(id)) throw new Error(`in set_componentPropertyReferences: Could not find a component property with name: '${id}'`);
           held = v;
+          // #1513 — RESET-ON-BIND. Live Figma replaces a TEXT node's displayed `characters` with the
+          // set-level property's single `defaultValue` the moment its `characters` reference is wired, so a
+          // per-member caption written before combine is lost to the fallback (`field-message`'s error/warning/
+          // success members all rendered "This is a standard message." in QA — #1513). Only the `characters`
+          // field, only a TEXT property; the fix in `write-components.ts` re-asserts each member's own copy
+          // AFTER wiring, and this host behavior is what makes that re-assert load-bearing rather than a no-op.
+          const charId = (v ?? {}).characters;
+          const pd = charId ? propLookup?.(charId) : undefined;
+          if (pd?.type === 'TEXT') {
+            (n as Record<string, unknown>).characters = pd.defaultValue;
+            // #1514 — THE SAME RESET-ON-BIND DETACHES THE COMPOSITE TEXT STYLE. Wiring a TEXT node's
+            // `characters` reference re-derives the node's type from the set-level property, which drops the
+            // `textStyleId` applied in `build` while LEAVING the style's resolved property-level variable binds
+            // on the node — so a designer sees loose family/size/style variables and no named style (owner QA
+            // 2026-09-18, every component text node, all of them characters-bound). Modelled here as clearing the
+            // id the reader inspects, so the round-trip goes red until `write-components.ts` re-asserts the style
+            // AFTER wiring (the twin of the caption re-assert above). The variable binds are NOT modelled as lost
+            // because they are not lost live: they live IN the emitted style, so re-applying it restores them —
+            // which is why this is a style-AND-variables restoration, not a style-XOR-variables fork.
+            (n as Record<string, unknown>)._textStyleId = '';
+            (n as Record<string, unknown>).textStyleId = '';
+          }
         },
       });
     }
@@ -771,6 +830,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
           // keeping this mode about REFERENCES; #1279's binding drop is a separate behavior not modelled here.
           (t as Record<string, unknown>).boundVariables = n.boundVariables;
           t.fills = n.fills; t.strokes = n.strokes;
+          // #1516 — carry `visible`, same reason the settle twin does: a node built hidden keeps its
+          // visibility through the host's reconciliation, so dropping it would fake a `visible=∅` divergence.
+          (t as Record<string, unknown>).visible = (n as Record<string, unknown>).visible;
           // #1330 — carry the exposure marking across the combine, same reason as the fields above: a twin
           // that lost it would make a detach-mode round-trip report a correctly-exposed instance as not.
           //
@@ -803,7 +865,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // `set.children` read finds a live twin. `settle()` runs ONCE, the first time the executor touches the
       // set after that snapshot (its `resize` in the layout pass, or an `addComponentProperty`, whichever
       // lands first), which is exactly when the id rewrite has "settled for the whole set".
-      const settleAll = opts.settleAfterCombine === 'all';
+      // #1516 — `deferSettleToWire` settles EVERY member (like `'all'`) but on a LATER trigger (the wire
+      // phase's first ref write, below) rather than on `resize`/`addComponentProperty`.
+      const settleAll = opts.settleAfterCombine === 'all' || !!opts.deferSettleToWire;
       const settleNames = new Set(Array.isArray(opts.settleAfterCombine) ? opts.settleAfterCombine : []);
       let settled = !settleAll && settleNames.size === 0;   // nothing to settle → identity stays stable
       // A THROWING ref setter — a detached node is not a component sublayer, Figma's own message.
@@ -818,6 +882,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
         t.name = n.name; t.characters = n.characters;
         (t as Record<string, unknown>).boundVariables = n.boundVariables;
         t.fills = n.fills; t.strokes = n.strokes;
+        // #1516 — carry `visible` across the settle: real Figma keeps a node's built visibility through the
+        // identity reassignment, so a node built hidden (the #1331 node-visibility booleans, leadingVisual
+        // `visible=false`) must read back hidden on the twin. A twin that dropped it would report a false
+        // `visible=∅` divergence on the settled set and make this mode unfaithful to the host.
+        (t as Record<string, unknown>).visible = (n as Record<string, unknown>).visible;
         (t as Record<string, unknown>)._exposed = (n as Record<string, unknown>)._exposed;
         if (n.layoutMode !== undefined) (t as Record<string, unknown>).layoutMode = n.layoutMode;
         for (const kid of (n.children as Node[]) ?? []) (t.appendChild as (c: Node) => void)(twinAttached(kid));
@@ -833,7 +902,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           const twin = twinAttached(m);
           // GUARD the twin's subtree exactly as `guardRefs(set)` guarded the originals — a validating setter,
           // so a wire ONTO the twin succeeds while a wire onto the detached original throws.
-          guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [twin, ...((twin.findAll as () => Node[])())] } as Node);
+          guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [twin, ...((twin.findAll as () => Node[])())] } as Node, (id) => defs[id]);
           live[i] = twin;   // MUTATE the live array in place — the combine-time snapshot still references `m`
           // DETACH the original member's whole subtree (`builtParts` holds these descendants): the wire loop's
           // fast-path write, and any recovery re-finding a part THROUGH the stale `m`, now throws.
@@ -847,11 +916,14 @@ export const makeShim = (opts: ShimOpts = {}) => {
         width: { configurable: true, get: () => w },
         height: { configurable: true, get: () => h },
       });
-      set.resize = (nw: number, nh: number) => { settle(); w = nw; h = nh; };
+      // #1516 — under `deferSettleToWire` the settle is HELD past the layout `resize` (and
+      // `addComponentProperty` below), so it fires only once the wire loop begins — after the executor has
+      // snapshotted its live-member map. `onRefWrite` (installed at the end of this method) is the trigger.
+      set.resize = (nw: number, nh: number) => { if (!opts.deferSettleToWire) settle(); w = nw; h = nh; };
       set.appendChild = (c: Node) => {
         (set.children as Node[]).push(c);
         takeFromPage([c]);
-        guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [c, ...((c.findAll as () => Node[])?.() ?? [])] } as Node);
+        guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [c, ...((c.findAll as () => Node[])?.() ?? [])] } as Node, (id) => defs[id]);
       };
       const defs: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
       let seq = 100;
@@ -876,7 +948,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         },
       });
       set.addComponentProperty = (name: string, type: string, defaultValue: unknown) => {
-        settle();   // #1473 — fallback trigger, in case a def declares properties without ever resizing
+        if (!opts.deferSettleToWire) settle();   // #1473 — fallback trigger, in case a def declares properties without ever resizing; #1516 holds it to the wire phase
         if (type === 'INSTANCE_SWAP' && typeof defaultValue !== 'string')
           throw new Error('in addComponentProperty: Property value is incompatible with component property type');
         if (type === 'BOOLEAN' && typeof defaultValue !== 'boolean')
@@ -889,7 +961,17 @@ export const makeShim = (opts: ShimOpts = {}) => {
         return key;
       };
       set.declaredIds = () => Object.keys(defs);
-      guardRefs(set);
+      guardRefs(set, (id) => defs[id]);
+      // #1516 — THE DEFERRED-SETTLE TRIGGER. The wire loop's first `componentPropertyReferences` write
+      // runs the settle (detaching every original, twinning every member into the live `set.children`) and
+      // then throws Figma's own refusal — a detached original is not a component sublayer. Every later
+      // write finds `settled` true and passes straight through to the validating setter (on the twins).
+      if (opts.deferSettleToWire)
+        onRefWrite = () => {
+          if (settled) return;
+          settle();
+          throw new Error('in set_componentPropertyReferences: Could not create a new component property reference');
+        };
       page?.children.push(set);
       return set;
     },

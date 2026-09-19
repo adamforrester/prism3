@@ -43,7 +43,7 @@
     },
     "text-field": {
       "members": 20,
-      "sha256": "4eb256d6390c5153b35187fedf5e926fc39798a9056487f3a4ba4db164a98ef7"
+      "sha256": "4f652d92c2749719ae7482245f4a8801590c61091d034a624049edb5bbf09002"
     },
     "textarea": null,
     "checkbox-control": {
@@ -56,7 +56,7 @@
     },
     "checkbox-group": {
       "members": 3,
-      "sha256": "2be437e5bcbda520b5fc7b24de6d8352d14f142cc7ab1527ba42c7e8e77960ec"
+      "sha256": "aabb67f8fb73473492c4cff03eb34bf9e00251cfe06dd9952fcbddf5cd65a91b"
     },
     "radio-control": {
       "members": 36,
@@ -68,7 +68,7 @@
     },
     "radio-group": {
       "members": 3,
-      "sha256": "e2db4e4c64f77ac0aa4d25e7991d931fac3c065325011897d1c8803f5c210e9e"
+      "sha256": "de226071c558c08fca754d353a8c97c8a75ce16c43a777a4c13eeab76e48ae8c"
     },
     "switch-control": {
       "members": 24,
@@ -80,7 +80,7 @@
     },
     "select": {
       "members": 16,
-      "sha256": "76c8509363167296dbc56c0f4689e45c692a8da5168d8bbab04fa4d2e3d7b6ea"
+      "sha256": "7005e26cecb211468b195506afd3b8d93ba2ac7dae63ab4c614d2bd5b1d6a09d"
     },
     "veil": {
       "members": 6,
@@ -88,7 +88,7 @@
     },
     "image-placeholder": {
       "members": 3,
-      "sha256": "563d30bd31dce3576876ee3cbf7e75d7802dcfed7696587749a73c0a6c1f6337"
+      "sha256": "8e18fc59b04e3d58d724b95df82b4a0440eed6844f748da1dda8ecd2dbe7b55e"
     }
   }
 }

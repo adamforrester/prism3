@@ -39,6 +39,7 @@ import { componentDefs } from '@prism3/engine/components/index';
 import { diffAnatomy, unclassifiedFields, fieldCoverage } from '@prism3/engine/anatomy-readback';
 import type { Divergence, HostNode, ReadPorts } from '@prism3/engine/anatomy-readback';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
+import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
 import { nbTheme } from '@prism3/engine/nb-fixture';
 import { tailOf } from '@prism3/engine/figma-names';
 import { applyComponentPlan } from './src/write-components';
@@ -252,6 +253,113 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+// ── #1514: THE COMPOSITE TEXT STYLE SURVIVES THE CHARACTERS-BIND SEAM — HOST-TRUTH + INDEPENDENT ORACLE ──
+//
+// THE DEFECT (owner QA 2026-09-18): every projected component text node showed its family/size/style bound to
+// variables but carried NO composite text style — loose variables, not "this text uses `label/md/emphasis`".
+// THE DIAGNOSIS: the style IS applied in `build` (`setTextStyleIdAsync`), but every component text node is also
+// bound to a set-level TEXT property (`componentPropertyReferences.characters`), and that bind resets the node
+// from the set-level property — the same reset-on-bind #1513 found for the caption — which detaches the applied
+// `textStyleId` while leaving the style's resolved property-level variable binds on the node. So the designer
+// sees the variables and no style. The fix RE-ASSERTS the style AFTER the wiring seam (`write-components.ts`,
+// beside the #1513 caption re-assert); the shared shim now models the detach (`component-shim.ts`, guardRefs),
+// so the corpus loop's generic `textStyle` predicate already goes red without the re-assert and green with it.
+//
+// WHAT THE CORPUS LOOP CANNOT CATCH, and why this block exists (docs/34): that predicate is plan-as-oracle —
+// it checks the built node's `textStyleId` against the PLAN's `textStyle`, so a def whose `type` key was flipped
+// round-trips green (the plan follows the flip). This closes that with an oracle authored HERE and nowhere else:
+// a literal per-coordinate table of the OWNER-DECIDED style each component text node must carry (button labels
+// take the emphasis LABEL style at their size rung; form controls and messages take the BODY / CAPTION reading
+// styles). A `type` flipped in a def diverges from THIS and fails by name. The INDEPENDENT floor is the emitted
+// style set (`buildFigmaTextStyles(nbTheme())` — the emitter, a code path separate from the projection, the same
+// independence #1429 uses with `buildFigmaColor`): every style the contract names must really be emitted, so a
+// green is not "the def and the oracle agree on a name nothing emits".
+{
+  // THE OWNER-DECIDED CONTRACT — a LITERAL table keyed by coordinate, never `figmaTextStyleName(def.type)`.
+  const STYLE_CONTRACT: Record<string, { parts: string[]; style: (c: Record<string, string | undefined>) => string }> = {
+    button:          { parts: ['label'], style: (c) => ({ small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' } as Record<string, string>)[c.size!] },
+    'field-message': { parts: ['text'],  style: () => 'caption/md/default' },
+    'text-field':    { parts: ['text'],  style: () => 'body/md/default' },
+    select:          { parts: ['text'],  style: () => 'body/md/default' },
+    'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    'radio-row':     { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    'field-label':   { parts: ['text', 'indicator'], style: (c) => (({
+      'small/regular': 'body/sm/default', 'small/bold': 'body/sm/strong',
+      'medium/regular': 'body/md/default', 'medium/bold': 'body/md/strong',
+      'large/regular': 'body/lg/default', 'large/bold': 'body/lg/strong',
+    } as Record<string, string>)[`${c.size}/${c.weight}`]) },
+  };
+
+  // THE INDEPENDENT ORACLE — the emitted style names, from the emitter and never from any plan.
+  const emittedStyleNames = new Set(buildFigmaTextStyles(nbTheme()).styles.map((s) => s.name));
+  ok(emittedStyleNames.size > 0, `#1514 the emitter produced composite text styles (independent-oracle floor: ${emittedStyleNames.size})`);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+  const findByName = (n: any, name: string): any => (n?.name === name ? n : (n?.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+
+  for (const [id, contract] of Object.entries(STYLE_CONTRACT)) {
+    const def = componentDefs.find((d) => d.id === id);
+    ok(!!def, `#1514: the ${id} def is registered and projects`);
+    if (!def) continue;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const texts = await (shim as unknown as { getLocalTextStylesAsync: () => Promise<{ id: string; name: string }[]> }).getLocalTextStylesAsync();
+    const styleById = new Map(texts.map((s) => [s.id, s.name] as const));
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const byName = new Map(members.map((m) => [String(m.name), m] as const));
+
+    let checked = 0;
+    for (const plan of plans) {
+      // `size` is a top-level plan field, the other axes ride `coord` — the oracle keys off both.
+      const axes = { size: (plan as { size?: string }).size, ...plan.coord } as Record<string, string | undefined>;
+      const want = contract.style(axes);
+      ok(!!want, `#1514: ${id} member ${JSON.stringify(plan.coord)} maps to an owner-decided style (oracle covers this coordinate)`);
+      if (!want) continue;
+      // INDEPENDENT FLOOR: the style the contract names is really emitted — not merely a name the def echoes.
+      ok(emittedStyleNames.has(want), `#1514: ${id}'s owner-decided style '${want}' is in the emitted style set (independent oracle)`);
+      const member = byName.get(planComponentName(plan));
+      for (const part of contract.parts) {
+        const node = member ? findByName(member, part) : undefined;
+        // SCOPE FLOOR: the text node was actually built into this member — otherwise "it carries the style"
+        // is a statement about a node that does not exist.
+        ok(!!node, `#1514: ${id}/${planComponentName(plan)} built the '${part}' text node (scope floor)`);
+        if (!node) continue;
+        const gotId = (node as { textStyleId?: unknown }).textStyleId;
+        const gotName = typeof gotId === 'string' && gotId ? (styleById.get(gotId) ?? `id ${gotId} resolves to no style`) : 'NO TEXT STYLE APPLIED';
+        ok(gotName === want,
+          `#1514: ${id}/${planComponentName(plan)}/${part} carries the composite text style '${want}' after the characters-bind seam (host holds '${gotName}')`);
+        checked++;
+      }
+    }
+    ok(checked > 0, `#1514: ${id} presented text nodes to check (scope floor: ${checked})`);
+  }
+
+  // NON-VACUITY (docs/34) — the pre-fix state, reproduced explicitly: a built text node whose `textStyleId`
+  // was detached (exactly what the shim's characters-bind models, and what shipped before this fix) is reported
+  // by the SAME read-back, by name. Without this, a check that only ever sees the applied style could be an
+  // always-pass.
+  {
+    const def = componentDefs.find((d) => d.id === 'button')!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const texts = await (shim as unknown as { getLocalTextStylesAsync: () => Promise<{ id: string; name: string }[]> }).getLocalTextStylesAsync();
+    const styleById = new Map(texts.map((s) => [s.id, s.name] as const));
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const label = findByName(members[0], 'label');
+    const before = typeof label?.textStyleId === 'string' && label.textStyleId ? styleById.get(label.textStyleId) : undefined;
+    (label as { textStyleId?: string }).textStyleId = '';   // the detach the fix defends against
+    const afterName = typeof label?.textStyleId === 'string' && label.textStyleId ? (styleById.get(label.textStyleId) ?? 'unknown') : 'NO TEXT STYLE APPLIED';
+    ok(!!before && afterName === 'NO TEXT STYLE APPLIED',
+      `#1514 mutation: a built label whose textStyleId is detached reads back 'NO TEXT STYLE APPLIED' by name (was '${before ?? '—'}') — the check is not vacuous`);
+  }
+}
+
 // ── PANEL PROPERTY ORDER + DISPLAY NAMES (#1309/#1380) — HOST-TRUTH ─────────────────────────────
 //
 // The icon-property canon (#1380) is three things: `label` (the TEXT property) at the top, each presence
@@ -262,8 +370,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // component (non-variant) properties in: it is `planSetProperties`'s output order, which the digest does
 // not hash and no other read-back inspects. So read it back off the HOST — `componentPropertyDefinitions`,
 // whose key order is the executor's `addComponentProperty` order — and pin it against an oracle authored
-// HERE, not derived from `planSetProperties` (docs/34). Reordering `planSetProperties` (its text→swap→
-// boolean sort) then fails this BY NAME.
+// HERE, not derived from `planSetProperties` (docs/34). Reordering `planSetProperties` (its text → each
+// boolean → the swap it gates → any unpaired swap order, #1519) then fails this BY NAME.
 //
 // The panel INTERLEAVE of the variant switches with the component properties is host-RENDERED and not
 // asserted here (the repo's standing position that panel render order is "the owner's Figma check, not
@@ -271,14 +379,27 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // `label` is CREATED first and the swaps carry their `↳` labels.
 {
   const CANON: Record<string, { componentProps: string[]; switches: string[] }> = {
+    // button's presence toggles are VARIANT switches (edge-hugging leading/trailing change container
+    // geometry, so #1331/#1379 keeps them variant, not boolean) — they are not component properties here,
+    // so #1519's boolean→swap pairing does not reach button: its component properties stay `label` (TEXT)
+    // then the two swaps in by-part order. The panel nesting of each swap beneath its switch is Figma's
+    // own render off the `↳ ` name prefix, not an order this list controls.
     button: { componentProps: ['label', '↳ swap leading icon', '↳ swap trailing icon'], switches: ['leading icon', 'trailing icon'] },
     // select's `leading icon` is a node-visibility BOOLEAN component property since #1331 (not a variant
-    // switch): it appears in componentProps, ordered `value` (TEXT) → `leading icon` (BOOLEAN) → swap, and
-    // NO longer among the variant switches. Reverting it to a slot axis moves it back to `switches` and
-    // fails both assertions below by name. `message` is the SECOND node-visibility boolean (#1426, hiding
-    // the composed FieldMessage), so the panel shows `value` (TEXT) → `leading icon` → `message` (BOOLEANs)
-    // → `↳ swap leading icon` (SWAP); dropping the showMessage boolean removes `message` here BY NAME.
-    select: { componentProps: ['value', 'leading icon', 'message', '↳ swap leading icon'], switches: [] },
+    // switch): it appears in componentProps and is NO longer among the variant switches. Reverting it to a
+    // slot axis moves it back to `switches` and fails both assertions below by name. `message` is the
+    // SECOND node-visibility boolean (#1426, hiding the composed FieldMessage). Since #1519 each icon swap
+    // sits DIRECTLY under the boolean that gates it, so the panel reads `value` (TEXT) → `leading icon`
+    // (BOOLEAN) → `↳ swap leading icon` (SWAP) → `message` (the standalone show/hide BOOLEAN, no swap to
+    // pair). Reordering `planSetProperties` back to the old all-booleans-then-all-swaps grouping moves the
+    // swap after `message` and fails this BY NAME. Dropping the showMessage boolean removes `message` here.
+    select: { componentProps: ['value', 'leading icon', '↳ swap leading icon', 'message'], switches: [] },
+    // text-field carries BOTH icon slots as node-visibility booleans (#1494) plus the `message` show/hide
+    // boolean. #1519 pairs each swap under its boolean, so the panel reads `value` (TEXT) → `leading icon`
+    // → `↳ swap leading icon` → `trailing icon` → `↳ swap trailing icon` → `message` (standalone). This is
+    // the def where the pairing matters most (two icon slots): the old grouping would show both booleans,
+    // then both swaps, detached — reordering `planSetProperties` back to it fails this BY NAME.
+    'text-field': { componentProps: ['value', 'leading icon', '↳ swap leading icon', 'trailing icon', '↳ swap trailing icon', 'message'], switches: [] },
     'icon-button': { componentProps: ['swap icon'], switches: [] },
   };
   for (const [id, want] of Object.entries(CANON)) {
@@ -691,6 +812,243 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // label never shrinks or stretches it.
     ok(controlBoxes.length > 0 && controlBoxes.every((c) => c && c.layoutGrow !== 1 && c.counterAxisSizingMode === 'FIXED'),
       `#1424 host-truth: every ${id} controlBox reads back fixed/hug — layoutGrow≠1 (${String(controlBoxes[0]?.layoutGrow)}) and counterAxisSizingMode=FIXED (${String(controlBoxes[0]?.counterAxisSizingMode)})`);
+  }
+}
+
+// ── #1503: CROSS-AXIS CHILD FILL, READ BACK OFF THE BUILT NODE — HOST-TRUTH ─────────────────────
+//
+// The owner decided (Option B, follow Prism 2) that the column-stacked form components should have a
+// fixed-width root with their inner children set to cross-axis FILL, so the rows / inputs SPAN the
+// container rather than rendering ragged. The projection realizes that with `crossAxisFill` →
+// `layoutAlign: STRETCH` (the missing cross-axis twin of `wrap`'s main-axis `layoutGrow`), applied to the
+// child BY ITS PARENT so it reaches a nested INSTANCE the child neutralizer returns early on.
+//
+// The generic diff above already checks `layoutAlign` against the built node (plan-as-oracle:
+// `anatomy-readback.ts`'s `layoutAlign` predicate), which catches an executor that fails to write it — the
+// #874 class. What it CANNOT catch is a def that silently STOPS filling: drop `crossAxisFill` and the plan
+// no longer carries the field, so plan-vs-built still agrees on its absence. This block closes that with an
+// oracle authored HERE and nowhere else — the owner-decided fact that these children fill their container's
+// width — so a `crossAxisFill` removed from any of these parts reads back `INHERIT`/absent, diverges from
+// this STRETCH oracle, and fails BY NAME (docs/34). It also proves the parent-applied write reaches a nested
+// INSTANCE, the whole reason `layoutAlign` is applied by the parent rather than in `claimDefaults`.
+{
+  // THE OWNER-DECIDED FILL CONTRACT — which parts of which defs must span their container's cross axis.
+  // Authored here, not derived from the defs (docs/34): the def is the SUBJECT, this is the ORACLE.
+  //   · checkbox-group / radio-group — the stacked rows fill the group's width (the label deliberately hugs).
+  //   · select — the composed label + message fill the field's width (the control already spans via minWidth).
+  // text-field and field-message are HELD (their width floor / cross-axis alignment are owner design calls,
+  // see the PR body), so they are deliberately absent — this oracle asserts only what the owner settled.
+  const FILLS: Record<string, string[]> = {
+    'checkbox-group': ['row1', 'row2', 'row3'],
+    'radio-group': ['row1', 'row2', 'row3'],
+    'select': ['label', 'message'],
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+  const findByName = (n: any, name: string): any => (n?.name === name ? n : (n?.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+  for (const [id, partNames] of Object.entries(FILLS)) {
+    const def = componentDefs.find((d) => d.id === id);
+    ok(!!def, `#1503 host-truth: the ${id} def is registered and projects`);
+    if (!def) continue;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    for (const part of partNames) {
+      const nodes = members.map((m) => findByName(m, part));
+      // SCOPE FLOOR — the part was built into every member, or "they all fill" is a statement about an empty
+      // set. This also fires if a part is renamed or dropped from the def.
+      ok(members.length > 0 && nodes.every(Boolean),
+        `#1503 host-truth: ${id} builds a '${part}' into every member (${nodes.filter(Boolean).length}/${members.length})`);
+      // THE CHILD FILLS THE CROSS AXIS — read back off the built node. A `nest` part (rows, label, message)
+      // is a nested INSTANCE, so a green here proves the PARENT-applied `layoutAlign` reached it — a write
+      // `claimDefaults` skips. Drop `crossAxisFill` from the def and this reads `INHERIT`/undefined, failing
+      // by name.
+      ok(nodes.length > 0 && nodes.every((no) => no && no.layoutAlign === 'STRETCH'),
+        `#1503 host-truth: every ${id} '${part}' reads back layoutAlign=STRETCH — it fills the container's width (e.g. layoutAlign=${String(nodes[0]?.layoutAlign)})`);
+    }
+  }
+  // THE WIDTH-FLOOR HALF — the container carries `minWidth: 320` so the STRETCH resolves against a real width
+  // (Prism 2's 320) rather than the widest label. Read back off the built group root, oracle authored here.
+  for (const id of ['checkbox-group', 'radio-group']) {
+    const def = componentDefs.find((d) => d.id === id);
+    if (!def) continue;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    ok(members.length > 0 && members.every((m) => (m as { minWidth?: unknown }).minWidth === 320),
+      `#1503 host-truth: every ${id} member reads back minWidth=320 — the width floor the rows fill (e.g. minWidth=${String((members[0] as { minWidth?: unknown })?.minWidth)})`);
+  }
+}
+
+// ── #1518: text-field CONTROL READS BACK minWidth=320 — HOST-TRUTH ──────────────────────────────
+//
+// The owner settled text-field's default width at 320 (parity with select, #1345): the `control` box carries a
+// `minWidth: 320` LITERAL, so a projected field reads at a comfortable width rather than hugging narrow. Unlike
+// the #1503 groups (whose floor is on the ROOT), text-field's floor sits on the visible CONTROL — the one place
+// projection can express it (the column then hugs to the 320 control). The generic plan-vs-built diff already
+// checks `minWidth` against the built node, which catches an executor that fails to WRITE it (#874 class); what
+// it CANNOT catch is the def silently STOPPING declaring it (plan omits the field → plan-vs-built agrees on its
+// absence). This block closes that with an oracle authored HERE — the owner-decided 320 — read back off the
+// built control, so dropping `minWidth` from the def reads back `undefined`, diverges from 320, and fails BY
+// NAME (docs/34). Mirrors the #1503 group-root minWidth half, one node deeper (the control, not the root).
+{
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+  const findByName = (n: any, name: string): any => (n?.name === name ? n : (n?.children ?? []).map((c: any) => findByName(c, name)).find(Boolean));
+  const def = componentDefs.find((d) => d.id === 'text-field');
+  ok(!!def, '#1518 host-truth: the text-field def is registered and projects');
+  if (def) {
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const controls = members.map((m) => findByName(m, 'control'));
+    // SCOPE FLOOR — the control was built into every member, or "they all read 320" is a statement about an
+    // empty set. This also fires if the control part is renamed or dropped from the def.
+    ok(members.length > 0 && controls.every(Boolean),
+      `#1518 host-truth: text-field builds a 'control' into every member (${controls.filter(Boolean).length}/${members.length})`);
+    // THE WIDTH FLOOR — read back off the built control. Oracle 320 authored here; drop `minWidth: 320` from the
+    // control PartDef and this reads back `undefined`, failing by name.
+    ok(controls.length > 0 && controls.every((c) => (c as { minWidth?: unknown })?.minWidth === 320),
+      `#1518 host-truth: every text-field control reads back minWidth=320 — the owner-settled default width (e.g. minWidth=${String((controls[0] as { minWidth?: unknown })?.minWidth)})`);
+  }
+}
+
+// ── #1513: EACH field-message STATUS CAPTION SURVIVES THE REFERENCE WIRING — HOST-TRUTH ──────────
+//
+// #1474 gave field-message four DISTINCT per-status captions (Set A) via `byVariant.status`, and the engine
+// + offline shim carried them (`test-write-components.ts`). But in a LIVE projection every status rendered
+// the `default` string "This is a standard message." (#1513): wiring `componentPropertyReferences.characters`
+// binds a text node to the SET-LEVEL TEXT property, whose ONE `defaultValue` is the canonical fallback
+// (`planSetProperties` → `textDefault`, #1018), and Figma ADOPTS that default onto the bound node — discarding
+// the per-coordinate copy `build` wrote before combine. The shim now models that reset-on-bind
+// (`component-shim.ts`), and `write-components.ts` re-asserts each member's own copy AFTER wiring; this reads
+// the built captions back off the host and pins the four distinct strings.
+//
+// The oracle — the four Set A strings — is authored HERE, not read off the def (docs/34): reverting a caption
+// in `field-message.ts` diverges from this by name. The FLOORS make the check non-vacuous: (1) the set-level
+// property default IS the fallback, and (2) the reset is LIVE — re-binding a caption ref collapses the node to
+// that fallback — so a green positive arm is the fix defeating a REAL reset, not a shim that never resets.
+// Mutation-by-name: revert the #1513 re-assert in `write-components.ts` and every member reads the fallback,
+// failing the positive assertion by name.
+{
+  const def = componentDefs.find((d) => d.id === 'field-message');
+  ok(!!def, '#1513 host-truth: the field-message def is registered and projects');
+  if (def) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- recursive node walk over the shim tree
+    const findText = (n: any): any => (n?.type === 'TEXT' ? n : (n?.children ?? []).map((c: any) => findText(c)).find(Boolean));
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's set
+    const set = page.children[0] as any;
+    const members = (set?.children ?? []) as unknown as HostNode[];
+    const texts = members.map((m) => findText(m));
+    // SCOPE FLOOR — a caption TEXT was built into every member, or "they all carry copy" is a claim about an empty set.
+    ok(members.length === 4 && texts.every(Boolean),
+      `#1513 host-truth: field-message builds a caption TEXT into every status member (${texts.filter(Boolean).length}/${members.length})`);
+    const captions = texts.map((t) => String(t?.characters ?? '<none>'));
+    // THE OWNER-DECIDED SET A ORACLE (#1474), authored here — not derived from the def (docs/34).
+    const WANT = ['This is a standard message.', 'Something needs fixing.', 'Double-check this.', 'All set.'];
+
+    // FLOOR (1): the set-level TEXT property default is the fallback the reset would collapse every member onto.
+    const defs = set.componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+    const textKey = Object.keys(defs ?? {}).find((k) => defs[k].type === 'TEXT');
+    ok(!!textKey && defs[textKey].defaultValue === WANT[0],
+      `#1513 floor: the set carries ONE TEXT property whose default is the fallback "${WANT[0]}" (host holds ${JSON.stringify(textKey && defs[textKey].defaultValue)})`);
+
+    // FLOOR (2): the reset is LIVE. Re-binding a member's caption reference collapses its text to that default,
+    // proving the positive arm below is the fix defeating a real reset rather than a shim that never resets.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim node
+    const probe = texts[1] as any;
+    const before = String(probe.characters);
+    probe.characters = 'sentinel — should be reset on re-bind';
+    probe.componentPropertyReferences = { ...(probe.componentPropertyReferences ?? {}), characters: textKey };
+    ok(before === WANT[1] && String(probe.characters) === WANT[0],
+      `#1513 floor: re-binding a caption reference collapses the node from its own copy to the set default — reset-on-bind is live (was "${before}", now "${String(probe.characters)}")`);
+
+    // THE FIX: after the executor's full run, the four members carry the four DISTINCT Set A captions — not the
+    // fallback on every one. (`captions` was read before the FLOOR (2) probe mutated members[1].)
+    ok(captions.join(' | ') === WANT.join(' | '),
+      `#1513: each field-message status member's own caption survives the reference wiring — the four distinct Set A strings reach the host, not the fallback on every member (${captions.join(' | ')})`);
+    ok(new Set(captions).size === 4,
+      `#1513: the four captions are pairwise distinct, so no single set-wide default leaked onto the wrong member (${new Set(captions).size} distinct)`);
+  }
+}
+
+// ── #1516: AN ASYNC MEMBER-SETTLE DURING THE WIRE PHASE LEAVES NO PROPERTY-REFERENCE MISS — HOST-TRUTH ─
+//
+// #1473 recovers a member whose identity the host reassigns AT COMBINE by re-resolving it from a
+// live-member map the executor snapshots after the layout `resize` — on the premise that once every
+// set-level op has run, the reconciliation is done. #1516 is the instant that premise misses: the host
+// finishes reassigning SOME members' identity ASYNCHRONOUSLY, only DURING the wire loop — after that
+// snapshot, on one of the loop's `await breathe` yields. A recovery through the once-snapshotted map lands
+// on the detached original and Figma refuses the reference AGAIN ("Could not create a new component
+// property reference"), so the miss is permanent. Live it concentrated on the LAST-wired coordinates —
+// field-label `state=disabled` (~30), text-field `status=warning` / `state=disabled` (~33), select (36
+// earlier) — the members reached after the most yields (QA 2026-09-18). The fix reads `set.children` FRESH
+// at each use rather than from a snapshot (`liveMember`, write-components.ts), so a settle that lands at
+// any point in the loop is seen by the next resolution.
+//
+// The shim's `deferSettleToWire` models the host behavior (see `component-shim.ts`): it HOLDS the
+// member-level settle past `resize`/`addComponentProperty` — past the executor's snapshot — and fires it
+// on the wire loop's first ref write, detaching every original. This asserts ZERO property-reference misses
+// against the executor's OWN misses collection (the `misses.push('ref …')` path the issue's acceptance
+// names), and independently reads the references back through `anatomy-readback.ts` — a reader separate
+// from the executor (docs/34). Mutation-by-name: revert the fresh `liveMember` read to a one-time snapshot
+// and every member reports `ref …/… -> … (Could not create a new component property reference)`, failing
+// the miss assertion by name (the message surfaces the failing coordinates, disabled/warning first). The
+// FLOOR (`refsRepaired === refs > 0`) proves the deferred settle actually detached every reference —
+// without it there is nothing to recover and a clean miss list is vacuous.
+{
+  const DEFS = ['field-label', 'text-field', 'select'];
+  // A property-REFERENCE wiring miss — the two `misses.push('ref …')` sites (the wire-loop throw recovery
+  // and the read-back DISCARDED), exactly the class #1516 names. Bound-variable ('bound …') and text
+  // ('text …') misses are a different push path and out of scope here.
+  const refMissesOf = (misses: string[]): string[] => misses.filter((m) => m.startsWith('ref '));
+  // Surface the #1516 symptom coordinates (disabled / warning) first, so a reverted fix names them.
+  const symptomFirst = (a: string, b: string): number =>
+    Number(/state=disabled|status=warning/.test(b)) - Number(/state=disabled|status=warning/.test(a));
+  for (const id of DEFS) {
+    const def = componentDefs.find((d) => d.id === id);
+    ok(!!def, `#1516 host-truth: the ${id} def is registered and projects`);
+    if (!def) continue;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page, deferSettleToWire: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    const res = await applyComponentPlan(plans, shim as any, {});
+    // FLOOR: the deferred settle actually fired — every reference was detached at wire time and recovered
+    // through the member-level recovery. refsRepaired === refs (> 0) proves the shim modelled a REAL
+    // settle, so a clean miss list below is the fix defeating it rather than a shim that never settled.
+    ok(res.refsRepaired > 0 && res.refsRepaired === res.refs,
+      `#1516 floor: ${id}'s wire-phase settle detached and the fix recovered every reference (refsRepaired=${res.refsRepaired}/${res.refs})`);
+    // THE FIX, against the executor's OWN misses collection (the issue's acceptance): ZERO property-
+    // reference misses across the full projection. Message names the failing coordinate(s) — a reverted fix
+    // fails BY NAME (docs/34), disabled/warning surfaced first.
+    const refMisses = refMissesOf(res.misses).sort(symptomFirst);
+    ok(res.wiredMembers === plans.length && refMisses.length === 0,
+      `#1516: ${id} projects with ZERO set_componentPropertyReferences misses across all ${plans.length} members (wiredMembers=${res.wiredMembers}/${plans.length}; ${refMisses.length ? `${refMisses.length} miss(es): ${refMisses.slice(0, 3).join(' | ')}` : 'none'})`);
+    // INDEPENDENT READ-BACK (docs/34): a reader separate from the executor confirms every declared reference
+    // is retained on the SETTLED set — 0 propertyRef DISCARDED.
+    const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
+    const texts = await (shim as unknown as { getLocalTextStylesAsync: () => Promise<{ id: string; name: string }[]> }).getLocalTextStylesAsync();
+    const varById = new Map(vars.map((v) => [v.id, v.name] as const));
+    const styleById = new Map(texts.map((s) => [s.id, s.name] as const));
+    const ports: ReadPorts = { varName: (idv) => varById.get(idv) ?? null, styleName: (idv) => styleById.get(idv) ?? null };
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const divergences = diffAnatomy(plans, members, planComponentName, ports, {});
+    const refDiv = divergences.filter((d) => d.field === 'propertyRef' || d.field === 'visibleProp' || d.field === 'visible');
+    ok(members.length === plans.length && refDiv.length === 0,
+      `#1516 host-truth: reading the settled ${id} back, every declared reference is retained — 0 propertyRef DISCARDED (${refDiv.length ? refDiv.slice(0, 3).map((d) => `${d.member}: ${d.actual}`).join(' | ') : 'none'})`);
   }
 }
 

@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.119.0 — #1510: the link role gains a PER-STATE OVERRIDE lever, `linkStateRungs`. #1486 shipped the
+ * 0.125.0 — #1510: the link role gains a PER-STATE OVERRIDE lever, `linkStateRungs`. #1486 shipped the
  * global link state walk (default → hover → pressed → visited) as a tuned constant with the lever deferred;
  * #1487 surfaced it read-only. This adds the missing lever: a brand pins how far each ENGAGED state
  * (hover / pressed / visited) steps from the resting link, independently, as a RUNG COUNT walked the same
@@ -2947,6 +2947,114 @@
  * `tools/list` 60k ceiling by COMPRESSION (#1368 precedent): a terse `linkStateRungs` schema block with the
  * rich prose in the lever manifest, and two adjacent over-verbose schema descriptions
  * (`strictInteractiveContrast`, `disabledStrategy`) trimmed to their manifest-backed essentials.
+ * 0.124.0 — #1519: ICON-SWAP SITS DIRECTLY UNDER ITS PRESENCE BOOLEAN in the Figma panel (owner-directed,
+ * owner QA 2026-09-18). `planSetProperties` no longer groups all booleans then all swaps; it now pairs each
+ * icon swap DIRECTLY after the boolean that gates it, so the panel reads `leading icon` → `↳ swap leading
+ * icon` → `trailing icon` → `↳ swap trailing icon` rather than the two toggles then the two swaps detached.
+ * A swap pairs to a boolean when ONE glyph node carries both the visibility boolean (`visibleProp`) and the
+ * content swap (`propertyRef.mainComponent`), which is select's and text-field's leading/trailing glyphs.
+ * AFFECTED DEFS: `select` (`value` → `leading icon` → `↳ swap leading icon` → `message`) and `text-field`
+ * (`value` → `leading icon` → `↳ swap leading icon` → `trailing icon` → `↳ swap trailing icon` → `message`).
+ * NOT AFFECTED: `button` (×3 families) and `icon-button` (×3) — button's leading/trailing presence toggles
+ * are VARIANT switches, not boolean component properties (#1331/#1379 keeps them variant because edge-hugging
+ * presence changes container geometry a boolean cannot reach), and icon-button's icon is required (no boolean),
+ * so neither has a boolean HERE to pair against and their component-property order is byte-identical to before.
+ * For button the panel nesting of the swap beneath its switch is Figma's own render off the `↳ ` name prefix,
+ * unchanged. GATE (docs/34): `test:roundtrip`'s #1380 panel-order oracle is updated to the new boolean→swap-
+ * paired order for `select` and gains a `text-field` entry (both authored in the gate, not derived from
+ * `planSetProperties`); the button/icon-button oracles are unchanged. BY-NAME MUTATION: reorder
+ * `planSetProperties` back to the old all-booleans-then-all-swaps grouping → the #1380/#1519 order assertion
+ * fails BY NAME naming the def and the wrong order (the swap lands after `message` instead of under its
+ * boolean). The #1331 `iLi < iSwap` assertion in `test.ts` still holds (boolean stays immediately above its
+ * swap). A projected-surface (property ORDER) change on two defs → ENGINE bump; `schema/component-surface.json`
+ * is re-`--accept`ed after this forward bump if the plan/member digests move (property order is part of the set
+ * plan). CONTRACT STANDS at 11.3.0 — property ORDER is not a guaranteed token NAME; `token-contract --check`
+ * level `none`, stamp-only. `out/**` restamps only `$extensions.generator.version`.
+ * 0.123.0 — #1518: TWO text-field fixes, mirrored onto select (both owner-directed, owner QA 2026-09-18).
+ * (1) DEFAULT WIDTH 320 (select parity). text-field's `control` gains `minWidth: 320` — the same responsive
+ * width floor select carries (#1345: reads at 320, flexes above), a LITERAL not a token so no name moves. This
+ * settles the width floor #1494/#1503 deferred ("a follow-up if one is wanted"); the owner set it at 320.
+ * ONLY the control floor is in scope — the nested label/message `crossAxisFill` (the other half of #1503's held
+ * text-field follow-up) is NOT applied here, so the parts still hug narrower than the 320 control (tracked, see
+ * text-field.notes.unverified + the PR body). (2) PLACEHOLDER INK vs VALUE INK. Both text-field and select
+ * re-point `label.empty` from `color.field.placeholder` to `color.text.secondary` (the muted body ink), keeping
+ * the bare `label` at `color.text.primary` (full contrast): the empty-vs-value polarity now reaches the SAME two
+ * shared text roles rather than a field-scoped placeholder role. Both roles already ship (no new guaranteed NAME).
+ * Neither `label.empty` key is axis-value-led, so `lint-paint` arm 1 says nothing about it and no provenance
+ * exception is added (a same-family re-point). GATE (docs/34): `test:roundtrip` gains a #1518 host-truth block
+ * reading text-field's control `minWidth` back off the offline host (oracle 320 authored in the gate, mirroring
+ * the #1503 group-root minWidth block); `test.ts` pins each def's value ink → `text.primary` and placeholder ink
+ * → `text.secondary` by name. TWO by-name mutations verified: (a) drop the 320 → the roundtrip minWidth assertion
+ * fails by name; (b) repoint `label.empty` → `text.primary` → the ink assertion fails by name. A projected-surface
+ * (minWidth) + paint (placeholder variable) change on two defs → ENGINE bump; `schema/component-surface.json` and
+ * `schema/paint-census.json` are `--accept`ed after this forward bump (plans + placeholder grid move; member
+ * counts hold — text-field 20 / select 16). CONTRACT STANDS at 11.3.0 (no token NAME moves; `token-contract
+ * --check` level `none`, stamp-only). `out/**` restamps only `$extensions.generator.version`.
+ * 0.122.0 — #1503: PROJECT CROSS-AXIS CHILD FILL (`layoutAlign: 'STRETCH'`), the missing twin of `wrap`'s
+ * main-axis `layoutGrow`. The auto-layout audit (#1475) found every column-stacked form component hugs its
+ * width with children that do NOT fill it, where Prism 2 gives a fixed-320 root with rows / inputs set to
+ * `layoutSizingHorizontal: FILL`; the owner decided Option B (follow Prism 2). Two engine gaps closed: a new
+ * `PartDef.crossAxisFill` (→ plan `layoutAlign: 'STRETCH'`, Figma's only non-deprecated per-child cross-axis
+ * stretch), applied to the child BY ITS PARENT in both executors' child loops so it reaches a nested INSTANCE
+ * `claimDefaults` returns early on; and the "root width affordance" via the existing `minWidth` literal (320,
+ * the `select` #1345 precedent — reads at 320, flexes above, no bound token). Landed on `checkbox-group`
+ * FIRST (container `minWidth: 320`, three rows `crossAxisFill`), then `radio-group` mirrors it verbatim so the
+ * two match by SHARING one resolution (#1475), then `select` (label + message fill the already-320-floored
+ * control). `anatomy-readback.ts` classifies `layoutAlign`; `test:roundtrip` gains a #1503 host-truth block
+ * asserting each part reads back `layoutAlign: STRETCH` and each group root `minWidth: 320`, with a docs/34
+ * by-name mutation (drop `crossAxisFill` → reads `INHERIT`, fails by name). A projected auto-layout change on
+ * several components → ENGINE bump; the surface + paint-census baselines are `--accept`ed after this forward
+ * bump. CONTRACT STANDS at 11.3.0 — `layoutAlign` is a component layout fact, not a guaranteed DTCG token PATH
+ * (`token-contract --check` level `none`, stamp-only), and 320 mints no token name. HELD for the owner (see
+ * the PR body): text-field's width FLOOR (#1494 deferred it — the "exact fixed width per component" decision)
+ * and field-message's cross-axis ALIGNMENT (MIN vs CENTER, flagged by the audit as an owner design call; its
+ * caption fill is main-axis anyway) — the capability is ready for both the moment those are settled.
+ * 0.121.0 — #1520: the fluid `type-sets` variable collection now emits DESKTOP as its first (default) mode,
+ * flipping `FONT_FLUID_MODES` from `['mobile','desktop']` to `['desktop','mobile']`. Figma treats a
+ * collection's first mode as its default, so every text style whose `fontSize` binds a `type-sets` variable
+ * resolved to its MOBILE value until the viewer switched — which is what made display type look capped at the
+ * ~48px mobile hero band. Owner's call (QA 2026-09-18): start desktop-first and have users switch to mobile.
+ * The per-mode value is keyed by mode NAME (`value: mode === 'mobile' ? …`), not array index, so the order
+ * flips the DEFAULT without moving any emitted value; the mirror copy in `materialise-to-figma.ts` (paste-path
+ * file reader) flips too, and `test.ts` asserts the plan's mode order BY NAME (`desktop,mobile`). The
+ * per-mode `type-sets.<mode>.json` files keep identical names/values, so the only `out/**` churn is this
+ * file's own `$extensions.generator.version` re-stamp; the plan/plugin behavior (default mode) is where the
+ * change is observable. CONTRACT STANDS at 11.0.0 — mode order is not a guaranteed token name
+ * (`token-contract --check` level `none`).
+ * 0.120.0 — #1517: STATUS-LED BORDER for `warning` and `success` in `text-field` + `select` (owner-directed,
+ * Prism 2 parity). Until now only `error` swapped the field border (`error.border.{state}` → `color.border.
+ * danger`) while `warning`/`success` were message-only. This extends the status-led, border-ONLY swap to the
+ * other two non-default statuses, mirroring `error` per non-disabled state: `warning.border.{state}` →
+ * `color.border.warning`, `success.border.{state}` → `color.border.success` (text-field's five states rest /
+ * hover / focus-visible / read-only / empty; select's four rest / hover / focus-visible / empty). The field now
+ * signals status on BOTH the border and the nested field-message. NO NEW TOKEN NAME: `color.border.warning` /
+ * `color.border.success` already ship for every brand (the `SEMANTICS` border ladder in `modes.ts`, the same
+ * roles the message reaches for `text.warning`/`text.success`), so CONTRACT STANDS at 11.3.0 (`token-contract
+ * --check` level `none`, stamp-only). Projected-surface + paint change (the warning/success members gain a
+ * border binding) → ENGINE bump: `lint-component-surface` re-`--accept`ed (member plans move) and `lint-paint`
+ * census re-`--accept`ed (the paint grids gain the new keys). `lint-paint` PROVENANCE_EXCEPTIONS is NOT extended
+ * — `warning.border.*` → `color.border.warning` and `success.border.*` → `color.border.success` are SAME-family
+ * (the ref carries the axis value as a segment), so arm 1's normal rule covers them and a per-key exception
+ * would be flagged as stale (line 506-507); only `error` → `danger` (cross-vocabulary) keeps its exception. No
+ * committed `out/**` VALUE moves (component payloads are not committed; the def binds existing roles), so
+ * `regen --check` moves only each artifact's generator stamp. MUTATION (docs/34): repointing `warning.border.rest`
+ * from `color.border.warning` to `color.border.success` (a role that RESOLVES) fails `lint-paint.ts` arm 1 BY
+ * NAME (`status='warning' is absent from 'color.border.success'`) and arm 2 (the `select`/`text-field` paint
+ * hash moves); restored.
+ * 0.119.0 — #1515: `image-placeholder` declares `footprintVaries: ['ratio']`, clearing two false footprint
+ * misses. Owner QA read the projected set back with two misses — `ratio=4:3 measures 720×540 but ratio=1:1
+ * measures 720×720 (same)` and the 16:9 twin — because the footprint cohort compared members expecting equal
+ * size while the `ratio` axis (1:1/4:3/16:9) LEGITIMATELY changes the frame's height through its aspect lock.
+ * The exemption is the field-message/#1010 mechanism (`footprintVaries` threads into `planSetLayout`'s cohort
+ * key so each ratio becomes its own cohort), but the REASON it validates is new: the frame derives its
+ * `aspectRatio` lock from the axis, not a `presentWhen`-gated part. So the schema's footprint-exemption check
+ * gains a second legitimate mover — an axis some box's `aspectRatio` is derived from — beside the existing
+ * `presentWhen` one; an axis that does NEITHER is still a blanket and still refused (mutation-proven by name:
+ * strip the frame's lock and `ratio` is rejected). A projected-component-surface change (#1252 case) → ENGINE
+ * bump; the projected member GEOMETRY moves (`schema/component-surface.json` per-member footprint), so that
+ * baseline regenerates and is `--accept`ed. No emitted `out/**` VALUE moves — committed trees restamp only
+ * `$extensions.generator.version`. CONTRACT STANDS at 11.3.0 — `ratio` is a component-structure property, not
+ * a token name or React prop, so no guaranteed name moves (`token-contract --check` level `none`).
  *
  * 0.118.0 — #1469: ADD `radio-group`, the single-select twin of `checkbox-group`. `radio` had no group
  * ("Radio Group: None available" in the QA build status); the owner directed adding it during QA. It is a
@@ -3151,7 +3259,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.119.0';
+export const ENGINE_VERSION = '0.125.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

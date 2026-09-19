@@ -277,6 +277,18 @@ export const FIELDS: Record<string, FieldCheck> = {
     check: (p, n) => (n.textAutoResize === p ? null : str(n.textAutoResize)),
   },
 
+  // ── cross-axis child fill (#1503) ────────────────────────────────────────────────────────────────
+  // The child-side cross-axis stretch (`layoutAlign: 'STRETCH'`), the twin of `layoutGrow` above. The
+  // PARENT sets it on the child (both executors' child loops), so it reaches a nested INSTANCE; the host
+  // echoes it verbatim, so this compares directly. Carried onto the plan ONLY for a `crossAxisFill` part
+  // (`checkbox-group`/`radio-group` rows, `select`'s label + message), so `diffNode` reaches this predicate
+  // on those nodes alone and every other node is byte-identical. An executor that failed to write it — or
+  // wrote it in `claimDefaults`, which returns early on an INSTANCE — reads back `INHERIT`/absent and fails here.
+  layoutAlign: {
+    show: (p) => `layoutAlign ${String(p)}`,
+    check: (p, n) => (n.layoutAlign === p ? null : str(n.layoutAlign)),
+  },
+
   // ── literal glyph size (#1340) ─────────────────────────────────────────────────────────────────
   // Unlike `glyphViewBox` (below, ignored because the executor MEASURES the import and this reader has no
   // second opinion), `glyphPx` is a size the executor SETS to an exact literal — so the reader DOES have

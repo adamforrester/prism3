@@ -330,6 +330,31 @@ export type PartDef = {
    *  `'fill'`/`'hug'` main axis projects to AUTO), so a `wrap` label under a floorless row is refused, which
    *  is what makes the row's `minWidth` load-bearing rather than decorative. `boolean`; absent means hug. */
   wrap?: boolean;
+  /** For `box` and `nest` parts: FILL the parent's CROSS axis — the missing twin of `wrap` (#1503). Where
+   *  `wrap` stretches a text along the parent's MAIN axis (`layoutGrow: 1`), this stretches an in-flow child
+   *  across the parent's CROSS axis so it spans the container's width in a column (or its height in a row).
+   *  Prism 2's column-stacked form components do exactly this: a fixed-width root with its rows / inputs set
+   *  to `layoutSizingHorizontal: FILL` so they span it rather than rendering ragged — `checkbox-group` and
+   *  `radio-group` rows, `select`'s label / message inner containers (`reference/Prism2/component-specs/
+   *  {checkbox-group,radio-button-group,select,helper-message}.json`; the audit systemic finding,
+   *  `docs/superpowers/qa-2026-09-18-autolayout-audit.md`).
+   *
+   *  PROJECTS `layoutAlign: 'STRETCH'` — Figma's ONLY non-deprecated per-child cross-axis stretch (its
+   *  `MIN | CENTER | MAX` are the deprecated counter-axis alignment, see `NestingRelation.positionWhen`). It
+   *  is a CHILD-side property, so it is applied to the child BY ITS PARENT at build time (both executors' child
+   *  loops), the same way `absoluteInset`/`absoluteCenter` are — which is why it reaches a nested INSTANCE
+   *  (a `nest` row / label / message) that `claimDefaults` returns early on. Carried onto the plan ONLY when
+   *  set, so every other node's plan is byte-identical.
+   *
+   *  NO width PRECONDITION, unlike `wrap`: `layoutGrow` fills REMAINING space and a hugging parent has none
+   *  (a silent no-op), but `STRETCH` is meaningful against a hugging parent too — the child fills to the
+   *  widest sibling. For the comfortable Prism 2 width the container carries a `minWidth` floor (320) so the
+   *  stretch resolves against a real width rather than the widest label; that floor is the "root width
+   *  affordance" half of #1503, declared on the container, not required by this field. Valid only on a `box`
+   *  or a `nest` (an in-flow cell that sizes by its box); refused on the root (no parent to fill), on
+   *  `slot`/`vector`/`text` (sized by artboard / content — `wrap` is the text twin), and on `overlay`/
+   *  `absolute` (out of the flow). `boolean`; absent means the child keeps its own cross-axis sizing. */
+  crossAxisFill?: boolean;
   /** For `box` parts: WHICH paint slots this box takes, in precedence order (#933). Absent means the
    *  box paints nothing — it is structure, and `field-label`'s and `field-message`'s boxes are exactly
    *  that. The words must come from `BOX_PAINT_SLOTS`.
@@ -834,9 +859,11 @@ export type FigmaProperties = {
    *  whose ancestors hug) would change `checkbox`'s cohort silently the day someone unbound the control's
    *  size. Declared, so it is reviewable and so the reason lives with the def that claims it.
    *
-   *  Validated as a projected axis AND as one some part's `presentWhen` gates — an exemption over an axis
-   *  where nothing structurally varies is a blanket, and the second def to need this for a different
-   *  reason should have to change the check rather than inherit a hole. */
+   *  Validated as a projected axis AND as one along which the box legitimately moves — either a part's
+   *  `presentWhen` gates it (#1010, field-message) or a box derives its `aspectRatio` lock from it (#1515,
+   *  image-placeholder). An exemption over an axis where nothing about the box varies is a blanket, and the
+   *  third def to need this for a NEW reason should have to add that reason to the check rather than inherit
+   *  a hole. */
   footprintVaries?: string[];
   /** prop name → the part whose `visible` this BOOLEAN drives (#1331). A NODE-VISIBILITY toggle: the
    *  part is EMITTED at every member and its `visible` is driven by the boolean — NOT a variant axis that
@@ -1468,15 +1495,20 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // TWO conditions, and the second is what keeps the field from becoming a way to switch the footprint
   // rule off. PROJECTED, for `gridAxis`'s reason: an axis Figma does not carry writes no segment into the
   // member name, so the payload cannot parse it back out and the two cohort derivations would disagree.
-  // And GATED BY `presentWhen`, because that is the only mechanism by which a variant changes which nodes
-  // a member has — a def whose box moves for some other reason should have to extend this check and say
-  // what the reason is, rather than reach an exemption that was written for a different one.
+  // And the axis must be one along which the box LEGITIMATELY moves, by one of the two mechanisms the
+  // engine has for moving it: a part `presentWhen`-gated on the axis (a variant adds or drops a node — the
+  // field-message/#1010 case), or a box whose `aspectRatio` lock is DERIVED from the axis (the ratio
+  // changes the frame's proportion so its height moves per member — the image-placeholder/#1515 case). An
+  // axis that does neither leaves nothing about the box varying, so exempting it would switch the footprint
+  // rule off for the whole def — the blanket this condition exists to refuse. A def whose box moves for a
+  // THIRD reason should extend this list and name the reason here, never reach an exemption written for a
+  // different one.
   for (const axis of fp.footprintVaries ?? []) {
     const names = figmaAxisNames(def);
     if (!names.includes(axis))
       e.push(`figmaProperties.footprintVaries: '${axis}' is not an axis this def projects [${names.join(', ')}] — an exempted axis Figma does not carry cannot be recovered from the member name`);
-    else if (!Object.values(parts).some((p) => axis in (p.presentWhen ?? {})))
-      e.push(`figmaProperties.footprintVaries: '${axis}' gates no part (\`presentWhen\`) — nothing structurally varies along it, so exempting it from the footprint comparison would exempt the whole def for no stated reason`);
+    else if (!Object.values(parts).some((p) => axis in (p.presentWhen ?? {}) || p.aspectRatio === axis))
+      e.push(`figmaProperties.footprintVaries: '${axis}' neither gates a part (\`presentWhen\`) nor drives a box's aspect-ratio lock (\`aspectRatio\`) — nothing about the box varies along it, so exempting it from the footprint comparison would exempt the whole def for no stated reason`);
   }
 
   // ---- the part-targeting maps ----
@@ -2980,6 +3012,22 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       const boundedMain = !!pp?.layout && (pp.minWidth !== undefined || pp.layout.sizing.x === 'fixed');
       if (!boundedMain)
         e.push(`anatomy part '${n}' declares 'wrap' but its parent '${parent ?? '(none)'}' does not bound its main-axis width (minWidth ${pp?.minWidth ?? 'unset'}, sizing.x '${pp?.layout?.sizing.x ?? 'n/a'}') — 'layoutGrow' fills the REMAINING main-axis space and a hugging parent has none, so the label would hug its glyphs and overflow ('fill'/'hug' project to AUTO, #989). Give the parent a 'minWidth' floor or a fixed main axis`);
+    }
+    // ---- CROSS-AXIS CHILD FILL (#1503) ----
+    // `crossAxisFill` projects `layoutAlign: 'STRETCH'` — Figma's per-child cross-axis stretch, the twin of
+    // `wrap`'s main-axis `layoutGrow`. Valid only on an IN-FLOW child that takes a cell and sizes by its box:
+    // a `box` or a `nest`. Refused on the ROOT (a child-side property with no parent to fill), and on every
+    // other kind for the wrong-kind-silently-ignored reason the rules around it share — a slot/vector is
+    // sized by its square artboard, a text by its content (`wrap` is the text twin, main-axis), and an
+    // overlay/absolute sits OUTSIDE the flow (it takes another part's cell or is placed against the parent's
+    // bounds), so `layoutAlign` reaches none of them and a declaration would validate, project nothing, and
+    // leave an author believing the part fills. No width precondition, unlike `wrap`: STRETCH is meaningful
+    // even against a hugging parent (it fills to the widest sibling), so it is never the #989 silent no-op.
+    if (p.crossAxisFill !== undefined) {
+      if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'crossAxisFill' — cross-axis fill is a CHILD-side property (layoutAlign: STRETCH) and the root has no parent whose cross axis it could fill`);
+      else if (p.kind !== 'box' && p.kind !== 'nest')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'crossAxisFill' — only a 'box' or a 'nest' takes an in-flow cell that can STRETCH across its parent's cross axis; a slot/vector is sized by its artboard, a text by its content ('wrap' is the main-axis twin for text), and overlay/absolute sit outside the flow`);
     }
     // `inset` is the absolute kind's own geometry and means nothing anywhere else: on a flow part it
     // reads as though the part were offset from its cell, which no projection does. Checked as its own

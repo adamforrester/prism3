@@ -29,13 +29,15 @@
  * never an interactive state (it co-occurs with rest/hover/focus, it does not replace them), and folding
  * it into the state axis was the pre-projection shortcut a single unprojected axis could afford.
  *
- * error → border is a status-led, border-ONLY swap (→ `color.border.danger`), bound PER non-disabled
- * state (rest / hover / focus-visible / read-only / empty) so the danger boundary persists while the
- * pointer moves and while the value is read-only, rather than yielding to the neutral interactive
- * border; the focus RING (an absolute sibling) carries the focus signal on top. `default` / `warning` /
- * `success` bind no status-led border and fall through to the neutral state border — the message
- * carries those. This is select's exact "error is a border-only swap; warning/success are
- * message-only" contract, which was this def's own contract before select inherited it.
+ * status → border is a status-led, border-ONLY swap, bound PER non-disabled state (rest / hover /
+ * focus-visible / read-only / empty) so the status boundary persists while the pointer moves and while the
+ * value is read-only, rather than yielding to the neutral interactive border; the focus RING (an absolute
+ * sibling) carries the focus signal on top. #1517 (owner-directed, Prism 2 parity) extended the swap from
+ * `error` ONLY to all three non-default statuses: `error` → `color.border.danger`, `warning` →
+ * `color.border.warning`, `success` → `color.border.success`. `default` binds no status-led border and
+ * falls through to the neutral state border. The nested field-message carries the status text in parallel,
+ * so the field now signals status on BOTH the border and the message (was error-only-border, with warning
+ * and success message-only). Select mirrors this def key-for-key, as it always has.
  *
  * Scope: the BASE field only. NumberField is a separate component (different keyboard + locale
  * parsing); SearchField / PasswordField are thin specializations; email / url / tel stay as
@@ -126,20 +128,20 @@ export const textField: ComponentDef = {
 
   // INPUT CHROME ONLY — label + message color/type live in field-label / field-message (composed).
   // Border is the one stateful slot: rest/hover from field.*, focus/read-only from generic border roles,
-  // the danger swap from the status-led `error.border.*` keys, disabled from the shared disabled skin. The
+  // the status swaps from the status-led `error`/`warning`/`success`.border.* keys, disabled from the shared disabled skin. The
   // value ink is full-contrast text.primary in every non-disabled state (read-only included — it is NOT
   // dimmed); disabled swaps to the contrast-exempt disabled ink. The focus ring is a nested `focus-ring`
   // that owns its own color, so no `focus-ring` color key is bound here.
 
   // THE PAINT GRAMMAR (#1494) — select's, adopted verbatim now that this def projects: status-led-and-
-  // state-qualified first (so the `error` border swap WINS over the interactive state progression at every
-  // coordinate — the error condition does not blink off as the pointer moves), then slot-and-state, then
+  // state-qualified first (so the status border swap WINS over the interactive state progression at every
+  // coordinate — the status condition does not blink off as the pointer moves), then slot-and-state, then
   // the bare slot as the rest value. The status template is 3-SEGMENT deliberately: two 2-placeholder
   // templates cannot coexist (`paintKeyErrors` checks every 2-segment key against BOTH, so a state-led
   // `label.empty` fails `{status}.{slot}` and a status-led `error.border` fails `{slot}.{state}`), so
-  // keeping the two vocabularies at different lengths is what lets them share a def. `error` binds its
-  // danger border once per non-disabled state; `default` / `warning` / `success` bind none and fall through
-  // to the neutral state border, which is the "error-only border swap" model this def has always shipped.
+  // keeping the two vocabularies at different lengths is what lets them share a def. `error` / `warning` /
+  // `success` each bind their status border once per non-disabled state (#1517); `default` binds none and
+  // falls through to the neutral state border.
   //
   // WHY THE SLOT VOCABULARY IS THE PROJECTOR'S (#784, kept because this def is why the rule exists). Until
   // #784 the keys were `text`/`placeholder`/`border.focus`/`border.readonly` — words the projector never
@@ -183,28 +185,50 @@ export const textField: ComponentDef = {
     // `label.empty` is the placeholder (the input's own text node rendered dim while the field holds no
     // value), the bare `label` the value. read-only is full-contrast: at state=read-only the bare `label`
     // resolves, so the value is NOT dimmed (read-only ≠ disabled).
+    // #1518 (owner-directed) — the placeholder resolves to `text.secondary`, the shared muted body ink, and the
+    // value to `text.primary`, full contrast: the empty-vs-value polarity is expressed with the SAME two text
+    // roles field-message already reaches for, not a field-scoped `field.placeholder`. Both roles already ship
+    // (no new guaranteed NAME → CONTRACT stands). Neither key is axis-value-led (`label`/`empty` are a slot and
+    // a state, not a variant value), so `lint-paint` arm 1 says nothing about them and neither takes a
+    // provenance exception. Select carries the same two bindings (#1518 applies it there too).
     'label': 'color.text.primary',
-    'label.empty': 'color.field.placeholder',
+    'label.empty': 'color.text.secondary',
 
-    // ── BORDER — stateful, with the status-led error swap (border-ONLY). `border` (bare) is the rest value;
-    // `border.hover` / `border.focus-visible` / `border.read-only` are the interactive states; `error.border.*`
-    // is the status-led danger swap that leads the templates so it wins over hover, focus AND read-only.
+    // ── BORDER — stateful, with the status-led swaps (border-ONLY). `border` (bare) is the rest value;
+    // `border.hover` / `border.focus-visible` / `border.read-only` are the interactive states;
+    // `{error,warning,success}.border.*` are the status-led swaps that lead the templates so they win over
+    // hover, focus AND read-only.
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
     // read-only's quieter boundary, with full-contrast value ink above it — the component's live edge.
     'border.read-only': 'color.border.secondary',
-    // The error swap, bound PER non-disabled state so it wins over the neutral progression and persists
-    // through hover, focus and read-only (the focus RING, a separate part, still carries the focus signal).
-    // At `disabled` the cross-cutting `disabled.border` takes over; `pending` is not bound (async validation
-    // in progress does not assert the danger boundary) and falls through to the neutral border. All resolve
-    // to the one danger boundary — the status value `error` maps to the `danger` role, a `lint-paint`
-    // provenance exception (registered per key, exactly as select's `error.border.*` are).
+    // The status-led border swaps, each bound PER non-disabled state so it wins over the neutral progression
+    // and persists through hover, focus and read-only (the focus RING, a separate part, still carries the
+    // focus signal). At `disabled` the cross-cutting `disabled.border` takes over; `pending` is not bound
+    // (async validation in progress does not assert a status boundary) and falls through to the neutral
+    // border. #1517 (owner-directed, Prism 2 parity): `warning` and `success` now swap the border TOO,
+    // mirroring `error` exactly — the field signals status on BOTH the border and the nested message, rather
+    // than error-only-border + warning/success-message-only. Each status value maps to its OWN border role
+    // (`error` → `danger`, `warning` → `warning`, `success` → `success`). The `error` → `danger` mapping is
+    // a cross-vocabulary one (`lint-paint` provenance exception, per key); `warning` → `border.warning` and
+    // `success` → `border.success` are SAME-family, so they satisfy `lint-paint` arm 1 directly and take no
+    // exception (an exception there would be flagged as stale — the family already matches).
     'error.border.rest': 'color.border.danger',
     'error.border.hover': 'color.border.danger',
     'error.border.focus-visible': 'color.border.danger',
     'error.border.read-only': 'color.border.danger',
     'error.border.empty': 'color.border.danger',
+    'warning.border.rest': 'color.border.warning',
+    'warning.border.hover': 'color.border.warning',
+    'warning.border.focus-visible': 'color.border.warning',
+    'warning.border.read-only': 'color.border.warning',
+    'warning.border.empty': 'color.border.warning',
+    'success.border.rest': 'color.border.success',
+    'success.border.hover': 'color.border.success',
+    'success.border.focus-visible': 'color.border.success',
+    'success.border.read-only': 'color.border.success',
+    'success.border.empty': 'color.border.success',
 
     // ── THE ICON INK — the leading glyph AND the trailing affix glyph, ONE binding for both. `primary`,
     // not `secondary`, so the glyphs match the value ink (`text.primary`) rather than sitting a step muted
@@ -277,6 +301,16 @@ export const textField: ComponentDef = {
         paintSlots: ['overlay', 'fill', 'border'],
         layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'fixed' } },
         height: 'min-height',
+        // THE COMFORTABLE DEFAULT WIDTH (#1518, owner: parity with select) — a MIN-WIDTH not a fixed width,
+        // the `select` #1345 precedent adopted key-for-key. #1494/#1503 deferred a width floor for the field
+        // ("a follow-up if one is wanted"); the owner has now settled it at 320 (select parity), so a projected
+        // field reads at a comfortable width rather than hugging narrow. The engine cannot project a child that
+        // FILLs (`sizing: 'fill'` → AUTO, #989/#990), so the floor sits on the visible control, the one place
+        // projection can express it: the control renders at ≥320, the hugging column inherits that width, and
+        // the still-AUTO sizing lets the field grow above 320 rather than being pinned. A LITERAL, not a token —
+        // 320 is a projection default in 8px increments, not a semantic `field.width` role (#1343 owner
+        // decision) — so no emitted token NAME moves and `CONTRACT_VERSION` stands.
+        minWidth: 320,
         radius: 'radius',
         // The edge weight (#1266's field) — 1px field hairline, bound rather than left to the executors'
         // fallback so a brand re-runging its border floor moves it.
@@ -460,7 +494,7 @@ export const textField: ComponentDef = {
     ],
     unverified: [
       'Polaris migration to framework-agnostic Web Components (<s-text-field>, Shadow DOM) — needs _source-text backing, shared with the Button brief (brief §11, §14).',
-      'The nested field parts hug rather than fill in Figma (a `nest` cannot bind sizing, #1299), so the projected label and message sit at their natural width rather than spanning the control. A consumer setting them to fill is a code-side layout concern; check a built member before assuming the stack reads full-width. Unlike select the control carries no `minWidth` floor (#1494 did not project a default width — a follow-up if one is wanted), so a member hugs its content width in Figma.',
+      'The control now carries a `minWidth: 320` floor (#1518, owner: select parity), so the field reads at a comfortable 320 and flexes above it, exactly as select does (#1345). The nested label and message, however, are NOT yet set to FILL that width (`crossAxisFill` → `layoutAlign: STRETCH`, the #1503 capability select adopted): a `nest` cannot bind sizing (#1299), so they hug their content and sit narrower than the 320 control — the same pre-fill state select was in before #1503. Closing that (label/message `crossAxisFill`, mirroring select) is the remaining half of the width follow-up #1503 held for the owner; #1518 settled only the floor.',
       'The value text does not ellipsize in the Figma projection — `maxLines` / `textOverflow` have no PartDef expression — so a long placeholder in a narrow member overflows rather than truncating. The ellipsis is a code-side behavior.',
       'The leading and trailing glyphs are node-visibility BOOLEANS (#1331/#1494): each node is built hidden and shown by its switch. In Figma auto-layout a `visible:false` child is excluded from the flow, so a hidden glyph should add no gap — but whether a real host reflows `content` / the control when a switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where a hidden glyph sits, or the trailing affix not pinning tight when off.',
     ],

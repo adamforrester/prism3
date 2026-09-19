@@ -135,6 +135,12 @@ export interface CompNode {
   y?: number;
   opacity?: number;
   characters?: string;
+  /** TYPED and READABLE, so the #1514 re-assert can read its own write back (a style Figma re-detached must
+   *  surface as a DISCARDED miss). Figma types it `string | figma.mixed` (`mixed` is a `unique symbol`), so
+   *  the port carries `string | symbol` for the real `figma` to satisfy it — the same "widen the port so the
+   *  host matches" rule the `setBoundVariable` note gives. The executor only ever compares it to the id it
+   *  just set, so a `mixed` reads as "not the id" and is reported. Set through `setTextStyleIdAsync`. */
+  readonly textStyleId?: string | symbol;
   clipsContent?: boolean;
   strokesIncludedInLayout?: boolean;
   readonly width?: number;
@@ -1085,14 +1091,36 @@ const writeComponentSet = async (
   // boolean, so a part-only key would collapse the two to whichever was walked last and hand the wire loop
   // the wrong field. For every single-property part this is a unique-ified part key.
   const refByMember = new Map<string, Map<string, { field: string; prop: string }>>();
+  // #1513: THIS MEMBER'S OWN CAPTION per text part — the per-coordinate copy `byVariant` gives each member
+  // (`anatomy-figma.ts` `textDefaultOf`). Wiring a `characters` reference RESETS the node to the set-level
+  // property default (Figma adopts the one `defaultValue` onto the bound node), so `build`'s pre-combine
+  // write is overwritten by the fallback and every `field-message` status rendered "This is a standard
+  // message." live (#1513). Kept here, keyed exactly as `refByMember`, so the re-assert pass below can
+  // re-write each member's own copy AFTER wiring. Byte-identical to the fallback for a def with no
+  // `byVariant`, so the re-assert is a no-op there.
+  const textByMember = new Map<string, Map<string, string>>();
+  // #1514: THIS MEMBER'S COMPOSITE TEXT STYLE per text part — the same holistic `display/xl/strong`-style
+  // name `build` applies via `setTextStyleIdAsync` (`anatomy-figma.ts` `figmaTextStyleName`). Wiring a
+  // `characters` reference resets the node from the set-level TEXT property, which detaches that applied
+  // style while leaving its resolved property-level variable binds on the node — so a designer sees loose
+  // family/size/style variables and no named style (owner QA 2026-09-18; every component text node carries
+  // BOTH a `textStyle` and a `characters` ref, so all of them detach). Kept here, keyed exactly as
+  // `textByMember`, so the re-assert pass below can re-apply each node's style AFTER the wiring seam.
+  const styleByMember = new Map<string, Map<string, string>>();
   for (const plan of plans) {
     const perPart = new Map<string, { field: string; prop: string }>();
-    const walk = (n: { name: string; propertyRef?: { field: string; prop: string }; children: unknown[] }): void => {
+    const perText = new Map<string, string>();
+    const perStyle = new Map<string, string>();
+    const walk = (n: { name: string; propertyRef?: { field: string; prop: string }; characters?: string; textStyle?: string; children: unknown[] }): void => {
       if (n.propertyRef) perPart.set(`${n.name}|${n.propertyRef.field}`, n.propertyRef);
+      if (typeof n.characters === 'string') perText.set(n.name, n.characters);
+      if (typeof n.textStyle === 'string') perStyle.set(n.name, n.textStyle);
       for (const c of n.children as (typeof n)[]) walk(c);
     };
     walk(plan.root as unknown as Parameters<typeof walk>[0]);
     refByMember.set(planComponentName(plan), perPart);
+    textByMember.set(planComponentName(plan), perText);
+    styleByMember.set(planComponentName(plan), perStyle);
   }
   // AFTER the offline guards, because a throw from them leaves nothing to name (#913).
   trail.component = component;
@@ -1491,6 +1519,13 @@ const writeComponentSet = async (
       // Written straight rather than bound: a brand does not get to theme a label under a spinner to
       // half-visible. `visible:false` would yield the cell and collapse the button.
       if (c.zeroOpacity) kid.opacity = 0;
+      // CROSS-AXIS CHILD FILL (#1503). Applied by the PARENT — like `layoutPositioning` below, `layoutAlign`
+      // is a fact about the child's relationship to this auto-layout frame, and applying it HERE (rather than
+      // in `claimDefaults`) is what reaches a nested INSTANCE: `claimDefaults` returns early on an INSTANCE so
+      // as not to override the nested component's design, but `layoutAlign` is a placement property, not a
+      // design override, and the `nest` rows / label / message are exactly the children that must STRETCH.
+      // Written only when the plan carries it (a `crossAxisFill` part); every other child keeps `INHERIT`.
+      if (c.layoutAlign) kid.layoutAlign = c.layoutAlign;
     }
     // A CENTERED absolute child (#612's pending spinner with no visual cell to take). NOT resized:
     // unlike the ring it keeps its own square size, and its `size` binding is already on it — `resize`
@@ -1962,21 +1997,31 @@ const writeComponentSet = async (
   // and #866's read-back increments it after — the same counter for the same divergence, caught at two
   // points. It was declared just above the read-back until #1337 gave the wire loop a reason to touch it.
   let refsRepaired = 0;
-  // #1473 — THE SET'S LIVE MEMBERS, RE-READ NOW, after every set-level op (combine, the layout `resize`,
-  // `addComponentProperty`) has settled. `members` was snapshotted right after combine (for the layout
-  // pass); a member handle from that snapshot can end up with a DETACHED subtree while the set's live child
-  // for that coordinate is a fresh, referenceable node — the host keeps reconciling ids after combine and,
-  // for some members, reassigns the MEMBER's identity too. Re-finding a part THROUGH the stale handle lands
-  // on the detached node and Figma refuses the reference ("Could not create a new component property
-  // reference"), so the field-label/select persistent misses stayed permanent even with the #1337 recovery
-  // — the recovery re-found through the SAME stale `member`. A fresh read, keyed by name (the key every
-  // re-find already has), reaches the settled member whose own layers CAN hold the reference. Inert when
-  // identity is stable (the common case, and every offline run without the `settleAfterCombine` shim mode):
-  // the fresh read is the very same objects the snapshot holds. Geometry read-backs below deliberately KEEP
+  // #1473 / #1516 — THE SET'S LIVE MEMBER FOR A COORDINATE, RE-READ FRESH FROM `set.children` AT EACH USE.
+  // `members` was snapshotted right after combine (for the layout pass); a member handle from that snapshot
+  // can end up with a DETACHED subtree while the set's live child for that coordinate is a fresh,
+  // referenceable node — the host keeps reconciling ids after combine and, for some members, reassigns the
+  // MEMBER's identity too. Re-finding a part THROUGH the stale handle lands on the detached node and Figma
+  // refuses the reference ("Could not create a new component property reference"), so the field-label/select
+  // persistent misses stayed permanent even with the #1337 recovery — the recovery re-found through the SAME
+  // stale `member`.
+  //
+  // #1473 fixed that with a live-member map SNAPSHOTTED HERE, on the premise that "after every set-level op
+  // (combine, the layout `resize`, `addComponentProperty`) has settled" the reconciliation is done. #1516 is
+  // the instant that premise misses: the host finishes reassigning SOME members' identity ASYNCHRONOUSLY,
+  // only DURING the wire loop below — after this point, on one of the loop's `await breathe` yields — so a
+  // map captured here goes stale mid-loop and the recovery re-resolves onto the detached original again. The
+  // live symptom is a build's misses concentrating on the LAST-wired coordinates (`state=disabled`,
+  // `status=warning` — ~30 on field-label, ~33 on text-field, QA 2026-09-18), the members reached after the
+  // most yields. So this is a FUNCTION that reads `set.children` fresh on every call rather than a one-time
+  // snapshot: a settle that lands at any point in the loop is seen by the next resolution. Inert when
+  // identity is stable (the common case, and every offline run without the `settleAfterCombine` /
+  // `deferSettleToWire` shim modes): the fresh read is the very same objects the snapshot held. It scans the
+  // set's direct children (an array walk, not a `findOne` subtree search — orders of magnitude below the
+  // #701 cost it feeds), so it does not touch the fast path. Geometry read-backs below deliberately KEEP
   // reading `members` — position/size ride the snapshot handle — so only the reference re-finds move here.
-  const liveByName = new Map<string, CompNode>();
-  for (const c of (set.children ?? [])) if (c.name != null) liveByName.set(String(c.name), c);
-  const liveMember = (name: string): CompNode | undefined => liveByName.get(name);
+  const liveMember = (name: string): CompNode | undefined =>
+    (set.children ?? []).find((c) => c.name != null && String(c.name) === name);
   mark = phaseStart = Date.now();
   const toWire = readable ? members : [];
   for (let i = 0; i < toWire.length; i++) {
@@ -2088,6 +2133,53 @@ const writeComponentSet = async (
     const member = liveMember(mName) ?? members.find((c) => c.name === mName);   // #1473: the LIVE settled member
     const node = findOwnPart(member, part);   // #1428: read back the member's OWN part, not a nested twin
     const held = (node?.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
+    // #1513 — RE-ASSERT THIS MEMBER'S OWN CAPTION. Wiring `componentPropertyReferences.characters` binds the
+    // node to the SET-LEVEL TEXT property, whose one `defaultValue` is the canonical fallback
+    // (`planSetProperties` uses `textDefault`, #1018); Figma adopts that default onto the bound node at bind
+    // time, discarding the per-coordinate copy `build` wrote before combine — so `field-message`'s error/
+    // warning/success members all rendered the `status=default` string "This is a standard message." in a
+    // projected file (#1513), the gap #1474's scope note predicted for the live write path. Re-write the
+    // member's own copy HERE, reusing the node this read-back already found (no extra host search, #701) and
+    // AFTER the seam the reset lives on — `build`'s pre-combine write is the right value on the wrong side of
+    // it. Byte-identical to the fallback for a def with no `byVariant`, so it is inert there; read back like
+    // every other write in this file — a caption Figma re-reset would surface as a DISCARDED miss rather than
+    // shipping the fallback silently.
+    if (field === 'characters' && node) {
+      const chars = textByMember.get(mName)?.get(part);
+      if (typeof chars === 'string') {
+        try { wr(node).characters = chars; }
+        catch (err) { misses.push(`text ${mName}/${part}.characters -> ${JSON.stringify(chars)} (${(err as Error).message})`); }
+        if (node.characters !== chars)
+          misses.push(`text ${mName}/${part}.characters -> DISCARDED (set ${JSON.stringify(chars)}, reads ${JSON.stringify(node.characters)})`);
+      }
+      // #1514 — RE-ASSERT THIS NODE'S COMPOSITE TEXT STYLE, the twin of the caption re-assert above and for
+      // the same reason: wiring `componentPropertyReferences.characters` detaches the `textStyleId` `build`
+      // applied before combine (Figma re-derives the node from the set-level TEXT property), leaving the
+      // style's resolved variable binds but no named style — the #1514 symptom on every characters-bound
+      // component text node. Re-apply the emitted style HERE, AFTER the wiring seam, reusing the node this
+      // read-back already found (no extra host search, #701) and AFTER the caption re-write above so a
+      // `characters` write cannot re-clear it. The style itself carries the family/size/style variable binds
+      // (the emitted `text-styles.json` binds them at the STYLE level), so re-applying it delivers the named
+      // style AND keeps the variables live — not a trade of one for the other. Font loaded first, exactly as
+      // `build` does, because `setTextStyleIdAsync` pulls in a family/style pair that must be resident. Read
+      // back like every write in this file: a style Figma re-detached surfaces as a DISCARDED miss rather
+      // than shipping the loose-variable node silently.
+      const styleName = styleByMember.get(mName)?.get(part);
+      if (typeof styleName === 'string') {
+        const st = styleByName.get(styleName);
+        if (!st) misses.push(`text ${mName}/${part}.textStyle -> ${styleName} (no such emitted text style)`);
+        else {
+          if (st.fontName) {
+            try { await api.loadFontAsync(st.fontName); }
+            catch (err) { misses.push(`text ${mName}/${part}.font -> ${st.fontName.family} ${st.fontName.style} (${(err as Error).message})`); }
+          }
+          try { await wr(node).setTextStyleIdAsync?.(st.id); }
+          catch (err) { misses.push(`text ${mName}/${part}.textStyle -> ${styleName} (${(err as Error).message})`); }
+          if (node.textStyleId !== st.id)
+            misses.push(`text ${mName}/${part}.textStyle -> DISCARDED (set ${styleName}, reads ${node.textStyleId ? String(node.textStyleId) : 'no style'})`);
+        }
+      }
+    }
     if (held?.[field] === id) continue;   // retained — the common case, nothing to do
     // The reference did not read back. #866 CAUSE-INDEPENDENT HARDENING: if the node the wire loop wrote
     // to is NOT the node `findOne` returns now — they disagree BY ID — the write landed on a stale

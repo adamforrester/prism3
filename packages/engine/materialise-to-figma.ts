@@ -249,8 +249,9 @@ const fontFiles = (brand: string): { font: FigmaCollectionFile[]; fluid: FigmaCo
 
 // The viewport modes `type-sets` emits (mirrors `emit-figma-font.ts` FONT_FLUID_MODES). Kept as a
 // local list rather than imported so this shell stays a reader of the ARTIFACTS, not of the emitter's
-// internals — and the suite asserts the two agree.
-const FONT_FLUID_MODES = ['mobile', 'desktop'] as const;
+// internals — and the suite asserts the two agree. DESKTOP first so the paste path's plan makes desktop
+// the collection default, matching the emitter (#1520).
+const FONT_FLUID_MODES = ['desktop', 'mobile'] as const;
 
 const fontVarPlans = (brand: string): VarCollectionPlan[] => {
   const { font, fluid } = fontFiles(brand);

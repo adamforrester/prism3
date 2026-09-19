@@ -389,6 +389,14 @@ export type FigmaNodePlan = {
    *  `n.textAutoResize ?? 'WIDTH_AND_HEIGHT'`. Paired with `layoutGrow: 1` for a wrapping label: the grow
    *  fixes the width and this lets the height flow. Set from `PartDef.wrap`. */
   textAutoResize?: 'WIDTH_AND_HEIGHT' | 'HEIGHT' | 'TRUNCATE' | 'NONE';
+  /** Cross-axis child FILL (#1503): `'STRETCH'` when this in-flow child should span its parent's CROSS axis
+   *  (a column's width, a row's height) rather than hug its own content — the twin of `layoutGrow`'s main-axis
+   *  fill above. Figma's `layoutAlign: 'STRETCH'` is the only non-deprecated per-child cross-axis stretch. A
+   *  CHILD-side property applied to the child by its PARENT at build time (both executors' child loops), so it
+   *  reaches a nested INSTANCE the child neutralizer returns early on. Carried ONLY when the def part sets
+   *  `crossAxisFill`, so every other node's plan is byte-identical — both executors read a plain `n.layoutAlign`
+   *  and every unstretched node keeps Figma's `INHERIT`. Set from `PartDef.crossAxisFill`. */
+  layoutAlign?: 'STRETCH';
   /** For a `GLYPH`: the literal square px the glyph frame is built at (#1340). Carried ONLY when the def
    *  sets it, so every existing glyph's plan is byte-identical; the executor resizes the imported frame to
    *  it after the SVG import (the outline's SCALE constraints scale the drawn grid to fill), instead of
@@ -1440,6 +1448,10 @@ export const figmaAnatomyPlan = (
       // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
       // width (a `minWidth` floor or `fixed`), or the fill has nothing to resolve against (#989).
       ...(p.kind === 'text' && p.wrap ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
+      // CROSS-AXIS CHILD FILL (#1503), carried ONLY on a `box`/`nest` that opts in, so every other node's
+      // plan is byte-identical. `layoutAlign: 'STRETCH'` is Figma's per-child cross-axis stretch — the twin
+      // of `wrap`'s main-axis `layoutGrow` above. `anatomyErrors` restricts the kinds and refuses the root.
+      ...(p.crossAxisFill ? { layoutAlign: 'STRETCH' as const } : {}),
       // The literal glyph size (#1340), carried ONLY when a vector sets it so every other glyph's plan is
       // byte-identical — a def-local literal the executor resizes the imported frame to (`PartDef.glyphPx`),
       // not a bound token. It replaces the `size` binding for a marker that must read at a proportion of a
@@ -1813,6 +1825,14 @@ const visibleRefNodes = (n: FigmaNodePlan): FigmaNodePlan[] =>
  */
 export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => {
   const byName = new Map<string, FigmaPropertyPlan>();
+  // PRESENCE-BOOLEAN → SWAP PAIRING (#1519). A slot glyph node carries BOTH its visibility boolean
+  // (`visibleProp`, e.g. `leading icon`) and its content swap (`propertyRef.mainComponent`, e.g.
+  // `↳ swap leading icon`) on ONE node — select/text-field's leading/trailing glyphs. Recording the
+  // pairing here lets the ordering below sit each swap DIRECTLY under the boolean that gates it. A def
+  // whose presence toggle is a VARIANT switch rather than a boolean (button's edge-hugging leading/
+  // trailing) has no `visibleProp` on the swap's node, so it records no pairing and its swaps stay in
+  // by-part order as an unpaired trailer — unchanged from before.
+  const swapForBool = new Map<string, string>();
   for (const plan of plans) {
     for (const n of refNodes(plan.root)) {
       const ref = n.propertyRef!;
@@ -1833,6 +1853,9 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
         // exists and defaults to nothing.
         if (!n.swapTarget) continue;
         prop = { name: ref.prop, type: 'INSTANCE_SWAP', swapTarget: n.swapTarget };
+        // This swap's node also carries a presence boolean → pair them so the swap sits directly
+        // under that boolean in the panel (#1519). Keyed by boolean name (the swap follows it).
+        if (n.visibleProp) swapForBool.set(n.visibleProp, ref.prop);
       } else {
         // A propertyRef-carried boolean (legacy shape); node-visibility booleans come through the
         // `visibleProp` walk below since #1331. `true` is read off the fact the node exists, not assumed.
@@ -1854,16 +1877,32 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
       byName.set(prop.name, prop);
     }
   }
-  // ORDERED text → boolean → swap (#1380, #1331), which is the property CREATION order the executor applies
-  // and therefore the order Figma shows the component (non-variant) properties in. The icon-property canon
-  // puts `value`/`label` at the TOP (a TEXT), then a slot's PRESENCE boolean (`leading icon`) immediately
-  // above the swap it gates (`↳ swap leading icon`) — the `↳` reads as nested beneath the toggle only when
-  // the toggle is created first. So BOOLEAN ranks ABOVE INSTANCE_SWAP. No existing def is reordered: every
-  // boolean in the corpus was stated-empty until select (#1331), and a def with only TEXT + SWAP keeps
-  // TEXT(0) before SWAP(2) exactly as before. A stable sort by kind rank preserves insertion order within a
-  // kind, so a def's swaps keep their by-part order.
-  const KIND_RANK: Record<FigmaPropertyPlan['type'], number> = { TEXT: 0, BOOLEAN: 1, INSTANCE_SWAP: 2 };
-  return [...byName.values()].map((p, i) => ({ p, i })).sort((a, b) => KIND_RANK[a.p.type] - KIND_RANK[b.p.type] || a.i - b.i).map((x) => x.p);
+  // ORDERED text → each PRESENCE boolean immediately followed by the swap it gates → any unpaired swap
+  // (#1380, #1331, #1519), which is the property CREATION order the executor applies and therefore the
+  // order Figma shows the component (non-variant) properties in. The icon-property canon puts `value`/
+  // `label` at the TOP (a TEXT), then PAIRS each slot's presence boolean (`leading icon`) with the swap
+  // it gates (`↳ swap leading icon`) DIRECTLY beneath it, so the panel reads boolean→swap, boolean→swap
+  // (#1519, owner-directed) — not all booleans grouped, then all swaps grouped. The `↳` reads as nested
+  // beneath its toggle only when the toggle sits immediately above it, which the pairing guarantees.
+  // A standalone boolean with no swap on its node (`message` / `showMessage`, which hides a composed part
+  // rather than swapping a glyph) keeps its place in the boolean run. A swap with no boolean on its node
+  // (button's variant-gated leading/trailing, icon-button's required icon) has no pairing, so it trails
+  // in by-part order — unchanged from before. `byName` insertion is depth-first per member, so `filter`
+  // preserves each kind's by-part order below.
+  const all = [...byName.values()];
+  const emitted = new Set<string>();
+  const ordered: FigmaPropertyPlan[] = [];
+  for (const p of all) if (p.type === 'TEXT') { ordered.push(p); emitted.add(p.name); }
+  for (const p of all) {
+    if (p.type !== 'BOOLEAN') continue;
+    ordered.push(p);
+    emitted.add(p.name);
+    const swapName = swapForBool.get(p.name);
+    const swap = swapName === undefined ? undefined : all.find((s) => s.name === swapName);
+    if (swap) { ordered.push(swap); emitted.add(swap.name); }
+  }
+  for (const p of all) if (p.type === 'INSTANCE_SWAP' && !emitted.has(p.name)) ordered.push(p);
+  return ordered;
 };
 
 /** Every Figma text style a plan applies. */
@@ -2753,6 +2792,11 @@ const build=async(n)=>{
     // Zero opacity, written straight rather than bound: a brand does not get to theme a label under a
     // spinner to half-visible. See the plan field's note.
     if(c.zeroOpacity)kid.opacity=0;
+    // CROSS-AXIS CHILD FILL (#1503). Applied by the PARENT for the same reason the absolute lifts below are:
+    // \`layoutAlign\` is a CHILD's relationship to its parent's auto-layout, and applying it here reaches a
+    // nested INSTANCE (a \`nest\` row / label / message) the child neutralizer returns early on. Written only
+    // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`.
+    if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;
   }
   // A CENTERED absolute child (#612's pending spinner with no visual cell to take). Applied by the
   // parent for the same reason the inset ones are — \`layoutPositioning\` only means anything inside an
