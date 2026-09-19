@@ -7,6 +7,32 @@
 
 ---
 
+## (2026-09-19) — icon SWAP sits DIRECTLY UNDER its presence BOOLEAN in the Figma panel (#1519)
+
+**STATUS: LANDED. ENGINE 0.123.0 → 0.124.0; CONTRACT STANDS at 11.3.0. Owner-directed (owner QA 2026-09-18): each icon swap must sit directly beneath the boolean that turns that icon on, so the panel reads `leading icon` → `↳ swap leading icon` → `trailing icon` → `↳ swap trailing icon`, not the two toggles grouped then the two swaps grouped detached. Closes #1519.**
+
+**THE PANEL-ORDER MODEL.** `planSetProperties` produces the projected Figma property CREATION order (`componentPropertyDefinitions`), which is the order the panel shows the component (non-variant) properties in. It USED to sort by kind — all TEXT, then all BOOLEAN, then all INSTANCE_SWAP — so select showed `value` → `leading icon` → `message` → `↳ swap leading icon` (the swap detached from its boolean by the intervening `message`). It now emits TEXT first, then walks the booleans in by-part order and emits each boolean IMMEDIATELY FOLLOWED BY the swap it gates, then any unpaired swap. So the panel reads boolean→swap, boolean→swap.
+
+**THE PAIRING KEY.** A swap pairs to a boolean when ONE glyph node carries BOTH the visibility boolean (`visibleProp`, e.g. `leading icon`) and the content swap (`propertyRef.mainComponent`, e.g. `↳ swap leading icon`) — select's and text-field's leading/trailing glyph nodes (the #1331 node-visibility mechanism carries both fields on one node). `planSetProperties` records `swapForBool[visibleProp] = swapName` in the mainComponent branch, then orders each recorded swap right after its boolean.
+
+**AFFECTED DEFS — select and text-field ONLY.**
+- `select`: `value` → `leading icon` → `↳ swap leading icon` → `message`. (`message` = the `showMessage` #1426 hide-the-FieldMessage boolean; it gates no glyph, so it stays a standalone boolean in the run.)
+- `text-field`: `value` → `leading icon` → `↳ swap leading icon` → `trailing icon` → `↳ swap trailing icon` → `message`. This is the def where the pairing matters most — TWO icon slots that the old grouping showed as both booleans then both swaps.
+
+**NOT AFFECTED — button (×3) and icon-button (×3), and this is the trap for the next person.** The issue names button and icon-button in scope, but the engine change is a NO-OP for both, correctly. Button's leading/trailing PRESENCE toggles are VARIANT switches (`slotAxes`), NOT boolean component properties — #1331/#1379 keeps them variant BECAUSE edge-hugging slot presence changes the CONTAINER's padding geometry (#326), which a single-node `visible` boolean cannot reach (button.ts states this explicitly, `booleans: {}`). So button has NO boolean in `planSetProperties` to pair against; its swaps stay `label` → `↳ swap leading icon` → `↳ swap trailing icon` in by-part order, byte-identical to before. The panel nesting of button's swap beneath its variant switch is FIGMA's own render off the `↳ ` (U+21B3 + space) name prefix — an order this list does not control (the standing "variant interleave is the owner's Figma check, not ours" position, version.ts/test.ts #1150). Icon-button's icon is REQUIRED (no presence boolean at all), one swap `swap icon`, unchanged. So "swap under its boolean via property order" is achievable only where the boolean IS a component property (select, text-field); for button it already relies on the naming prefix, and that is unchanged.
+
+**#1380 CANON INTERACTION.** The #1380 icon-property canon (label/value TEXT at top; each swap a `↳ swap …` panel label; each presence a `leading icon`/`trailing icon` toggle) is unchanged in its NAMING; #1519 only tightens the ORDER so a swap sits under its boolean rather than after the whole boolean run. The #1331 `test.ts` assertion that the `leading icon` boolean is created BEFORE its `↳ swap leading icon` swap (`iLi < iSwap`) still holds — the swap is now immediately after, so the relation is stronger, not broken.
+
+**GATE (docs/34 — oracle authored IN the gate, not read off `planSetProperties`).** `apps/plugin/test-roundtrip.ts`'s #1380 panel-order block reads `componentPropertyDefinitions` back off the offline host and pins each def's component-property order against an oracle authored HERE. Updated `select`'s oracle to the paired order and ADDED a `text-field` oracle (the two swaps interleaved with their booleans); button/icon-button oracles unchanged.
+
+**BY-NAME MUTATION VERIFIED (wip-checkpointed per CLAUDE.md).** Reordering `planSetProperties` back to the old all-booleans-then-all-swaps kind grouping fails the roundtrip panel-order assertion BY NAME for BOTH `select` (`… host holds ["value","leading icon","message","↳ swap leading icon"]`) and `text-field` (`… host holds ["value","leading icon","trailing icon","message","↳ swap leading icon","↳ swap trailing icon"]`) — each naming the def and printing the wrong order (swap fell after `message`). Button/icon-button did NOT fail (their order is unchanged). Restored green.
+
+**SCOPE — ENGINE, NOT CONTRACT.** A projected-surface change (property ORDER on two defs) → ENGINE 0.123.0 → 0.124.0. `schema/component-surface.json` did NOT move (`lint-component-surface`: 0 defs moved) — the per-member `planStamp` hashes the plan, and property ORDER is a SET-level derivation not stored in a member plan, so no `--accept` was needed. CONTRACT STANDS at 11.3.0 — property ORDER is not a guaranteed token NAME (`token-contract --check` level `none`, stamp-only). `out/**` restamps only `$extensions.generator.version`.
+
+**FILES.** `packages/engine/anatomy-figma.ts` (`planSetProperties`: `swapForBool` pairing + the boolean→swap ordering, replacing the kind-rank sort), `packages/engine/version.ts` (ENGINE 0.124.0 + changelog), `apps/plugin/test-roundtrip.ts` (#1380 oracle: select updated, text-field added, header note). Regenerated `out/**` (stamp-only).
+
+---
+
 ## (2026-09-19) — text-field default 320px width (select parity) + placeholder ink = `text.secondary`, value ink = `text.primary` (#1518)
 
 **STATUS: LANDED. ENGINE 0.122.0 → 0.123.0; CONTRACT STANDS at 11.3.0. Two related, owner-directed text-field fixes (owner QA 2026-09-18), each mirrored onto `select`.**
