@@ -55,16 +55,18 @@
 # interrupted install) keeps its marker and is skipped here. Repairing that is `npm ci` by hand; this
 # hook answers "was there ever an install", which is the failure all three lanes actually hit.
 #
-# ── THE CO-TENANT: `settings.json` REGISTERS TWO SessionStart HOOKS ───────────────────────────────
+# ── THE CO-TENANTS: `settings.json` REGISTERS THREE SessionStart HOOKS ────────────────────────────
 #
-# The other one reports whether the branch is behind `origin/main`. Both run, NEITHER can stop the
-# other, and neither can stop the session: matching hooks run in PARALLEL, each in its own process
-# with its own timeout, and a failure is reported per-hook while the others still execute and their
-# output is still collected. So do not read the array order as sequencing — this hook is listed first
-# and that guarantees nothing. They are safe to run concurrently because they touch disjoint state
-# (this one writes `node_modules`, the other reads git refs), which is a property to re-check rather
-# than assume if a third is ever added. If a future hook genuinely DEPENDS on this one's install, the
-# only way to order them is to put both steps in one script.
+# The second reports whether the branch is behind `origin/main`; the third compares this checkout's
+# `CLAUDE.md` against `origin/main` (#1110). All three run, NONE can stop another, and none can stop
+# the session: matching hooks run in PARALLEL, each in its own process with its own timeout, and a
+# failure is reported per-hook while the others still execute and their output is still collected. So do
+# not read the array order as sequencing — this hook is listed first and that guarantees nothing. This
+# one is safe to run beside the other two because it touches disjoint state (it writes `node_modules`,
+# they read git refs and the network) — a property to re-check rather than assume if a fourth is added.
+# The two git hooks are NOT disjoint from each other: both fetch `origin main` in the same clone, which
+# is measured and handled in the freshness hook's own header. If a future hook genuinely DEPENDS on this
+# one's install, the only way to order them is to put both steps in one script.
 #
 set -u
 
