@@ -42,8 +42,9 @@ git worktree remove /tmp/p3-review-<n> --force             # even if you bailed 
 Some `node_modules` is required: the repo is buildless (`tsx`, no install) but a fresh
 worktree has none, so `npx tsx` would re-download and the `apps/studio`/`apps/plugin`
 workspace builds would fail outright. Expect `regen --check` to
-report **104** artifacts in a clean worktree (measured 2026-08-08; `ci.yml` asserts
-that number) — the main checkout sometimes shows one more because of an untracked
+report the committed artifact count in a clean worktree — `verify.ts` holds it as
+`EXPECTED_ARTIFACTS` and `ci.yml` asserts the same number; this file deliberately
+restates neither. The main checkout sometimes shows one more because of an untracked
 stray in `packages/engine/out/`, which is not drift.
 
 **`npm ci`, and nothing else.** It is the whole setup, and the reason to say so
@@ -154,7 +155,7 @@ Inside the worktree, run and read the ACTUAL numbers. Baselines below are
 indicative and go stale — compare against what `main` reports today, never treat a
 mismatch with this file as the regression:
 - `npx tsx packages/engine/regen.ts --check` — no committed artifact has drifted
-  (~104 artifacts byte-match). **Run this first and never skip it: it is the ONLY
+  (the full committed set byte-matches; `verify.ts` holds the expected count). **Run this first and never skip it: it is the ONLY
   gate that reads the committed artifacts.** Every other gate runs the engine live
   and compares it against itself, so a stale committed artifact passes them all
   (this bit #281 for real).

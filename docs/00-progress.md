@@ -7,6 +7,10 @@
 
 ---
 
+## (2026-09-19) — `review-pr.md` cites the artifact-count site instead of restating a stale numeral (#1116)
+
+**STATUS: LANDED. Prose-only, one file (`.claude/commands/review-pr.md`), no code/gate/version change (ENGINE 0.126.0 / CONTRACT 11.3.0 stand).** The stale `104 artifacts` figure survived on `main` at two sites (`:45` "report **104** artifacts … `ci.yml` asserts that number" and `:157` "~104 artifacts byte-match") — a confident wrong number in the file every reviewing lane loads, which risks a false drift finding against a correct PR or waving through a real count change. Applies #1114's CLAUDE.md remedy: name the site (`verify.ts` `EXPECTED_ARTIFACTS`, `ci.yml` asserts the same), restate no numeral, so the sentence is true at every ref. The two excluded copies #1116 flagged (`apps/studio/test-export-settings.ts` coverage aside; `lint-paint.ts`'s dated quotation of #758's criterion) are deliberately left — a numeral inside a quotation is evidence, not a site. Recovers the intent of the stale PR #1122. Closes #1116.
+
 ## (2026-09-19) — Layout page shows the resolved per-breakpoint grid (columns/gutter/margin) AND makes columns editable per breakpoint, sourced from the engine's own derivation (#1532)
 
 **STATUS: LANDED. ENGINE 0.125.0 → 0.126.0; CONTRACT STANDS at 11.3.0. Owner-decided (read-out AND editable columns). Closes #1532. CI gate count STANDS at 60 (the new coverage is a `test.ts` assertion block + a `test-smoke.mjs` section inside the existing engine-test and smoke gates, NOT new CI gates).**
