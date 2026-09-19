@@ -2926,6 +2926,26 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.123.0 — #1518: TWO text-field fixes, mirrored onto select (both owner-directed, owner QA 2026-09-18).
+ * (1) DEFAULT WIDTH 320 (select parity). text-field's `control` gains `minWidth: 320` — the same responsive
+ * width floor select carries (#1345: reads at 320, flexes above), a LITERAL not a token so no name moves. This
+ * settles the width floor #1494/#1503 deferred ("a follow-up if one is wanted"); the owner set it at 320.
+ * ONLY the control floor is in scope — the nested label/message `crossAxisFill` (the other half of #1503's held
+ * text-field follow-up) is NOT applied here, so the parts still hug narrower than the 320 control (tracked, see
+ * text-field.notes.unverified + the PR body). (2) PLACEHOLDER INK vs VALUE INK. Both text-field and select
+ * re-point `label.empty` from `color.field.placeholder` to `color.text.secondary` (the muted body ink), keeping
+ * the bare `label` at `color.text.primary` (full contrast): the empty-vs-value polarity now reaches the SAME two
+ * shared text roles rather than a field-scoped placeholder role. Both roles already ship (no new guaranteed NAME).
+ * Neither `label.empty` key is axis-value-led, so `lint-paint` arm 1 says nothing about it and no provenance
+ * exception is added (a same-family re-point). GATE (docs/34): `test:roundtrip` gains a #1518 host-truth block
+ * reading text-field's control `minWidth` back off the offline host (oracle 320 authored in the gate, mirroring
+ * the #1503 group-root minWidth block); `test.ts` pins each def's value ink → `text.primary` and placeholder ink
+ * → `text.secondary` by name. TWO by-name mutations verified: (a) drop the 320 → the roundtrip minWidth assertion
+ * fails by name; (b) repoint `label.empty` → `text.primary` → the ink assertion fails by name. A projected-surface
+ * (minWidth) + paint (placeholder variable) change on two defs → ENGINE bump; `schema/component-surface.json` and
+ * `schema/paint-census.json` are `--accept`ed after this forward bump (plans + placeholder grid move; member
+ * counts hold — text-field 20 / select 16). CONTRACT STANDS at 11.3.0 (no token NAME moves; `token-contract
+ * --check` level `none`, stamp-only). `out/**` restamps only `$extensions.generator.version`.
  * 0.122.0 — #1503: PROJECT CROSS-AXIS CHILD FILL (`layoutAlign: 'STRETCH'`), the missing twin of `wrap`'s
  * main-axis `layoutGrow`. The auto-layout audit (#1475) found every column-stacked form component hugs its
  * width with children that do NOT fill it, where Prism 2 gives a fixed-320 root with rows / inputs set to
@@ -3195,7 +3215,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.122.0';
+export const ENGINE_VERSION = '0.123.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

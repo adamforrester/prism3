@@ -71,7 +71,8 @@
  * ── ROLES REUSED, VERSION ────────────────────────────────────────────────────────────────────────
  *
  * Almost every binding is an EXISTING semantic role (`field.border.*`, `border.focus`, `border.danger`,
- * `field.fill`, `field.placeholder`, `text.primary`, `icon.primary`, `focus.ring.*`, the cross-cutting
+ * `field.fill`, `text.primary`, `text.secondary` (the muted placeholder ink since #1518), `icon.primary`,
+ * `focus.ring.*`, the cross-cutting
  * `disabled.*`). The ONE new emitted name is `size.md.min-height` (#1437, below), so `CONTRACT_VERSION`
  * moves to 10.1.0 (a MINOR add); `ENGINE_VERSION` moves for the changed projected surface (#1252's case).
  *
@@ -262,8 +263,13 @@ export const select: ComponentDef = {
     // no longer projects as a Figma variant (#1344): `empty` stays in `states`, so this key is reached at
     // the empty coordinate of the DECLARED grid that `lint-paint`'s reachability walks, and the projected
     // set simply omits the column.
+    // #1518 (owner-directed) — the placeholder resolves to `text.secondary` (the shared muted body ink) and the
+    // value to `text.primary` (full contrast), mirroring text-field key-for-key: the empty-vs-value polarity now
+    // reaches for the SAME two text roles rather than a field-scoped `field.placeholder`. Both roles already ship
+    // (no new guaranteed NAME → CONTRACT stands). Neither key is axis-value-led (`label`/`empty` are a slot and a
+    // state, not a `status` value), so `lint-paint` arm 1 says nothing about them and neither takes an exception.
     'label': 'color.text.primary',
-    'label.empty': 'color.field.placeholder',
+    'label.empty': 'color.text.secondary',
 
     // ── THE ICON INK — the trailing chevron AND any leading glyph, ONE binding for both ─────────────
     // `primary`, not `secondary` (#1343): the `icon` slot is pushed onto the chevron's vector AND the

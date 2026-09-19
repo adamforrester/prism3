@@ -130,7 +130,7 @@
       "grid": {
         "members": 28,
         "assignments": 140,
-        "sha256": "3f9f0c30c73d8806349b3c402758684642b73041ab5fde5a4448db66bec8779c"
+        "sha256": "62c11db232bfacec58ac6f8f5480a835fd7ec3ed8d335d14deb8c9f57a41b52d"
       }
     },
     "checkbox-control": {
@@ -238,7 +238,7 @@
       "grid": {
         "members": 20,
         "assignments": 100,
-        "sha256": "1ab2a6a7e376eb0310bff0c2f9312d4ca2f64b4e05004691fe9b524900a1bdad"
+        "sha256": "44c06c719675628a2b0150cd883591f53dff511c11a6041528937ef2a3e27ec4"
       }
     },
     "veil": {
