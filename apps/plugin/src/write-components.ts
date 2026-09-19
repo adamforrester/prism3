@@ -1980,21 +1980,31 @@ const writeComponentSet = async (
   // and #866's read-back increments it after — the same counter for the same divergence, caught at two
   // points. It was declared just above the read-back until #1337 gave the wire loop a reason to touch it.
   let refsRepaired = 0;
-  // #1473 — THE SET'S LIVE MEMBERS, RE-READ NOW, after every set-level op (combine, the layout `resize`,
-  // `addComponentProperty`) has settled. `members` was snapshotted right after combine (for the layout
-  // pass); a member handle from that snapshot can end up with a DETACHED subtree while the set's live child
-  // for that coordinate is a fresh, referenceable node — the host keeps reconciling ids after combine and,
-  // for some members, reassigns the MEMBER's identity too. Re-finding a part THROUGH the stale handle lands
-  // on the detached node and Figma refuses the reference ("Could not create a new component property
-  // reference"), so the field-label/select persistent misses stayed permanent even with the #1337 recovery
-  // — the recovery re-found through the SAME stale `member`. A fresh read, keyed by name (the key every
-  // re-find already has), reaches the settled member whose own layers CAN hold the reference. Inert when
-  // identity is stable (the common case, and every offline run without the `settleAfterCombine` shim mode):
-  // the fresh read is the very same objects the snapshot holds. Geometry read-backs below deliberately KEEP
+  // #1473 / #1516 — THE SET'S LIVE MEMBER FOR A COORDINATE, RE-READ FRESH FROM `set.children` AT EACH USE.
+  // `members` was snapshotted right after combine (for the layout pass); a member handle from that snapshot
+  // can end up with a DETACHED subtree while the set's live child for that coordinate is a fresh,
+  // referenceable node — the host keeps reconciling ids after combine and, for some members, reassigns the
+  // MEMBER's identity too. Re-finding a part THROUGH the stale handle lands on the detached node and Figma
+  // refuses the reference ("Could not create a new component property reference"), so the field-label/select
+  // persistent misses stayed permanent even with the #1337 recovery — the recovery re-found through the SAME
+  // stale `member`.
+  //
+  // #1473 fixed that with a live-member map SNAPSHOTTED HERE, on the premise that "after every set-level op
+  // (combine, the layout `resize`, `addComponentProperty`) has settled" the reconciliation is done. #1516 is
+  // the instant that premise misses: the host finishes reassigning SOME members' identity ASYNCHRONOUSLY,
+  // only DURING the wire loop below — after this point, on one of the loop's `await breathe` yields — so a
+  // map captured here goes stale mid-loop and the recovery re-resolves onto the detached original again. The
+  // live symptom is a build's misses concentrating on the LAST-wired coordinates (`state=disabled`,
+  // `status=warning` — ~30 on field-label, ~33 on text-field, QA 2026-09-18), the members reached after the
+  // most yields. So this is a FUNCTION that reads `set.children` fresh on every call rather than a one-time
+  // snapshot: a settle that lands at any point in the loop is seen by the next resolution. Inert when
+  // identity is stable (the common case, and every offline run without the `settleAfterCombine` /
+  // `deferSettleToWire` shim modes): the fresh read is the very same objects the snapshot held. It scans the
+  // set's direct children (an array walk, not a `findOne` subtree search — orders of magnitude below the
+  // #701 cost it feeds), so it does not touch the fast path. Geometry read-backs below deliberately KEEP
   // reading `members` — position/size ride the snapshot handle — so only the reference re-finds move here.
-  const liveByName = new Map<string, CompNode>();
-  for (const c of (set.children ?? [])) if (c.name != null) liveByName.set(String(c.name), c);
-  const liveMember = (name: string): CompNode | undefined => liveByName.get(name);
+  const liveMember = (name: string): CompNode | undefined =>
+    (set.children ?? []).find((c) => c.name != null && String(c.name) === name);
   mark = phaseStart = Date.now();
   const toWire = readable ? members : [];
   for (let i = 0; i < toWire.length; i++) {
