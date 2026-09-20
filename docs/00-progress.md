@@ -9,7 +9,7 @@
 
 ## (2026-09-20) — the prism3-build-component skill had drifted from the corpus it points to (#1495)
 
-**STATUS: LANDED.** Skill-prose correctness fix. **No engine change, no `out/**` change, NO version bump** — `skills/prism3-build-component/SKILL.md` is the only file touched: ENGINE STANDS at **0.126.0**, CONTRACT STANDS at **11.3.0** (`lint-emission-version` 0 artifacts, `regen --check` / `drift` clean). Gate count STANDS at **60** — `npm run verify` 60/60, 0 SKIP. Closes #1495. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope. The net for a skill/prose fix is `lint-skills` green (every backtick-quoted name resolves against the corpus) + full verify + review, not a by-name mutation — this adds no gate.
+**STATUS: LANDED.** Skill-prose correctness fix. **No engine change, no `out/**` change, NO version bump** — `skills/prism3-build-component/SKILL.md` is the only file touched: ENGINE STANDS at **0.127.0** (unchanged by this lane; main moved there under #1496), CONTRACT STANDS at **11.3.0** (`lint-emission-version` 0 artifacts, `regen --check` / `drift` clean). Gate count STANDS at **60** — `npm run verify` 60/60, 0 SKIP. Closes #1495. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope. The net for a skill/prose fix is `lint-skills` green (every backtick-quoted name resolves against the corpus) + full verify + review, not a by-name mutation — this adds no gate.
 
 ── WHAT DRIFTED, AND WHY IT WAS A CORRECTNESS FIX ─────────────────────────────────────────────────
 
@@ -28,6 +28,41 @@ A `SKILL.md` is a shipped artifact an agent trusts; `lint-skills` keeps its *nam
 ── THE TRAP FOR WHOEVER RE-VERIFIES ───────────────────────────────────────────────────────────────
 
 `lint-skills` scan-3 checks any `*.ts` token in the prose for existence via `resolve(repo, <match>)`, so a bare `` `button.ts` `` resolves to `<repo>/button.ts` and FAILS — every engine-file citation must be the full `packages/engine/components/…` path. `figmaProperties.booleans` and camelCase props (`leadingIcon`) are safe: the DOTTED/SNAKE regexes are lowercase-only, so an interior capital exempts them. `.json` filenames and any backtick token containing `/` or spaces are skipped by scans 1–2. `lint-us-english` / `lint-voice` scan the built bundles, so they only pass after the web + plugin builds — run the full `npm run verify`, not the skills gate alone.
+## (2026-09-20) — a `linkPalette` lever, so links can choose their palette independently of actions (#1496)
+
+**STATUS: LANDED (this lane).** Owner-requested feature (owner-confirmed 2026-09-17). **No emitted colour VALUE moves for any existing brand, but the emitted `lever-manifest.json` gains the new lever, so ENGINE bumps 0.126.0 → 0.127.0** (a lever add cannot leave the manifest byte-identical; `lint-emission-version` compares the emission against origin/main, so principle 5 requires the bump — the first draft claimed "no bump, byte-identical" by reading only the corpus token trees and CI caught it). CONTRACT STANDS at **11.3.0** (`regen --check` clean after the restamp, `nb-regression` clean, `token-contract --check` level `none` — the link role NAMES are unchanged, only opt-in brands' resolved VALUES move). Gate count **STANDS at 60** — L-07 is a new ARM inside the existing `test.ts` gate, not a new gate file. Closes #1496.
+
+── THE ASK, AND THE ONE-LINE DIAGNOSIS ────────────────────────────────────────────────────────────
+
+Links were hard-wired to the action palette: `linkBase = chromatic(r2p.action, …)` in `modes.ts`. A brand whose CTA colour is a poor link colour (or vice versa) could not split them without moving all interactive colour. The fix is small because the seam already existed — `roleToPalette` maps roles → palette names and `modes.ts` reads it. We add a resolved `theme.linkPalette` (+ `theme.linkAnchorStep`, computed exactly like the action's) and derive `linkBase` and the state walks from it instead of the hard-coded `r2p.action`. `link` is deliberately NOT made a `Role` (that would ripple through every `SEMANTICS` loop and risk output drift) — it is just the resolved input `modes.ts` reads.
+
+── THE FOUR OWNER-CONFIRMED PROPERTIES, AND HOW EACH IS HELD ───────────────────────────────────────
+
+1. **Default = follow the action palette.** `linkPalette = input.linkPalette ?? actionPalette`, and when the resolved name equals `r2p.action` `modes.ts` takes the EXACT pre-#1496 expressions (same palette, `paAnchor ?? roleAnchorStep.action`). So an unset lever produces byte-identical `link.*` COLOUR VALUES — proven by `nb-regression` and by every corpus brand's DTCG colour trees moving only their version stamp. The ENGINE bump is NOT for a colour move: adding the lever changes the emitted `lever-manifest.json` (a moved emission vs base that `lint-emission-version` sees), and regen then restamps every artifact's `$extensions.generator.version` to 0.127.0. An earlier draft mistook "corpus colour values byte-identical" for "emission byte-identical" and omitted the bump; CI's `lint-emission-version` flagged the moved manifest.
+2. **Neutral a11y = WARN, don't force.** Body text (`text.primary`) draws from the neutral ramp; when the resolved link ink is not COLOUR-distinct from it, `theme.notes` flags that links must be underlined for WCAG 1.4.1 (Use of Color), pairing with `typography.links`. **Distinctness is HUE+CHROMA only** — ΔE00 (the engine's `deltaE2000`) of the link vs neutral ramp at a shared mid step (500), with lightness deliberately factored out: a link that differs from body text only in lightness is exactly the 1.4.1 failure a greyscale/colour-blind reader cannot use. Threshold 7 (the `LINK_STATE_DE` family). Measured: every corpus brand's action palette sits at ΔE ≥ ~17 vs neutral, so none trips it — the note is added for opt-in brands only, another reason the corpus is byte-identical. No auto-underline, no block.
+3. **Targets: primary / neutral / custom.** `neutral` IS addressable — the studio Link-palette picker offers it (unlike `actionPalette`'s picker, a pre-existing omission left alone). A custom palette is any `brandColors` entry.
+4. **The floor always holds.** `linkGuard` still rates the link ink up to the profile `semanticMin` regardless of palette (#1510 untouched) — a deliberately light custom palette is rated up to 4.5:1, verified in the gate.
+
+── STUDIO ─────────────────────────────────────────────────────────────────────────────────────────
+
+A `linkPaletteLead()` on the Links section mirrors `actionPaletteLead` (offering primary / neutral / declared customs), reading the resolved `theme.linkPalette` and writing `brandState.linkPalette`. The inline underline warning reuses the `te-order-warn` advisory idiom and reads the engine's OWN note (`theme.notes`), so the UI cannot diverge from the engine's decision. The per-mode absolute link pickers (#1510) now source from `theme.linkPalette` (= action ramp when links follow it). `cascadeRename`/`cascadeRemove` cover `linkPalette` as a fifth name-referencing field (remove reverts it to unset = follow action).
+
+── THE GATE (test.ts L-07) + BY-NAME MUTATIONS (docs/34) ───────────────────────────────────────────
+
+EXPECTED is authored from the palette the lever NAMES, never re-derived from `modes.ts`'s link math: neutral/custom resolve off the named ramp (path palette segment == the lever value), default off the ACTION ramp (lever absence inert). The warning fires for `neutral` AND for a near-grey custom, and stays silent for a colour-distinct one — the gate self-checks its two fixtures sit on opposite sides of "distinct" with its own `deltaE2000` (a shared primitive, not the engine's derivation) and imports no threshold. A deliberately low-contrast custom is still rated to the 4.5:1 floor.
+
+| mutation | result |
+|---|---|
+| repoint `linkBase`/the state walks back to hard-coded `r2p.action` (ignore the lever) | L-07 resolution arm FAILS by name (neutral/custom land on the action ramp) |
+| delete the WCAG-note `notes.push` in `theme.ts` | L-07 warning-fires arm FAILS by name (neutral emits no 1.4.1 note) |
+
+Both verified with a `wip:` checkpoint before each mutation (CLAUDE.md — `git checkout -- <file>` reaches HEAD), restored, `--amend`ed.
+
+── ONE COMPRESSION, IN SCOPE ───────────────────────────────────────────────────────────────────────
+
+The MCP `tools/list` inlines `theme-schema.json` once and was already near its 60,000-char ceiling; adding the `linkPalette` schema entry tipped it to 60,563. Per the #1368 precedent (a new lever "fits by COMPRESSION, not by raising it"), the sibling interactive-colour schema descriptions (`linkStateRungs`, `strictInteractiveContrast`, `accentPalette`) — all of which already defer full detail to the lever manifest — were tightened; back under 60,000 with margin.
+
+**NOT TOUCHED.** #1367 and #1385 are out of this lane's scope.
 
 ## (2026-09-19) — the overlay wash was presented as a step of the neutral ramp, and painted with no ground under it (#1210 part 2)
 

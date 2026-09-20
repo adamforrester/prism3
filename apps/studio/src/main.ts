@@ -954,10 +954,11 @@ const rampBands = (steps: { num: number; key: string; hex: string }[], anchorSte
 
 // Brand-color reference integrity (docs/24 #53) — when an accent is renamed or removed, every place that
 // references its palette NAME must follow, or the alias graph dangles (e.g. `roleColors.success → 'accent'`
-// stops resolving). Covers the four name-referencing fields: actionPalette, roleColors (borrows),
-// interactivePalettes (accent columns), and gradient stops.
+// stops resolving). Covers the name-referencing fields: actionPalette, linkPalette (#1496), roleColors
+// (borrows), interactivePalettes (accent columns), and gradient stops.
 const cascadeRename = (prev: string, next: string): void => {
   if (brandState.actionPalette === prev) brandState.actionPalette = next;
+  if (brandState.linkPalette === prev) brandState.linkPalette = next;
   const rc = brandState.roleColors as Record<string, string> | undefined;
   if (rc) for (const r of Object.keys(rc)) if (rc[r] === prev) rc[r] = next;
   brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
@@ -965,6 +966,8 @@ const cascadeRename = (prev: string, next: string): void => {
 };
 const cascadeRemove = (removed: string): void => {
   if (brandState.actionPalette === removed) brandState.actionPalette = 'primary';
+  // A removed link palette reverts to the default (follow the action palette) rather than a fixed pick.
+  if (brandState.linkPalette === removed) brandState.linkPalette = undefined;
   const rc = brandState.roleColors as Record<string, string> | undefined;
   if (rc) { for (const r of Object.keys(rc)) if (rc[r] === removed) delete rc[r]; if (!Object.keys(rc).length) brandState.roleColors = undefined; }
   if (brandState.interactivePalettes) {
@@ -3025,7 +3028,7 @@ const linkRungPicker = (state: 'hover' | 'pressed' | 'visited'): HTMLSelectEleme
  *  to the link's contrast floor (a sub-floor pick is clamped), so an absolute pin can never render a link
  *  below contract. "Auto" (undefined) clears all five states for this family/mode, back to the default. */
 const setLinkFamilyOverride = (prefix: string, step: string | undefined): void => {
-  const pal = theme.roleToPalette.action;
+  const pal = theme.linkPalette;   // #1496: the per-mode absolute pin picks from the LINK ramp (= action ramp when links follow it)
   const steps = (theme.palettes.find((p) => p.palette === pal)?.steps ?? []).map((s) => s.key);
   const states = ['default', 'hover', 'pressed', 'visited', 'focused'] as const;
   if (step === undefined) { for (const st of states) setFillOverride(`${prefix}.link.${st}`, pal, undefined); return; }
@@ -3043,7 +3046,7 @@ const setLinkFamilyOverride = (prefix: string, step: string | undefined): void =
  *  the rung/derived default; a step pins this family's exact color for the current mode (the engaged states
  *  re-anchor to it, and the engine holds each to the link's contrast floor). */
 const linkAbsPicker = (prefix: string): HTMLSelectElement => {
-  const pal = theme.roleToPalette.action;
+  const pal = theme.linkPalette;   // #1496: offer steps from the LINK ramp (= action ramp when links follow it)
   const steps = (theme.palettes.find((p) => p.palette === pal)?.steps ?? []).map((s) => s.key);
   const cur = brandState.overrides?.[currentMode]?.[`${prefix}.link.default`]?.step;
   return stepPicker(pal, steps, baselineStepOf(`${prefix}.link.default`), typeof cur === 'string' ? cur : undefined,
@@ -3102,11 +3105,18 @@ const renderLinksSection = (): HTMLElement | null => {
   const sec = el('div', 'psec');
   const head = el('div', 'psec-h'); head.append(el('p', 'psec-t', 'Links'));
   sec.append(head, el('p', 'psec-d',
-    'The global link role, derived from the action palette above — there are no neutral or accent link roles. '
-    + 'The resting link and its focus follow the action palette; the engaged states step away from it. '
+    'The global link role, drawn from the link palette below — one link role, no per-accent link roles. '
+    + 'The resting link and its focus follow the link palette; the engaged states step away from it. '
     + 'The rung pickers on the page text link set how many steps hover, pressed and visited move — one cross-mode default for every family, so they stay distinct even where the link sits deep in the ramp. '
     + 'Each family can also pin an exact color for the current mode on its resting-link picker; a pin wins over the rung default and re-anchors that family, and the engine holds every link to its contrast floor. '
     + 'Focused always matches the resting link: the focus ring carries that state, so the link text does not shift.'));
+  sec.append(linkPaletteLead());
+  // WCAG 1.4.1 (Use of Color), warn-not-force (#1496): when the link palette is not color-distinct from
+  // body text, the engine flags in its notes that links must be underlined. Surface that inline here —
+  // advisory, never a block — reading the engine's own decision (theme.notes) so it never diverges from it.
+  if (theme.notes.some((n) => /WCAG 1\.4\.1/.test(n)))
+    sec.append(el('p', 'te-order-warn',
+      '⚠ This link palette is not color-distinct from body text, so color alone cannot mark a link. Underline links for WCAG 1.4.1 (Use of Color) — add the link role to Underlined link roles in Type. A warning, not a block.'));
   const rows: Array<HTMLElement | null> = [
     linkRow({ prefix: 'text', label: 'Text link', desc: 'Links in running text on light surfaces.', rungEditable: true,
       example: (rs) => exLink(rs['text.link.default']?.hex ?? '#000000', false, rs['text.link.hover']?.hex, rs['text.link.pressed']?.hex) }),
@@ -3144,6 +3154,22 @@ const actionPaletteLead = (): HTMLElement => {
   return iRow({ lead: true, label: 'Action palette', srcLabel: 'Source', select: sel,
     desc: 'Which palette drives your primary actions — a brand color, or point it at your neutral for a restrained, monochrome look. The contrast floor is accessible either way.',
     example: iExample(exBtn(roles['interactive.primary.fill.rest']?.hex ?? '#000000', roles['interactive.primary.on-fill']?.hex ?? '#ffffff')) });
+};
+
+/** The Links section's lead: the link-palette choice (#1496). Which palette drives the link color,
+ *  independently of the action palette. Unlike actionPalette, `neutral` is an offered target (a
+ *  monochrome link is a common brand choice). An unset linkPalette FOLLOWS the action palette, so the
+ *  picker shows the resolved palette (`theme.linkPalette`); selecting one decouples links onto it. */
+const linkPaletteLead = (): HTMLElement => {
+  const sel = selectEl('cap');
+  const palettes = ['primary', 'neutral', ...(brandState.brandColors ?? []).map((b) => b.name)];
+  const cur = String(theme.linkPalette);
+  for (const p of palettes) sel.append(optionEl(p, capWord(p), p === cur));
+  sel.onchange = () => { setPath(brandState, 'linkPalette', sel.value); applyFull(); };
+  const roles = iRoles();
+  return iRow({ lead: true, label: 'Link palette', srcLabel: 'Source', select: sel,
+    desc: 'Which palette drives your links — follows your action palette by default, or point it at your neutral or an accent to give links their own color. The contrast floor holds either way.',
+    example: iExample(exLink(roles['text.link.default']?.hex ?? '#000000', false, roles['text.link.hover']?.hex, roles['text.link.pressed']?.hex)) });
 };
 
 /** The Neutral section's lead: the emphasis choice (subtle grey surface vs bold near-black/white fill). */

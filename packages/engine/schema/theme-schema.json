@@ -177,6 +177,10 @@
       "type": "string",
       "description": "OPTIONAL. Which palette drives the interactive/action color. Defaults to 'primary'. Brands whose hero color is unsuitable for actions name another palette here (an accent, or even neutral). The engine FLAGS this in notes so it is an explicit, confirmable choice. This is the ergonomic alias for `roleColors.action`."
     },
+    "linkPalette": {
+      "type": "string",
+      "description": "OPTIONAL. Palette driving the LINK color, independent of the action palette (followed by default; unset = byte-identical). Set 'primary'/'neutral'/a `brandColors` entry; ink still rated to its floor. A palette not color-distinct from body text is flagged to underline links (WCAG 1.4.1). Full note in the lever manifest."
+    },
     "roleColors": {
       "type": "object",
       "additionalProperties": false,
@@ -243,11 +247,11 @@
     "strictInteractiveContrast": {
       "type": "boolean",
       "default": false,
-      "description": "OPTIONAL, OPT-IN (off by default). Off keeps primary's vivid brand ink on the inverse filled button (AA at rest; the transient hover/pressed steps an accepted, contract-recorded exemption). `true` swaps it to the neutral high-contrast extreme so every interactive state clears AA — trading the brand-colored label for guaranteed legibility. Inverse primary on-fill only. Full note in the lever manifest."
+      "description": "OPTIONAL, OPT-IN (off by default). Off keeps primary's vivid brand ink on the inverse filled button (AA at rest; transient hover/pressed an accepted exemption). `true` swaps it to the neutral high-contrast extreme so every state clears AA. Inverse primary on-fill only. Full note in the lever manifest."
     },
     "accentPalette": {
       "type": "string",
-      "description": "OPTIONAL. Opt-in accent interactive color (docs/20 §3) — the BACK-COMPAT single-column lever. Names a declared palette (typically a `brandColors` entry) to get a full `interactive.accent.*` column. Must differ from the action palette — never falls back to primary. Omit → no accent column. Superseded by `interactivePalettes` (which, when set, wins and ignores this)."
+      "description": "OPTIONAL. Opt-in accent interactive color (docs/20 §3) — the BACK-COMPAT single-column lever. Names a declared palette to get a full `interactive.accent.*` column; must differ from the action palette. Omit → no accent column. Superseded by `interactivePalettes` (which wins when set)."
     },
     "interactivePalettes": {
       "type": "array",
@@ -274,7 +278,7 @@
     "linkStateRungs": {
       "type": "object",
       "additionalProperties": false,
-      "description": "OPTIONAL. Per-state link override (#1510): floor-clamped rung count each engaged link state (hover / pressed / visited) steps from the resting link, set independently; unset keeps the tuned walk (#1486). A count, not an absolute step, because a link's engagement direction flips between page and inverse band. Full note in the lever manifest.",
+      "description": "OPTIONAL. Per-state link override (#1510): floor-clamped rung count each engaged link state (hover / pressed / visited) steps from the resting link, set independently; unset keeps the tuned walk (#1486). Full note in the lever manifest.",
       "properties": {
         "hover": { "type": "integer", "minimum": 1 },
         "pressed": { "type": "integer", "minimum": 1 },
