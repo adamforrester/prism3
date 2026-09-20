@@ -37,6 +37,36 @@ Both verified with a `wip:` checkpoint before each mutation (CLAUDE.md — `git 
 ── THE VERSION DECISION + EVIDENCE ───────────────────────────────────────────────────────────────────
 
 Executor-only, following the #1513/#1516/#1514 precedent — **NO ENGINE bump**. Evidence: `lint-emission-version` reports **0 artifacts changed vs base** and `lint-component-surface` reports **0 defs moved**; `regen.ts` then `git status` is clean (the payload JS is generated on demand for `figma_execute`, baked into no committed artifact, and `write-components.ts` is plugin code the engine does not emit). ENGINE STANDS at 0.127.0, CONTRACT STANDS at 11.3.0 (no token NAME moves). One consequence worth recording: the re-assert code grows the shared payload shell every chunk carries, so the icon-button chunk-count pin in `test.ts` moved **10 → 11** (~20 members/chunk; every chunk stays under the 42,000-byte budget). That pin's own comment sanctions re-pinning on a payload change — it is the first SHELL-byte move of that number rather than a member-count one. **Full net:** `npm run verify` = **60/60 PASS, 0 SKIP, 0 FAIL**.
+## (2026-09-20) — `test-smoke.mjs` stated measured corpus sizes as literals in its labels/comments, and they drifted against main silently (#1232)
+
+**STATUS: LANDED (this lane).** Studio-test hygiene fix. **No engine change, no `out/**` change, NO version bump** — the only file touched is `apps/studio/test-smoke.mjs` (comments + one assertion-label string; no `ok()` added or removed): ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0** (`lint-emission-version` 0 artifacts, `regen --check` clean). Gate count **STANDS at 60** — no CI gate added or removed; this is prose inside the existing studio-smoke gate. `npm run verify` all PASS, 0 SKIP, 0 FAIL. Smoke suite executes **1452** assertions, all pass. Closes #1232. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope.
+
+── WHAT DRIFTED ────────────────────────────────────────────────────────────────────────────────────
+
+The #1110 shape in a test file. `test-smoke.mjs` recorded measured corpus sizes — text-node totals, form-control totals, pill counts, the lowest rendered ratio — as **literals inside assertion labels and floor-comments**: prose the runner PRINTS, never a value it compares. A reader sees a specific figure next to a passing assertion and reads it as measured-now; it is a frozen sentence. It misdirects exactly the contributor whose change moves the sweep, who diffs their live run against a stale number and hunts for nodes they never added. #1210 corrected two of these figures to then-current values, which is not durable — a re-pin rots the same way. Proof it was still rotting: the text-node sweep label #1210 had just set to `16,834` reads **16,850** on this branch, and `SWEEP_FIELD_FLOOR`'s `604` reads **608** — both moved again from main advancing under them, with nothing red.
+
+── THE DECISION: DROP THE FROZEN FIGURE, KEEP THE FLOOR ─────────────────────────────────────────────
+
+The durable fix is NOT to update the numbers. Per #1232's remedy menu I chose **remedy 1 (DROP the historical figure)** at every pure-remark site, because the floor CONSTANTS that already exist (`SWEEP_NODE_FLOOR`, `SWEEP_FIELD_FLOOR`, `PILL_FLOOR`, `INVERSE_PILL_FLOOR`, `TWIN_PAIRING_FLOOR`, `TWIN_HAZARD_FLOOR`, `CONTRAST_FLOOR`, …) are already **remedy 2 (load-bearing)** — the live totals are compared against them and PRINTED every run, so the written-in figure was pure redundant remark. No new floor was minted; each surviving floor's comment now names how it is derived (named axes, or engine-contract values like `disabledMin`) or bounds it against "a full sweep's live total (printed every run)" rather than freezing a count. Explicitly out of scope per the brief and left undone: **no remedy 3** (no `--accept` baseline file), **no new CI gate** — a separate issue owns the gate count. Every floor stays honest against the current live values (16,850 nodes / 608 controls / 72 states / 2.54:1 low / 378 pills).
+
+── THE FULL-FILE SWEEP (the two #1210 touched were NOT the only two) ─────────────────────────────────
+
+Swept the whole file for the shape (a measured corpus size frozen in a label/comment), not just the two known sites. Nine instances found and resolved; derived floors (`2 brands × 2 modes × 8 pages = 32`; wash `12 = 2×2×3`) and **fixed historical measurements** (#555's `1.00–1.61:1` past defects; the discarded-attempt `181 of 198 pills`; the emitted-grid design values read live by an independent oracle at #1532) were left alone — they do not drift with the corpus.
+
+| # | Site | Frozen literal removed | Remedy |
+|---|---|---|---|
+| 1 | `CONTRAST_FLOOR` comment | "15,638 text nodes, 72 states", "lowest ratio today 3.04:1" | DROP — legitimate floor re-stated as derived (`disabledMin`/`secondaryMin`); live min is printed |
+| 2 | `SWEEP_*` floors comment | "72 states and 15,638 text nodes", "per-state range 34 to 490", "27-node chrome", "~1,900" | DROP — floors re-explained against the live total / named axes |
+| 3 | `SWEEP_FIELD_FLOOR` comment (a #1210 site) | "604 controls … ~half", "640 before #1210", the self-referential "tracked as #1232" | DROP — floor's derivation named, live count printed |
+| 4 | text-node sweep label (a #1210 site) | "~half the 15,638 baseline — 16,834 on this branch; … tracked as #1232" | DROP — label already prints live `${nodesMeasured}` and the floor |
+| 5 | §4 `color-scheme` comment | "passes — 942/942" (also already stale vs the 1452-assertion suite) | DROP the count, keep "still passes" |
+| 6 | §6 cap-window comment | "at 1440px ONE pill clips", "22 pills clip", "7 pairs at 200px / 10 at 130px" | DROP — the load-bearing `(90, 200]` window kept as a bound; live per-cap counts printed |
+| 7 | PILL floors comment | "343/336 pills, 15 short, 20 inverse-band, 29 pairings, 7@200/10@130" | DROP — floors kept, live figures printed in the console line below |
+| 8 | §6 single-segment note | "15 per brand" | DROP → "a handful per brand" |
+
+── THE NET ──────────────────────────────────────────────────────────────────────────────────────────
+
+No by-name mutation applies (this adds no gate and asserts no new oracle — it removes stale prose). The net is the full `npm run verify` green with the smoke suite exercising every floor against the live corpus: all floors pass with headroom, confirming they are honest without the frozen figures. Trap for the next re-verifier: the smoke suite needs a Playwright browser; `npx playwright install chromium` is the one sanctioned one-off download (writes outside `node_modules`), and the suite runs AFTER the studio build (it drives `dist/`).
 
 ## (2026-09-20) — the prism3-build-component skill had drifted from the corpus it points to (#1495)
 
