@@ -11599,14 +11599,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           // Modeled as a plain settable field, so a payload that never writes it leaves `''` — which is
           // the empty-label set #510 shipped, and the state the read-back has to be able to report.
           characters: '',
-          // #1514 — RETAINED, so the plugin executor's post-wire text-style RE-ASSERT can read its own write
-          // back through the parity gate. `setTextStyleIdAsync` (below) stores here; the plugin re-assert reads
-          // `node.textStyleId` and reports a DISCARDED miss if it does not hold. This stub does NOT model the
-          // characters-bind DETACH (its `componentPropertyReferences` is a plain field, no reset-on-bind) — so
-          // the applied style simply persists and the re-assert is a clean no-op here, which is exactly what
-          // keeps the two executors at parity. The detach itself is modeled where the #1514 fix is PROVEN, in
-          // `component-shim.ts`'s `guardRefs` (the round-trip gate); this stub only needs to retain the id so
-          // that reading it back is not spuriously empty.
+          // #1514 — WRITTEN by `setTextStyleIdAsync` (below) and READ BACK by each executor's post-wire style
+          // re-assert. As of #1536 this stub MODELS the characters-bind DETACH: `guardRefs`'s
+          // `componentPropertyReferences` setter clears this to `''` when a TEXT node's `characters` reference
+          // is wired (mirroring `component-shim.ts`'s `guardRefs`, and Figma's own reset-on-bind), so a path
+          // that does NOT re-apply the style leaves an empty id here — which the parity gate reads off both
+          // pages. Before #1536 the detach was unmodelled and the two executors agreed vacuously (docs/34);
+          // the detach is also modelled where the #1514 fix is PROVEN for the plugin round-trip
+          // (`component-shim.ts`'s `guardRefs`).
           textStyleId: '',
           // #1330 / #1378 — EXPOSED NESTED INSTANCE, mirroring the plugin shim so the two offline models
           // stay in lockstep (the parity gate drives both executors against this one host). Starts a
@@ -11931,7 +11931,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           set.appendChild = (c: Record<string, unknown>) => {
             (set.children as Record<string, unknown>[]).push(c);
             takeFromPage([c]);
-            guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [c, ...((c.findAll as () => unknown[])?.() ?? [])] } as Record<string, unknown>);
+            guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [c, ...((c.findAll as () => unknown[])?.() ?? [])] } as Record<string, unknown>, (id) => defs[id]);
           };
           const defs: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
           let seq = 100;
@@ -11973,8 +11973,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           };
           set.declaredIds = () => Object.keys(defs);
           // Called at RUN time (the payload runs after this whole closure is built), so the reference
-          // guard sees the definitions this set actually holds.
-          guardRefs(set);
+          // guard sees the definitions this set actually holds. `(id) => defs[id]` lets the guard model
+          // Figma's reset-on-bind (#1513/#1514) — see `guardRefs`.
+          guardRefs(set, (id) => defs[id]);
           // Into the PAGE, so a later chunk's `findOne` can find it — and only when a page was supplied,
           // which keeps every pre-existing caller on exactly the stub it had.
           page?.children.push(set);
@@ -11999,7 +12000,17 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // direction we get for free — so the stub enforces it too, on every node. Installed here rather
       // than in `mkNode` because it needs the set that owns the definitions, which does not exist yet
       // when a node is built.
-      const guardRefs = (set: Record<string, unknown>) => {
+      // `propLookup` (#1513/#1514) resolves a property id → its `{ type, defaultValue }` so the setter can
+      // MODEL Figma's RESET-ON-BIND: wiring a TEXT node's `characters` reference adopts the set-level
+      // property's one `defaultValue` onto the node (discarding the per-coordinate copy `build` wrote, #1018
+      // `byVariant`) AND detaches the applied `textStyleId`. Threaded from both call sites because `defs`
+      // lives inside `combineAsVariants`, below this helper. This is the exact model `component-shim.ts`'s
+      // own `guardRefs` carries for the round-trip gate, mirrored HERE so the parity gate drives BOTH
+      // executors against one Figma that resets on bind — which is what makes each executor's post-wire
+      // caption/style re-assert load-bearing rather than a vacuous no-op (docs/34: an under-modelled stub
+      // lets the two paths agree without either doing the work). Omitting it (a plain node guard) keeps the
+      // pre-#1513 behaviour, which is why every earlier caller passes nothing.
+      const guardRefs = (set: Record<string, unknown>, propLookup?: (id: string) => { type: string; defaultValue?: unknown } | undefined) => {
         for (const n of [set, ...(set.findAll as () => Record<string, unknown>[])()]) {
           // #1428 — a node INSIDE a nested instance cannot hold one of THIS set's references (it is a
           // sublayer of another component): Figma refuses with its own message. Modelled so a re-find by
@@ -12022,6 +12033,24 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
               for (const id of Object.values(v ?? {}))
                 if (!known.includes(id)) throw new Error(`in set_componentPropertyReferences: Could not find a component property with name: '${id}'`);
               held = v;
+              // #1513 — RESET-ON-BIND. Live Figma replaces a TEXT node's displayed `characters` with the
+              // set-level property's single `defaultValue` the moment its `characters` reference is wired, so
+              // the per-member caption written before combine is lost to the fallback (field-message's error/
+              // warning/success members all rendered "This is a standard message." in QA — #1513). Only the
+              // `characters` field, only a TEXT property; each executor re-asserts each member's own copy AFTER
+              // wiring, and this host behaviour is what makes that re-assert witnessable rather than a no-op.
+              const charId = (v ?? {}).characters;
+              const pd = charId ? propLookup?.(charId) : undefined;
+              if (pd?.type === 'TEXT') {
+                (n as Record<string, unknown>).characters = pd.defaultValue;
+                // #1514 — THE SAME RESET-ON-BIND DETACHES THE COMPOSITE TEXT STYLE. Wiring the `characters`
+                // reference re-derives the node from the set-level property, dropping the `textStyleId` `build`
+                // applied while LEAVING the style's resolved variable binds (owner QA 2026-09-18, every text
+                // node, all characters-bound). Modelled here as clearing the id the re-assert reads back, so a
+                // path that does NOT re-apply the style leaves an empty id — which the parity gate reads off
+                // both pages. Mirrors `component-shim.ts`'s `guardRefs`.
+                (n as Record<string, unknown>).textStyleId = '';
+              }
             },
           });
         }
@@ -13514,6 +13543,69 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         ok(posMap(plugPage) === posMap(pastePage),
           'parity: every member lands at the same coordinate and measures the same box on both paths — the pitch is measured, so this is the layout claim `size` cannot make');
 
+        // #1513/#1514 — THE POST-WIRE RE-ASSERTS, WITNESSED. The stub now models Figma's reset-on-bind
+        // (`guardRefs`, mirroring `component-shim.ts`): wiring a TEXT node's `characters` reference adopts the
+        // set-level default caption AND detaches the applied text style. So a path that does NOT re-assert
+        // leaves every member's text node holding the fallback caption and no style. Both executors run
+        // against the ONE reset-modelling stub, and this reads each member's OWN text node off both pages —
+        // failing BY NAME on either path that drops a re-assert. This is the docs/34 defect #1536 closes:
+        // before the stub modelled the reset, both paths agreed here without either doing the work.
+        //
+        // THE STYLE re-assert is witnessed on the button grid (every `label` detaches its style on bind), the
+        // CAPTION re-assert on a field-message set below (where each status member's own copy DIFFERS from the
+        // set-level default — the button grid's uniform "Button" cannot witness it, since the reset restores
+        // exactly the same value).
+        const textStyleState = (page: StubPage) => {
+          const set = page.children.find((c) => c.type === 'COMPONENT_SET')!;
+          const rows: string[] = [];
+          for (const member of set.children as Record<string, unknown>[])
+            for (const n of [member, ...((member.findAll as (p?: unknown) => Record<string, unknown>[])(() => true))])
+              if (n.type === 'TEXT') rows.push(`${String(member.name)}/${String(n.name)}#${String(n.textStyleId)}`);
+          return rows.sort();
+        };
+        const plugStyle = textStyleState(plugPage);
+        const pasteStyle = textStyleState(pastePage);
+        // FLOOR (docs/34): every text node carries a NON-EMPTY style id on the plugin path, so a comparison of
+        // two all-empty lists cannot pass as agreement — the reset detached it and the re-assert put it back.
+        ok(plugStyle.length > 0 && plugStyle.every((s) => !s.endsWith('#') && !s.endsWith('#undefined')),
+          `#1514 reachable: every member's text node carries a named style on the plugin path — the reset-modelling stub detached it on bind and the re-assert restored it (${plugStyle.slice(0, 2).join('; ')})`);
+        ok(JSON.stringify(plugStyle) === JSON.stringify(pasteStyle),
+          `#1514 parity: both executors re-apply each member's text STYLE after the characters-bind seam — plugin vs paste disagree on: ${JSON.stringify([...plugStyle.filter((s) => !pasteStyle.includes(s)), ...pasteStyle.filter((s) => !plugStyle.includes(s))].slice(0, 4))}`);
+
+        // #1513 — THE CAPTION RE-ASSERT, on a def whose members' own copy DIFFERS from the set-level default.
+        // field-message ships a per-status byVariant caption (#1018/#1474): default "This is a standard
+        // message.", and error/warning/success each carry their own. So on bind the stub resets every member
+        // to the default, and only a path that re-asserts restores the status copy.
+        const fmSet = figmaAnatomySet(fieldMessage, {});
+        const fmOpts = {
+          vars: fmSet.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+          styles: fmSet.flatMap((p) => planTextStyles(p.root)),
+          comps: [] as string[],
+        };
+        const fmPastePage: StubPage = { children: [] };
+        const fmPlugPage: StubPage = { children: [] };
+        const fmPasted = await runPayload(planSetToPluginJs(fmSet), { ...fmOpts, page: fmPastePage });
+        const fmPlugged = await plugRun(fmSet, { ...fmOpts, page: fmPlugPage });
+        ok(fmPasted.misses.length === 0 && fmPlugged.misses.length === 0,
+          `#1513 field-message runs CLEAN on both paths${[...fmPasted.misses, ...fmPlugged.misses].length ? ` — ${JSON.stringify([...fmPasted.misses, ...fmPlugged.misses].slice(0, 4))}` : ''}`);
+        const fmCaptions = (page: StubPage) => {
+          const set = page.children.find((c) => c.type === 'COMPONENT_SET')!;
+          const rows: string[] = [];
+          for (const member of set.children as Record<string, unknown>[])
+            for (const n of [member, ...((member.findAll as (p?: unknown) => Record<string, unknown>[])(() => true))])
+              if (n.type === 'TEXT') rows.push(`${String(member.name)}=${JSON.stringify(n.characters)}`);
+          return rows.sort();
+        };
+        const plugCaptions = fmCaptions(fmPlugPage);
+        const pasteCaptions = fmCaptions(fmPastePage);
+        // FLOOR (docs/34): the fixture genuinely carries the three distinct byVariant status captions AND the
+        // default — proof the reset is not a value no-op here, so a dropped re-assert is visible below.
+        ok(['Something needs fixing.', 'Double-check this.', 'All set.'].every((s) => plugCaptions.some((c) => c.includes(s)))
+          && plugCaptions.some((c) => c.includes('This is a standard message.')),
+          `#1513 reachable: the plugin path restores each status member's OWN caption, not the "This is a standard message." fallback — so the reset-modelling stub genuinely diverges from the member copy (${plugCaptions.join('; ')})`);
+        ok(JSON.stringify(plugCaptions) === JSON.stringify(pasteCaptions),
+          `#1513 parity: both executors re-assert each member's OWN caption after the characters-bind seam — plugin vs paste disagree on: ${JSON.stringify([...plugCaptions.filter((c) => !pasteCaptions.includes(c)), ...pasteCaptions.filter((c) => !plugCaptions.includes(c))].slice(0, 4))}`);
+
         // #1388 — THE CONCENTRIC RING RADIUS, ACROSS BOTH PATHS. The paste executor's radius is asserted
         // against the independent host+inset oracle in the absolute-part block above; the PLUGIN executor
         // writes it through independent code in a second file, gated HERE against the paste path. So this
@@ -14026,12 +14118,17 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // into sibling components took THIS def's set from 162 members to 54 (54 members at ~26 per chunk is 3).
       //
       // WAS 5, AS OF #1353 — another MEMBER-COUNT move: the shape axis DOUBLES the set 54 → 108, packing into
-      // 5 chunks (~26 per chunk). NOW 10, AS OF #1427 — the surface axis DOUBLES it again 108 → 216, so it
-      // packs into 10 chunks. This is the one number here that tracks the set SIZE rather than the per-member
-      // or shell byte cost, so it moves with an axis change while the "every chunk under budget" check below
-      // does not.
+      // 5 chunks (~26 per chunk). WAS 10, AS OF #1427 — the surface axis DOUBLES it again 108 → 216, so it
+      // packed into 10 chunks. NOW 11, AS OF #1536 — the first move here that is a SHELL-BYTE cost rather than
+      // a member-count one: the #1513/#1514 post-wire caption/style re-asserts ported into `PAYLOAD_WIRE_REFS`
+      // grow the shared shell every chunk carries, so slightly fewer members fit per chunk and the 216-member
+      // set spills into an 11th (~20 per chunk; the last chunk is short). That is exactly what this pin exists
+      // to make visible — the comment above calls it "the one number that tracks the set SIZE", and it tracks
+      // the shell cost too, since both decide members-per-chunk. Re-pinned per the standing instruction rather
+      // than worked around; every chunk stays under budget (the check below), which is the property that
+      // actually matters.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 10, `anatomy/icon-button: the set packs into 10 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 11, `anatomy/icon-button: the set packs into 11 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a

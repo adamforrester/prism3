@@ -7,6 +7,36 @@
 
 ---
 
+## (2026-09-20) — the #1513/#1514 caption + text-style re-asserts landed in the PLUGIN executor only; ported to the PASTE executor (#1536)
+
+**STATUS: LANDED (this lane).** Executor-only bug fix + a gate-independence strengthening. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Gate count **STANDS at 60** — the witness is two new ARMS inside the existing `test.ts` parity gate, not a new gate file. Closes #1536. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope.
+
+── THE BUG, AND THE ONE-LINE DIAGNOSIS ──────────────────────────────────────────────────────────────
+
+Two live-write-path re-asserts landed in the PLUGIN executor (`apps/plugin/src/write-components.ts`) and were never ported to the EMITTED PASTE executor (the `figma_execute` copy-paste payload in `anatomy-figma.ts` — `PAYLOAD_WIRE_REFS`, shared by `planSetToPluginJs` and `planSetChunks`):
+- **#1513** — RE-ASSERT each member's OWN caption AFTER wiring `componentPropertyReferences.characters`. Wiring that reference binds the TEXT node to the SET-LEVEL property, whose one `defaultValue` Figma adopts onto the node at bind time (discarding the per-coordinate `byVariant` copy `build` wrote). Missing on paste → a paste-built field-message rendered "This is a standard message." on its error/warning/success members.
+- **#1514** — RE-ASSERT the composite text STYLE AFTER the same seam. The bind detaches the applied `textStyleId` while leaving the style's resolved variable binds. Missing on paste → a paste-built text node showed loose family/size/style variables and no named style.
+
+Both are ported into `PAYLOAD_WIRE_REFS`'s wire-phase read-back loop, mirroring `write-components.ts`: re-write the member's own caption, then `loadFontAsync` + `setTextStyleIdAsync` for the emitted style, each read back so a re-reset surfaces as a DISCARDED miss (miss wording byte-identical to the plugin's, so the parity gate compares them as sets).
+
+── SOURCED FROM THE LIVE BUILT NODES, NOT A SHIPPED MAP — A CHUNK CONSTRAINT ─────────────────────────
+
+The plugin builds `textByMember`/`styleByMember` from `plans` (it has the whole set in memory). The paste path cannot: `PAYLOAD_WIRE_REFS` wires every member on the FINAL chunk, while a chunk's `PLANS` holds only its own slice — so a map built from `PLANS` would cover the last chunk's members alone, and shipping a FULL per-member map on the last chunk would blow its byte budget (Button's caption is a uniform "Button" ×756). The fix reads each member's own caption/style off the LIVE built nodes just before the wire loop resets them (`build`'s write is still on the node at that seam), which is the one place every member's copy survives across the separate `figma_execute` calls and adds zero payload bytes. `styleById` recovers the style's font for the re-apply. This matches the plugin's OUTCOME exactly (each member's own caption + emitted style) — the parity gate compares outcomes.
+
+── THE GATE-INDEPENDENCE FIX (docs/34), AND THE BY-NAME MUTATIONS ────────────────────────────────────
+
+The `test.ts` parity gate drives BOTH executors (`applyComponentPlan` and the paste payload) against ONE Figma stub. That stub did NOT model Figma's reset-on-bind — its `componentPropertyReferences` was a plain field — so BOTH executors agreed vacuously whether or not either re-asserted (docs/34: an under-modelled stub deletes the gate silently). This PR extends the stub's `guardRefs` to MODEL the reset-on-bind (adopt the set-level default caption + detach the `textStyleId` when a TEXT `characters` reference is wired), mirroring `component-shim.ts`'s `guardRefs` (where the #1513/#1514 fix is PROVEN for the plugin round-trip). Two new witness arms then read each member's OWN text node off both pages:
+
+| mutation (in `planToPluginJs`/`PAYLOAD_WIRE_REFS`) | result |
+|---|---|
+| remove the CAPTION re-assert (`node.characters=cap.chars`) | `#1513 parity: both executors re-assert each member's OWN caption after the characters-bind seam` FAILS by name (paste members revert to "This is a standard message."; witnessed on field-message, whose `byVariant` status copy differs from the set default — Button's uniform "Button" cannot witness it) |
+| remove the STYLE re-assert (`setTextStyleIdAsync`) | `#1514 parity: both executors re-apply each member's text STYLE after the characters-bind seam` FAILS by name (paste members' `label#` is empty; plugin's is `label#S:label/md/emphasis`) |
+
+Both verified with a `wip:` checkpoint before each mutation (CLAUDE.md — `git checkout -- <file>` reaches HEAD), restored, `--amend`ed. Each arm has a docs/34 FLOOR proving its fixture can reveal the defect (plugin path carries the three distinct status captions / non-empty style ids), so a comparison of two vacuous lists cannot pass as agreement.
+
+── THE VERSION DECISION + EVIDENCE ───────────────────────────────────────────────────────────────────
+
+Executor-only, following the #1513/#1516/#1514 precedent — **NO ENGINE bump**. Evidence: `lint-emission-version` reports **0 artifacts changed vs base** and `lint-component-surface` reports **0 defs moved**; `regen.ts` then `git status` is clean (the payload JS is generated on demand for `figma_execute`, baked into no committed artifact, and `write-components.ts` is plugin code the engine does not emit). ENGINE STANDS at 0.127.0, CONTRACT STANDS at 11.3.0 (no token NAME moves). One consequence worth recording: the re-assert code grows the shared payload shell every chunk carries, so the icon-button chunk-count pin in `test.ts` moved **10 → 11** (~20 members/chunk; every chunk stays under the 42,000-byte budget). That pin's own comment sanctions re-pinning on a payload change — it is the first SHELL-byte move of that number rather than a member-count one. **Full net:** `npm run verify` = **60/60 PASS, 0 SKIP, 0 FAIL**.
 ## (2026-09-20) — `test-smoke.mjs` stated measured corpus sizes as literals in its labels/comments, and they drifted against main silently (#1232)
 
 **STATUS: LANDED (this lane).** Studio-test hygiene fix. **No engine change, no `out/**` change, NO version bump** — the only file touched is `apps/studio/test-smoke.mjs` (comments + one assertion-label string; no `ok()` added or removed): ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0** (`lint-emission-version` 0 artifacts, `regen --check` clean). Gate count **STANDS at 60** — no CI gate added or removed; this is prose inside the existing studio-smoke gate. `npm run verify` all PASS, 0 SKIP, 0 FAIL. Smoke suite executes **1452** assertions, all pass. Closes #1232. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope.
