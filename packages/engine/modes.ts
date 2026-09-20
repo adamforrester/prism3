@@ -1762,7 +1762,18 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // Clamped, not `exact`: an authored `actionAnchorStep` pins a FILL step, and inheriting that
     // pin here would let a deliberate fill choice silently push link text below its floor. A link
     // colour is overridable in its own right.
-    const linkBase = chromatic(r2p.action, paAnchor ?? theme.roleAnchorStep.action, g.floor, p.semanticMin);
+    // The link palette (#1496). Links DEFAULT to following the action palette — `theme.linkPalette`
+    // resolves to the action palette when the `linkPalette` lever is unset, so `linkFollowsAction` is
+    // true and the derivation below is byte-identical to pre-#1496 (same `r2p.action` name, same anchor
+    // path). A brand that sets `linkPalette` decouples links onto another palette (primary / neutral / a
+    // custom accent). When decoupled we use the palette's own baseline anchor (`theme.linkAnchorStep`),
+    // NOT the action's per-mode anchor (`paAnchor` folds in `modeAnchors.<mode>.primary`, which is an
+    // action-column pin and has no meaning for a decoupled link palette). The floor guard below still
+    // rates the link ink up to its contract regardless of palette (the a11y floor always holds).
+    const linkPal = theme.linkPalette;
+    const linkFollowsAction = linkPal === r2p.action;
+    const linkAnchor = linkFollowsAction ? (paAnchor ?? theme.roleAnchorStep.action) : theme.linkAnchorStep;
+    const linkBase = chromatic(linkPal, linkAnchor, g.floor, p.semanticMin);
     // Guarded (#557) at the profile's OWN semanticMin — so `icon.link.*` under iconContrast '3:1'
     // is verified at 3, and `text.link.*` at the text bar, each against the floor `put` uses.
     const linkGuard = guardFrom(contrast(linkBase.rgb, g.floor), g.floor, p.semanticMin);
@@ -1782,14 +1793,14 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // shipping corpus (real ramps) and distinct+floor on every stress fixture.
     const linkNum = linkBase.num;
     const perc = {
-      hover: walk(r2p.action, linkNum, 1, g.dir, linkGuard, LINK_STATE_DE),
-      pressed: walk(r2p.action, linkNum, 2, g.dir, linkGuard, LINK_STATE_DE),
-      visited: walk(r2p.action, linkNum, 3, g.dir, linkGuard, LINK_STATE_DE),
+      hover: walk(linkPal, linkNum, 1, g.dir, linkGuard, LINK_STATE_DE),
+      pressed: walk(linkPal, linkNum, 2, g.dir, linkGuard, LINK_STATE_DE),
+      visited: walk(linkPal, linkNum, 3, g.dir, linkGuard, LINK_STATE_DE),
     };
     const plainLink = {
-      hover: walk(r2p.action, linkNum, 1, g.dir, linkGuard),
-      pressed: walk(r2p.action, linkNum, 2, g.dir, linkGuard),
-      visited: walk(r2p.action, linkNum, 3, g.dir, linkGuard),
+      hover: walk(linkPal, linkNum, 1, g.dir, linkGuard),
+      pressed: walk(linkPal, linkNum, 2, g.dir, linkGuard),
+      visited: walk(linkPal, linkNum, 3, g.dir, linkGuard),
     };
     // Distinctness is compared by PATH (the emitted step key) — a `walk` result is a `Cand` with no
     // `num` field, and the base is a `RatedNum`; the path is the identity both share.
@@ -1805,7 +1816,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // tuned ladder; `default`/`focused` are the resting link, unaffected.
     const linkRungs = theme.linkStateRungs;
     const engaged = (st: 'hover' | 'pressed' | 'visited'): Cand =>
-      linkRungs?.[st] !== undefined ? walk(r2p.action, linkNum, linkRungs[st]!, g.dir, linkGuard) : linkLadder[st];
+      linkRungs?.[st] !== undefined ? walk(linkPal, linkNum, linkRungs[st]!, g.dir, linkGuard) : linkLadder[st];
     const linkStateCand = (st: typeof LINK_STATES[number]): Cand =>
       st === 'default' || st === 'focused' ? linkBase : engaged(st);
     for (const st of LINK_STATES)

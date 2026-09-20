@@ -1787,7 +1787,9 @@ const READ_LINKS = () => {
     .find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Links');
   if (!sec) return null;
   return {
-    rows: [...sec.querySelectorAll('.arow')].map((row) => ({
+    // Exclude the lead control row (#1496 Link-palette picker, `.arow-lead`) — it carries no swatch and
+    // is not a link family row; only the family rows (`.arow` without `arow-lead`) are read here.
+    rows: [...sec.querySelectorAll('.arow:not(.arow-lead)')].map((row) => ({
       pill: row.querySelector('.amid .tpill')?.textContent?.trim() ?? null,
       swatch: getComputedStyle(row.querySelector('.asw')).backgroundColor,
       states: [...row.querySelectorAll('.astates .astate')].map((c) => ({
@@ -1855,6 +1857,68 @@ for (const brand of BRANDS) {
   const errs = drain();
   ok(errs.length === 0, `${brand}: reading the Links section raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   console.log(`  ${brand}: ${shown.rows.length} link rows, ${shown.rows.reduce((n, r) => n + r.states.length, 0)} state cells surfaced.`);
+  await ctx.close();
+}
+
+// =============================================================================================
+// 8b. The link palette lever (#1496) — decouple links + the WCAG 1.4.1 warning
+// =============================================================================================
+// #1496 gives links their OWN palette, independent of the action palette. This drives the studio's
+// Link-palette lead select: choosing `neutral` (a target the actionPalette picker never offered) must
+// (a) MOVE the emitted link swatches onto a different ramp, and (b) surface the WCAG 1.4.1 (Use of
+// Color) underline warning inline — warn, never force, never block. A colour-distinct palette (primary)
+// shows NO warning. The studio reads the engine's OWN decision (theme.notes) to fire the warning, so
+// this asserts the studio SURFACES the engine's flag rather than inventing its own copy of the rule.
+console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
+{
+  const brand = BRANDS[0];
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoPage(page, 'Interactive');
+
+  const lead = page.locator('.arow-lead').filter({ hasText: 'Link palette' });
+  ok((await lead.count()) > 0, `${brand}: the Links section carries a Link palette lead control`);
+  const sel = lead.locator('.sf-ctlblock select');
+  const options = await sel.evaluate((s) => [...s.options].map((o) => o.value));
+  ok(options.includes('neutral'), `${brand}: the Link palette picker offers 'neutral' as a target (${options.join(', ')})`);
+  ok(options.includes('primary'), `${brand}: the Link palette picker offers 'primary'`);
+
+  // ACTUAL — the Links section's warning presence + the resting text-link swatch, as a reader sees them.
+  const readLinks = () => page.evaluate(() => {
+    const sec = [...document.querySelectorAll('.psec')].find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Links');
+    const warn = [...sec.querySelectorAll('.te-order-warn')].some((p) => /1\.4\.1/.test(p.textContent || ''));
+    const textRow = [...sec.querySelectorAll('.arow')].find((r) => r.querySelector('.amid .tpill')?.textContent?.trim() === 'color.text.link.default');
+    return { warn, swatch: textRow ? getComputedStyle(textRow.querySelector('.asw')).backgroundColor : null };
+  });
+  const warnFires = () => page.evaluate(() => {
+    const sec = [...document.querySelectorAll('.psec')].find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Links');
+    return [...sec.querySelectorAll('.te-order-warn')].some((p) => /1\.4\.1/.test(p.textContent || ''));
+  });
+
+  const before = await readLinks();
+  ok(before.warn === false, `${brand}: no WCAG 1.4.1 warning before a non-distinct link palette is chosen`);
+
+  // Drive → neutral: links move to the neutral ramp AND the underline warning fires inline.
+  await sel.selectOption('neutral');
+  await page.waitForFunction(() => {
+    const sec = [...document.querySelectorAll('.psec')].find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Links');
+    return [...sec.querySelectorAll('.te-order-warn')].some((p) => /1\.4\.1/.test(p.textContent || ''));
+  });
+  const neu = await readLinks();
+  ok(neu.warn === true, `${brand}: selecting a neutral link palette surfaces the WCAG 1.4.1 underline warning inline (warn, not force)`);
+  ok(neu.swatch && neu.swatch !== before.swatch,
+    `${brand}: the resting link swatch moves when links are repointed to neutral (${before.swatch} → ${neu.swatch})`);
+
+  // Drive → primary (colour-distinct): the warning clears — the flag tracks the palette choice.
+  await sel.selectOption('primary');
+  await page.waitForFunction(() => {
+    const sec = [...document.querySelectorAll('.psec')].find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Links');
+    return ![...sec.querySelectorAll('.te-order-warn')].some((p) => /1\.4\.1/.test(p.textContent || ''));
+  });
+  ok((await warnFires()) === false, `${brand}: a colour-distinct (primary) link palette shows no warning`);
+
+  const errs = drain();
+  ok(errs.length === 0, `${brand}: driving the Link palette lever raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  console.log(`  ${brand}: link palette lever drives neutral→warn, primary→clear.`);
   await ctx.close();
 }
 

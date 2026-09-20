@@ -15,7 +15,7 @@
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
 import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
-import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma } from './color';
+import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000 } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
 
@@ -246,6 +246,15 @@ export type Theme = {
   palettes: PaletteBuild[];
   roleToPalette: Record<Role, string>;
   roleAnchorStep: Record<Role, number>;
+  // The palette the LINK role draws from (#1496). Resolved to a concrete palette name: `input.linkPalette`
+  // when set, else the action palette (so an unset `linkPalette` is byte-identical to pre-#1496 output —
+  // links follow interactive color). `link` is not a `Role` (the semantic-role machinery does not gain a
+  // member), just the resolved input `modes.ts` reads to derive `linkBase`.
+  linkPalette: string;
+  // The fill/ink anchor step for the link palette (#1496), computed exactly like `roleAnchorStep.action`
+  // but for the resolved link palette. Only consulted by `modes.ts` when links are DECOUPLED from the
+  // action palette; when they follow it, the action's own per-mode anchor path is used (byte-identical).
+  linkAnchorStep: number;
   surfaces?: SurfacesConfig;         // optional non-default surfaces (drives the contrast floor)
   // Per-mode colour override layer (Phase A1) — role → primitive-step repoints applied AFTER
   // generation, for the customizable modes only (light/dark). Distinct from `roleColors`
@@ -446,6 +455,14 @@ export type BrandInput = {
    *  here (e.g. an accent, or even neutral). The engine FLAGS this decision in
    *  notes so it's an explicit, confirmable choice — never a silent assumption. */
   actionPalette?: string;
+  /** Which palette drives the LINK colour (#1496). Defaults to FOLLOWING the action palette — an unset
+   *  `linkPalette` resolves to whatever `actionPalette` resolves to, so existing brands are byte-identical.
+   *  Set it to point links at `primary`, `neutral`, or a `brandColors` entry INDEPENDENTLY of the action
+   *  palette (a brand whose CTA colour is not the right link colour). Whatever the choice, the link ink is
+   *  still rated up to its own contrast floor. When the chosen palette is not colour-distinct from body
+   *  text (e.g. `neutral`), the engine FLAGS in notes that links must be underlined for WCAG 1.4.1 (Use of
+   *  Color) — a warning paired with `typography.links`, never a forced underline or a hard block. */
+  linkPalette?: string;
   /** Re-base any semantic role on a declared palette (docs/21). Value = a palette name:
    *  a status (`success`…), `primary`/`neutral`, or a `brandColors` entry. Custom colours
    *  are supplied via `brandColors` and named here. This is the general form of `actionPalette`
@@ -2693,6 +2710,38 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     : 500;
   if (actionBrandColor) notes.push(`action anchored at accent '${actionPalette}' step ${actionAnchorStep} (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor`);
 
+  // ---- link palette (#1496) ----
+  // Links DEFAULT to following the action palette: an unset `linkPalette` resolves to `actionPalette`, so
+  // the resolved name AND anchor step below equal the action's, and modes.ts reproduces today's `linkBase`
+  // byte-for-byte. A brand may point links at a different palette — primary, neutral, or a brandColors
+  // entry — without moving the rest of interactive colour. The link ink is still rated up to its own
+  // contrast floor in modes.ts regardless of the palette (the a11y floor always holds, #1510).
+  const linkPalette = input.linkPalette ?? actionPalette;
+  if (!palettes.some((p) => p.palette === linkPalette))
+    throw new Error(`linkPalette '${linkPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
+  const linkBrandColor = (input.brandColors ?? []).find((b) => b.name === linkPalette);
+  const linkAnchorStep = linkPalette === 'primary' ? anchorStep
+    : linkBrandColor ? autoPlaceStep(linkBrandColor.oklch.l)
+    : 500;
+  if (input.linkPalette !== undefined)
+    notes.push(linkPalette === actionPalette
+      ? `link color: explicitly set to '${linkPalette}', the same palette as actions — links follow interactive color`
+      : `link color is decoupled: links use palette '${linkPalette}', NOT the action palette '${actionPalette}' — explicit brand decision (#1496)`);
+  // WCAG 1.4.1 (Use of Color) — WARN, don't force (#1496, owner 2026-09-17). Body text (`text.primary`)
+  // draws from the neutral ramp; if the link ink is not COLOUR-distinct from it, colour alone cannot tell a
+  // link from surrounding text and the link must be underlined. Distinctness is measured HUE+CHROMA only,
+  // by comparing the link and neutral ramps at a shared mid step (500) — lightness is deliberately factored
+  // out, because a link that differs from body text ONLY in lightness is exactly the 1.4.1 failure (a
+  // greyscale / colour-blind reader cannot use that difference). ΔE00 ≥ 7 (the `LINK_STATE_DE` family) reads
+  // as a distinct colour; below it we flag — never force an underline, never block. Pairs with the
+  // `typography.links` underlined-link roles lever. No corpus brand trips this (every one's action palette
+  // is chromatic, ΔE ≥ ~17 vs neutral), so an unset `linkPalette` adds no note and moves no artifact.
+  const rampSteps = (name: string) => palettes.find((p) => p.palette === name)!.steps;
+  const midStep = (steps: Step[]) => (steps.find((s) => s.num === 500) ?? steps[Math.floor(steps.length / 2)]).rgb;
+  const linkColorDistinct = deltaE2000(midStep(rampSteps(linkPalette)), midStep(rampSteps(roleToPalette.neutral))) >= 7;
+  if (!linkColorDistinct)
+    notes.push(`link a11y (WCAG 1.4.1, Use of Color): the link palette '${linkPalette}' is not color-distinct from body text — links MUST be underlined so they are not signaled by color alone. Set an underlined link role via \`typography.links\`. Warned, not forced (#1496).`);
+
   const neutralEmphasis = input.neutralEmphasis ?? 'subtle';
   notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-gray, default)'}; inverse surface-context: always generated (#895 removed the lever)`);
 
@@ -2704,6 +2753,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     ...(customModes.length ? { customModes } : {}),
     ...(Object.keys(radiusByMode).length || Object.keys(familiesByMode).length || Object.keys(weightRolesByMode).length || Object.keys(lineHeightRepointByMode).length || Object.keys(letterSpacingRepointByMode).length || Object.keys(motionByMode).length || Object.keys(easingRolesByMode).length || Object.keys(shadowByMode).length || Object.keys(sizesByMode).length ? { modeLevers } : {}),
     roleAnchorStep: { brand: anchorStep, neutral: 500, success: 500, warning: 500, danger: 500, info: 500, action: actionAnchorStep },
+    linkPalette, linkAnchorStep,
     surfaces: input.surfaces,
     overrides: input.overrides,
     modeAnchors: input.modeAnchors,
@@ -2763,6 +2813,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     id: 'nb', root: 'nbds', namespace: `nbds.${CORE_TIER}.palette`, colorFormat: 'rgb', modes: ALL_MODES, palettes,
     roleToPalette: { brand: 'red', neutral: 'neutral', success: 'green', warning: 'amber', danger: 'red', info: 'info', action: 'red' },
     roleAnchorStep: { brand: 550, neutral: 500, success: 500, warning: 500, danger: 550, info: 500, action: 550 },
+    linkPalette: 'red', linkAnchorStep: 550,   // NB links follow its action palette (brand red) — unset lever, byte-identical (#1496)
     disabledStrategy: 'reduced', disabledMin: 3, iconContrast: 'text', outlineInteraction: 'overlay-neutral',
     neutralEmphasis: 'subtle', strictInteractiveContrast: false, interactivePalettes: [],
     dims, motion: buildMotion(),

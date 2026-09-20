@@ -653,6 +653,79 @@ for (const b of brands) {
   ok(gStep !== sub.key, `L-06: the clamp moves off the raw sub-floor step (${sub.key} → ${gStep})`);
 }
 
+// L-07 (#1496) — the `linkPalette` LEVER. Links may point at a palette INDEPENDENTLY of the action
+// palette. Four promises, each with EXPECTED authored HERE from the palette the lever names — never
+// re-derived from modes.ts's link math (docs/34):
+//   (1) DEFAULT INERT — an unset `linkPalette` resolves `text.link.default` from the ACTION palette, so
+//       the lever's absence is proven to change nothing (the byte-identical floor from decision 1).
+//   (2) NEUTRAL / CUSTOM RESOLUTION — a set `linkPalette` lands the emitted `text.link.*` on the NAMED
+//       palette's ramp (path palette segment == the lever's value), not the action ramp.
+//   (3) A11Y WARN — a link palette that is not colour-distinct from body text (neutral, or a near-grey
+//       custom) FIRES the WCAG 1.4.1 note; a colour-distinct palette does NOT. The gate proves its two
+//       fixtures sit on opposite sides of "distinct" with its OWN `deltaE2000` self-check (a shared
+//       primitive, not the engine's link derivation), and never imports the engine's ΔE threshold.
+//   (4) FLOOR HOLDS — a deliberately low-contrast custom palette is still rated up to the 4.5:1 link
+//       floor (author 4.5 here), exactly as today; the palette choice never drops a link below contract.
+// BY-NAME MUTATIONS: (a) repoint `linkBase`/the link walks back to hard-coded `r2p.action` (ignore
+// `theme.linkPalette`) → arm (2) fails BY NAME (neutral/custom land on the action ramp, not the chosen
+// one). (b) delete the `notes.push` for the WCAG note in theme.ts → arm (3)'s FIRES assertion fails BY
+// NAME (the neutral fixture emits no 1.4.1 note).
+{
+  const base = { id: 'l07', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const paletteOf = (path: string | undefined): string | undefined => path?.split('.').slice(-2)[0];
+  const linkPaletteOf = (t: ReturnType<typeof brandTheme>): string | undefined =>
+    paletteOf((resolveAllModes(t).find((m) => m.mode === 'light')!.roles as any)['text.link.default']?.path);
+  const has141 = (t: ReturnType<typeof brandTheme>): boolean => t.notes.some((n) => /WCAG 1\.4\.1/.test(n));
+
+  // ----- (1) DEFAULT INERT: unset linkPalette → link resolves from the ACTION palette -----
+  const def = brandTheme(base as any);
+  const actionPal = def.roleToPalette.action;               // 'primary' for this brand (not neutral → the neutral arm means something)
+  ok(actionPal !== 'neutral', `L-07: the fixture's action palette is '${actionPal}', not neutral — so the neutral arm below is non-vacuous`);
+  ok(linkPaletteOf(def) === actionPal,
+    `L-07: an UNSET linkPalette resolves the link from the action palette '${actionPal}' (got '${linkPaletteOf(def)}') — the lever's absence is inert`);
+  ok(!has141(def), 'L-07: a chromatic action-following link emits NO WCAG 1.4.1 note (colour-distinct)');
+
+  // ----- (2) NEUTRAL RESOLUTION: link lands on the NEUTRAL ramp, not the action ramp -----
+  const neu = brandTheme({ ...base, linkPalette: 'neutral' } as any);
+  ok(linkPaletteOf(neu) === 'neutral',
+    `L-07: linkPalette:neutral resolves the link from the NEUTRAL ramp (got '${linkPaletteOf(neu)}', expected 'neutral' — authored from the lever, not modes.ts)`);
+  ok(linkPaletteOf(neu) !== actionPal, `L-07: the neutral link differs from the action palette '${actionPal}' (non-vacuous)`);
+
+  // ----- (2) CUSTOM RESOLUTION: link lands on a named brandColors ramp -----
+  const distinctCustom = { name: 'grellow', oklch: { l: 0.72, c: 0.17, h: 95 } };   // vivid → colour-distinct from neutral
+  const cus = brandTheme({ ...base, brandColors: [distinctCustom], linkPalette: 'grellow' } as any);
+  ok(linkPaletteOf(cus) === 'grellow',
+    `L-07: linkPalette:<custom> resolves the link from that custom ramp (got '${linkPaletteOf(cus)}', expected 'grellow')`);
+
+  // ----- (3) A11Y WARN — fires for non-distinct, silent for distinct. Self-check the two fixtures are
+  // genuinely on opposite sides of "distinct" with the gate's OWN deltaE2000 (docs/34 shape 9). -----
+  const rampMid = (t: ReturnType<typeof brandTheme>, pal: string): RGB => {
+    const steps = t.palettes.find((p) => p.palette === pal)!.steps;
+    return (steps.find((s) => s.num === 500) ?? steps[Math.floor(steps.length / 2)]).rgb;
+  };
+  const neutralMid = rampMid(neu, 'neutral');
+  ok(deltaE2000(rampMid(neu, 'neutral'), neutralMid) < 3,
+    'L-07 self-check: the neutral ramp is NOT colour-distinct from itself (ΔE ≈ 0) — the fixture that must warn');
+  ok(deltaE2000(rampMid(cus, 'grellow'), rampMid(cus, 'neutral')) >= 10,
+    `L-07 self-check: the custom 'grellow' ramp IS colour-distinct from neutral (ΔE ${deltaE2000(rampMid(cus, 'grellow'), rampMid(cus, 'neutral')).toFixed(1)} ≥ 10) — the fixture that must stay silent`);
+  ok(has141(neu), 'L-07: linkPalette:neutral FIRES the WCAG 1.4.1 (Use of Color) underline warning');
+  ok(!has141(cus), 'L-07: a colour-distinct custom link palette does NOT fire the WCAG 1.4.1 warning');
+  // A near-grey CUSTOM also warns — proving the measure is DISTINCTNESS, not a literal "== neutral" check.
+  const greyCustom = { name: 'greyish', oklch: { l: 0.5, c: 0.004, h: 250 } };
+  const grey = brandTheme({ ...base, brandColors: [greyCustom], linkPalette: 'greyish' } as any);
+  ok(deltaE2000(rampMid(grey, 'greyish'), rampMid(grey, 'neutral')) < 7,
+    'L-07 self-check: the near-grey custom ramp is close to neutral (ΔE < 7) — a distinct palette NAME but not a distinct COLOUR');
+  ok(has141(grey), 'L-07: a near-grey custom link palette also FIRES the warning (measured by colour distinctness, not palette name)');
+
+  // ----- (4) FLOOR HOLDS — a deliberately light/low-contrast custom is rated UP to the link floor -----
+  const lightCustom = { name: 'palelink', oklch: { l: 0.92, c: 0.06, h: 95 } };      // very light → raw contrast well below 4.5:1
+  const flo = brandTheme({ ...base, brandColors: [lightCustom], linkPalette: 'palelink' } as any);
+  const floLink = (resolveAllModes(flo).find((m) => m.mode === 'light')!.roles as any)['text.link.default'];
+  ok(paletteOf(floLink?.path) === 'palelink', `L-07: the low-contrast custom link still resolves from its own ramp ('${paletteOf(floLink?.path)}')`);
+  ok((floLink?.ratio ?? 0) >= 4.5,
+    `L-07: a low-contrast custom link palette is still rated up to the 4.5:1 link floor (emitted ${(floLink?.ratio ?? 0).toFixed(2)}:1 at ${paletteOf(floLink?.path)}.${floLink?.path.split('.').pop()}) — the floor always holds regardless of palette`);
+}
+
 // L-02 (#557) — the state WALK re-verifies each step against the state's own floor.
 //
 // Why this needs its own block on top of the corpus sweep above: that sweep would catch the

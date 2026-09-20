@@ -2926,6 +2926,34 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * ENGINE STANDS at 0.126.0 — #1496: the `linkPalette` LEVER (owner-decided 2026-09-17). Links were
+ * hard-wired to the action palette (`linkBase = chromatic(r2p.action, …)` in `modes.ts`); a brand could not
+ * give links a different colour without moving all interactive colour. `linkPalette` (control `palette-ref`,
+ * mirroring `actionPalette`) points links at `primary`, `neutral`, or a `brandColors` entry INDEPENDENTLY.
+ * `theme.ts` resolves it to a concrete palette name (`input.linkPalette ?? actionPalette`) plus a
+ * `linkAnchorStep` computed exactly like the action's, and `modes.ts` derives `linkBase` + the state walks
+ * from it. FOUR owner-confirmed properties: (1) DEFAULT = FOLLOW ACTION — an unset lever resolves to the
+ * action palette and the anchor path is the action's own, so the emitted `link.*` families are
+ * BYTE-IDENTICAL to pre-#1496 (verified: `regen --check` moves 0 corpus artifacts, `nb-regression` clean —
+ * which is WHY there is no ENGINE bump; a bump would restamp every artifact and break that identity).
+ * (2) NEUTRAL a11y = WARN, NOT FORCE — when the resolved link ink is not COLOUR-distinct from body text
+ * (`text.primary`, drawn from the neutral ramp), `theme.notes` flags that links must be underlined for WCAG
+ * 1.4.1 (Use of Color), pairing with `typography.links`; distinctness is measured HUE+CHROMA only (ΔE00 of
+ * the link vs neutral ramp at a shared mid step, lightness factored out — a link differing from body text
+ * only in lightness is the exact 1.4.1 failure). No auto-underline, no block. (3) TARGETS primary / neutral
+ * / custom — `neutral` is addressable (the studio Link-palette picker offers it, unlike actionPalette's).
+ * (4) THE FLOOR ALWAYS HOLDS — the link ink is still rated up to `linkGuard` at the profile `semanticMin`
+ * whatever the palette (#1510 unchanged). STUDIO: a Link-palette lead on the Links section + the inline
+ * underline warning (reads the engine's own note). GATE: `test.ts` L-07 authors EXPECTED from the palette
+ * the lever names (docs/34) — neutral/custom resolve off the named ramp, default off the action ramp
+ * (lever absence inert), the warning fires for neutral / a near-grey custom and stays silent for a distinct
+ * one (self-checked with the gate's own ΔE), and a low-contrast custom is still rated to the 4.5:1 floor.
+ * BY-NAME MUTATIONS: repoint `linkBase`/the walks back to `r2p.action` → L-07's resolution arm fails by
+ * name; delete the WCAG note push → L-07's warning-fires arm fails by name. MCP `tools/list` kept < 60,000
+ * by compressing the sibling interactive-colour schema descriptions (#1368 precedent). CONTRACT STANDS at
+ * 11.3.0 — the link role NAMES are unchanged; only their resolved VALUES move, and only for brands that
+ * opt in (`token-contract --check` level `none`).
+ *
  * 0.126.0 — #1532: per-breakpoint COLUMN OVERRIDES for the layout grid. `buildLayout` gained
  * `layout.columnOverrides` (keyed by breakpoint name): a set entry wins over the 4/8/…/base ladder for
  * that breakpoint, an unset one keeps the ladder, and every value is rounded + CLAMPED to the base

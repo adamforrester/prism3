@@ -76,6 +76,8 @@ export const leverManifest: Lever[] = [
     description: 'Secondary / tertiary / accents — any number; each becomes its own ramp and can drive actions.' },
   { key: 'actionPalette', group: 'color', label: 'Action palette', control: 'palette-ref', default: 'primary',
     description: 'Which palette drives interactive/action color. Defaults to primary; point at an accent when the hero color is a poor CTA.' },
+  { key: 'linkPalette', group: 'color', label: 'Link palette', control: 'palette-ref', default: 'primary',
+    description: 'Which palette drives link color. Defaults to following the action palette; point at primary, neutral, or an accent to give links their own color. The contrast floor holds either way. A link palette that is not color-distinct from body text (e.g. neutral) prompts a warning to underline links for WCAG 1.4.1 — pair it with an underlined link role.' },
   { key: 'status.success', group: 'color', label: 'Success color', control: 'color', advanced: true,
     description: 'Optional measured override; omit to let the engine synthesize from a canonical hue.' },
   { key: 'status.warning', group: 'color', label: 'Warning color', control: 'color', advanced: true,
