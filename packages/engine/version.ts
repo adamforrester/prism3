@@ -2926,16 +2926,21 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * ENGINE STANDS at 0.126.0 — #1496: the `linkPalette` LEVER (owner-decided 2026-09-17). Links were
+ * 0.127.0 — #1496: the `linkPalette` LEVER (owner-decided 2026-09-17). Links were
  * hard-wired to the action palette (`linkBase = chromatic(r2p.action, …)` in `modes.ts`); a brand could not
  * give links a different colour without moving all interactive colour. `linkPalette` (control `palette-ref`,
  * mirroring `actionPalette`) points links at `primary`, `neutral`, or a `brandColors` entry INDEPENDENTLY.
  * `theme.ts` resolves it to a concrete palette name (`input.linkPalette ?? actionPalette`) plus a
  * `linkAnchorStep` computed exactly like the action's, and `modes.ts` derives `linkBase` + the state walks
  * from it. FOUR owner-confirmed properties: (1) DEFAULT = FOLLOW ACTION — an unset lever resolves to the
- * action palette and the anchor path is the action's own, so the emitted `link.*` families are
- * BYTE-IDENTICAL to pre-#1496 (verified: `regen --check` moves 0 corpus artifacts, `nb-regression` clean —
- * which is WHY there is no ENGINE bump; a bump would restamp every artifact and break that identity).
+ * action palette and the anchor path is the action's own, so the emitted `link.*` COLOUR families are
+ * byte-identical to pre-#1496 for every corpus brand (`regen --check` moves 0 corpus token VALUES,
+ * `nb-regression` clean). The ENGINE bump 0.126.0 → 0.127.0 is NOT for a colour move — it is for the
+ * emitted `schema/lever-manifest.json`, which GAINS the `linkPalette` entry and so is a moved emission vs
+ * base. Adding a lever cannot leave the manifest byte-identical, and `lint-emission-version` compares the
+ * emission against origin/main, not just the corpus token trees — so principle 5 requires the bump and
+ * regen restamps every artifact's `$extensions.generator.version` to 0.127.0 (the earlier draft's "no
+ * bump, byte-identical" reasoning read the corpus trees but overlooked the manifest — CI caught it).
  * (2) NEUTRAL a11y = WARN, NOT FORCE — when the resolved link ink is not COLOUR-distinct from body text
  * (`text.primary`, drawn from the neutral ramp), `theme.notes` flags that links must be underlined for WCAG
  * 1.4.1 (Use of Color), pairing with `typography.links`; distinctness is measured HUE+CHROMA only (ΔE00 of
@@ -3310,7 +3315,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.126.0';
+export const ENGINE_VERSION = '0.127.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
