@@ -7,6 +7,43 @@
 
 ---
 
+## (2026-09-20) — wired the CLAUDE.md-freshness mutation battery into CI as a gate, named for the DETECTOR (#1123)
+
+**STATUS: LANDED (this lane).** CI wiring + docs. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0** (`lint-emission-version` 0 artifacts, `regen.ts --check` clean). Gate count **60 → 61**: `tools/claude-md-freshness/mutations.sh` is now a gate. Closes #1123. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope.
+
+── THE DECISION (owner-confirmed) ────────────────────────────────────────────────────────────────────
+
+`mutations.sh` was gate-shaped from the day it landed (#1110): it asserts and it exits non-zero, and every arm is local `file://` git in `$TMPDIR` with no network. #1110 deferred wiring it as a scope decision (*"no gate, no CI step"*), filed as #1123. The owner confirmed WIRE it, with one condition on the naming (below). This lane did the wiring diff, not the re-litigation.
+
+The subject is the **detector** — `.claude/hooks/session-start-claude-md-freshness.sh`, the SessionStart report that answers *"is the CLAUDE.md this session obeys the current one?"* — never the thing the detector detects. `mutations.sh` builds a stale world (a bare repo + two clones taken before the remote moves) and confirms the detector (M1) FIRES naming the file, (M2) goes SILENT when its fetch is dropped, and (M3) says CANNOT DETERMINE when the oracle is unavailable.
+
+── THE NAMING CHOICE, AND WHY (the owner's one condition) ─────────────────────────────────────────────
+
+The CI step / `GATES` entry / three checklists are all named **"The CLAUDE.md-freshness detector still flags a stale checkout"**, never *"CLAUDE.md is fresh"*. `docs/34` **shape 17** is explicit that a stale checkout is internally consistent — both sides of any in-tree comparison descend from the checkout, so an ancestor (the checkout itself being old) moves them in lockstep and the comparison stays byte-equal. CI runs inside the tree, so it can NEVER check whether *this* checkout is current; that is precisely why #1110's subject is a REPORT and not a gate. A step named for tree-freshness would assert something no gate can prove and read as coverage over a question never asked. Naming it for the detector's *ability to flag a stale world* is the honest claim and defuses the hazard for whoever reads a green run.
+
+── THE FIVE-FILE WIRING (lint-doc-gates enforces the match) ───────────────────────────────────────────
+
+Added the step to `ci.yml`, the `GATES` entry to `verify.ts` (`ciStep` verbatim-matching the CI `- name:`, slotted after `lint-advisory-expiry`, no `after`/precondition — it depends on nothing earlier), and the same line to `CLAUDE.md` §4, `CONTRIBUTING.md` §3 and the PR template. It is a `sh` invocation, so `lint-doc-gates`'s `gateTokensOf` (which recognizes `npm run`/`npx tsx` only) does not *demand* it in the three prose docs — but arm 3 (`runnerListDiff`, bidirectional over every runnable CI step) DOES demand it in `verify.ts`, and arm 4's `gateFilePattern` (`lint-*.ts`/`.mjs`) correctly does not claim a `tools/*.sh` file as an orphan. Added to all three prose lists anyway, for completeness — the docs describe what CI runs. The count is carried as LIST MEMBERSHIP, not a written numeral, per CLAUDE.md; no numeral moved anywhere (the "gate count 60 → 61" above is this changelog's dated fact, exempt by genre).
+
+── CI SHALLOW-CLONE CONFIRMATION ──────────────────────────────────────────────────────────────────────
+
+The #1110 hook handles a shallow checkout (it says CANNOT DETERMINE rather than false-alarming); this confirms the BATTERY does too. `mutations.sh` reads only the hook file and `git rev-parse --show-toplevel`, then builds its own bare repo + full clones in `$TMPDIR` — none of which needs the history a depth-1 clone lacks (unlike the three git-HISTORY gates that rely on `fetch-depth: 0`). **Verified directly**: `git clone --depth 1 file://…` then running the battery from inside it → `40 pass · 0 fail`, exit 0.
+
+── THE BY-NAME MUTATION (docs/34) ─────────────────────────────────────────────────────────────────────
+
+Mutated the SUBJECT (the detector), not the battery's own expectations — mutating the expectations would be a tautology (the CLAUDE.md warning against DRY between gate and subject). Broke the detector's staleness detection by neutering its diff: replaced the `differing=$(…)` computation in `session-start-claude-md-freshness.sh` with `differing=""`, so a stale world reports as current. `npx tsx verify.ts claude-md-freshness` then reported the new gate FAILED, exit 1 (`1/1 gates … 0 PASS · 1 FAIL`), with the arms named:
+
+```
+✗ FAIL     claude-md-freshness
+  ❌ REAL: expected "STALE INSTRUCTIONS" — got: {…"all 2 CLAUDE.md file(s) match origin/main…"}
+  ❌ M1: expected "CLAUDE.md differs from origin/main" — got: {…"match origin/main…"}
+  ❌ M1: must NOT say "match origin/main" — got: {…}
+```
+
+Restored the detector with `git checkout -- .claude/hooks/session-start-claude-md-freshness.sh` (CLAUDE.md's mutation-restore discipline — the `wip:` checkpoint committed before the mutation is what `checkout --` reaches back to), then `--amend`ed the checkpoint to the real message once green. The battery re-runs `40 pass · 0 fail`.
+
+**Full net (before the mutation, restored after):** `npm run verify` = **61/61 PASS, 0 SKIP, 0 FAIL** (267s); `lint-doc-gates` green (verify.ts 61 gates ↔ 61 runnable ci.yml steps, both directions); ENGINE 0.127.0 / CONTRACT 11.3.0 unchanged, `regen.ts --check` clean, `lint-emission-version` 0 artifacts.
+
 ## (2026-09-20) — the #1513/#1514 caption + text-style re-asserts landed in the PLUGIN executor only; ported to the PASTE executor (#1536)
 
 **STATUS: LANDED (this lane).** Executor-only bug fix + a gate-independence strengthening. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Gate count **STANDS at 60** — the witness is two new ARMS inside the existing `test.ts` parity gate, not a new gate file. Closes #1536. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope.

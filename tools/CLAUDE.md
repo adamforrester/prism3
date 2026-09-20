@@ -157,11 +157,19 @@ builds a stale world out of a bare repo in `$TMPDIR` plus two clones taken befor
 runs the check in it. Local `file://` git only — no network, and it never touches this checkout.
 
 **It is the odd one out in this directory: it asserts and it exits non-zero.** That makes it gate-shaped
-by the split at the top of this file, and it is deliberately not wired into `ci.yml` — a scope decision
-in #1110 (*"no gate, no CI step"*), not an environmental impossibility, and filed as **#1123** rather
-than argued here. What genuinely cannot be a gate is the *subject*: a stale checkout is internally consistent, so
-anything running inside the tree reports clean over a stale world. `mutations.sh` is a test of the
-detector, which is a different subject from the thing the detector detects.
+by the split at the top of this file, and #1123 (owner-confirmed) **wired it into `ci.yml`** — the one
+`tools/` battery that is a gate. #1110's original *"no gate, no CI step"* was a scope decision, not an
+environmental impossibility, and #1123 reversed it: the battery is every-arm local `file://` git in
+`$TMPDIR` with no network and no dependence on this checkout's history, so it runs cleanly under CI's
+shallow (depth-1) checkout — confirmed from a depth-1 clone before wiring. The CI step, `verify.ts`'s
+`GATES` entry, and the three checklists all name it **for the DETECTOR** — *"the CLAUDE.md-freshness
+detector still flags a stale checkout"* — never *"CLAUDE.md is fresh"*, and that naming was the owner's
+one condition on wiring it. The reason is the conceptual hazard the gate must not paper over: what
+genuinely cannot be a gate is the *subject*. A stale checkout is internally consistent (`docs/34` shape
+17), so anything running inside the tree — CI included — reports clean over a stale world, and CI can
+never check whether *this* checkout is current. `mutations.sh` tests the DETECTOR, a different subject
+from the thing the detector detects, and the name keeps that distinction visible to whoever reads a
+green run.
 
 **Two of its three arms invert the usual direction, so read the arm's own wording rather than the
 exit code.** M1 mutates the world and the check must FIRE; **M2 mutates the check** — drops the fetch,

@@ -1132,6 +1132,23 @@ npx tsx packages/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase
                                           # NOT the same scope any more: it still has the
                                           # apps/plugin/dist hole #937 closed above (3 violations
                                           # measured in main.js), filed as #948 not folded in
+sh tools/claude-md-freshness/mutations.sh  # the mutation battery for the CLAUDE.md-freshness
+                                          # SessionStart hook (#1110), wired into CI as #1123 — the
+                                          # one tools/ battery that is a gate. NAMED FOR THE
+                                          # DETECTOR, never for this tree: docs/34 shape 17 is
+                                          # explicit that a stale checkout is internally consistent,
+                                          # so CI (which runs inside the tree) can never check that
+                                          # THIS checkout is current. What it checks is that the
+                                          # detector still fires on a stale world, goes SILENT when
+                                          # its fetch is dropped (M2 — a mutant that still fired
+                                          # would prove the fetch decoration), and says CANNOT
+                                          # DETERMINE when the oracle is unavailable (M3). Two arms
+                                          # invert the usual direction, so read the battery's header
+                                          # before adding one. SHALLOW-CLONE SAFE: it builds its own
+                                          # bare repo + clones in $TMPDIR (local file:// git, no
+                                          # network, no git history), so it runs under CI's depth-1
+                                          # checkout — unlike the git-HISTORY gates that need
+                                          # fetch-depth: 0. Confirmed from a depth-1 clone before wiring
 ```
 
 **Green tests are not the finish line.** The standard here is that the change is

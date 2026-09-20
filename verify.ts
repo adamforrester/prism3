@@ -731,6 +731,20 @@ export const GATES: Gate[] = [
     cmd: engine('lint-advisory-expiry.ts'),
   },
   {
+    // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
+    // rather than about this tree: docs/34 shape 17 is explicit that nothing running inside a checkout
+    // can tell whether that checkout is stale — a stale tree is internally consistent. So the subject
+    // is `.claude/hooks/session-start-claude-md-freshness.sh` (the #1110 SessionStart report), and this
+    // asserts the detector still FIRES on a stale world, GOES SILENT when its fetch is dropped, and says
+    // CANNOT DETERMINE when the oracle is unavailable. It needs no `after` and no git history: it builds
+    // its own bare repo + clones in $TMPDIR (local file:// git, no network, never touches this
+    // checkout), and reads only the hook file plus `git rev-parse --show-toplevel`, both of which work
+    // under CI's shallow checkout — confirmed by running it from a depth-1 clone.
+    id: 'claude-md-freshness',
+    ciStep: 'The CLAUDE.md-freshness detector still flags a stale checkout',
+    cmd: ['sh', 'tools/claude-md-freshness/mutations.sh'],
+  },
+  {
     id: 'smoke',
     ciStep: 'Studio headless smoke suite (#775)',
     cmd: ws('@prism3/studio', 'test:smoke'),

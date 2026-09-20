@@ -807,6 +807,24 @@ jobs:
       - name: A stated advisory window has not expired
         run: npx --yes tsx@4 packages/engine/lint-advisory-expiry.ts
 
+      # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
+      # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because
+      # docs/34 shape 17 is explicit that a stale checkout is internally consistent — nothing running
+      # inside a tree can tell whether the tree is stale, and CI runs inside the tree. So this does not
+      # and cannot check that this checkout's CLAUDE.md is current; it checks that the DETECTOR still
+      # works: it fires on a stale world naming the file, goes SILENT when its fetch is dropped (a
+      # mutant that still fired would prove the fetch decoration), and says CANNOT DETERMINE when the
+      # oracle is unavailable. Two of its arms invert the usual direction, so it asserts per-arm rather
+      # than "something went red" — read the battery's own header before adding an arm.
+      #
+      # SHALLOW-CLONE SAFE, deliberately, and verified: the battery builds its OWN bare repo plus two
+      # full clones in $TMPDIR (local file:// git, ~2s, no network, never touches this checkout) and
+      # reads only the hook file and `git rev-parse --show-toplevel`. Neither needs the history the
+      # depth-1 CI checkout lacks — unlike the three git-HISTORY gates above that rely on
+      # `fetch-depth: 0`. Confirmed by running it from a depth-1 clone before wiring (#1123).
+      - name: The CLAUDE.md-freshness detector still flags a stale checkout
+        run: sh tools/claude-md-freshness/mutations.sh
+
       # The studio's DOM/interaction coverage (#767, deciding #333) — and the ONLY step in this
       # workflow that runs a browser. It loads every page in every mode across both corpus brands
       # (72 states), drives the mode switch, an override picker and an export, and asserts zero
