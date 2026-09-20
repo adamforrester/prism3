@@ -30,6 +30,15 @@ as the worked substrate). Register a new def in `packages/engine/components/inde
 it, add it to `componentDefs`, and re-export it; `typecheck-components` fails by name if a
 tracked def file is missing from the set, or the set names a file git does not track.
 
+**Before the schema, look at the FIELD RESEARCH.** Where a Prism2 spec exists for the component you are
+building — the adjudicated real-world source under `reference/Prism2/component-specs/`
+(`text-field.json`, `select.json`, `search-field.json`, `component-title.json`, and the rest) — ground the
+def's structure, sizing, states and default values in it. It is the practice-resolved shape the engine
+reproduces, so `packages/engine/components/button.ts` is the SCHEMA substrate, not a substitute for the
+component's own field research: check for a matching spec first, and where one exists, cite it in the def's
+header the way `packages/engine/components/select.ts` cites `reference/Prism2/component-specs/select.json`.
+(`component-title.json` is the title component for the page-per-component layout.)
+
 > **The contract:** every binding resolves against a real generated tree, every factual
 > claim in the def's prose is checked by `lint-skills`/`lint-us-english`/`lint-voice`, and
 > a change to what the def projects must make a **surface gate fail by name** under a
@@ -141,6 +150,20 @@ whose ACTUAL comes from the host, not from the plan.
   names its slots in precedence order in `paintSlots` (a box that names none paints nothing and
   is structure). Order is precedence: `['overlay', 'fill']` reads "the overlay if it resolves,
   otherwise the fill."
+- **Interactive field height → the target-size floor.** An interactive field control — a text-field or
+  select input box — binds its height to `size.md.min-height` (#1437), the emitted floor
+  `max(size.md.height, 44)`, rather than the plain `size.md.height` rung, so it clears the WCAG 2.5.5
+  enhanced 44px target at every density (the `size.md.height` rung is 44 on a comfortable brand but 36 on a
+  compact one, which passes SC 2.5.8 but not the enhanced target). A field control IS the tap target, so it
+  takes the floor; `lint-hit-target` (#1443) enforces it. Small buttons stay the knowing exception below the
+  floor. See the `min-height` binding in `packages/engine/components/select.ts` and
+  `packages/engine/components/text-field.ts`.
+- **Glyph ink binds an icon role, never a text role (#1471).** A `vector` or an icon `slot` paints from an
+  `icon.*` role (`color.icon.primary`, or the interactive `icon.*` twin the engine mints beside `text.*`),
+  never a `text.*` role — even where the two resolve to the same value. The label beside the glyph keeps
+  `text.*` because it IS text; the glyph says it is a glyph. This is the exact shape of a recurring QA
+  finding — icons wired to text variables — so bind the icon role by name and let a value-identical
+  rebinding read as the semantic correction it is, not a color change.
 
 ## 6. Naming canon — settled, not yours to re-decide
 
@@ -162,16 +185,36 @@ against `props[].name`; `figmaName`, when present, is the panel name and need NO
 prop. Absent, the key is the panel name — byte-identical to before. Use it to give a panel a
 designer's register without capitalizing or renaming the code prop.
 
-**The icon-property canon (#1380).** A component with leading/trailing icon slots projects, top
-to bottom: a `label` text property (the `planSetProperties` order is text → swap → boolean, so
-the keyed-`label` text lands first), then each presence as a true/false VARIANT axis with
-`figmaName` `leading icon` / `trailing icon`, each immediately followed by its swap whose
-`figmaName` is `↳ swap leading icon` / `↳ swap trailing icon`. A true/false variant renders as a
-switch in Figma; presence stays a variant (not a Figma boolean) because on button it drives the
-#326 asymmetric inset a boolean cannot reach, and select's optional leading icon follows the same
-mechanism, so button and select read identically. The `↳ ` prefix (U+21B3 + space) makes Figma nest the
-swap beneath its switch; a REQUIRED single icon has no switch, so its swap takes
-`figmaName: 'swap icon'` — no `↳`, nothing to nest under (icon-button). All lowercase.
+**The icon-property canon (#1380, split at #1331/#1379).** A leading/trailing icon has TWO Figma
+properties — its PRESENCE (is the glyph there?) and its CONTENT (which glyph) — and the canon governs how
+each projects. CONTENT is always a swap: `figmaName` `↳ swap leading icon` / `↳ swap trailing icon`, the
+`↳ ` prefix (U+21B3 + space) making Figma nest it beneath the presence toggle, while the KEY stays the
+idiomatic code prop (`leadingIcon`, validated against `props`). A REQUIRED single icon has no presence
+toggle, so its swap takes `figmaName: 'swap icon'` — no `↳`, nothing to nest under (icon-button). The
+component's text property (`label` / `value`) projects first, at the top of the panel. All lowercase.
+
+PRESENCE is where the split lives, and it turns on ONE question — does the glyph's presence move the
+CONTAINER's geometry?
+
+- **Node-visibility boolean (the default).** Presence is a Figma boolean in `figmaProperties.booleans`: the
+  glyph node is emitted at every member `visible: false` and the `leading icon` switch flips it in place, so
+  presence does NOT multiply the projected set. This is the case whenever the glyph sits INSIDE the content
+  row rather than against the box edge, so it takes no padding asymmetry a single-node boolean cannot reach.
+  `select` moved to this at #1331, and `text-field` (#1494) uses booleans for its `leadingIcon`,
+  `trailingIcon` and `showMessage` — see `packages/engine/components/select.ts` and
+  `packages/engine/components/text-field.ts`.
+- **Variant axis (Button only).** Presence is a true/false VARIANT axis (`figmaProperties.slotAxes`, with
+  `booleans` stated-empty) ONLY when it drives edge-hugging asymmetric padding. On Button the #326 slot-aware
+  inset sets the CONTAINER's `paddingLeft = leading ? inlineVisual : inlineLabel` per side, and a boolean's
+  single-node `visible` cannot touch the container above it — so Button keeps `leading` / `trailing` as
+  variant axes with `figmaName` `leading icon` / `trailing icon` (see `packages/engine/components/button.ts`).
+  A true/false variant renders as a switch in Figma, so it reads like the boolean in the panel while carrying
+  the padding a boolean cannot.
+
+So the rule is: **variant axis ONLY when presence drives edge-hugging asymmetric padding; a node-visibility
+boolean otherwise.** Verify which case a new component is in against the actual defs before wiring it — the
+older canon ("presence is always a variant axis, and select's optional leading icon follows the same
+mechanism") is FALSE since #1331/#1379.
 
 ## 7. Verification — the whole list, and the mutation that names your gate
 
@@ -225,8 +268,11 @@ classification yet.
 
 ## Before you finish
 
-1. Every binding resolves against a real generated tree (the validator checks this).
-2. The root part is named for its role; `codeOnly` is non-empty and honest about the Figma ceiling.
-3. Every naming choice matches the settled canon in §6 — no reintroduced legacy prop name.
-4. `npm run verify` is all-PASS, and a mutation of your def fails a surface gate BY NAME.
-5. A `docs/00-progress.md` entry carries the diagnosis and any trap, written as part of the work.
+1. Where a Prism2 spec exists for this component under `reference/Prism2/component-specs/`, the def's
+   structure, sizing and states are grounded in it (the field research), and the header cites it.
+2. Every binding resolves against a real generated tree (the validator checks this).
+3. The root part is named for its role; `codeOnly` is non-empty and honest about the Figma ceiling.
+4. Every naming choice matches the settled canon in §6 — no reintroduced legacy prop name, and icon
+   presence follows the split rule (variant axis only for edge-hugging asymmetric padding, boolean otherwise).
+5. `npm run verify` is all-PASS, and a mutation of your def fails a surface gate BY NAME.
+6. A `docs/00-progress.md` entry carries the diagnosis and any trap, written as part of the work.

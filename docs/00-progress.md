@@ -7,6 +7,27 @@
 
 ---
 
+## (2026-09-20) — the prism3-build-component skill had drifted from the corpus it points to (#1495)
+
+**STATUS: LANDED.** Skill-prose correctness fix. **No engine change, no `out/**` change, NO version bump** — `skills/prism3-build-component/SKILL.md` is the only file touched: ENGINE STANDS at **0.127.0** (unchanged by this lane; main moved there under #1496), CONTRACT STANDS at **11.3.0** (`lint-emission-version` 0 artifacts, `regen --check` / `drift` clean). Gate count STANDS at **60** — `npm run verify` 60/60, 0 SKIP. Closes #1495. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope. The net for a skill/prose fix is `lint-skills` green (every backtick-quoted name resolves against the corpus) + full verify + review, not a by-name mutation — this adds no gate.
+
+── WHAT DRIFTED, AND WHY IT WAS A CORRECTNESS FIX ─────────────────────────────────────────────────
+
+A `SKILL.md` is a shipped artifact an agent trusts; `lint-skills` keeps its *names* honest but cannot read its *advice* for correctness (its own header says so). §6's advice had rotted: it stated a leading/trailing icon's PRESENCE always projects as a true/false VARIANT axis, "and select's optional leading icon follows the same mechanism." Since #1331/#1379 that is FALSE — an agent authoring a new field def from it would wire a presence variant axis where the corpus now uses a node-visibility boolean, doubling the projected set for geometry a boolean carries fine.
+
+**THE SPLIT RULE (§6 rewritten), grounded in the current defs.** Presence turns on ONE question — does the glyph's presence move the CONTAINER's geometry?
+- **Node-visibility boolean (`figmaProperties.booleans`) — the default.** The glyph node is emitted `visible: false` at every member and a switch flips it in place, so presence does not multiply the set. This holds whenever the glyph sits INSIDE the content row, taking no padding asymmetry a single-node `visible` cannot reach. `select` moved to this at #1331 (`booleans.leadingIcon`); `text-field` (#1494) uses booleans for `leadingIcon`, `trailingIcon`, `showMessage`. (Verified in `select.ts` / `text-field.ts`.)
+- **Variant axis — Button ONLY.** Presence stays a `slotAxes` variant axis (with `booleans` stated-empty) precisely because #326's slot-aware inset sets the container's `paddingLeft = leading ? inlineVisual : inlineLabel` per side, which a boolean cannot touch. (Verified in `button.ts`: `slotAxes` present, `booleans: {}`.) CONTENT (the swap, `↳ swap leading icon`) and the required-single-icon `swap icon` (icon-button, no `↳`) are unchanged.
+
+── TWO OTHER GAPS CLOSED ──────────────────────────────────────────────────────────────────────────
+
+**Prism2 grounding step (the "make sure you're looking at Prism2" gap).** The skill pointed authors at `button.ts` as the schema substrate but never at `reference/Prism2/component-specs/` — the adjudicated field-research specs (`text-field.json`, `select.json`, `search-field.json`, `component-title.json`, confirmed present). Added an up-front step and a "Before you finish" item: where a matching Prism2 spec exists, ground the def's structure/sizing/states in it and cite it in the header (as `select.ts` cites `select.json`). `component-title.json` is the title component for the page-per-component layout.
+
+**Two §5 idiom additions.** (1) Interactive field controls bind height to the target-size floor `size.md.min-height` (#1437) = `max(size.md.height, 44)`, clearing WCAG 2.5.5 at every density; `lint-hit-target` (#1443) enforces it. (2) Glyph ink binds an icon role (`color.icon.primary` / the `icon.*` twin), never a `text.*` role (#1471) — the exact class of the recurring QA finding (icons wired to text variables).
+
+── THE TRAP FOR WHOEVER RE-VERIFIES ───────────────────────────────────────────────────────────────
+
+`lint-skills` scan-3 checks any `*.ts` token in the prose for existence via `resolve(repo, <match>)`, so a bare `` `button.ts` `` resolves to `<repo>/button.ts` and FAILS — every engine-file citation must be the full `packages/engine/components/…` path. `figmaProperties.booleans` and camelCase props (`leadingIcon`) are safe: the DOTTED/SNAKE regexes are lowercase-only, so an interior capital exempts them. `.json` filenames and any backtick token containing `/` or spaces are skipped by scans 1–2. `lint-us-english` / `lint-voice` scan the built bundles, so they only pass after the web + plugin builds — run the full `npm run verify`, not the skills gate alone.
 ## (2026-09-20) — a `linkPalette` lever, so links can choose their palette independently of actions (#1496)
 
 **STATUS: LANDED (this lane).** Owner-requested feature (owner-confirmed 2026-09-17). **No emitted colour VALUE moves for any existing brand, but the emitted `lever-manifest.json` gains the new lever, so ENGINE bumps 0.126.0 → 0.127.0** (a lever add cannot leave the manifest byte-identical; `lint-emission-version` compares the emission against origin/main, so principle 5 requires the bump — the first draft claimed "no bump, byte-identical" by reading only the corpus token trees and CI caught it). CONTRACT STANDS at **11.3.0** (`regen --check` clean after the restamp, `nb-regression` clean, `token-contract --check` level `none` — the link role NAMES are unchanged, only opt-in brands' resolved VALUES move). Gate count **STANDS at 60** — L-07 is a new ARM inside the existing `test.ts` gate, not a new gate file. Closes #1496.
