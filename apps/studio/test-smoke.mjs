@@ -204,19 +204,22 @@ const LEGIBILITY_PROBE = (rootSel) => {
 };
 
 /**
- * THE FLOOR IS "INVISIBLE", NOT "AA" — and the two numbers that set it are recorded here so the next
- * person can see how much budget there is rather than re-deriving it.
+ * THE FLOOR IS "INVISIBLE", NOT "AA" — and the two bands that set it are named here so the next person
+ * can see how much budget there is rather than re-deriving it. Both are engine facts, not corpus
+ * measurements: neither moves when the studio grows a control, so neither is restated as a frozen count
+ * (#1232 — a measured literal sitting next to a passing assertion reads as measured-now and goes stale).
  *
- * Measured on this branch across the whole sweep below (15,638 text nodes, 72 page × mode × brand
- * states): the lowest rendered ratio in the studio today is **3.04:1**, and everything in the 3.0–3.2
- * band is a specimen meeting its OWN engine contract — the disabled set at `disabledMin` (3), the
- * `-subtle` semantics at `secondaryMin`. Those are the brand's contracted values being previewed
- * correctly, and asserting AA over them would fail the suite on the engine working.
+ * The LEGITIMATE floor is ~3:1 and derived, not observed: the lowest rendered ratios in the studio are
+ * specimens meeting their OWN engine contract — the disabled set at `disabledMin` (3), the `-subtle`
+ * semantics at `secondaryMin`. Those are the brand's contracted values being previewed correctly, and
+ * asserting AA over them would fail the suite on the engine working.
  *
- * The defects this floor exists for sat at **1.00–1.61:1** (#555's four families). So 2.0 sits in the
- * gap with ~1.5× margin above the real defects and ~1.5× below the legitimate floor. Every run prints
- * the observed minimum, so erosion toward 2.0 is visible before it is a failure — the thing #355's
- * hand-fix could not leave behind and #516 added for the token values.
+ * The defects this floor exists for sat at **1.00–1.61:1** (#555's four families — a fixed historical
+ * measurement of past defects, not a corpus size). So 2.0 sits in the gap with ~1.5× margin above the
+ * real defects and ~1.5× below the legitimate floor. Every run PRINTS the observed minimum (below), so
+ * erosion toward 2.0 is visible before it is a failure — the thing #355's hand-fix could not leave
+ * behind and #516 added for the token values, and a live figure that never goes stale the way a
+ * written-in one would.
  */
 const CONTRAST_FLOOR = 2.0;
 
@@ -226,31 +229,30 @@ const CONTRAST_FLOOR = 2.0;
  * The contrast assertion below compares ratios, and a comparison over an empty list is true: at
  * `rows.length === 0` it passed while printing "every one of 0 text nodes clears 2:1" — a true
  * statement about nothing. A probe selector that stopped matching, or a page that stopped rendering
- * text, reported GREEN, and the summary read "15638 text nodes" one run and "0 text nodes" the next
- * with no assertion between the two. That matters most while this suite is the studio cleanup's
+ * text, reported GREEN, and the summary read "thousands of text nodes" one run and "0 text nodes" the
+ * next with no assertion between the two. That matters most while this suite is the studio cleanup's
  * stated safety net (#768–#772 restructure the very file it measures).
  *
  * Same shape, same fix as `packages/engine/typecheck-components.ts`, whose `defs.length < 3` floor
  * is there because #658's review found a gate printing "0 engine files in the bundle … ✓ clean".
  * The floors assert the COUNT; the assertion beside them keeps asserting the ratios.
  *
- * MEASURED, so the headroom is visible rather than re-derived. The sweep below reports 72 states and
- * 15,638 text nodes, and four independent runs (#776, #780, #790, #791) landed on that same total —
- * a constant, not one sample. The per-state range is **34 to 490**. The 34 is the sparsest
- * LEGITIMATE state: Typography and Layout in a derived mode, where the editors are replaced by the
- * read-only note. 27 of those 34 nodes are page chrome outside `.ws`.
+ * THE FLOORS ARE DERIVED, NOT A FROZEN MEASUREMENT (#1232). The sweep's live totals — its state count
+ * and its text-node count — are PRINTED every run and asserted against the floors below; none of them
+ * is restated here as a literal, because a corpus size written into a comment reads as measured-now and
+ * goes stale silently the next time the studio grows a control. What each floor is, and why:
  *
- *  - `STATE_NODE_FLOOR` (20) — ~40% under the sparsest real state, so the read-only note can lose
- *    lines without tripping it, and a state the probe comes back empty from fails BY NAME rather
- *    than passing quietly. It deliberately does NOT sit above the 27-node chrome in order to claim
- *    a blanked workspace: 27 is what a rich page renders with its whole workspace gone, and
- *    the gap from 27 to 34 is a few lines of copy — a floor in there would fail on wording. That
- *    case is covered, and covered better, by the `controls > 0 || readOnlyNote > 0` assertion in the
- *    loop, which names the condition instead of proxying it through a count.
- *  - `SWEEP_NODE_FLOOR` (8000) — about half the measured 15,638, which is more headroom than the
- *    cleanup in flight can plausibly need. Not redundant with the per-state floor: every state
- *    rendering nothing but its chrome clears 20 seventy-two times over and totals ~1,900, which this
- *    catches and the per-state floor structurally cannot.
+ *  - `STATE_NODE_FLOOR` (20) — below the sparsest LEGITIMATE state (Typography and Layout in a derived
+ *    mode, where the editors are replaced by the read-only note), so that note can lose lines without
+ *    tripping it, and a state the probe comes back empty from fails BY NAME rather than passing
+ *    quietly. It deliberately sits below even a page's chrome-only node count, so it never pretends to
+ *    detect a blanked workspace: that case is covered, and covered better, by the
+ *    `controls > 0 || readOnlyNote > 0` assertion in the loop, which names the condition instead of
+ *    proxying it through a count.
+ *  - `SWEEP_NODE_FLOOR` (8000) — well below a healthy full sweep's total (printed every run) and well
+ *    above what a sweep of nothing-but-chrome states totals, so it catches every state rendering only
+ *    its chrome — which the per-state floor clears once per state and structurally cannot catch in
+ *    aggregate.
  *  - `SWEEP_STATE_FLOOR` (32) — the product of the three per-axis minimums already asserted below
  *    (≥ 2 brands × ≥ 2 modes × ≥ 8 pages), so it raises no new bar. What it adds is a NAMED failure
  *    for a sweep that visits nothing: at zero states the loop body never runs, so contrast, console
@@ -262,13 +264,12 @@ const SWEEP_NODE_FLOOR = 8000;
 const SWEEP_STATE_FLOOR = 32;
 /** The same "did it look?" floor for the form-control walk added by #1031, and the reason it is a
  *  SWEEP total and not a per-state one is recorded at the assertion: zero fields is legitimate in a
- *  derived mode. Measured on this branch: **604** controls across the 72 states, so ~half. It read
- *  **640** before #1210 retired the overlay rows' ramp-step pickers — 36 selects that were offering a
- *  step of the neutral ramp for a translucent primitive, and are now read-outs (2 brands × 2
- *  customizable modes × 3 action palettes × 3 slots). This literal drifts with the corpus, the #1110
- *  shape in an assertion comment — tracked as #1232. The per-state range is 0 (Typography and Layout in
- *  a derived mode — the read-only note replaces every editor) up, which is why the total is the only
- *  place this can be asserted. */
+ *  derived mode, where the read-only note replaces every editor, so the per-state range starts at 0 and
+ *  the total is the only place this can be asserted. The floor sits well below what a full editor sweep
+ *  renders (the live count is printed every run) and above zero, so a walk that comes back empty fails
+ *  by name. No measured corpus size is written in here: that literal drifts as the studio grows or
+ *  retires controls — this is the site #1232 fixed, the count belongs in the live output, not frozen in
+ *  a comment beside a passing assertion. */
 const SWEEP_FIELD_FLOOR = 250;
 /** The brand menu's own minimum, asserted per open (#1031). The popover carries Name and Namespace
  *  unconditionally, plus `.bm-ta` once the import box is open — three controls is what the surface
@@ -489,7 +490,7 @@ for (const brand of BRANDS) {
 ok(statesVisited >= SWEEP_STATE_FLOOR,
   `the sweep visited ${statesVisited} page × mode × brand states (floor ${SWEEP_STATE_FLOOR} = 2 brands × 2 modes × 8 pages)`);
 ok(nodesMeasured >= SWEEP_NODE_FLOOR,
-  `the sweep measured ${nodesMeasured} text nodes in total (floor ${SWEEP_NODE_FLOOR}, ~half the 15,638 baseline — 16,834 on this branch; this literal drifts with the corpus, tracked as #1232)`);
+  `the sweep measured ${nodesMeasured} text nodes in total (floor ${SWEEP_NODE_FLOOR})`);
 ok(fieldsMeasured >= SWEEP_FIELD_FLOOR,
   `the sweep measured ${fieldsMeasured} form controls in total (floor ${SWEEP_FIELD_FLOOR})`);
 
@@ -1029,7 +1030,7 @@ ok(rampChecks >= 2 * 3 * 6, `${rampChecks} displayed durations compared against 
 // no `color-scheme` at all, so the first half is false here and the studio is structurally immune.
 //
 // MEASURED: adding `color-scheme: light dark` to the studio's shell and re-running this section
-// passes — 942/942 — because the fix for #1031 also gave every studio control an author `color`, so
+// still passes — because the fix for #1031 also gave every studio control an author `color`, so
 // the second half is now false too. A ratio assertion under an emulated dark scheme therefore
 // catches this class only in combination with a NEW control that omits `color`, which is a real but
 // compound tripwire and not the one the comment above it originally claimed. So the first half gets
@@ -1264,21 +1265,21 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
 // the second is why this section also asserts the pill's own text is still exactly its path.
 //
 // WHY THE PROBE CAPS `.tpill` RATHER THAN NARROWING THE VIEWPORT, which is the honest part.
-// A viewport-only check asserts this where it cannot be violated. Measured: at 1440px exactly ONE
-// aurora pill clips (and every character of it is in fact visible — see PILL_PROBE); at a 380px
-// viewport, the plugin's own declared `MIN_SIZE.width`, 22 pills clip and ZERO twin pairs collide,
-// because a pill's container does not shrink with the window. That is docs/34 shape 15 — the
-// comparison right, the set excluding the only case that can fail it. Capping the pill itself puts
-// every pill in the regime the issue is about, on every page at once.
+// A viewport-only check asserts this where it cannot be violated: at the design width almost no pill
+// clips at all, and shrinking the VIEWPORT clips pills without ever colliding twins, because a pill's
+// container does not shrink with the window. That is docs/34 shape 15 — the comparison right, the set
+// excluding the only case that can fail it. Capping the pill itself puts every pill in the regime the
+// issue is about, on every page at once.
 //
-// THE CAP WINDOW IS MEASURED, NOT PICKED. Twin pairs start eliding to identical text at a 200px cap
-// (7 pairs) and 130px (10), identically on both corpus brands. The first collision between two paths
-// that are NOT twins appears only at 90px — `color.background.primary` vs `color.foreground.primary`,
-// and `interactive.{primary,neutral,destructive}.overlay.hover` — an ambiguity in the MIDDLE of the
-// path that no inverse badge could fix, and which no real container reaches. So a probe width belongs
-// in (90, 200]; both used here sit inside it. If this section ever fails naming two paths that are not
-// twins, that is not #1147's defect: the cap has been set narrower than the studio renders, and the
-// fix is to widen it.
+// THE CAP WINDOW IS MEASURED, NOT PICKED, and it is the load-bearing constant here — a bound, not a
+// corpus size, so it is stated as a window rather than a frozen per-run count (#1232). Twin pairs begin
+// eliding to identical text at or below a ~200px cap; the first collision between two paths that are NOT
+// twins appears only near ~90px — `color.background.primary` vs `color.foreground.primary`, and
+// `interactive.{primary,neutral,destructive}.overlay.hover` — an ambiguity in the MIDDLE of the path
+// that no inverse badge could fix, and which no real container reaches. So a probe width belongs in
+// (90, 200]; both `PILL_CAPS` used here sit inside it, and each run PRINTS how many pairs actually elide
+// and collide at each cap. If this section ever fails naming two paths that are not twins, that is not
+// #1147's defect: the cap has been set narrower than the studio renders, and the fix is to widen it.
 //
 // WHAT THIS DOES NOT COVER, measured rather than assumed. The wrapper is a flex container, and a flex
 // item does not shrink below its content width without `min-width: 0` — so `.tpill-wrap` is a new way
@@ -1402,11 +1403,11 @@ const labelCollisions = (rows) => {
 
 /** Coverage floors — "did it look?", never the oracle. The oracle is the two properties themselves:
  *  every inverse pill carries a rendered badge outside its clipping box, and no two distinct paths
- *  render the same label. Measured on this branch: 343 pills on aurora / 336 on harbor, 15 of them
- *  short contextual labels and the rest full dotted paths, and then IDENTICAL on both brands — 20
- *  inverse-band pills, 29 rendered twin pairings, of which 7 elide to the same text at a 200px cap and
- *  10 at 130px. Each floor sits below its measurement so a page's content can move without failing
- *  here, and above zero so an empty read fails naming itself. */
+ *  render the same label. Each floor sits below its live measured value (printed per brand at the end of
+ *  this section) so a page's content can move without failing here, and above zero so an empty read
+ *  fails naming itself. No measured corpus size is frozen into this comment: that literal drifts as the
+ *  engine grows pills or inverse roles, and a count written beside a passing assertion reads as
+ *  measured-now (#1232) — the live figures are in the console line below. */
 const PILL_FLOOR = 250;
 const INVERSE_PILL_FLOOR = 12;
 const TWIN_PAIRING_FLOOR = 20;
@@ -1439,8 +1440,8 @@ for (const brand of BRANDS) {
   // (`neutral.100 · #ffffff · 4.5:1`) — every twin pairing below silently stops being found, and a gate
   // that finds nothing passes. So: a slug, and enough DOTTED ones to pair on.
   //
-  // Single-segment titles are legitimate and measured: 15 per brand, the short contextual labels
-  // `sgPill` is passed explicitly (`opacity`, `on-fill`, `border`) where the row supplies the context.
+  // Single-segment titles are legitimate: a handful per brand, the short contextual labels `sgPill`
+  // is passed explicitly (`opacity`, `on-fill`, `border`) where the row supplies the context.
   // Two rows can therefore carry the same short label, which is deliberate context-dependence and not
   // the elision ambiguity this section is about — and it is why `labelCollisions` counts only pills
   // whose titles DIFFER.
