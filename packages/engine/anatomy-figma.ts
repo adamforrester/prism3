@@ -2977,6 +2977,29 @@ for(const o of REF_OVERRIDES){let m=refOv.get(o.member);if(!m){m=new Map();refOv
 // in lockstep or the parity gate diverges.
 const inInst=(node,stop)=>{for(let p=node.parent;p&&p!==stop;p=p.parent)if(p.type==='INSTANCE')return true;return false;};
 const findOwnPart=(member,name)=>member.findOne(x=>x.name===name&&!inInst(x,member));
+// #1513/#1514 — PORT the plugin executor's two post-wire re-asserts (write-components.ts) to the PASTE
+// path. Wiring \`componentPropertyReferences.characters\` binds a TEXT node to the SET-LEVEL TEXT property,
+// whose one \`defaultValue\` Figma adopts onto the node — discarding the per-coordinate copy \`build\` wrote
+// (#1018 \`byVariant\`) — and whose adoption also DETACHES the applied \`textStyleId\` while leaving the
+// style's resolved variable binds. So a paste-built field-message rendered "This is a standard message."
+// on its error/warning/success members (#1513), and every characters-bound text node showed loose
+// family/size/style variables and no named style (#1514) — the exact gap #1474's scope note predicted for
+// the paste path. Re-assert each member's OWN caption and its emitted style AFTER the wiring seam below,
+// exactly as \`write-components.ts\` does — the twin re-assert in the OTHER executor, gated at the parity gate.
+//
+// SOURCED FROM THE LIVE BUILT NODES, not a shipped map, and that is a CHUNK constraint rather than a
+// preference. The wire loop runs on the FINAL chunk over EVERY member (\`set.children\`), while a chunk's
+// \`PLANS\` holds only its own slice — so a map built from \`PLANS\` would cover the last chunk's members
+// alone, and shipping a FULL per-member map on the last chunk would blow its byte budget (Button's caption
+// is a uniform "Button" x756). The built nodes are the one place every member's own copy survives across
+// the separate \`figma_execute\` calls, and reading them adds zero payload bytes. The reset fires only when
+// a \`characters\` reference is wired (the loop just below), so at THIS seam every node still carries
+// \`build\`'s write. \`styleById\` recovers the style's font for the re-apply — \`setTextStyleIdAsync\` needs
+// the family/style resident, exactly as \`build\` loads it. Excludes nested-instance internals (\`inInst\`),
+// matching the plugin's \`textByMember\`/\`styleByMember\`, which walk each member's own plan tree.
+const styleById=new Map(styles.map(s=>[s.id,s]));
+const textCap=new Map();
+for(const member of set.children)for(const n of [member].concat(member.findAll(()=>true)))if(n.type==='TEXT'&&!inInst(n,member))textCap.set(member.name+'|'+n.name,{chars:n.characters,styleId:n.textStyleId});
 const wiredRefs=[];
 for(const member of set.children){
   const own=refOv.get(member.name);
@@ -3007,6 +3030,27 @@ for(const member of set.children){
 for(const [mName,part,field,id] of wiredRefs){
   const member=set.children.find(c=>c.name===mName);
   const node=member?findOwnPart(member,part):null;   // #1428: read back the member's OWN part, not a nested twin
+  // #1513/#1514 — RE-ASSERT this member's OWN caption and its composite text style AFTER the wiring seam
+  // above, reusing the node this read-back already found. The bind left the set-level fallback caption and a
+  // detached style; \`build\`'s per-coordinate copy is the right value on the wrong side of the seam. Font
+  // loaded before the style, as \`build\` does. Read back like every write here — a caption or style Figma
+  // re-reset surfaces as a DISCARDED miss rather than shipping the fallback silently. Byte-identical to the
+  // plugin executor's wording (\`write-components.ts\`), so the parity gate compares the two as sets.
+  if(field==='characters'&&node){
+    const cap=textCap.get(mName+'|'+part);
+    if(cap&&typeof cap.chars==='string'){
+      try{node.characters=cap.chars;}catch(err){misses.push('text '+mName+'/'+part+'.characters -> '+JSON.stringify(cap.chars)+' ('+err.message+')');}
+      if(node.characters!==cap.chars)misses.push('text '+mName+'/'+part+'.characters -> DISCARDED (set '+JSON.stringify(cap.chars)+', reads '+JSON.stringify(node.characters)+')');
+    }
+    if(cap&&cap.styleId){
+      const st=styleById.get(cap.styleId);
+      if(st){
+        try{await figma.loadFontAsync(st.fontName);}catch(err){misses.push('text '+mName+'/'+part+'.font -> '+st.fontName.family+' '+st.fontName.style+' ('+err.message+')');}
+        try{await node.setTextStyleIdAsync(st.id);}catch(err){misses.push('text '+mName+'/'+part+'.textStyle -> '+st.name+' ('+err.message+')');}
+        if(node.textStyleId!==st.id)misses.push('text '+mName+'/'+part+'.textStyle -> DISCARDED (set '+st.name+', reads '+(node.textStyleId?String(node.textStyleId):'no style')+')');
+      }
+    }
+  }
   const got=node&&node.componentPropertyReferences?node.componentPropertyReferences[field]:undefined;
   if(got!==id)misses.push('ref '+mName+'/'+part+'.'+field+' -> DISCARDED (set '+id+', reads '+got+')');
 }`;
