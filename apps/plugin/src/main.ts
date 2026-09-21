@@ -536,11 +536,14 @@ const buildComponents = async (defId?: string): Promise<void> => {
     const page = await resolveComponentPage(figma, def.id);
     let targetPage: CompPageTarget | undefined;
     if (page) {
-      targetPage = {
-        appendChild: (child: CompNode) => page.appendChild(child),
-        findOne: (pred: (node: CompNode) => boolean) => page.findOne?.((n) => pred(n as CompNode)) ?? null,
-      };
+      // #1561 — pass the REAL page node, not a reconstructed `{ appendChild, findOne }` adapter. The set is
+      // combined ONTO this target (`combineAsVariants(fresh, target)`) and the live host reads `target.id`;
+      // an id-less adapter threw "Expected node id to be a string, got undefined" on every variant set (the
+      // #1554 regression). The real `PageNode` carries `id`, `appendChild` and `findOne`, so it satisfies
+      // `CompPageTarget` (which now requires `id`) directly. The view is switched to it too, so a designer
+      // lands on the set they just built rather than watching an empty current page.
       await figma.setCurrentPageAsync(page as unknown as PageNode);
+      targetPage = page as unknown as CompPageTarget;
     }
     // `SWAP_TARGET` PASSED UNCONDITIONALLY, because it is inert where a def has no swap parts — measured,
     // see the header. A per-def branch here would be a branch on a distinction the projector already makes.
