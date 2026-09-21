@@ -796,6 +796,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // #913: refuses AFTER every member is built, named and on the page — the large regime, and the one
       // call in the run whose failure strands the most. Figma's own message for the case it rejects.
       if (opts.refuse?.combine) { hostRefusing = true; throw new Error('in combineAsVariants: The nodes must all have the same parent'); }
+      // HOST PARITY (#1561): the live `figma.combineAsVariants` reads `parent.id`; a parent with no string
+      // id throws "Expected node id to be a string, got undefined". Modelled here so an id-less combine
+      // parent — a synthetic `{ appendChild, findOne }` adapter, the #1554 regression — fails the routing
+      // gate BY NAME rather than only on the real host (docs/34: model the host constraint or the gate is
+      // blind to it). Pre-#1554 callers pass `currentPage`, which now carries an id.
+      if (parent !== undefined && typeof (parent as { id?: unknown }).id !== 'string')
+        throw new Error('in combineAsVariants: Expected node id to be a string, got undefined');
       const set = mkNode('COMPONENT_SET');
       set.id = 'SET:1';
       set.children = members;
@@ -986,6 +993,10 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // `findOne` has to be real; a stub returning `null` would send every run down the combine branch and
     // build N separate sets while every assertion below still passed.
     currentPage: {
+      // #1561 — a real page carries an id; `combineAsVariants(fresh, currentPage)` reads it (see the id
+      // guard in `combineAsVariants` above). The shim's currentPage is the default combine parent, so it
+      // must carry one or every pre-#1554 combine would trip the guard the live host enforces.
+      id: 'PAGE:current',
       appendChild: (c: Node) => { page?.children.push(c); },
       get children() { return page?.children ?? []; },
       findOne: (pred: (n: unknown) => boolean) => (page?.children ?? []).find(pred) ?? null,
