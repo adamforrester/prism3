@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "actual-clean.json with ONE injected defect per diff category (a)-(h). Every departure from the clean",
+    "actual-clean.json with ONE injected defect per diff category (a)-(i). Every departure from the clean",
     "mirror is marked `INJECTED (x)` below, and `manifest.json` names the finding each one must produce.",
     "The self-check asserts SET EQUALITY both ways, so a defect that stops being reported fails by name,",
     "and a finding the diff invents fails too.",
@@ -15,7 +15,14 @@
     "  (f) `gadget` is gone from `structure`, and its one binding is gone from `bindings`",
     "  (f) `fix/color/text/secondary` is gone from `variables` — the missing-variable path, which is the",
     "      highest-consequence finding in the report and the one an omission-shaped defect would leave",
-    "      unproven"
+    "      unproven",
+    "  (i) the `Grid / xs` grid style is gone from `styles` — the same omission shape one level in, and the",
+    "      one that proves a whole style going missing is not mistaken for a library-consumed one",
+    "",
+    "`libraryConsumed` is carried here UNCHANGED from the clean mirror, and that is load-bearing rather than",
+    "copied for tidiness: every arm's suppression has to hold while OTHER arms are firing. Drop it and the",
+    "`shared` collection, `fix/shared/brand/500` and `body/lg/default` each surface as an extra finding — a",
+    "diff that reports real defects and phantom ones alongside them is not one anybody can act on."
   ],
   "format": "prism3-conformance",
   "version": 1,
@@ -164,6 +171,102 @@
       "axes": ["size", "state"],
       "emitAs": "set"
     }
+  },
+  "styles": {
+    "text|body/md/default": {
+      "_injected": "(i) style-definition, the UNIT difference — the engine bakes a unitless multiplier as PERCENT and this style carries 21px, which is 150% of 14 and therefore identical in this mode and wrong in every other one. Reported, deliberately, and not normalized away: a pixel line height has lost exactly the mode-invariance the bake exists to provide (#1356).",
+      "kind": "text",
+      "name": "body/md/default",
+      "props": {
+        "fontFamily": { "kind": "variable", "name": "fix/core/font/family/body" },
+        "fontStyle": { "kind": "variable", "name": "fix/core/font/style/body/default" },
+        "fontSize": { "kind": "variable", "name": "fix/core/font/size/14" },
+        "lineHeight": { "kind": "value", "value": "21px" },
+        "letterSpacing": { "kind": "value", "value": "0%" },
+        "textCase": { "kind": "value", "value": "ORIGINAL" },
+        "textDecoration": { "kind": "value", "value": "NONE" }
+      }
+    },
+    "text|caption/md/default": {
+      "_injected": "(i) style-definition, and it CASCADES on purpose — `fontStyle` is detached to the literal 'Bold' where the engine binds a variable, which is both a raw value where a binding was planned AND, read through the weight table, a 700 where the engine planned 400. Two findings on one subject, because a detached font style really is both things at once. Nothing else here checks the weight: it is the only property the engine plans that Figma does not have.",
+      "kind": "text",
+      "name": "caption/md/default",
+      "props": {
+        "fontFamily": { "kind": "variable", "name": "fix/core/font/family/body" },
+        "fontStyle": { "kind": "value", "value": "Bold" },
+        "fontSize": { "kind": "variable", "name": "fix/core/font/size/14" },
+        "lineHeight": { "kind": "value", "value": "140%" },
+        "letterSpacing": { "kind": "value", "value": "0%" },
+        "textCase": { "kind": "value", "value": "ORIGINAL" },
+        "textDecoration": { "kind": "value", "value": "NONE" }
+      }
+    },
+    "text|label/sm/default": {
+      "_injected": "(i) style-definition, the WRONG VARIABLE — `fontSize` is bound to a height variable rather than the font-size one. Bound, so a scan that only asked whether a property was variable-bound would call it correct, and the label renders at 40px. The highest-consequence interior defect after a style going missing outright, and the one a size-vs-height name confusion produces in practice.",
+      "kind": "text",
+      "name": "label/sm/default",
+      "props": {
+        "fontFamily": { "kind": "variable", "name": "fix/core/font/family/body" },
+        "fontStyle": { "kind": "variable", "name": "fix/core/font/style/body/default" },
+        "fontSize": { "kind": "variable", "name": "fix/size/md/height" },
+        "lineHeight": { "kind": "value", "value": "130%" },
+        "letterSpacing": { "kind": "value", "value": "0%" },
+        "textCase": { "kind": "value", "value": "ORIGINAL" },
+        "textDecoration": { "kind": "value", "value": "NONE" }
+      }
+    },
+    "effect|shadow/sm": {
+      "_injected": "(i) style-definition — the second layer's y offset moved from 2 to 6. One field of one layer of a two-layer shadow: a diff that compared whole effect arrays, or only their count, would miss it.",
+      "kind": "effect",
+      "name": "shadow/sm",
+      "props": {
+        "effects.length": { "kind": "value", "value": "2" },
+        "effects[0].type": { "kind": "value", "value": "DROP_SHADOW" },
+        "effects[0].color": { "kind": "value", "value": "rgba(23,19,53,0.102)" },
+        "effects[0].offset.x": { "kind": "value", "value": "0" },
+        "effects[0].offset.y": { "kind": "value", "value": "1" },
+        "effects[0].radius": { "kind": "value", "value": "3" },
+        "effects[0].spread": { "kind": "value", "value": "0" },
+        "effects[0].visible": { "kind": "value", "value": "true" },
+        "effects[0].blendMode": { "kind": "value", "value": "NORMAL" },
+        "effects[1].type": { "kind": "value", "value": "DROP_SHADOW" },
+        "effects[1].color": { "kind": "value", "value": "rgba(23,19,53,0.0588)" },
+        "effects[1].offset.x": { "kind": "value", "value": "0" },
+        "effects[1].offset.y": { "kind": "value", "value": "6" },
+        "effects[1].radius": { "kind": "value", "value": "8" },
+        "effects[1].spread": { "kind": "value", "value": "0" },
+        "effects[1].visible": { "kind": "value", "value": "true" },
+        "effects[1].blendMode": { "kind": "value", "value": "NORMAL" }
+      }
+    },
+    "paint|gradient/brand": {
+      "_injected": "(i) style-definition — the end stop is a flat colour where the engine binds a palette variable. The colour is the RIGHT one, so the gradient looks correct and will not follow the palette when it moves: #1387 at the style interior, and the reason a style property is modelled as variable-or-value rather than flattened to its resolved colour.",
+      "kind": "paint",
+      "name": "gradient/brand",
+      "props": {
+        "paintType": { "kind": "value", "value": "GRADIENT_LINEAR" },
+        "stops.length": { "kind": "value", "value": "2" },
+        "stops[0].position": { "kind": "value", "value": "0" },
+        "stops[0].color": { "kind": "variable", "name": "fix/core/palette/neutral/900" },
+        "stops[1].position": { "kind": "value", "value": "1" },
+        "stops[1].color": { "kind": "value", "value": "rgba(240,240,240,1)" }
+      }
+    },
+    "text|designer/scratch": {
+      "_injected": "(i) style-definition, the EXTRA — a local style the engine plans nowhere. Low severity by design: an extra style is a housekeeping question, not a broken contract, and reporting it at the same weight as a missing one would bury the missing one.",
+      "kind": "text",
+      "name": "designer/scratch",
+      "props": {
+        "fontFamily": { "kind": "value", "value": "Helvetica" },
+        "fontSize": { "kind": "value", "value": "13" },
+        "lineHeight": { "kind": "value", "value": "AUTO" }
+      }
+    }
+  },
+  "libraryConsumed": {
+    "collections": ["shared"],
+    "variables": ["fix/shared/brand/500"],
+    "styles": ["text|body/lg/default"]
   },
   "contrast": []
 }

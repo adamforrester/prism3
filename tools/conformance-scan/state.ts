@@ -17,21 +17,37 @@
  * identically" buys — which means a transposed argument pair would otherwise diff cleanly in the
  * mirror direction and read as a pass. The label is the only thing that can catch it.
  *
- * ── WHAT IS DELIBERATELY NOT HERE ───────────────────────────────────────────────────────────────
+ * ── STYLE DEFINITIONS, AND THE TWO THINGS THEY ARE NOT ──────────────────────────────────────────
  *
- * Style DEFINITIONS. The engine emits Figma styles (text / shadow / grid / gradient) under
- * `out/figma/<brand>/*-styles.json`, and their CONTENTS — a text style's size, weight, line height; a
- * shadow's offset and blur — are not in this shape and not compared. The eight diff categories #1553
- * P1 scopes are about variables, bindings, structure, contrast and staleness; a style's interior is
- * none of those, and a half-modelled one in the join key would make `mode-coverage` and `scope-type`
- * report on a surface they cannot see. Stated as a gap in the README rather than stubbed here.
+ * Style INTERIORS are here — `StyleDef`, keyed by `styleKey`. The engine emits all four Figma style
+ * kinds under `out/figma/<brand>/{text,shadow,grid,gradient}-styles.json` and the plugin writes all
+ * four through their four separate APIs (`createTextStyle` / `createEffectStyle` / `createGridStyle` /
+ * `createPaintStyle`), so a text style's size and line height, and a shadow's offset and blur, are
+ * checkable claims about a live file. P1 stated this as a gap; closing it adds the NINTH diff category
+ * and nothing else — `StyleDef` deliberately does not touch the variable or binding tables, so
+ * `mode-coverage` and `scope-type` still report only on the surface they could always see.
  *
- * A node's BINDING to a style is a different thing and IS here — see `BindState.boundStyle`. "This
- * member's label points at `type/body/md`" is a binding claim, checkable against a live file, and the
- * largest single binding namespace after `bound`.
+ * Two things a `StyleDef` is NOT:
+ *
+ *   1. It is NOT a node's BINDING to a style. That is `BindState.boundStyle` and it already existed:
+ *      "this member's label points at `body/md/default`" is a claim about a NODE. "`body/md/default`
+ *      is 16px/150%" is a claim about the STYLE. A file can get either right and the other wrong, so
+ *      they are separate keys, separate arms and separate categories.
+ *   2. It is NOT gradient GEOMETRY. The emission carries `angle` (linear) or `center`/`shape`
+ *      (radial); Figma carries the 2×3 `gradientTransform` matrix `write-styles.ts` computes FROM
+ *      those. Comparing the two means re-deriving that matrix here, which is a second implementation
+ *      of a writer — so the gradient arm compares `paintType` and the stops, and the geometry stays a
+ *      stated gap in the README. A `sampledStops`/`interpolation`/`a11y` block is engine-side only and
+ *      never reaches Figma at all, so it is not a gap; it is not a claim about a file.
  */
 
 export const FORMAT = 'prism3-conformance' as const;
+/**
+ * Bumped only when an OLD state can no longer be read, and `styles` / `libraryConsumed` did not do that
+ * — both are optional, and their absence is reported as a named blind spot rather than mistaken for a
+ * clean surface (see `State.styles`). A state written by the previous reader therefore still diffs, and
+ * says which arm it cannot feed. Bumping would have failed those files at the door to buy nothing.
+ */
 export const VERSION = 1 as const;
 
 /** A variable's value in ONE mode: either an alias to another variable, or a concrete value.
@@ -94,6 +110,59 @@ export type CompState = {
   emitAs: 'set' | 'components';
 };
 
+// ── STYLE DEFINITIONS ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * The four Figma style kinds, each a separate API on both sides — `getLocalTextStylesAsync` and friends on
+ * the read, `createTextStyle` and friends in `apps/plugin/src/write-*-styles.ts`. Part of the join key, so
+ * a text style and an effect style that share a name are two records and not one.
+ *
+ * `paint` is named for Figma's API and not for the engine's `gradient-styles.json`, even though a gradient
+ * is the only paint style the engine emits. A brand file's own SOLID paint styles come back from the same
+ * `getLocalPaintStylesAsync` call, and a `gradient` kind would force the read to either skip them — a
+ * suppression with no count, which this harness does not do — or file them under a name that is not what
+ * they are. Under `paint` they are simply styles the engine does not emit, which arm (i) already reports.
+ */
+export type StyleKind = 'text' | 'effect' | 'grid' | 'paint';
+
+export const STYLE_KINDS: readonly StyleKind[] = ['text', 'effect', 'grid', 'paint'] as const;
+
+/**
+ * One property inside a style, in the SAME two shapes `ModeValue` uses, and for the same reason.
+ *
+ * A text style's `fontSize` is usually BOUND to a variable (`ads/font-fluid/display/xl/strong`) rather
+ * than set to a number, and a Figma `TextStyle` carries both `fontSize` (the resolved number) and
+ * `boundVariables.fontSize` (the link). Flattening those to one number would make an unbound literal
+ * indistinguishable from a correctly bound variable that happens to resolve to the same value today —
+ * which is #1387 at the style interior, and the exact thing the `BindState` kind split exists to keep
+ * apart. So the distinction is on the wire and the diff reports the three shapes separately: bound to
+ * the wrong variable, drifted in value, and unbound where the engine binds.
+ */
+export type StyleProp =
+  | { kind: 'variable'; name: string }
+  | { kind: 'value'; value: string };
+
+/**
+ * One style's INTERIOR, flattened to named properties so the diff compares field by field.
+ *
+ * FLAT and not nested, because an effect style holds an ARRAY of effects and a grid style an array of
+ * layout grids: `effects[0].offset.y` is a property name here, and `effects.length` is one too. That
+ * keeps one finding per drifted field ("this shadow's y moved") instead of one opaque finding per style
+ * ("the effects array differs"), and it keeps the arm's comparison a plain string compare over a key set
+ * rather than a recursive structural diff whose own correctness would need proving.
+ *
+ * Both producers build `props` through the `canon*` functions below, so a float or a color that took a
+ * different code path to get here still lands on one spelling.
+ */
+export type StyleDef = {
+  kind: StyleKind;
+  /** The style's name as it lands in the file (`body/md/default`, `shadow/xs`, `Grid / xs`). NOT
+   *  root-prefixed and NOT materialization-renamed — `materialization-renames.ts` rewrites variable
+   *  names only, so a style name is already what Figma carries. */
+  name: string;
+  props: Record<string, StyleProp>;
+};
+
 /** One row of the engine's contrast contract, in the form `diff.ts` can RE-MEASURE from actual colors.
  *  Mirrors `packages/engine/modes.ts` `ResolvedRole` — the same two models `lint-ratio-truth.ts`
  *  dispatches on, because the recomputation has to be the engine's own or it is measuring something
@@ -136,6 +205,48 @@ export type State = {
   /** Keyed by `bindKey(component, member, node, property)`. */
   bindings: Record<string, BindState>;
   structure: Record<string, CompState>;
+  /**
+   * Style INTERIORS, keyed by `styleKey(kind, name)`.
+   *
+   * OPTIONAL, and the optionality is the whole safety of adding it: a reader that did not enumerate
+   * styles leaves it absent, and the style-definition arm then reports a named blind spot instead of
+   * calling all 60 emitted styles missing. `{}` is a different claim from absent — it means "styles were
+   * enumerated and the file has none", which IS 60 findings. Same distinction `instanceNodes` draws, and
+   * the reason neither is defaulted.
+   *
+   * LOCAL styles only. A style consumed from a published library is not comparable — its interior lives
+   * in the library file, not this one — so it goes in `libraryConsumed.styles` and never here. Putting a
+   * remote style here with the fields a read could not see would be a comparison against invented data.
+   */
+  styles?: Record<string, StyleDef>;
+  /**
+   * ACTUAL side only: what this file CONSUMES from a published library rather than authoring itself.
+   *
+   * Every read is a `getLocal*Async` read, because those are the only APIs that enumerate a file's own
+   * variables and styles. A team whose file consumes the engine's published library therefore has a
+   * file where the engine's variables are all real, all correct, all in use — and all absent from every
+   * local enumeration. Without this field the structure arm reports each one as "the engine emits this
+   * variable and the file does not have it", which is false, and false at the volume of the whole token
+   * layer: the #1511 shape again, a join that misses a whole namespace and reports the miss as drift.
+   *
+   * So a name here is neither a structure absence nor a value finding. It is out of this file's
+   * AUTHORSHIP: nothing in this document can be wrong about it, and the library that publishes it is
+   * where a conformance scan of it belongs. The diff suppresses those names and COUNTS them, the same
+   * treatment (and for the same reason) as bindings inherited through an instance.
+   *
+   * A name in BOTH this list and the local table is LOCAL — the local record is comparable, so it is
+   * compared. The suppression only ever applies where the local lookup already missed.
+   *
+   * Absent means the read did not distinguish library from local. The diff then reports a
+   * library-consumed variable as absent, which is noisy but never an assumption that a missing variable
+   * is somebody else's.
+   */
+  libraryConsumed?: {
+    collections?: string[];
+    variables?: string[];
+    /** `styleKey(kind, name)`s, so the list is keyed exactly as `styles` is. */
+    styles?: string[];
+  };
   /** Expected side only — the engine declares the contract, a Figma file does not carry one. Empty
    *  array on the actual side. */
   contrast: ContrastContract[];
@@ -213,6 +324,32 @@ export const underInstance = (key: string, instances: ReadonlySet<string>): bool
   }
 };
 
+/**
+ * A STYLE coordinate — the kind and the name. What `State.styles` is keyed by.
+ *
+ * The kind is in the key because the four kinds are four separate Figma namespaces on both sides, and
+ * two of them could carry the same name without colliding in Figma. Comparing across them would be a
+ * finding about nothing — the same reason `BindState` keeps `boundStyle` and `boundVariable` apart.
+ */
+export const styleKey = (kind: StyleKind, name: string): string => [kind, name].join(KEY_SEP);
+
+/** Split on the FIRST separator only, so a style name that contains one (a designer's own style; the
+ *  engine emits none) parses back whole instead of throwing on a part count. `bindKey`'s four parts are
+ *  all engine-controlled and can afford the stricter check; a style name is not. */
+export const parseStyleKey = (key: string): { kind: StyleKind; name: string } => {
+  const i = key.indexOf(KEY_SEP);
+  if (i <= 0) throw new Error(`malformed style key (expected \`kind${KEY_SEP}name\`): ${key}`);
+  const kind = key.slice(0, i) as StyleKind;
+  if (!STYLE_KINDS.includes(kind)) throw new Error(`style key names an unknown kind '${kind}': ${key}`);
+  return { kind, name: key.slice(i + 1) };
+};
+
+/** Human-readable form of a style key, for a report line. */
+export const showStyleKey = (key: string): string => {
+  const { kind, name } = parseStyleKey(key);
+  return `${kind} style '${name}'`;
+};
+
 /** Human-readable form of a bind key, for a report line. */
 export const showBindKey = (key: string): string => {
   const { component, member, node, property } = parseBindKey(key);
@@ -255,6 +392,56 @@ export const canonValue = (resolvedType: string, raw: unknown): string => {
   if (resolvedType === 'BOOLEAN') return typeof raw === 'boolean' ? String(raw) : `NON-BOOLEAN(${JSON.stringify(raw)})`;
   return JSON.stringify(raw);
 };
+
+/**
+ * Figma's `{ value, unit }` shape — a text style's `lineHeight` and `letterSpacing` — as ONE string.
+ *
+ * `150%`, `24px`, `AUTO`. Both producers run this over their own raw object, which is the whole contract
+ * of this section: the emission writes `{unit:'PERCENT',value:150}` and the Plugin API hands back the
+ * same shape through a different code path, so one function over both is what makes a comparison
+ * meaningful at all.
+ *
+ * It CANONICALIZES and does not RECONCILE — the unit is kept, not converted. `150%` and `24px` are two
+ * different facts, not two spellings of one, and which of those it is belongs to `diff.ts` (see its
+ * header on the line between a spelling and a defect). Converting here would need a font size, which for
+ * a fluid style is per-mode, so the conversion would silently pick a mode and call the result equal.
+ */
+export const canonUnitValue = (raw: unknown): string => {
+  if (!raw || typeof raw !== 'object') return `MALFORMED(${JSON.stringify(raw)})`;
+  const { unit, value } = raw as { unit?: unknown; value?: unknown };
+  if (unit === 'AUTO') return 'AUTO';
+  if (typeof value !== 'number') return `MALFORMED(${JSON.stringify(raw)})`;
+  if (unit === 'PERCENT') return `${canonFloat(value)}%`;
+  if (unit === 'PIXELS') return `${canonFloat(value)}px`;
+  return `${canonFloat(value)}<${String(unit)}>`;
+};
+
+/**
+ * A style-interior value, canonicalized by what it IS rather than by a declared type.
+ *
+ * `canonValue` above dispatches on a variable's `resolvedType`, which a style property does not have.
+ * The four shapes a style interior actually contains are a number, a string, a boolean, and one of two
+ * objects — an RGBA (`{r,g,b,a}`: an effect's color, a grid's overlay, a gradient stop) or a unit-value
+ * (`{unit,value}`: a line height, a letter spacing). Dispatching on the shape handles a text property, an
+ * effect field, a layout grid and a gradient stop through one function, which is what keeps the two
+ * producers' style normalization identical without either of them holding a field table.
+ */
+export const canonAny = (raw: unknown): string => {
+  if (typeof raw === 'number') return canonFloat(raw);
+  if (typeof raw === 'string') return raw;
+  if (typeof raw === 'boolean') return String(raw);
+  if (raw && typeof raw === 'object') {
+    if ('r' in (raw as Rgba)) return canonColor(raw as Rgba);
+    if ('unit' in (raw as { unit?: unknown })) return canonUnitValue(raw);
+  }
+  return JSON.stringify(raw);
+};
+
+/** The UNIT of a `canonUnitValue` string, so the diff can separate "the number moved" from "the unit
+ *  changed" — two different defects with two different fixes. Mirrors `parseCanonColor`: the canonical
+ *  string is what travels, and the parser gives the diff back the part it needs to judge. */
+export const unitOfCanon = (s: string): string =>
+  s === 'AUTO' ? 'AUTO' : s.endsWith('%') ? 'PERCENT' : s.endsWith('px') ? 'PIXELS' : `other(${s})`;
 
 /** Parse `rgba(r,g,b,a)` back to 0-1 channels — the contrast arm needs numbers, and the canonical
  *  string is what both sides carry. Returns `null` for anything else (an alias left unresolved, a
@@ -307,6 +494,16 @@ export const readState = (parsed: unknown, whence: string, side: State['side']):
     );
   for (const k of ['variables', 'bindings', 'structure', 'collections'] as const)
     if (!s[k] || typeof s[k] !== 'object') throw new Error(`${whence}: missing or non-object \`${k}\``);
+  // The two optional fields: absent is a valid state (a reader that did not look), but PRESENT AND
+  // MIS-SHAPED must fail at the door rather than read as an empty one — `styles: []` would otherwise
+  // enumerate zero keys and report every emitted style as missing.
+  if (s.styles !== undefined && (typeof s.styles !== 'object' || s.styles === null || Array.isArray(s.styles)))
+    throw new Error(`${whence}: \`styles\` is present but not an object — omit it entirely if the read did not enumerate styles`);
+  if (
+    s.libraryConsumed !== undefined &&
+    (typeof s.libraryConsumed !== 'object' || s.libraryConsumed === null || Array.isArray(s.libraryConsumed))
+  )
+    throw new Error(`${whence}: \`libraryConsumed\` is present but not an object`);
   if (!Array.isArray(s.contrast)) throw new Error(`${whence}: missing or non-array \`contrast\``);
   if (typeof s.root !== 'string') throw new Error(`${whence}: missing \`root\``);
   return s as State;

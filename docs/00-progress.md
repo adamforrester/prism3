@@ -33,6 +33,51 @@ New `setFixedWidthHugHeight(node, width)` helper sets sizing on the real-world a
 ── DESIGN QUESTION LEFT OPEN (owner, #1563) ────────────────────────────────────────────────────────────
 
 The components stay STATIC literal-color assets per the JSON (annotation chrome, not token-bound product components). Whether to bind them to Prism3 tokens so they theme is the owner's call and out of scope here.
+## (2026-09-21) — conformance-scan: the style INTERIOR, and what a file borrows is not the file's to get wrong (#1553 P1)
+
+**STATUS: LANDED. TOOLS-ONLY (`tools/conformance-scan/`) — no engine code, def, gate, baseline, or emitted `out/**` artifact changed; ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed**, `regen --check` clean (111 artifacts byte-match), `version.ts` and `ci.yml` untouched. Still a measurement harness, NOT a gate — gate count **STANDS at 61**. Read-only against Figma, report-only. Findings target #1552. Refs #1553.**
+
+── WHAT THIS CLOSES ─────────────────────────────────────────────────────────────────────────────────
+
+The entry below shipped the harness with **four stated gaps**. Two of them were the ones that made the report misleading rather than merely incomplete, and this closes both.
+
+**GAP A — style DEFINITIONS.** The harness checked that a node *binds* a text or effect style (the second-largest binding namespace) and never that the style's **interior** matched. So a designer could retype every text style in the file and the scan would report a clean bind surface. Now a **ninth category, `style-definition`**, reads all four emitted style files (`text-styles.json`, `shadow-styles.json`, `grid-styles.json`, `gradient-styles.json` → 60 styles for aurora: 38 text, 14 effect, 6 grid, 2 paint) into a normalized `StyleDef` and compares interiors by style NAME. Style names are the one namespace that is **not** root-prefixed and not materialization-renamed (`body/md/default`, `shadow/xs`, `Grid / xs`), which is why the join key here is a plain name and not a `materializeName` lookup.
+
+**GAP B — library-consumed variables and styles.** Both reads use `getLocal*Async`, so a variable or style the file consumes from a PUBLISHED library is not in the local set and read as **absent** — the structure arm reported it as "emitted variable absent", a defect in a file that is doing the right thing. Now the read enumerates what the file borrows (`getAvailableLibraryVariableCollectionsAsync`, plus the remote variables and styles a node actually references, resolved through `getVariableByIdAsync`/`getStyleByIdAsync` by `remote === true`) and the diff **classifies and suppresses it with a count**, the same pattern the 2,705 inherited-instance bindings already use. Three suppression sites, one per entity kind — the collection, the variable and the style — each with its own printed note, and each placed INSIDE the local-miss branch so a name that is both local and library-listed is still compared on its local record. The variable's values, modes and scopes ride on the same `continue`: they are not this file's to carry either.
+
+── THE READ B FALSE-POSITIVE CLASS GAP B ALSO CLOSED, which was not in the brief ─────────────────────
+
+A node bound to a library variable resolves its id through a map the walk builds from LOCAL variables only, so it fell through to `UNRESOLVED(<id>)` — and arm (b), binding-target, would have reported **every library-bound node as bound to the wrong token**. Fixed the way the reader must fix it: the walk records `PENDING(<id>)`, and a post-walk pass resolves those ids (which is where the `remote` flag is legible anyway) and rewrites them. Doing it inline would mean an `await` per binding across 43,703 of them.
+
+── THE THREE JUDGEMENTS IN ARM (i), and the one that departs from the brief ──────────────────────────
+
+Representation differences are reconciled **in the diff, never in the reader** — the harness's founding discipline, because only the diff knows what was PLANNED at a coordinate. Arm (i) needed three calls:
+
+1. **`fontWeight` is not a Figma property at all.** Figma has `fontName: { family, style }`. The emission carries BOTH a bound `fontStyle` and an unbound `fontWeight` number that agree by construction. Compared directly, all 38 of aurora's text styles would report a missing property. So the weight is checked **through `fontStyle`'s name**: when `fontStyle` is variable-bound the weight rides on that variable and is counted in a note rather than compared; when it is a literal, the name is mapped to a number through a small table ("Semi Bold" → 600) and compared. A name the table does not know is **`unevaluated`, not a pass** — proven by deleting `bold: 700` from the table and asserting the report prints that it names no weight this harness knows.
+
+2. **`lineHeight` PERCENT vs px is REPORTED, not normalized — a deliberate departure from a literal reading of the task.** The brief listed "lineHeight PERCENT vs px" among the spellings to normalize away. It is not one. `lint-lineheight-bake.ts` (#1356) bakes lineHeight as a **percentage on purpose**, for three reasons that all still hold: the token's role is a unitless multiplier; `setBoundVariable('lineHeight', …)` is PIXELS-only, so a percentage cannot be variable-bound at all; and a pixel lineHeight is `fontSize × multiplier` frozen at one size and therefore wrong at every other size in a fluid mode set. A file whose text style carries `21px` where the engine emits `150%` has lost mode-invariance — the exact defect that gate exists to prevent. So a unit difference on a value/value pair gets **its own `high` finding citing #1356**, distinct from the generic drift finding, and the mutation battery asserts that diagnosis prints by name. Normalizing it would have made the harness blind to the one interior change the engine most cares about.
+
+3. **The kind is `paint`, not `gradient`.** Found while writing the read snippet, and it is a modelling correction rather than a rename: `getLocalPaintStylesAsync` also returns a brand's own SOLID paint styles, so a `gradient` kind would have forced the read to silently skip them — a suppression with no count, which this harness forbids. Named for the Figma API the read calls, the surface is whole.
+
+`StyleProp` mirrors `ModeValue`'s two shapes (`{kind:'variable',name}` / `{kind:'value',value}`) for #1387's reason at the style interior: a literal that resolves correctly today and tracks nothing is a real finding, so a flattened binding is a **kind mismatch**, not a value match.
+
+── WHAT IS DELIBERATELY STILL A GAP ─────────────────────────────────────────────────────────────────
+
+**Gradient GEOMETRY.** The emission carries `angle` (linear) or `center`/`shape` (radial); Figma carries the 2×3 `gradientTransform` matrix `apps/plugin/src/write-styles.ts` computes from them. Re-deriving that matrix here would make this harness a second implementation of the writer, and a scan that disagrees with the plugin because it does the maths differently is worse than one that says it did not look. A `sampledStops`/`interpolation`/`a11y` block is engine-side only and never reaches Figma, so it is not a gap at all — it is not a claim about a file. **`VERSION` deliberately STAYS at 1**: `styles` and `libraryConsumed` are both optional and their absence is reported as a named blind spot, so a state written by the previous reader still diffs and says which arm it cannot feed. Bumping would have failed those files at the door to buy nothing.
+
+── ACCEPTANCE ───────────────────────────────────────────────────────────────────────────────────────
+
+`diff.ts --selftest` green: the faithful actual still diffs **empty** while exercising all five suppressions with visible counts, the dirty actual reports **exactly the manifest's 23 findings** as set equality both ways, and all **9** categories have an injected defect. `mutations.sh`: **40 detected, 0 undetected.** Every new arm and every new lenience has a mutation asserting the exact line the run must print — the lenience mutations assert the **baseline stops being clean**, because a lenience fails by inventing findings on a correct file rather than by going quiet.
+
+**One mutation-shape trap worth the next reader's time, and it cost a red-looking-green run.** A `nocond` mutation on an `if (…) { A } else { B }` pair rewrites the condition to `false`, and `if (false) {} else if (false) A; else B;` parses as `if(false){} else { if(false) A; else B; }` — so the `else` branch **still fires**, the row survives, and the mutation reads as UNDETECTED (38/1). Muting a two-branch guard needs the guard itself killed (moving the row) plus a separate `unreport` asserting the specific diagnosis stops printing. Two arm-(i) branches are left unmutated ON PURPOSE and said so in the script header: both fire only on a style *missing* a property, which no read of a real Figma file produces — a fixture for them would be a fixture for a state Figma cannot return.
+
+**The fixtures carry `libraryConsumed` unchanged into the DIRTY case**, which is load-bearing rather than copied for tidiness: every arm's suppression has to hold while other arms are firing.
+
+── NOT MEASURED, and why ────────────────────────────────────────────────────────────────────────────
+
+Arm (i) and the Gap B suppressions are proven on fixtures and against the aurora *expected* side; they have **not** been run against the live QA file. That file is at engine `0.118.0` against today's `0.127.0` and was driven by hand — whether it is still a QA subject at all is one of the two decisions held for the owner in the #1552 post, and measuring it now would produce a finding set whose value is exactly what is in question. The read snippets are in the README, read-only, ready when that is answered.
+
+**FILES.** Edited: `tools/conformance-scan/{state.ts, expected.ts, diff.ts, README.md, mutations.sh}` and all four `fixtures/*.json`; `docs/00-progress.md` (this entry). `tools/` is scanned by no gate, so this adds nothing CI runs. Full `npm run verify`: **61/61 PASS**.
 
 ## (2026-09-21) — file-setup: the UI trigger button, deferred from #1554 (#1558)
 
