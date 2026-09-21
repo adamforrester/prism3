@@ -17,7 +17,16 @@
     "     does — so the clean run also proves those three are not reported as unplanned extras.",
     "  4. `/focusRing` is an INSTANCE carrying a binding the engine plans nowhere here, because an instance",
     "     surfaces its main component's bindings as its own. The clean run must stay clean and say so in a",
-    "     note — reported, it would be one of 2,705 in a real read."
+    "     note — reported, it would be one of 2,705 in a real read.",
+    "  5. No text style carries `fontWeight`. Figma has no such property — it has `fontName.style` — so a",
+    "     read cannot produce one, and the engine's planned weight is checked THROUGH `fontStyle`. Here all",
+    "     three styles bind `fontStyle` to a variable, so the weight rides on that binding and the clean run",
+    "     must not report three missing properties.",
+    "  6. The `shared` collection, `fix/shared/brand/500` and the `body/lg/default` text style are all",
+    "     planned by the engine and all ABSENT from the local tables, because this file consumes them from a",
+    "     published library — see `libraryConsumed`. Absent and library-sourced is not absent: the clean run",
+    "     must stay clean and put a count in a note. Delete `libraryConsumed` and three false findings appear,",
+    "     which is exactly what the harness did before Gap B was closed."
   ],
   "format": "prism3-conformance",
   "version": 1,
@@ -156,6 +165,101 @@
       "emitAs": "set"
     },
     "gadget": { "members": ["size=sm"], "axes": ["size"], "emitAs": "set" }
+  },
+  "styles": {
+    "text|body/md/default": {
+      "kind": "text",
+      "name": "body/md/default",
+      "props": {
+        "fontFamily": { "kind": "variable", "name": "fix/core/font/family/body" },
+        "fontStyle": { "kind": "variable", "name": "fix/core/font/style/body/default" },
+        "fontSize": { "kind": "variable", "name": "fix/core/font/size/14" },
+        "lineHeight": { "kind": "value", "value": "150%" },
+        "letterSpacing": { "kind": "value", "value": "0%" },
+        "textCase": { "kind": "value", "value": "ORIGINAL" },
+        "textDecoration": { "kind": "value", "value": "NONE" }
+      }
+    },
+    "text|caption/md/default": {
+      "kind": "text",
+      "name": "caption/md/default",
+      "props": {
+        "fontFamily": { "kind": "variable", "name": "fix/core/font/family/body" },
+        "fontStyle": { "kind": "variable", "name": "fix/core/font/style/body/default" },
+        "fontSize": { "kind": "variable", "name": "fix/core/font/size/14" },
+        "lineHeight": { "kind": "value", "value": "140%" },
+        "letterSpacing": { "kind": "value", "value": "0%" },
+        "textCase": { "kind": "value", "value": "ORIGINAL" },
+        "textDecoration": { "kind": "value", "value": "NONE" }
+      }
+    },
+    "text|label/sm/default": {
+      "kind": "text",
+      "name": "label/sm/default",
+      "props": {
+        "fontFamily": { "kind": "variable", "name": "fix/core/font/family/body" },
+        "fontStyle": { "kind": "variable", "name": "fix/core/font/style/body/default" },
+        "fontSize": { "kind": "variable", "name": "fix/core/font/size/14" },
+        "lineHeight": { "kind": "value", "value": "130%" },
+        "letterSpacing": { "kind": "value", "value": "0%" },
+        "textCase": { "kind": "value", "value": "ORIGINAL" },
+        "textDecoration": { "kind": "value", "value": "NONE" }
+      }
+    },
+    "effect|shadow/sm": {
+      "kind": "effect",
+      "name": "shadow/sm",
+      "props": {
+        "effects.length": { "kind": "value", "value": "2" },
+        "effects[0].type": { "kind": "value", "value": "DROP_SHADOW" },
+        "effects[0].color": { "kind": "value", "value": "rgba(23,19,53,0.102)" },
+        "effects[0].offset.x": { "kind": "value", "value": "0" },
+        "effects[0].offset.y": { "kind": "value", "value": "1" },
+        "effects[0].radius": { "kind": "value", "value": "3" },
+        "effects[0].spread": { "kind": "value", "value": "0" },
+        "effects[0].visible": { "kind": "value", "value": "true" },
+        "effects[0].blendMode": { "kind": "value", "value": "NORMAL" },
+        "effects[1].type": { "kind": "value", "value": "DROP_SHADOW" },
+        "effects[1].color": { "kind": "value", "value": "rgba(23,19,53,0.0588)" },
+        "effects[1].offset.x": { "kind": "value", "value": "0" },
+        "effects[1].offset.y": { "kind": "value", "value": "2" },
+        "effects[1].radius": { "kind": "value", "value": "8" },
+        "effects[1].spread": { "kind": "value", "value": "0" },
+        "effects[1].visible": { "kind": "value", "value": "true" },
+        "effects[1].blendMode": { "kind": "value", "value": "NORMAL" }
+      }
+    },
+    "grid|Grid / xs": {
+      "kind": "grid",
+      "name": "Grid / xs",
+      "props": {
+        "layoutGrids.length": { "kind": "value", "value": "1" },
+        "layoutGrids[0].pattern": { "kind": "value", "value": "COLUMNS" },
+        "layoutGrids[0].alignment": { "kind": "value", "value": "STRETCH" },
+        "layoutGrids[0].count": { "kind": "value", "value": "4" },
+        "layoutGrids[0].gutterSize": { "kind": "value", "value": "16" },
+        "layoutGrids[0].offset": { "kind": "value", "value": "16" },
+        "layoutGrids[0].visible": { "kind": "value", "value": "true" },
+        "layoutGrids[0].color": { "kind": "value", "value": "rgba(255,0,0,0.1)" }
+      }
+    },
+    "paint|gradient/brand": {
+      "kind": "paint",
+      "name": "gradient/brand",
+      "props": {
+        "paintType": { "kind": "value", "value": "GRADIENT_LINEAR" },
+        "stops.length": { "kind": "value", "value": "2" },
+        "stops[0].position": { "kind": "value", "value": "0" },
+        "stops[0].color": { "kind": "variable", "name": "fix/core/palette/neutral/900" },
+        "stops[1].position": { "kind": "value", "value": "1" },
+        "stops[1].color": { "kind": "variable", "name": "fix/core/palette/neutral/050" }
+      }
+    }
+  },
+  "libraryConsumed": {
+    "collections": ["shared"],
+    "variables": ["fix/shared/brand/500"],
+    "styles": ["text|body/lg/default"]
   },
   "contrast": []
 }

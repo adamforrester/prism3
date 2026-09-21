@@ -29,6 +29,14 @@
 #    reported under the right category and subject. It does not proof-read the summary. This script
 #    covers the part it cannot.
 #
+# 3. TWO BRANCHES OF ARM (i) ARE NOT MUTATED HERE, AND FABRICATING A FIXTURE FOR THEM WOULD BE WORSE THAN
+#    LEAVING THEM. Both fire when a style is MISSING a property the engine sets, or carries a font style
+#    with no weight to read — and a Figma text style always has a family, a size, a line height and a
+#    `fontName`, so no read of a real file produces either. Their real cause is a READER that stopped
+#    normalizing a property, not a document that lost one. A fixture for them would therefore be a fixture
+#    for a state Figma cannot return, and the arm would then be proven against a shape it will never meet.
+#    Left unproven on purpose, and written down here rather than left to be rediscovered as an oversight.
+#
 # Every mutation is applied to the working tree and reverted with `git checkout -- <file>`, which reaches
 # back to HEAD. So: COMMIT BEFORE RUNNING THIS. Work done in these files and not committed is destroyed
 # by the first revert, silently, and no command finds it afterwards (CLAUDE.md, three incidents).
@@ -155,6 +163,49 @@ mute "(f) structure: the absent-component push" \
         f('structure', 'high', \`component '\${id}'\`, 'the engine builds this component" \
   "structure: component 'gadget'"
 
+mute "(i) style-definition: the absent-style push" \
+  "findings.push(
+        f('style-definition', 'high', showStyleKey(key),
+          'the engine emits this style" \
+  "style-definition: grid style 'Grid / xs'"
+
+mute "(i) style-definition: the wrong-variable push" \
+  "findings.push(
+            f('style-definition', 'high', showStyleKey(key),
+              \`the style's \${field} is bound to the wrong variable\`" \
+  "style-definition: text style 'label/sm/default'"
+
+# The kind-mismatch branch fires on TWO subjects in the fixture — a detached font style and a flattened
+# gradient stop — and only the gradient's row disappears when it is muted, because the detached one is also
+# the wrong weight and keeps its row alive. Asserting the row that CAN move is the honest assertion; the
+# other half of this branch is asserted on the report further down.
+mute "(i) style-definition: the flattened-variable push" \
+  "findings.push(
+          f('style-definition', 'high', showStyleKey(key),
+            flattened" \
+  "style-definition: paint style 'gradient/brand'"
+
+# A value that differs from the emitted one, whichever of the two routes reports it. The fixture's px-for-
+# percent line height is the ONLY finding on its style, so silencing the comparison moves the row — but it
+# has to be silenced at the guard: muting the unit push alone drops the finding into the generic drift push
+# below it, at the same category and the same subject, and the row survives. The unit branch is asserted on
+# its own further down, where a diagnosis is what is being proven.
+nocond "(i) style-definition: the value comparison" \
+  "wp.kind === 'value' && gp.kind === 'value' && wp.value !== gp.value" \
+  "style-definition: text style 'body/md/default'"
+
+mute "(i) style-definition: the generic drift push" \
+  "findings.push(
+            f('style-definition', severityOfStyleField(field), showStyleKey(key),
+              \`the style's \${field} has drifted" \
+  "style-definition: effect style 'shadow/sm'"
+
+mute "(i) style-definition: the extra-style push" \
+  "findings.push(
+        f('style-definition', 'low', showStyleKey(key),
+          'the file has a style the engine does not emit" \
+  "style-definition: text style 'designer/scratch'"
+
 mute "(g) contrast: the AA-failure push" \
   "findings.push(
         f('contrast', 'high'," \
@@ -230,6 +281,90 @@ mutate "$D" "the inherited-instance note" \
   "  if (inherited > 0)" "  if (false)" \
   "$REPORT" gone "are not reported: an instance surfaces"
 
+# GAP B, all three halves. What a file consumes from a published library is absent from every local read,
+# so each suppression's failure mode is a FALSE POSITIVE on a faithful file — the descendantFills shape
+# again, and proven the same way. The clean fixture consumes one collection, one variable and one style from
+# a library, so dropping any one of the three turns the baseline red.
+mutate "$D" "(f)+(c,d,e) the library-consumed VARIABLE suppression" \
+  "      if (library.has(name)) { fromLibrary++; continue; }" \
+  "" \
+  "$SELFTEST" have "FAIL  baseline: a faithful actual produced"
+
+mutate "$D" "(f) the library-consumed COLLECTION suppression" \
+  "      if (library.has(collection)) { fromLibrary++; continue; }" \
+  "" \
+  "$SELFTEST" have "FAIL  baseline: a faithful actual produced"
+
+mutate "$D" "(i) the library-consumed STYLE suppression" \
+  "      if (library.has(key)) { fromLibrary++; continue; }" \
+  "" \
+  "$SELFTEST" have "FAIL  baseline: a faithful actual produced"
+
+# …and the three counts that keep those suppressions from being silences. Each is the only evidence a reader
+# gets that a name was judged rather than missed, so each is asserted on the REPORT.
+mutate "$D" "the library-consumed VARIABLE note" \
+  "notes.push(
+      \`\${fromLibrary} variable(s)" \
+  "if (false) notes.push(
+      \`\${fromLibrary} variable(s)" \
+  "$REPORT" gone "their values are the library's"
+
+mutate "$D" "the library-consumed COLLECTION note" \
+  "notes.push(
+      \`\${fromLibrary} collection(s)" \
+  "if (false) notes.push(
+      \`\${fromLibrary} collection(s)" \
+  "$REPORT" gone "nor are their modes, which a local read cannot enumerate"
+
+mutate "$D" "the library-consumed STYLE note" \
+  "notes.push(
+      \`\${fromLibrary} style(s)" \
+  "if (false) notes.push(
+      \`\${fromLibrary} style(s)" \
+  "$REPORT" gone "their interiors live in the library file"
+
+# The fontWeight reconciliation, whole. Figma stores no fontWeight on a text style, so emptying the
+# reconciled set sends every emitted fontWeight down the missing-property branch — four false findings on a
+# faithful file here, 38 in aurora. Proven by the baseline, like every other lenience.
+mutate "$D" "(i) the fontWeight reconciliation" \
+  "const RECONCILED_STYLE_FIELDS = new Set(['fontWeight']);" \
+  "const RECONCILED_STYLE_FIELDS = new Set(['nothing-is-reconciled']);" \
+  "$SELFTEST" have "FAIL  baseline: a faithful actual produced"
+
+# The half of that reconciliation `--selftest` cannot see. Where the font style is a LITERAL the weight is
+# read out of its NAME, and the fixture's detached `caption/md/default` is also a raw value where a variable
+# was planned — so the row survives and only the weight diagnosis disappears.
+unreport "(i) the weight-from-font-style-name comparison" \
+  "findings.push(
+            f('style-definition', 'high', showStyleKey(key),
+              'the weight named by the file\'s font style" \
+  "is not the weight the engine sets"
+
+# The one unit difference arm (i) does NOT normalize away, and the mutation that proves it is a branch of its
+# own rather than a spelling the diff shrugs at. Mute it and the same px-for-percent line height is still
+# reported — as generic drift, at the same category and subject, with the reason gone. The reason is the
+# finding here: a reader told 21px and 150% differ learns nothing, and one told the percentage is
+# mode-invariant on purpose knows which of the two to change.
+unreport "(i) the lineHeight unit difference is its own diagnosis" \
+  "findings.push(
+            f('style-definition', 'high', showStyleKey(key),
+              \`the \${field} is \${gu} where the engine bakes" \
+  "is mode-invariant on purpose (#1356)"
+
+# The weight table is deliberately not exhaustive, and an unknown name must go UNEVALUATED rather than pass.
+# Removing the entry the fixture depends on is what proves that: the run must say so in words.
+mutate "$D" "(i) an unknown font-style name is unevaluated, not a pass" \
+  "  bold: 700," "" \
+  "$REPORT" have "names no weight this harness knows"
+
+# …and the count that makes the riding-on-a-variable half of the reconciliation visible.
+mutate "$D" "the fontWeight-rides-on-a-variable note" \
+  "notes.push(
+      \`\${ridingOnVariable} text style(s)" \
+  "if (false) notes.push(
+      \`\${ridingOnVariable} text style(s)" \
+  "$REPORT" gone "had their fontWeight checked through a variable-bound fontStyle"
+
 # The side guard is what stops a transposed argument pair diffing cleanly in the mirror direction.
 mutate "$S" "the expected/actual side guard" \
   "  if (s.side !== side)" "  if (false)" \
@@ -238,6 +373,13 @@ mutate "$S" "the expected/actual side guard" \
 # Step 3's coverage assertion, mutated in the FIXTURE rather than the diff: deleting a manifest row must
 # fail as missing COVERAGE for that category, not pass as a smaller set. This is the one that stops the
 # self-check from being weakenable by editing the answer key.
+# A read that does not enumerate styles at all — the state a reader written before Gap B produces, and the
+# one shape where arm (i) must say it is BLIND rather than report every emitted style as absent. Mutated in
+# the FIXTURE, because the claim is about a state the harness will really be handed.
+mutate "$F/actual-dirty.json" "arm (i)'s blind spot is named, not every style reported missing" \
+  '  "styles": {' '  "stylesTHE-READ-DID-NOT-ENUMERATE-THESE": {' \
+  "$REPORT" have "could not run: the read did not enumerate style definitions"
+
 mutate "$F/manifest.json" "the manifest's last coverage row, (h) staleness" \
   ',
     "staleness: engine version"' '' \
@@ -246,7 +388,7 @@ mutate "$F/manifest.json" "the manifest's last coverage row, (h) staleness" \
 echo
 echo "-------------------------------------------------------------------------------"
 echo "$PASS detected, $FAIL undetected"
-if ! git diff --quiet -- "$D" "$S" "$F/manifest.json"; then
+if ! git diff --quiet -- "$D" "$S" "$F/manifest.json" "$F/actual-dirty.json"; then
   echo "WARNING: a revert did not take — check \`git status\` before trusting anything above."
   exit 1
 fi

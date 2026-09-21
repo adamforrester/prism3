@@ -57,12 +57,19 @@ import { ENGINE_VERSION } from '../../packages/engine/version';
 import type { Theme } from '../../packages/engine/theme';
 import {
   FORMAT,
+  STYLE_KINDS,
   VERSION,
   bindKey,
+  canonAny,
   canonValue,
   rootOf,
+  styleKey,
   type ContrastContract,
+  type Rgba,
   type State,
+  type StyleDef,
+  type StyleKind,
+  type StyleProp,
   type VarState,
 } from './state';
 
@@ -138,6 +145,110 @@ const readEmission = (brand: string): EmittedFile[] => {
   }
   if (out.length === 0) throw new Error(`packages/engine/out/figma/${brand}/ holds no variable files`);
   return out;
+};
+
+// ── STYLE DEFINITIONS, FROM THE FOUR EMITTED STYLE FILES ────────────────────────────────────────
+
+/** Emitted style file → the `StyleKind` it holds. The four are four separate Figma APIs and four
+ *  separate writers (`write-text-styles.ts`, `write-styles.ts` for both effect and paint,
+ *  `write-grid-styles.ts`), so the mapping is stated rather than derived from the file name. */
+const STYLE_FILES: ReadonlyArray<{ file: string; kind: StyleKind }> = [
+  { file: 'text-styles.json', kind: 'text' },
+  { file: 'shadow-styles.json', kind: 'effect' },
+  { file: 'grid-styles.json', kind: 'grid' },
+  { file: 'gradient-styles.json', kind: 'paint' },
+];
+
+/** `{bound:true,variable}` → a variable claim; `{bound:false,value}` / `{bindable:false,value}` → a
+ *  literal. The three shapes a text style's `properties` entry comes in, and the distinction is the one
+ *  `StyleProp` exists to keep (`state.ts`): an unbound literal that resolves to the right number today
+ *  is not a bound variable. */
+const textProp = (raw: unknown): StyleProp | null => {
+  if (!raw || typeof raw !== 'object') return null;
+  const p = raw as { bound?: boolean; variable?: string; value?: unknown };
+  if (p.bound === true && typeof p.variable === 'string') return { kind: 'variable', name: p.variable };
+  if ('value' in p) return { kind: 'value', value: canonAny(p.value) };
+  return null;
+};
+
+/** Every field of an object, flattened to `<prefix><field>` literal props. One level of nesting is
+ *  expanded (`offset` → `offset.x` / `offset.y`) because that is the only nesting an effect or a layout
+ *  grid has, and a whole-object compare would report one opaque finding where the useful one names the
+ *  field that moved. */
+const flatten = (obj: Record<string, unknown>, prefix: string, into: Record<string, StyleProp>): void => {
+  for (const [k, v] of Object.entries(obj)) {
+    if (v && typeof v === 'object' && !Array.isArray(v) && !('r' in (v as Rgba)) && !('unit' in (v as { unit?: unknown })))
+      flatten(v as Record<string, unknown>, `${prefix}${k}.`, into);
+    else into[`${prefix}${k}`] = { kind: 'value', value: canonAny(v) };
+  }
+};
+
+/**
+ * One emitted style → the normalized `StyleDef` the diff compares.
+ *
+ * Per kind, and the exclusions are as load-bearing as the inclusions:
+ *
+ *   TEXT — all eight `properties`, each through `textProp`. `fontWeight` is included even though Figma
+ *     has no such field on a `TextStyle`; the diff reconciles it through `fontStyle` (see its header).
+ *   EFFECT — `effects.length` plus every field of every effect. The length is a property so a two-layer
+ *     shadow flattened to one is a named finding rather than a silent comparison of the first layer.
+ *   GRID — the same treatment over `layoutGrids`.
+ *   PAINT — `paintType` and the stops ONLY. A stop with an `alias` is a VARIABLE claim, because
+ *     `write-styles.ts` binds it into the stop's `boundVariables.color`. `interpolation`, `sampledStops`
+ *     and `a11y` are engine-side and never reach Figma — not gaps, not claims about a file — and the
+ *     geometry (`angle` / `center` / `shape`) is a stated gap: Figma stores the `gradientTransform`
+ *     matrix the writer computes from it, and re-deriving that here would be a second writer.
+ */
+const styleDefOf = (kind: StyleKind, raw: Record<string, unknown>): StyleDef => {
+  const name = raw.name;
+  if (typeof name !== 'string') throw new Error(`a ${kind} style has no string \`name\`: ${JSON.stringify(raw).slice(0, 120)}`);
+  const props: Record<string, StyleProp> = {};
+  if (kind === 'text') {
+    for (const [field, p] of Object.entries((raw.properties ?? {}) as Record<string, unknown>)) {
+      const sp = textProp(p);
+      if (sp) props[field] = sp;
+    }
+  } else if (kind === 'effect' || kind === 'grid') {
+    const listKey = kind === 'effect' ? 'effects' : 'layoutGrids';
+    const list = (raw[listKey] ?? []) as Record<string, unknown>[];
+    props[`${listKey}.length`] = { kind: 'value', value: String(list.length) };
+    list.forEach((item, i) => flatten(item, `${listKey}[${i}].`, props));
+  } else {
+    props.paintType = { kind: 'value', value: canonAny(raw.paintType) };
+    const stops = (raw.stops ?? []) as { position?: unknown; color?: unknown; alias?: unknown }[];
+    props['stops.length'] = { kind: 'value', value: String(stops.length) };
+    stops.forEach((s, i) => {
+      props[`stops[${i}].position`] = { kind: 'value', value: canonAny(s.position) };
+      props[`stops[${i}].color`] =
+        typeof s.alias === 'string' ? { kind: 'variable', name: s.alias } : { kind: 'value', value: canonAny(s.color) };
+    });
+  }
+  return { kind, name, props };
+};
+
+/** Every emitted style for a brand, keyed by `styleKey`. A file the brand does not emit is absent from
+ *  disk and contributes nothing — `gradient-styles.json` is an empty `styles` array for nb and wendys,
+ *  because a brand gradient is opt-in, and "no paint styles emitted" is the correct expectation rather
+ *  than a hole. It also means the paint kind's expectation for those brands is that the file's own paint
+ *  styles are all EXTRA, which is exactly what arm (i) reports and at `low`. */
+const readStyles = (brand: string): { styles: Record<string, StyleDef>; counts: Record<string, number> } => {
+  const dir = resolve(engineDir, 'out/figma', brand);
+  const styles: Record<string, StyleDef> = {};
+  const counts: Record<string, number> = {};
+  for (const { file, kind } of STYLE_FILES) {
+    const path = resolve(dir, file);
+    if (!existsSync(path)) continue;
+    const j = JSON.parse(readFileSync(path, 'utf8')) as { styles?: Record<string, unknown>[] };
+    if (!Array.isArray(j.styles)) throw new Error(`${brand}/${file}: no \`styles\` array`);
+    counts[kind] = j.styles.length;
+    for (const s of j.styles) {
+      const def = styleDefOf(kind, s);
+      const key = styleKey(kind, def.name);
+      if (key in styles) throw new Error(`${brand}/${file}: two ${kind} styles are named '${def.name}' — the emission is not keyable by name`);
+      styles[key] = def;
+    }
+  }
+  return { styles, counts };
 };
 
 /**
@@ -351,6 +462,11 @@ export const expected = (brand: string): ExpectedResult => {
   const files = readEmission(brand);
   const { variables, collections } = buildVariables(files);
   const root = rootOf(Object.keys(variables), `packages/engine/out/figma/${brand}/`);
+  const { styles, counts: styleCounts } = readStyles(brand);
+  notes.push(
+    `style definitions read: ${Object.keys(styles).length} across ` +
+      `${STYLE_KINDS.map((k) => `${styleCounts[k] ?? 0} ${k}`).join(', ')}`,
+  );
 
   const bindings: State['bindings'] = {};
   const structure: State['structure'] = {};
@@ -420,6 +536,7 @@ export const expected = (brand: string): ExpectedResult => {
       variables,
       bindings,
       structure,
+      styles,
       contrast: contracts,
     },
   };
@@ -444,8 +561,8 @@ if (isMain) {
     `[expected] ${arg}: root '${state.root}' · ${Object.keys(state.variables).length} variables in ` +
       `${Object.keys(state.collections).length} collections · ${Object.keys(state.bindings).length} bindings ` +
       `(${Object.keys(state.bindings).length - styleBinds} to variables, ${styleBinds} to styles) · ` +
-      `${Object.keys(state.structure).length} components · ${state.contrast.length} contrast contracts · ` +
-      `engine ${state.engineVersion}`,
+      `${Object.keys(state.structure).length} components · ${Object.keys(state.styles ?? {}).length} styles · ` +
+      `${state.contrast.length} contrast contracts · engine ${state.engineVersion}`,
   );
   console.log(JSON.stringify(state, null, 2));
 }
