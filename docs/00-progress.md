@@ -7,6 +7,33 @@
 
 ---
 
+## (2026-09-21) — file-setup: the UI trigger button, deferred from #1554 (#1558)
+
+**STATUS: LANDED (this lane). UI-ONLY.** Three files, all in `apps/studio/src/` (the shared UI bundled into the plugin): `write-adapter.ts`, `main.ts`, `styles.css`. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed**, `regen --check` clean (111 artifacts byte-match). Gate count **STANDS at 61** — no CI gate added (UI wiring). Closes #1558. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`.
+
+── WHAT #1554 LEFT AND THIS FINISHES ─────────────────────────────────────────────────────────────────
+
+#1554 shipped the `file-setup` action end to end — the `file-setup` / `file-setup-result` message variants (`messages.ts`) and the main-thread handler (`main.ts` `fileSetup`) — but deferred the UI TRIGGER, because button label/placement was a design call and the studio smoke/verdict gates are tightly coupled to the built DOM. This wires the button so the owner can drive it during QA.
+
+── THE WIRING (mirrors `build-components` exactly) ────────────────────────────────────────────────────
+
+- **`write-adapter.ts`** — `postFileSetup()` on the `HostCommit` seam (figma posts `{ type: 'file-setup' }`, web is a no-op), a `UiFileSetupMsg` type kept in sync with `messages.ts` `UiToMain`, and a `file-setup-result` kind added to the `onHostMessage` callback union with the same headline-fallback the other result kinds carry at the boundary.
+- **`main.ts`** — a `fileSetupState` slot (its own verdict slot, distinct from `applyState`/`componentState` for the one-kind-per-fact reason those two are distinct); `file-setup-result` handled in the host-message callback (set state, auto-expand a bad result, refresh chrome + row); `renderApplyStatus` and `syncApplyDetail` widened to a third `'filesetup'` discriminant so the shared disclosure pill + chrome detail row serve it; a **"Set up file"** section on the Components rail page ABOVE the component build (file-setup lays the skeleton, the build fills it), with `syncFileSetupRow` refreshing the button + pill in place (#870's dual-render lesson). The label is the single obvious const **`FILE_SETUP_LABEL`** — owner adjusts it and the placement at review, cheap to change.
+- **`styles.css`** — `.fs-row` (its own scope, same layout as `.cw-row`).
+
+── THE SMOKE-ASSERTION MOVE: there wasn't one, and why that is correct, not papered ────────────────────
+
+The task flagged that the studio smoke + verdict + lint:contrast gates drive the built UI, so a new button could move an ACTUAL. It did not, and no test literal was ratcheted — for two independent structural reasons, both verified rather than assumed:
+
+1. **The web smoke suite (`apps/studio/test-smoke.mjs`) never renders this button.** It drives the `PRISM3_HOST='web'` build; the Components page is `figmaOnly` (`NAV`) so `railNav()` omits it, and `renderComponentsPage` returns early when `!commit.isFigma`. The button is behind that guard, so the web DOM the smoke suite sweeps is byte-unchanged. 1452 assertions pass untouched.
+2. **The plugin verdict/start suites DO render it (they drive the figma-host `dist/ui.html`), and still pass unchanged** because `.fs-row` is a distinct scope: `test-build-verdict.mjs` targets `.cw-row button.barbtn` / `.cw-row select`, which still resolve to the component build alone. Using `.cw-row` for the file-setup row would have made `document.querySelector('.cw-row button.barbtn')` return the file-setup button (first in DOM order, since it sits above the build) and broken the verdict suite — the distinct scope is why no verdict assertion moved. `test:verdict` 128/128, `test:start` all pass.
+
+`lint:contrast` passes — the new button reuses the existing `barbtn` / `applystat` / `bar-seed` classes, no new colored surface.
+
+── GATES ─────────────────────────────────────────────────────────────────────────────────────────────
+
+Full `npm run verify`: **61/61 PASS, 0 SKIP, 0 FAIL**. `lint-us-english` + `lint-voice` pass over the built bundles (the new UI strings — the button label, the section note, the pending/verdict copy — are in scope; run after the web + plugin builds). Typecheck clean in both the web and the plugin (both contexts, since the shared UI bundles into `apps/plugin`).
+
 ## (2026-09-21) — conformance-scan: does the Figma file match what the ENGINE says should be there? (#1553 P1)
 
 **STATUS: LANDED. TOOLS-ONLY (`tools/conformance-scan/`) — no engine code, def, gate, baseline, or emitted `out/**` artifact changed; ENGINE and CONTRACT both STAND. Measurement harness, NOT a gate — gate count stays 61. Read-only against Figma, report-only. Findings target #1552.**

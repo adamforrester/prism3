@@ -183,6 +183,10 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
    999px capsule with its own padding, so its text baseline sits above the button's and aligning on
    that baseline would push the capsule visibly high. */
 .cw-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 0}
+/* The file-setup button + its status pill on one line (#1558). Its own scope rather than reusing .cw-row
+   so the build-verdict smoke suite's `.cw-row button.barbtn` selector still resolves to the build button
+   alone. Same layout as .cw-row — align-items:center for the same reason (the pill is a padded capsule). */
+.fs-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 0}
 /* max-height + scroll: the menu had neither, which was survivable while it was short. Folding the
    mode set in (#432) pushed it to ~716px, and at a 700px-tall window it ran 89px past the bottom
    of the viewport with the last items simply unreachable. Bounded to the space below the header. */
