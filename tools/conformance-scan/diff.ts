@@ -5,7 +5,7 @@
  *   npx tsx tools/conformance-scan/diff.ts expected.json actual.json --json
  *   npx tsx tools/conformance-scan/diff.ts --selftest
  *
- * Answers "does what's in this Figma file match what the engine says should be there?" — eight
+ * Answers "does what's in this Figma file match what the engine says should be there?" — nine
  * categories, each a separate arm, each finding carrying the expected value, the actual value, and a
  * severity. Read-only and report-only: it changes nothing, in the repo or in Figma, and it EXITS 0
  * with findings. It is a tool, not a gate (`tools/CLAUDE.md`): a tool answers a question and exits 0.
@@ -21,6 +21,7 @@
  *   f  structure         members, axes, `emitAs`, missing components, orphaned collections
  *   g  contrast          the engine's contracts RE-MEASURED on the file's own colors → AA failures
  *   h  staleness         the file was built by an older engine than this checkout
+ *   i  style-definition  a style's INTERIOR — a text style's size and line height, a shadow's offset
  *
  * ── WHY (g) IS A RE-MEASUREMENT AND NOT A COMPARISON ────────────────────────────────────────────
  *
@@ -75,6 +76,43 @@
  *   still a missing binding — with a summary that says detached rather than absent, since the two want
  *   different fixes. The three font fields are then not also reported as unplanned extras: the engine
  *   does plan them, through the style.
+ *
+ * ── ARM (i)'S TWO RECONCILIATIONS, AND THE ONE UNIT DIFFERENCE THAT IS A DEFECT ─────────────────
+ *
+ * `fontWeight` IS A REPRESENTATION DIFFERENCE. A Figma `TextStyle` has no `fontWeight` property at all
+ * — it has `fontName: { family, style }` — while the emission carries BOTH `fontStyle` ('Bold') and
+ * `fontWeight` (700), which agree by construction. Compared directly, the engine's weight is missing
+ * from every style in every file: 38 false findings on a correct aurora file, the `strokeWeight` shape
+ * again. So the weight claim is checked THROUGH the one property Figma stores. Where the file's
+ * `fontStyle` is variable-bound (the built state) the weight rides on that variable and `fontStyle`
+ * already checks it by name, so it is reconciled and counted. Where the file's `fontStyle` is a literal
+ * name (hand-set, or detached) the name is mapped to a weight and compared as a number — which is what
+ * makes 'Semi Bold', 'SemiBold' and 'semibold' one fact rather than three, and 600-vs-700 still a
+ * finding. A name the table does not know is `unevaluated`, never a pass: an unrecognized font style is
+ * a blind spot, and quietly calling it correct is how an arm stops working.
+ *
+ * `lineHeight` PERCENT-vs-PIXELS IS NOT. This is the one place the harness reports a unit difference
+ * rather than normalizing it away, and it is a deliberate departure from "convert both sides and
+ * compare": `lint-lineheight-bake.ts` (#1356) records that the engine bakes line height as an UNBOUND,
+ * mode-invariant PERCENT for three reasons that all bear on this comparison — the role is a unitless
+ * multiplier, `setBoundVariable('lineHeight', …)` accepts PIXELS only so a percentage line height cannot
+ * be variable-bound at all, and a pixel line height is `fontSize × multiplier` and therefore wrong at
+ * every other font size in a fluid set. So `150%` and `24px` are not two spellings of one fact: the
+ * second is the first evaluated at one size and frozen, and it has lost exactly the property the bake
+ * exists to provide. Converting them to a common unit here would need a font size, which for a fluid
+ * style is per-mode — the conversion would pick a mode and call the result equal. Reported, at its own
+ * summary, so the fix (re-apply the style) is not confused with "a number drifted".
+ *
+ * ── GAP B: WHAT THE FILE CONSUMES FROM A LIBRARY IS NOT THE FILE'S TO GET WRONG ─────────────────
+ *
+ * Every read is a `getLocal*Async` read, so a variable or style a file consumes from a PUBLISHED library
+ * is absent from every local enumeration while being entirely correct and in use. Reported as absence,
+ * that is a false finding at the volume of a whole token layer. It is also not a value finding, a mode
+ * finding or a scope finding: the record lives in the library file, and this document cannot be wrong
+ * about it. So `State.libraryConsumed` names them and they are SUPPRESSED AND COUNTED — the same
+ * mechanism, and the same reasoning, as bindings inherited through an instance. A name that is both
+ * local and library-listed is local, and is compared: the suppression only applies where the local
+ * lookup already missed.
  */
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -88,7 +126,9 @@ import {
   parseCanonColor,
   readState,
   showBindKey,
+  showStyleKey,
   underInstance,
+  unitOfCanon,
   type BindState,
   type ContrastContract,
   type State,
@@ -102,11 +142,17 @@ export type Category =
   | 'scope-type'
   | 'structure'
   | 'contrast'
-  | 'staleness';
+  | 'staleness'
+  | 'style-definition';
 
-/** The eight, in report order — declared so the report prints an arm that found nothing as an
+/** The nine, in report order — declared so the report prints an arm that found nothing as an
  *  explicit `0 findings` line. An arm that silently stops working otherwise reads as a clean file,
- *  which is the failure mode `docs/34-gate-independence.md` calls evidence-of-absence. */
+ *  which is the failure mode `docs/34-gate-independence.md` calls evidence-of-absence.
+ *
+ *  `style-definition` is APPENDED rather than slotted next to `structure`, where it arguably belongs by
+ *  subject. The report letters this list positionally, so inserting would silently re-letter `contrast`
+ *  and `staleness` and leave "(g) contrast" meaning two different things in two documents that are both
+ *  on main. The letters are cosmetic; a letter that quietly changes meaning is not. */
 export const CATEGORIES: readonly Category[] = [
   'binding-presence',
   'binding-target',
@@ -116,7 +162,19 @@ export const CATEGORIES: readonly Category[] = [
   'structure',
   'contrast',
   'staleness',
+  'style-definition',
 ] as const;
+
+/** The per-category letters the report prints. A literal `'abcdefgh'` went stale the moment a ninth
+ *  category landed — silently, because indexing past the end yields `undefined` and prints as a blank
+ *  rather than as a failure. Asserted against the list instead, at module load. */
+const LETTERS = 'abcdefghi';
+if (LETTERS.length !== CATEGORIES.length)
+  throw new Error(
+    `LETTERS has ${LETTERS.length} letters for ${CATEGORIES.length} categories — add one, or the report ` +
+      `prints a blank letter for the categories past the end.`,
+  );
+const letterOf = (c: Category): string => LETTERS[CATEGORIES.indexOf(c)];
 
 /** `high` — a broken promise a consumer can see (an unbound token, an AA failure, a wrong role).
  *  `medium` — real drift with a bounded blast radius (a stale value, a missing mode).
@@ -383,9 +441,17 @@ const armBindings = (expected: State, actual: State, inScope: (component: string
 
 const armVariables = (expected: State, actual: State) => {
   const findings: Finding[] = [];
+  const notes: string[] = [];
+  const library = new Set(actual.libraryConsumed?.variables ?? []);
+  let fromLibrary = 0;
   for (const [name, want] of Object.entries(expected.variables)) {
     const got = actual.variables[name];
     if (!got) {
+      // Consumed from a published library: present, correct, in use, and invisible to every
+      // `getLocal*Async` read. Suppressed and counted rather than reported as absent — see the header.
+      // Checked HERE, inside the local miss, so a name that is both local and library-listed is still
+      // compared on its local record.
+      if (library.has(name)) { fromLibrary++; continue; }
       // A variable the engine emits and the file does not have — an entity-presence fact, so (f), not
       // (d): the variable has no modes to be missing. Every binding to it is separately a category (a)
       // finding, and this is the ROOT cause reported once, at the variable, so a reader can tell one
@@ -469,16 +535,243 @@ const armVariables = (expected: State, actual: State) => {
         f('structure', 'medium', name, 'the file carries a variable the engine does not emit — nothing generated will reference it',
           'not emitted by the engine', `${actual.variables[name].resolvedType} in collection '${actual.variables[name].collection}'`),
       );
-  return findings;
+  if (fromLibrary > 0)
+    notes.push(
+      `${fromLibrary} variable(s) the engine emits are CONSUMED FROM A PUBLISHED LIBRARY rather than authored ` +
+        `here, and are not reported as absent: a local read cannot see them, and their values are the library's ` +
+        `to be right or wrong about. Arms (c), (d) and (e) skip them for the same reason. Counted here so the ` +
+        `suppression is visible.`,
+    );
+  else if (actual.libraryConsumed === undefined)
+    notes.push(
+      'the read did not distinguish library-consumed names from local ones, so anything this file consumes from ' +
+        'a published library is reported as absent — noisy, but never an assumption that a missing variable is ' +
+        'somebody else\'s',
+    );
+  return { findings, notes };
+};
+
+// ── ARM (i): STYLE DEFINITIONS ──────────────────────────────────────────────────────────────────
+
+/** Expected-side style properties a Figma read cannot produce, checked another way instead of reported
+ *  as missing. See the header — `fontWeight` is the only one, and it is not zero. */
+const RECONCILED_STYLE_FIELDS = new Set(['fontWeight']);
+
+/**
+ * A Figma font-style NAME → the numeric weight it means.
+ *
+ * Every spelling collapses to one key (`'Semi Bold'`, `'SemiBold'`, `'semibold'` → `semibold`), and a
+ * slant is stripped because it is not a weight: `'Bold Italic'` is 700. Deliberately NOT exhaustive over
+ * every foundry's naming — a name that is not here returns `null` and the field goes `unevaluated`, which
+ * is the honest answer. Guessing from a substring would read `'Semibold Italic'` correctly and
+ * `'Extrablack'` wrongly, with no way to tell which happened.
+ */
+const WEIGHT_OF_FONT_STYLE: Record<string, number> = {
+  thin: 100, hairline: 100,
+  extralight: 200, ultralight: 200,
+  light: 300,
+  regular: 400, normal: 400, book: 400, roman: 400,
+  medium: 500,
+  semibold: 600, demibold: 600,
+  bold: 700,
+  extrabold: 800, ultrabold: 800,
+  black: 900, heavy: 900,
+};
+
+const weightOfFontStyle = (name: string): number | null => {
+  const bare = name.toLowerCase().replace(/italic|oblique/g, '').replace(/[^a-z]/g, '');
+  return WEIGHT_OF_FONT_STYLE[bare] ?? null;
+};
+
+/** `high` for a field a consumer sees immediately or that removes the style's effect outright — the
+ *  family, the size, the weight name, a shadow's type or visibility, the NUMBER of effects or stops.
+ *  `medium` for drift within an effect that still renders: an offset, a radius, a color, a line height. */
+const HIGH_STYLE_FIELD = /^(fontFamily|fontSize|fontStyle|paintType)$|(\.type|\.visible|\.length)$/;
+const severityOfStyleField = (field: string): Severity => (HIGH_STYLE_FIELD.test(field) ? 'high' : 'medium');
+
+const armStyles = (expected: State, actual: State) => {
+  const findings: Finding[] = [];
+  const unevaluated: string[] = [];
+  const notes: string[] = [];
+  const want = expected.styles ?? {};
+  if (Object.keys(want).length === 0) {
+    unevaluated.push(
+      'style-definition arm (i) has nothing to check: the expected state carries no style definitions. ' +
+        'Re-run `expected.ts` — the engine emits four style files for every brand.',
+    );
+    return { findings, unevaluated, notes, checked: 0 };
+  }
+  if (actual.styles === undefined) {
+    // Absent is a blind spot, NOT an empty file. `{}` would mean "enumerated, and there are none",
+    // which is a real finding on every emitted style. See `State.styles`.
+    unevaluated.push(
+      `style-definition arm (i) could not run: the read did not enumerate style definitions, so none of the ` +
+        `${Object.keys(want).length} styles the engine emits is checked — their interiors are unknown, not ` +
+        `correct. Add the style read from the README to the actual state.`,
+    );
+    return { findings, unevaluated, notes, checked: 0 };
+  }
+  const library = new Set(actual.libraryConsumed?.styles ?? []);
+  let fromLibrary = 0;
+  let ridingOnVariable = 0;
+  let checked = 0;
+
+  for (const [key, w] of Object.entries(want)) {
+    const got = actual.styles[key];
+    if (!got) {
+      if (library.has(key)) { fromLibrary++; continue; }
+      findings.push(
+        f('style-definition', 'high', showStyleKey(key),
+          'the engine emits this style and the file does not have it — every node the engine points at it is ' +
+            'separately a binding finding, and this is the root cause reported once, at the style',
+          `${Object.keys(w.props).length} propert(ies)`, 'absent'),
+      );
+      continue;
+    }
+    checked++;
+    for (const field of [...new Set([...Object.keys(w.props), ...Object.keys(got.props)])].sort()) {
+      const wp = w.props[field];
+      const gp = got.props[field];
+
+      // A field Figma cannot carry, checked through the property it can. Header: `fontWeight`.
+      if (RECONCILED_STYLE_FIELDS.has(field) && !gp) {
+        if (!wp || wp.kind !== 'value') continue;
+        const gotStyle = got.props.fontStyle;
+        if (!gotStyle) {
+          unevaluated.push(
+            `${showStyleKey(key)}: the engine sets fontWeight ${wp.value} and the read carries neither a ` +
+              `fontWeight nor a fontStyle to check it through`,
+          );
+          continue;
+        }
+        if (gotStyle.kind === 'variable') {
+          // The weight rides on the bound font-style variable, which the `fontStyle` field already
+          // compares by name. Checking it twice would be the same claim in two categories.
+          ridingOnVariable++;
+          continue;
+        }
+        const weight = weightOfFontStyle(gotStyle.value);
+        if (weight === null) {
+          unevaluated.push(
+            `${showStyleKey(key)}: the file's fontStyle '${gotStyle.value}' names no weight this harness knows, ` +
+              `so the engine's fontWeight ${wp.value} is unchecked here`,
+          );
+          continue;
+        }
+        if (String(weight) !== wp.value)
+          findings.push(
+            f('style-definition', 'high', showStyleKey(key),
+              'the weight named by the file\'s font style is not the weight the engine sets — Figma stores a ' +
+                'style NAME rather than a number, so the name is the whole of the claim',
+              `fontWeight ${wp.value}`, `fontStyle '${gotStyle.value}' (weight ${weight})`),
+          );
+        continue;
+      }
+
+      if (!gp) {
+        findings.push(
+          f('style-definition', severityOfStyleField(field), showStyleKey(key),
+            `the style is missing a property the engine sets (${field})`,
+            wp.kind === 'variable' ? `variable ${wp.name}` : wp.value, 'not set on this style'),
+        );
+        continue;
+      }
+      if (!wp) {
+        findings.push(
+          f('style-definition', 'low', showStyleKey(key),
+            `the style carries a property the engine does not set (${field}) — the designer's own, not a broken ` +
+              `promise of the engine's`,
+            'not set by the engine', gp.kind === 'variable' ? `variable ${gp.name}` : gp.value),
+        );
+        continue;
+      }
+      if (wp.kind === 'variable' && gp.kind === 'variable') {
+        if (wp.name !== gp.name)
+          findings.push(
+            f('style-definition', 'high', showStyleKey(key),
+              `the style's ${field} is bound to the wrong variable`, wp.name, gp.name),
+          );
+        continue;
+      }
+      if (wp.kind !== gp.kind) {
+        // #1387 at the style interior: a literal that resolves correctly today and tracks nothing.
+        const flattened = wp.kind === 'variable';
+        findings.push(
+          f('style-definition', 'high', showStyleKey(key),
+            flattened
+              ? `the style's ${field} is a raw value where the engine binds a variable — it shows the right ` +
+                `thing today and will not follow the token`
+              : `the style's ${field} is variable-bound where the engine sets a literal`,
+            wp.kind === 'variable' ? `variable ${wp.name}` : wp.value,
+            gp.kind === 'variable' ? `variable ${gp.name}` : gp.value),
+        );
+        continue;
+      }
+      if (wp.kind === 'value' && gp.kind === 'value' && wp.value !== gp.value) {
+        const wu = unitOfCanon(wp.value);
+        const gu = unitOfCanon(gp.value);
+        const carriesUnit = field === 'lineHeight' || field === 'letterSpacing';
+        if (carriesUnit && wu !== gu)
+          // A unit difference, and the one the harness does NOT normalize away. See the header.
+          findings.push(
+            f('style-definition', 'high', showStyleKey(key),
+              `the ${field} is ${gu} where the engine bakes ${wu} — not two spellings of one value: the ` +
+                `engine's ${wu} is mode-invariant on purpose (#1356), and a ${gu} line height is that ` +
+                `multiplier evaluated at ONE font size and frozen, so it is wrong at every other size in a ` +
+                `fluid set`,
+              wp.value, gp.value),
+          );
+        else
+          findings.push(
+            f('style-definition', severityOfStyleField(field), showStyleKey(key),
+              `the style's ${field} has drifted from what the engine emits`, wp.value, gp.value),
+          );
+      }
+    }
+  }
+
+  for (const key of Object.keys(actual.styles))
+    if (!(key in want))
+      findings.push(
+        f('style-definition', 'low', showStyleKey(key),
+          'the file has a style the engine does not emit — a designer\'s own, so nothing generated points at it',
+          'not emitted by the engine', `${Object.keys(actual.styles[key].props).length} propert(ies)`),
+      );
+
+  if (checked === 0 && Object.keys(actual.styles).length === 0)
+    unevaluated.push(
+      `style-definition arm (i) compared 0 interiors: the read enumerated styles and found none, so all ` +
+        `${Object.keys(want).length} findings above are the same fact — the file has no styles at all`,
+    );
+  if (fromLibrary > 0)
+    notes.push(
+      `${fromLibrary} style(s) the engine emits are CONSUMED FROM A PUBLISHED LIBRARY rather than authored ` +
+        `here, and are not reported as absent: their interiors live in the library file, so this document ` +
+        `cannot be wrong about them. Scan the library to check them. Counted here so the suppression is visible.`,
+    );
+  if (ridingOnVariable > 0)
+    notes.push(
+      `${ridingOnVariable} text style(s) had their fontWeight checked through a variable-bound fontStyle rather ` +
+        `than as a number: Figma stores no fontWeight on a text style, and where the style name is bound the ` +
+        `fontStyle comparison already covers it by name`,
+    );
+  return { findings, unevaluated, notes, checked };
 };
 
 // ── ARM (f): STRUCTURE ─────────────────────────────────────────────────────────────────────────
 
 const armStructure = (expected: State, actual: State, inScope: (component: string) => boolean) => {
   const findings: Finding[] = [];
+  const notes: string[] = [];
+  const library = new Set(actual.libraryConsumed?.collections ?? []);
+  let fromLibrary = 0;
   for (const [collection, want] of Object.entries(expected.collections)) {
     const got = actual.collections[collection];
     if (!got) {
+      // The collection-level half of the same suppression: a file consuming the engine's published
+      // library has none of its collections locally, and every mode inside them is likewise not this
+      // file's to carry. Reported, it is the whole collection list as findings.
+      if (library.has(collection)) { fromLibrary++; continue; }
       findings.push(
         f('structure', 'high', `collection '${collection}'`, 'the engine emits this collection and the file does not have it',
           `modes ${want.modes.join(', ')}`, 'absent'),
@@ -551,7 +844,13 @@ const armStructure = (expected: State, actual: State, inScope: (component: strin
         f('structure', 'medium', `component '${id}'`, 'the file has a component the engine does not build',
           'not built by the engine', `${actual.structure[id].members.length} member(s)`),
       );
-  return findings;
+  if (fromLibrary > 0)
+    notes.push(
+      `${fromLibrary} collection(s) the engine emits are CONSUMED FROM A PUBLISHED LIBRARY rather than authored ` +
+        `here, and are not reported as absent — nor are their modes, which a local read cannot enumerate ` +
+        `either. Counted here so the suppression is visible.`,
+    );
+  return { findings, notes };
 };
 
 // ── ARM (g): CONTRAST, RE-MEASURED ON THE FILE'S OWN COLORS ────────────────────────────────────
@@ -646,7 +945,7 @@ export const diff = (expected: State, actual: State): Report => {
             'below it is meaningful — every arm is suppressed. Scan against the brand this file was built from.',
           expected.root, actual.root),
       ],
-      unevaluated: ['all eight arms suppressed: the two sides do not share a brand root'],
+      unevaluated: [`all ${CATEGORIES.length} arms suppressed: the two sides do not share a brand root`],
       notes: [],
     };
 
@@ -659,12 +958,22 @@ export const diff = (expected: State, actual: State): Report => {
   unevaluated.push(...b.unevaluated);
   notes.push(...b.notes);
 
-  findings.push(...armVariables(expected, actual));
-  findings.push(...armStructure(expected, actual, inScope));
+  const v = armVariables(expected, actual);
+  findings.push(...v.findings);
+  notes.push(...v.notes);
+
+  const s = armStructure(expected, actual, inScope);
+  findings.push(...s.findings);
+  notes.push(...s.notes);
 
   const g = armContrast(expected, actual);
   findings.push(...g.findings);
   unevaluated.push(...g.unevaluated);
+
+  const st = armStyles(expected, actual);
+  findings.push(...st.findings);
+  unevaluated.push(...st.unevaluated);
+  notes.push(...st.notes);
 
   // (h) staleness.
   if (actual.engineVersion == null)
@@ -720,14 +1029,14 @@ export const render = (r: Report): string => {
   if (r.scope) L.push(`SCOPE: the actual read covered ${r.scope}. Everything outside it is NOT checked.`);
   L.push(
     r.clean
-      ? `RESULT: clean across all eight categories${r.scope ? ' WITHIN THE SCOPE ABOVE' : ''}.`
+      ? `RESULT: clean across all ${CATEGORIES.length} categories${r.scope ? ' WITHIN THE SCOPE ABOVE' : ''}.`
       : `RESULT: ${r.findings.length} finding(s) — ` +
         (['high', 'medium', 'low'] as Severity[])
           .map((s) => `${r.findings.filter((x) => x.severity === s).length} ${s}`)
           .join(', '),
   );
   L.push('');
-  for (const c of CATEGORIES) L.push(`  ${String(r.counts[c]).padStart(6)}  (${'abcdefgh'[CATEGORIES.indexOf(c)]}) ${c}`);
+  for (const c of CATEGORIES) L.push(`  ${String(r.counts[c]).padStart(6)}  (${letterOf(c)}) ${c}`);
   L.push('');
   if (r.unevaluated.length) {
     L.push('NOT EVALUATED — the report\'s own blind spots. A 0 count above may be one of these:');
@@ -743,7 +1052,7 @@ export const render = (r: Report): string => {
     const mine = r.findings.filter((x) => x.category === c);
     if (mine.length === 0) continue;
     L.push('-'.repeat(96));
-    L.push(`(${'abcdefgh'[CATEGORIES.indexOf(c)]}) ${c.toUpperCase()} — ${mine.length} finding(s)`);
+    L.push(`(${letterOf(c)}) ${c.toUpperCase()} — ${mine.length} finding(s)`);
     const groups = new Map<string, Finding[]>();
     for (const x of mine) groups.set(groupKey(x), [...(groups.get(groupKey(x)) ?? []), x]);
     const sorted = [...groups.values()].sort(
