@@ -7,6 +7,33 @@
 
 ---
 
+## (2026-09-21) — file components matched to their JSON: white fills, fixed 100px, backwards sizing (#1563)
+
+**STATUS: LANDED (this lane). PLUGIN-ONLY.** `apps/plugin/src/file-components.ts` + a new `apps/plugin/test-file-components.ts`, wired as an arm of the plugin `test` gate in `apps/plugin/package.json`. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed**, `regen --check` clean. Gate count **STANDS at 61** — the new suite is an arm of the existing plugin `test` gate, not a new CI gate. Closes #1563. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`. Gates are shim-based (a shim cannot render), so the owner re-eyeballs in the live Figma host.
+
+── THE DIVERGENCES (owner QA, live host; diagnosed then verified against the #1554 Specs-2 JSON) ────────
+
+The two template assets `buildFileComponents` builds — `_Section-header` and `_Headings` — were authored from a prose summary before the full JSON landed, and diverged on three structural facts:
+
+1. **Hardcoded 100px height.** Both builders called `root.resize(width, 100)` — the literal 100. The JSON is `layoutSizingVertical: HUG` on both roots, so every member should hug its content (~44px / ~92px), not sit at a fixed 100.
+2. **Backwards sizing on the HORIZONTAL `_Headings`.** `autoLayout` set `primaryAxisSizingMode:'AUTO'` + `counterAxisSizingMode:'FIXED'`. Primary/counter are RELATIVE to `layoutMode`: for the VERTICAL `_Section-header` that is fixed-width/hug-height (correct), but for the HORIZONTAL `_Headings` it fixes the HEIGHT and hugs the WIDTH — the exact opposite of the JSON's fixed width (663/320) / hug height. This plus the resize is the overlap / absolute-positioning symptom.
+3. **Uncleared Text-container fills.** `textBox = api.createFrame()` in both builders was never `fills = []`'d; Figma frames default to a white fill → the white behind the text. Only the roots were cleared.
+4. **No coverage.** Nothing referenced `buildFileComponents`, so the constructor shipped unverified — the gap that let all three ship.
+
+The per-variant TYPOGRAPHY and COLORS were already correct against the JSON (XL 144/44, Large 96/24, Medium 72/24, Small 48/19; `_Headings` bgs `#181717`/`#F7F7F7`/`#000000`/`#F7F7F7`, widths 663/320) — the bug was purely mechanics, not values.
+
+── THE FIX — axis-EXPLICIT sizing ──────────────────────────────────────────────────────────────────────
+
+New `setFixedWidthHugHeight(node, width)` helper sets sizing on the real-world axis, not the layout-relative one, so ONE call is correct for both roots: `layoutSizingHorizontal = 'FIXED'` first (so the resized width sticks), `resize(width, 1)` to set the width (1 is a throwaway), then `layoutSizingVertical = 'HUG'` LAST so it wins over the resize's height — replacing both the `resize(_,100)` and the manual `counterAxisSizingMode = 'FIXED'`. `layoutSizingHorizontal`/`layoutSizingVertical` added to the `FNode` port. `autoLayout` lost its now-unused `fixedWidth`/`hugHeight` options and hugs both axes (roots override). Both builders now clear `textBox.fills = []`. Roots keep their JSON fills (transparent `_Section-header`; the per-variant `backgroundColor` on `_Headings`).
+
+── THE STRUCTURAL GATE + its by-name mutation (docs/34) ─────────────────────────────────────────────────
+
+`test-file-components.ts` stubs `FileComponentsApi` with an in-memory node recorder (the component-shim posture), builds BOTH assets, and asserts root fills (EMPTY for `_Section-header`, the bg color per `_Headings` variant), **Text container fills EMPTY**, `layoutSizingVertical === 'HUG'` (NOT a fixed 100), `layoutSizingHorizontal === 'FIXED'` at widths 2517/663/320, per-variant Title/Description font sizes, and the `Description` boolean-prop wiring to the Description node's visibility. **Independence:** every expected number is transcribed BY HAND from the #1554 JSON, never imported from the module's `SECTION_SIZES`/`HEADINGS` tables — a gate that read its expectations off the subject could not fail. **By-name mutation, proven then restored (via a `wip:` commit so the restore reaches a known-good HEAD):** reintroducing a white Text fill (`textBox.fills = solid('#FFFFFF')`) failed the 4 "Text container fill is empty" arms BY NAME; setting `layoutSizingVertical = 'FIXED'` + `resize(_,100)` failed the 8 "root HUGs its height (not a fixed 100)" arms BY NAME. Restored → all pass.
+
+── DESIGN QUESTION LEFT OPEN (owner, #1563) ────────────────────────────────────────────────────────────
+
+The components stay STATIC literal-color assets per the JSON (annotation chrome, not token-bound product components). Whether to bind them to Prism3 tokens so they theme is the owner's call and out of scope here.
+
 ## (2026-09-21) — file-setup: the UI trigger button, deferred from #1554 (#1558)
 
 **STATUS: LANDED (this lane). UI-ONLY.** Three files, all in `apps/studio/src/` (the shared UI bundled into the plugin): `write-adapter.ts`, `main.ts`, `styles.css`. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed**, `regen --check` clean (111 artifacts byte-match). Gate count **STANDS at 61** — no CI gate added (UI wiring). Closes #1558. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`.
