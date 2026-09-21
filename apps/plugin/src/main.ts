@@ -34,7 +34,10 @@ import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { preloadFonts } from './preload-fonts';
 import { applyComponentPlan, partialWriteOf } from './write-components';
-import type { ComponentProgress } from './write-components';
+import type { ComponentProgress, CompPageTarget, CompNode } from './write-components';
+import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
+import { buildFileComponents } from './file-components';
+import { TAXONOMY } from './file-taxonomy';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleCounts } from './list-fonts';
@@ -523,6 +526,22 @@ const buildComponents = async (defId?: string): Promise<void> => {
     // to the previous line for every non-pill brand.
     let controlShape: NonNullable<BrandInput['controlShape']> = 'rounded';
     try { controlShape = restoreInput(figma.root)?.controlShape ?? 'rounded'; } catch { /* untrusted/absent → rounded */ }
+    // PAGE-AWARE PLACEMENT (#1554) — resolve (creating if absent) the `↳ <family>` section page this def
+    // belongs on, and build the set THERE instead of `figma.currentPage`. `resolveComponentPage` returns
+    // null for a def the taxonomy does not map, in which case `targetPage` stays undefined and the executor
+    // falls back to `currentPage` — the pre-#1554 behaviour. Wrapped in an adapter typed as `CompPageTarget`
+    // so the page's `unknown`-typed `appendChild`/`findOne` meet the executor's `CompNode` port without a
+    // variance fight (the same reason the port declares `currentPage` structurally). The view is switched to
+    // the page too, so a designer lands on the set they just built rather than watching an empty current page.
+    const page = await resolveComponentPage(figma, def.id);
+    let targetPage: CompPageTarget | undefined;
+    if (page) {
+      targetPage = {
+        appendChild: (child: CompNode) => page.appendChild(child),
+        findOne: (pred: (node: CompNode) => boolean) => page.findOne?.((n) => pred(n as CompNode)) ?? null,
+      };
+      await figma.setCurrentPageAsync(page as unknown as PageNode);
+    }
     // `SWAP_TARGET` PASSED UNCONDITIONALLY, because it is inert where a def has no swap parts — measured,
     // see the header. A per-def branch here would be a branch on a distinction the projector already makes.
     const plans = figmaAnatomySet(applyControlShape(def, controlShape), { swapTarget: SWAP_TARGET });
@@ -530,6 +549,8 @@ const buildComponents = async (defId?: string): Promise<void> => {
     // and the alternative is a running aggregate that cannot report a distribution.
     const reports: ComponentProgress[] = [];
     const r = await applyComponentPlan(plans, figma, {
+      // #1554: the resolved section page, or undefined → `currentPage` (unmapped def / pre-#1554 default).
+      targetPage,
       // #1012: `icon` materializes as separate `icon/<glyph>` components, not one set. Read off the def
       // and passed as a write-time option — inert for every def that does not set it, the same shape as
       // `SWAP_TARGET`, so no per-def branch here beyond forwarding the flag the projector already carries.
@@ -657,6 +678,48 @@ const buildComponents = async (defId?: string): Promise<void> => {
 };
 
 /**
+ * FILE SETUP (#1554) — scaffold the file's PAGE structure, then build the two template assets.
+ *
+ * THE FIRST PAGE-CREATION ACTION in the plugin. It reconciles the file's page list to the taxonomy
+ * (`file-taxonomy.ts` via `scaffoldSkeleton`): Cover, native `---` dividers, the empty section-header
+ * pages, the Foundations placeholder pages, and the Sandbox `↳ File Components` page — then builds
+ * `_Section-header` and `_Headings` onto File Components. Idempotent: a re-run creates nothing already
+ * present and rebuilds no set already there (`buildFileComponents` combines fresh sets, so a second run
+ * makes a second pair — guarded below by skipping the build when the page already holds them).
+ *
+ * Its own action, not part of `apply-theme` or `build-components`, for the #652 reason every canvas write
+ * on this bridge is its own action: a distinct designer choice with its own trigger and its own verdict.
+ */
+const fileSetup = async (): Promise<void> => {
+  try {
+    await figma.loadAllPagesAsync();
+    const scaffold = await scaffoldSkeleton(figma, TAXONOMY);
+    const page = scaffold.fileComponentsPage;
+    let assetNote = '';
+    if (page) {
+      // IDEMPOTENT ASSET BUILD: skip if the page already holds a file component, so a re-run does not stack
+      // a second `_Section-header`/`_Headings` beside the first. `findOne` is available on a real PageNode.
+      const already = (page as unknown as PageNode).findOne(
+        (n) => n.type === 'COMPONENT_SET' && (n.name === '_Section-header' || n.name === '_Headings'),
+      );
+      if (already) {
+        assetNote = ', file components already present (skipped)';
+      } else {
+        const res = await buildFileComponents(figma, page as unknown as { appendChild(child: unknown): void });
+        assetNote = `, built ${res.built.join(' + ')}` +
+          (res.fontMisses.length ? ` (⚠️ ${res.fontMisses.length} font miss: ${res.fontMisses.slice(0, 2).join('; ')})` : '');
+      }
+    } else {
+      assetNote = ', ⚠️ no File Components page — assets not built';
+    }
+    const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}`;
+    postToUi({ type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: appendBuildNote(summary, PRISM3_BUILD) });
+  } catch (e) {
+    postToUi({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${(e as Error).message}`, PRISM3_BUILD) });
+  }
+};
+
+/**
  * Boot read-back (#109): read the current file's colour variables + verify the materialisation
  * contract, and hand the UI a summary. Informational — reports that an existing themed file's
  * contract holds; the actual knob-rehydration is `restoreToUi` (#131), which is independent.
@@ -757,6 +820,10 @@ onUiMessage((msg: UiToMain) => {
     case 'prune':
       // #1521 — `confirm` decides preview vs delete; both recompute from a fresh read inside `prune`.
       void prune(msg.input, msg.confirm);
+      return;
+    case 'file-setup':
+      // #1554 — scaffold the page skeleton + build the two template assets. Its own action.
+      void fileSetup();
       return;
     case 'resize-ui': {
       // Resize on every drag message so the window tracks the pointer; persist only on the

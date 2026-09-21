@@ -59,6 +59,17 @@ export type UiToMain =
    *  offers only ids it derived from `componentDefs`, so a bad one means the two sides disagree about the
    *  catalogue, and the designer needs to be told that rather than watch a build never answer. */
   | { type: 'build-components'; def?: string }
+  /** Scaffold the file's PAGE structure (#1554) — the first page-creation action.
+   *
+   *  A SEPARATE ACTION FROM `build-components`, not a flag on it, for the same reason `build-components`
+   *  is separate from `apply-theme` (#652): it is its own designer choice with its own trigger. It writes
+   *  the page skeleton (Cover, native `---` dividers, the empty section-header pages, the Foundations
+   *  placeholder pages, and the Sandbox `↳ File Components` page) and builds the two plugin-only template
+   *  assets onto File Components. Idempotent — a re-run finds pages by name and never duplicates one.
+   *
+   *  Carries no payload: the taxonomy is a config compiled into the main bundle (`file-taxonomy.ts`), not
+   *  something the UI supplies, so there is nothing for the UI to send. */
+  | { type: 'file-setup' }
   /** OPT-IN PRUNE (#1521) — remove the styles/variables/collections a config change dropped.
    *
    *  A SEPARATE ACTION FROM `apply-theme`, never a flag on it, for the #479 / #1152 reason: a theme apply
@@ -101,6 +112,12 @@ export type MainToUi =
    *  `headline` obeys the same ≤24-char pill budget (`componentHeadline`, gated in
    *  `test-apply-summary.ts`); `summary` carries the counts and the misses behind it. */
   | { type: 'component-result'; ok: boolean; headline: string; summary: string }
+  /** Result of a `file-setup` scaffold (#1554) — the same `{ok, headline, summary}` shape as
+   *  `apply-result` / `component-result`, a DISTINCT variant for the same one-kind-per-fact reason: "did
+   *  the page skeleton get laid" is separately true and separately actionable from a theme or component
+   *  write, so it needs its own state to be pending in and its own verdict slot. `headline` obeys the same
+   *  ≤24-char pill budget; `summary` names the pages created and any font miss on the template assets. */
+  | { type: 'file-setup-result'; ok: boolean; headline: string; summary: string }
   /** Result of a `prune` message (#1521) — a preview when `applied` is false, the outcome of the delete
    *  when it is true, told apart by that flag rather than by parsing `summary`. `count` is the number of
    *  items the preview WOULD remove, or the number the apply DID remove. `summary` is the review text

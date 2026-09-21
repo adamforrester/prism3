@@ -333,10 +333,15 @@ export interface ComponentsApi {
   createNodeFromSvg(svg: string): CompNode;
   createComponentFromNode(node: CompNode): CompNode;
   combineAsVariants(nodes: readonly CompNode[], parent: unknown): CompSet;
-  currentPage: {
-    appendChild(child: CompNode): void;
-    findOne(predicate: (node: CompNode) => boolean): unknown;
-  };
+  currentPage: CompPageTarget;
+}
+
+/** WHERE A COMPONENT SET IS PLACED — `figma.currentPage` by default, or a resolved `↳ <family>` section
+ *  page (#1554). The two operations the placement path needs: append a built root, and find the existing
+ *  set for the idempotent re-run. `PageNode` and `figma.currentPage` both satisfy it. */
+export interface CompPageTarget {
+  appendChild(child: CompNode): void;
+  findOne(predicate: (node: CompNode) => boolean): unknown;
 }
 
 /** What the component executor did — surfaced to the UI + asserted by the harness. Deliberately the
@@ -499,6 +504,13 @@ export type ComponentApplyOptions = {
    *  COMPONENT_SET (#1012). The plugin reads `def.figmaProperties.emitAsComponents` and passes it here —
    *  it is a write-time BEHAVIOR, not plan data, so it stays off the plan and out of `planStamp`. */
   emitAsComponents?: boolean;
+  /** WHERE THE SET IS PLACED (#1554) — the `↳ <family>` section page the page-aware build resolved,
+   *  passed in by `main.ts`. Absent means `api.currentPage`, which is #483's original behaviour and what
+   *  every shim-driven test still exercises (none of them pass this), so this option moves no existing
+   *  test's ACTUAL. It carries the two page operations the placement path needs — `appendChild` (for a
+   *  built root) and `findOne` (the once-per-run existing-set lookup) — which is exactly the `currentPage`
+   *  shape, so both satisfy `CompPageTarget`. */
+  targetPage?: CompPageTarget;
 };
 
 /** The value of a single-axis member coordinate — `name=search` → `search` (#1012). The
@@ -933,7 +945,7 @@ const parkFrameName = (component: string, n: number): string =>
  *  The frame is named for the number of nodes it was ASKED to hold, before the appends run. A name written
  *  after the loop would be absent from a frame whose naming threw, and an unnamed frame is the litter this
  *  exists to prevent; the verdict carries the authoritative count either way. */
-const markPartialWrite = (api: ComponentsApi, trail: WriteTrail): PartialWriteFacts => {
+const markPartialWrite = (api: ComponentsApi, trail: WriteTrail, dest: CompPageTarget): PartialWriteFacts => {
   const nodes = [...trail.loose];
   const facts: PartialWriteFacts = {
     loose: nodes.length, parked: 0, frame: null, intoExistingSet: trail.intoExistingSet, markError: null,
@@ -946,7 +958,9 @@ const markPartialWrite = (api: ComponentsApi, trail: WriteTrail): PartialWriteFa
     const frame = api.createFrame();
     frame.name = name;
     frame.clipsContent = false;
-    api.currentPage.appendChild(frame);
+    // Parked onto the SAME page the set was being built on (#1554), so the half-built nodes land where the
+    // designer will look for them, not on whatever page happens to be current.
+    dest.appendChild(frame);
     facts.frame = name;
     // PER NODE, so one refusal does not abandon the rest — 647 gathered and one loose is a far better
     // outcome than 648 loose, and the count the verdict reports is the number that actually moved.
@@ -1012,15 +1026,19 @@ export const applyComponentPlan = async (
   api: ComponentsApi,
   opts: ComponentApplyOptions = {},
 ): Promise<ComponentApplyResult> => {
+  // WHERE THE SET LANDS (#1554) — the resolved section page, or `currentPage` (the pre-#1554 default and
+  // what every shim test exercises). Computed once here so the write path and the failure-park use the
+  // same page.
+  const dest: CompPageTarget = opts.targetPage ?? api.currentPage;
   const trail: WriteTrail = { loose: new Set(), intoExistingSet: 0, component: '' };
   try {
-    return await writeComponentSet(plans, api, opts, trail);
+    return await writeComponentSet(plans, api, opts, trail, dest);
   } catch (err) {
     // MARK, THEN RETHROW THE ORIGINAL — in that order, and with the original object. Attached only when
     // something actually reached the file, so `partialWriteOf` answering non-null means "there is a
     // partial write" rather than "a build failed"; the throw-before-anything-is-written case (
     // `planSetLayout` refusing an incoherent set) keeps the verdict it has always had.
-    const facts = markPartialWrite(api, trail);
+    const facts = markPartialWrite(api, trail, dest);
     if ((facts.loose > 0 || facts.intoExistingSet > 0) && typeof err === 'object' && err !== null)
       (err as Record<string, unknown>)[PARTIAL_WRITE] = facts;
     throw err;
@@ -1043,6 +1061,7 @@ const writeComponentSet = async (
   api: ComponentsApi,
   opts: ComponentApplyOptions,
   trail: WriteTrail,
+  dest: CompPageTarget,
 ): Promise<ComponentApplyResult> => {
   const yieldTo = opts.yieldTo ?? realYield;
   const chunkSize = Math.max(1, opts.chunk ?? CHUNK);
@@ -1656,7 +1675,7 @@ const writeComponentSet = async (
   // set the first one made (and then skip everything by name) rather than combine a second set beside
   // it. This is the one behaviour the single-shot paste payload does not have and a plugin needs, since
   // a designer can press the button twice.
-  let set = api.currentPage.findOne((n) => n.type === 'COMPONENT_SET' && n.name === component) as CompSet | null;
+  let set = dest.findOne((n) => n.type === 'COMPONENT_SET' && n.name === component) as CompSet | null;
   // THE EXISTING MEMBERS BY NAME — a Map rather than the Set this was, because the skip branch now needs
   // the NODE and not just the fact of it: name-matching is what #827 is about, and the stamp it compares
   // instead lives on the member. `c.name` can be undefined on the port, so the entries are filtered
@@ -1741,7 +1760,7 @@ const writeComponentSet = async (
       // skip the boundary check below, which is why this is an else-branch rather than a `continue`: a
       // plan set whose every member failed to build would otherwise never yield at all.
       if (root) {
-        api.currentPage.appendChild(root);
+        dest.appendChild(root);
         const comp = wr(api.createComponentFromNode(root));
         // THE COMPONENT TAKES THE FRAME'S PLACE on the page, so it takes its place in the trail (#913).
         // Ordered delete-then-add rather than the reverse: the two are the same object on a host that
@@ -1850,7 +1869,7 @@ const writeComponentSet = async (
     }
     // COMBINE, once. Every later member joins by `appendChild`, which re-derives the axes correctly —
     // measured: appending `state=pressed` to a `state=rest|hover` set extends that axis.
-    set = api.combineAsVariants(fresh, api.currentPage);
+    set = api.combineAsVariants(fresh, dest);
     // THE SET IS NOW THE LOOSE THING (#913) — 648 members become one object on the page, and a throw from
     // any of the set-level calls below leaves that one object to gather rather than its members.
     for (const c of fresh) trail.loose.delete(c);
