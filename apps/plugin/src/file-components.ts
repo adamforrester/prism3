@@ -10,10 +10,14 @@
  *
  * WHAT IS AND IS NOT VERIFIED OFFLINE, stated rather than implied — the same posture as
  * `createNodeFromSvg` in `write-components.ts`. The set NAMES, the VARIANT axes, the boolean property and
- * the font-miss reporting are shim-tested (`test-file-setup.ts`). The exact per-variant typography and
- * colors are NOT: Figma resolves fonts and lays out auto-layout, there is no layout engine in Node, and a
- * shim modelling the numbers back would be checking this file against itself. The construction spec is
- * the owner's Specs-2 export (issue #1554); the numbers below transcribe it.
+ * the font-miss reporting are shim-tested (`test-file-setup.ts`). The STRUCTURAL construction — root fills,
+ * the cleared Text-container fills, axis-explicit fixed-width/HUG-height sizing, and the per-variant title
+ * and description font sizes — is shim-tested by `test-file-components.ts` (#1563), which asserts against
+ * numbers transcribed INDEPENDENTLY from the owner's Specs-2 JSON, not read back off this file's tables.
+ * What a shim STILL cannot verify is the rendered result: whether Figma actually hugs the height, resolves
+ * the requested faces, and lays the children out without overlap — so the owner re-eyeballs in the live
+ * host after the fix. The construction spec is the owner's Specs-2 export (issue #1554); the numbers below
+ * transcribe it.
  *
  * FONTS ARE LOADED UP FRONT and a miss is REPORTED, never substituted silently (the #237 skip-with-warning
  * posture): a face this Figma lacks (e.g. "Inter Semi Bold") leaves the text in Figma's default face and
@@ -49,6 +53,11 @@ export interface FNode {
   layoutMode?: unknown;
   primaryAxisSizingMode?: unknown;
   counterAxisSizingMode?: unknown;
+  /** Axis-EXPLICIT sizing (#1563). Unlike primary/counter (which are relative to `layoutMode`), these name
+   *  the real-world axis, so `FIXED` width + `HUG` height reads the same for a VERTICAL or HORIZONTAL root.
+   *  Figma resolves them only once the node is an auto-layout frame — set them after `layoutMode`. */
+  layoutSizingHorizontal?: unknown;
+  layoutSizingVertical?: unknown;
   counterAxisAlignItems?: unknown;
   itemSpacing?: unknown;
   paddingTop?: unknown;
@@ -144,18 +153,31 @@ const autoLayout = (
     itemSpacing?: number;
     padding?: number | { t: number; r: number; b: number; l: number };
     counterAlign?: 'MIN' | 'CENTER' | 'MAX';
-    hugHeight?: boolean;
-    fixedWidth?: number;
   },
 ): void => {
   node.layoutMode = o.dir;
   node.primaryAxisSizingMode = 'AUTO'; // HUG on the main axis
-  node.counterAxisSizingMode = o.fixedWidth !== undefined ? 'FIXED' : 'AUTO';
+  node.counterAxisSizingMode = 'AUTO'; // HUG on the counter axis; roots override to fixed width below
   if (o.itemSpacing !== undefined) node.itemSpacing = o.itemSpacing;
   if (o.counterAlign) node.counterAxisAlignItems = o.counterAlign;
   const p = o.padding;
   if (typeof p === 'number') { node.paddingTop = p; node.paddingRight = p; node.paddingBottom = p; node.paddingLeft = p; }
   else if (p) { node.paddingTop = p.t; node.paddingRight = p.r; node.paddingBottom = p.b; node.paddingLeft = p.l; }
+};
+
+/**
+ * Fixed width, HUG height — the JSON shape for BOTH roots (`_Section-header` and `_Headings` each set a
+ * `width` and `layoutSizingVertical: HUG`). Set AXIS-EXPLICITLY so it is correct regardless of layout
+ * direction: the old code used `primaryAxisSizingMode:'AUTO'` + `counterAxisSizingMode:'FIXED'`, which is
+ * right for the VERTICAL `_Section-header` but BACKWARDS for the HORIZONTAL `_Headings` (it fixed the height
+ * and hugged the width — the overlap/absolute-positioning symptom in #1563), and a hardcoded
+ * `resize(_, 100)` pinned every member to 100px. Order matters: fix the width axis first so the resized
+ * width sticks, set the width, then HUG the height LAST so it wins over the resize's throwaway height.
+ */
+const setFixedWidthHugHeight = (node: FNode, width: number): void => {
+  node.layoutSizingHorizontal = 'FIXED';
+  node.resize?.(width, 1); // 1 is a throwaway height — the HUG below governs it
+  node.layoutSizingVertical = 'HUG';
 };
 
 // ── _Section-header ────────────────────────────────────────────────────────────────────────────────
@@ -190,8 +212,7 @@ const buildSectionHeader = (
     const root = api.createComponent();
     root.name = `Size=${v.size}`;
     autoLayout(root, { dir: 'VERTICAL', itemSpacing: v.rootItemSpacing, padding: { t: 0, r: 0, b: v.padBottom, l: 0 } });
-    root.resize?.(SECTION_WIDTH, 100);
-    root.counterAxisSizingMode = 'FIXED'; // fixed width, HUG height
+    setFixedWidthHugHeight(root, SECTION_WIDTH); // fixed 2517 width, HUG height (no hardcoded 100)
     // Bottom-only stroke.
     root.strokes = solid(SECTION_STROKE);
     root.strokeAlign = 'INSIDE';
@@ -201,6 +222,7 @@ const buildSectionHeader = (
 
     const textBox = api.createFrame();
     autoLayout(textBox, { dir: 'VERTICAL', itemSpacing: v.textItemSpacing });
+    textBox.fills = []; // #1563 — Figma frames default to a white fill; the JSON Text container has none
     textBox.layoutAlign = 'STRETCH'; // FILL width inside the vertical root
 
     const title = makeText(api, { font: BOLD, size: v.title.s, lineHeight: v.title.lh, letterSpacing: v.title.ls, color: TITLE_INK, text: 'Section header', alignVertical: 'BOTTOM' }, loaded, fontMisses);
@@ -256,9 +278,8 @@ const buildHeadings = (
   const members = HEADINGS.map((v) => {
     const root = api.createComponent();
     root.name = `Type=${v.type}, Light=${v.light}`;
-    autoLayout(root, { dir: 'HORIZONTAL', itemSpacing: v.itemSpacing, padding: v.padding, counterAlign: 'CENTER', fixedWidth: v.width });
-    root.resize?.(v.width, 100);
-    root.counterAxisSizingMode = 'FIXED';
+    autoLayout(root, { dir: 'HORIZONTAL', itemSpacing: v.itemSpacing, padding: v.padding, counterAlign: 'CENTER' });
+    setFixedWidthHugHeight(root, v.width); // fixed 663/320 width, HUG height (was backwards: fixed height, hugged width)
     root.cornerRadius = 12;
     root.clipsContent = true;
     root.fills = solid(v.bg);
@@ -269,6 +290,7 @@ const buildHeadings = (
     const textBox = api.createFrame();
     textBox.name = 'Text';
     autoLayout(textBox, { dir: 'VERTICAL' });
+    textBox.fills = []; // #1563 — clear the default white fill behind the Title/Description
     textBox.layoutGrow = 1; // FILL the horizontal main axis
     const titleInk = v.showText ? v.ink : '#F7F7F7';
     const title = makeText(api, { font: SEMIBOLD, size: 44, lineHeight: 44, letterSpacing: -2.2, color: titleInk, text: 'Heading title' }, loaded, fontMisses);
