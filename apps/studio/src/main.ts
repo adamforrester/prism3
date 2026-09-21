@@ -728,6 +728,13 @@ let applyState: { ok: boolean; headline: string; summary: string } | 'pending' |
  *  report into the theme write's pill without claiming something about the variables it never touched,
  *  and with no slot of its own it would have nowhere to be `pending` while it writes hundreds of nodes. */
 let componentState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
+/** The state of the file-setup scaffold (#1558) — same shape, its own slot, for the same reason
+ *  `componentState` is separate from `applyState`: three actions, three buttons, three verdicts. A
+ *  file-setup verdict cannot report into the theme or component write's pill without claiming something
+ *  about work it never did, and with no slot of its own it would have nowhere to be `pending` while the
+ *  host lays the page skeleton and builds the two template assets. Unlike the component build there is no
+ *  progress sibling: file-setup posts a single terminal result, so `pending` is a static "in flight". */
+let fileSetupState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
 /** How far the in-flight component build has got (#684) — `null` between builds and until the first
  *  chunk boundary reports.
  *
@@ -755,7 +762,7 @@ let pruneVerdict: { ok: boolean; count: number; summary: string } | null = null;
  *  independently-openable rows would both be pushing that height around. One row also means the open
  *  detail always belongs to a named pill — two rows could leave the theme write's counts sitting under a
  *  component verdict with nothing saying which was which. */
-let openDetail: 'apply' | 'components' | null = null;
+let openDetail: 'apply' | 'components' | 'filesetup' | null = null;
 // The font families the host can load (#113 Figma arm; empty on web and until the host answers).
 // Deliberately NOT part of `brandState`: it is an environment fact about one machine at one moment,
 // not brand data — persisting it or letting it reach `BrandInput` would make emitted artifacts
@@ -854,6 +861,20 @@ commit.onHostMessage((m) => {
     // them. Outside the `barHost` guard on purpose: that flag is about the chrome being mounted, and the
     // row has its own `isConnected` test for the same question about itself.
     syncComponentRow();
+    return;
+  }
+  if (m.kind === 'file-setup-result') {
+    // #1558. Same handling as the two write verdicts above, against its own slot — including the
+    // auto-expand of a bad result, which here names the missing File Components page or a font miss on the
+    // template assets, the thing a designer needs and would not click to find.
+    fileSetupState = { ok: m.ok, headline: m.headline, summary: m.summary };
+    openDetail = m.ok ? null : 'filesetup';
+    // `renderBar()`/`syncApplyDetail()` are CHROME — the shared detail row lives there; `syncFileSetupRow`
+    // is the page content, the file-setup button's own row on the Components page. Both are refreshed for
+    // the same reason the component build refreshes both (#870): a verdict that reached only the chrome
+    // would leave the button reading "⋯ Setting up…" and disabled.
+    if (barHost) { renderBar(); syncApplyDetail(); }
+    syncFileSetupRow();
     return;
   }
   if (m.kind === 'component-progress') {
@@ -4732,6 +4753,11 @@ const COMPONENT_CATALOGUE: {
       })()
     : { buildable: [], missing: [] };
 
+/** The file-setup button's label (#1558). Placement and wording are a design call the owner confirms at
+ *  review, so the one string a reviewer changes lives here rather than inline — "Set up file" or "Scaffold
+ *  pages" were the two proposals; this is the default. Shipped UI text: US-English + `docs/voice-standard.md`. */
+const FILE_SETUP_LABEL = 'Set up file';
+
 /**
  * The Components page (#718) — the new home of the component write, moved off the primary action bar.
  *
@@ -4769,6 +4795,46 @@ const renderComponentsPage = (host: PageHost): void => {
   // has nothing that repaints, so every one of its regions is eligible to be kept.
   setVolatile([], () => {});
   if (!commit.isFigma) return;
+
+  // FILE SETUP (#1558) — ABOVE the component build, because it lays the skeleton the build then fills: it
+  // scaffolds the file's pages (Cover, dividers, section headers, Foundations, Sandbox) and builds the two
+  // template assets onto File Components, so a build has a page to land on. Its own section rather than a
+  // control in the build's row, for the #652 reason every canvas write here is its own action — a distinct
+  // designer choice with its own trigger and its own verdict slot (`fileSetupState`). The label and this
+  // placement are the owner's to confirm at review (#1558); `FILE_SETUP_LABEL` is the one string to change.
+  const fsSec = palSection(FILE_SETUP_LABEL, 'Lays the file’s page skeleton and builds its template assets.');
+  const fsNote = el('p', 'cw-note');
+  fsNote.append(
+    el('b', undefined, 'Internal — experimental. '),
+    document.createTextNode(
+      'This creates the file’s pages — Cover, section headers, Foundations and the Sandbox — and builds the '
+      + 'two template assets onto the File Components page, so a component build has somewhere to land. It is '
+      + 'idempotent: a re-run adds no page already present and rebuilds no asset already there. Known limits '
+      + 'are tracked on #1554.',
+    ),
+  );
+  fsSec.append(fsNote);
+
+  const fsRow = el('div', 'fs-row');
+  fileSetupRow = fsRow;
+  const fsBtn = el('button', 'barbtn') as HTMLButtonElement;
+  fileSetupBtn = fsBtn;
+  // One line, under the ~90 the plugin register allows. It states the one fact a re-run needs — that this
+  // never duplicates — because the build's `title` beside it already carries the order the two run in.
+  fsBtn.title = 'Creates the file’s pages and template assets. Safe to re-run — it never duplicates a page.';
+  fsBtn.onclick = () => {
+    // `openDetail` cleared for the same reason the build clears it: the previous run's detail is stale the
+    // instant a new one starts, and the shared row is chrome, so the bar has to be told the row is gone.
+    fileSetupState = 'pending'; openDetail = null;
+    renderBar(); syncApplyDetail(); syncFileSetupRow();
+    commit.postFileSetup();
+  };
+  fsRow.append(fsBtn);
+  // Staged, like the build's row: this page is built DETACHED and reconciled in (#771), so the initial sync
+  // runs against a row not yet in the document — see `syncComponentRow`'s header for why the caller says so.
+  syncFileSetupRow({ staged: true });
+  fsSec.append(fsRow);
+  host.append(fsSec);
 
   const sec = palSection('Build a component set', 'Writes one component set onto the current Figma page.');
 
@@ -4942,6 +5008,29 @@ const syncComponentRow = (opts: { staged?: true } = {}): void => {
   // the old one first is what keeps a verdict from landing beside the pending text it supersedes.
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
   if (componentState) row.prepend(renderApplyStatus(componentState, 'components'));
+};
+
+/** The file-setup row's status, refreshed in place (#1558). The same mechanism as `syncComponentRow`, and
+ *  for the same reasons: the `file-setup-result` handler is on the message path and this row is page
+ *  content, so a verdict that reached only the chrome would leave the button frozen at "⋯ Setting up…".
+ *  Simpler than the build's because file-setup has no picker to leave untouched and no progress to render —
+ *  the button label and disabled flag plus the verdict pill are the whole of it. `staged` carries the same
+ *  meaning: the render path calls it before the row is reconciled in, the message path about a live one. */
+let fileSetupRow: HTMLElement | null = null;
+let fileSetupBtn: HTMLButtonElement | null = null;
+const syncFileSetupRow = (opts: { staged?: true } = {}): void => {
+  const row = fileSetupRow;
+  if (!row || !fileSetupBtn) return;
+  if (!opts.staged && !row.isConnected) return;
+  const pending = fileSetupState === 'pending';
+  fileSetupBtn.textContent = pending ? '⋯ Setting up…' : `⊞ ${FILE_SETUP_LABEL}`;
+  // Disabled while in flight is both the signal and the guard, same call the build and Apply buttons make:
+  // a second click would post a concurrent scaffold over the same file.
+  fileSetupBtn.disabled = pending;
+  // Pill REPLACED, not written to — pending (`.bar-seed`) and verdict (`.applystat`) are different
+  // elements, so removing the old one first keeps a verdict from landing beside the pending text.
+  row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
+  if (fileSetupState) row.prepend(renderApplyStatus(fileSetupState, 'filesetup'));
 };
 
 // #103 Phase B — advisory font-weight availability (#113 advisory model, not a hard gate). A curated,
@@ -9008,13 +9097,16 @@ function renderSeedPill(o: SeedOutcome): HTMLElement {
   return pill;
 }
 
-function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'apply' | 'components'): HTMLElement {
-  const noun = which === 'apply' ? 'apply' : 'component build';
+function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'apply' | 'components' | 'filesetup'): HTMLElement {
+  const noun = which === 'apply' ? 'apply' : which === 'filesetup' ? 'file setup' : 'component build';
   if (state === 'pending') {
     // The theme write's pending text is static and the component build's is not (#684), so only the
     // latter is cached for in-place updates. A theme apply writes variables and answers in well under a
     // second; a 648-member build takes tens of seconds, which is precisely why it reports.
     if (which === 'apply') return el('span', 'bar-seed', 'Writing to Figma…');
+    // File setup posts a single terminal result with no progress boundaries (#1558), so its pending text
+    // is static like the theme write's rather than cached like the component build's.
+    if (which === 'filesetup') return el('span', 'bar-seed', 'Setting up file…');
     const node = el('span', 'bar-seed', componentPendingText());
     // ADDED, not assigned (#870). Two hosts render this pill and both can be live at once; see
     // `componentPendingEls` for the measurement that an assignment left one of them frozen.
@@ -9058,7 +9150,7 @@ const syncApplyDetail = (): void => {
   // ONE row, shared by both write pills (#483) — `openDetail` names whose summary is in it. Reading the
   // state through the discriminant rather than tracking it here means the row cannot show a summary whose
   // pill is not the open one: there is a single source for "which", and both the pill and this read it.
-  const state = openDetail === 'apply' ? applyState : openDetail === 'components' ? componentState : null;
+  const state = openDetail === 'apply' ? applyState : openDetail === 'components' ? componentState : openDetail === 'filesetup' ? fileSetupState : null;
   const show = state !== null && state !== 'pending';
   applyDetailHost.style.display = show ? '' : 'none';
   if (show) applyDetailHost.textContent = state.summary;

@@ -113,6 +113,12 @@ export interface HostCommit {
    *  difference is that "which def" has an answer `componentDefs` already holds, and "which variants"
    *  does not — see `messages.ts`. */
   postComponents(def?: string): void;
+  /** Ask the host to scaffold the file's PAGE structure (#1558; Figma only, no-op on web, which has no
+   *  page taxonomy to lay). Carries no argument — the taxonomy is a config compiled into the main bundle
+   *  (`file-taxonomy.ts`), so there is nothing for the UI to send (see `messages.ts` `file-setup`). Its
+   *  result is `file-setup-result`, a distinct verdict kind with its own slot, for the same one-kind-per-fact
+   *  reason `component-result` is separate from `apply-result` — see `onHostMessage` below. */
+  postFileSetup(): void;
   /** Ask the host to PRUNE the styles/variables/collections the current config no longer emits (#1521;
    *  Figma only, no-op on web — the web host writes CSS custom properties, which have no stale-item
    *  problem). `confirm: false` asks for a preview (a `prune-result` with `applied: false`); `confirm:
@@ -144,6 +150,11 @@ export interface HostCommit {
       msg:
         | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'component-result'; ok: boolean; headline: string; summary: string }
+        // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
+        // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
+        // skeleton get laid" is separately true and separately actionable from a theme or component write,
+        // so it needs its own verdict slot and cannot overwrite theirs.
+        | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'component-progress'; phase: 'build' | 'wire'; done: number; total: number; chunkMs: number }
         // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
         // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
@@ -175,6 +186,9 @@ type UiApplyMsg = { type: 'apply-theme'; input: unknown };
 /** Kept in sync with `messages.ts` `UiToMain` (`build-components`) — `def` is a `componentDefs` id and
  *  is optional (absent means Button), see `postComponents` above. */
 type UiComponentsMsg = { type: 'build-components'; def?: string };
+/** Kept in sync with `messages.ts` `UiToMain` (`file-setup`, #1554) — carries no payload; the taxonomy
+ *  is a main-bundle config, not something the UI supplies (see `postFileSetup`). */
+type UiFileSetupMsg = { type: 'file-setup' };
 /** Kept in sync with `messages.ts` `UiToMain` (`prune`, #1521) — `confirm` false previews, true deletes. */
 type UiPruneMsg = { type: 'prune'; input: unknown; confirm: boolean };
 /** Kept in sync with `messages.ts` `UiToMain` (`resize-ui`). */
@@ -192,6 +206,9 @@ const figmaCommit = (): HostCommit => ({
     // main thread distinguishes absent (means Button) from present, and `postMessage` structured-clones,
     // so an explicit `undefined` would arrive as a present key holding nothing.
     parent.postMessage({ pluginMessage: { type: 'build-components', ...(def ? { def } : {}) } as UiComponentsMsg }, '*');
+  },
+  postFileSetup() {
+    parent.postMessage({ pluginMessage: { type: 'file-setup' } as UiFileSetupMsg }, '*');
   },
   postPrune(input, confirm) {
     parent.postMessage({ pluginMessage: { type: 'prune', input, confirm } as UiPruneMsg }, '*');
@@ -217,6 +234,12 @@ const figmaCommit = (): HostCommit => ({
         // because an older host that sends no headline sends no counts to put in one either.
         const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ built' : '✗ build failed';
         cb({ kind: 'component-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
+      } else if (m.type === 'file-setup-result') {
+        // #1558. Same headline fallback as the two result kinds above, same reason: a host build older than
+        // this one sends no headline, and letting the full summary land in the pill would restore the
+        // truncation the headline exists to remove.
+        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ file set up' : '✗ setup failed';
+        cb({ kind: 'file-setup-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
       } else if (m.type === 'component-progress') {
         // Validated, not coerced, and DROPPED if the numbers are unusable — unlike the result kinds
         // above, which fall back to a default headline. A result is a fact the designer is waiting for,
@@ -285,6 +308,7 @@ const webCommit = (): HostCommit => ({
   isFigma: false,
   postTheme() {/* web commits via the export bar (download design.md / tokens.json) */},
   postComponents() {/* no canvas on web — the component tier is a Figma-only write */},
+  postFileSetup() {/* no canvas on web — file scaffolding is a Figma-only action (#1558) */},
   postPrune() {/* no figma.variables on web — CSS custom properties have no stale-item problem (#1521) */},
   onHostMessage() {/* no host messages on web */},
   requestResize() {/* the browser window is the user's to size on web */},
