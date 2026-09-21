@@ -788,7 +788,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // is stated in exactly those terms. So the one gap hid the other: a containment rule modelled against a
     // node that never becomes a container could only ever refuse.
     createComponentFromNode: (n: Node) => { n.type = 'COMPONENT'; return n; },
-    combineAsVariants: (members: Node[]) => {
+    combineAsVariants: (members: Node[], parent?: unknown) => {
       // Between the build loop's last boundary and the wire loop's first — the window the wire re-stamp
       // excludes. Charged here rather than in `resize` or `addComponentProperty` because this is the
       // single most expensive of the set-level calls live.
@@ -972,7 +972,14 @@ export const makeShim = (opts: ShimOpts = {}) => {
           settle();
           throw new Error('in set_componentPropertyReferences: Could not create a new component property reference');
         };
-      page?.children.push(set);
+      // HONOR THE `parent` ARGUMENT (#1554) rather than hardcoding `opts.page`. The executor combines onto
+      // its resolved placement page (`dest` = `targetPage ?? currentPage`); modelling that here is what lets
+      // a gate see the page-aware routing (docs/34: model the axis or the gate cannot see it). For every
+      // pre-#1554 caller `parent` IS the shim's `currentPage` wrapper, whose `appendChild` pushes to
+      // `page.children` — byte-identical to the old line — so no existing test's ACTUAL moves.
+      const parentNode = parent as { appendChild?: (n: Node) => void } | undefined;
+      if (parentNode?.appendChild) parentNode.appendChild(set);
+      else page?.children.push(set);
       return set;
     },
     // A page the executor can SEARCH, not just append to. It finds its set here by name and type, so

@@ -168,6 +168,74 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 - ⏭ **Per-style/weight validation** (which would retire the hardcoded weight map), the web-side
   `queryLocalFonts()` arm, and per-mode family override selects are deferred; #113 stays open.
 
+## Scope (#1554 — file setup: the page-per-component scaffold)
+
+The plugin's **first page-creation code** — until this, every write path hard-coded `figma.currentPage`
+and `figma.createPage` appeared nowhere. Two pieces:
+
+- ✅ **A `file-setup` action** (`file-setup` message → `main.ts` `fileSetup`) — scaffolds the file's PAGE
+  structure and builds the two template assets. Its own action, not a flag on `apply-theme`/`build-components`
+  (the #652 one-action-per-canvas-write rule). Idempotent: a re-run finds pages by name and never duplicates.
+- ✅ **Page-aware `build-components`** — a built set now lands on ITS section page
+  (`resolveComponentPage` finds-or-creates the `↳ <family>` page in the right slot) instead of
+  `figma.currentPage`. Threaded through `applyComponentPlan`'s new `targetPage` option; absent still means
+  `currentPage` (the pre-#1554 default, and what every shim test exercises).
+
+### The layout rules (the taxonomy)
+
+The structure is **config, not hardcoded logic** — `src/file-taxonomy.ts` holds it as data so the page
+list + section mapping edit in one place. `src/file-setup.ts` reads it; it hardcodes none of it.
+
+```
+Cover
+───                    (native Figma divider page — figma.createPageDivider)
+Foundations            (empty section-header page — left-rail label only)
+  ↳ Primitive tokens   (empty placeholder — file-setup creates it)
+  ↳ Semantic tokens    (empty placeholder)
+  ↳ Icons & assets     (icon def — created on demand by the build)
+  ↳ Grids & layouts    (empty placeholder)
+───
+Components
+  ↳ Buttons            (button, button-destructive, button-neutral)
+  ↳ Icon button        (icon-button + destructive + neutral)
+  ↳ Checkbox           (checkbox control/row/group)
+  ↳ Radio              (radio control/row/group)
+  ↳ Switch             (switch control/row)
+  ↳ Select · ↳ Text field · ↳ Textarea · ↳ Veil
+───
+Subcomponents
+  ↳ Image Placeholder · ↳ Focus Ring · ↳ Field Label · ↳ Field Message
+───
+Sandbox
+  ↳ File Components     (holds _Section-header, _Headings — plugin-only template assets)
+```
+
+Rules, all enforced in the config + `test-file-setup.ts`:
+- **One component FAMILY per page** — all Button variants under one `↳ Buttons` page.
+- **Section-header pages are EMPTY** — `Foundations`/`Components`/`Subcomponents`/`Sandbox` are left-rail
+  labels only, no content.
+- **Dividers are native** — `figma.createPageDivider()` (default name `---`, `isPageDivider` true), matched
+  back by the flag, not the name (so a repeated `---` is not an idempotency hazard). One before each section.
+- **`↳ ` prefix** (U+21B3 + space) on every component page; `Cover` and the section headers have none.
+- **The split that decides ownership:** a leaf with NO defs (the Foundations placeholders, `File Components`)
+  is pre-created by `file-setup`; a leaf WITH defs is created ON DEMAND by the page-aware build, so an unbuilt
+  component leaves no empty page. `Icons & assets` (the `icon` def) is the one Foundations leaf on the build's side.
+- **Coverage is asserted, not restated:** `assertCoverage` reads the real `componentDefs` registry and fails
+  by name if a def is neither mapped to a leaf nor in `EXCLUDED_DEFS` (empty today — all 23 map). A def added
+  to the engine and forgotten here is caught, not silently dropped onto the designer's current page.
+
+### The two file components
+
+`_Section-header` and `_Headings` are **plugin-only template assets** (owner-confirmed), NOT engine defs —
+they never touch `packages/engine/components/`, `index.ts`, or the component gates. Built by a targeted
+constructor (`src/file-components.ts`, direct Plugin-API node building), placed on `↳ File Components`. Fonts
+(Inter Regular/Bold/Semi Bold) load up front; an unavailable face is reported, never substituted silently.
+Their exact per-variant typography is host-verified, not shim-verified — the same posture as
+`createNodeFromSvg` (a Node shim modelling the numbers back would check the file against itself).
+
+**Not yet wired:** a UI trigger for `file-setup` (the shared-UI button) is a follow-up — the owner deferred UI
+placement, and the message contract + main-thread handler are complete and ready for it.
+
 ## Run
 
 ```bash
