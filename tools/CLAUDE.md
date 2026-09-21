@@ -149,6 +149,38 @@ enforcement. If a specific mis-binding hardens into a contract, a gate enforces 
 as #1499 states. The instrument earns its keep by lighting up on a regression (revert #1471 and it
 names every icon-button glyph) or on a drifted live Figma file, not by being red today.
 
+## `tools/conformance-scan/`
+
+*"Does what is in this Figma file match what the Prism3 engine says should be there?"* (#1553 P1). Two
+halves and a shared shape: `expected.ts` builds a normalized `State` out of the engine's ALREADY-EMITTED
+artifacts (`out/figma/<brand>/`, the `figmaAnatomySet` plans, the contrast contracts, `ENGINE_VERSION`), a
+read-only `figma_execute` snippet (in the README) builds the same `State` from the open file, and `diff.ts`
+compares them in eight categories — binding presence and target, per-mode value, mode coverage,
+scope/type, structure, contrast re-measured on the file's own colors, and generator staleness.
+
+**No gate sibling, and the reason is the subject rather than the difficulty.** The thing it measures is a
+Figma document, which is not in CI and is not owned by this repo: a designer nudging a value is a real
+finding and not a defect any commit here can fix. So it exits 0 carrying findings. What *is* gated is the
+harness's own correctness — `diff.ts --selftest` over committed fixtures, and `mutations.sh` behind it —
+and those are self-checks the author runs, not CI steps.
+
+**The one thing to read before editing it: `state.ts`.** It holds the join key (`bindKey`, `canonValue`,
+`rootOf`, `instanceKey`, `underInstance`) for BOTH producers, and that is not tidiness. A join key computed
+two ways is not a noisier diff, it is a useless one — `binding-audit/reconcile.ts` one directory over
+compares an `AnatomyPlan`'s pre-materialization names against a live file's materialized ones and reports
+5,433 of 5,433 *correct* bindings as WRONG-TOKEN (#1511). Plan names therefore resolve by **lookup**, never
+by `${root}/` concatenation, and the brand root is derived (`rootOf` throws rather than picking) because
+the root is itself a brand lever.
+
+**Where its lenience lives, and why that differs from `binding-audit/`.** Three plan/file differences are
+the same fact spelled two ways — a uniform `strokeWeight` against Figma's four per-side fields,
+`descendantFills` one level down, and bindings inherited through an INSTANCE. All three are reconciled in
+`diff.ts` and none in the reader, because only the diff knows what was PLANNED at a coordinate;
+`binding-audit/` put its one lenience in the reader and its README records the two weaknesses that
+followed. The instance case is suppressed and **counted** — 2,705 in aurora — and the count prints as a
+note, which is why `Report` carries both `unevaluated` (a blind spot) and `notes` (a judgement with its
+number). A suppression with no number attached to it is indistinguishable from a broken arm.
+
 ## `tools/claude-md-freshness/`
 
 `mutations.sh` — the mutation battery for `.claude/hooks/session-start-claude-md-freshness.sh`, the
