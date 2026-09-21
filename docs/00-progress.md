@@ -7,6 +7,34 @@
 
 ---
 
+## (2026-09-21) — file setup: the first page-creation code, a page-aware build, and two template assets (#1554)
+
+**STATUS: LANDED (this lane).** Plugin-executor feature — the first page scaffolding in the repo. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed vs base**, `lint-component-surface` **0 defs moved**, `regen.ts --check` clean (111 artifacts byte-match). Page placement is host-side; nothing the engine emits moved. Gate count **STANDS at 61** — the witness is a new harness (`test-file-setup.ts`) added to the existing plugin `test` gate's chain, not a new CI gate. Closes #1554. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope.
+
+── THE FIRST PAGE-CREATION CODE ────────────────────────────────────────────────────────────────────
+
+Until now `figma.createPage` appeared **nowhere** and every write path hard-coded `figma.currentPage`. This lane introduces page scaffolding. Three moving parts, all in `apps/plugin/src/`:
+
+- **`file-taxonomy.ts`** — the owner-confirmed page structure as **editable config** (Cover → Foundations/Components/Subcomponents/Sandbox, `↳ `-prefixed family pages, native `---` dividers). Data, not hardcoded logic. `assertCoverage` reads the real `componentDefs` registry (the oracle) and reports by name any def neither mapped to a leaf nor in `EXCLUDED_DEFS` — all 23 defs map; `EXCLUDED_DEFS` is empty.
+- **`file-setup.ts`** — a `PagesApi` port (the global `figma` satisfies it structurally: `DocumentNode.children`/`insertChild`, `createPage`, `createPageDivider`, `loadAllPagesAsync`) + `scaffoldSkeleton` (idempotent, non-destructive) + `resolveComponentPage` (the build's find-or-create). Dividers are native (`createPageDivider`, `isPageDivider` true) and matched by the flag, not the name — a repeated `---` is not an idempotency hazard.
+- **`file-components.ts`** — a targeted constructor for the two plugin-only template assets `_Section-header` and `_Headings` (NOT engine defs, owner-confirmed). Placed on `↳ File Components`.
+
+── THE PAGE-AWARE BUILD (a behavioral change, gated carefully) ──────────────────────────────────────
+
+`applyComponentPlan` gained a `targetPage?: CompPageTarget` option; `main.ts` `buildComponents` resolves the def's `↳ <family>` section page and passes it, so a built set lands on ITS page instead of `currentPage`. **The option is opt-in and defaults to `api.currentPage`** — so NO existing shim-driven test moves its ACTUAL (none of them pass `targetPage`). The four placement sites (existing-set `findOne`, the build-loop `appendChild`, the `combineAsVariants` parent, and the partial-write park) all read one `dest` = `targetPage ?? currentPage`.
+
+**The one shim change, and why it moves no ACTUAL:** `component-shim.ts`'s `combineAsVariants` hardcoded the combined set onto `opts.page`, ignoring the `parent` argument — so it could not witness page-aware routing (docs/34: model the axis or the gate cannot see it). It now honors `parent.appendChild`. For every pre-#1554 caller `parent` IS the shim's `currentPage` wrapper, whose `appendChild` pushes to `page.children` — byte-identical to the old line. `test-write-components.ts`, `test:roundtrip`, `test:verdict`, `test:start` all stay green (verified).
+
+── THE WITNESS + BY-NAME MUTATION (docs/34) ─────────────────────────────────────────────────────────
+
+`test-file-setup.ts` (in the plugin `test` chain) drives the page shim + the real `applyComponentPlan`: fresh scaffold lays the spine in taxonomy order (asserted against a literal spine, not read back off the config); it is idempotent and does not reorder an on-demand component page a later scaffold runs over; `resolveComponentPage` slots each family page in the right section; `targetPage` routes a built `field-label` set onto the target with `currentPage` left empty. The coverage arm reads the real registry and a synthetic unmapped id (`ghost-widget`) is reported BY NAME, as is a stale mapping (an id the registry lost). **By-name mutation performed:** removing `veil` from the taxonomy's Components leaves made `test-file-setup` fail with `def 'veil' … neither mapped to a page nor in EXCLUDED_DEFS`; restored, green again.
+
+── THE MESSAGE SEAM + WHAT IS DEFERRED ──────────────────────────────────────────────────────────────
+
+New `file-setup` `UiToMain` variant + `file-setup-result` `MainToUi` variant (`messages.ts`), a `case` in `main.ts`'s `onUiMessage`, and the `fileSetup` handler (scaffold → build the two assets onto File Components, idempotent-skip if already present). **Deliberately left to a follow-up:** the shared-UI *trigger button* for `file-setup` — `apps/studio/src` is untouched (the owner deferred UI placement, and the Components-page smoke/verdict gates are tightly coupled). The contract + main-thread handler are complete and ready to wire. **Filed:** the UI trigger follow-up (see PR body).
+
+**Full net:** `npm run verify` = **61/61 PASS, 0 SKIP, 0 FAIL**. Plugin `npm test` 738 checks; `test:verdict` 128/128; `test:roundtrip`, `test:start` ALL PASS; build 0 `node:` builtins (a `{ node: … }` return key tripped `build.mjs`'s sandbox scan and was renamed to `{ page: … }`). ENGINE 0.127.0 / CONTRACT 11.3.0 unchanged.
+
 ## (2026-09-20) — wired the CLAUDE.md-freshness mutation battery into CI as a gate, named for the DETECTOR (#1123)
 
 **STATUS: LANDED (this lane).** CI wiring + docs. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0** (`lint-emission-version` 0 artifacts, `regen.ts --check` clean). Gate count **60 → 61**: `tools/claude-md-freshness/mutations.sh` is now a gate. Closes #1123. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope.
