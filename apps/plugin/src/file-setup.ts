@@ -32,6 +32,11 @@ import type { Taxonomy, TaxonomySection } from './file-taxonomy';
 export interface PageLike {
   name: string;
   readonly isPageDivider?: boolean;
+  /** A page's canvas fill. Optional so the port stays minimal — only `ensureNamed` writes it, and only
+   *  on a page it just created (#1565). The real `PageNode.backgrounds` is a settable `Paint[]`, which
+   *  is assignable to `readonly unknown[]`, so the global `figma` satisfies this addition with no cast —
+   *  the same structural fit the header claims for the rest of the port. */
+  backgrounds?: readonly unknown[];
   appendChild(child: unknown): void;
   findOne?(predicate: (node: unknown) => boolean): unknown;
 }
@@ -59,6 +64,19 @@ export interface PagesApi {
 
 const isDivider = (p: PageLike): boolean => p.isPageDivider === true;
 
+/**
+ * The canvas fill for every page file-setup creates: solid #FFFFFF (owner-directed, #1565). Figma's
+ * default page canvas is a mid gray (`{r,g,b} ≈ 0.898`); the owner wants a white ground for the template.
+ * The Paint shape matches `file-components.ts`'s `solid()` so the two producers write the same object.
+ *
+ * Applied ONLY on creation (see `ensureNamed`), never on a re-run — a page a designer has recolored is
+ * left alone, the same additive, non-destructive posture as the rest of this module. Divider pages are
+ * never filled: they have no canvas, and `ensureNamed` (the only writer) is never called for one.
+ */
+const WHITE_PAGE_BACKGROUND: readonly unknown[] = [
+  { type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 1, b: 1 } },
+];
+
 /** A named (non-divider) page by exact name, or null. */
 const findNamed = (api: PagesApi, name: string): PageLike | null =>
   api.root.children.find((p) => !isDivider(p) && p.name === name) ?? null;
@@ -71,6 +89,9 @@ const ensureNamed = (api: PagesApi, name: string): { page: PageLike; created: bo
   if (existing) return { page: existing, created: false };
   const page = api.createPage();
   page.name = name;
+  // Owner-directed white canvas, on CREATION only (#1565) — a re-run reaches the branch above and never
+  // touches an existing page's fill, so a designer's recolor survives every later scaffold.
+  page.backgrounds = WHITE_PAGE_BACKGROUND;
   return { page, created: true };
 };
 
