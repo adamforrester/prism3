@@ -337,9 +337,15 @@ export interface ComponentsApi {
 }
 
 /** WHERE A COMPONENT SET IS PLACED — `figma.currentPage` by default, or a resolved `↳ <family>` section
- *  page (#1554). The two operations the placement path needs: append a built root, and find the existing
- *  set for the idempotent re-run. `PageNode` and `figma.currentPage` both satisfy it. */
+ *  page (#1554). The operations the placement path needs: append a built root, find the existing set for
+ *  the idempotent re-run, AND — the one #1561 restores — carry a real node `id`, because the set is
+ *  combined ONTO this target (`combineAsVariants(fresh, target)`) and the live host reads `target.id`.
+ *  A synthetic `{ appendChild, findOne }` adapter with no `id` type-errors here now, so the #1554 defect
+ *  (an id-less adapter that passed the shim and threw "Expected node id to be a string" on the real host)
+ *  cannot recur. `PageNode` and `figma.currentPage` both satisfy it. */
 export interface CompPageTarget {
+  /** A real Figma node id — `combineAsVariants` reads it off the parent; an id-less target is the #1561 bug. */
+  readonly id: string;
   appendChild(child: CompNode): void;
   findOne(predicate: (node: CompNode) => boolean): unknown;
 }

@@ -157,7 +157,12 @@ console.log('5. applyComponentPlan targetPage routing');
   const shim = makeShim({ page: { children: currentKids as never[] } }) as never;
   const targetKids: CompNode[] = [];
   let targetAppends = 0;
+  // #1561 — a real page CARRIES AN ID (the type requires it now); `combineAsVariants(fresh, target)` reads
+  // it on the live host. The pre-#1561 version of this test passed an id-less `{ appendChild, findOne }`
+  // adapter — exactly the shape `main.ts` shipped — and passed, because the shim did not model the host's
+  // id read. That is the #1554 regression this arm now guards.
   const targetPage: CompPageTarget = {
+    id: 'PAGE:target',
     appendChild(child: CompNode) { targetAppends++; targetKids.push(child); },
     findOne() { return null; },
   };
@@ -165,6 +170,18 @@ console.log('5. applyComponentPlan targetPage routing');
   ok(r.set !== null, `the set assembled (${r.set})`);
   ok(targetAppends > 0, `built roots were appended to the target page (${targetAppends} appends)`);
   ok(currentKids.length === 0, 'currentPage received nothing — placement routed to the target page');
+
+  // #1561 BY-NAME MUTATION — an id-less target (the #1554 adapter) must fail the way the live host fails.
+  // `combineAsVariants` reads `parent.id`; the shim now models that, so a variant-set build onto an id-less
+  // target throws "Expected node id to be a string, got undefined" here instead of only in Figma.
+  const idlessKids: unknown[] = [];
+  const idlessShim = makeShim({ page: { children: idlessKids as never[] } }) as never;
+  const idlessTarget = { appendChild() {}, findOne() { return null; } } as unknown as CompPageTarget;
+  let hostErr = '';
+  try { await applyComponentPlan(plans, idlessShim, { targetPage: idlessTarget, chunk: 1000 }); }
+  catch (e) { hostErr = (e as Error).message; }
+  ok(/combineAsVariants: Expected node id to be a string/.test(hostErr),
+    `an id-less target page fails combineAsVariants by name (#1561) — got: ${hostErr || '(no throw)'}`);
 }
 
 console.log(failures === 0 ? '\nfile-setup: all assertions pass' : `\nfile-setup: ${failures} FAILED`);
