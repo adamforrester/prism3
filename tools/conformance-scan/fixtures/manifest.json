@@ -1,0 +1,34 @@
+{
+  "_comment": [
+    "What `diff.ts --selftest` must report for actual-dirty.json — EXACTLY this set, no more and no less.",
+    "",
+    "Hand-written, and that is the whole point: a manifest generated from the diff's own output would be a",
+    "gate built from its subject (docs/34-gate-independence.md) and could not fail. Each row is",
+    "`<category>: <subject>` as the report prints it, so a row that stops appearing names the arm that",
+    "broke. The self-check also asserts every one of the eight categories appears here at least once, so a",
+    "row silently lost from this file fails as missing COVERAGE rather than passing as a smaller set.",
+    "",
+    "Adding a defect to actual-dirty.json without adding its row here fails as an EXTRA. That is intended:",
+    "the fixture and this file move together or the self-check says so."
+  ],
+  "clean": "actual-clean.json",
+  "dirty": "actual-dirty.json",
+  "expect": [
+    "binding-presence: widget · size=md, state=rest · / · fills",
+    "binding-presence: gadget · size=sm · / · fills",
+    "binding-presence: widget · size=md, state=rest · /label · textStyle",
+    "binding-presence: widget · size=md, state=rest · /caption · textStyle",
+    "binding-target: widget · size=md, state=rest · /label · fills",
+    "binding-target: widget · size=md, state=hover · / · strokeWeight",
+    "value-match: fix/core/palette/neutral/900 [Default]",
+    "mode-coverage: fix/color/icon/primary [dark]",
+    "scope-type: fix/opacity/veil",
+    "scope-type: fix/size/md/height",
+    "structure: collection 'legacy'",
+    "structure: component 'gadget'",
+    "structure: fix/color/text/secondary",
+    "contrast: light · text.primary on background.primary",
+    "contrast: light · interactive.overlay.hover on background.primary",
+    "staleness: engine version"
+  ]
+}

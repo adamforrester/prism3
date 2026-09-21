@@ -1,0 +1,169 @@
+{
+  "_comment": [
+    "actual-clean.json with ONE injected defect per diff category (a)-(h). Every departure from the clean",
+    "mirror is marked `INJECTED (x)` below, and `manifest.json` names the finding each one must produce.",
+    "The self-check asserts SET EQUALITY both ways, so a defect that stops being reported fails by name,",
+    "and a finding the diff invents fails too.",
+    "",
+    "Three injections cascade on purpose, and the manifest lists every consequence rather than only the",
+    "headline: the grey neutral/900 is both a stale value (c) AND two AA failures (g), and a component the",
+    "file does not have is both a missing component (f) AND its binding going unbound (a). A cascade the",
+    "manifest did not list would fail as an EXTRA — which is the point. The two arms are independent, and",
+    "the fixture proves it by requiring both to fire.",
+    "",
+    "Two injections are OMISSIONS and so have no marker to carry — read them against actual-clean.json:",
+    "  (f) `gadget` is gone from `structure`, and its one binding is gone from `bindings`",
+    "  (f) `fix/color/text/secondary` is gone from `variables` — the missing-variable path, which is the",
+    "      highest-consequence finding in the report and the one an omission-shaped defect would leave",
+    "      unproven"
+  ],
+  "format": "prism3-conformance",
+  "version": 1,
+  "side": "actual",
+  "from": "Fixture (one injected defect per category)",
+  "root": "fix",
+  "engineVersion": "0.99.0",
+  "collections": {
+    "color": { "modes": ["dark", "light"] },
+    "core": { "modes": ["Default"] },
+    "opacity": { "modes": ["Default"] },
+    "size": { "modes": ["Default"] },
+    "legacy": { "modes": ["Default"] }
+  },
+  "variables": {
+    "fix/color/text/primary": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "alias", "target": "fix/core/palette/neutral/900" },
+        "dark": { "kind": "alias", "target": "fix/core/palette/neutral/050" }
+      }
+    },
+    "fix/color/icon/primary": {
+      "_injected": "(d) mode-coverage — the `dark` mode the engine emits is missing",
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "alias", "target": "fix/core/palette/neutral/900" }
+      }
+    },
+    "fix/color/background/primary": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "value", "value": "rgba(255,255,255,1)" },
+        "dark": { "kind": "value", "value": "rgba(17,17,17,1)" }
+      }
+    },
+    "fix/color/interactive/overlay/hover": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "value", "value": "rgba(0,0,0,1)" },
+        "dark": { "kind": "value", "value": "rgba(255,255,255,1)" }
+      }
+    },
+    "fix/core/palette/neutral/900": {
+      "_injected": "(c) value-match, and (g) contrast ×2 — hand-nudged from rgba(26,26,26,1) to a mid grey, which both drifts from the emitted value and drops light-mode text below 4.5:1",
+      "collection": "core",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_SCOPES"],
+      "modes": { "Default": { "kind": "value", "value": "rgba(150,150,150,1)" } }
+    },
+    "fix/core/palette/neutral/050": {
+      "collection": "core",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_SCOPES"],
+      "modes": { "Default": { "kind": "value", "value": "rgba(240,240,240,1)" } }
+    },
+    "fix/size/md/height": {
+      "_injected": "(e) scope-type — scopes widened to ALL_SCOPES, so the variable is offered where it should not be. The VALUE is untouched, which is what keeps this a scope finding and not a value one.",
+      "collection": "size",
+      "resolvedType": "FLOAT",
+      "scopes": ["ALL_SCOPES"],
+      "modes": { "Default": { "kind": "value", "value": "40" } }
+    },
+    "fix/opacity/veil": {
+      "_injected": "(e) scope-type — wrong resolvedType. Nothing binds this variable and no contract measures it, so the finding cannot be a side effect of another arm.",
+      "collection": "opacity",
+      "resolvedType": "STRING",
+      "scopes": ["OPACITY"],
+      "modes": { "Default": { "kind": "value", "value": "0.5" } }
+    },
+    "fix/border-width/thin": {
+      "collection": "size",
+      "resolvedType": "FLOAT",
+      "scopes": ["STROKE_FLOAT"],
+      "modes": { "Default": { "kind": "value", "value": "1" } }
+    },
+    "fix/core/font/family/body": {
+      "collection": "core",
+      "resolvedType": "STRING",
+      "scopes": ["FONT_FAMILY"],
+      "modes": { "Default": { "kind": "value", "value": "Inter" } }
+    },
+    "fix/core/font/size/14": {
+      "collection": "core",
+      "resolvedType": "FLOAT",
+      "scopes": ["FONT_SIZE"],
+      "modes": { "Default": { "kind": "value", "value": "14" } }
+    },
+    "fix/core/font/style/body/default": {
+      "collection": "core",
+      "resolvedType": "STRING",
+      "scopes": ["FONT_STYLE"],
+      "modes": { "Default": { "kind": "value", "value": "Regular" } }
+    }
+  },
+  "bindings": {
+    "widget|size=md, state=rest|/|height": { "boundVariable": "fix/size/md/height" },
+    "widget|size=md, state=rest|/|fills": {
+      "_injected": "(a) binding-presence — a raw literal where the engine binds fix/color/background/primary",
+      "rawLiteral": "rgba(255,0,0,1)"
+    },
+    "widget|size=md, state=rest|/label|fills": {
+      "_injected": "(b) binding-target — bound to the ICON role where the engine binds the TEXT role, the exact confusion the category exists for",
+      "boundVariable": "fix/color/icon/primary"
+    },
+    "widget|size=md, state=rest|/label|textStyle": {
+      "_injected": "(a) binding-presence — a VARIABLE where the engine binds a text STYLE. A different Figma API, not a wrong value, so it must be reported as a presence failure and never as a target one: `fix/color/text/primary` is not a plausible replacement for `body/md/default`, and a target finding would invite a fix that cannot work.",
+      "boundVariable": "fix/color/text/primary"
+    },
+    "widget|size=md, state=rest|/label|fontFamily": { "boundVariable": "fix/core/font/family/body" },
+    "widget|size=md, state=rest|/label|fontSize": { "boundVariable": "fix/core/font/size/14" },
+    "widget|size=md, state=rest|/label|fontStyle": { "boundVariable": "fix/core/font/style/body/default" },
+    "widget|size=md, state=rest|/caption|fontFamily": {
+      "_injected": "(a) binding-presence, the DETACHED shape — `/caption textStyle` is gone from this file, but all three of the style's font fields are still here. So the node reads correct on every property and has lost the style LINK. A diff that only looked for a wrong value would call this clean.",
+      "boundVariable": "fix/core/font/family/body"
+    },
+    "widget|size=md, state=rest|/caption|fontSize": { "boundVariable": "fix/core/font/size/14" },
+    "widget|size=md, state=rest|/caption|fontStyle": { "boundVariable": "fix/core/font/style/body/default" },
+    "widget|size=md, state=rest|/|strokeTopWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=rest|/|strokeRightWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=rest|/|strokeBottomWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=rest|/|strokeLeftWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=rest|/glyph/Vector|fills": { "boundVariable": "fix/color/icon/primary" },
+    "widget|size=md, state=hover|/|fills": { "boundVariable": "fix/color/background/primary" },
+    "widget|size=md, state=hover|/|strokeTopWeight": {
+      "_injected": "(b) binding-target, the per-side DISAGREEMENT — the engine binds one uniform strokeWeight and this member's left/right sides point somewhere else. The `rest` member above keeps all four agreeing, so the same lenience is proven working and failing in one file.",
+      "boundVariable": "fix/border-width/thin"
+    },
+    "widget|size=md, state=hover|/|strokeRightWeight": { "boundVariable": "fix/size/md/height" },
+    "widget|size=md, state=hover|/|strokeBottomWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=rest|/focusRing|strokeTopWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=hover|/|strokeLeftWeight": { "boundVariable": "fix/size/md/height" }
+  },
+  "instanceNodes": ["widget|size=md, state=rest|/focusRing"],
+  "structure": {
+    "widget": {
+      "members": ["size=md, state=hover", "size=md, state=rest"],
+      "axes": ["size", "state"],
+      "emitAs": "set"
+    }
+  },
+  "contrast": []
+}

@@ -1,0 +1,177 @@
+{
+  "format": "prism3-conformance",
+  "version": 1,
+  "side": "expected",
+  "from": "fixture-brand",
+  "root": "fix",
+  "engineVersion": "0.118.0",
+  "collections": {
+    "color": { "modes": ["dark", "light"] },
+    "core": { "modes": ["Default"] },
+    "opacity": { "modes": ["Default"] },
+    "size": { "modes": ["Default"] }
+  },
+  "variables": {
+    "fix/color/text/primary": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "alias", "target": "fix/core/palette/neutral/900" },
+        "dark": { "kind": "alias", "target": "fix/core/palette/neutral/050" }
+      }
+    },
+    "fix/color/text/secondary": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "alias", "target": "fix/core/palette/neutral/900" },
+        "dark": { "kind": "alias", "target": "fix/core/palette/neutral/050" }
+      }
+    },
+    "fix/color/icon/primary": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "alias", "target": "fix/core/palette/neutral/900" },
+        "dark": { "kind": "alias", "target": "fix/core/palette/neutral/050" }
+      }
+    },
+    "fix/color/background/primary": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "value", "value": "rgba(255,255,255,1)" },
+        "dark": { "kind": "value", "value": "rgba(17,17,17,1)" }
+      }
+    },
+    "fix/color/interactive/overlay/hover": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "value", "value": "rgba(0,0,0,1)" },
+        "dark": { "kind": "value", "value": "rgba(255,255,255,1)" }
+      }
+    },
+    "fix/core/palette/neutral/900": {
+      "collection": "core",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_SCOPES"],
+      "modes": { "Default": { "kind": "value", "value": "rgba(26,26,26,1)" } }
+    },
+    "fix/core/palette/neutral/050": {
+      "collection": "core",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_SCOPES"],
+      "modes": { "Default": { "kind": "value", "value": "rgba(240,240,240,1)" } }
+    },
+    "fix/size/md/height": {
+      "collection": "size",
+      "resolvedType": "FLOAT",
+      "scopes": ["WIDTH_HEIGHT"],
+      "modes": { "Default": { "kind": "value", "value": "40" } }
+    },
+    "fix/opacity/veil": {
+      "collection": "opacity",
+      "resolvedType": "FLOAT",
+      "scopes": ["OPACITY"],
+      "modes": { "Default": { "kind": "value", "value": "0.5" } }
+    },
+    "fix/border-width/thin": {
+      "collection": "size",
+      "resolvedType": "FLOAT",
+      "scopes": ["STROKE_FLOAT"],
+      "modes": { "Default": { "kind": "value", "value": "1" } }
+    },
+    "fix/core/font/family/body": {
+      "collection": "core",
+      "resolvedType": "STRING",
+      "scopes": ["FONT_FAMILY"],
+      "modes": { "Default": { "kind": "value", "value": "Inter" } }
+    },
+    "fix/core/font/size/14": {
+      "collection": "core",
+      "resolvedType": "FLOAT",
+      "scopes": ["FONT_SIZE"],
+      "modes": { "Default": { "kind": "value", "value": "14" } }
+    },
+    "fix/core/font/style/body/default": {
+      "collection": "core",
+      "resolvedType": "STRING",
+      "scopes": ["FONT_STYLE"],
+      "modes": { "Default": { "kind": "value", "value": "Regular" } }
+    }
+  },
+  "bindings": {
+    "widget|size=md, state=rest|/|height": { "boundVariable": "fix/size/md/height" },
+    "widget|size=md, state=rest|/|fills": { "boundVariable": "fix/color/background/primary" },
+    "widget|size=md, state=rest|/|strokeWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=rest|/label|fills": { "boundVariable": "fix/color/text/primary" },
+    "widget|size=md, state=rest|/label|textStyle": { "boundStyle": "body/md/default" },
+    "widget|size=md, state=rest|/caption|textStyle": { "boundStyle": "caption/md/default" },
+    "widget|size=md, state=rest|/glyph|descendantFills": { "boundVariable": "fix/color/icon/primary" },
+    "widget|size=md, state=hover|/|fills": { "boundVariable": "fix/color/background/primary" },
+    "widget|size=md, state=hover|/|strokeWeight": { "boundVariable": "fix/border-width/thin" },
+    "gadget|size=sm|/|fills": { "boundVariable": "fix/color/background/primary" }
+  },
+  "structure": {
+    "widget": {
+      "members": ["size=md, state=hover", "size=md, state=rest"],
+      "axes": ["size", "state"],
+      "emitAs": "set"
+    },
+    "gadget": { "members": ["size=sm"], "axes": ["size"], "emitAs": "set" }
+  },
+  "contrast": [
+    {
+      "mode": "light",
+      "role": "text.primary",
+      "roleVariable": "fix/color/text/primary",
+      "against": "background.primary",
+      "againstVariable": "fix/color/background/primary",
+      "min": 4.5,
+      "model": "ink-on-surface",
+      "engineRatio": 17.40432753274219
+    },
+    {
+      "mode": "dark",
+      "role": "text.primary",
+      "roleVariable": "fix/color/text/primary",
+      "against": "background.primary",
+      "againstVariable": "fix/color/background/primary",
+      "min": 4.5,
+      "model": "ink-on-surface",
+      "engineRatio": 16.569744269146813
+    },
+    {
+      "mode": "light",
+      "role": "interactive.overlay.hover",
+      "roleVariable": "fix/color/interactive/overlay/hover",
+      "against": "background.primary",
+      "againstVariable": "fix/color/background/primary",
+      "min": 4.5,
+      "model": "ink-on-composite",
+      "legibleFor": "text.primary",
+      "legibleForVariable": "fix/color/text/primary",
+      "alpha": 0.1,
+      "engineRatio": 13.88056929960458
+    },
+    {
+      "mode": "dark",
+      "role": "interactive.overlay.hover",
+      "roleVariable": "fix/color/interactive/overlay/hover",
+      "against": "background.primary",
+      "againstVariable": "fix/color/background/primary",
+      "min": 4.5,
+      "model": "ink-on-composite",
+      "legibleFor": "text.primary",
+      "legibleForVariable": "fix/color/text/primary",
+      "alpha": 0.1,
+      "engineRatio": 12.800152770652337
+    }
+  ]
+}

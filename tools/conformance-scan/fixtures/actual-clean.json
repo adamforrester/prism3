@@ -1,0 +1,161 @@
+{
+  "_comment": [
+    "A faithful mirror of expected.json, as a read of a correctly-built file would produce it. The diff",
+    "of the two MUST be empty, and every arm must be able to RUN against it — that baseline is what makes",
+    "actual-dirty.json's 'reports exactly these' a real claim rather than one satisfiable by a diff that",
+    "reports everything.",
+    "",
+    "It is not a byte copy, and every difference is deliberate — each one is a representation the reader",
+    "really produces and the diff has to reconcile, so the baseline exercises all three reconciliations",
+    "rather than leaving them unproven. A byte copy would pass while every lenience was dead.",
+    "",
+    "  1. expected.json claims `/glyph descendantFills`; this carries the ink one level down on",
+    "     `/glyph/Vector fills`, which is where a reader finds it beneath a plain container.",
+    "  2. expected.json claims one uniform `/ strokeWeight`; this carries the four per-side weights Figma",
+    "     actually stores, all agreeing. `boundVariables` never contains `strokeWeight` in a real read.",
+    "  3. `/label` carries the three font fields ALONGSIDE its text style, as a node with a style applied",
+    "     does — so the clean run also proves those three are not reported as unplanned extras.",
+    "  4. `/focusRing` is an INSTANCE carrying a binding the engine plans nowhere here, because an instance",
+    "     surfaces its main component's bindings as its own. The clean run must stay clean and say so in a",
+    "     note — reported, it would be one of 2,705 in a real read."
+  ],
+  "format": "prism3-conformance",
+  "version": 1,
+  "side": "actual",
+  "from": "Fixture (clean mirror)",
+  "root": "fix",
+  "engineVersion": "0.118.0",
+  "collections": {
+    "color": { "modes": ["dark", "light"] },
+    "core": { "modes": ["Default"] },
+    "opacity": { "modes": ["Default"] },
+    "size": { "modes": ["Default"] }
+  },
+  "variables": {
+    "fix/color/text/primary": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "alias", "target": "fix/core/palette/neutral/900" },
+        "dark": { "kind": "alias", "target": "fix/core/palette/neutral/050" }
+      }
+    },
+    "fix/color/text/secondary": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "alias", "target": "fix/core/palette/neutral/900" },
+        "dark": { "kind": "alias", "target": "fix/core/palette/neutral/050" }
+      }
+    },
+    "fix/color/icon/primary": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "alias", "target": "fix/core/palette/neutral/900" },
+        "dark": { "kind": "alias", "target": "fix/core/palette/neutral/050" }
+      }
+    },
+    "fix/color/background/primary": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "value", "value": "rgba(255,255,255,1)" },
+        "dark": { "kind": "value", "value": "rgba(17,17,17,1)" }
+      }
+    },
+    "fix/color/interactive/overlay/hover": {
+      "collection": "color",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_FILLS"],
+      "modes": {
+        "light": { "kind": "value", "value": "rgba(0,0,0,1)" },
+        "dark": { "kind": "value", "value": "rgba(255,255,255,1)" }
+      }
+    },
+    "fix/core/palette/neutral/900": {
+      "collection": "core",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_SCOPES"],
+      "modes": { "Default": { "kind": "value", "value": "rgba(26,26,26,1)" } }
+    },
+    "fix/core/palette/neutral/050": {
+      "collection": "core",
+      "resolvedType": "COLOR",
+      "scopes": ["ALL_SCOPES"],
+      "modes": { "Default": { "kind": "value", "value": "rgba(240,240,240,1)" } }
+    },
+    "fix/size/md/height": {
+      "collection": "size",
+      "resolvedType": "FLOAT",
+      "scopes": ["WIDTH_HEIGHT"],
+      "modes": { "Default": { "kind": "value", "value": "40" } }
+    },
+    "fix/opacity/veil": {
+      "collection": "opacity",
+      "resolvedType": "FLOAT",
+      "scopes": ["OPACITY"],
+      "modes": { "Default": { "kind": "value", "value": "0.5" } }
+    },
+    "fix/border-width/thin": {
+      "collection": "size",
+      "resolvedType": "FLOAT",
+      "scopes": ["STROKE_FLOAT"],
+      "modes": { "Default": { "kind": "value", "value": "1" } }
+    },
+    "fix/core/font/family/body": {
+      "collection": "core",
+      "resolvedType": "STRING",
+      "scopes": ["FONT_FAMILY"],
+      "modes": { "Default": { "kind": "value", "value": "Inter" } }
+    },
+    "fix/core/font/size/14": {
+      "collection": "core",
+      "resolvedType": "FLOAT",
+      "scopes": ["FONT_SIZE"],
+      "modes": { "Default": { "kind": "value", "value": "14" } }
+    },
+    "fix/core/font/style/body/default": {
+      "collection": "core",
+      "resolvedType": "STRING",
+      "scopes": ["FONT_STYLE"],
+      "modes": { "Default": { "kind": "value", "value": "Regular" } }
+    }
+  },
+  "bindings": {
+    "widget|size=md, state=rest|/|height": { "boundVariable": "fix/size/md/height" },
+    "widget|size=md, state=rest|/|fills": { "boundVariable": "fix/color/background/primary" },
+    "widget|size=md, state=rest|/|strokeTopWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=rest|/|strokeRightWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=rest|/|strokeBottomWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=rest|/|strokeLeftWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=rest|/label|fills": { "boundVariable": "fix/color/text/primary" },
+    "widget|size=md, state=rest|/label|textStyle": { "boundStyle": "body/md/default" },
+    "widget|size=md, state=rest|/label|fontFamily": { "boundVariable": "fix/core/font/family/body" },
+    "widget|size=md, state=rest|/label|fontSize": { "boundVariable": "fix/core/font/size/14" },
+    "widget|size=md, state=rest|/label|fontStyle": { "boundVariable": "fix/core/font/style/body/default" },
+    "widget|size=md, state=rest|/caption|textStyle": { "boundStyle": "caption/md/default" },
+    "widget|size=md, state=rest|/glyph/Vector|fills": { "boundVariable": "fix/color/icon/primary" },
+    "widget|size=md, state=hover|/|fills": { "boundVariable": "fix/color/background/primary" },
+    "widget|size=md, state=hover|/|strokeTopWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=hover|/|strokeRightWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=hover|/|strokeBottomWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=hover|/|strokeLeftWeight": { "boundVariable": "fix/border-width/thin" },
+    "widget|size=md, state=rest|/focusRing|strokeTopWeight": { "boundVariable": "fix/border-width/thin" },
+    "gadget|size=sm|/|fills": { "boundVariable": "fix/color/background/primary" }
+  },
+  "instanceNodes": ["widget|size=md, state=rest|/focusRing"],
+  "structure": {
+    "widget": {
+      "members": ["size=md, state=hover", "size=md, state=rest"],
+      "axes": ["size", "state"],
+      "emitAs": "set"
+    },
+    "gadget": { "members": ["size=sm"], "axes": ["size"], "emitAs": "set" }
+  },
+  "contrast": []
+}
