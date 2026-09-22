@@ -41,7 +41,27 @@ npx tsx tools/conformance-scan/expected.ts aurora > /tmp/expected.json
 npx tsx tools/conformance-scan/diff.ts /tmp/expected.json /tmp/actual.json
 ```
 
-`expected.ts --brands` lists what it can build. `diff.ts <expected> <actual>` refuses a transposed pair:
+`expected.ts --brands` lists what it can build.
+
+### `--design` — match the config the file was actually built with (#1569)
+
+`expected.ts <brand>` reads the **committed** `out/figma/<brand>/`, which is emitted at the brand's
+**default levers** (aurora: `density: compact`, 6 breakpoints). If the Figma file was built from the studio
+with any lever changed — density, breakpoints, radius scale — the whole token tier reads as a coherent
+~one-rung shift (`control/size` / `size/*` / `breakpoint` / `grid` / `layout`) that is **not** a real
+finding. Build the expectation from the **same** config instead:
+
+```bash
+npx tsx tools/conformance-scan/expected.ts --design path/to/your.design.md > /tmp/expected.json
+```
+
+It compiles that `design.md` to a `Theme` through the same path a committed brand uses, emits the Figma
+layer **in memory** with `figmaArtifacts` (the function `regen` writes from), and reads it back through the
+same reader — so the expectation is still the engine's real projection, at *your* levers. Point it at the
+exact `design.md` you emitted from. `--design` at a brand's own committed file reproduces its disk
+expectation exactly; `expected.ts --selftest` asserts that and that a density change actually moves the
+expectation (the by-name guard that a supplied config isn't silently ignored). The `(g) contrast`,
+`(f) structure` and `(i) style` tiers all follow the supplied config too, not just the variables. `diff.ts <expected> <actual>` refuses a transposed pair:
 both sides are the same shape on purpose, so a swapped argument pair would otherwise diff cleanly in the
 mirror direction and read as a pass. `State.side` is the only thing that can catch that, which is why it
 is on the wire.

@@ -7,6 +7,26 @@
 
 ---
 
+## (2026-09-22) — conformance-scan: build the expectation at the config the file was ACTUALLY emitted with (#1569)
+
+**STATUS: LANDED (this lane). TOOLS-ONLY (`tools/conformance-scan/expected.ts` + its README).** No engine code, def, gate, baseline, or emitted `out/**` artifact changed — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` 0 artifacts, `regen --check` clean, `version.ts`/`ci.yml` untouched. Still a measurement harness, NOT a gate — gate count **STANDS at 61**. Closes #1569. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `apps/plugin/` (the #1567/#1568 executor bugs are a different lane), TokenPress.
+
+── WHAT THIS FIXES (found on the scan's first live QA run) ──────────────────────────────────────────────
+
+`expected.ts <brand>` built its variable + style expectation from the COMMITTED `out/figma/<brand>/`, which is emitted at the brand's DEFAULT levers (aurora: `density: compact`, `breakpoints: [0,480,768,1024,1440,1920]`). The owner's QA file was emitted from the studio with **density comfortable + 2 breakpoints**, so the scan compared comfortable/2-bp against compact/6-bp and reported **~92 token-tier findings** (47 (b) + 2 (c) + 12 (d) + structure + most of 29 (i)) that were all one coherent lever delta — not drift. The file was correct; the expectation was at the wrong config. This is essentially every real theme (non-default levers), so the scan was only trustworthy at a brand's committed defaults.
+
+── THE FIX — `--design <path>`, in memory, same reader ──────────────────────────────────────────────────
+
+`expected.ts --design <path/to.design.md>` compiles that design to a `Theme` through the SAME `readExampleBrand` path a committed brand uses (the path is relativized to `engineDir` so `readExampleBrand` reads an arbitrary absolute file with no second parser), emits the Figma layer IN MEMORY via `figmaArtifacts(theme)` — the SAME function `regen.ts` writes `out/figma/**` from — materializes it to a temp dir, and reads it back through the SAME `readEmissionDir`/`readStylesDir` the disk path uses (extracted from the old brand-keyed readers; the disk path is a thin wrapper, behavior byte-identical). Contrast/structure/styles all follow the supplied theme. **Independence (docs/34):** the expectation is the engine's real projection of the supplied config, never re-derived from the file being checked — a `--design` build at a brand's OWN committed design.md reproduces its disk expectation exactly.
+
+── THE SELFTEST + its by-name mutation ─────────────────────────────────────────────────────────────────
+
+`expected.ts --selftest` — **Arm B (faithfulness):** `--design examples/aurora.design.md` reproduces `expected('aurora')`'s variable AND style tiers exactly (proves the in-memory/temp-dir path == committed disk emission). **Arm A (config flows through, by name):** flipping `density: compact → comfortable` MOVES at least one `control/size` variable (`ads/control/size/sm/height` today) — the arm that fails if `--design` ignores the config. **Mutation proven then restored** (via a `wip:` commit): making `emissionFromDesign` ignore the supplied path → Arm A fails BY NAME ("NONE moved — --design ignored the config"), Arm B stays green; restored → all pass. Not in CI (conformance-scan is a tool, not a gate), same posture as `diff.ts --selftest`/`mutations.sh`.
+
+── OPEN (owner) ─────────────────────────────────────────────────────────────────────────────────────────
+
+Option B — the plugin stamps the emitted BrandInput/config INTO the Figma file so the scan reads it (self-describing, and closes the variable-tier-has-no-version-stamp gap) — is the durable answer and a small emission decision, held for the owner. This PR is option A: the operator supplies the config. Unblocks #1567/#1568 re-scan verification (the 432→0 / 5→0 detach checks no longer drown in config false-positives).
+
 ## (2026-09-21) — file-setup: scaffolded pages get a #FFFFFF canvas (#1565)
 
 **STATUS: LANDED (this lane). PLUGIN-ONLY.** `apps/plugin/src/file-setup.ts` + the existing `apps/plugin/test-file-setup.ts` (an arm of the plugin `test` gate). **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed**, `regen --check` clean (working tree clean after regen). Gate count **STANDS at 61** — the new assertions are arms of the existing plugin `test` gate, not a new CI gate. Owner-requested. Closes #1565. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`. Gates are shim-based (a shim cannot render), so the owner re-eyeballs the page canvas in the live Figma host after rebuild.
