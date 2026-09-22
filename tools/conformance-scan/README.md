@@ -12,9 +12,9 @@ Two halves and a shared shape:
 | File | What it is |
 |---|---|
 | `state.ts` | The normalized `State` and the **one** set of key builders both sides use. |
-| `expected.ts` | `expected(brand) -> State`, read out of the engine's already-emitted artifacts. |
+| `expected.ts` | `expected(source) -> State`, projected from a **config**: a committed brand, or a design file you supply (`--design`). Carries its own `--selftest`. |
 | `diff.ts` | `diff(expected, actual) -> Report`, in nine categories. Also carries `--selftest`. |
-| `fixtures/` | A faithful `actual` (the baseline) and a dirty one with exactly one injected defect per category. |
+| `fixtures/` | A faithful `actual` (the baseline), a dirty one with exactly one injected defect per category, and the two `levers-*.design.md` configs `expected.ts --selftest` builds. |
 | `mutations.sh` | The harness's own by-name proof — breaks each arm in turn and asserts the named failure. |
 
 ## Why a shared `state.ts` and not two independent readers
@@ -32,8 +32,9 @@ becomes a stated finding; a concatenation would silently invent a name that matc
 ## The run loop
 
 ```bash
-# 1. The expectation, out of the engine's emitted artifacts. Notes go to stderr, so stdout is pure JSON.
-npx tsx tools/conformance-scan/expected.ts aurora > /tmp/expected.json
+# 1. The expectation, projected from a config. Notes go to stderr, so stdout is pure JSON.
+npx tsx tools/conformance-scan/expected.ts aurora > /tmp/expected.json                 # committed config
+npx tsx tools/conformance-scan/expected.ts --design /tmp/mine.design.md > /tmp/expected.json   # yours
 
 # 2. Read the live file (below), assemble to /tmp/actual.json
 
@@ -45,6 +46,52 @@ npx tsx tools/conformance-scan/diff.ts /tmp/expected.json /tmp/actual.json
 both sides are the same shape on purpose, so a swapped argument pair would otherwise diff cleanly in the
 mirror direction and read as a pass. `State.side` is the only thing that can catch that, which is why it
 is on the wire.
+
+## The config is an input, not an assumption (#1569)
+
+A brand's committed `design.md` is one config out of the whole lever space, and a theme applied from the
+studio is usually not at it: an operator moves density, cuts the breakpoint set, changes the radius scale,
+then applies. Every one of those levers changes what the engine emits, so an expectation built at the
+committed default disagrees with the file everywhere a lever moved — and each disagreement is reported as
+drift the designer must fix. Measured on the first real scan: **534 findings, 62 of them `high` outside
+category (a); re-run against the config the file was actually emitted from, 1.** Nothing in the file
+changed between those two numbers.
+
+So `--design` takes the brief:
+
+```bash
+# In the studio: Export design.md (it writes the exact input Apply posts), then
+npx tsx tools/conformance-scan/expected.ts --design ~/Downloads/mine.design.md > /tmp/expected.json
+```
+
+Engine-native or standard dialect, **detected** rather than declared — the same auto-detection `cli.ts`
+does (#556), because an operator has no reason to know which dialect the export came out as. A
+`BrandInput` `.json` works too: that is the shape Apply posts to the plugin, so a config captured from the
+host needs no round trip through markdown. The brand id and root come from the supplied config, the same
+way they come from a committed one.
+
+**Where the expectation comes from, and why it has to come from there.** For a committed brand the
+variable and style tiers are read off `packages/engine/out/figma/<brand>/`. A supplied config has no
+committed bytes, so they come from `figmaArtifacts(theme)` — the function `regen` itself writes through.
+That is the same emission reached two ways rather than a second derivation of it, and it is measured: for
+aurora's own brief all 27 artifacts are byte-identical to the committed tree, for wendys all 26 are.
+`expected.ts --selftest`'s second arm is that measurement, kept.
+
+**The independence rule this obeys** (`docs/34-gate-independence.md`, shape 1): the config records what
+the emitter was *told*, upstream of what it produced. A config *inferred* from the Figma file's own token
+values would make the scan agree with the file by construction — it would report clean over the exact
+drift it exists to find. So the config is supplied by the operator and never read back out of the
+`actual.json` it will be compared against. A config the *plugin stamps into the file at Apply* stays
+admissible under the same rule — it is a record of the input, written by the thing that received it, and
+would remove the operator's bookkeeping. That is a separate emission decision, not built here.
+
+**One thing a supplied config does not do: make the remaining findings go away.** In that first scan the
+mode-shape findings did not collapse, they *changed sign* — the file's `layout` collection still carried
+all six of its original modes (with one name duplicated) and all six breakpoint variables, so Apply had
+renamed modes without removing the stale ones. Against the committed config those read as 11 `high`
+"missing mode" findings, which were false; against the real config they read as 21 `low` "extra stale
+mode" findings, which are true and are the file's. The config false positives are what `--design` removes.
+What is left is the file.
 
 ## Step 2 — reading the live file
 
@@ -405,19 +452,32 @@ indistinguishable from a broken arm.
 ## The harness's own proof
 
 ```bash
-npx tsx tools/conformance-scan/diff.ts --selftest   # baseline clean + one injected defect per category
-bash tools/conformance-scan/mutations.sh            # break each arm; assert the named failure
+npx tsx tools/conformance-scan/diff.ts --selftest       # baseline clean + one injected defect per category
+npx tsx tools/conformance-scan/expected.ts --selftest   # the supplied config reaches the projection
+bash tools/conformance-scan/mutations.sh                # break each arm; assert the named failure
 ```
 
-`--selftest` runs four steps: the faithful fixture must diff **empty**; the dirty one must report
+`diff.ts --selftest` runs four steps: the faithful fixture must diff **empty**; the dirty one must report
 **exactly** the manifest's findings, asserted as set equality both ways (so a defect that stops being
 reported fails by name, *and* a finding the diff invents fails too); every category must have at least one
 injected defect proving it; and a transposed pair must be refused.
 
-`mutations.sh` is what makes `--selftest`'s claim falsifiable: a mutation per reporting branch, each
+`expected.ts --selftest` proves the other half — that the config is read rather than merely accepted —
+in two arms, because either alone would pass for a broken wire. **Arm 1** builds one brand
+(`fixtures/levers-*.design.md`, two files identical but for `density` and `layout.breakpoints`) at both
+configs and requires the two expectations to disagree at *named* coordinates: the size a density lever
+moves, the `layout` collection's mode set, and a rung each config emits and the other does not. **Arm 2**
+builds each committed design-file brand both ways — through `--design` and through its emitted tree — and
+requires every tier to match exactly, plus the file set in both directions. Arm 1 alone would pass for a
+path that projects a config faithfully but differently from the emitter; arm 2 alone would pass for a path
+that ignores the config entirely.
+
+`mutations.sh` is what makes both `--selftest`s' claims falsifiable: a mutation per reporting branch, each
 asserting the exact line the run must print, plus one per lenience — those assert that the **baseline stops
 being clean**, because a lenience fails by inventing findings on a correct file rather than by going quiet.
-**Commit before running it:** every revert is `git checkout -- <file>`, which reaches back to `HEAD`.
+Its last section does the same for the config wire: the levers dropped, the path ignored, the projection
+short a file, and a report that does not name the config it was built at — four quiet failures, four named
+rows. **Commit before running it:** every revert is `git checkout -- <file>`, which reaches back to `HEAD`.
 
 Three boundaries worth knowing, all written up at length in that script's header. `--selftest` proves a
 defect is reported under the right *category and subject*; it does not proof-read the *summary*, so the
