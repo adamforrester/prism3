@@ -2,7 +2,9 @@
  * CONFORMANCE SCAN — THE EXPECTED HOST-TRUTH (#1553 Phase 1, half one of two).
  *
  *   npx tsx tools/conformance-scan/expected.ts <brand> > expected.json
+ *   npx tsx tools/conformance-scan/expected.ts --design <path/to.design.md> > expected.json
  *   npx tsx tools/conformance-scan/expected.ts --brands        # what <brand> can be, and why
+ *   npx tsx tools/conformance-scan/expected.ts --selftest      # the config input reaches the projection
  *
  * Answers "what SHOULD be in a Figma file built from this engine, for this brand?" in the normalized
  * shape `state.ts` defines, so `diff.ts` can compare it against a live file read through
@@ -12,10 +14,15 @@
  *
  * Four sources, and the choice of source per category is the load-bearing design decision here:
  *
- *   1. VARIABLES — read out of the COMMITTED `packages/engine/out/figma/<brand>/*.json`. Not rebuilt
- *      from a `Theme`. Those bytes are what a designer's file is actually built from (the same
- *      argument `lint-cut-binding.ts` and `lint-absolute-inset.ts` make for reading them), so a
- *      re-derivation here would be comparing the live file against a tree nobody materialized.
+ *   1. VARIABLES + STYLES — the emitted Figma files. For a committed brand, read out of
+ *      `packages/engine/out/figma/<brand>/*.json`: those bytes are what a designer's file is actually
+ *      built from (the same argument `lint-cut-binding.ts` and `lint-absolute-inset.ts` make for
+ *      reading them). For a config supplied with `--design`, there are no committed bytes to read —
+ *      nobody ran `regen` for that config — so they come from `figmaArtifacts(theme)`, the function
+ *      `regen` itself writes through. Measured: for aurora's own `design.md`, all 27 artifacts are
+ *      BYTE-IDENTICAL to the committed tree, and for wendys all 26 are too. So this is one emission
+ *      reached two ways, not a second derivation of it — and `--selftest` asserts that, per brand and
+ *      in both dialects, so the day the two stop agreeing is the day that arm goes red.
  *   2. BINDINGS + STRUCTURE — from `figmaAnatomySet`, the projector the plugin itself drives. Component
  *      payloads are NOT committed under `out/` (the plugin builds them from the defs at run time), so
  *      there are no bytes to read and the projection IS the artifact.
@@ -37,6 +44,33 @@
  * every plan name is RESOLVED THROUGH the emitted variable table (`materializeName`), so a name that
  * does not land becomes a stated finding instead of a silently mangled join key. Measured across all
  * three emitting brands: 177 distinct plan variables, 0 unresolved.
+ *
+ * ── THE CONFIG IS AN INPUT, NOT AN ASSUMPTION (#1569) ───────────────────────────────────────────
+ *
+ * A brand id names ONE config: the committed `examples/<brand>.design.md`. Real themes are not built
+ * at that config — an operator moves levers in the studio (density, breakpoints, radius scale, …) and
+ * THEN applies. Measured on the first live run: a correct aurora file emitted at comfortable /
+ * 2 breakpoints reported ~92 token-tier findings against the committed compact / 6-breakpoint
+ * expectation, and not one of them was drift. Every one was the lever delta — `control/size` and
+ * `size/*` a uniform rung up, a `dimension` rung present on one side and absent on the other, the
+ * `layout` collection's whole mode shape, the `breakpoint` values, the `Grid / *` styles.
+ *
+ * So the config is supplied: `--design <file>` builds the expectation from the exact brief the theme
+ * was emitted from (the studio's own "Export design.md" round-trips into it), and `<brand>` keeps
+ * meaning what it meant — the committed default config, unchanged.
+ *
+ * WHICH DIRECTION THE CONFIG MAY TRAVEL, and it is the whole independence argument (`docs/34` shape 1).
+ * The expectation is built from the engine's PROJECTION of the supplied config: config → `brandTheme`
+ * → `figmaArtifacts` → this `State`, every step the same code the studio and the plugin run. It is
+ * never re-derived from the `actual.json` it will be compared against. A config inferred from the
+ * file's own token values would make the scan agree with the file BY CONSTRUCTION: every drift would
+ * read as "well, that must be the config it was built at", and the scan would report clean over
+ * exactly the defects it exists to find. The supplied design file records what the emitter was TOLD,
+ * upstream of what it produced, which is why it is admissible evidence and the file's own values are
+ * not. (This is also why `expected.ts` takes a config and not a figma file, and why the companion
+ * option — the plugin stamping the emitted config into the document as provenance the scan READS —
+ * would remain admissible under the same rule, while inferring the config would not. Not built here;
+ * it is an emission decision the owner holds. Filed as the durable follow-up to this.)
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -49,12 +83,18 @@ import {
   type FigmaNodePlan,
 } from '../../packages/engine/anatomy-figma';
 import { brandTheme } from '../../packages/engine/theme';
-import { readExampleBrand } from '../../packages/engine/emit-dtcg';
+import { figmaArtifacts } from '../../packages/engine/emit-figma';
+import { validateBrandInput } from '../../packages/engine/emit-dtcg';
 import { nbTheme } from '../../packages/engine/nb-fixture';
-import { parseStandardDesignMd, standardToBrandInput } from '../../packages/engine/standard-design-md';
+import { parseDesignMd } from '../../packages/engine/design-md';
+import {
+  isStandardDesignMd,
+  parseStandardDesignMd,
+  standardToBrandInput,
+} from '../../packages/engine/standard-design-md';
 import { resolveAllModes } from '../../packages/engine/modes';
 import { ENGINE_VERSION } from '../../packages/engine/version';
-import type { Theme } from '../../packages/engine/theme';
+import type { BrandInput, Theme } from '../../packages/engine/theme';
 import {
   FORMAT,
   STYLE_KINDS,
@@ -76,13 +116,79 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 const engineDir = resolve(here, '../../packages/engine');
 
+// ── A CONFIG, WHEREVER IT CAME FROM, BECOMES A THEME ONE WAY ─────────────────────────────────────
+
+/** Which config an expectation is built from. `brand` is the committed default; `design` is the brief
+ *  the theme was actually emitted from, levers and all (#1569). */
+export type ExpectedSource = { kind: 'brand'; brand: string } | { kind: 'design'; path: string };
+
 /**
- * Brand id → the Theme its contrast contract is read from.
+ * A design file → the `BrandInput` the engine compiles.
+ *
+ * The dialect is DETECTED, never declared — the same auto-detection `cli.ts` does (#556), because an
+ * operator exporting a brief from the studio has no reason to know which dialect it came out as, and a
+ * hand-picked parser per call site is how the two dialects drift apart. `.json` is accepted too: that
+ * is the shape Apply posts to the plugin (`lastGoodInput`), so a `BrandInput` captured from the host is
+ * usable directly without a round trip through markdown.
+ *
+ * `validateBrandInput` runs before `brandTheme`, for the reason `cli.ts` gives: the contract violation
+ * is a readable list, and the stack trace `brandTheme` throws four levels down is not.
+ */
+const inputFromDesignFile = (path: string): BrandInput => {
+  let text: string;
+  try {
+    text = readFileSync(path, 'utf8');
+  } catch {
+    throw new Error(`cannot read the design file: ${path}`);
+  }
+  let input: BrandInput;
+  if (path.endsWith('.json')) {
+    input = JSON.parse(text) as BrandInput;
+  } else {
+    let std;
+    try {
+      std = parseStandardDesignMd(text);
+    } catch (e) {
+      throw new Error(`parse error in ${path}: ${(e as Error).message}`);
+    }
+    input = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+  }
+  const errs = validateBrandInput(input);
+  if (errs.length)
+    throw new Error(
+      `${path} violates the BrandInput contract (schema/theme-schema.json):\n` +
+        errs.map((x) => `   · ${x}`).join('\n'),
+    );
+  return input;
+};
+
+const themeFromDesignFile = (path: string): Theme => brandTheme(inputFromDesignFile(path));
+
+/**
+ * Brand id → the committed design file its config is read from.
+ *
+ * `nb` is absent ON PURPOSE and is not an omission: it has no `design.md` at all. It is a
+ * hand-written regression fixture (`nb-fixture.ts`), which is the point of it — the brand whose numbers
+ * were transcribed from the real New Balance tokens rather than generated from a brief.
+ */
+const DESIGN_OF: Record<string, string> = {
+  aurora: 'examples/aurora.design.md',
+  wendys: 'examples/wendys.design.md',
+};
+
+/**
+ * Brand id → the Theme its contrast contract, and (for `--design`) its whole projection, is built from.
  *
  * A FOURTH hand-maintained copy of this table (`emit-figma.ts`, `token-contract.ts`,
  * `lint-figma-destination.ts` each keep their own) and deliberately not a fifth abstraction: the repo
  * has no exported brand registry, every existing site keeps a local table, and inventing a shared one
  * here would be a refactor of three files this task has no business touching.
+ *
+ * Every design-file brand is now built by the SAME loader an operator's `--design` goes through, which
+ * is why the two entries below collapsed into `DESIGN_OF`. Before #1569 aurora went through
+ * `readExampleBrand` (engine-native only) and wendys through `parseStandardDesignMd` (standard only) —
+ * two hand-picked parsers for the thing dialect detection exists to decide. One loader also means
+ * `--selftest` comparing the two paths is comparing the two SOURCES, not two parsers.
  *
  * It is NOT a list of scannable brands — `out/figma/` is (see `brandsOnDisk`). A brand present on disk
  * and absent here FAILS rather than skipping its contrast arm, the lesson `lint-figma-destination.ts`
@@ -90,13 +196,12 @@ const engineDir = resolve(here, '../../packages/engine');
  */
 const THEME_OF: Record<string, () => Theme> = {
   nb: () => nbTheme(),
-  aurora: () => brandTheme(readExampleBrand('./examples/aurora.design.md')),
-  wendys: () =>
-    brandTheme(
-      standardToBrandInput(
-        parseStandardDesignMd(readFileSync(resolve(engineDir, 'examples/wendys.design.md'), 'utf8')),
-      ).input,
-    ),
+  ...Object.fromEntries(
+    Object.entries(DESIGN_OF).map(([brand, rel]) => [
+      brand,
+      () => themeFromDesignFile(resolve(engineDir, rel)),
+    ]),
+  ),
 };
 
 /** The brands that HAVE an emission to scan — discovered, so a brand added to `emit-figma.ts` is
@@ -118,17 +223,44 @@ type EmittedVar = {
 /** One emitted collection file, reduced to what a conformance claim can be checked against. */
 type EmittedFile = { collection: string; mode: string | undefined; variables: EmittedVar[] };
 
-const readEmission = (brand: string): EmittedFile[] => {
+/**
+ * One emitted Figma file as BYTES, whichever side produced them — read off `out/figma/<brand>/`, or
+ * returned by `figmaArtifacts(theme)` for a supplied config.
+ *
+ * ONE parser consumes both, and that is the same rule `state.ts` exists for one level up: two readers
+ * of the same bytes are two chances to key the result differently, and a name-keyed diff over two
+ * different keyings is not noisier, it is useless (#1511). A brand and a `--design` run must produce
+ * the same `State` for the same config or the difference is the tool's, not the file's — which is
+ * precisely what `--selftest`'s first arm asserts, and it can only assert it because there is one
+ * parser to be right or wrong.
+ */
+type SourceFile = { file: string; text: string };
+
+const filesOnDisk = (brand: string): SourceFile[] => {
   const dir = resolve(engineDir, 'out/figma', brand);
   if (!existsSync(dir))
     throw new Error(
       `no emission at packages/engine/out/figma/${brand}/ — run \`npx tsx packages/engine/regen.ts\`, ` +
         `or pick one of: ${brandsOnDisk().join(', ') || '(none on disk)'}`,
     );
+  return readdirSync(dir)
+    .sort()
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => ({ file: f, text: readFileSync(resolve(dir, f), 'utf8') }));
+};
+
+/** The same files a `regen` run would WRITE for this theme, without writing them. `figmaArtifacts` is
+ *  the function `emit-figma.ts` serializes through, so these are the emission rather than a model of
+ *  it — see the header's source 1 for the byte-identity measurement. */
+const filesFromTheme = (theme: Theme): SourceFile[] =>
+  figmaArtifacts(theme)
+    .artifacts.map((a) => ({ file: a.path, text: a.content }))
+    .sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
+
+const parseEmission = (files: SourceFile[], whence: string): EmittedFile[] => {
   const out: EmittedFile[] = [];
-  for (const f of readdirSync(dir).sort()) {
-    if (!f.endsWith('.json')) continue;
-    const j = JSON.parse(readFileSync(resolve(dir, f), 'utf8')) as {
+  for (const { file, text } of files) {
+    const j = JSON.parse(text) as {
       $collection?: unknown;
       $mode?: unknown;
       variables?: EmittedVar[];
@@ -136,14 +268,15 @@ const readEmission = (brand: string): EmittedFile[] => {
     // A STYLE file (`text-styles.json`) carries `styles`, not `variables`, and no `$mode`. Skipped
     // rather than half-modelled — see state.ts on why styles are out of this shape.
     if (!Array.isArray(j.variables)) continue;
-    if (typeof j.$collection !== 'string') throw new Error(`${brand}/${f}: no string \`$collection\``);
+    if (typeof j.$collection !== 'string')
+      throw new Error(`${file} (from ${whence}): no string \`$collection\``);
     out.push({
       collection: j.$collection,
       mode: typeof j.$mode === 'string' ? j.$mode : undefined,
       variables: j.variables,
     });
   }
-  if (out.length === 0) throw new Error(`packages/engine/out/figma/${brand}/ holds no variable files`);
+  if (out.length === 0) throw new Error(`no variable files in ${whence}`);
   return out;
 };
 
@@ -231,20 +364,26 @@ const styleDefOf = (kind: StyleKind, raw: Record<string, unknown>): StyleDef => 
  *  because a brand gradient is opt-in, and "no paint styles emitted" is the correct expectation rather
  *  than a hole. It also means the paint kind's expectation for those brands is that the file's own paint
  *  styles are all EXTRA, which is exactly what arm (i) reports and at `low`. */
-const readStyles = (brand: string): { styles: Record<string, StyleDef>; counts: Record<string, number> } => {
-  const dir = resolve(engineDir, 'out/figma', brand);
+const parseStyles = (
+  files: SourceFile[],
+  whence: string,
+): { styles: Record<string, StyleDef>; counts: Record<string, number> } => {
   const styles: Record<string, StyleDef> = {};
   const counts: Record<string, number> = {};
   for (const { file, kind } of STYLE_FILES) {
-    const path = resolve(dir, file);
-    if (!existsSync(path)) continue;
-    const j = JSON.parse(readFileSync(path, 'utf8')) as { styles?: Record<string, unknown>[] };
-    if (!Array.isArray(j.styles)) throw new Error(`${brand}/${file}: no \`styles\` array`);
+    const src = files.find((f) => f.file === file);
+    if (!src) continue;
+    const j = JSON.parse(src.text) as { styles?: Record<string, unknown>[] };
+    if (!Array.isArray(j.styles)) throw new Error(`${file} (from ${whence}): no \`styles\` array`);
     counts[kind] = j.styles.length;
     for (const s of j.styles) {
       const def = styleDefOf(kind, s);
       const key = styleKey(kind, def.name);
-      if (key in styles) throw new Error(`${brand}/${file}: two ${kind} styles are named '${def.name}' — the emission is not keyable by name`);
+      if (key in styles)
+        throw new Error(
+          `${file} (from ${whence}): two ${kind} styles are named '${def.name}' — the emission is not ` +
+            `keyable by name`,
+        );
       styles[key] = def;
     }
   }
@@ -457,12 +596,56 @@ export type ExpectedResult = {
   notes: string[];
 };
 
-export const expected = (brand: string): ExpectedResult => {
+/**
+ * The four things a source has to answer, resolved in one place so the rest of `expected()` cannot
+ * tell which kind it got. The `Theme` is resolved HERE for both kinds — a `--design` run has no
+ * `THEME_OF` entry to look up and must not need one (that is the whole point: the config is not a
+ * committed brand), and a brand run must still fail loudly when its entry is missing.
+ */
+const resolveSource = (
+  source: ExpectedSource,
+): { files: SourceFile[]; theme: Theme; from: string; whence: string } => {
+  if (source.kind === 'design') {
+    const theme = themeFromDesignFile(resolve(process.cwd(), source.path));
+    return {
+      files: filesFromTheme(theme),
+      theme,
+      // The path travels in `from`, so the diff report NAMES the config its expectation was built at.
+      // A report that cannot say which levers it assumed is the #1569 confusion all over again.
+      from: `${theme.id} ← ${source.path}`,
+      whence: `figmaArtifacts() for '${theme.id}', built from ${source.path}`,
+    };
+  }
+  const themeFn = THEME_OF[source.brand];
+  if (!themeFn)
+    throw new Error(
+      `brand '${source.brand}' has an emission on disk but no entry in this file's THEME_OF table, so ` +
+        `its contrast contracts cannot be built. That is a FAILURE, not a skip: a scan missing the ` +
+        `contrast category would report clean over every AA failure in the file. Add '${source.brand}' ` +
+        `to THEME_OF.`,
+    );
+  return {
+    files: filesOnDisk(source.brand),
+    theme: themeFn(),
+    from: source.brand,
+    whence: `packages/engine/out/figma/${source.brand}/`,
+  };
+};
+
+export const expected = (source: ExpectedSource): ExpectedResult => {
   const notes: string[] = [];
-  const files = readEmission(brand);
-  const { variables, collections } = buildVariables(files);
-  const root = rootOf(Object.keys(variables), `packages/engine/out/figma/${brand}/`);
-  const { styles, counts: styleCounts } = readStyles(brand);
+  const { files, theme, from, whence } = resolveSource(source);
+  if (source.kind === 'design')
+    notes.push(
+      `config SUPPLIED (#1569): brand '${theme.id}' built from ${source.path} — density ` +
+        `${theme.dims.density}, radius scale ${theme.dims.radiusScaleValue}, ` +
+        `${theme.layout.breakpoints.length} breakpoint(s). Nothing was read from ` +
+        `packages/engine/out/figma/${theme.id}/, which holds the COMMITTED config's emission and would ` +
+        `disagree with this one wherever a lever moved.`,
+    );
+  const { variables, collections } = buildVariables(parseEmission(files, whence));
+  const root = rootOf(Object.keys(variables), whence);
+  const { styles, counts: styleCounts } = parseStyles(files, whence);
   notes.push(
     `style definitions read: ${Object.keys(styles).length} across ` +
       `${STYLE_KINDS.map((k) => `${styleCounts[k] ?? 0} ${k}`).join(', ')}`,
@@ -504,19 +687,12 @@ export const expected = (brand: string): ExpectedResult => {
   }
   if (unresolved.size > 0)
     notes.push(
-      `${unresolved.size} plan variable name(s) resolve to no emitted variable for brand '${brand}' and ` +
+      `${unresolved.size} plan variable name(s) resolve to no emitted variable for '${from}' and ` +
         `carry NO expected binding as a result — a hole in this expected state, not a finding about any ` +
         `file: ${[...unresolved].sort().slice(0, 8).join(', ')}${unresolved.size > 8 ? ', …' : ''}`,
     );
 
-  const themeFn = THEME_OF[brand];
-  if (!themeFn)
-    throw new Error(
-      `brand '${brand}' has an emission on disk but no entry in this file's THEME_OF table, so its ` +
-        `contrast contracts cannot be built. That is a FAILURE, not a skip: a scan missing the contrast ` +
-        `category would report clean over every AA failure in the file. Add '${brand}' to THEME_OF.`,
-    );
-  const { contracts, unmeasurable } = buildContrast(themeFn(), root, variables);
+  const { contracts, unmeasurable } = buildContrast(theme, root, variables);
   if (unmeasurable.length > 0)
     notes.push(
       `${unmeasurable.length} contrast contract(s) are not re-measurable and are EXCLUDED from the ` +
@@ -529,7 +705,7 @@ export const expected = (brand: string): ExpectedResult => {
       format: FORMAT,
       version: VERSION,
       side: 'expected',
-      from: brand,
+      from,
       root,
       engineVersion: ENGINE_VERSION,
       collections,
@@ -542,23 +718,158 @@ export const expected = (brand: string): ExpectedResult => {
   };
 };
 
+// ── THE SELF-CHECK: DOES THE SUPPLIED CONFIG ACTUALLY REACH THE PROJECTION? ──────────────────────
+//
+// `--design` is a wire, and a wire that is connected at one end reports success. The failure mode this
+// arm exists for is the quiet one: the flag is accepted, the file is read, the brand is named in the
+// output — and the expectation is still the committed config's, so a comfortable/2-breakpoint theme
+// still reports ~92 findings and the operator now believes the tool was fixed. That is worse than the
+// bug, because #1569 at least announced itself.
+//
+// So arm 1 builds the SAME brand at two configs that differ ONLY in two levers, and requires the two
+// expectations to disagree at NAMED coordinates. Nothing about it can pass if the config is read and
+// dropped. Arm 2 is the other side of the same claim: at the SAME config, the two sources must agree
+// exactly — because `figmaArtifacts` is the function `regen` writes through, so a `--design` build of a
+// committed brand's own brief must reproduce that brand's committed tree. Arm 1 without arm 2 would
+// pass for a `--design` path that projects a config faithfully but differently from the emitter; arm 2
+// without arm 1 would pass for a path that ignores the config entirely. Neither is worth much alone.
+
+const FIXTURES = resolve(here, 'fixtures');
+
+/** Key-sorted JSON, so two states built in different insertion orders still compare equal. Comparing
+ *  raw `JSON.stringify` would make this arm fail on an ordering difference nothing downstream reads —
+ *  `diff.ts` is name-keyed throughout. */
+const canon = (v: unknown): string => {
+  const walk = (x: unknown): unknown => {
+    if (Array.isArray(x)) return x.map(walk);
+    if (x && typeof x === 'object')
+      return Object.fromEntries(Object.entries(x as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, val]) => [k, walk(val)]));
+    return x;
+  };
+  return JSON.stringify(walk(v));
+};
+
+const selftest = (): boolean => {
+  let ok = true;
+  const check = (name: string, pass: boolean, detail: string): void => {
+    console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`);
+    if (!pass) ok = false;
+  };
+
+  // ── ARM 1: two configs, one brand, named differences ──────────────────────────────────────────
+  const A = expected({ kind: 'design', path: resolve(FIXTURES, 'levers-compact-6bp.design.md') }).state;
+  const B = expected({ kind: 'design', path: resolve(FIXTURES, 'levers-comfortable-2bp.design.md') }).state;
+
+  // The premise: the two fixtures are the SAME brand. Without this, every check below would also pass
+  // for two unrelated briefs, which would prove that `--design` reads A file and nothing more.
+  check(
+    'arm 1 premise: the two fixture configs are one brand at two lever settings',
+    A.root === B.root && A.root === 'fxt',
+    `roots '${A.root}' and '${B.root}'`,
+  );
+
+  const SIZE = 'fxt/control/size/md/height';
+  const aSize = A.variables[SIZE]?.modes['Default'];
+  const bSize = B.variables[SIZE]?.modes['Default'];
+  check(
+    `arm 1 density: ${SIZE} differs between compact and comfortable`,
+    !!aSize && !!bSize && canon(aSize) !== canon(bSize),
+    `compact ${canon(aSize)} vs comfortable ${canon(bSize)}`,
+  );
+
+  const aModes = A.collections['layout']?.modes ?? [];
+  const bModes = B.collections['layout']?.modes ?? [];
+  check(
+    "arm 1 breakpoints: the 'layout' collection's mode set differs between 6 and 2 breakpoints",
+    aModes.length > 0 && bModes.length > 0 && canon(aModes) !== canon(bModes),
+    `6bp [${aModes.join(' ')}] vs 2bp [${bModes.join(' ')}]`,
+  );
+
+  const onlyA = Object.keys(A.variables).filter((n) => !(n in B.variables));
+  const onlyB = Object.keys(B.variables).filter((n) => !(n in A.variables));
+  check(
+    'arm 1 rungs: each config emits variables the other does not',
+    onlyA.length > 0 && onlyB.length > 0,
+    `${onlyA.length} only at compact/6bp (${onlyA.slice(0, 3).join(', ')}), ` +
+      `${onlyB.length} only at comfortable/2bp (${onlyB.slice(0, 3).join(', ')})`,
+  );
+
+  // ── ARM 2: one config, two sources, no difference ─────────────────────────────────────────────
+  for (const [brand, rel] of Object.entries(DESIGN_OF)) {
+    if (!brandsOnDisk().includes(brand)) {
+      check(`arm 2 ${brand}: an emission is on disk to compare against`, false, `no packages/engine/out/figma/${brand}/`);
+      continue;
+    }
+    const viaBrand = expected({ kind: 'brand', brand }).state;
+    const viaDesign = expected({ kind: 'design', path: resolve(engineDir, rel) }).state;
+    // `from` is the one field that MUST differ: it records the source, which is the point of it.
+    check(
+      `arm 2 ${brand}: the two sources disagree only about which source they are`,
+      viaBrand.from !== viaDesign.from,
+      `'${viaBrand.from}' vs '${viaDesign.from}'`,
+    );
+    for (const tier of ['collections', 'variables', 'styles', 'bindings', 'structure', 'contrast'] as const) {
+      check(
+        `arm 2 ${brand}: ${tier} built from ${rel} match the committed emission exactly`,
+        canon(viaBrand[tier]) === canon(viaDesign[tier]),
+        `${Object.keys(viaBrand[tier] ?? {}).length} vs ${Object.keys(viaDesign[tier] ?? {}).length} entries`,
+      );
+    }
+    // The file SET, both directions: an `out/figma/<brand>/` file `figmaArtifacts` no longer writes
+    // would otherwise be invisible above, because a tier built from fewer files can still agree on
+    // every name it does carry.
+    const disk = filesOnDisk(brand).map((f) => f.file);
+    const mem = filesFromTheme(themeFromDesignFile(resolve(engineDir, rel))).map((f) => f.file);
+    check(
+      `arm 2 ${brand}: the two sources carry the same ${disk.length} files`,
+      canon(disk) === canon(mem),
+      `disk-only [${disk.filter((f) => !mem.includes(f)).join(' ')}] memory-only [${mem.filter((f) => !disk.includes(f)).join(' ')}]`,
+    );
+  }
+
+  console.log(`\nSELF-CHECK: ${ok ? 'PASS' : 'FAIL'}`);
+  return ok;
+};
+
 const isMain = process.argv[1] ? resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
 if (isMain) {
   const arg = process.argv[2];
   if (!arg || arg === '--brands' || arg === '--help' || arg === '-h') {
     const disk = brandsOnDisk();
     const missingTheme = disk.filter((b) => !THEME_OF[b]);
-    console.log(`usage: npx tsx tools/conformance-scan/expected.ts <brand> > expected.json\n`);
+    console.log(`usage: npx tsx tools/conformance-scan/expected.ts <brand> > expected.json`);
+    console.log(`       npx tsx tools/conformance-scan/expected.ts --design <path/to.design.md> > expected.json`);
+    console.log(`       npx tsx tools/conformance-scan/expected.ts --selftest\n`);
+    console.log(`<brand> builds the COMMITTED config — the brand's own design.md, levers where it left them.`);
+    console.log(`--design builds the config you SUPPLY, which is what a studio-themed file was emitted from:`);
+    console.log(`         export design.md from the studio before Apply, and point this at it. Without it, every`);
+    console.log(`         lever you moved reads as drift (#1569). Engine-native or standard dialect, detected;`);
+    console.log(`         a BrandInput .json (what Apply posts) works too.\n`);
     console.log(`brands with an emission under packages/engine/out/figma/: ${disk.join(', ') || '(none)'}`);
     console.log(`brands this tool can build contrast contracts for:       ${Object.keys(THEME_OF).sort().join(', ')}`);
+    console.log(`brands with a committed design file (--design's corpus):  ${Object.keys(DESIGN_OF).sort().join(', ')}`);
     if (missingTheme.length) console.log(`\n  ⚠ on disk but NOT in THEME_OF (would fail): ${missingTheme.join(', ')}`);
     process.exit(arg ? 0 : 1);
   }
-  const { state, notes } = expected(arg);
+  if (arg === '--selftest') process.exit(selftest() ? 0 : 1);
+
+  let source: ExpectedSource;
+  if (arg === '--design') {
+    const path = process.argv[3];
+    if (!path) {
+      console.error(`✖ --design needs a path: expected.ts --design <path/to.design.md>`);
+      process.exit(1);
+    }
+    source = { kind: 'design', path };
+  } else {
+    source = { kind: 'brand', brand: arg };
+  }
+
+  const { state, notes } = expected(source);
   for (const n of notes) console.error(`[expected] note: ${n}`);
   const styleBinds = Object.values(state.bindings).filter((b) => 'boundStyle' in b).length;
   console.error(
-    `[expected] ${arg}: root '${state.root}' · ${Object.keys(state.variables).length} variables in ` +
+    `[expected] ${state.from}: root '${state.root}' · ${Object.keys(state.variables).length} variables in ` +
       `${Object.keys(state.collections).length} collections · ${Object.keys(state.bindings).length} bindings ` +
       `(${Object.keys(state.bindings).length - styleBinds} to variables, ${styleBinds} to styles) · ` +
       `${Object.keys(state.structure).length} components · ${Object.keys(state.styles ?? {}).length} styles · ` +

@@ -152,17 +152,30 @@ names every icon-button glyph) or on a drifted live Figma file, not by being red
 ## `tools/conformance-scan/`
 
 *"Does what is in this Figma file match what the Prism3 engine says should be there?"* (#1553 P1). Two
-halves and a shared shape: `expected.ts` builds a normalized `State` out of the engine's ALREADY-EMITTED
-artifacts (`out/figma/<brand>/`, the `figmaAnatomySet` plans, the contrast contracts, `ENGINE_VERSION`), a
+halves and a shared shape: `expected.ts` projects a normalized `State` from a brand CONFIG (the
+`figmaAnatomySet` plans, the contrast contracts, `ENGINE_VERSION`, and the emitted Figma artifacts), a
 read-only `figma_execute` snippet (in the README) builds the same `State` from the open file, and `diff.ts`
-compares them in eight categories — binding presence and target, per-mode value, mode coverage,
-scope/type, structure, contrast re-measured on the file's own colors, and generator staleness.
+compares them in nine categories — binding presence and target, per-mode value, mode coverage,
+scope/type, structure, contrast re-measured on the file's own colors, generator staleness, and the style
+definitions' own interiors.
+
+**The config is an INPUT (#1569), and that is the load-bearing thing about `expected.ts`.** A committed
+brand (`expected.ts aurora`) reads `out/figma/<brand>/`; a supplied brief (`--design <path>`, which is
+what the studio's "Export design.md" writes and what Apply actually posted) is projected through
+`figmaArtifacts(theme)` instead — the function `regen` writes through, so it is the same emission reached
+two ways, measured byte-identical for all 27 aurora artifacts and all 26 wendys ones. Without the flag,
+every lever an operator moved before applying reads as drift: one real scan went from 62 `high` findings
+outside category (a) to 1 with nothing about the file changed. Do **not** make this easier by inferring
+the config from the `actual.json` — `docs/34` shape 1: the expectation would then agree with the file by
+construction and report clean over the drift it exists to find. The config is what the emitter was TOLD,
+which is why it can only come from upstream of the file.
 
 **No gate sibling, and the reason is the subject rather than the difficulty.** The thing it measures is a
 Figma document, which is not in CI and is not owned by this repo: a designer nudging a value is a real
 finding and not a defect any commit here can fix. So it exits 0 carrying findings. What *is* gated is the
-harness's own correctness — `diff.ts --selftest` over committed fixtures, and `mutations.sh` behind it —
-and those are self-checks the author runs, not CI steps.
+harness's own correctness — `diff.ts --selftest` over committed fixtures, `expected.ts --selftest` over the
+two `fixtures/levers-*.design.md` configs, and `mutations.sh` behind both — and those are self-checks the
+author runs, not CI steps.
 
 **The one thing to read before editing it: `state.ts`.** It holds the join key (`bindKey`, `canonValue`,
 `rootOf`, `instanceKey`, `underInstance`) for BOTH producers, and that is not tidiness. A join key computed

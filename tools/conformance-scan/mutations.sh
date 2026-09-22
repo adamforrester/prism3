@@ -9,6 +9,10 @@
 # up as a named MISSING row. This script is what makes that claim falsifiable — it breaks each arm in
 # turn and asserts the exact line the run must print.
 #
+# The last section does the same for the OTHER self-check in this harness, `expected.ts --selftest`
+# (#1569): the diff arms are only worth anything over an expectation built at the config the file was
+# really emitted from, so the wire that carries that config is proven here too.
+#
 # ── TWO THINGS THE FIRST DRAFT OF THIS SCRIPT GOT WRONG, BOTH WORTH KEEPING WRITTEN DOWN ────────────
 #
 # 1. A MUTATION THAT REMOVES A NULL GUARD IS NOT A MUTATION OF THE FINDING. Three arms report their
@@ -49,16 +53,18 @@ set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 1
 D=tools/conformance-scan/diff.ts
 S=tools/conformance-scan/state.ts
+E=tools/conformance-scan/expected.ts
 F=tools/conformance-scan/fixtures
 PASS=0; FAIL=0
 
-if ! git diff --quiet -- "$D" "$S"; then
-  echo "REFUSING: $D or $S has uncommitted changes. Every revert here is \`git checkout --\`, which"
+if ! git diff --quiet -- "$D" "$S" "$E"; then
+  echo "REFUSING: $D, $S or $E has uncommitted changes. Every revert here is \`git checkout --\`, which"
   echo "reaches back to HEAD and would destroy them. Commit first."
   exit 1
 fi
 
 SELFTEST="npx tsx $D --selftest"
+SELFTEST_EXPECTED="npx tsx $E --selftest"
 REPORT="npx tsx $D $F/expected.json $F/actual-dirty.json"
 
 # $1 file  $2 label  $3 literal to replace  $4 replacement  $5 command  $6 `have`|`gone`  $7 the line
@@ -386,9 +392,59 @@ mutate "$F/manifest.json" "the manifest's last coverage row, (h) staleness" \
   "$SELFTEST" have "no injected defect for 1 category(ies), so they are unproven: staleness"
 
 echo
+echo "MUTATING THE CONFIG INPUT — --design is a wire, and a wire connected at one end reports success"
+echo
+
+# #1569. `expected.ts --design <brief>` exists so a theme emitted at moved levers is compared against
+# the config it was ACTUALLY emitted from, rather than against the brand's committed default. Every
+# failure mode of that wire is quiet: the flag is accepted, the file is read, the brand is named in the
+# report — and the expectation is still the committed config's. `expected.ts --selftest` claims to catch
+# each one. These four break it in the four places it can break and assert the row that must go red.
+#
+# They are the only arms here that run a DIFFERENT --selftest ($E, not $D), which is why each `want`
+# carries its whole row rather than the `MISSING ` prefix the diff arms share.
+
+# The whole bug, reproduced deliberately: the config is parsed and then DROPPED. Both fixtures collapse
+# to the engine's defaults and the two expectations become identical — so arm 1's density row, which
+# names the coordinate the density lever moves, is the one that has to notice.
+mutate "$E" "the supplied config's levers reach the projection" \
+  "  return input;" \
+  "  return { ...input, density: undefined, layout: undefined } as BrandInput;" \
+  "$SELFTEST_EXPECTED" have \
+  "FAIL  arm 1 density: fxt/control/size/md/height differs between compact and comfortable"
+
+# One step subtler: the levers travel, but the PATH does not — every `--design` run builds the same
+# committed brief. Arm 1's premise row is the only one that can see this, because a tool building aurora
+# twice still reports two internally consistent expectations that differ nowhere.
+mutate "$E" "the supplied PATH is what gets read" \
+  "const themeFromDesignFile = (path: string): Theme => brandTheme(inputFromDesignFile(path));" \
+  "const themeFromDesignFile = (path: string): Theme => brandTheme(inputFromDesignFile(resolve(engineDir, 'examples/aurora.design.md')));" \
+  "$SELFTEST_EXPECTED" have \
+  "FAIL  arm 1 premise: the two fixture configs are one brand at two lever settings"
+
+# The other half of the claim: the in-memory projection must BE the emission, not a model of it. A
+# `--design` build that silently carries fewer files than `regen` writes would report every name in the
+# missing file as absent from the Figma file — a false positive per variable, and the reason the file SET
+# is asserted in both directions rather than the tiers alone.
+mutate "$E" "the projection carries every file regen writes" \
+  "    .artifacts.map((a) => ({ file: a.path, text: a.content }))" \
+  "    .artifacts.slice(1).map((a) => ({ file: a.path, text: a.content }))" \
+  "$SELFTEST_EXPECTED" have \
+  "FAIL  arm 2 aurora: the two sources carry the same"
+
+# And the part that is about the READER of the report rather than the expectation: `from` has to name the
+# config, or a scan run at a supplied brief is indistinguishable from one run at the committed default —
+# which is how #1569 was believed fixed twice before it was.
+mutate "$E" "the report NAMES the config it was built at" \
+  "      from: \`\${theme.id} ← \${source.path}\`," \
+  "      from: theme.id," \
+  "$SELFTEST_EXPECTED" have \
+  "FAIL  arm 2 aurora: the two sources disagree only about which source they are"
+
+echo
 echo "-------------------------------------------------------------------------------"
 echo "$PASS detected, $FAIL undetected"
-if ! git diff --quiet -- "$D" "$S" "$F/manifest.json" "$F/actual-dirty.json"; then
+if ! git diff --quiet -- "$D" "$S" "$E" "$F/manifest.json" "$F/actual-dirty.json"; then
   echo "WARNING: a revert did not take — check \`git status\` before trusting anything above."
   exit 1
 fi

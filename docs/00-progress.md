@@ -7,6 +7,55 @@
 
 ---
 
+## (2026-09-22) — the conformance scan builds its expectation at the config you supply, not the committed default (#1569)
+
+**STATUS: LANDED (this lane). TOOLS-ONLY.** `tools/conformance-scan/expected.ts` + two new `fixtures/levers-*.design.md` + four new `mutations.sh` arms + README + `tools/CLAUDE.md`. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed**, `regen --check` clean. Gate count **STANDS at 61** — `tools/` is wired into no CI gate but the freshness battery, and this adds no gate. Closes #1569. Files **#1570** (stale layout modes + a duplicated mode name left behind by Apply — found here, out of scope, see below). **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, the #1567/#1568 executor fixes (different lane), TokenPress.
+
+── THE DIAGNOSIS ────────────────────────────────────────────────────────────────────────────────────────
+
+`expected.ts` could only build a brand at its **committed** config: `expected.ts aurora` read `examples/aurora.design.md` off disk, levers where that file leaves them (density `compact`, 6 breakpoints). But nobody scans a file emitted at those levers — an operator opens the studio, moves density, cuts the breakpoint set, applies. Every lever that moved then disagrees with the expectation, and the scan reports each disagreement as drift the designer has to go and fix. **The scan was only trustworthy at committed defaults, which is the one case that never happens.** Measured on the owner's real scan: 534 findings, of which **62 `high` outside category (a)** were the lever delta and nothing else.
+
+── WHY OPTION A NOW, AND WHY B IS STILL OPEN ────────────────────────────────────────────────────────────
+
+Two ways to close it. **A:** the operator supplies the config (`--design <path>`); the studio already exports exactly it (`exportDesignMd` writes `lastGoodInput`, the same object Apply posts). **B:** the plugin stamps the emitted config into the Figma file at Apply, and the scan reads it back. B is better ergonomics — no bookkeeping — but it is an **emission decision** (a new stamp in the file, its shape, its versioning), which is the owner's. A needs nothing new emitted and unblocks #1567/#1568 verification today. So A landed, B is noted as the durable follow-up and deliberately not built.
+
+Both obey the same rule; a third option does not. **`docs/34` shape 1:** the config records what the emitter was **told**, upstream of what it produced. A config *inferred from the `actual.json`'s own token values* would make the expectation agree with the file by construction and report clean over the exact drift the scan exists to find. That is why the config can only arrive from upstream — from the operator (A) or from the thing that received it (B) — and never from the file's contents. Stated in `expected.ts`'s header, because this is the rule someone "simplifying" the flag away would break.
+
+── WHAT IT TOOK: A SUPPLIED CONFIG ALSO NEEDS ITS EMISSION ──────────────────────────────────────────────
+
+The non-obvious half. A config channel alone was not enough: the variable and style tiers were read from **committed bytes** (`out/figma/<brand>/*.json`), and a supplied config has none. `figmaArtifacts(theme)` closes it — the function `regen` itself serializes through — so the tiers are built from the same emission, just never written to disk. This is simultaneously the independence argument (the projection is the emitter's, not a model of it) and its own regression net: **measured byte-identical to the committed tree, aurora 27/27 artifacts and wendys 26/26**, which is what `--selftest` arm 2 keeps true.
+
+One refactor came with it and paid for itself. Two brands were being parsed by two **hand-picked** dialect parsers — aurora through `readExampleBrand` (engine-native only), wendys through `parseStandardDesignMd` (standard only). Both now go through one loader that **detects** the dialect the way `cli.ts` does (#556) and accepts a `BrandInput` `.json` besides. So "derive the brand and root from the supplied config the same way the brand path does" is literally true: one loader, one parser (`parseEmission` consumes bytes from either producer), one keying. It also makes `--selftest` arm 2 meaningful — comparing the two paths now compares the two *sources*, where before it would have compared two parsers.
+
+── THE SELF-CHECK, AND WHY ONE ARM WOULD HAVE BEEN WORTHLESS ────────────────────────────────────────────
+
+`--design` is a wire, and **a wire connected at one end reports success**: the flag is accepted, the file is read, the brand is named in the report — and the expectation is still the committed config's. That failure is worse than the bug, because #1569 at least announced itself. So `expected.ts --selftest` (20 checks) has two arms. **Arm 1** builds one brand at two configs that differ in exactly two lines (`fixtures/levers-compact-6bp` / `levers-comfortable-2bp`, nine frontmatter lines each, minimal on purpose so nothing else can explain a difference) and requires disagreement at NAMED coordinates: `fxt/control/size/md/height` (`core/dimension/16` → `/20`), the `layout` mode set (`[2xl lg md sm xl xs]` → `[md sm]`), and 4 rungs only compact emits against 1 only comfortable does. **Arm 2** builds each committed design-file brand both ways and requires every tier plus the file set (both directions) to match exactly. Arm 1 alone passes for a path that projects faithfully but differently from the emitter; arm 2 alone passes for a path that ignores the config entirely.
+
+**Four by-name mutations** (`mutations.sh`, now 44 arms; its refusal check and final revert check both extended to `expected.ts`): the levers parsed and dropped → `FAIL arm 1 density`; the path ignored so every `--design` builds one brief → `FAIL arm 1 premise`; the projection one file short of what `regen` writes → `FAIL arm 2 aurora: the two sources carry the same …`; and `from` not naming the config → `FAIL arm 2 aurora: the two sources disagree only about which source they are`. Each verified against the pristine file and reverted from a copy outside the repo, not from `HEAD`.
+
+── THE RE-DIFF OF THE OWNER'S LIVE SCAN, INCLUDING THE PART THAT DID NOT COLLAPSE ───────────────────────
+
+The owner's artifacts were still on the machine (`/tmp/actual.json`, not the `/tmp/cscan/` path the task quoted). The file's real config had to be **recovered** rather than assumed: its `control/size` aliases matched density `spacious` (not `comfortable`), and its `md` mode's `breakpoint/sm = 768`, `breakpoint/md = 1920` matched breakpoints `[768, 1920]` exactly. Re-diffed at that config:
+
+| | committed config | supplied config |
+|---|---|---|
+| (a) binding-presence | 437 | **437** (unchanged — #1567/#1568, config-independent, as predicted) |
+| (b) binding-target | 47 | **1** |
+| (c) value-match | 2 | 3 |
+| (d) mode-coverage | 12 `high` | 22 `low` |
+| (f) structure | 7 | 6 |
+| (i) style-definition | 29 | 28 |
+| **`high` outside (a)** | **62** | **1** |
+
+**The honest reading, and it is not "~92 collapse to 0".** The density class collapsed completely — all 47 (b) findings, the two absent `core/dimension` rungs, the three extra ones, the `Grid / sm` count/offset drift. The mode-shape findings did not collapse, they **changed sign**: the file's `layout` collection still carries all six original modes (with `sm` **duplicated**) and all six `breakpoint/*` variables, because Apply renamed and rewrote modes without removing what the new config no longer emits. Against the committed config those read as 11 `high` "missing mode `xs`" findings, which were false; against the real config they read as 21 `low` "extra stale mode" findings, which are **true and are the file's**. So `--design` removed the config false positives and left genuine drift the old expectation had been masking with the wrong severity. That leftover is filed as **#1570** (with the four stale grid styles as a comment — same lever, one tier up). The remaining single `high` and the three (c) findings are also real: they sit in the duplicated `sm` mode, which is unreachable by name and therefore not something this harness can resolve.
+
+── TRAPS FOR WHOEVER RE-VERIFIES THIS ───────────────────────────────────────────────────────────────────
+
+- **The default path is byte-identical, and that was checked rather than assumed.** `expected.ts aurora` produces the same stdout AND the same stderr as at `HEAD` — worth re-checking after any edit here, because the whole value of `--design` is that it changed nothing for the case that already worked.
+- **A minimal `design.md` needs `neutral` as well as `primary`.** `theme.ts:2159` reads `input.neutral.chroma` unguarded; without it the fixtures die in a `TypeError` four levels down, which reads like a fixture problem and is not.
+- **`nb` is absent from `DESIGN_OF` on purpose.** It has no `design.md` at all — it is `nb-fixture.ts`, numbers transcribed from the real New Balance tokens. It stays in `THEME_OF` and simply has no `--design` path, which is correct rather than a gap.
+- **The candidate configs used for the re-diff live in `/tmp/cscratch/`, outside the repo, deliberately.** They are a recovered guess at one file's levers, not a brand, and committing them would put an unowned brief in `examples/`.
+
 ## (2026-09-21) — file-setup: scaffolded pages get a #FFFFFF canvas (#1565)
 
 **STATUS: LANDED (this lane). PLUGIN-ONLY.** `apps/plugin/src/file-setup.ts` + the existing `apps/plugin/test-file-setup.ts` (an arm of the plugin `test` gate). **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed**, `regen --check` clean (working tree clean after regen). Gate count **STANDS at 61** — the new assertions are arms of the existing plugin `test` gate, not a new CI gate. Owner-requested. Closes #1565. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`. Gates are shim-based (a shim cannot render), so the owner re-eyeballs the page canvas in the live Figma host after rebuild.
