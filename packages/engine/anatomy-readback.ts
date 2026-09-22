@@ -162,7 +162,12 @@ type FieldCheck = {
    *  folded into `HOST_TYPE` because widening FRAME to accept COMPONENT everywhere would also stop this
    *  predicate noticing a DESCENDANT that came back converted — and a stray component inside a member is
    *  a real defect shape, not a bookkeeping difference. */
-  check?: (planned: unknown, node: HostNode, ports: ReadPorts, isRoot?: boolean) => string | null;
+  /** `plan` is this node's WHOLE plan, for the one predicate whose oracle depends on a SIBLING field:
+   *  `characters` has to know whether the part is bound to a set-level TEXT property (`propertyRef`) and,
+   *  if it is, which default that property carries (`textDefault`) — because a bound node does not hold its
+   *  own copy of the text at all (#1567). Threaded rather than folded into the planned value so every other
+   *  predicate keeps reading exactly one field and cannot quietly grow a cross-field dependency. */
+  check?: (planned: unknown, node: HostNode, ports: ReadPorts, isRoot?: boolean, plan?: FigmaNodePlan) => string | null;
   /** How the plan's value reads in a failure message. */
   show?: (planned: unknown) => string;
 };
@@ -192,8 +197,35 @@ export const FIELDS: Record<string, FieldCheck> = {
   counterAxisAlignItems: { check: (p, n) => (n.counterAxisAlignItems === p ? null : str(n.counterAxisAlignItems)) },
   primaryAxisSizingMode: { check: (p, n) => (n.primaryAxisSizingMode === p ? null : str(n.primaryAxisSizingMode)) },
   counterAxisSizingMode: { check: (p, n) => (n.counterAxisSizingMode === p ? null : str(n.counterAxisSizingMode)) },
-  characters: { check: (p, n) => (n.characters === p ? null : str(n.characters)) },
-  textDefault: { reason: 'the SET-LEVEL text property default (#1018), not a value the host holds on this node — the member overrides its own `characters` (checked above), while `textDefault` feeds `planSetProperties`\'s one `defaultValue`, covered by the property-declaration read-back, not the per-node diff' },
+  // #1567 — A CHARACTERS-BOUND NODE HOLDS THE SET'S ONE DEFAULT, NOT ITS OWN COPY, so that is what it is
+  // compared against. Measured on the host (2026-09-22): `node.characters` on a node whose
+  // `componentPropertyReferences.characters` names a set-level TEXT property READS that property's single
+  // `defaultValue`, and writing the node WRITES THROUGH to it — every sibling bound to the same property
+  // immediately reads the new value. A component set holds one default per TEXT property, so a per-member
+  // caption behind a bound part is not merely overwritten, it is not expressible.
+  //
+  // This predicate used to compare the bound node against THIS MEMBER'S OWN planned caption, which is a value
+  // no host can hold at that coordinate. It agreed anyway, for one run, because the shim modelled a one-shot
+  // reset that a per-member re-assert could defeat — and a live `field-message` therefore showed the same
+  // string on all four statuses while this read green (#1567). So the oracle moves to what the host CAN hold:
+  // `textDefault` (the canonical default `planSetProperties` declares) where the plan states one, and this
+  // node's `characters` on the canonical member, which is where that default comes from.
+  //
+  // STILL COMPARED ON EVERY TEXT NODE, deliberately — the fix is a different oracle, not an exemption
+  // (docs/34 shape 9: a predicate that returns `null` over a whole class reports coverage it does not have).
+  // And it is now the stronger check of the two: it fails if the shared default did not reach a member, which
+  // is the actual live symptom, where the old form could only fail on a value nothing could hold.
+  characters: {
+    check: (p, n, _ports, _isRoot, plan) => {
+      const bound = plan?.propertyRef?.field === 'characters';
+      const want = bound ? (plan?.textDefault ?? p) : p;
+      if (n.characters === want) return null;
+      return bound
+        ? `${str(n.characters)} — this part is bound to a set-level TEXT property, so the host holds that property's ONE default; compared against ${str(want)}, not this member's own caption`
+        : str(n.characters);
+    },
+  },
+  textDefault: { reason: 'not a value the host holds on this node — it is the SET-LEVEL text property default (#1018). Read by the `characters` predicate above as the ORACLE for a bound part (#1567), since a bound node displays the property default rather than its own copy; the declaration itself is covered by the property-declaration read-back' },
   textAlignVertical: { reason: 'measured a no-op on every node in the corpus (774 TEXT nodes, none with a bound height) — #1009 states the rule and the check belongs with a node that can move' },
 
   // ── resolved through a host catalogue ────────────────────────────────────────────────────────
@@ -436,7 +468,7 @@ const diffNode = (plan: FigmaNodePlan, node: HostNode, member: string, path: str
     const f = FIELDS[field];
     if (!f?.check) continue;
     if (exercised) exercised[field] = (exercised[field] ?? 0) + 1;
-    const actual = f.check(planned, node, ports, isRoot);
+    const actual = f.check(planned, node, ports, isRoot, plan);
     if (actual !== null) {
       out.push({ member, path, field, expected: f.show ? f.show(planned) : str(planned), actual });
     }

@@ -253,17 +253,26 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
-// ── #1514: THE COMPOSITE TEXT STYLE SURVIVES THE CHARACTERS-BIND SEAM — HOST-TRUTH + INDEPENDENT ORACLE ──
+// ── #1514: THE COMPOSITE TEXT STYLE SURVIVES THE #865 DEFAULTS SEAM — HOST-TRUTH + INDEPENDENT ORACLE ──
 //
 // THE DEFECT (owner QA 2026-09-18): every projected component text node showed its family/size/style bound to
 // variables but carried NO composite text style — loose variables, not "this text uses `label/md/emphasis`".
-// THE DIAGNOSIS: the style IS applied in `build` (`setTextStyleIdAsync`), but every component text node is also
-// bound to a set-level TEXT property (`componentPropertyReferences.characters`), and that bind resets the node
-// from the set-level property — the same reset-on-bind #1513 found for the caption — which detaches the applied
-// `textStyleId` while leaving the style's resolved property-level variable binds on the node. So the designer
-// sees the variables and no style. The fix RE-ASSERTS the style AFTER the wiring seam (`write-components.ts`,
-// beside the #1513 caption re-assert); the shared shim now models the detach (`component-shim.ts`, guardRefs),
-// so the corpus loop's generic `textStyle` predicate already goes red without the re-assert and green with it.
+//
+// THE FIRST DIAGNOSIS BLAMED THE CHARACTERS-BIND and was wrong (#1567). It held that binding a node to a
+// set-level TEXT property reset it and dropped the `textStyleId`, so the fix re-asserted the style in the
+// post-wire seam — inside `if (field === 'characters' && node)`. That was measured on the host (2026-09-22) and
+// the bind detaches nothing. What detaches `textStyleId` is writing ANY of `paragraphSpacing`, `leadingTrim`,
+// `fontSize`, `fontName`, `lineHeight`, `letterSpacing`, `textCase` — even when the value written EQUALS the
+// node's current one. `claimDefaults` (#865, "AND IT HAS TO BE LAST") writes `paragraphSpacing` and
+// `leadingTrim` unconditionally on every TEXT node, after the style is applied. That is the real detach.
+//
+// The wrong diagnosis was invisible here because a repair coupled to the characters-ref happens to cover every
+// node in this corpus — every component text node IS bound. The host had a set where none were: `button-neutral`
+// wired 0 references and carried 432/432 text nodes with no style, while `button` and `button-destructive` were
+// perfect. Same def, same plan, opposite outcome — the asymmetry that named the coupling. So the fix now repairs
+// at the SOURCE: `build` re-applies the style immediately after `claimDefaults` and reports a
+// `textStyle -> DISCARDED` miss if it does not hold, for every text node, wired or not. The shim models the
+// detaching setters (`component-shim.ts`, `mkNode`), so this block goes red without that re-apply.
 //
 // WHAT THE CORPUS LOOP CANNOT CATCH, and why this block exists (docs/34): that predicate is plan-as-oracle —
 // it checks the built node's `textStyleId` against the PLAN's `textStyle`, so a def whose `type` key was flipped
@@ -330,7 +339,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
         const gotId = (node as { textStyleId?: unknown }).textStyleId;
         const gotName = typeof gotId === 'string' && gotId ? (styleById.get(gotId) ?? `id ${gotId} resolves to no style`) : 'NO TEXT STYLE APPLIED';
         ok(gotName === want,
-          `#1514: ${id}/${planComponentName(plan)}/${part} carries the composite text style '${want}' after the characters-bind seam (host holds '${gotName}')`);
+          `#1514: ${id}/${planComponentName(plan)}/${part} carries the composite text style '${want}' after the #865 defaults seam (host holds '${gotName}')`);
         checked++;
       }
     }
@@ -338,9 +347,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 
   // NON-VACUITY (docs/34) — the pre-fix state, reproduced explicitly: a built text node whose `textStyleId`
-  // was detached (exactly what the shim's characters-bind models, and what shipped before this fix) is reported
-  // by the SAME read-back, by name. Without this, a check that only ever sees the applied style could be an
-  // always-pass.
+  // was detached (exactly what the shim's `paragraphSpacing`/`leadingTrim` setters model, and what shipped
+  // before this fix) is reported by the SAME read-back, by name. Without this, a check that only ever sees the
+  // applied style could be an always-pass.
   {
     const def = componentDefs.find((d) => d.id === 'button')!;
     const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
@@ -920,23 +929,39 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
-// ── #1513: EACH field-message STATUS CAPTION SURVIVES THE REFERENCE WIRING — HOST-TRUTH ──────────
+// ── #1513/#1567: A BOUND CAPTION IS ONE SHARED CELL, AND THE COLLAPSE IS REPORTED — HOST-TRUTH ────
 //
 // #1474 gave field-message four DISTINCT per-status captions (Set A) via `byVariant.status`, and the engine
-// + offline shim carried them (`test-write-components.ts`). But in a LIVE projection every status rendered
-// the `default` string "This is a standard message." (#1513): wiring `componentPropertyReferences.characters`
-// binds a text node to the SET-LEVEL TEXT property, whose ONE `defaultValue` is the canonical fallback
-// (`planSetProperties` → `textDefault`, #1018), and Figma ADOPTS that default onto the bound node — discarding
-// the per-coordinate copy `build` wrote before combine. The shim now models that reset-on-bind
-// (`component-shim.ts`), and `write-components.ts` re-asserts each member's own copy AFTER wiring; this reads
-// the built captions back off the host and pins the four distinct strings.
+// + offline shim carried them (`test-write-components.ts`). A LIVE projection showed one string on all four.
 //
-// The oracle — the four Set A strings — is authored HERE, not read off the def (docs/34): reverting a caption
-// in `field-message.ts` diverges from this by name. The FLOORS make the check non-vacuous: (1) the set-level
-// property default IS the fallback, and (2) the reset is LIVE — re-binding a caption ref collapses the node to
-// that fallback — so a green positive arm is the fix defeating a REAL reset, not a shim that never resets.
-// Mutation-by-name: revert the #1513 re-assert in `write-components.ts` and every member reads the fallback,
-// failing the positive assertion by name.
+// #1513 DIAGNOSED THAT AS A ONE-SHOT RESET — Figma adopting the set-level TEXT property's `defaultValue` onto
+// a node at bind time — and fixed it by re-asserting each member's own copy AFTER wiring. That went green here
+// and the live file got WORSE: all four statuses showed "All set.", the LAST member's caption rather than the
+// first's (#1567). The host was measured on a scratch page (2026-09-22, Figma console) to settle it, and the
+// reset model was wrong in both directions:
+//
+//   • `node.characters` on a characters-bound node READS the property's `defaultValue`, and
+//   • `node.characters = v` WRITES THROUGH to it — every sibling bound to that property reads the new value.
+//
+// A component set holds ONE default per TEXT property. So a per-member caption behind a bound part is not
+// merely reset, it is NOT EXPRESSIBLE, and the re-assert loop was not repairing four captions — it was
+// overwriting one shared cell four times, leaving whichever member it wrote last. This arm pins the host truth
+// (one shared default, reached by every member) and pins that the executor now REPORTS the collapse by name
+// instead of silently causing it.
+//
+// THE COLLISION IS A DESIGN QUESTION, NOT A BUG, and it is held open deliberately: #1474 wants four authored
+// captions, #1018 wants one overridable TEXT property, and on this host `field-message`'s `text` part can have
+// one or the other. Which it should be changes the def's declared properties, so it is the owner's call — see
+// the PR and `docs/00-progress.md`. Until it is taken, four distinct captions is a state no assertion here can
+// legitimately demand.
+//
+// The oracle — the four Set A strings and the canonical default — is authored HERE, not read off the def
+// (docs/34). The FLOORS make the positive arms non-vacuous: (1) the def really does declare four distinct
+// captions, so "they collapse" is a claim about a real spread rather than about four identical strings, and
+// (2) write-through is LIVE — writing one member's caption moves every sibling's — so a green is the executor
+// declining to clobber a REAL shared cell, not a shim that has no sharing to break. Mutation-by-name:
+// re-introduce a per-member `characters` write in the post-wire seam and both the set-default read-back
+// (`property …#… .default -> DRIFTED`) and the caption assertion below fail by name.
 {
   const def = componentDefs.find((d) => d.id === 'field-message');
   ok(!!def, '#1513 host-truth: the field-message def is registered and projects');
@@ -947,40 +972,69 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const page: Page = { children: [] };
     const shim = makeShim({ ...fullFor(plans), page });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
-    await applyComponentPlan(plans, shim as any, {});
+    const res = await applyComponentPlan(plans, shim as any, {});
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's set
     const set = page.children[0] as any;
     const members = (set?.children ?? []) as unknown as HostNode[];
     const texts = members.map((m) => findText(m));
-    // SCOPE FLOOR — a caption TEXT was built into every member, or "they all carry copy" is a claim about an empty set.
+    // SCOPE FLOOR — a caption TEXT was built into every member, or "they all read one cell" is a claim about
+    // an empty set.
     ok(members.length === 4 && texts.every(Boolean),
       `#1513 host-truth: field-message builds a caption TEXT into every status member (${texts.filter(Boolean).length}/${members.length})`);
     const captions = texts.map((t) => String(t?.characters ?? '<none>'));
-    // THE OWNER-DECIDED SET A ORACLE (#1474), authored here — not derived from the def (docs/34).
+    // THE OWNER-DECIDED SET A ORACLE (#1474), authored here — not derived from the def (docs/34). `WANT[0]` is
+    // the `status=default` string, which `planSetProperties` declares as the property's one default.
     const WANT = ['This is a standard message.', 'Something needs fixing.', 'Double-check this.', 'All set.'];
 
-    // FLOOR (1): the set-level TEXT property default is the fallback the reset would collapse every member onto.
+    // FLOOR (1): the set carries ONE TEXT property, and its default is the canonical caption — the cell every
+    // bound member reads. This is the assertion the live "All set." everywhere would have failed.
     const defs = set.componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
-    const textKey = Object.keys(defs ?? {}).find((k) => defs[k].type === 'TEXT');
-    ok(!!textKey && defs[textKey].defaultValue === WANT[0],
-      `#1513 floor: the set carries ONE TEXT property whose default is the fallback "${WANT[0]}" (host holds ${JSON.stringify(textKey && defs[textKey].defaultValue)})`);
+    const textKeys = Object.keys(defs ?? {}).filter((k) => defs[k].type === 'TEXT');
+    ok(textKeys.length === 1 && defs[textKeys[0]].defaultValue === WANT[0],
+      `#1513 floor: the set carries exactly ONE TEXT property and its default is the canonical caption "${WANT[0]}" (${textKeys.length} TEXT propert(ies), holding ${JSON.stringify(textKeys.map((k) => defs[k].defaultValue))})`);
 
-    // FLOOR (2): the reset is LIVE. Re-binding a member's caption reference collapses its text to that default,
-    // proving the positive arm below is the fix defeating a real reset rather than a shim that never resets.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim node
+    // FLOOR (2): the def really declares FOUR DISTINCT captions. Without this, "the four members read one
+    // string" is satisfied by a def that only ever had one, and the collapse report below would be a claim
+    // about nothing.
+    const declared = plans.map((p) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- walking the plan tree for the text part
+      const walk = (n: any): any => (n?.characters !== undefined ? n : (n?.children ?? []).map((c: any) => walk(c)).find(Boolean));
+      return String(walk(p.root)?.characters);
+    });
+    ok(new Set(declared).size === 4 && declared.join(' | ') === WANT.join(' | '),
+      `#1513 floor: the def declares four DISTINCT per-status captions, so the collapse is a real spread (${declared.join(' | ')})`);
+
+    // FLOOR (3): WRITE-THROUGH is live. One member's caption write moves EVERY sibling's, which is the host
+    // behavior that makes the per-member re-assert destructive rather than merely ineffective.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural write onto the shim node
     const probe = texts[1] as any;
-    const before = String(probe.characters);
-    probe.characters = 'sentinel — should be reset on re-bind';
-    probe.componentPropertyReferences = { ...(probe.componentPropertyReferences ?? {}), characters: textKey };
-    ok(before === WANT[1] && String(probe.characters) === WANT[0],
-      `#1513 floor: re-binding a caption reference collapses the node from its own copy to the set default — reset-on-bind is live (was "${before}", now "${String(probe.characters)}")`);
+    const otherBefore = String(texts[2].characters);
+    probe.characters = 'sentinel — should reach every sibling';
+    ok(otherBefore === WANT[0] && String(texts[2].characters) === 'sentinel — should reach every sibling'
+      && String(defs[textKeys[0]].defaultValue) === 'sentinel — should reach every sibling',
+      '#1513 floor: writing ONE bound member\'s caption moves every sibling AND the set-level default — '
+      + `write-through is live, so a per-member caption is not expressible (sibling was "${otherBefore}", now "${String(texts[2].characters)}")`);
 
-    // THE FIX: after the executor's full run, the four members carry the four DISTINCT Set A captions — not the
-    // fallback on every one. (`captions` was read before the FLOOR (2) probe mutated members[1].)
-    ok(captions.join(' | ') === WANT.join(' | '),
-      `#1513: each field-message status member's own caption survives the reference wiring — the four distinct Set A strings reach the host, not the fallback on every member (${captions.join(' | ')})`);
-    ok(new Set(captions).size === 4,
-      `#1513: the four captions are pairwise distinct, so no single set-wide default leaked onto the wrong member (${new Set(captions).size} distinct)`);
+    // THE FIX, HALF ONE: the executor leaves that one cell holding the DECLARED default, so every member shows
+    // the canonical caption deterministically — not, as before, whichever member the re-assert loop wrote last.
+    // (`captions` was read before the FLOOR (3) probe.)
+    ok(captions.every((c) => c === WANT[0]),
+      `#1513/#1567: every field-message member reads the set's ONE declared default, deterministically — not the last member's caption clobbered over the rest (${captions.join(' | ')})`);
+
+    // THE FIX, HALF TWO: the executor's OWN independent check agrees. `write-components.ts` re-reads
+    // `set.componentPropertyDefinitions` after the wire phase — a different object, at a later time, than
+    // anything it wrote (docs/34: the old read-back compared the value it had just written against the node it
+    // had just written to, so it could never fire) — and reports `-> DRIFTED` if the set no longer holds the
+    // declared default. Zero DRIFTED is the assertion the live "All set." everywhere would have failed.
+    const drifted = res.misses.filter((m) => /-> DRIFTED/.test(m));
+    ok(drifted.length === 0,
+      `#1567: the executor's independent re-read of the SET's property definitions finds no drifted default (${drifted.length ? drifted.join(' | ') : 'none'})`);
+
+    // THE FIX, HALF THREE: and the collapse is REPORTED. A collapse this executor cannot resolve must reach the
+    // build report by name, or the file ships four identical captions with nothing anywhere saying so.
+    const collapse = res.misses.filter((m) => /^text text\.characters -> COLLAPSED/.test(m));
+    ok(collapse.length === 1 && collapse[0].includes('4 distinct captions'),
+      `#1567: the executor reports the caption collapse ONCE, by part and by name, naming all four declared strings (${collapse.length} miss(es): ${collapse[0] ?? '—'})`);
   }
 }
 
@@ -1049,6 +1103,76 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const refDiv = divergences.filter((d) => d.field === 'propertyRef' || d.field === 'visibleProp' || d.field === 'visible');
     ok(members.length === plans.length && refDiv.length === 0,
       `#1516 host-truth: reading the settled ${id} back, every declared reference is retained — 0 propertyRef DISCARDED (${refDiv.length ? refDiv.slice(0, 3).map((d) => `${d.member}: ${d.actual}`).join(' | ') : 'none'})`);
+  }
+}
+
+// ── #1568: A TRANSIENT REFERENCE REFUSAL IS RETRIED AFTER A YIELD, NOT RECORDED AS A MISS — HOST-TRUTH ─
+//
+// Live, text-field reported 45 `set_componentPropertyReferences` misses — all "Could not create a new component
+// property reference", all on 5 of its 20 members (QA 2026-09-21). #1568 read that as the #1516 detach reaching
+// members that `liveMember` still could not recover, i.e. a permanent, IDENTITY-keyed refusal. The host says
+// otherwise (measured 2026-09-22): those 20 members' node ids were perfectly sequential — `4769, 4783 … 5067`,
+// gaps of 16–17 and not one out of order — so NOTHING was replaced, and the 5 refusals were CONTIGUOUS in wire
+// order with the 6th member succeeding. Identity was never the variable. TIME was.
+//
+// That is a shape none of the three existing settle modes can express, and the distinction is not academic: all
+// three are permanent and identity-keyed, so their fix is "re-find a DIFFERENT node" — which is exactly why the
+// in-loop #1337/#1473 recovery is gated on `if (live && live !== node)` and can never see this. A refusal that
+// clears on its own leaves `live === node`, the guard declines, and the reference is written off. The fix is a
+// single cause-independent pass: queue every reference the wire loop could not place, `await yieldTo()` ONCE,
+// and try each again on a freshly-resolved node. Cause-independent is the point — the executor does not need to
+// know WHY the host refused, only that a host yield is the one thing it has not yet tried.
+//
+// `refuseRefsUntilYield` (component-shim.ts) models it: named members refuse the FIRST ref write with the host's
+// own message and schedule their own release on a macrotask, so the refusal survives a same-task retry and not a
+// yielded one. The oracle is authored HERE — zero `ref …` misses and every reference present on the independent
+// read-back. The FLOOR is a PAIRED run (docs/34): the same projection with no refusal must report
+// `refsRepaired === 0`, so the repair count in the refusing run is attributable to the injected refusal and not
+// to some other recovery that would have run anyway. Mutation-by-name: delete the deferred pass in
+// `write-components.ts` and this arm reports `ref text-field …/… -> … (Could not create a new component property
+// reference)` by name, on the refused coordinates.
+{
+  const def = componentDefs.find((d) => d.id === 'text-field');
+  ok(!!def, '#1568 host-truth: the text-field def is registered and projects');
+  if (def) {
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    // The injected FAULT (not the oracle): a contiguous run of members in wire order, the host's own shape.
+    const REFUSING = plans.slice(0, 5).map((p) => planComponentName(p));
+
+    const run = async (refuse: string[]): Promise<{ page: Page; res: Awaited<ReturnType<typeof applyComponentPlan>> }> => {
+      const page: Page = { children: [] };
+      const shim = makeShim({ ...fullFor(plans), page, refuseRefsUntilYield: refuse });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+      return { page, res: await applyComponentPlan(plans, shim as any, {}) };
+    };
+
+    const clean = await run([]);
+    const refused = await run(REFUSING);
+
+    // FLOOR (1): with no refusal injected, nothing is repaired. Without this the assertions below could be
+    // green on a projection that never needed the deferred pass at all.
+    ok(clean.res.refsRepaired === 0 && clean.res.refs > 0,
+      `#1568 floor: the un-refused control projection repairs NOTHING (refsRepaired=${clean.res.refsRepaired}/${clean.res.refs}) — the repair count below is attributable to the injected refusal`);
+    // FLOOR (2): the injected refusal really fired, and on the 5 members the host refused — so a clean miss
+    // list is the fix defeating a REAL refusal rather than a shim that never refused.
+    ok(refused.res.refsRepaired > 0,
+      `#1568 floor: the transient refusal fired and the deferred pass recovered it (refsRepaired=${refused.res.refsRepaired}/${refused.res.refs} across ${REFUSING.length} refusing members: ${REFUSING.join(', ')})`);
+
+    // THE FIX, against the executor's OWN misses collection (the issue's acceptance — the live 45): ZERO
+    // property-reference misses. Message names the refused coordinates, so a reverted fix fails BY NAME.
+    const refMisses = refused.res.misses.filter((m) => m.startsWith('ref '));
+    ok(refused.res.wiredMembers === plans.length && refMisses.length === 0,
+      `#1568: a transient reference refusal leaves ZERO set_componentPropertyReferences misses across all ${plans.length} text-field members (wiredMembers=${refused.res.wiredMembers}/${plans.length}; ${refMisses.length ? `${refMisses.length} miss(es): ${refMisses.slice(0, 3).join(' | ')}` : 'none'})`);
+
+    // INDEPENDENT READ-BACK (docs/34): a reader separate from the executor confirms the references are really
+    // ON the nodes — not merely that the executor stopped complaining.
+    const shimOf = refused.page;
+    const members = (shimOf.children[0]?.children ?? []) as unknown as HostNode[];
+    ok(members.length === plans.length, `#1568 scope floor: every text-field member was built (${members.length}/${plans.length})`);
+    const ports: ReadPorts = { varName: () => null, styleName: () => null };
+    const refDiv = diffAnatomy(plans, members, planComponentName, ports, {}).filter((d) => d.field === 'propertyRef');
+    ok(refDiv.length === 0,
+      `#1568 host-truth: reading the refused projection back, every declared reference is present on its node — 0 propertyRef DISCARDED (${refDiv.length ? refDiv.slice(0, 3).map((d) => `${d.member}: ${d.actual}`).join(' | ') : 'none'})`);
   }
 }
 

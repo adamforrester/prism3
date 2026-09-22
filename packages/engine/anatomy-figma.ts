@@ -2950,8 +2950,43 @@ for(const p of PROPS){
 }`;
 
 /**
- * WIRE the part→property references, per member, then read every one back. Expects `set`, `REFS`,
- * `propIds` and `misses`; leaves `wiredRefs`.
+ * WIRE the part→property references, per member, then read every one back. Expects `set`, `REFS`, `PROPS`
+ * (for each TEXT property's DECLARED default — #1567's drift check), `propIds` and `misses`; leaves
+ * `wiredRefs`.
+ *
+ * #1567 — THIS SEAM CARRIED TWO POST-WIRE RE-ASSERTS AND BOTH RESTED ON A MODEL THE HOST DISPROVED. The model
+ * (#1513/#1514): wiring `componentPropertyReferences.characters` makes Figma adopt the set-level TEXT property's
+ * one `defaultValue` onto the node, discarding `build`'s per-coordinate copy (#1018 `byVariant`) and detaching
+ * the applied `textStyleId`. So this path re-asserted each member's own caption and style after wiring, the
+ * plugin executor did the same, and a parity gate held them in lockstep. Measured on the host (2026-09-22,
+ * Figma console) neither half holds:
+ *
+ *   • THE BIND DETACHES NO STYLE. What detaches `textStyleId` is writing `paragraphSpacing`, `leadingTrim`,
+ *     `fontSize`, `fontName`, `lineHeight`, `letterSpacing` or `textCase` — even to the value the node already
+ *     holds. This path writes NONE of them after the style (only `characters`, `textAlignVertical` and
+ *     `textAutoResize`, all measured non-detaching), so the style applied in the build loop STANDS and the
+ *     re-apply here was repairing nothing. The plugin executor's `claimDefaults` (#865) does write two of the
+ *     seven, unguarded, on every TEXT node after the style — which is why that fix lives at ITS source and has
+ *     no twin here. The two executors now reach the same observable by different means; the parity gate says so
+ *     explicitly rather than implying one shared repair.
+ *   • A BOUND NODE'S `characters` IS A VIEW ONTO THE PROPERTY, NOT A COPY. Reading it returns that one
+ *     `defaultValue`; WRITING it writes THROUGH to the property, so every sibling bound to it immediately reads
+ *     the new value. The re-assert was therefore not restoring four captions — it was overwriting one shared
+ *     cell four times, leaving the LAST member's string on the whole set. Live, all four `field-message`
+ *     statuses rendered "All set.", which is `status=success`, wired last: the fix made the symptom worse and
+ *     the read-back could not see it, because it compared the value it had just written against the node it had
+ *     just written to (docs/34).
+ *
+ * A component set holds ONE default per TEXT property, so a per-member caption behind a bound part is not
+ * expressible on this host. Whether `field-message`'s `text` should keep its `characters` reference (one shared,
+ * instance-overridable caption) or drop it (four authored captions, no property) is a change to the def's
+ * declared API and therefore the owner's call — see `docs/00-progress.md`. Until it is taken, this path REPORTS
+ * the collapse by name, once per part, and writes nothing, exactly as `write-components.ts` does; the two
+ * wordings are compared as strings at the parity gate.
+ *
+ * The in-payload comments are kept SHORT for this change on purpose: the payload ships to a designer's console
+ * and counts against the per-chunk byte budget (a full narrative here pushed `icon-button` from 11 chunks to
+ * 12). What the pasted script needs is the rule it follows; the history belongs to whoever edits this emitter.
  */
 const PAYLOAD_WIRE_REFS = `// WIRE the references, per MEMBER. They do NOT propagate: setting one on the first variant left every
 // sibling's \`componentPropertyReferences\` empty, so a set wired once looks correct on the variant a
@@ -2977,30 +3012,20 @@ for(const o of REF_OVERRIDES){let m=refOv.get(o.member);if(!m){m=new Map();refOv
 // in lockstep or the parity gate diverges.
 const inInst=(node,stop)=>{for(let p=node.parent;p&&p!==stop;p=p.parent)if(p.type==='INSTANCE')return true;return false;};
 const findOwnPart=(member,name)=>member.findOne(x=>x.name===name&&!inInst(x,member));
-// #1513/#1514 — PORT the plugin executor's two post-wire re-asserts (write-components.ts) to the PASTE
-// path. Wiring \`componentPropertyReferences.characters\` binds a TEXT node to the SET-LEVEL TEXT property,
-// whose one \`defaultValue\` Figma adopts onto the node — discarding the per-coordinate copy \`build\` wrote
-// (#1018 \`byVariant\`) — and whose adoption also DETACHES the applied \`textStyleId\` while leaving the
-// style's resolved variable binds. So a paste-built field-message rendered "This is a standard message."
-// on its error/warning/success members (#1513), and every characters-bound text node showed loose
-// family/size/style variables and no named style (#1514) — the exact gap #1474's scope note predicted for
-// the paste path. Re-assert each member's OWN caption and its emitted style AFTER the wiring seam below,
-// exactly as \`write-components.ts\` does — the twin re-assert in the OTHER executor, gated at the parity gate.
-//
-// SOURCED FROM THE LIVE BUILT NODES, not a shipped map, and that is a CHUNK constraint rather than a
-// preference. The wire loop runs on the FINAL chunk over EVERY member (\`set.children\`), while a chunk's
-// \`PLANS\` holds only its own slice — so a map built from \`PLANS\` would cover the last chunk's members
-// alone, and shipping a FULL per-member map on the last chunk would blow its byte budget (Button's caption
-// is a uniform "Button" x756). The built nodes are the one place every member's own copy survives across
-// the separate \`figma_execute\` calls, and reading them adds zero payload bytes. The reset fires only when
-// a \`characters\` reference is wired (the loop just below), so at THIS seam every node still carries
-// \`build\`'s write. \`styleById\` recovers the style's font for the re-apply — \`setTextStyleIdAsync\` needs
-// the family/style resident, exactly as \`build\` loads it. Excludes nested-instance internals (\`inInst\`),
-// matching the plugin's \`textByMember\`/\`styleByMember\`, which walk each member's own plan tree.
-const styleById=new Map(styles.map(s=>[s.id,s]));
+// #1567 — EVERY MEMBER BOUND TO ONE TEXT PROPERTY SHOWS THAT PROPERTY'S SINGLE DEFAULT, so a per-member
+// caption is not expressible and this reports the collapse rather than writing. Captured BEFORE any reference
+// is wired, from the live built nodes (a chunk's \`PLANS\` holds only its own slice), and read only to COUNT the
+// distinct captions the one default swallows. Excludes nested-instance internals (\`inInst\`).
 const textCap=new Map();
-for(const member of set.children)for(const n of [member].concat(member.findAll(()=>true)))if(n.type==='TEXT'&&!inInst(n,member))textCap.set(member.name+'|'+n.name,{chars:n.characters,styleId:n.textStyleId});
+for(const member of set.children)for(const n of [member].concat(member.findAll(()=>true)))if(n.type==='TEXT'&&!inInst(n,member))textCap.set(member.name+'|'+n.name,{chars:n.characters});
+// #1567 — the DECLARED default of each TEXT property, by property id, and the parts whose collapse has
+// already been reported (once per part, not once per member — the collapse is a fact about the property).
+const declaredDefault=new Map();
+for(const p of PROPS)if(p.type==='TEXT'&&propIds.get(p.name))declaredDefault.set(propIds.get(p.name),p.default);
+const capDone=new Set();
 const wiredRefs=[];
+// #1568 — references the wire loop could not place, retried ONCE after a host yield. See the pass below.
+const deferredRefs=[];
 for(const member of set.children){
   const own=refOv.get(member.name);
   for(const r of REFS){
@@ -3018,10 +3043,29 @@ for(const member of set.children){
     try{
       node.componentPropertyReferences=Object.assign({},node.componentPropertyReferences||{},{[field]:id});
       wiredRefs.push([member.name,r.part,field,id]);
-    // The miss names the property ACTUALLY attempted (\`prop\`), not the deduped \`r.prop\` — on a spinner
-    // member wiring \`leadingVisual\` a deduped name would misreport \`trailingVisual\`, the exact defect
-    // this fix is about (the write-components nit #1204's review caught, applied to this executor too).
-    }catch(err){misses.push('ref '+member.name+'/'+r.part+'.'+field+' -> '+prop+' ('+err.message+')');}
+    // #1568 — DEFER rather than report: a refusal here can be TRANSIENT and clear on its own. The miss moves
+    // to the retry pass below, which names the property ACTUALLY attempted (\`prop\`), not the deduped
+    // \`r.prop\` — on a spinner member wiring \`leadingVisual\` a deduped name would misreport
+    // \`trailingVisual\` (the write-components nit #1204's review caught, applied to this executor too).
+    }catch(err){deferredRefs.push({member:member.name,part:r.part,field:field,id:id,prop:prop,cause:err.message});}
+  }
+}
+// #1568 — ONE retry, after ONE host yield, for every reference the loop could not place. Re-resolves the part
+// rather than reusing the handle, so a refusal that WAS an identity change is covered by the same pass. Inert
+// when nothing was deferred.
+if(deferredRefs.length){
+  await new Promise(r=>setTimeout(r,0));
+  for(const d of deferredRefs){
+    const lm=set.children.find(c=>c.name===d.member);
+    const live=lm?findOwnPart(lm,d.part):null;
+    if(live){
+      try{
+        live.componentPropertyReferences=Object.assign({},live.componentPropertyReferences||{},{[d.field]:d.id});
+        wiredRefs.push([d.member,d.part,d.field,d.id]);
+        continue;
+      }catch(err){} // still refused after the yield — report the ORIGINAL cause, as the wire loop would have
+    }
+    misses.push('ref '+d.member+'/'+d.part+'.'+d.field+' -> '+d.prop+' ('+d.cause+')');
   }
 }
 // READ BACK every reference. Figma throws on a reference naming an unknown property, so this covers the
@@ -3030,29 +3074,35 @@ for(const member of set.children){
 for(const [mName,part,field,id] of wiredRefs){
   const member=set.children.find(c=>c.name===mName);
   const node=member?findOwnPart(member,part):null;   // #1428: read back the member's OWN part, not a nested twin
-  // #1513/#1514 — RE-ASSERT this member's OWN caption and its composite text style AFTER the wiring seam
-  // above, reusing the node this read-back already found. The bind left the set-level fallback caption and a
-  // detached style; \`build\`'s per-coordinate copy is the right value on the wrong side of the seam. Font
-  // loaded before the style, as \`build\` does. Read back like every write here — a caption or style Figma
-  // re-reset surfaces as a DISCARDED miss rather than shipping the fallback silently. Byte-identical to the
-  // plugin executor's wording (\`write-components.ts\`), so the parity gate compares the two as sets.
-  if(field==='characters'&&node){
-    const cap=textCap.get(mName+'|'+part);
-    if(cap&&typeof cap.chars==='string'){
-      try{node.characters=cap.chars;}catch(err){misses.push('text '+mName+'/'+part+'.characters -> '+JSON.stringify(cap.chars)+' ('+err.message+')');}
-      if(node.characters!==cap.chars)misses.push('text '+mName+'/'+part+'.characters -> DISCARDED (set '+JSON.stringify(cap.chars)+', reads '+JSON.stringify(node.characters)+')');
-    }
-    if(cap&&cap.styleId){
-      const st=styleById.get(cap.styleId);
-      if(st){
-        try{await figma.loadFontAsync(st.fontName);}catch(err){misses.push('text '+mName+'/'+part+'.font -> '+st.fontName.family+' '+st.fontName.style+' ('+err.message+')');}
-        try{await node.setTextStyleIdAsync(st.id);}catch(err){misses.push('text '+mName+'/'+part+'.textStyle -> '+st.name+' ('+err.message+')');}
-        if(node.textStyleId!==st.id)misses.push('text '+mName+'/'+part+'.textStyle -> DISCARDED (set '+st.name+', reads '+(node.textStyleId?String(node.textStyleId):'no style')+')');
-      }
+  // #1567 — REPORT the caption collapse, once per part, and write NOTHING. More than one distinct caption at
+  // this part means the property's ONE default swallows all but one, with no host mechanism to keep them apart.
+  if(field==='characters'&&node&&!capDone.has(part)){
+    const seen=new Set();
+    for(const m of set.children){const c=textCap.get(m.name+'|'+part);if(c&&typeof c.chars==='string')seen.add(c.chars);}
+    if(seen.size>1){
+      capDone.add(part);
+      misses.push('text '+part+'.characters -> COLLAPSED ('+seen.size+' distinct captions are declared across this set\\'s members ['
+        +[...seen].map(s=>JSON.stringify(s)).join(', ')+'], and a set-level TEXT property holds ONE default that every bound member '
+        +'displays; all of them will read '+JSON.stringify(declaredDefault.get(id))+'. Writing per member would overwrite that shared '
+        +'default, so the last member written would reach all of them. Resolving this means either dropping the characters reference '
+        +'for this part or settling on one caption — a change to the def\\'s declared properties)');
     }
   }
   const got=node&&node.componentPropertyReferences?node.componentPropertyReferences[field]:undefined;
   if(got!==id)misses.push('ref '+mName+'/'+part+'.'+field+' -> DISCARDED (set '+id+', reads '+got+')');
+}
+// #1567 — INDEPENDENTLY, whether each TEXT property still holds the default it was DECLARED with. Reads
+// \`componentPropertyDefinitions\` off the SET, fresh, after the whole wire phase — a different object at a
+// later time than anything written above, which is the point (docs/34). Wrapped because Figma throws reading
+// definitions off a set with duplicate member names, a condition already reported upstream.
+if(declaredDefault.size){
+  let finalDefs=null;
+  try{finalDefs=set.componentPropertyDefinitions;}catch(err){}
+  if(finalDefs)for(const [pid,want] of declaredDefault){
+    const cur=finalDefs[pid]?finalDefs[pid].defaultValue:undefined;
+    if(cur!==want)misses.push('property '+pid+'.default -> DRIFTED (declared '+JSON.stringify(want)+', the set now holds '+JSON.stringify(cur)
+      +'; every member bound to this property displays the set\\'s value, so all of them show the second string)');
+  }
 }`;
 
 /**

@@ -221,6 +221,33 @@ export type ShimOpts = {
    * fresh read equals the snapshot and the fix is inert.
    */
   deferSettleToWire?: boolean;
+  /**
+   * A TRANSIENT HOST REFUSAL OF A REFERENCE WRITE, CLEARING ON THE NEXT MACROTASK (#1568) — the shape the
+   * three settle modes above cannot reach, and the one a live `text-field` build actually showed.
+   *
+   * Every mode above models a PERMANENT refusal tied to node IDENTITY: some handle is detached, so the
+   * write throws forever on THAT object and succeeds on a twin. The fix each one gates is therefore
+   * "re-find a DIFFERENT node" — and the executor's in-loop recovery is written to match, skipping itself
+   * entirely when the live re-find hands back the same object (`if (live && live !== node)`).
+   *
+   * The live text-field misses are not that shape. Its 20 members' node ids came back perfectly sequential
+   * with no gap (`4769, 4783 … 5067`; host read 2026-09-22), so no member was replaced — yet 5 CONTIGUOUS
+   * members in wire order refused their references and the next one succeeded, on those same identities.
+   * That is the host still reconciling the set and refusing writes WHILE it does: a window that closes on
+   * its own once the plugin hands control back. A recovery keyed on identity cannot see it, and a same-task
+   * retry cannot outlast it — the only thing that gets through is a pass that YIELDS and tries again.
+   *
+   * Modelled per member name: the first `componentPropertyReferences` write on a node inside a named member
+   * throws Figma's own refusal AND schedules that member's refusal to clear one macrotask later
+   * (`setTimeout(…, 0)` — the boundary `realYield` in `write-components.ts` crosses at every `breathe`). So
+   * the wire-loop write throws, the in-loop recovery — same task — throws again, and only a retry pass that
+   * has awaited a real yield succeeds. That asymmetry is the whole point: it is what makes a MICROtask
+   * "yield" in the retry pass fail this mode, the same distinction `realYield`'s own header draws and the
+   * one no existing arm can make.
+   *
+   * Opt-in; with it unset the refusing set is empty and the check below is dead on every other run.
+   */
+  refuseRefsUntilYield?: string[];
 };
 
 /** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
@@ -248,6 +275,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
    *  the settle machinery lives inside `combineAsVariants`, below the guard. Undefined (a no-op) on every
    *  other run. */
   let onRefWrite: ((n: Node) => void) | undefined;
+  /** #1568 — WHICH MEMBER OWNS A NODE. `guardRefs` is installed per-SET and per-subtree, so on its own it
+   *  cannot name the member a node sits in; `refuseRefsUntilYield` is per member, so it needs to. Populated
+   *  by `combineAsVariants` over every member subtree and re-populated over every twin a settle installs,
+   *  keyed on the node object so a detached original keeps its owner. */
+  const memberOfNode = new WeakMap<Node, string>();
+  /** #1568 — the members still refusing a reference write. Each name is dropped one MACROTASK after its
+   *  FIRST refusal, so a same-task retry throws again and only a pass that has yielded to the host gets
+   *  through. Empty unless `refuseRefsUntilYield` is set. */
+  const refusingRefs = new Set(opts.refuseRefsUntilYield ?? []);
   const unavailable = new Set((opts.unavailableFonts ?? []).map(fontKey));
   const textStyles = (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: opts.styleFont ?? STYLE_FONT }));
   const fontOfStyle = (id: string): FontName | undefined => textStyles.find((s) => s.id === id)?.fontName;
@@ -583,6 +619,42 @@ export const makeShim = (opts: ShimOpts = {}) => {
         set(v: number) { (node as Record<string, number>)[backing] = v; },
       });
     }
+    // #1567 — WRITING A TYPE PROPERTY DETACHES THE APPLIED TEXT STYLE, AND IT DOES SO EVEN WHEN THE VALUE
+    // WRITTEN IS THE ONE ALREADY THERE. Host-measured on a scratch page (2026-09-22, Figma console): with a
+    // named style applied, writing `paragraphSpacing`, `leadingTrim`, `fontSize`, `fontName`, `lineHeight`,
+    // `letterSpacing` or `textCase` drops `textStyleId` to `''`, while `characters`, `fills`,
+    // `textDecoration`, `textAlignHorizontal`, `textAutoResize`, `textTruncation`, `autoRename`, `hyperlink`
+    // and `name` leave it alone. Figma treats the style as describing the type, so touching the type by hand
+    // is an override and the node stops claiming the style.
+    //
+    // ONLY THE TWO `claimDefaults` ACTUALLY WRITES are modelled (`paragraphSpacing`, `leadingTrim` — #865's
+    // TEXT block), because those are the two this executor puts on every text node it builds, unconditionally
+    // and AFTER the style is applied. That is the whole of the #1567 style half: every text node in the corpus
+    // left `build` with its style gone and only the style's loose variable binds showing. It looked fixed
+    // because the post-wire re-assert happened to repair every node whose `characters` reference wired — so
+    // the file was right wherever wiring succeeded and wrong wherever it did not (`button-neutral`, 0 refs
+    // wired, 432 of 432 text nodes unstyled; `text-field`'s 5 unwired members).
+    //
+    // Modelled here rather than in `claimDefaults`' shim-facing surface for the reason docs/34 keeps
+    // restating: the detach has to be a property of the HOST, so that ANY write to these fields is caught —
+    // including one added later, by different code, in a different phase. A model that keyed off the helper
+    // would go green the moment someone wrote `paragraphSpacing` from somewhere else.
+    if (type === 'TEXT') {
+      for (const prop of ['paragraphSpacing', 'leadingTrim'] as const) {
+        const backing = `_${prop}`;
+        Object.defineProperty(node, prop, {
+          configurable: true, enumerable: true,
+          get() { return (node as Record<string, unknown>)[backing]; },
+          set(v: unknown) {
+            (node as Record<string, unknown>)[backing] = v;
+            // NOT guarded on a value CHANGE, because the host does not guard on one either — this fires when
+            // the property's own current value is written back, which is exactly what `claimDefaults` does.
+            (node as Record<string, unknown>)._textStyleId = '';
+            (node as Record<string, unknown>).textStyleId = '';
+          },
+        });
+      }
+    }
     return node;
   };
 
@@ -590,11 +662,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
   // than in `mkNode` because it needs the set that owns the definitions, which does not exist yet when
   // a node is built.
   //
-  // `propLookup` (#1513) resolves a property id → its `{ type, defaultValue }` so the setter can MODEL
-  // Figma's RESET-ON-BIND: wiring a TEXT node's `characters` reference adopts the set-level property's one
-  // `defaultValue` onto the node, discarding the per-coordinate copy `build` wrote before combine (#1018
-  // `byVariant`). It is threaded from every call site because `defs` lives inside `combineAsVariants`,
-  // below this helper; omitting it (a plain node guard) keeps the pre-#1513 behavior.
+  // `propLookup` (#1513) resolves a property id → its live `{ type, defaultValue }` record so the setter can
+  // MODEL what a bound TEXT node actually is on the host: not a node with its own copy of the text, but a
+  // VIEW ONTO THE SET-LEVEL PROPERTY'S ONE `defaultValue` (see the accessor below). It is threaded from every
+  // call site because `defs` lives inside `combineAsVariants`, below this helper; omitting it (a plain node
+  // guard) keeps the pre-#1513 behavior.
   const guardRefs = (set: Node, propLookup?: (id: string) => { type: string; defaultValue?: unknown } | undefined): void => {
     for (const n of [set, ...(set.findAll as () => Node[])()]) {
       // #1428 — a node INSIDE a nested instance is a sublayer of ANOTHER component, so it cannot hold one
@@ -614,33 +686,53 @@ export const makeShim = (opts: ShimOpts = {}) => {
         configurable: true,
         get: () => held,
         set: (v: Record<string, string>) => {
+          // #1568 — THE TRANSIENT REFUSAL, first of all because that is where the host puts it: a set still
+          // reconciling refuses the write before it ever looks at what was written. Clearing is scheduled on
+          // the FIRST refusal for this member, so the window closes exactly one macrotask later — outliving a
+          // same-task retry and not a yielded one. See `refuseRefsUntilYield`.
+          const owner = memberOfNode.get(n);
+          if (owner !== undefined && refusingRefs.has(owner)) {
+            setTimeout(() => refusingRefs.delete(owner), 0);
+            throw new Error('in set_componentPropertyReferences: Could not create a new component property reference');
+          }
           // #1516 — a deferred wire-phase settle may fire here (and throw) BEFORE any validation.
           onRefWrite?.(n);
           const known = (set.declaredIds as () => string[])();
           for (const id of Object.values(v ?? {}))
             if (!known.includes(id)) throw new Error(`in set_componentPropertyReferences: Could not find a component property with name: '${id}'`);
           held = v;
-          // #1513 — RESET-ON-BIND. Live Figma replaces a TEXT node's displayed `characters` with the
-          // set-level property's single `defaultValue` the moment its `characters` reference is wired, so a
-          // per-member caption written before combine is lost to the fallback (`field-message`'s error/warning/
-          // success members all rendered "This is a standard message." in QA — #1513). Only the `characters`
-          // field, only a TEXT property; the fix in `write-components.ts` re-asserts each member's own copy
-          // AFTER wiring, and this host behavior is what makes that re-assert load-bearing rather than a no-op.
+          // #1513/#1567 — A BOUND TEXT NODE IS A VIEW ONTO THE SET-LEVEL PROPERTY, NOT A NODE WITH A COPY.
+          //
+          // The original model here was a one-shot RESET: on bind, adopt the property's `defaultValue` onto the
+          // node once, and let a later per-member write stick. Under that model the executor's post-wire caption
+          // re-assert repaired all four `field-message` statuses and the round-trip went green — while the live
+          // file showed "All set." on every one of them (#1567). The model was wrong in both directions, and the
+          // host was measured on a scratch page (2026-09-22, Figma console) to settle it:
+          //
+          //   • `node.characters` on a characters-bound node READS the property's `defaultValue`, and
+          //   • `node.characters = v` WRITES THROUGH to that `defaultValue` — every sibling bound to the same
+          //     property immediately reads the new value.
+          //
+          // So per-member captions are not merely reset, they are NOT EXPRESSIBLE: a component set holds ONE
+          // default per TEXT property, and a loop writing each member's own copy leaves the whole set showing
+          // whichever member it wrote LAST ("All set.", `status=success`, the last plan). Modelled as an ACCESSOR
+          // over the live `defs` record — one storage cell shared by every bound node, which is what the host has
+          // — so a re-introduced per-member write clobbers its siblings here exactly as it does live, instead of
+          // reading back green.
+          //
+          // The style half of the old model is gone with it: the bind does NOT detach `textStyleId` (measured).
+          // What detaches it is `claimDefaults`' `paragraphSpacing`/`leadingTrim` writes, modelled at their own
+          // setters in `mkNode` — which is why the detach reaches text nodes that were never wired at all
+          // (`button-neutral`: 432 of 432 unstyled, 0 references wired), a symptom a bind-time detach cannot
+          // produce and therefore could not gate.
           const charId = (v ?? {}).characters;
           const pd = charId ? propLookup?.(charId) : undefined;
           if (pd?.type === 'TEXT') {
-            (n as Record<string, unknown>).characters = pd.defaultValue;
-            // #1514 — THE SAME RESET-ON-BIND DETACHES THE COMPOSITE TEXT STYLE. Wiring a TEXT node's
-            // `characters` reference re-derives the node's type from the set-level property, which drops the
-            // `textStyleId` applied in `build` while LEAVING the style's resolved property-level variable binds
-            // on the node — so a designer sees loose family/size/style variables and no named style (owner QA
-            // 2026-09-18, every component text node, all of them characters-bound). Modelled here as clearing the
-            // id the reader inspects, so the round-trip goes red until `write-components.ts` re-asserts the style
-            // AFTER wiring (the twin of the caption re-assert above). The variable binds are NOT modelled as lost
-            // because they are not lost live: they live IN the emitted style, so re-applying it restores them —
-            // which is why this is a style-AND-variables restoration, not a style-XOR-variables fork.
-            (n as Record<string, unknown>)._textStyleId = '';
-            (n as Record<string, unknown>).textStyleId = '';
+            Object.defineProperty(n, 'characters', {
+              configurable: true, enumerable: true,
+              get: () => pd.defaultValue,
+              set: (text: unknown) => { pd.defaultValue = text; },
+            });
           }
         },
       });
@@ -821,6 +913,14 @@ export const makeShim = (opts: ShimOpts = {}) => {
       set.dashPattern = [10, 5];
       for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) (set as Record<string, unknown>)[c] = 5;
       takeFromPage(members);
+      // #1568 — RECORD WHICH MEMBER OWNS EACH NODE, so `refuseRefsUntilYield` can refuse by member name.
+      // Re-run over every twin the detach/settle paths install below, because a twin is a different object
+      // standing at the same coordinate and a refusal keyed on the original would miss it.
+      const claimSubtree = (m: Node): void => {
+        const nm = String(m.name);
+        for (const x of [m, ...((m.findAll as () => Node[])())]) memberOfNode.set(x, nm);
+      };
+      for (const m of members) claimSubtree(m);
       // #1337 — DETACH the pre-combine descendant handles and hand the live members fresh TWINS. See
       // `detachPartsOnCombine` in `ShimOpts` for why this is the one host behavior worth modelling. The
       // originals (which `builtParts` holds) get a `componentPropertyReferences` setter that throws Figma's
@@ -863,6 +963,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           const twins = ((m.children as Node[]) ?? []).map(twinOf);
           (m as Record<string, unknown>).children = twins;
           for (const tw of twins) tw.parent = m;
+          claimSubtree(m);   // #1568 — the twins are new objects at the same coordinate
         }
       }
       // #1473 — MEMBER-LEVEL id-settle, deferred to the first post-combine set op. See `settleAfterCombine`
@@ -910,6 +1011,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           // GUARD the twin's subtree exactly as `guardRefs(set)` guarded the originals — a validating setter,
           // so a wire ONTO the twin succeeds while a wire onto the detached original throws.
           guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [twin, ...((twin.findAll as () => Node[])())] } as Node, (id) => defs[id]);
+          claimSubtree(twin);   // #1568 — the twin is a new object at the member's coordinate
           live[i] = twin;   // MUTATE the live array in place — the combine-time snapshot still references `m`
           // DETACH the original member's whole subtree (`builtParts` holds these descendants): the wire loop's
           // fast-path write, and any recovery re-finding a part THROUGH the stale `m`, now throws.
