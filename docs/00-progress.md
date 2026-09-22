@@ -7,6 +7,109 @@
 
 ---
 
+## (2026-09-22) — the live-host projection root: ONE stale snapshot, three reported symptoms (#1567, #1568)
+
+**STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Touches `apps/plugin/src/write-components.ts` (the plugin executor), `packages/engine/anatomy-figma.ts` (`PAYLOAD_WIRE_REFS`, the paste executor), `packages/engine/anatomy-readback.ts`, `apps/plugin/component-shim.ts`, and four test files. **No `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `regen --check` in sync (111 artifacts byte-match), `lint-emission-version` **0 artifacts changed**. Gate count **STANDS at 61** — every new assertion is an arm of an existing gate. Full `npm run verify`: **61/61 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY**. Closes #1567, #1568. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `tools/conformance-scan/` (#1569, the owner's lane), TokenPress.
+
+── WHY THIS ENTRY IS MOSTLY MEASUREMENTS ────────────────────────────────────────────────────────────────
+
+Both issues opened as "gates green 61/61, real Figma wrong", so the shipped model was the suspect, not the code obeying it. Everything below was measured on the live host (Figma desktop, 2026-09-22) before anything was edited — the #1561 playbook. Two channels: a **read-only census of the owner's own `f4ec446` build** already in the file, and **live probes on a scratch page** created and removed in a `finally` (no pre-existing node, variable, style or component was written).
+
+── HOST FACT 1: the failing members are CONTIGUOUS IN WIRE ORDER, not the read-only column ──────────────
+
+`text-field` (20 members) census — ref-bearing own layers and styled text nodes, per member in set order:
+
+| members | own layers carrying a reference | text styled |
+|---|---|---|
+| 1–14 (`status=default…warning, state=rest…disabled`) | 4 each | 1/1 |
+| **15–19** (`warning/read-only`, `success/rest`, `success/hover`, `success/focus-visible`, `success/disabled`) | **0** | **0/1** |
+| 20 (`success/read-only`) | 4 | 1/1 |
+
+So #1568's title is a red herring it inherited from the sample miss lines it quotes: **three of the four `state=read-only` members are perfect, and the 20th member — also read-only — recovered on its own.** The failing set is a run of five consecutive members near the end of the wire loop. The variable is POSITION IN THE LOOP, not the member's structure.
+
+And the same five members are the ones whose text is unstyled. **The #1567 style symptom and the #1568 reference symptom are the same five members** — which is the whole diagnosis, measured rather than argued.
+
+── HOST FACT 2: the executor's stale-handle recovery is DEAD CODE in a full build ───────────────────────
+
+`write-components.ts:2110`, the #701 fast route:
+
+```
+const kept = builtFor?.get(r.part);
+if (builtFor) { node = kept; … }                                     // ← every member THIS RUN BUILT
+else { node = findOwnPart(liveMember(String(member.name)) ?? member, r.part); }   // ← #1473's fresh read
+```
+
+#1473 added `liveMember` precisely because the host finishes reassigning member identity **asynchronously, during the wire loop's yields**, so a snapshot goes stale mid-loop. But it sits on the `else` branch — the branch for members this run did *not* build. In a full projection every member is built, so **every reference write goes to the handle captured at build time and `liveMember` is never called.** The members reached after the most yields are the ones whose captured handles have been replaced, which is exactly the contiguous run in fact 1.
+
+── HOST FACT 3: re-resolving off the live set repairs a refused write ───────────────────────────────────
+
+Scratch-page probe: build a 3-member set with a TEXT property, take a handle to a member's text node, then orphan that member's twin so the handle is a detached original. Writing the reference through the stale handle **throws**. Re-resolving the member by name off `set.children` and re-finding the part after one `setTimeout(…, 0)` yield returns a **different node object** and the write **SUCCEEDS**. That is the repair, on the host, independent of the shim.
+
+── HOST FACT 4: what detaches a text style, and that re-applying survives the combine ──────────────────
+
+`claimDefaults` (#865, "AND IT HAS TO BE LAST") writes `paragraphSpacing: 0` and `leadingTrim: 'NONE'` unconditionally, AFTER the style is assigned. Both are in the set of properties that detach `textStyleId` **even when the value written equals the node's current value** (`paragraphSpacing`, `leadingTrim`, `fontSize`, `fontName`, `lineHeight`, `letterSpacing`, `textCase`; `characters`, `fills`, `textDecoration`, `textAlignHorizontal`, `textAutoResize`, `textTruncation`, `autoRename`, `hyperlink`, `name` do not). Probe, 3 members:
+
+| order | style held |
+|---|---|
+| after `setTextStyleIdAsync` | 3/3 |
+| after `claimDefaults`' two writes | **0/3** |
+| after re-applying at that source | 3/3 |
+| after `combineAsVariants` | **3/3** |
+
+The control — same build without the re-apply — is 0/3 styled after the combine. So the repair is not merely a write that lands; it survives the operation that follows it.
+
+── HOST FACT 5: four distinct captions are NOT EXPRESSIBLE, and asserting them drifts the default ───────
+
+A characters-bound TEXT node is a **view onto the set-level property's single `defaultValue`**: `node.characters` reads it and `node.characters = v` writes THROUGH to it. A component set holds ONE default per TEXT property. Probe on a 4-member set with four distinct declared captions:
+
+| build | displayed | set default |
+|---|---|---|
+| per-member re-assert after the bind (the shipped model) | `All set. \| All set. \| All set. \| All set.` | DRIFTED to the last write |
+| declared default written once, no per-member write | all four on the declared default | no drift |
+
+The left row is the live #1567 caption symptom, reproduced exactly. `field-message` in the owner's build is that row: `message#1:85 = "All set."`, all four members displaying `All set.`
+
+── THE FIX — one root at three sites ───────────────────────────────────────────────────────────────────
+
+1. **Style (the #1514 half).** The only style repair used to be nested inside `if (field === 'characters' && node)` in the wire loop, so a node was restyled exactly when its `characters` reference wired — coupling a *style* outcome to a *reference* outcome. The style is now captured as `appliedStyle` where it is assigned and re-applied **at the `claimDefaults` source that detached it**, so it no longer depends on the wire loop succeeding at all. `styleByMember`/`perStyle` are gone with it.
+2. **Caption (the #1513 half).** The post-wire per-member re-assert is deleted; the declared default is written once at the set level. When a def declares captions that differ per member, the executor now reports a **COLLAPSED** miss once per part naming the coordinates that cannot be expressed, plus an independent post-loop re-read of `set.componentPropertyDefinitions` reporting **DRIFTED** if the default moved. The wrong caption was always going to be wrong; it is now deterministic and named instead of silent.
+3. **References (#1568).** A refused write queues to `deferredRefs`; after the loop, one yield, then each queued coordinate is re-resolved **fresh** (`liveMember` + `findOwnPart`) and retried. This is the only path in a full build that reaches #1473's live read at all (fact 2), and it repairs both causes fact 3 separates — a stale handle and a transient refusal.
+
+── THE TWO EXECUTORS ARE NOW ASYMMETRIC BY DESIGN ──────────────────────────────────────────────────────
+
+Prism3 has two executors held in lockstep by a parity gate: the plugin's `applyComponentPlan` and the paste payload `PAYLOAD_WIRE_REFS`. Fixes 2 and 3 port verbatim. **Fix 1 does not, and that is correct:** only the plugin runs `claimDefaults`, so only the plugin writes two of the seven detaching properties after its style. The paste path writes none of them after its style — its old post-wire style re-assert was repairing nothing. The asymmetry is now stated at both sites rather than left to be rediscovered as a porting oversight.
+
+── GATES + the by-name mutations (docs/34) ─────────────────────────────────────────────────────────────
+
+`component-shim.ts` was the thing under-modelling the host, so it moved first. It gained a write-through accessor on `characters` (replacing a reset-on-bind that the host disproved), TEXT-gated detaching setters for `paragraphSpacing`/`leadingTrim`, a `refuseRefsUntilYield` mode whose refusal clears on a `setTimeout(…, 0)` so a retry can succeed, and `claimSubtree` calls on the three paths that reassign identity. Bind-time style detach was DELETED — the host does not do it.
+
+**Independence:** the old caption read-back compared the value it had just written against the node it had just written to, so it could never fire — the shape docs/34 calls a silent deletion. The floors now come off the PLAN (`fmDeclared`, the four declared captions; one TEXT property with the canonical default) and the DRIFT check reads the set's own definitions, not the executor's bookkeeping.
+
+**Three mutations, each failing by name, each proven then restored (through `wip:` commits, so every restore reaches a known-good HEAD — #986):**
+- delete the plugin's style re-apply at the `claimDefaults` source → `#1514` fails by name on every button coordinate.
+- re-introduce the per-member caption write → 5 failures including the literal live symptom `All set. | All set. | All set. | All set.`, and the `-> DRIFTED` miss by name.
+- delete the deferred retry pass → `#1568` fails by name with 30 misses carrying the host's refusal message.
+
+── TRAPS ───────────────────────────────────────────────────────────────────────────────────────────────
+
+- **In-payload comments ship** — to the designer's console, and against the per-chunk byte budget. Narrative added inside the `PAYLOAD_WIRE_REFS` template literal pushed `anatomy/icon-button` from 11 chunks to 12 and failed the pin. The history now lives in a TS doc comment OUTSIDE the literal; the pin is re-pinned to **12** per its own documented instruction, because the payload legitimately grew.
+- **A gate can assert a miss that no arm reads.** The `-> DRIFTED` miss fired under mutation 2 while no assertion named it, so the header over-claimed until an explicit `ok(drifted.length === 0, …)` was added. Verified by re-running the mutation.
+- **`findOwnPart(undefined, …)` throws.** The paste path's retry pass guards the member lookup before the part lookup.
+- **`rtk proxy` chained with `&&` truncates** when an intermediate `grep` exits 1 — use `;`.
+- **The literal string `Could not create a new component property reference.` could not be reproduced on today's host.** Thirteen distinct refusal messages were catalogued (instance sublayer, non-symbol sublayer, wrong reference type, property-not-found-by-id, removed node, stale set identity after a re-combine, …) and none matches it, though owner QA has quoted it across #1472/#1516/#1568. The shim throws that literal. Treat it as a class, not a string: an assertion that greps for those exact words is pinned to a message Figma may already have replaced.
+
+── WHAT REMAINS HOST-ONLY, STATED PLAINLY ──────────────────────────────────────────────────────────────
+
+The fix's three mechanisms are each verified on the live host above. The **end-to-end build report** is not, and cannot be from this lane: `figma_execute`'s `code` parameter is the only channel into the sandbox (main-thread `fetch` is blocked — measured against localhost, an external host and figma.com alike), and the smallest bundle that carries the real `figmaAnatomySet` + `applyComponentPlan` is 160 KB. Shipping the plans as data instead is worse: `button-neutral`'s 432 plans serialize to 3.3 MB. So the owner's rebuild is what confirms `text-field` 45 misses → 0 and `button-neutral`'s text nodes carrying their style id.
+
+── HELD FOR THE OWNER: a design collision, not a bug ───────────────────────────────────────────────────
+
+**#1474 (four distinct per-status captions) and #1018 (one set-level TEXT property) are mutually exclusive on the real host** (fact 5). The acceptance criterion "field-message host-eyeball shows four distinct captions" therefore cannot be met while the caption part carries a `characters` reference, by any executor change. The options are the owner's: drop the reference for that part and lose the overridable property, keep the property and accept one shared default, or split the statuses into separate defs. This entry does not pick one — the executor now reports the collapse by name instead of hiding it.
+
+── FILED SEPARATELY (principle 3) ─────────────────────────────────────────────────────────────────────
+
+`button-neutral` is a DIFFERENT defect and is not fixed here. Census: `button` and `button-destructive` each carry 9 properties and 882 ref-bearing layers with 432/432 text nodes styled; `button-neutral` carries **7 properties — both `↳ swap leading icon` and `↳ swap trailing icon` INSTANCE_SWAP properties are missing entirely — 0 ref-bearing layers, and 0/432 styled.** `label` was created and the two swaps that follow it were not, and then nothing wired, which reads as the SET handle going stale rather than a member's. Fix 1 makes its text nodes carry the style id regardless (the coupling is gone), but the missing properties and the zero references are their own root and need their own repro. Filed with the census above.
+
 ## (2026-09-22) — the conformance scan builds its expectation at the config you supply, not the committed default (#1569)
 
 **STATUS: LANDED (this lane). TOOLS-ONLY.** `tools/conformance-scan/expected.ts` + two new `fixtures/levers-*.design.md` + four new `mutations.sh` arms + README + `tools/CLAUDE.md`. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed**, `regen --check` clean. Gate count **STANDS at 61** — `tools/` is wired into no CI gate but the freshness battery, and this adds no gate. Closes #1569. Files **#1570** (stale layout modes + a duplicated mode name left behind by Apply — found here, out of scope, see below). **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, the #1567/#1568 executor fixes (different lane), TokenPress.
