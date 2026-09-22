@@ -15,6 +15,10 @@
  *      a synthetic unmapped id is reported BY NAME (the arm that fails if a def is added and not placed).
  *   5. `applyComponentPlan`'s `targetPage` option routes a built set onto the target page, leaving
  *      `currentPage` untouched — the executor half of the page-aware build.
+ *   6. Every page file-setup CREATES carries a solid #FFFFFF canvas (#1565, owner-directed), dividers get
+ *      none, and a re-run does not repaint a page a designer has recolored — the #FFFFFF is written on
+ *      creation only, the same non-destructive posture as the page list itself. The expected paint is
+ *      written literally in the assertion, not read off `file-setup.ts`, so it fails if the constant drifts.
  */
 import { scaffoldSkeleton, resolveComponentPage } from './src/file-setup';
 import type { PagesApi, PageLike } from './src/file-setup';
@@ -32,6 +36,15 @@ const ok = (cond: boolean, label: string): void => {
   else console.log(`  ✓ ${label}`);
 };
 
+// A page carries a solid #FFFFFF canvas (#1565). The expected paint is written LITERALLY here — the
+// { r:1, g:1, b:1 } target and the SOLID type — not read back off `file-setup.ts`'s constant, so the
+// arm is independent of its subject: change the constant's color and this predicate goes false.
+const isSolidWhite = (p: PageLike): boolean => {
+  const bg = (p.backgrounds ?? []) as ReadonlyArray<{ type?: string; color?: { r: number; g: number; b: number } }>;
+  const paint = bg[0];
+  return !!paint && paint.type === 'SOLID' && paint.color?.r === 1 && paint.color?.g === 1 && paint.color?.b === 1;
+};
+
 // ── The page shim ────────────────────────────────────────────────────────────────────────────────
 // Models `figma.root`'s page list. `insertChild` is REMOVE-THEN-SPLICE (the contract `file-setup.ts`
 // documents and Figma's reposition primitive follows); `createPage`/`createPageDivider` append at the end.
@@ -41,6 +54,10 @@ const makePagesShim = (): { api: PagesApi; children: ShimPage[]; names: () => st
   const mk = (divider: boolean): ShimPage => ({
     name: divider ? '---' : '',
     isPageDivider: divider,
+    // Unset until `ensureNamed` writes it — dividers stay unset (they never pass through `ensureNamed`),
+    // which is exactly what the divider arm below asserts. The real `PageNode` ships a gray default; the
+    // shim ships none so the test can tell "file-setup wrote a fill" from "a fill was already there".
+    backgrounds: undefined as readonly unknown[] | undefined,
     _kids: [],
     appendChild(c: unknown) { this._kids.push(c); },
     findOne(pred: (n: unknown) => boolean) { return this._kids.find(pred) ?? null; },
@@ -72,7 +89,7 @@ const makePagesShim = (): { api: PagesApi; children: ShimPage[]; names: () => st
 // ── 1. Fresh scaffold lays the spine in order ────────────────────────────────────────────────────
 console.log('1. scaffoldSkeleton on a fresh file');
 {
-  const { api, names } = makePagesShim();
+  const { api, children, names } = makePagesShim();
   const res = await scaffoldSkeleton(api, TAXONOMY);
   const EXPECTED = [
     'Cover',
@@ -85,17 +102,33 @@ console.log('1. scaffoldSkeleton on a fresh file');
   ok(res.fileComponentsPage !== null && res.fileComponentsPage.name === `${NEST_PREFIX}File Components`, 'File Components page returned for the asset build');
   ok(names().filter((n) => n === '---').length === 4, 'exactly 4 native dividers, one before each section');
   ok(!names().includes(`${NEST_PREFIX}Icons & assets`) && !names().includes(`${NEST_PREFIX}Buttons`), 'no def-bearing leaf pre-created (those are on-demand)');
+
+  // #1565 — every page file-setup creates carries a solid #FFFFFF canvas (Cover, headers, the Foundations
+  // placeholders, File Components). Dividers have no canvas and must stay unfilled — the arm that fails if
+  // the white fill is ever applied to a divider (which would tint the page-list separator).
+  const namedPages = children.filter((p) => !p.isPageDivider);
+  ok(namedPages.length > 0 && namedPages.every(isSolidWhite), `every scaffolded page has a solid #FFFFFF canvas (${namedPages.length} pages)`);
+  ok(children.filter((p) => p.isPageDivider).every((p) => (p.backgrounds ?? []).length === 0), 'divider pages get no canvas fill');
 }
 
 // ── 2. Idempotent + non-destructive ──────────────────────────────────────────────────────────────
 console.log('2. idempotency + non-destructive re-run');
 {
-  const { api, names } = makePagesShim();
+  const { api, children, names } = makePagesShim();
   await scaffoldSkeleton(api, TAXONOMY);
   const first = names();
+
+  // #1565 — a designer recolors a page. A re-run must NOT repaint it white: the fill is written on
+  // creation only, so this black survives every later scaffold. This is the arm that fails if the white
+  // is ever moved out of `ensureNamed`'s create branch onto every reconcile.
+  const cover = children.find((p) => p.name === TAXONOMY.cover) as (ShimPage | undefined);
+  ok(cover !== undefined && isSolidWhite(cover), 'the Cover page was created white');
+  if (cover) cover.backgrounds = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
+
   const res2 = await scaffoldSkeleton(api, TAXONOMY);
   ok(JSON.stringify(names()) === JSON.stringify(first), 're-run does not change the page list');
   ok(res2.created.length === 0, 're-run creates no new pages');
+  ok(cover !== undefined && !isSolidWhite(cover), 're-run does not repaint a designer-recolored page (non-destructive)');
 
   // Build `icon` → inserts Icons & assets between Semantic tokens and Grids & layouts.
   await resolveComponentPage(api, 'icon', TAXONOMY);

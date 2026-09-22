@@ -7,6 +7,22 @@
 
 ---
 
+## (2026-09-21) — file-setup: scaffolded pages get a #FFFFFF canvas (#1565)
+
+**STATUS: LANDED (this lane). PLUGIN-ONLY.** `apps/plugin/src/file-setup.ts` + the existing `apps/plugin/test-file-setup.ts` (an arm of the plugin `test` gate). **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed**, `regen --check` clean (working tree clean after regen). Gate count **STANDS at 61** — the new assertions are arms of the existing plugin `test` gate, not a new CI gate. Owner-requested. Closes #1565. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`. Gates are shim-based (a shim cannot render), so the owner re-eyeballs the page canvas in the live Figma host after rebuild.
+
+── WHAT + WHY ───────────────────────────────────────────────────────────────────────────────────────────
+
+Figma's default page canvas is a mid gray (`{r,g,b} ≈ 0.898`); the owner wants a white ground for the template. `ensureNamed` — the one place `file-setup` creates a page — now sets `page.backgrounds` to a solid `#FFFFFF` Paint (the same `{ type:'SOLID', visible, opacity, blendMode, color }` shape `file-components.ts`'s `solid()` writes). That single site covers every page the scaffold makes: Cover, the section headers, the Foundations placeholders, File Components, and every on-demand `↳ <family>` component page (all route through `ensureNamed`). Divider pages are never touched — they have no canvas and never pass through `ensureNamed`. `PageLike` gained an optional `backgrounds?: readonly unknown[]`; the real `PageNode.backgrounds` (settable `Paint[]`) is assignable to it, so the global `figma` still satisfies the port with no cast.
+
+── NON-DESTRUCTIVE, ON CREATION ONLY ────────────────────────────────────────────────────────────────────
+
+The fill is written on the `created` branch of `ensureNamed` only — a re-run finds the page by name and returns early, never touching an existing page's fill. So a designer who recolors a page keeps that color through every later scaffold, the same additive posture the module already holds for page order and page deletion. This is the load-bearing behavioral choice: white is a starting ground, not an enforced one.
+
+── THE GATE + its by-name mutation (docs/34) ────────────────────────────────────────────────────────────
+
+`test-file-setup.ts` gains three arms: a fresh scaffold asserts every created non-divider page carries a solid `#FFFFFF` canvas and every divider carries none; and a re-run over a page a (simulated) designer recolored to black asserts the black SURVIVES. **Independence:** the expected paint (`SOLID`, `{r:1,g:1,b:1}`) is written literally in the test's `isSolidWhite`, never read off `file-setup.ts`'s `WHITE_PAGE_BACKGROUND` — a gate reading its expectation off the subject could not fail. **By-name mutation, proven then restored (via a `wip:` commit so the restore reaches a known-good HEAD):** flipping the constant's `r:1 → r:0` failed the "every scaffolded page has a solid #FFFFFF canvas" and "Cover page was created white" arms BY NAME; restored → all 24 assertions pass.
+
 ## (2026-09-21) — file components matched to their JSON: white fills, fixed 100px, backwards sizing (#1563)
 
 **STATUS: LANDED (this lane). PLUGIN-ONLY.** `apps/plugin/src/file-components.ts` + a new `apps/plugin/test-file-components.ts`, wired as an arm of the plugin `test` gate in `apps/plugin/package.json`. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed**, `regen --check` clean. Gate count **STANDS at 61** — the new suite is an arm of the existing plugin `test` gate, not a new CI gate. Closes #1563. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`. Gates are shim-based (a shim cannot render), so the owner re-eyeballs in the live Figma host.
