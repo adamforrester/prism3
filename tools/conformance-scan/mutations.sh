@@ -546,6 +546,14 @@ mutate "$X" "the re-scan arm notices an op that achieves nothing" \
   "    else void o;" \
   "$SELFTEST_FIX" have "re-scan: 1 finding(s) the plan addressed are still reported"
 
+# The config warning. #1569 in the fix direction: an expectation built at a brand's COMMITTED config reports
+# every lever the operator moved as drift, and a value op then writes the brand default back OVER that lever
+# setting. The warning is the only thing standing between a report's false positives and a file's real ones.
+mutate "$X" "the plan says when it was built at a committed config, not a brief" \
+  "if (!report.brand.includes(' ← '))" \
+  "if (false)" \
+  "$SELFTEST_FIX" have "config: the plan does not warn that the expectation was built at a committed config"
+
 # And the two arms that stop the answer key from being weakened instead of the tool being fixed — the same
 # shape as the manifest-row mutation above, one per new list.
 mutate "$F/fix-manifest.json" "the never-fixed list cannot quietly lose a category" \

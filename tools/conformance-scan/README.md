@@ -493,8 +493,14 @@ Then **re-scan from step 2**. The re-scan is the only thing that says the fix la
 what it *did*, which is a different claim. A second apply must come back all `ALREADY`, and a `fix.ts` run
 over the re-scan must emit zero ops — both are what "idempotent" means here, and both are cheap to check.
 
-Four things about the apply worth knowing before you flip `DRY_RUN`:
+Five things about the apply worth knowing before you flip `DRY_RUN`:
 
+- **Read the plan's `notes` first, and the config one before any of them.** If the expectation was built
+  *without* `--design`, the plan says so, and applying it is worse than not scanning: #1569's lever drift
+  reads as a value mismatch at every coordinate an operator moved, so a `set-var-value` op there writes the
+  brand **default** over the lever setting they chose. In a report that was a false positive; in a plan it is
+  a silent revert of a design decision. Re-run `expected.ts --design <the brief this file was applied at>`
+  and rebuild the plan. The config cannot be recovered from the file — that is the point of #1569.
 - **The dry run resolves everything and writes nothing.** Every `MISS` you see in it would have been a
   failed write: a variable, member, node or mode the plan named and the file does not have. A dry run with
   misses in it is a plan to re-derive from a fresh scan, not one to force.

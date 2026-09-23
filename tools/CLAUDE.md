@@ -184,7 +184,11 @@ dangerous. Do **not** widen the safe set to "any finding with an obvious fix" â€
 the *opposite* of every other check here: a missing fix is an inconvenience, an EXTRA op is a destructive
 tool, and it fails silently because the damage lands in a Figma file rather than in this repo. That is why
 `fixtures/fix-manifest.json` is hand-written and asserted in both directions, and why the two mutation arms
-that remove a safety guard are the load-bearing ones.
+that remove a safety guard are the load-bearing ones. It is also why the config being an INPUT stops being
+cosmetic here: a plan built without `--design` would write the brand's **lever defaults over the operator's
+moved levers** at every coordinate #1569 makes read as drift, so every such plan carries a standing warning
+in its `notes` saying which config it was built at. A false positive in a report is noise; the same one in a
+plan is a write.
 
 **No gate sibling, and the reason is the subject rather than the difficulty.** The thing it measures is a
 Figma document, which is not in CI and is not owned by this repo: a designer nudging a value is a real

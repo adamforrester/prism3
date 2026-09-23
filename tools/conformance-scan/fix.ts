@@ -370,6 +370,23 @@ export const fix = (report: Report, expected: State, actual: State): FixPlan => 
   ops.sort((a, b) => rank(a) - rank(b) || a.subject.localeCompare(b.subject));
   excluded.sort((a, b) => CATEGORIES.indexOf(a.category) - CATEGORIES.indexOf(b.category) || a.subject.localeCompare(b.subject));
 
+  // THE CONFIG WARNING, and the most consequential line in this file. #1569's finding was that an
+  // expectation built at a brand's COMMITTED config reports every lever the operator moved before applying
+  // as drift — 62 `high` findings that went to 1 when re-run at the real config, with nothing about the
+  // file changed. In a REPORT those false positives cost a reader some time. In a PLAN they are writes: a
+  // (c) op would put the brand default back over the operator's own lever setting, faithfully, and the
+  // re-scan would then agree. So the plan says which config it was built at, every time it was not told.
+  //
+  // Sniffed off `from` rather than carried as a flag, which is worth naming as a weakness: the format is
+  // `${brand} ← ${path}` and is pinned by `mutations.sh`'s "the report NAMES the config it was built at"
+  // arm. If it ever drifts, this warning appears when it need not — the harmless direction.
+  if (!report.brand.includes(' ← '))
+    notes.push(
+      `the expectation was built at ${report.brand}'s COMMITTED config, not at a supplied --design brief. ` +
+        `If this file was applied at moved levers, every one of them reads as drift (#1569) — and a value op ` +
+        `would then write the brand default OVER the operator's lever setting. Re-run \`expected.ts --design ` +
+        `<the brief this file was applied at>\` before applying anything.`,
+    );
   if (report.scope)
     notes.push(`the scan covered ${report.scope} — this plan can only fix what was read, and says nothing about the rest of the file`);
   if (report.findings.some((x) => x.category === 'staleness'))
@@ -637,6 +654,12 @@ const selftest = (): number => {
     if ('value' in d) fail(`decode: ${type} ${JSON.stringify(canon)} decoded to ${JSON.stringify(d.value)} — an undecodable value must be excluded, never guessed`);
     else console.log(`PASS  decode: ${type} ${JSON.stringify(canon)} is refused — ${d.reason}`);
   }
+
+  // 8. THE CONFIG WARNING. The fixture's expectation carries a committed-style `from`, so the plan must
+  //    carry the warning — the one note whose absence turns #1569's false positives into writes.
+  if (!plan.notes.some((n) => n.includes('COMMITTED config')))
+    fail('config: the plan does not warn that the expectation was built at a committed config — #1569\'s false positives become WRITES in a plan');
+  else console.log('PASS  config: the plan warns that a committed-config expectation can write lever defaults over moved levers');
 
   console.log('');
   console.log(failed === 0 ? 'FIX SELF-CHECK: PASS' : `FIX SELF-CHECK: FAIL (${failed} check(s))`);
