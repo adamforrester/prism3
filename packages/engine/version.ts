@@ -2926,6 +2926,20 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.128.0 — #1575: field-message shows ONE shared caption, not four (owner-decided Option 2). The #1567
+ * live-host work proved #1474's four distinct per-status captions and #1018's single set-level `Message`
+ * TEXT property are mutually exclusive on the real host: a characters-bound TEXT node is a VIEW onto the
+ * property's one `defaultValue`, so every member displays the same string, and a per-member write only
+ * reaches the last member written. Given the choice (drop the property for four literal captions, or keep
+ * the property and share one), the owner KEPT the property — `figmaProperties.texts.message.byVariant` is
+ * REMOVED, so the projection writes the single `default` ("This is a status message.") to all four
+ * members. The members stay distinct by GLYPH + ink per status; only the caption STRING is shared. This
+ * moves the PROJECTED component surface (the field-message member plans lose their per-status text) with NO
+ * `out/**` change — component payloads are not committed, so `lint-emission-version` sees 0 artifacts and
+ * only `lint-component-surface` catches it (#1252): ENGINE bump 0.127.0 → 0.128.0, baseline re-accepted.
+ * CONTRACT STANDS at 11.3.0 — no token NAME or `$type` moves (a caption scaffold is not a token;
+ * `token-contract --check` level `none`).
+ *
  * 0.127.0 — #1496: the `linkPalette` LEVER (owner-decided 2026-09-17). Links were
  * hard-wired to the action palette (`linkBase = chromatic(r2p.action, …)` in `modes.ts`); a brand could not
  * give links a different colour without moving all interactive colour. `linkPalette` (control `palette-ref`,
@@ -3315,7 +3329,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.127.0';
+export const ENGINE_VERSION = '0.128.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

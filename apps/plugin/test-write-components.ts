@@ -1944,13 +1944,13 @@ const fmPage: Page = { children: [] };
 const fmRun = await run(fmPlans, { ...fullFor(fmPlans), page: fmPage });
 ok(fmRun.set === 'field-message' && fmRun.variants === 4 && fmRun.added === 4,
   `#1010 the four status members assemble under one set (set=${fmRun.set}, variants=${fmRun.variants}, added=${fmRun.added})`);
-// The caption COLLAPSE is split out rather than folded into "no misses", and it is asserted in its own right
-// below: a set-level TEXT property holds ONE default, so this def's four distinct per-status captions cannot all
-// reach the host, and the executor reports that by name instead of causing it (#1567). Everything else must
-// still be clean — and holding the two apart is what keeps the clean-run claim from being quietly widened.
+// field-message declares ONE caption (Option 2, #1575), so the run is clean — there is nothing to collapse.
+// The collapse-report MECHANISM (for a def that DOES declare a divergent spread) stays guarded BY NAME in
+// `test-roundtrip.ts` on a synthetic def, so retiring field-message as its exemplar is not a silent gate
+// deletion.
 const fmCollapse = fmRun.misses.filter((m) => /^text text\.characters -> COLLAPSED/.test(m));
-const fmOther = fmRun.misses.filter((m) => !/^text text\.characters -> COLLAPSED/.test(m));
-ok(fmOther.length === 0, `#1010 ...with no misses beyond the reported caption collapse (${fmOther.join('; ') || 'none'})`);
+ok(fmCollapse.length === 0 && fmRun.misses.length === 0,
+  `#1575 field-message assembles with NO misses — one shared caption behind the bound property, nothing to collapse (${fmRun.misses.join('; ') || 'none'})`);
 
 const fmMembers = fmPage.children[0].children as Node[];
 const fmKids = (m: Node): Node[] => (m.children as Node[]) ?? [];
@@ -1965,37 +1965,26 @@ const fmInk = (n: Node): string =>
 ok(fmMembers.length === 4 && fmMembers.map((m) => m.name).join(' | ') === 'status=default | status=error | status=warning | status=success',
   `#1010 the members are named for the status axis (renamed from tone in #1334), in order (${fmMembers.map((m) => m.name).join(' | ')})`);
 
-// (#1018/#1474/#1567) THE DEF DECLARES FOUR DISTINCT CAPTIONS — AND THE HOST CAN SHOW ONLY ONE OF THEM.
+// (#1018/#1474/#1567/#1575) THE DEF DECLARES ONE CAPTION — the host can show only one behind a bound property.
 //
-// #1018 gave each status its own placeholder via `byVariant.status` and #1474 settled the four strings (Set A:
-// default "This is a standard message." / error "Something needs fixing." / warning "Double-check this." /
-// success "All set."), so the error member would stop shipping the generic helper string. That authored intent
-// is still checked, and it is checked ON THE PLAN, which is now the only place it survives.
-//
-// It used to be checked at the built NODE, on the stated reasoning that "only the node distinguishes a
-// per-member default from a set-wide one". The reasoning was right; the conclusion it licensed was not. On the
-// real host a characters-bound TEXT node is a VIEW onto the set-level property's one `defaultValue` — reading
-// it returns that default, writing it writes THROUGH to it — so the node cannot hold a per-member caption at
-// all, and the executor's attempt to give it one left the LAST member's string on the whole set (live: "All
-// set." on all four statuses, #1567). So the two claims are now made where each is true: the DEF declares four,
-// the HOST shows one, and the gap is REPORTED. Whether this part should keep its `characters` reference (one
-// shared caption, instance-overridable) or drop it (four authored captions, no property) is the owner's call —
-// see `docs/00-progress.md`.
+// #1018/#1474 gave each status its own placeholder via `byVariant.status` (Set A), but the #1567 live-host work
+// proved a characters-bound TEXT node is a VIEW onto the set-level property's one `defaultValue` — reading it
+// returns that default, writing it writes THROUGH — so a per-member caption is not expressible, and the
+// executor's attempt to give it one left the LAST member's string on all four ("All set." everywhere, live).
+// The owner kept the property (Option 2, #1575), so the def now declares ONE caption; the members stay distinct
+// by GLYPH per status. The collapse-report mechanism a mis-authored spread would trip is guarded BY NAME in
+// `test-roundtrip.ts` on a synthetic def.
 const fmCaption = (m: Node): string => String(fmKids(m).find((c) => c.type === 'TEXT')?.characters ?? '<none>');
 const fmCaptions = fmMembers.map(fmCaption);
 const fmDeclared = fmPlans.map((p) => String((p.root.children ?? []).find((c) => c.characters !== undefined)?.characters));
-ok(fmDeclared.join(' | ') === 'This is a standard message. | Something needs fixing. | Double-check this. | All set.',
-  `#1018/#1474 the def declares a distinct caption per status — one parallel set of generic scaffolds, with the error member not shipping the status=default helper string (${fmDeclared.join(' | ')})`);
-ok(new Set(fmDeclared).size === 4,
-  `#1018 ...and the four declared captions are pairwise distinct, so the collapse below is a real spread rather than four copies of one string (${new Set(fmDeclared).size} distinct)`);
-// AT THE NODE: all four read the set's ONE declared default, deterministically — not whichever member an
-// executor wrote last. This is the assertion the live symptom fails.
-ok(fmCaptions.every((c) => c === 'This is a standard message.'),
-  `#1567 every status member reads the set's ONE declared default at the node — a per-member caption is not expressible behind a set-level TEXT property (${fmCaptions.join(' | ')})`);
-// AND THE GAP IS REPORTED, once, by part, naming all four declared strings — so a file that ships four
-// identical captions never ships silently.
-ok(fmCollapse.length === 1 && fmCollapse[0].includes('4 distinct captions'),
-  `#1567 ...and the executor reports the collapse once, by name, naming the four declared strings (${fmCollapse.length} miss(es): ${fmCollapse[0] ?? '—'})`);
+ok(new Set(fmDeclared).size === 1 && fmDeclared[0] === 'This is a status message.',
+  `#1575 the def declares ONE caption across all four status members — no byVariant spread (${[...new Set(fmDeclared)].join(' | ')})`);
+// AT THE NODE: all four read the set's one declared default, by design.
+ok(fmCaptions.every((c) => c === 'This is a status message.'),
+  `#1575 every status member reads the set's one declared default at the node (${fmCaptions.join(' | ')})`);
+// AND THERE IS NO COLLAPSE: one caption, nothing to overwrite.
+ok(fmCollapse.length === 0,
+  `#1575 field-message declares one caption, so no collapse is reported (${fmCollapse.length ? fmCollapse.join('; ') : 'none'})`);
 
 // (1) THE DEFAULT MEMBER HAS NO GLYPH, and the three validation members have exactly one each. Read as a
 // COUNT PER MEMBER rather than a total: 3 artboards across 4 members is also what "two on error, one on
