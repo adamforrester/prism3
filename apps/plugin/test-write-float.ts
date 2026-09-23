@@ -25,7 +25,7 @@
  */
 import { buildFloatWritePlan } from '@prism3/engine/write-plan';
 import { brandTheme } from '@prism3/engine/theme';
-import { applyFloatPlan } from './src/write-figma';
+import { applyFloatPlan, ownedModeIds, stampOwnedModes } from './src/write-figma';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import type { BrandInput } from '@prism3/engine/theme';
 
@@ -48,9 +48,31 @@ class ShimVar {
 class ShimCollection {
   modes: { modeId: string; name: string }[];
   private seq = 0;
+  /** SHARED plugin data, keyed `namespace → key → value`. Modeled on Figma's own behavior, PROBED live on a
+   *  real `VariableCollection` (2026-09-23) rather than assumed, because every one of these details is load
+   *  bearing for `stampOwnedModes` and three of them are surprising:
+   *    • an unset key reads back `''`, not `undefined` — so `''` is the absent sentinel;
+   *    • writing `''` REMOVES the key rather than storing an empty string;
+   *    • a second write REPLACES wholesale, so the append-only union has to be computed by the caller —
+   *      a shim that merged would make `stampOwnedModes`'s union untestable by agreeing with it;
+   *    • the NAMESPACE charset is enforced by Figma and throws on anything outside `[A-Za-z0-9_.]` (a
+   *      hyphen throws). Enforced here too, so a namespace that drifts to an illegal spelling fails this
+   *      test loudly instead of passing against a permissive shim and throwing in the real plugin. */
+  shared: Record<string, Record<string, string>> = {};
   constructor(public id: string, public name: string) { this.modes = [{ modeId: `${id}:m0`, name: 'Mode 1' }]; }
   renameMode(modeId: string, name: string): void { const m = this.modes.find((x) => x.modeId === modeId); if (m) m.name = name; }
   addMode(name: string): string { const modeId = `${this.id}:m${++this.seq}`; this.modes.push({ modeId, name }); return modeId; }
+  private ns(namespace: string): Record<string, string> {
+    if (!/^[A-Za-z0-9_.]+$/.test(namespace)) {
+      throw new Error('The namespace can only consist of alphanumeric characters, _ or .');
+    }
+    return (this.shared[namespace] ??= {});
+  }
+  getSharedPluginData(namespace: string, key: string): string { return this.ns(namespace)[key] ?? ''; }
+  setSharedPluginData(namespace: string, key: string, value: string): void {
+    const bag = this.ns(namespace);
+    if (value === '') delete bag[key]; else bag[key] = value;
+  }
 }
 class VariablesShim {
   collections: ShimCollection[] = [];
@@ -210,6 +232,96 @@ ok(smMatch > 0 && smWrong.length === 0,
 const stranded = namesAfter.filter((n) => !twoLayout.modes.includes(n));
 ok(stranded.join(',') === 'xs,lg,xl,2xl',
   `#1570 the apply strands the dropped modes rather than deleting them (${stranded.join('/')}) — deletion is the opt-in prune's`);
+
+// =============================================================================================
+// MODE PROVENANCE (#1581) — the stamp a real apply writes, driven through the SAME shrink above.
+//
+// #1570's prune arm had to offer every unclaimed mode and let the designer veto, because a mode carries no
+// provenance to read. `stampOwnedModes` writes it: on every apply, the engine's own mode ids go onto the
+// collection as shared plugin data, unioned with whatever is already there.
+//
+// APPEND-ONLY is the whole mechanism and it is what the first pin below is about. The four modes the shrink
+// stranded were written by the 6-breakpoint apply and are NOT written by the 2-breakpoint one, so a
+// "the modes this apply wrote" snapshot would drop exactly them — and the prune would stop offering the
+// drift it exists to find, silently. The pin names them.
+// =============================================================================================
+const OWNED_NS = 'prism3';                   // the shared-plugin-data namespace, spelled here as a literal
+const OWNED_KEY = 'modes:owned';             // …and the key, so a rename of either fails by name here
+const ownedAfterShrink = ownedModeIds(shrinkLayout as unknown as Parameters<typeof ownedModeIds>[0]);
+const strandedIds = shrinkLayout.modes.filter((m) => stranded.includes(m.name)).map((m) => m.modeId);
+const survivorIds = shrinkLayout.modes.filter((m) => twoLayout.modes.includes(m.name)).map((m) => m.modeId);
+ok(strandedIds.length === 4 && strandedIds.every((id) => ownedAfterShrink.includes(id)),
+  `#1581 APPEND-ONLY: the four modes the shrink stranded (${stranded.join('/')}) are STILL stamped as the engine's after the 2-breakpoint apply — keep-last drops them and the prune stops offering them`);
+ok(survivorIds.every((id) => ownedAfterShrink.includes(id)),
+  `#1581 the modes this apply DID write are stamped too (${twoLayout.modes.join('/')})`);
+ok(ownedAfterShrink.length === shrinkLayout.modes.length,
+  `#1581 the stamp covers every mode in the collection and nothing else (${ownedAfterShrink.length} stamped / ${shrinkLayout.modes.length} present)`);
+// The raw stored form, at the namespace + key the SHARED CONTRACT fixes. Read straight off the shim rather
+// than through `ownedModeIds`, so a drift in either string fails here instead of round-tripping through one
+// helper that agrees with itself.
+const rawStamp = shrinkLayout.getSharedPluginData(OWNED_NS, OWNED_KEY);
+ok(rawStamp !== '' && JSON.stringify(JSON.parse(rawStamp)) === JSON.stringify(ownedAfterShrink),
+  `#1581 the stamp is a JSON string array under getSharedPluginData("${OWNED_NS}", "${OWNED_KEY}") — SHARED, so an agent census can read it back (${rawStamp.slice(0, 48)}…)`);
+
+// A mode the DESIGNER adds survives an apply and is never claimed by the stamp — which is what lets the
+// prune spare it. The hand-added mode goes on after the engine has already stamped this collection, which
+// is the case the stamp can actually distinguish; the seed case (a mode present before the first stamp) is
+// pinned in the unit arm below, and is deliberately the other way.
+const printId = shrinkLayout.addMode('print');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+await applyFloatPlan(twoPlan, shrinkShim as any);
+const ownedAfterHandMode = ownedModeIds(shrinkLayout as unknown as Parameters<typeof ownedModeIds>[0]);
+ok(shrinkLayout.modes.some((m) => m.modeId === printId) && !ownedAfterHandMode.includes(printId),
+  '#1581 a hand-added `print` mode survives the next apply and is NOT stamped as the engine\'s — the by-name pin for the mode the prune must spare');
+ok(strandedIds.every((id) => ownedAfterHandMode.includes(id)),
+  '#1581 …and that apply did not drop the stranded ids either — the union is taken on every apply, not just the first');
+
+// ---- the stamp helpers, directly: absence, garbage, and the MIGRATION SEED ------------------
+class StampColl {
+  shared: Record<string, string> = {};
+  constructor(public id: string, public name: string, public modes: { modeId: string; name: string }[]) {}
+  renameMode(): void {}
+  addMode(): string { return 'x'; }
+  getSharedPluginData(_ns: string, key: string): string { return this.shared[key] ?? ''; }
+  setSharedPluginData(_ns: string, key: string, value: string): void { if (value === '') delete this.shared[key]; else this.shared[key] = value; }
+}
+/* eslint-disable @typescript-eslint/no-explicit-any -- structural: these satisfy the VarCollection port */
+const asColl = (c: unknown) => c as any;
+// ABSENT surface — a collection that models no plugin data at all. This is the shape every OTHER shim in
+// this repo has, and the shape a pre-#1581 file effectively has, so neither reading nor writing may throw.
+const noData = { id: 'nd', name: 'plain', modes: [{ modeId: 'a', name: 'light' }], renameMode() {}, addMode: () => 'x' };
+ok(ownedModeIds(asColl(noData)).length === 0, '#1581 a collection with no plugin-data surface reads as NO provenance, not an error');
+let threw = false;
+try { stampOwnedModes(asColl(noData), ['a']); } catch { threw = true; }
+ok(!threw, '#1581 …and stamping one is a no-op rather than a throw — an apply never fails because provenance could not be written');
+
+const garbage = new StampColl('g', 'garbage', [{ modeId: 'a', name: 'light' }]);
+for (const junk of ['not json at all', '{"modes":["a"]}', '42', '["a", 7, null]']) {
+  garbage.shared[OWNED_KEY] = junk;
+  const read = ownedModeIds(asColl(garbage));
+  ok(junk === '["a", 7, null]' ? read.join(',') === 'a' : read.length === 0,
+    `#1581 a stamp holding ${JSON.stringify(junk)} is read tolerantly (got [${read.join(',')}]) — another plugin's value in the same namespace must not break an apply`);
+}
+
+// THE MIGRATION SEED — the one deliberate deviation from a strict "only what the engine wrote", and it is
+// flagged rather than hidden. Provenance cannot be retrofitted: a collection that predates the stamp holds
+// modes nobody recorded, so a strict rule would spare them forever and silently disable #1570's repair on
+// every file damaged before this shipped — including the live test file, which still holds the duplicate
+// `sm`. The seed presumes those pre-existing modes are the engine's, which is EXACTLY today's behavior,
+// frozen at the moment knowledge begins. From the first stamp onward, attribution is real.
+const legacy = new StampColl('l', 'layout', [
+  { modeId: 'old-sm', name: 'sm' }, { modeId: 'old-dup', name: 'sm' }, { modeId: 'old-lg', name: 'lg' },
+]);
+const seeded = stampOwnedModes(asColl(legacy), ['old-sm']);
+ok(['old-sm', 'old-dup', 'old-lg'].every((id) => seeded.includes(id)),
+  `#1581 SEED: the FIRST stamp on an unstamped collection claims every mode it already holds (${seeded.join(',')}) — otherwise a file damaged before #1581 becomes permanently un-prunable`);
+legacy.modes.push({ modeId: 'hand-print', name: 'print' });
+const afterSeed = stampOwnedModes(asColl(legacy), ['old-sm']);
+ok(!afterSeed.includes('hand-print'),
+  '#1581 SEED HAPPENS ONCE: a mode added after the collection is stamped is NOT claimed — the seed is a migration, not a rule');
+ok(['old-sm', 'old-dup', 'old-lg'].every((id) => afterSeed.includes(id)),
+  '#1581 …and the seeded ids survive that second stamp — append-only applies to them too');
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 console.log(`\nplugin FLOAT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

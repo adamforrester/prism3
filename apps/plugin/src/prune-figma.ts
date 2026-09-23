@@ -33,6 +33,15 @@
  *     and is left. Dropping the WHOLE `display` group therefore prunes nothing there — the conservative
  *     direction. Per kind matters because the four namespaces are independent: a paint style called
  *     `shadow/x` is not in the effect plan's namespace just because the effect plan emits `shadow/*`.
+ *     PLUS, since #1577, a SECOND admission path: an orphan whose DESCRIPTION carries the signature of the
+ *     one the engine's emitter writes. A style is the one surface here that already holds its own
+ *     provenance — the engine writes a description on every style it emits — and reading it is what
+ *     recognizes the case the group test structurally cannot: `Grid/xs`, an emitted `Grid / xs` a designer
+ *     renamed, whose group is now outside the plan's. Signatures match the emitter's TEMPLATE, not the
+ *     current plan's VALUES (`ENGINE_DESCRIPTION`, and the reason is written there — it is the difference
+ *     between catching a shrink's stale styles and sparing exactly them). Anything matching neither test is
+ *     still spared, so this widened what the designer is SHOWN, not what can be deleted unseen: the styles
+ *     admitted only by signature are named in the review text.
  *   • MODES of a plan-owned collection — every mode `claimModes` (in `write-figma.ts`) does NOT claim,
  *     when the plan claims at least one. This is the #1570 arm, and it is the most destructive of the
  *     four, so it is also the only one whose items are NAMED in the preview text rather than counted:
@@ -42,16 +51,24 @@
  *     two jobs at once: it refuses to judge the modes of a collection this plan has never written, and it
  *     guarantees a survivor, since Figma refuses to remove a collection's last mode.
  *
- *     **The residual, stated rather than defended.** A mode has no provenance to read. A variable carries
- *     the brand root and a style carries its group, but a mode carries a bare name, so a mode a designer
- *     added by hand to a plan-owned collection (a `print` mode in `color`) is indistinguishable from one
- *     the engine emitted and then stopped emitting — and it WILL be offered. There is no narrower guard
- *     available: the engine's own mode vocabulary is brand-configurable (the breakpoint ladder IS the
- *     `layout` mode set), so "a name the engine could emit" is not a smaller set than "a name this plan
- *     does not emit". What the design does instead is make it legible: every mode is named in the review
- *     sentence, per collection, so the designer reads `layout → xs, lg, xl, 2xl` and cancels if one of
- *     those is theirs. Opt-in with the names in front of them is the same bargain the other three arms
- *     strike with a count.
+ *     **The residual #1570 stated, and what #1581 did about it.** A mode had no provenance to read. A
+ *     variable carries the brand root and a style carries its group and its description, but a mode is a
+ *     bare name on a collection, so a mode a designer added by hand to a plan-owned collection (a `print`
+ *     mode in `color`) was indistinguishable from one the engine emitted and then stopped emitting — and it
+ *     WOULD be offered. No narrower guard could be READ: the engine's own mode vocabulary is
+ *     brand-configurable (the breakpoint ladder IS the `layout` mode set), so "a name the engine could
+ *     emit" is not a smaller set than "a name this plan does not emit". #1581's answer is therefore not a
+ *     better guess but a WRITTEN record — `stampOwnedModes` in `write-figma.ts` stamps the engine's own
+ *     mode ids onto the collection on every apply, append-only, and this arm narrows the stale set to those
+ *     ids (`FileCollection.ownedModeIds`). A designer's `print` mode, added after the collection was first
+ *     stamped, is now outside the set and spared.
+ *
+ *     Two things that did NOT change, both deliberate. A collection with NO stamp — every file written
+ *     before #1581 — is judged exactly as before, because the alternative is a file the engine has not
+ *     re-applied silently becoming un-cleanable. And the names are still spelled out in the review
+ *     sentence, so the designer reads `layout → xs, lg, xl, 2xl` and cancels if one of those is theirs:
+ *     provenance INFORMS this arm, it does not license it. Opt-in with the names in front of them is the
+ *     same bargain the other three arms strike with a count.
  *
  * The four sets are disjoint: variable orphans and stale modes are only sought inside plan-OWNED
  * collections, and a stranded collection is by definition one no plan owns, so nothing is ever both a
@@ -80,8 +97,22 @@ import { rootOf } from '@prism3/engine/figma-names';
 export type StyleKind = 'text' | 'effect' | 'paint' | 'grid';
 export const STYLE_KINDS: readonly StyleKind[] = ['text', 'effect', 'paint', 'grid'];
 
-/** Names per style kind — the file's on one side of the detector, the plan's on the other. */
+/** Names per style kind — the PLAN's side of the detector, where a name is all there is. */
 export type StyleNames = Record<StyleKind, string[]>;
+
+/** A style in the FILE. `description` is the provenance (#1577): the engine writes one on every style it
+ *  emits, so a style carrying an engine-shaped description is the engine's even after a rename. Optional,
+ *  and a caller that supplies bare names still type-checks — absent provenance is read as no provenance,
+ *  which is exactly the pre-#1577 behavior. */
+export interface FileStyle {
+  name: string;
+  description?: string;
+}
+
+/** The FILE's styles per kind — a bare name where provenance is unavailable, a `FileStyle` where it is. */
+export type FileStyles = Record<StyleKind, (string | FileStyle)[]>;
+
+const asFileStyle = (s: string | FileStyle): FileStyle => (typeof s === 'string' ? { name: s } : s);
 
 /** A collection in the file, reduced to what the detector needs: its name, the names of the variables it
  *  holds, and its MODES. The modes carry `modeId` as well as `name` because a name is not a key here —
@@ -90,6 +121,11 @@ export interface FileCollection {
   name: string;
   variableNames: string[];
   modes: VarMode[];
+  /** The engine's own mode provenance (#1581) — `ownedModeIds` of the live collection, i.e. the ids the
+   *  engine has stamped as written by it. ABSENT or EMPTY means no knowledge, and every mode is judged by
+   *  name alone exactly as before; PRESENT narrows the stale set to ids the engine wrote, so a mode a
+   *  designer added after the first stamped apply is spared instead of offered. See `stampOwnedModes`. */
+  ownedModeIds?: string[];
 }
 
 /** The modes one collection's plan declares. Given per plan rather than per collection because a
@@ -106,8 +142,9 @@ export interface PlannedModes {
 export interface PruneInput {
   /** Every variable collection in the file, each with its variables' names and its modes. */
   collections: FileCollection[];
-  /** Every local style name in the file, per kind. */
-  styles: StyleNames;
+  /** Every local style in the file, per kind — with its `description` where the caller can read one, which
+   *  is what lets a renamed engine style be recognized (#1577). */
+  styles: FileStyles;
   /** Every variable name the current plan emits, across all collections — the live members of the
    *  engine namespace. A name in a plan-owned collection that is NOT here is an orphan. */
   plannedVariables: Iterable<string>;
@@ -135,7 +172,11 @@ export interface PrunePlan {
   variables: { collection: string; names: string[] }[];
   collections: string[];
   modes: { collection: string; modes: VarMode[] }[];
-  styles: { kind: StyleKind; names: string[] }[];
+  /** `byProvenance` is the subset of `names` admitted ONLY by its description's signature (#1577) — a
+   *  style whose group the plan no longer emits, recognized as the engine's by what it says about itself.
+   *  A subset, never an addition, so no count is derived from it; it exists so the review text can NAME
+   *  those styles, the same bargain the mode arm strikes. */
+  styles: { kind: StyleKind; names: string[]; byProvenance: string[] }[];
 }
 
 /** The engine-namespace test for a VARIABLE or a collection MEMBER: it carries the brand root. `root`
@@ -152,11 +193,88 @@ const inRoot = (name: string, root: string): boolean => root !== '' && rootOf(na
  *  the wrong way round: with a trim, a designer's hand-made `Grid/wide` falls into the emitter's `Grid `
  *  namespace and gets offered for deletion. Untrimmed it does not. Pinned by name in `test-prune.ts`.
  *
- *  The cost is real and measured, not hypothetical: the live test file holds a `Grid/xs` carrying the
- *  engine's own description — an emitted style someone renamed — and this rule leaves it behind. Filed as
- *  #1577 rather than fixed here, because the fix is a provenance namespace (a style's `description`) and a
- *  decision about whether a designer's rename is drift, not a character class. */
+ *  The cost was real and measured, not hypothetical: the live test file holds a `Grid/xs` carrying the
+ *  engine's own description — an emitted style someone renamed — and this rule alone leaves it behind. That
+ *  was #1577, and it is why the group test is no longer the only way in: `isEngineDescription` below reads
+ *  the provenance the group name cannot carry. This function is unchanged, deliberately — the rename case
+ *  is answered by ADDING a second admission path, not by loosening this one, because every loosening of a
+ *  character class widens what a hand-made name falls into. */
 const styleGroup = (name: string): string => name.split('/')[0] ?? '';
+
+/* ── style provenance: the description signature (#1577) ──────────────────────────────────────────── */
+
+/**
+ * Per-kind SIGNATURES of the description the engine's own emitters write. Shape, never value — and that
+ * distinction is the whole reason this arm works.
+ *
+ * The obvious implementation is to compare a live style's description against the descriptions the CURRENT
+ * plan would write, and it is precisely wrong: after a 6→2 breakpoint shrink, the four dropped grid styles
+ * carry descriptions naming breakpoints the new plan does not have, so no planned description equals
+ * theirs. An exact match would spare exactly the stale styles this exists to catch, and spare them in the
+ * case that motivated it. So each pattern matches the TEMPLATE — the invariant prose the emitter wraps
+ * around whatever the values were at the time — and the values inside it are read as wildcards.
+ *
+ * Kept as literal patterns HERE rather than imported from the emitters, and that is not duplication to be
+ * tidied away: a recognizer built out of its subject's own expression agrees with it by construction and
+ * can never fail (docs/34 shape 2). These patterns are an independent statement of what the engine writes;
+ * `test-prune.ts` checks them against descriptions produced by the REAL emitters over all three committed
+ * brands, so an emitter whose prose moves fails that test by name instead of silently disabling the arm.
+ *
+ * The clause separator in every one of these is an EM DASH (U+2014), not a hyphen — `emit-figma-styles.ts`
+ * writes it, and `lint-us-english.ts` / the voice standard keep it that way.
+ */
+const ENGINE_DESCRIPTION: Record<'grid' | 'effect' | 'paint', RegExp> = {
+  /** `emit-figma-styles.ts` `buildFigmaGridStyles`. The trailing sentence is fixed text in the emitter and
+   *  names no value at all, which makes this the strongest of the four signatures. */
+  grid: /^\d+-column layout grid for the \S+ breakpoint — \d+(?:\.\d+)?px gutter, \d+(?:\.\d+)?px margin\. A static Figma grid style; the layout variable collection stays the responsive source of truth\.$/,
+  /** `buildFigmaShadow`: the leaf's own `shadow <key> — …` prose, plus the mode clause the emitter appends.
+   *  The middle clause is a wildcard on purpose — `shadow/inset` carries `inner shadow for wells / pressed
+   *  states / inputs` where every other rung carries `elevation N of M, K-layer (…)`, so requiring the
+   *  elevation clause would fail to recognize the one style whose shape is different. */
+  effect: /^shadow \S+ — .+ — (?:light mode|dark mode \(reduced; surface-lift pattern\)|\S+ mode \(per-mode softness\/tint\))$/,
+  /** `buildFigmaGradient`: the leaf's `gradient <key> — <kind>, N stops, <interp> interpolation` prose. The
+   *  emitter appends nothing here, so the signature is the leaf template and the tail is left open (the
+   *  brand-gradient suffix is `tree.ts`'s, not this emitter's). */
+  paint: /^gradient \S+ — (?:linear \d+(?:\.\d+)?°|radial \([^)]+\)), \d+ stops?, (?:oklch|srgb) interpolation/,
+};
+
+/**
+ * Whether `description` is one the ENGINE wrote for a style of this `kind`.
+ *
+ * TEXT is the weak case, and it is stated rather than papered over. `emit-figma-font.ts` builds a text
+ * style's description out of the style's own words — `display/lg/strong` → `display lg strong` — so unlike
+ * the other three kinds there is no template prose to key on. What is checked instead is the SHAPE plus a
+ * closed vocabulary: lowercase words, at least two, every one of them a word the current text plan's own
+ * names are built from, and the first a top-level group the plan still emits. `display lg strong` passes
+ * (a renamed `Display/LG` still describes itself in the plan's words); a hand-typed `body copy for the
+ * hero` fails on `copy`/`for`/`the`/`hero`. The vocabulary comes from the plan's NAMES, which is a
+ * different derivation from the emitter's description-building code, so this stays an independent claim.
+ *
+ * The residual: a hand-typed description made only of engine words — `label sm emphasis` typed by a
+ * designer onto their own style — is indistinguishable from the engine's, and would be offered. It is
+ * offered NAMED (see `styleNote`) and never deleted without the designer confirming, so the cost is a
+ * sentence they have to read rather than work they lose. Text is also the kind that needs this path least:
+ * a dropped typography rung keeps its top-level group, so the #1521 group test already catches it, and
+ * only a rename of the FIRST segment reaches here at all.
+ */
+export const isEngineDescription = (
+  kind: StyleKind,
+  description: string,
+  plannedNames: readonly string[],
+): boolean => {
+  const d = description.trim();
+  if (d === '') return false;                       // no description is no provenance, never a match
+  if (kind !== 'text') return ENGINE_DESCRIPTION[kind].test(d);
+  const words = d.split(' ');
+  if (words.length < 2) return false;
+  const vocabulary = new Set<string>();
+  const groups = new Set<string>();
+  for (const n of plannedNames) {
+    for (const w of n.split(/[\/-]/)) if (w !== '') vocabulary.add(w);
+    groups.add(styleGroup(n));
+  }
+  return groups.has(words[0]) && words.every((w) => vocabulary.has(w));
+};
 
 /**
  * Compute what an opt-in prune would remove — pure, namespace-guarded, reusing `orphansOf` and
@@ -207,17 +325,35 @@ export const computePrunePlan = (input: PruneInput): PrunePlan => {
     const claimed = new Set(claimModes(c.modes, [...declared]).values());
     if (claimed.size === 0) continue;
     const stale = c.modes.filter((m) => !claimed.has(m.modeId));
-    if (stale.length) modes.push({ collection: c.name, modes: stale });
+    // PROVENANCE (#1581) — where the collection carries the engine's stamp, only the ids the engine wrote
+    // are offered; a mode the designer added is theirs and is left alone. An ABSENT or EMPTY stamp keeps
+    // the pre-#1581 behavior exactly (every stale mode offered, named), because that is what every file
+    // written before the stamp existed has, and a file the engine has not re-applied since must not
+    // silently stop being cleanable. Read from the SNAPSHOT, not from Figma — this stays pure.
+    const owned = c.ownedModeIds;
+    const offer = owned && owned.length ? stale.filter((m) => owned.includes(m.modeId)) : stale;
+    if (offer.length) modes.push({ collection: c.name, modes: offer });
   }
 
-  // STYLES — per kind, orphans whose top-level group that kind's plan still emits. Reuses `orphansOf`
-  // over the style names; the group filter is the namespace guard (there is no root on a style name).
+  // STYLES — per kind, orphans admitted by EITHER namespace test: the top-level group that kind's plan
+  // still emits (#1521), or the engine's own description signature (#1577), which is the only one that can
+  // recognize a style a designer RENAMED out of the group. Reuses `orphansOf` over the names, so the
+  // ordering the rest of the system reads is unchanged; the two tests are the namespace guard (there is no
+  // brand root on a style name). A style matching neither is spared — an addition, never a loosening.
   const styles: PrunePlan['styles'] = [];
   for (const kind of STYLE_KINDS) {
     const planned = input.plannedStyles[kind] ?? [];
     const plannedGroups = new Set(planned.map(styleGroup));
-    const orphans = orphansOf(input.styles[kind] ?? [], planned).filter((n) => plannedGroups.has(styleGroup(n)));
-    if (orphans.length) styles.push({ kind, names: orphans });
+    const live = (input.styles[kind] ?? []).map(asFileStyle);
+    const described = new Map(live.map((s) => [s.name, s.description ?? ''] as const));
+    const byProvenance: string[] = [];
+    const orphans = orphansOf(live.map((s) => s.name), planned).filter((n) => {
+      if (plannedGroups.has(styleGroup(n))) return true;
+      if (!isEngineDescription(kind, described.get(n) ?? '', planned)) return false;
+      byProvenance.push(n);
+      return true;
+    });
+    if (orphans.length) styles.push({ kind, names: orphans, byProvenance });
   }
 
   return { variables, collections, modes, styles };
@@ -396,6 +532,21 @@ const modeNote = (p: PrunePlan): string =>
       ' removing a mode drops its value from every variable in that collection.';
 
 /**
+ * The styles admitted only by their description's signature (#1577), NAMED — the ones whose group the plan
+ * no longer emits, so the designer cannot infer them from the plan in front of them. A rename is how a
+ * style gets here, which means the name shown is the designer's own, not the engine's; saying where the
+ * recognition came from is what makes that reviewable rather than surprising.
+ */
+const styleNote = (p: PrunePlan): string => {
+  const named = p.styles.filter((g) => g.byProvenance.length);
+  if (named.length === 0) return '';
+  const list = named.map((g) => `${g.kind} → ${g.byProvenance.join(', ')}`).join('; ');
+  const one = named.reduce((n, g) => n + g.byProvenance.length, 0) === 1;
+  return ` ${list} ${one ? 'is' : 'are'} outside the groups this theme emits, and ${one ? 'is' : 'are'} ` +
+    `included because ${one ? 'its' : 'their'} description is one the engine wrote — a renamed style.`;
+};
+
+/**
  * The review text shown before a prune runs — the count, the scope, and the consequence, per the voice
  * standard's Destructive tone (name the consequence and its scope). Recessive: it states what the delete
  * touches and, as importantly, what it leaves.
@@ -413,7 +564,8 @@ export const prunePreviewSummary = (p: PrunePlan): string => {
     `${parts(styles, modes, vars, p.collections.length)} ${one ? 'is' : 'are'} in this file but not in ` +
     `the current plan, all within this theme's namespace. Deleting ${one ? 'it' : 'them'} also removes any ` +
     `bindings made to ${one ? 'it' : 'them'}; anything outside the namespace is left in place.` +
-    modeNote(p)
+    modeNote(p) +
+    styleNote(p)
   );
 };
 
