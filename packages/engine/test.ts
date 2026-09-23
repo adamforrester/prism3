@@ -4685,6 +4685,81 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     try { tBrand('e7', { sizes: { title: { '2xl': 32 } } } as any); } catch (e: any) { msg = e.message; }
     ok(/typography\.sizes\.title\.2xl pins it/.test(msg), '[baseline] the ramp error names the pin, not typeScale');
   }
+  // OPT-IN PER-RUNG DESKTOP/MOBILE OVERRIDE (#1587). The viewport axis the Responsive lever controls
+  // globally becomes editable per rung: pin a desktop and/or mobile endpoint for ONE rung. The whole
+  // hook is that the composite already carries both endpoints and the fluid pipeline already reads them,
+  // so the override just AUTHORS the endpoint the derive used to own. Coherence (mobile ≤ desktop, a
+  // monotonic mobile ramp) is a build-time throw because an authored pin escapes `mobileEndpoint`'s
+  // Math.min. Paired with `lint-size-override-coherence.ts`, which re-asserts the same invariant
+  // independently over the committed output.
+  {
+    const comp = (t: any, g: string, v: string) => t.typography.composites.find((c: any) => c.group === g && c.variant === v)!;
+    const thr = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
+    const msgOf = (f: () => unknown) => { try { f(); return ''; } catch (e: any) { return e.message as string; } };
+    // A concrete BrandInput (the same shape `tBrand` builds from) so the same input can be validated AND
+    // rebuilt with an override for the emit↔paste check below.
+    const tInput = (id: string, ty: any) => ({ id, primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, typography: ty } as any);
+
+    // A mobile pin OVERRIDES the derived endpoint; the desktop endpoint and every neighbour stay put.
+    const m1 = tBrand('so1', { sizeOverrides: { display: { xl: { mobile: 40 } } } } as any);
+    ok(comp(m1, 'display', 'xl').sizeMinPx === 40 && comp(m1, 'display', 'xl').sizePx === 96,
+      '[#1587] a mobile override pins the mobile endpoint (display.xl → 96/40, was 96/48) and leaves desktop alone');
+    ok(comp(m1, 'display', 'lg').sizeMinPx === comp(tBrand('so0', {} as any), 'display', 'lg').sizeMinPx,
+      '[#1587] …and an unpinned neighbour keeps its derived mobile endpoint');
+    // Absent any override, output is byte-identical to today — a pure addition.
+    ok(comp(tBrand('so0b', {} as any), 'display', 'xl').sizeMinPx === 48,
+      '[#1587] a rung with no override is fully clamp-derived (display.xl mobile stays 48)');
+
+    // A desktop pin moves the max endpoint AND re-derives the mobile from the new desktop (48 → 40).
+    const m2 = tBrand('so2', { sizeOverrides: { title: { '2xl': { desktop: 48 } } } } as any);
+    ok(comp(m2, 'title', '2xl').sizePx === 48 && comp(m2, 'title', '2xl').sizeMinPx === 40,
+      '[#1587] a desktop override pins the desktop endpoint and re-derives mobile (title.2xl → 48/40)');
+    // A desktop pin can also be overridden on BOTH axes at once.
+    const m3 = tBrand('so3', { sizeOverrides: { title: { '2xl': { desktop: 48, mobile: 32 } } } } as any);
+    ok(comp(m3, 'title', '2xl').sizePx === 48 && comp(m3, 'title', '2xl').sizeMinPx === 32,
+      '[#1587] both endpoints can be pinned on one rung (title.2xl → 48/32)');
+
+    // THE COHERENCE THROW — an inverted rung (mobile > desktop). Isolated from monotonicity by inverting
+    // the LARGEST title rung, so this fails for inversion alone and its message names the axis.
+    ok(thr(() => tBrand('soE1', { sizeOverrides: { title: { '2xl': { mobile: 48 } } } } as any)),
+      '[#1587] an inverting override (title.2xl mobile 48 > desktop 40) throws');
+    ok(/mobile 48px is larger than desktop 40px/.test(msgOf(() => tBrand('soE1b', { sizeOverrides: { title: { '2xl': { mobile: 48 } } } } as any))),
+      '[#1587] …and the inversion error names mobile > desktop');
+    // THE MONOTONICITY THROW — a smaller rung's mobile (display.sm 48, equal to its own desktop so NOT
+    // inverted) exceeding a larger rung's derived mobile (display.md 40).
+    ok(thr(() => tBrand('soE2', { sizeOverrides: { display: { sm: { mobile: 48 } } } } as any)),
+      '[#1587] a monotonicity-breaking override (display.sm mobile 48 > display.md mobile 40) throws');
+
+    // Shape refusals mirror `sizes`, each by name.
+    ok(thr(() => tBrand('soE3', { sizeOverrides: { body: { md: { mobile: 12 } } } } as any)), '[#1587] a viewport override on reading text throws (heading groups only)');
+    ok(thr(() => tBrand('soE4', { sizeOverrides: { display: { xl: { mobile: 45 } } } } as any)), '[#1587] an off-ladder viewport override throws');
+    ok(thr(() => tBrand('soE5', { sizeOverrides: { display: { zzz: { desktop: 96 } } } } as any)), '[#1587] a viewport override on a rung the brand does not ship throws rather than no-opping');
+    ok(thr(() => tBrand('soE6', { responsive: { fluid: false }, sizeOverrides: { display: { xl: { mobile: 40 } } } } as any)), '[#1587] a mobile override with responsive off throws (no mobile endpoint to pin)');
+    // validateBrandInput ACCEPTS a well-formed override (returns an empty error array, never throws) and
+    // REJECTS a malformed one at the schema layer.
+    ok(validateBrandInput(tInput('soV', { sizeOverrides: { display: { xl: { mobile: 40 } } } })).length === 0,
+      '[#1587] validateBrandInput accepts a well-formed sizeOverrides');
+    ok(validateBrandInput(tInput('soV2', { sizeOverrides: { display: { xl: { tablet: 40 } } } })).length > 0,
+      '[#1587] validateBrandInput rejects an unknown viewport key');
+
+    // EMIT ↔ PASTE AGREEMENT over an OVERRIDDEN rung (the #1587 extension of the agreement gate). The
+    // theme-built font var plan and the file-read plan must be IDENTICAL even when a rung's mobile
+    // endpoint is authored, not derived — proving the pin flows through BOTH write paths in lockstep.
+    {
+      // Author a mobile pin on display.xl (desktop 96, derived mobile 48 → pin 40).
+      const t = brandTheme(tInput('soPaste', { sizeOverrides: { display: { xl: { mobile: 40 } } } }));
+      const coreFont = buildFigmaFont(t)[0] as Parameters<typeof fontVarPlanFrom>[0][number];
+      const fluidFiles = buildFigmaFontFluid(t) as unknown as typeof coreFont[];
+      const paste = JSON.stringify(fontVarPlanFrom([coreFont], fluidFiles));
+      const built = JSON.stringify(buildFontVarPlan(t));
+      ok(paste === built, '[#1587] emit↔paste font var plan is identical with an OVERRIDDEN mobile rung (the write paths stay in lockstep)');
+      // …and the override actually reached the emitted mobile mode, so the agreement is over a REAL pin,
+      // not a rung that happened to derive 40 anyway.
+      const mob = buildFigmaFontFluid(t).find((f: any) => f.$mode === 'mobile')!;
+      const xlVar = mob.variables.find((v: any) => /font-fluid\/display\/xl\//.test(v.name))!;
+      ok(xlVar && xlVar.value === 40, '[#1587] the authored mobile endpoint (40) is what the emitted type-sets mobile mode carries');
+    }
+  }
   // PER-MODE RUNG SIZES (#328, PR C). A mode re-sizes rungs within a mode-invariant SET.
   {
     const pmBase = { id: 'pm', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as any;

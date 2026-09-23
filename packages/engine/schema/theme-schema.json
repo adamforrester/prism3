@@ -57,12 +57,12 @@
             "type": "object",
             "additionalProperties": { "type": "string", "enum": ["linear", "standard", "decelerate", "accelerate", "expressive", "calm"] },
             "propertyNames": { "enum": ["default", "enter", "exit", "emphasized"] },
-            "description": "OPTIONAL. Per-mode EASING RE-POINT — maps a motion ROLE to another CURVE: { \"emphasized\": \"calm\" } reads \"in this mode, transitions that would use the emphasized curve use calm instead\". Names an existing curve, never a bezier: the six curves are mode-invariant primitives and a mode re-points rather than re-anchors, the same contract as lineHeights/letterSpacings. Only a role whose curve differs from the baseline carries an override on the motion.easing-role.<role> semantic; motion.transition.* inherits via its alias. A self-map is dropped. Deep-validated by brandTheme() (role and curve must both exist)."
+            "description": "OPTIONAL. Per-mode EASING RE-POINT — maps a motion ROLE to another CURVE (e.g. { \"emphasized\": \"calm\" }); same re-point contract as the per-mode lineHeights (names an existing curve, never a bezier; only a role whose curve differs overrides motion.easing-role.<role>, and motion.transition.* inherits via alias; a self-map is dropped). Deep-validated by brandTheme() (role and curve must both exist)."
           },
           "families": {
             "type": "object",
             "additionalProperties": false,
-            "description": "OPTIONAL. Per-mode font FAMILY per text CATEGORY — a different font stack for this mode. Same shape as `typography.families` minus `variable` (the variable flag stays from light) and minus the `null` opt-out (a mode re-points the categories the brand ships; it never adds or drops one). Only a category whose stack differs from light carries a per-mode override on the `font.family.<category>` semantic; every composite in that category inherits via its alias (the composite set is untouched). Category-keyed, this is the whole per-mode family mechanism: moving `title` to another face in this mode leaves `display` alone.",
+            "description": "OPTIONAL. Per-mode font FAMILY per text CATEGORY — a different font stack for this mode. Same shape as `typography.families` minus `variable` (the flag stays from light) and the `null` opt-out (a mode re-points the categories the brand ships; it never adds or drops one). Only a category whose stack differs from light overrides the `font.family.<category>` semantic; its composites inherit via alias, so the composite set is untouched.",
             "properties": {
               "display": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Font stack display draws from in this mode (single face or full fallback array)." },
               "title": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Font stack title draws from in this mode (single face or full fallback array)." },
@@ -102,7 +102,7 @@
           "letterSpacings": {
             "type": "object",
             "additionalProperties": false,
-            "description": "OPTIONAL. Per-mode LETTER-SPACING RE-POINT (#296) — maps a rung to ANOTHER RUNG: `{ \"normal\": \"wide\" }` reads \"in this mode, styles that would use `normal` use `wide` instead\". It names a TARGET RUNG, never a number, because the `font.letter-spacing` rungs are mode-invariant PRIMITIVES — a mode re-points, never re-anchors. To re-anchor a rung's value set `typography.letterSpacings` (brand-wide, numeric). The swap re-aliases the semantic `type.*` composite; a self-map is a no-op; a number here is the pre-#296 shape and is REJECTED.",
+            "description": "OPTIONAL. Per-mode LETTER-SPACING RE-POINT (#296) — maps a rung to ANOTHER RUNG (e.g. `{ \"normal\": \"wide\" }`); same contract as the per-mode lineHeights re-point (names a target rung, never a number; re-aliases the `type.*` composite; self-map is a no-op; a number is the pre-#296 shape and REJECTED). To re-anchor a rung's value set `typography.letterSpacings` (brand-wide, numeric).",
             "properties": {
               "tighter": { "type": "string", "enum": ["tight", "snug", "normal", "wide", "wider"], "description": "OPTIONAL. The rung letter-spacing styles use in this mode INSTEAD of `tighter`. Names a rung, never a value." },
               "tight": { "type": "string", "enum": ["tighter", "snug", "normal", "wide", "wider"], "description": "OPTIONAL. The rung letter-spacing styles use in this mode INSTEAD of `tight`. Names a rung, never a value." },
@@ -134,7 +134,7 @@
           "typeSizes": {
             "type": "object",
             "additionalProperties": false,
-            "description": "OPTIONAL (#328). Per-mode TYPE SIZE overrides per heading group. Heading groups ONLY — body, label, caption and code are mode-invariant by contract and are REJECTED here. Names a NUMBER, not a rung key (unlike the lineHeights/letterSpacings re-points), because a ladder STEP is itself the primitive: every step is emitted, so any selection lands on a real leaf. Deep-validated by brandTheme() (the rung exists; the value is a ladder step; it clears the group floor; the MERGED per-mode ramp is strictly increasing). A re-sized rung recomputes its own mobile endpoint, so its fluid pair stays coherent. Omit for none (byte-identical).",
+            "description": "OPTIONAL (#328). Per-mode TYPE SIZE overrides per heading group. Heading groups ONLY — body/label/caption/code are mode-invariant and REJECTED. Names an absolute ladder-STEP px (not a rung key), since every step is an emitted primitive. Deep-validated by brandTheme() (rung exists; ladder step; clears the group floor; merged per-mode ramp strictly increasing). A re-sized rung recomputes its own mobile endpoint, so its fluid pair stays coherent. Omit for none.",
             "properties": {
               "display": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 32 }, "description": "OPTIONAL. Per-mode display rung sizes, keyed by rung name (e.g. { \"3xl\": 96 }). Floor 32px — the smallest size this system emits for display anywhere." },
               "title": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 16 }, "description": "OPTIONAL. Per-mode title rung sizes, keyed by rung name (e.g. { \"2xl\": 32 }). Floor 16px — titleFloor's minimum." },
@@ -327,7 +327,7 @@
         "typefaceLibrary": {
           "type": "array",
           "items": { "type": "string", "pattern": "\\S" },
-          "description": "OPTIONAL. Faces the brand HAS, independent of which job any of them does. A typeface used to exist only if a category bound it, so \"add a typeface\" and \"bind a typeface to a category\" were one action, with nowhere to stage a face while deciding. Each entry emits a `font.typeface.<slug>` primitive exactly like a bound face, so pointing a category at one later changes no token shape. A face that is both listed here and bound appears once, keeping the binding's fallback stack; a library-only face gets the sans fallback tail. Listing one face twice is rejected."
+          "description": "OPTIONAL. Faces the brand HAS, independent of which category binds them — a place to stage a face while deciding. Each emits a `font.typeface.<slug>` primitive like a bound face, so binding one later changes no token shape. A face both listed and bound appears once (keeping the binding's fallback); a library-only face gets the sans fallback. Listing one twice is rejected."
         },
         "weightRoles": {
           "type": "object",
@@ -374,12 +374,17 @@
         "sizes": {
           "type": "object",
           "additionalProperties": false,
-          "description": "OPTIONAL. Per-size overrides for the heading groups — the BASELINE counterpart of modeLevers.<mode>.typeSizes. Heading groups ONLY; body, label, caption and code take their size from the category and are REJECTED here. Applied after the typeScale shift, so a pinned size is absolute — which is why pinning sizes then changing typeScale can collide, and is rejected rather than silently re-shifted. Modes override on top of this baseline. Deep-validated by brandTheme() (rung exists; value is a ladder step; clears the group floor; merged ramp strictly increasing). Omit for none (byte-identical).",
+          "description": "OPTIONAL. Per-size DESKTOP overrides for the heading groups — the baseline counterpart of modeLevers.<mode>.typeSizes, and the desktop-endpoint counterpart of typography.sizeOverrides. Heading groups ONLY; body/label/caption/code are REJECTED. Absolute px applied after the typeScale shift (a pin does not travel with the scale; a collision is rejected). Deep-validated by brandTheme() (rung exists; ladder step; clears the group floor; merged ramp strictly increasing). Omit for none.",
           "properties": {
             "display": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 32 }, "description": "OPTIONAL. Display sizes by rung name (e.g. { \"3xl\": 144 }). Floor 32px." },
             "title": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 16 }, "description": "OPTIONAL. Title sizes by rung name (e.g. { \"2xl\": 56 }). Floor 16px." },
             "eyebrow": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 11 }, "description": "OPTIONAL. Eyebrow sizes by rung name (e.g. { \"lg\": 24 }). Floor 11px." }
           }
+        },
+        "sizeOverrides": {
+          "type": "object",
+          "additionalProperties": { "type": "object", "additionalProperties": { "$ref": "#/$defs/viewportSizeOverride" } },
+          "description": "OPTIONAL. Opt-in per-rung DESKTOP/MOBILE size override (#1587): group -> rung -> { desktop?, mobile? }. Heading groups only; mobile needs responsive.fluid. Pins a viewport endpoint for one rung, overriding the clamp for that rung alone; an absent rung stays clamp-derived. Deep-validated by brandTheme() (rung ships; ladder step; clears the group floor; mobile <= desktop; monotonic mobile ramp)."
         },
         "responsive": {
           "type": "object",
@@ -511,6 +516,15 @@
       "additionalProperties": false,
       "required": ["family", "style"],
       "properties": { "family": { "type": "string" }, "style": { "type": "string" } }
+    },
+    "viewportSizeOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Per-rung viewport override (#1587). Ladder-step px at/above the group floor; mobile <= desktop; validated by brandTheme().",
+      "properties": {
+        "desktop": { "type": "integer", "minimum": 11 },
+        "mobile": { "type": "integer", "minimum": 11 }
+      }
     },
     "gradient": {
       "type": "object",
