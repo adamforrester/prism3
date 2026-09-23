@@ -2908,6 +2908,17 @@ const build=async(n)=>{
  * and with more at stake: every hard-won detail below (the id must come from *after* the combine, an
  * INSTANCE_SWAP default must be a node id, a refusal must not kill the paste) is a line a second copy
  * would silently lose while passing every offline check.
+ *
+ * #1574 — THE PLUGIN EXECUTOR RE-RESOLVES ITS SET HANDLE BEFORE EACH `addComponentProperty`; THIS PATH
+ * DOES NOT, AND THAT IS NOT AN OVERSIGHT. The plugin holds one `set` handle across a whole 648-member
+ * build and hundreds of host yields, and the live `button-neutral` reached the file with one TEXT property,
+ * both `INSTANCE_SWAP` properties absent and zero references on 432 members. This path has no comparable
+ * window: the chunked payload re-resolves the set off the page at the top of EVERY chunk (`SET_NAME`
+ * `findOne`, the same lookup the plugin's fix adds) so its handle is at most one chunk old, and the
+ * single-shot payload runs combine → declare with no yield between them and binds `set` as a `const`.
+ * The two REPORTING halves of the fix are ported, because those are about what a failure says rather than
+ * when a handle was read: the completeness read-back no longer gates on `propIds` (see
+ * `PAYLOAD_PROP_READBACK`) and the UNREADABLE miss now names its own consequence.
  */
 const PAYLOAD_DECLARE_PROPS = `// COMPONENT PROPERTIES (#487 step 6). On the SET, and only after combining — measured, not read:
 // \`addComponentProperty\` on a member throws "Can only set component property definitions on a product
@@ -3108,6 +3119,11 @@ if(declaredDefault.size){
 /**
  * READ BACK the component properties. Expects `set`, `PROPS`, `propIds` and `defs` (the definitions
  * already read off the set); leaves `bare` and `propMiss`.
+ *
+ * #1574 — THE FIRST CHECK'S EXPECTED SET IS `PROPS`, NOT `propIds`. It read
+ * `propIds.has(p.name)&&!bare.has(p.name)` — gated on this payload's own record of what it SUCCEEDED in
+ * declaring, so a property that was never created was excluded from the completeness check by the very
+ * failure the check exists to find (`docs/34` shape 1). `propIds` now only chooses which sentence.
  */
 const PAYLOAD_PROP_READBACK = `// READ BACK the component properties. Two failures live here that nothing else in this payload sees.
 const propMiss=[];
@@ -3116,7 +3132,7 @@ const propMiss=[];
 // (the \`#nodeId\` suffix stripped), not that the count matches.
 const bare=new Map();
 for(const k of Object.keys(defs))if(defs[k].type!=='VARIANT')bare.set(k.split('#')[0],k);
-for(const p of PROPS)if(propIds.has(p.name)&&!bare.has(p.name))propMiss.push('property '+p.name+' -> declared but absent from the set (Figma may have renamed it)');
+for(const p of PROPS)if(!bare.has(p.name))propMiss.push('property '+p.name+' -> '+(propIds.has(p.name)?'declared but absent from the set (Figma may have renamed it)':'DECLARED BY THE PLAN BUT NEVER CREATED and absent from the set (#1574) — every reference naming it was skipped'));
 // TWO: an ORPHAN — a property no node references. Figma shows it in the properties panel and changing
 // it does nothing, which is indistinguishable from a broken component to the designer holding it.
 const referenced=new Set();
@@ -3538,7 +3554,7 @@ if(colW.length&&rowH.length&&(Math.round(set.width)<Math.round(wantW)||Math.roun
 // report with it, including the misses already collected.
 let defs={},readable=false;
 try{defs=set.componentPropertyDefinitions||{};readable=true;}
-catch(err){misses.push('set -> UNREADABLE ('+err.message+') — two members almost certainly share a name, which combineAsVariants accepts silently');}
+catch(err){misses.push('set -> UNREADABLE ('+err.message+') — so NONE of the '+PROPS_ALL.length+' declared properties were created and no references were wired at all; two members almost certainly share a name, which combineAsVariants accepts silently');}
 // The axes are checked on EVERY chunk, not just the last: each member declares the full set of axis
 // KEYS (only the values are partial), so a name Figma cannot parse is visible from the first chunk on —
 // which is where it is cheap to fix, rather than after thirty-five more have landed.

@@ -1923,6 +1923,128 @@ ok(labelInstr.progress.every((p) => p.done <= p.total) && labelInstr.progress.so
 }
 
 // =============================================================================================
+// #1574 — THE SET'S OWN HANDLE, NOT A MEMBER'S: PROPERTIES DECLARED AFTER IT MOVES STILL LAND
+// =============================================================================================
+// THE LIVE SHAPE, and why none of the three arms above could see it. On a live aurora build `button` and
+// `button-destructive` each carry 9 component properties and 882 ref-bearing layers; `button-neutral`
+// carries 7 — `label` present, BOTH `↳ swap … icon` INSTANCE_SWAP properties absent — and 0 references.
+// #1337/#1473/#1516/#1568 all model a MEMBER or PART handle detaching, and the executor's whole recovery
+// vocabulary was built for that object. The one handle those four never touch is the SET's own, the object
+// `combineAsVariants` hands back, which the executor then held unexamined across a 432-member combine, two
+// chunked loops and every host yield in between. Two separate things rode on it:
+//
+//   (1) `set.componentPropertyDefinitions`, read ONCE before any property existed, set a single `readable`
+//       boolean — and that one boolean gated the property loop AND `toWire`. So one failed getter produced
+//       zero properties AND zero references and reported one sentence blaming duplicate member names.
+//   (2) every `addComponentProperty` call, made on that same captured handle.
+//
+// `staleSetAfterProperty` (component-shim.ts) models the set's identity moving and NOTHING else's — the
+// members stay live and shared, which is the restriction that keeps this distinct from the modes above and
+// is what lets these arms show that only the PROPERTIES are lost. Two injection points, because the fix has
+// two halves that do not substitute for one another: `0` kills the handle at combine, so the definitions
+// READ is the first casualty (defect 1); `1` kills it after `label` is created, so the `↳ swap leading icon`
+// call that follows is the casualty (defect 2) — the live shape exactly.
+//
+// FIDELITY, stated because it is the weak point: a stale COMPONENT_SET handle could NOT be manufactured on
+// today's host (`addComponentProperty` does not invalidate the handle; `.id` on a removed node does not
+// throw), so this models a state the executor's code ASSUMED IMPOSSIBLE rather than a measured behavior.
+// The arms therefore assert the OUTCOME — which properties the set ends up holding, read off the set
+// itself, and whether the references landed — and never the refusal string (the #1573 caveat).
+//
+// Mutation-by-name (docs/34): replace `liveSet()` with `set` in the property loop and arm (b) fails by name
+// on `↳ swap leading icon`; drop the retried definitions read and arm (a) fails by name on both properties
+// and on zero references. The FLOOR is the paired control: the same projection with no staleness injected
+// must report `setReresolved === 0`, so the re-resolutions counted in the injected runs are attributable to
+// the injection and not to something that would have happened anyway.
+{
+  const props1574 = planSetProperties(grid);
+  // Input pin: the fixture must declare a property AFTER the one the `1` injection kills, or arm (b) has
+  // nothing to lose and passes vacuously. `grid` is the live subject's own shape — TEXT then INSTANCE_SWAP.
+  ok(props1574.length >= 2 && props1574[0].type === 'TEXT' && props1574.some((p) => p.type === 'INSTANCE_SWAP'),
+    `#1574 input pin: the button grid declares a property after the first, the live button-neutral shape (${props1574.map((p) => `${p.name}:${p.type}`).join(', ')})`);
+
+  const run1574 = async (stale?: number) => {
+    const page: Page = { children: [] };
+    const res = await run(grid, { ...fullFor(grid), page, ...(stale == null ? {} : { staleSetAfterProperty: stale }) });
+    return { page, res };
+  };
+  // INDEPENDENT READ-BACK (docs/34): the expectation is the PLAN's declared properties; the actual is the
+  // set's OWN `componentPropertyDefinitions` and the members' own `componentPropertyReferences`. Neither
+  // reads the executor's `propIds`, which is the bookkeeping the old completeness check compared against
+  // itself (shape 1 — the check could not fail on the failure it existed to find).
+  const heldBy = (page: Page): { missing: string[]; unwired: string[]; members: number } => {
+    const liveSetNode = page.children[0] as Node | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's set
+    const defs = (liveSetNode ? (liveSetNode as any).componentPropertyDefinitions : {}) as Record<string, { type: string }>;
+    const keys = props1574.map((p) => ({ name: p.name, key: Object.keys(defs).find((k) => k.split('#')[0] === p.name) }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural walk over the shim tree
+    const refsIn = (m: any): Set<string> => {
+      const out = new Set<string>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const walk = (n: any): void => { for (const id of Object.values(n?.componentPropertyReferences ?? {})) out.add(id as string); for (const c of n?.children ?? []) walk(c); };
+      walk(m);
+      return out;
+    };
+    const unwired: string[] = [];
+    for (const m of (liveSetNode?.children ?? []) as Node[]) {
+      const held = refsIn(m);
+      for (const k of keys) if (k.key && !held.has(k.key)) unwired.push(`${String(m.name)}/${k.name}`);
+    }
+    return { missing: keys.filter((k) => !k.key).map((k) => k.name), unwired, members: ((liveSetNode?.children ?? []) as Node[]).length };
+  };
+
+  const control = await run1574();
+  // FLOOR: nothing re-resolves when nothing goes stale, so every `setReresolved` below is the injection's.
+  ok(control.res.setReresolved === 0 && control.res.refs > 0,
+    `#1574 floor: the control projection never re-resolves the set (setReresolved=${control.res.setReresolved}, refs=${control.res.refs}) — the counts below are attributable to the injected staleness`);
+  const wantRefs = grid.length * props1574.length;
+
+  // ---- (a) the handle is stale AT COMBINE: the definitions read is the first casualty ---------
+  const atCombine = await run1574(0);
+  ok(atCombine.res.setReresolved > 0 && atCombine.res.misses.some((m) => /definitions UNREADABLE on the combine-time handle/.test(m)),
+    `#1574a floor: the injected staleness really fired at the definitions read and was diagnosed as a stale handle rather than a poisoned set (setReresolved=${atCombine.res.setReresolved})`);
+  const aState = heldBy(atCombine.page);
+  ok(aState.missing.length === 0,
+    `#1574a a set handle already stale at combine still gets every declared property — read off the set's own definitions, 0 absent (${aState.missing.length ? aState.missing.join(', ') : 'none'})`);
+  ok(atCombine.res.refs === wantRefs && atCombine.res.wiredMembers === grid.length && aState.unwired.length === 0,
+    `#1574a ...and the unreadable getter no longer zeroes the WIRE phase too: ${atCombine.res.refs}/${wantRefs} refs on ${atCombine.res.wiredMembers}/${grid.length} members, 0 unwired (${aState.unwired.length ? aState.unwired.slice(0, 3).join(' | ') : 'none'})`);
+
+  // ---- (b) the handle goes stale AFTER `label`: the live button-neutral shape ------------------
+  const midWay = await run1574(1);
+  ok(midWay.res.setReresolved > 0,
+    `#1574b floor: the set's identity moved after the first property landed (setReresolved=${midWay.res.setReresolved})`);
+  const bState = heldBy(midWay.page);
+  const refused = midWay.res.misses.filter((m) => /^property .* (REFUSED|-> DECLARED BY THE PLAN BUT NEVER CREATED)/.test(m));
+  ok(bState.missing.length === 0 && refused.length === 0,
+    `#1574b a property declared after the set handle moves is created on the live set, not lost — all ${props1574.length} present on the set, 0 refused (${[...bState.missing, ...refused.slice(0, 2)].join(' | ') || 'none'})`);
+  ok(midWay.res.refs === wantRefs && bState.unwired.length === 0 && bState.members === grid.length,
+    `#1574b ...and every reference naming them still reaches every member (${midWay.res.refs}/${wantRefs} refs across ${bState.members}/${grid.length} members, 0 unwired ${bState.unwired.length ? `— ${bState.unwired.slice(0, 3).join(' | ')}` : ''})`);
+
+  // ---- (c) THE REPORT ITSELF — the read-back that could not see its own subject -----------------
+  // Separate arm because it gates a DIFFERENT thing from (a) and (b): not whether the properties land, but
+  // whether a set that ships incomplete SAYS SO. The completeness read-back stood as
+  // `if (propIds.has(p.name) && !bare.has(p.name))` — gated on the executor's own record of what it
+  // succeeded in creating, so a property never created was excluded from the completeness check BY THE
+  // FAILURE the check exists to find (docs/34 shape 1). That is why `button-neutral` was SILENT, which is
+  // the part of the defect that cost the most: the census had to be taken by hand on the live file.
+  //
+  // The fixture is a file that cannot satisfy the swap property AT ALL — the shim resolves every component
+  // the plans nominate EXCEPT the swap target — so `↳ swap leading icon` is genuinely never created, with
+  // no staleness involved. Mutation-by-name: restore the `propIds.has(p.name) &&` gate and this arm fails
+  // while (a) and (b) stay green, because they read the set rather than the report.
+  const noSwapPage: Page = { children: [] };
+  const noSwap = await run(grid, { ...fullFor(grid), page: noSwapPage, comps: fullFor(grid).comps!.filter((c) => c !== SWAP) });
+  const swapProp = props1574.find((p) => p.type === 'INSTANCE_SWAP')!;
+  // FLOOR: the property really is absent from the set, read off the set itself — so the miss asserted below
+  // is a true report and not the executor complaining about a property that is in fact there.
+  const cState = heldBy(noSwapPage);
+  ok(cState.missing.includes(swapProp.name),
+    `#1574c floor: with the swap target absent from the file the ${swapProp.name} property genuinely never reaches the set (absent: ${cState.missing.join(', ') || 'none'})`);
+  ok(noSwap.misses.some((m) => m.startsWith(`property ${swapProp.name} -> DECLARED BY THE PLAN BUT NEVER CREATED`)),
+    `#1574c ...and the executor REPORTS it — a property the plan declared and the loop never created is named as absent from the set, the case the propIds-gated read-back excluded by construction (${noSwap.misses.filter((m) => m.startsWith('property ')).slice(0, 2).join(' | ') || 'no property miss at all'})`);
+}
+
+// =============================================================================================
 // #1010 — THE STATUS GLYPH, READ OFF THE NODE THE EXECUTOR BUILT
 // =============================================================================================
 // WHY THIS IS HERE AND NOT IN `test.ts`. Every defect #1010 reports is a value that RESOLVES. The def
