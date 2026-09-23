@@ -170,12 +170,28 @@ the config from the `actual.json` — `docs/34` shape 1: the expectation would t
 construction and report clean over the drift it exists to find. The config is what the emitter was TOLD,
 which is why it can only come from upstream of the file.
 
+**P2 closes the loop — build, scan, FIX, re-scan — and the safe/unsafe boundary is the whole design
+(#1553 P2).** `fix.ts` emits a `FixPlan` and applies nothing; the writes are the operator's, through one
+`figma_execute` in the README, dry run first. Exactly two op shapes are safe: (c) `setValueForMode` back to
+the engine's value, and (a) a rebind of a raw literal to the variable the engine plans — **only when that
+variable is in the file**, which is the distinction the whole tool turns on, since the two halves of (a)
+are the same shape in the report and only one is a fix that can run. Every other finding is carried as an
+`excluded` entry with a reason, because `ops + excluded === findings`: a plan that is a silent subset of the
+diff teaches its operator that the plan is the remaining work, which is exactly the belief that makes (f)
+dangerous. Do **not** widen the safe set to "any finding with an obvious fix" — (f) is a rebuild behind a
+`STALE` guard (decision #5, held by the owner), (b) is a design decision, (d) is the reconciler's (#1570),
+(h) is a rebuild, (g) is a consequence a value fix resolves. And the direction that matters in its net is
+the *opposite* of every other check here: a missing fix is an inconvenience, an EXTRA op is a destructive
+tool, and it fails silently because the damage lands in a Figma file rather than in this repo. That is why
+`fixtures/fix-manifest.json` is hand-written and asserted in both directions, and why the two mutation arms
+that remove a safety guard are the load-bearing ones.
+
 **No gate sibling, and the reason is the subject rather than the difficulty.** The thing it measures is a
 Figma document, which is not in CI and is not owned by this repo: a designer nudging a value is a real
 finding and not a defect any commit here can fix. So it exits 0 carrying findings. What *is* gated is the
 harness's own correctness — `diff.ts --selftest` over committed fixtures, `expected.ts --selftest` over the
-two `fixtures/levers-*.design.md` configs, and `mutations.sh` behind both — and those are self-checks the
-author runs, not CI steps.
+two `fixtures/levers-*.design.md` configs, `fix.ts --selftest` over the hand-written `fix-manifest.json`,
+and `mutations.sh` behind all three — and those are self-checks the author runs, not CI steps.
 
 **The one thing to read before editing it: `state.ts`.** It holds the join key (`bindKey`, `canonValue`,
 `rootOf`, `instanceKey`, `underInstance`) for BOTH producers, and that is not tidiness. A join key computed

@@ -1,20 +1,22 @@
 # conformance-scan — does the Figma file match what the engine says should be there?
 
-A measurement harness (#1553 P1). **Read-only, report-only, dependency-free, `tsx`-runnable.** It writes
-nothing to Figma and nothing to the repo, and it is deliberately **not** wired into `ci.yml`: per
-`tools/CLAUDE.md`, a tool answers a question and exits 0, a gate asserts an answer and fails. This one
-exits 0 *carrying findings*, because "the designer moved a value in the file" is a fact about a Figma
-document, not a defect in this repo, and a gate that failed on it would fail for reasons no commit here
-can fix.
+A measurement harness (#1553 P1, P2). **Dependency-free and `tsx`-runnable. Every file in it is a pure
+function of its inputs: nothing here writes to Figma or to the repo** — the fix loop (P2) *emits a plan*
+and the writes are the operator's, through one `figma_execute` call, dry run first. It is deliberately
+**not** wired into `ci.yml`: per `tools/CLAUDE.md`, a tool answers a question and exits 0, a gate asserts
+an answer and fails. This one exits 0 *carrying findings*, because "the designer moved a value in the
+file" is a fact about a Figma document, not a defect in this repo, and a gate that failed on it would
+fail for reasons no commit here can fix.
 
-Two halves and a shared shape:
+Four files and a shared shape:
 
 | File | What it is |
 |---|---|
 | `state.ts` | The normalized `State` and the **one** set of key builders both sides use. |
 | `expected.ts` | `expected(source) -> State`, projected from a **config**: a committed brand, or a design file you supply (`--design`). Carries its own `--selftest`. |
 | `diff.ts` | `diff(expected, actual) -> Report`, in nine categories. Also carries `--selftest`. |
-| `fixtures/` | A faithful `actual` (the baseline), a dirty one with exactly one injected defect per category, and the two `levers-*.design.md` configs `expected.ts --selftest` builds. |
+| `fix.ts` | `fix(report, expected, actual) -> FixPlan` — idempotent ops for the two **safe** categories, every other finding carried as an exclusion with a reason. Emits a plan, applies nothing. Also carries `--selftest`. |
+| `fixtures/` | A faithful `actual` (the baseline), a dirty one with exactly one injected defect per category, the hand-written answer key for each self-check (`manifest.json`, `fix-manifest.json`), and the two `levers-*.design.md` configs `expected.ts --selftest` builds. |
 | `mutations.sh` | The harness's own by-name proof — breaks each arm in turn and asserts the named failure. |
 
 ## Why a shared `state.ts` and not two independent readers
@@ -40,6 +42,13 @@ npx tsx tools/conformance-scan/expected.ts --design /tmp/mine.design.md > /tmp/e
 
 # 3. Diff
 npx tsx tools/conformance-scan/diff.ts /tmp/expected.json /tmp/actual.json
+
+# 4. The fix plan — safe ops only, every other finding accounted for. Nothing is written.
+npx tsx tools/conformance-scan/fix.ts /tmp/expected.json /tmp/actual.json            # read it
+npx tsx tools/conformance-scan/fix.ts /tmp/expected.json /tmp/actual.json --json > /tmp/plan.json
+
+# 5. Apply it (below: one figma_execute, DRY_RUN first), then RE-SCAN from step 2.
+#    The re-scan is the only thing that says the fix landed.
 ```
 
 `expected.ts --brands` lists what it can build. `diff.ts <expected> <actual>` refuses a transposed pair:
@@ -379,6 +388,128 @@ Merge the chunks into one `State`: `variables`/`collections` from read A, `style
   phantoms. It narrows what is *checked*, never what is *reported*: the report states the scope in its
   headline, because clean over 2 of 22 components is not a clean file.
 
+## Steps 4 and 5 — the fix loop (#1553 P2)
+
+`fix.ts` turns the report into a plan. It is pure: it emits JSON and applies nothing, so the only thing
+that writes is the one `figma_execute` below, and you read the plan before running it.
+
+**Two op shapes are safe, and the boundary is the design of the whole thing.**
+
+| | Safe op | Why it is safe |
+|---|---|---|
+| (c) `value-match` | `set-var-value` — `setValueForMode(mode, <the engine's value>)` | The variable, the mode and every binding stay exactly as they are. One value moves, to an absolute target, so a second apply is a no-op. |
+| (a) `binding-presence`, **raw-literal branch only** | `rebind` — `setBoundVariableForPaint` | A hex where the engine binds a variable (#1387) is the most actionable finding in the report — **and only when that variable is in the file.** Absent, there is nothing to bind to. |
+
+Everything else is carried through as an `excluded` entry with a reason, and the plan prints it under the
+ops. That is deliberate: **a fix plan that is a silent subset of the diff teaches its operator that the
+plan is the remaining work**, which is the one belief that makes the unsafe categories dangerous. `ops +
+excluded == findings` is asserted, so the plan is the whole diff sorted into what this loop will do and
+what it will not touch — (f) structure (a rebuild, behind a `STALE` guard), (b) a role change (a design
+decision), (d) mode add/remove (the reconciler's, #1570), (h) staleness (a rebuild), (g) contrast (a
+consequence of a value, never its own op), (e) `resolvedType`/scopes (properties of the emission), (i) a
+style's interior (the plugin's four style writers own it).
+
+### The apply — one `figma_execute`, dry run first
+
+```js
+const DRY_RUN = true;                    // ← read the dry run before flipping this
+const PLAN = /* paste `fix.ts --json` output here */;
+
+if (PLAN.format !== 'prism3-conformance-fix') throw new Error('that is not a fix plan');
+// The plan names the file it was built against. Applying one to the wrong open file is the accident this
+// costs one line to make impossible.
+if (PLAN.file !== figma.root.name) throw new Error(`plan built for "${PLAN.file}", this file is "${figma.root.name}"`);
+
+const ch = n => Math.round(Math.max(0, Math.min(1, n)) * 255);
+const canonColor = c => `rgba(${ch(c.r)},${ch(c.g)},${ch(c.b)},${Number((c.a ?? 1).toFixed(4))})`;
+const canonOf = (t, raw) => raw && typeof raw === 'object'
+  ? (raw.type === 'VARIABLE_ALIAS' ? `alias(${raw.id})` : canonColor(raw))
+  : String(raw);
+
+const vars = await figma.variables.getLocalVariablesAsync();
+const varByName = new Map(vars.map(v => [v.name, v]));
+const colById = new Map((await figma.variables.getLocalVariableCollectionsAsync()).map(c => [c.id, c]));
+await figma.loadAllPagesAsync();
+const allTop = figma.root.findAllWithCriteria({ types: ['COMPONENT'] }).filter(c => c.parent?.type !== 'COMPONENT_SET');
+const memberOf = (comp, member) => {
+  const set = figma.root.findOne(n => n.type === 'COMPONENT_SET' && n.name === comp);
+  const members = set ? set.children : allTop.filter(c => c.name.split('/')[0] === comp);
+  return members.find(m => m.name === member) ?? null;
+};
+// The same path convention `walk` writes in Read B: '/' is the member itself, '/label/icon' is a descendant.
+const nodeAt = (root, path) => {
+  let n = root;
+  for (const seg of path.split('/').filter(Boolean)) {
+    n = (n.children ?? []).find(c => c.name === seg);
+    if (!n) return null;
+  }
+  return n;
+};
+
+const out = [];
+const say = (state, op, detail) => out.push(`${state}  ${op.op}  ${op.subject}${detail ? `  — ${detail}` : ''}`);
+
+for (const op of PLAN.ops) {
+  if (op.op === 'set-var-value') {
+    const v = varByName.get(op.variable);
+    if (!v) { say('MISS', op, `no local variable named '${op.variable}'`); continue; }
+    if (v.resolvedType !== op.resolvedType) { say('MISS', op, `the file's variable is ${v.resolvedType}, the plan says ${op.resolvedType}`); continue; }
+    const col = colById.get(v.variableCollectionId);
+    const mode = col?.modes.find(m => m.name === op.mode);
+    if (!mode) { say('MISS', op, `collection '${col?.name}' has no mode named '${op.mode}'`); continue; }
+    const already = canonOf(v.resolvedType, v.valuesByMode[mode.modeId]) === canonOf(op.resolvedType, op.value);
+    if (already) { say('ALREADY', op, 'the file already carries this value'); continue; }
+    if (DRY_RUN) { say('WOULD-SET', op, `${op.from} → ${op.to}`); continue; }
+    v.setValueForMode(mode.modeId, op.value);
+    say('SET', op, `${op.from} → ${op.to}`);
+  } else if (op.op === 'rebind') {
+    const v = varByName.get(op.variable);
+    if (!v) { say('MISS', op, `no local variable named '${op.variable}' — the plan should have excluded this`); continue; }
+    const member = memberOf(op.component, op.member);
+    if (!member) { say('MISS', op, `no member '${op.member}' under '${op.component}'`); continue; }
+    const node = nodeAt(member, op.node);
+    if (!node) { say('MISS', op, `no node at '${op.node}'`); continue; }
+    if (op.property !== 'fills' && op.property !== 'strokes') {
+      // Read B only ever records a rawLiteral for a SOLID fill or stroke, so this is unreachable today. It
+      // stays a MISS rather than a `setBoundVariable` guess: a property this loop has never seen is not one
+      // to write blind.
+      say('MISS', op, `'${op.property}' is not a paint property — this loop only rebinds fills and strokes`);
+      continue;
+    }
+    const bound = node.boundVariables?.[op.property];
+    if (Array.isArray(bound) ? bound[0]?.id === v.id : bound?.id === v.id) { say('ALREADY', op, 'already bound to this variable'); continue; }
+    const paints = (node[op.property] ?? []).map(p => ({ ...p }));
+    if (!paints[0] || paints[0].type !== 'SOLID') { say('MISS', op, `'${op.property}' is not a single SOLID paint`); continue; }
+    if (DRY_RUN) { say('WOULD-REBIND', op, `${op.from} → ${op.variable}`); continue; }
+    paints[0] = figma.variables.setBoundVariableForPaint(paints[0], 'color', v);
+    node[op.property] = paints;
+    say('REBOUND', op, `${op.from} → ${op.variable}`);
+  } else say('MISS', op, `unknown op kind — this loop applies set-var-value and rebind, nothing else`);
+}
+return { dryRun: DRY_RUN, ops: PLAN.ops.length, excluded: PLAN.excluded.length, out };
+```
+
+Then **re-scan from step 2**. The re-scan is the only thing that says the fix landed: this snippet reports
+what it *did*, which is a different claim. A second apply must come back all `ALREADY`, and a `fix.ts` run
+over the re-scan must emit zero ops — both are what "idempotent" means here, and both are cheap to check.
+
+Four things about the apply worth knowing before you flip `DRY_RUN`:
+
+- **The dry run resolves everything and writes nothing.** Every `MISS` you see in it would have been a
+  failed write: a variable, member, node or mode the plan named and the file does not have. A dry run with
+  misses in it is a plan to re-derive from a fresh scan, not one to force.
+- **`ALREADY` is the idempotence signal, and it is per-op.** It compares through the same `canonColor` both
+  reads use, so "already right" means right at the resolution the scan can see (8-bit channels — lossless
+  for every value the emitter produces, and the re-scan reads it back through the same function).
+- **A rebind binds the paint's COLOR and touches nothing else about it.** A paint-level `opacity` a designer
+  set stays, and the scan does not compare it (see *What this does not check*) — so a rebound fill can still
+  render at 50%. That is a real gap, named here rather than papered over: the plan restores the *binding*
+  the engine planned, not every property of the paint.
+- **It overwrites a hand-typed value on purpose.** That is the whole point of category (a) — a hex where a
+  variable belongs is a value that stopped tracking the token (#1387) — and it is why the `from` field is in
+  the plan and printed in the dry run. If the hex was deliberate, the finding is a design conversation and
+  not a fix; exclude it by fixing the *plan*, not by editing this snippet.
+
 ## The nine categories
 
 | | Category | What it catches |
@@ -454,6 +585,7 @@ indistinguishable from a broken arm.
 ```bash
 npx tsx tools/conformance-scan/diff.ts --selftest       # baseline clean + one injected defect per category
 npx tsx tools/conformance-scan/expected.ts --selftest   # the supplied config reaches the projection
+npx tsx tools/conformance-scan/fix.ts --selftest        # the plan is the safe ops and a complete accounting
 bash tools/conformance-scan/mutations.sh                # break each arm; assert the named failure
 ```
 
@@ -472,12 +604,31 @@ requires every tier to match exactly, plus the file set in both directions. Arm 
 path that projects a config faithfully but differently from the emitter; arm 2 alone would pass for a path
 that ignores the config entirely.
 
-`mutations.sh` is what makes both `--selftest`s' claims falsifiable: a mutation per reporting branch, each
+`fix.ts --selftest` is keyed to `fixtures/fix-manifest.json`, hand-written for the same reason
+`manifest.json` is, and it asserts in both directions — but the two directions are not equally important
+here. A **missing** op is an inconvenience: the plan gets smaller and the operator fixes by hand. An
+**extra** op is a destructive tool, and it would be destructive silently, because the damage happens in
+someone's Figma file minutes later and not in this repo. So the key pins the two ops by name *and* by the
+value each writes, pins the seven categories that may never be addressed by an op, requires every category
+to be either pinned or one of the two safe shapes (a tenth one is a compile error in `fix.ts` and a named
+failure here), and checks the plan by applying it to the actual `State` in memory and re-diffing: the
+addressed findings must clear, the excluded ones must stay, the collateral must be exactly the two contrast
+consequences of the value fix, nothing new may appear, and a second plan over the re-scan must be empty.
+That in-memory apply is a *model* of Figma and a narrow one — only the host acceptance run can say Figma
+behaves that way, which is why it is a step in this README and not a claim in the self-check.
+
+`mutations.sh` is what makes all three `--selftest`s' claims falsifiable: a mutation per reporting branch, each
 asserting the exact line the run must print, plus one per lenience — those assert that the **baseline stops
 being clean**, because a lenience fails by inventing findings on a correct file rather than by going quiet.
-Its last section does the same for the config wire: the levers dropped, the path ignored, the projection
-short a file, and a report that does not name the config it was built at — four quiet failures, four named
-rows. **Commit before running it:** every revert is `git checkout -- <file>`, which reaches back to `HEAD`.
+Its next-to-last section does the same for the config wire: the levers dropped, the path ignored, the
+projection short a file, and a report that does not name the config it was built at — four quiet failures,
+four named rows. Its **last** section covers the fix plan, and the two arms that carry it are the ones that
+remove a *guard*: drop the "does this variable exist in the file" check and the un-rebindable twin leaks in
+as an op; drop the raw-literal whitelist and a node property on a component the file does not have leaks in
+as another. Both fail as a named `EXTRA` row, and nothing downstream of the plan could have caught either —
+the in-memory apply performs a rebind to a missing variable as happily as a real one, because that write
+only fails in Figma. **Commit before running it:** every revert is `git checkout -- <file>`, which reaches
+back to `HEAD`.
 
 Three boundaries worth knowing, all written up at length in that script's header. `--selftest` proves a
 defect is reported under the right *category and subject*; it does not proof-read the *summary*, so the

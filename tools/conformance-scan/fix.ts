@@ -308,6 +308,27 @@ export const fix = (report: Report, expected: State, actual: State): FixPlan => 
 
     // ── (a) BINDING-PRESENCE, the RAW-LITERAL branch only → rebind ─────────────────────────────
     if (finding.category === 'binding-presence') {
+      // A category-(a) finding is not always about a node. An alias the file FLATTENED to a raw value is
+      // the #1387 shape one level up, at the variable, and `diff.ts` reports it here with a `<name>
+      // [<mode>]` subject. It gets its own reason because the generic one below would describe a binding
+      // that is not what went wrong. Identified by the variable LOOKUP, not by the subject's shape: a node
+      // name ending in brackets matches the same regex and finds nothing in the variable table.
+      //
+      // NOT PROVEN BY A MUTATION, and said so rather than left to be assumed: the fixture carries no
+      // flattened alias, and injecting one would add a defect to `manifest.json`'s answer key for the
+      // benefit of an exclusion's prose — a different concern than this lane. The branch cannot emit an op,
+      // so its failure direction is a worse sentence, never a write.
+      const vm = /^(.+) \[([^\]]+)\]$/.exec(finding.subject);
+      const asVariable = vm ? expected.variables[vm[1]] : undefined;
+      if (vm && asVariable) {
+        exclude(
+          finding,
+          asVariable.modes[vm[2]]?.kind === 'alias'
+            ? `the file flattened an alias to a raw value — restoring it means writing a VARIABLE_ALIAS, which re-points one variable at another; that is a target change, and this tool emits no target changes`
+            : `the file carries an alias where the engine emits a concrete value — replacing an alias is a target change, not a value refresh`,
+        );
+        continue;
+      }
       if (leadingKind(finding.actual) !== 'raw' || leadingKind(finding.expected) !== 'variable') {
         // Every other shape of (a): nothing bound, a style where a variable is planned (or the reverse),
         // a detached text style, and the file's own unplanned bindings. None is a value to write.
