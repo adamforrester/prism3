@@ -38,6 +38,7 @@ import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { hostCommit } from './write-adapter';
 import { buildChip, buildTitle } from './build-identity';
+import { sizeColumnHeader } from './size-labels';
 import { persistInput, restoreInput } from './persist-local';
 import { emToPercentLabel } from './em-percent';
 import {
@@ -3729,9 +3730,14 @@ const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
   htr.append(el('th', 'mtbl-stick', 'Size'));
   for (const m of modes) {
     const th = el('th', 'mtbl-mode');
-    th.append(document.createTextNode(MODE_LABEL[m] ?? m));
-    if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
-    else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));   // #423
+    // #1586 — the base column must NOT read as the "Light" appearance mode. Sizes vary by VIEWPORT
+    // (the Responsive type lever), not by light/dark, so the base value is a viewport-independent
+    // base. Dark and derived columns keep their appearance labels — `sizeByMode` is a real per-mode
+    // override. Header parts come from the pure `sizeColumnHeader` helper, tested independently.
+    const h = sizeColumnHeader(m === 'light', modeIsEditable(m), MODE_LABEL[m] ?? m);
+    th.append(document.createTextNode(h.text));
+    if (h.suffix) th.append(el('span', 'mtbl-ro', h.suffix));
+    if (h.title) th.title = h.title;
     htr.append(th);
   }
   htr.append(el('th', 'mtbl-fill'));

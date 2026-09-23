@@ -148,6 +148,7 @@
     "widget|size=md, state=rest|/label|fontSize": { "boundVariable": "fix/core/font/size/14" },
     "widget|size=md, state=rest|/label|fontStyle": { "boundVariable": "fix/core/font/style/body/default" },
     "widget|size=md, state=rest|/caption|textStyle": { "boundStyle": "caption/md/default" },
+    "widget|size=md, state=rest|/caption|fills": { "boundVariable": "fix/color/text/secondary" },
     "widget|size=md, state=rest|/glyph/Vector|fills": { "boundVariable": "fix/color/icon/primary" },
     "widget|size=md, state=hover|/|fills": { "boundVariable": "fix/color/background/primary" },
     "widget|size=md, state=hover|/|strokeTopWeight": { "boundVariable": "fix/border-width/thin" },
