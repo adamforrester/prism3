@@ -135,6 +135,13 @@ export interface CompNode {
   y?: number;
   opacity?: number;
   characters?: string;
+  /** The node's CURRENT font, read by the #1599 floor so a `characters` write is never discarded for
+   *  want of a loaded font. Figma types it `FontName | typeof figma.mixed` (`mixed` is a `unique
+   *  symbol`), so the port carries `| symbol` for the real `figma` to satisfy it — the same "widen the
+   *  port so the host matches" rule the `textStyleId` note gives. The floor compares its SHAPE
+   *  (`typeof === 'object'`) rather than naming `figma.mixed`, both to narrow the union for
+   *  `loadFontAsync` and to keep this executor port-driven (it never references the global `figma`). */
+  readonly fontName?: { family: string; style: string } | symbol;
   /** TYPED and READABLE, so the #1514 re-assert can read its own write back (a style Figma re-detached must
    *  surface as a DISCARDED miss). Figma types it `string | figma.mixed` (`mixed` is a `unique symbol`), so
    *  the port carries `string | symbol` for the real `figma` to satisfy it — the same "widen the port so the
@@ -1467,6 +1474,23 @@ const writeComponentSet = async (
     // The PLACEHOLDER copy, after the style so it is written on a node already carrying the right font.
     // Both orders work (measured); this one is chosen for reading order.
     if (typeof n.characters === 'string') {
+      // #1599 — THE FONT FLOOR. Writing `characters` requires the node's CURRENT font to be loaded (a
+      // hard Figma rule), and the style path above loads only the STYLE'S font, inside the branch where
+      // the style is FOUND. So whenever the style is missing (the observed field-label case — 252 text
+      // nodes emptied by one absent `body/sm/strong`), or the style carries no font, or its font fails
+      // to load, nothing loads a font at all and every character write below throws and is DISCARDED.
+      // Load the node's OWN current font here too, independent of the style path: a floor that lets text
+      // land in the fallback font rather than vanish. When a style applied, this font IS the style's and
+      // is already loaded, so the load is a no-op. `fontName` is `FontName | figma.mixed`; the object
+      // shape check both skips a mixed-font node (placeholders are single-font) and narrows the union to
+      // what `loadFontAsync` accepts — the same "compare shape, never name figma.mixed" the port takes
+      // for `textStyleId`. A load that throws (a brand face not installed) is RECORDED and the write is
+      // still attempted, the #680 posture: report what was skipped, write everything else.
+      const fn = node.fontName;
+      if (fn && typeof fn === 'object') {
+        try { await api.loadFontAsync(fn); }
+        catch (err) { misses.push(`${n.name}.font -> ${fn.family} ${fn.style} (${(err as Error).message})`); }
+      }
       try { node.characters = n.characters; }
       catch (err) { misses.push(`${n.name}.characters -> ${JSON.stringify(n.characters)} (${(err as Error).message})`); }
       // READ BACK: a text node that silently kept nothing is the empty-label set #510 shipped.

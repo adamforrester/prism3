@@ -60,6 +60,44 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "ads/core/palette/primary/025",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand primary 025 — Highlight band",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9647058844566345,
+        "b": 0.9921568632125854,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/core/palette/primary/050",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand primary 050 — Highlight band",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.9098039269447327,
+        "b": 0.95686274766922,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "ads/core/palette/primary/100",
       "resolvedType": "COLOR",
       "scopes": [
@@ -402,7 +440,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/primary/025",
+      "name": "ads/core/palette/neutral/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -410,18 +448,18 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 025 — Highlight band",
+      "description": "Neutral 025 — Highlight band",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9647058844566345,
-        "b": 0.9921568632125854,
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
         "a": 1
       },
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/primary/050",
+      "name": "ads/core/palette/neutral/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -429,11 +467,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 050 — Highlight band",
+      "description": "Neutral 050 — Highlight band",
       "value": {
-        "r": 0.9098039269447327,
-        "g": 0.9098039269447327,
-        "b": 0.95686274766922,
+        "r": 0.9137254953384399,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": null,
@@ -782,7 +820,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/neutral/025",
+      "name": "ads/core/palette/accent/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -790,18 +828,18 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 025 — Highlight band",
+      "description": "Brand accent 025 — Highlight band",
       "value": {
-        "r": 0.9686274528503418,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "r": 0.9490196108818054,
+        "g": 0.9725490212440491,
+        "b": 0.9843137264251709,
         "a": 1
       },
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/neutral/050",
+      "name": "ads/core/palette/accent/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -809,11 +847,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 050 — Highlight band",
+      "description": "Brand accent 050 — Highlight band",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.9137254953384399,
-        "b": 0.9176470637321472,
+        "r": 0.8784313797950745,
+        "g": 0.9215686321258545,
+        "b": 0.9450980424880981,
         "a": 1
       },
       "alias": null,
@@ -1162,7 +1200,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/accent/025",
+      "name": "ads/core/palette/success/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1170,18 +1208,18 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand accent 025 — Highlight band",
+      "description": "success status 025 — Highlight band",
       "value": {
-        "r": 0.9490196108818054,
+        "r": 0.95686274766922,
         "g": 0.9725490212440491,
-        "b": 0.9843137264251709,
+        "b": 0.95686274766922,
         "a": 1
       },
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/accent/050",
+      "name": "ads/core/palette/success/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1189,11 +1227,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand accent 050 — Highlight band",
+      "description": "success status 050 — Highlight band",
       "value": {
-        "r": 0.8784313797950745,
-        "g": 0.9215686321258545,
-        "b": 0.9450980424880981,
+        "r": 0.8352941274642944,
+        "g": 0.9490196108818054,
+        "b": 0.8313725590705872,
         "a": 1
       },
       "alias": null,
@@ -1542,7 +1580,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/success/025",
+      "name": "ads/core/palette/warning/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1550,18 +1588,18 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 025 — Highlight band",
+      "description": "warning status 025 — Highlight band",
       "value": {
-        "r": 0.95686274766922,
-        "g": 0.9725490212440491,
-        "b": 0.95686274766922,
+        "r": 0.9803921580314636,
+        "g": 0.9647058844566345,
+        "b": 0.9450980424880981,
         "a": 1
       },
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/success/050",
+      "name": "ads/core/palette/warning/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1569,11 +1607,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 050 — Highlight band",
+      "description": "warning status 050 — Highlight band",
       "value": {
-        "r": 0.8352941274642944,
-        "g": 0.9490196108818054,
-        "b": 0.8313725590705872,
+        "r": 0.9607843160629272,
+        "g": 0.9058823585510254,
+        "b": 0.8352941274642944,
         "a": 1
       },
       "alias": null,
@@ -1922,7 +1960,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/warning/025",
+      "name": "ads/core/palette/info/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1930,18 +1968,18 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 025 — Highlight band",
+      "description": "info status 025 — Highlight band",
       "value": {
-        "r": 0.9803921580314636,
-        "g": 0.9647058844566345,
-        "b": 0.9450980424880981,
+        "r": 0.9529411792755127,
+        "g": 0.9686274528503418,
+        "b": 0.9843137264251709,
         "a": 1
       },
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/warning/050",
+      "name": "ads/core/palette/info/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1949,11 +1987,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 050 — Highlight band",
+      "description": "info status 050 — Highlight band",
       "value": {
-        "r": 0.9607843160629272,
-        "g": 0.9058823585510254,
-        "b": 0.8352941274642944,
+        "r": 0.8784313797950745,
+        "g": 0.9215686321258545,
+        "b": 0.95686274766922,
         "a": 1
       },
       "alias": null,
@@ -2302,7 +2340,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/info/025",
+      "name": "ads/core/palette/danger/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2310,18 +2348,18 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 025 — Highlight band",
+      "description": "danger status (engine-carved red — primary is not red) 025 — Highlight band",
       "value": {
-        "r": 0.9529411792755127,
-        "g": 0.9686274528503418,
-        "b": 0.9843137264251709,
+        "r": 0.9882352948188782,
+        "g": 0.9607843160629272,
+        "b": 0.95686274766922,
         "a": 1
       },
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "ads/core/palette/info/050",
+      "name": "ads/core/palette/danger/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2329,11 +2367,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 050 — Highlight band",
+      "description": "danger status (engine-carved red — primary is not red) 050 — Highlight band",
       "value": {
-        "r": 0.8784313797950745,
-        "g": 0.9215686321258545,
-        "b": 0.95686274766922,
+        "r": 0.9647058844566345,
+        "g": 0.9019607901573181,
+        "b": 0.8901960849761963,
         "a": 1
       },
       "alias": null,
@@ -2676,44 +2714,6 @@
         "r": 0.13725490868091583,
         "g": 0,
         "b": 0.003921568859368563,
-        "a": 1
-      },
-      "alias": null,
-      "hiddenFromPublishing": true
-    },
-    {
-      "name": "ads/core/palette/danger/025",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
-      "description": "danger status (engine-carved red — primary is not red) 025 — Highlight band",
-      "value": {
-        "r": 0.9882352948188782,
-        "g": 0.9607843160629272,
-        "b": 0.95686274766922,
-        "a": 1
-      },
-      "alias": null,
-      "hiddenFromPublishing": true
-    },
-    {
-      "name": "ads/core/palette/danger/050",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
-      "description": "danger status (engine-carved red — primary is not red) 050 — Highlight band",
-      "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9019607901573181,
-        "b": 0.8901960849761963,
         "a": 1
       },
       "alias": null,
