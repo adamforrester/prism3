@@ -39,6 +39,7 @@ import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { hostCommit } from './write-adapter';
 import { buildChip, buildTitle } from './build-identity';
 import { persistInput, restoreInput } from './persist-local';
+import { emToPercentLabel } from './em-percent';
 import {
   provenanceOf, noOrigin, needsOverwriteConfirm, isDirty, isUnrecoverable, joinSeed, withRecovered,
   type Origin, type Provenance, type SeedOutcome,
@@ -1638,7 +1639,7 @@ const typeComposite = (tree: TreeNode, node: TreeNode, value?: unknown, onTarget
   if (v.fontWeight) parts.push(String(numOf(tree, t(v.fontWeight))));
   if (v.fontSize) parts.push(`${Math.round(remPxOf(tree, t(v.fontSize)))}px`);
   if (v.lineHeight) parts.push(`${numOf(tree, t(v.lineHeight))} lh`);
-  if (v.letterSpacing) { const ls = deref(tree, t(v.letterSpacing)); const em = ls?.$extensions?.prism3?.em; if (em != null) parts.push(`${em}em`); }
+  if (v.letterSpacing) { const ls = deref(tree, t(v.letterSpacing)); const em = ls?.$extensions?.prism3?.em; if (em != null) parts.push(`${em}em · ${emToPercentLabel(em)}`); }
   return parts.join(' · ');
 };
 /** A shadow layer array → a compact CSS box-shadow string (for a monospace cell). */
@@ -5756,7 +5757,7 @@ const renderRungLadders = (): HTMLElement => {
   ladderTable('Line height', LINE_HEIGHT_LADDER, (v) => `${v.toFixed(2)}×`,
     (v) => ty.lineHeights.filter((l) => Math.abs(l.value - v) < 1e-9).map((l) => l.key),
     (host, v) => { host.textContent = 'Typography is the craft of endowing human language with a durable visual form.'; host.style.lineHeight = String(v); });
-  ladderTable('Letter spacing', LETTER_SPACING_LADDER, (v) => `${v}em`,
+  ladderTable('Letter spacing', LETTER_SPACING_LADDER, (v) => `${v}em · ${emToPercentLabel(v)}`,
     (v) => ty.letterSpacings.filter((l) => Math.abs(l.em - v) < 1e-9).map((l) => l.key),
     (host, v) => { host.textContent = 'Typography & tracking'; host.style.letterSpacing = `${v}em`; host.style.fontSize = '16px'; });
   return sec;
@@ -5846,7 +5847,7 @@ const renderLeadingTracking = (): HTMLElement => {
     'typography.lineHeights', 'lineHeights', LINE_HEIGHT_LADDER, (v) => `${v.toFixed(2)}×`,
     (host, v) => { host.textContent = 'Typography is the craft of endowing human language with a durable visual form.'; host.style.lineHeight = String(v); });
   ramp('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })),
-    'typography.letterSpacings', 'letterSpacings', LETTER_SPACING_LADDER, (v) => `${v}em`,
+    'typography.letterSpacings', 'letterSpacings', LETTER_SPACING_LADDER, (v) => `${v}em · ${emToPercentLabel(v)}`,
     (host, v) => { host.textContent = 'Typography & tracking'; host.style.letterSpacing = `${v}em`; host.style.fontSize = '16px'; });
   return sec;
 };
@@ -6107,7 +6108,7 @@ const renderRepoints = (): HTMLElement | null => {
   const ty = theme.typography;
   const sec = palSection('Leading & tracking per mode', 'A mode can swap one rung for another — a dark theme that wants everything a step looser, a compact mode that tightens. Rows are the rungs bound above, with what each is worth in the baseline column; every other column names the rung that mode substitutes. “Auto” keeps the rung itself.');
   sec.append(renderRepointTable('Line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })), (v) => `${v}×`, 'lineHeights'));
-  sec.append(renderRepointTable('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), (v) => `${v}em`, 'letterSpacings'));
+  sec.append(renderRepointTable('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), (v) => `${v}em · ${emToPercentLabel(Number(v))}`, 'letterSpacings'));
   return sec;
 };
 

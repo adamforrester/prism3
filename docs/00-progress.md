@@ -7,6 +7,25 @@
 
 ---
 
+## (2026-09-23) — the tracking UI reads in percent as well as em (#1590)
+
+**STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Studio DISPLAY only — `apps/studio/src/em-percent.ts` (a new pure helper), `apps/studio/src/main.ts` (the four letter-spacing render sites), `apps/studio/test-em-percent.ts` (the by-name test) and `apps/studio/package.json` (wiring that test into `npm test`). **No engine change, no `out/**`, NO version bump** — the stored value stays em; this is a reading aid, so `lint-emission-version` sees 0 artifacts and `regen --check` stays clean. Gate count **STANDS at 61** — the new assertions are arms of the existing `@prism3/studio` `test`. Closes #1590. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `packages/engine/`, `apps/plugin/`, `apps/tokenpress/`, `tools/`.
+
+── THE PROBLEM ───────────────────────────────────────────────────────────────────────────────────────────
+
+The Letter Spacing / tracking UI lists values in negative em (`-0.02em`, `-0.015em`, …), but a designer — and Figma — thinks in **percent**. `-0.02em` reads as nothing until you know it is **−2%**. Letter-spacing em is percent-of-font-size, so the conversion is exact: 1em = 100%, i.e. percent = em × 100. Every site now shows both, em primary (it is the stored, authoritative value) and percent as the reading aid: `-0.02em · −2%`.
+
+── THE CHANGE ────────────────────────────────────────────────────────────────────────────────────────────
+
+The ×100 rule lives in ONE pure helper, `emToPercentLabel(em)`, driven by all four letter-spacing em display sites in `main.ts`: the composite tracking summary (`typeComposite`, :1642), the **ladder table** (Primitives → Leading & tracking ladders), the **rung dropdown** option labels (Semantics → Leading & tracking rungs), and the **per-mode re-point** "worth" values (`renderRepointTable`, Leading & tracking per mode). `lsOf` (:7076) is deliberately NOT touched — it feeds the actual CSS `letter-spacing`, where the number must stay a bare em, not a label. The helper strips trailing zeros (`−1.5%`, never `−1.50%`) and uses a real minus sign (−, U+2212), not a hyphen.
+
+── THE DEVIATION, FLAGGED FOR THE OWNER ──────────────────────────────────────────────────────────────────
+
+The lane guardrail said "touch only `main.ts` + a test". The helper is a **new module** instead of an inline function in `main.ts`, and this is the same forced move `provenance.ts` and `export-settings.ts` already made: `main.ts` touches `document` at import time (a top-level `_fontProbe`, `installStyles(STYLE)`, `build()`), so it cannot load under `tsx` — a helper inside it is unit-testable only by hand in a browser. docs/34 makes the extraction non-optional, not stylistic: the by-name mutation requires the test and the four UI sites drive the SAME function, and an inline copy the test duplicated would be a DRY-collapsed gate (shape 2) asserting `helper === helper`. Wiring the new test into `npm test` needs the one-line `package.json` edit. Both are inside `apps/studio`; nothing on the guardrail's do-not-touch list moved.
+
+── THE NET (docs/34) ─────────────────────────────────────────────────────────────────────────────────────
+
+`test-em-percent.ts` asserts `emToPercentLabel` over **every** `LETTER_SPACING_LADDER` step — the exact set the UI renders — against **independently transcribed** expected labels (a `Record` typed by hand, NOT computed from the helper: deriving the oracle from the subject is shape 1/2 and cannot fail), plus a floor that every ladder step has an expected entry so a step added upstream fails loudly rather than passing unmeasured, plus the two step-independent promises (trailing-zero strip, real minus sign). **By-name mutation, restored from a known-good HEAD:** breaking the ×100 to ×10 in `em-percent.ts` fails the named `emToPercentLabel(...)` assertions (e.g. `−2%` → got `−0.2%`) across both the issue-value arm and the full-ladder sweep; restored, `npm test` for `@prism3/studio` is green again. Because the helper is display-only, the engine/version/regen gates stand untouched, which is itself the check that the change never leaked into emission.
 ## (2026-09-23) — provenance for the prune: a written stamp for modes, a read signature for styles (#1577, #1581)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Plugin RUNTIME only — `apps/plugin/src/prune-figma.ts` (the recognizer + the ∈-owned gate), `apps/plugin/src/write-figma.ts` (the stamp), `apps/plugin/src/main.ts` (five lines of wiring, isolated in its own commit — see the deviation below), plus `test-prune.ts` and `test-write-float.ts`. **No `out/**` change, NO version bump** — ENGINE STANDS, CONTRACT STANDS: nothing here is emission, and `lint-emission-version` / `lint-component-surface` firing would have meant the change had leaked into it. Gate count **STANDS at 61** — every new assertion is an arm of `plugin-test`. Closes #1577 and #1581. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `tools/conformance-scan/`, TokenPress, `write-components.ts`, `anatomy-figma.ts`.
