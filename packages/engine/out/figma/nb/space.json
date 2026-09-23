@@ -16,6 +16,45 @@
       }
     },
     {
+      "name": "nbds/space/025",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "space.025 — 2px (0.25× 8px base)",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/dimension/2"
+      }
+    },
+    {
+      "name": "nbds/space/050",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "space.050 — 4px (0.5× 8px base)",
+      "value": 4,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/dimension/4"
+      }
+    },
+    {
+      "name": "nbds/space/075",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "space.075 — 6px (0.75× 8px base)",
+      "value": 6,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/dimension/6"
+      }
+    },
+    {
       "name": "nbds/space/100",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -195,45 +234,6 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/dimension/96"
-      }
-    },
-    {
-      "name": "nbds/space/025",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "space.025 — 2px (0.25× 8px base)",
-      "value": 2,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/dimension/2"
-      }
-    },
-    {
-      "name": "nbds/space/050",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "space.050 — 4px (0.5× 8px base)",
-      "value": 4,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/dimension/4"
-      }
-    },
-    {
-      "name": "nbds/space/075",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "space.075 — 6px (0.75× 8px base)",
-      "value": 6,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/dimension/6"
       }
     }
   ]

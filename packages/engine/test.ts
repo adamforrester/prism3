@@ -8703,6 +8703,29 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'M-09: every space alias is either null or a non-empty VARIABLE_ALIAS (never { name: \'\' })');
 }
 
+// ---------------------------------------------------- #1594: space vars emit in numeric-key order
+// The leading-zero sub-steps (`025`,`050`,`075`) must sort by their MAGNITUDE (2/4/6px), not trail every
+// integer-like key at the bottom of the Figma panel. JS `Object.keys` iterates integer-like keys first in
+// ascending order, then leading-zero string keys in insertion order — so the raw emit put `025/050/075`
+// AFTER `1200`. `byNumericKey` fixes creation order.
+//
+// EXPECTED is a HAND-WRITTEN literal of the numeric ramp — NOT derived from `Object.keys(brand.space)`, the
+// side under test — so a mutation reverting the emitter to raw `Object.keys` order (sub-steps last) fails
+// THIS arm BY NAME (docs/34 gate independence). The root comes from the theme (never spelled), matching the
+// #1097 sourcing rule the rest of this suite uses.
+{
+  const dims = buildFigmaDims(nbTheme());
+  const EXPECTED_SPACE_ORDER = [
+    '0', '025', '050', '075', '100', '150', '200', '250', '300', '400',
+    '500', '600', '700', '800', '900', '1000', '1100', '1200',
+  ].map((k) => nbVar(`space/${k}`));
+  const gotOrder = dims.space.variables.map((v) => v.name);
+  const match = JSON.stringify(gotOrder) === JSON.stringify(EXPECTED_SPACE_ORDER);
+  ok(match,
+    '#1594: space variables emit sorted by numeric key (0, 025, 050, 075, 100, …), never with 025/050/075 trailing 1200'
+    + (match ? '' : ` — got ${gotOrder.map((n) => n.split('/').pop()).join(',')}`));
+}
+
 // ---------------------------------------------------- MCP adapter (docs/08 §5, roadmap C)
 // The agent-callable surface over the core: dependency-free JSON-RPC. Gate the handshake,
 // the tool catalogue, the "derives from the lever manifest" tie, and a full theme_brand

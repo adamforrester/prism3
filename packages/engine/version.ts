@@ -2926,6 +2926,22 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.129.0 — #1594: Figma dimension variables emit SORTED BY NUMERIC KEY so leading-zero sub-steps sort with
+ *   their magnitude. JS object-key iteration emits integer-like keys (`"0"`…`"1200"`) first ascending, then
+ *   leading-zero string keys (`"025"`,`"050"`,`"075"`) in insertion order — so `space`'s sub-steps landed
+ *   AFTER `1200` in the emitted (hence Figma-created) order, reading as "missing" until you scroll. A single
+ *   pure helper (`byNumericKey`, `emit-figma-dims.ts`) reorders each dimension `Object.keys` site by the key's
+ *   numeric value; it is a STABLE no-op for named collections (t-shirt/rung keys `parseFloat` to NaN and
+ *   compare equal), so of every dimension collection only `space` moves — `size` uses t-shirt keys and does
+ *   NOT mis-order (the issue's `size 050/075` premise did not hold against the corpus; see the PR/progress).
+ *   Every brand's `out/figma/<brand>/space.json` reorders (nb · aurora · wendys) → ENGINE bump. ORDER ONLY — no
+ *   token value, name, scope or alias moves; each `space.json`'s variable set is byte-identical as a set.
+ *   CONTRACT STANDS at 11.3.0 — ordering is not a token NAME or `$type` (`token-contract --check` level
+ *   `none`; `--accept` refreshes only the informational `engineVersion` stamp). Caveat (state in PR): this
+ *   fixes CREATION order, so FRESH builds get numeric order; an existing file's already-created variables keep
+ *   their order (idempotent find-by-name apply doesn't reorder). The color palette ramps (`core.palette`,
+ *   `emit-figma-color.ts`) mis-order the same way — out of scope here, filed as #1597.
+ *
  * 0.128.0 — #1575: field-message shows ONE shared caption, not four (owner-decided Option 2). The #1567
  * live-host work proved #1474's four distinct per-status captions and #1018's single set-level `Message`
  * TEXT property are mutually exclusive on the real host: a characters-bound TEXT node is a VIEW onto the
@@ -3329,7 +3345,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.128.0';
+export const ENGINE_VERSION = '0.129.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
