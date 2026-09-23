@@ -632,6 +632,93 @@ const planHalf = (stamp: string): string => stamp.split('|')[1] ?? '';
  *  a fact about the member instead of as a missing interpolation. */
 const engineHalf = (stamp: string): string => stamp.split('|')[0] || 'unknown';
 
+/**
+ * THE BUILD'S OWN REPORT, LEFT ON THE SET (#1579).
+ *
+ * `applyComponentPlan` reports its miss list to the UI and nowhere else, so once the plugin window closes
+ * the only evidence a wrong build leaves behind is the wrong build. #1574 is what that costs. The census
+ * narrowed `button-neutral`'s 7-of-9 properties and 0 references to exactly two states — (a) the run
+ * ABORTED between `addComponentProperty('label')` and the first reference write, or (b) `readable` was
+ * false in the run that did the wiring — and **the document could not distinguish them**, so the diagnosis
+ * fell back to six hand-written `figma_execute` probes against the live file to re-establish facts the run
+ * itself had computed and thrown away. This writes those facts down where the next reader finds them.
+ *
+ * SHARED plugin data, not private. A later census is an agent calling `getSharedPluginData('prism3',
+ * 'build')` on the set; private data is scoped to the plugin id that wrote it, which is a channel nothing
+ * outside this plugin can read — the exact channel #1574's diagnosis lacked. Same namespace as the #827
+ * member stamp and the persisted brand input, for the reason `persist-figma.ts` gives at `NS`: the
+ * namespace is the collision boundary, and data a second tool can read is data a second tool can honor.
+ *
+ * KEEP-LAST, overwritten by every build — NOT appended. This is a snapshot of the set's CURRENT state, and
+ * the question it answers is "what did the build that made the thing I am looking at say about it?". A
+ * history answers a different question, grows without bound against the 100 kB per-entry ceiling, and
+ * hands the reader the job of working out which entry describes the set in front of them. #1581's
+ * provenance log is append-only for the opposite reason, and the two retention policies are deliberately
+ * different rather than an inconsistency to reconcile: that one is a log, this one is a gauge.
+ *
+ * TWO WRITES, and the first one is the point. A PROVISIONAL report goes down as soon as the set exists,
+ * carrying `complete: false`; the final one overwrites it at the return. Keep-last makes the overwrite
+ * free, and it turns #1574's state (a) from an inference drawn from ABSENCE into a positive record — a
+ * report saying the run reached the combine and stopped is a different artifact from no report at all,
+ * and only the first of those can be told apart from a set this plugin never built.
+ *
+ * THE LIMIT, stated rather than implied: a throw BEFORE the combine still leaves nothing, because there is
+ * no set yet to write on. `markPartialWrite` is what covers that window, and it covers it in the UI only.
+ *
+ * A REPORT MAY NEVER FAIL THE BUILD IT DESCRIBES — the write is wrapped, and a host with no plugin-data
+ * surface makes it a no-op. Absence therefore means nothing: every reader falls back to the behavior it
+ * had before this existed, and a missing report is not a finding.
+ */
+const BUILD_KEY = 'build';
+
+/** The miss list's byte budget inside one report. A 432-member set can miss on every member AND on every
+ *  reference, and at ~150 bytes a sentence that is past Figma's documented 100 kB per-entry ceiling — so
+ *  the list is truncated and the number dropped is reported, rather than the whole entry being refused by
+ *  the host and the report going missing on exactly the builds worth reading. Deliberately well below the
+ *  ceiling: the rest of the report is fixed-size, and a cap that needs the ceiling's exact value to be
+ *  correct is a cap that silently stops being correct when the ceiling moves. */
+const REPORT_MISS_BYTES = 60_000;
+
+/** What a build leaves on its set. `at` is when the SNAPSHOT was written, not when the build started, so
+ *  a provisional and a final report from one run carry two different timestamps. */
+export type BuildReport = {
+  engine: string;
+  def: string;
+  at: string;
+  complete: boolean;
+  stage: string;
+  refs: number;
+  wiredMembers: number;
+  setReresolved: number;
+  refsRepaired: number;
+  boundRepaired: number;
+  misses: readonly string[];
+};
+
+/** The persisted form of `report`: the miss list truncated to `REPORT_MISS_BYTES`, with the number of
+ *  sentences that dropped recorded beside it. PURE and exported so the truncation has a gate that does not
+ *  need a 60 kB build to drive it — the executor's own use of it is what arm `#1579a` reads back. */
+export const buildReportJson = (report: BuildReport): string => {
+  const misses: string[] = [];
+  let bytes = 0;
+  for (const m of report.misses) {
+    // +3 for the two quotes and the separating comma JSON adds around each entry.
+    bytes += m.length + 3;
+    if (bytes > REPORT_MISS_BYTES) break;
+    misses.push(m);
+  }
+  return JSON.stringify({ ...report, misses, missesOmitted: report.misses.length - misses.length });
+};
+
+/** Leave `report` on the set. Never throws. */
+const writeBuildReport = (set: CompSet, report: BuildReport): void => {
+  try {
+    set.setSharedPluginData?.(NS, BUILD_KEY, buildReportJson(report));
+  } catch {
+    // Per the note above: a diagnostic that can fail a good build is worse than no diagnostic at all.
+  }
+};
+
 /** The node as the executor USES it — every field present, none of them narrowed. The cast happens
  *  once per created node rather than per field, because the PLAN decided the node kind: a TEXT node's
  *  `characters` is not in doubt. The two genuine runtime forks Figma does have keep their `in` checks
@@ -1944,6 +2031,25 @@ const writeComponentSet = async (
   }
   const members = [...(set.children ?? [])];
 
+  // #1579 — THE PROVISIONAL REPORT, down before anything that can throw between here and the return.
+  // Everything below this line is somewhere #1574 could have stopped: the measured layout pass, the
+  // `resize`, the guarded definitions read, each `addComponentProperty`, and the wire loop. On `set` and
+  // not on `liveSet()` deliberately — this is the one moment the combine-time handle is fresh by
+  // construction, and `liveSet` is not defined until after the box read-back below.
+  writeBuildReport(set, {
+    engine: ENGINE_VERSION,
+    def: component,
+    at: new Date().toISOString(),
+    complete: false,
+    stage: 'the set was combined; this run had not yet declared its properties or wired any references',
+    refs: 0,
+    wiredMembers: 0,
+    setReresolved: 0,
+    refsRepaired: 0,
+    boundRepaired: 0,
+    misses: [],
+  });
+
   // LAY OUT. Column pitch is MEASURED, not computed: a hug-width button is as wide as its label and
   // only Figma knows that, so a fixed pitch either overlaps the long ones or strands the short ones.
   // The whole union is measured and repositioned, not just this run's members, so the layout is correct
@@ -2553,6 +2659,29 @@ const writeComponentSet = async (
     else if (first.box !== box) footprint.push(`footprint -> ${c.name} measures ${box} but ${first.name} measures ${first.box} (same ${cell.group})`);
   });
 
+  // `refsWired`, not `refs` — `refs` is already the PLAN's declared reference list, destructured from
+  // `planSetLayout` above. These are the ones that landed, which is the number the report is about.
+  const refsWired = wiredRefs.length;
+  const membersWired = new Set(wiredRefs.map((r) => r[0])).size;
+  const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss);
+
+  // #1579 — THE FINAL REPORT, overwriting the provisional one written at the combine (keep-last). On
+  // `liveSet()` rather than `set`, for #1574's reason: a report left on a handle the host has replaced is
+  // a report on a node nobody can find, which is the failure this exists to end rather than to reproduce.
+  writeBuildReport(liveSet(), {
+    engine: ENGINE_VERSION,
+    def: component,
+    at: new Date().toISOString(),
+    complete: true,
+    stage: 'this run finished',
+    refs: refsWired,
+    wiredMembers: membersWired,
+    setReresolved,
+    refsRepaired,
+    boundRepaired,
+    misses: allMisses,
+  });
+
   return {
     set: String(set.name ?? component),
     id: String(set.id ?? ''),
@@ -2564,8 +2693,8 @@ const writeComponentSet = async (
     grid: [rows, cols],
     axes: derived.map((k) => `${k}:${(defs[k]?.variantOptions ?? []).length}`),
     properties: [...bare.keys()].map((k) => `${k}:${defs[bare.get(k)!].type}`),
-    refs: wiredRefs.length,
-    wiredMembers: new Set(wiredRefs.map((r) => r[0])).size,
+    refs: refsWired,
+    wiredMembers: membersWired,
     refsRetained,
     refsKnownAbsent,
     refsSearched,
@@ -2573,6 +2702,6 @@ const writeComponentSet = async (
     boundRepaired,
     setReresolved,
     boundSearched,
-    misses: misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss),
+    misses: allMisses,
   };
 };

@@ -3569,7 +3569,35 @@ const PROPS=readable?PROPS_ALL:[];
 const REFS=readable?REFS_ALL:[];
 const REF_OVERRIDES=readable?REF_OVERRIDES_ALL:[];`;
 
-/** The tail of a CHUNK payload: the two layout read-backs and the report. */
+/**
+ * The tail of a CHUNK payload: the two layout read-backs and the report.
+ *
+ * #1579's PERSISTED BUILD REPORT IS NOT HERE, and that is a decision rather than an oversight — the same
+ * shape as #1578's D3 note on `PAYLOAD_DECLARE_PROPS`, and recorded in a TS comment for the same reason
+ * (prose inside the template literal ships to the designer's console and is charged against the chunk
+ * budget). The plugin's `applyComponentPlan` writes its report to `setSharedPluginData('prism3', 'build')`
+ * on the set; this payload returns the same facts to whoever pasted it, and three things separate the two:
+ *
+ *  - THE DEFECT IS NOT HERE. #1579 is about a report that reaches a UI and then the UI goes away. A pasted
+ *    payload returns its object to the agent or console that pasted it, which is a channel that persists on
+ *    its own. The plugin's report had nowhere to go; this one already has somewhere.
+ *  - KEEP-LAST AND CHUNKING DISAGREE. Refs and properties are the FINAL chunk's job, so a last-chunk write
+ *    would carry whole-set counters — but `misses` is per-chunk, so eleven chunks' miss lists would be
+ *    overwritten by the twelfth's and the entry would read `0 misses` on a build that reported plenty. A
+ *    report that is confidently wrong about the thing it exists to preserve is worse than an absent one,
+ *    which is the exact failure the plugin-side `#1579b` arm exists to catch. Fixing it means reading the
+ *    previous entry back and merging at each chunk — more logic, and more bytes, inside a template literal.
+ *  - IT WOULD BE UNGATED. `figmaStub` (`test.ts`) models no `setSharedPluginData` at all, so the write
+ *    would sit behind the `try` every payload host call needs and never execute in any gate — a write to
+ *    the designer's file that reports its own absence as a pass (docs/34: a gate that cannot fail is
+ *    silence). Gating it means teaching `figmaStub` a plugin-data store and writing the arms.
+ *
+ * MEASURED, so the byte question is answered rather than assumed: a minimal single-line write costs 350
+ * bytes of shell and the `anatomy/icon-button` set still packs into **12** chunks (fullest 41,953 of
+ * 42,000; the slack lands in the short final chunk, 28,392 → 34,734). So bytes are NOT the blocker here
+ * and a later port does not have to fight the packer — the two reasons above are the blockers, and both
+ * are about correctness. Filed as its own issue rather than left in this comment.
+ */
 const PAYLOAD_CHUNK_RETURN = `// READ BACK the LAYOUT. Two variants at one position is the signature of a set that combined perfectly
 // and is unusable, and it is invisible to every other check here.
 const seen=new Map();
