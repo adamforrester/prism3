@@ -7,6 +7,24 @@
 
 ---
 
+## (2026-09-23) — the size table's base column is a base, not an appearance mode (#1586)
+
+**STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Studio only — `apps/studio/src/main.ts` (the `renderSizeTable` header loop), a new pure module `apps/studio/src/size-labels.ts`, its test `apps/studio/test-size-labels.ts` wired into `@prism3/studio`'s `test` script, and this entry. **No `out/**` change, NO version bump, NO engine/emit change** — `lint-emission-version` sees 0 artifacts and `regen --check` stays clean; nothing here is emission. Gate count **STANDS at 61** — the new assertions are arms of the studio `test` gate. Closes #1586. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `packages/engine/`, `apps/plugin/`, `apps/tokenpress/`, `tools/`.
+
+── THE PROBLEM: A VIEWPORT-INDEPENDENT BASE LABELLED AS AN APPEARANCE VALUE ───────────────────────────────
+
+`renderSizeTable` lays out one column per THEME-axis mode (`rp.modes` = light/dark/…) and rendered the base value (`sizePx`) under the `light` column with a ` baseline` suffix → **"LIGHT baseline"**. But type sizes do NOT vary by light/dark — they vary by VIEWPORT (mobile/desktop), a separate axis the Responsive type lever derives at emit time and the studio size table does not expose. So the base value is viewport-independent, and the appearance-mode framing sent the reader looking for a desktop/mobile control that isn't there (found while setting up New Balance sizes: it was unclear whether the table edited mobile or desktop — it edits neither).
+
+── THE FIX: REFRAME ONLY THE BASE COLUMN ─────────────────────────────────────────────────────────────────
+
+The base column now reads **"Base"** with a hover explanation — *"One base size — the Responsive type lever scales it between mobile and desktop."* (voice-standard §3: declarative, em dash carries the why). **The per-theme-mode columns stay:** `sizeByMode` is real (a brand can legitimately tweak a dark-mode size), so the dark column keeps its "Dark" label and derived modes keep " auto" (#423) — only the base column stopped implying appearance governs sizes. Out of scope, tracked as #1587: surfacing the derived desktop/mobile endpoints and per-viewport editing (needs an engine override layer).
+
+**Why a new module.** The header text was not readily unit-testable in place: `main.ts` calls `build()` (touching `document`) at import and cannot load under `tsx` — the same constraint that put `provenance.ts` in its own module. So the column-label logic is extracted to a pure `sizeColumnHeader(isBase, isEditable, modeLabel)` helper and tested directly. This is the reason the diff touches more than `main.ts` + a test: the extraction the fix requires needs a module and a `package.json` test wiring, both inside `apps/studio/`.
+
+── THE NET (docs/34) ─────────────────────────────────────────────────────────────────────────────────────
+
+**Independence:** the gate's load-bearing assertion is written against a LITERAL rule — the base column's visible text (label + suffix) must carry no appearance-mode word (`/\b(light|dark|baseline|…)\b/i`) — NOT against the module's own `SIZE_BASE_LABEL` constant, which would be `x === x` and pass whatever the label became (shape 2). A positive arm confirms it names a base and explains the mobile↔desktop scaling, so the fix is not merely deleting the word. **By-name mutation, restored to a known-good HEAD (a `wip:` commit first, `--amend`ed once green):** reverting the base branch to `{ text: modeLabel, suffix: ' baseline' }` fails the named assertion *"the base column text carries NO appearance-mode word"* (4 arms red, exit 1); after restore, 14/14 pass. `lint-us-english.ts`/`lint-voice.ts` run after the web build (verify handles ordering), so the "Base" label and tooltip in the built bundle are in scope.
+
 ## (2026-09-23) — provenance for the prune: a written stamp for modes, a read signature for styles (#1577, #1581)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Plugin RUNTIME only — `apps/plugin/src/prune-figma.ts` (the recognizer + the ∈-owned gate), `apps/plugin/src/write-figma.ts` (the stamp), `apps/plugin/src/main.ts` (five lines of wiring, isolated in its own commit — see the deviation below), plus `test-prune.ts` and `test-write-float.ts`. **No `out/**` change, NO version bump** — ENGINE STANDS, CONTRACT STANDS: nothing here is emission, and `lint-emission-version` / `lint-component-surface` firing would have meant the change had leaked into it. Gate count **STANDS at 61** — every new assertion is an arm of `plugin-test`. Closes #1577 and #1581. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `tools/conformance-scan/`, TokenPress, `write-components.ts`, `anatomy-figma.ts`.
