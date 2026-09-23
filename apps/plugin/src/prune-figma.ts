@@ -531,6 +531,31 @@ const modeNote = (p: PrunePlan): string =>
     : ` The modes are ${p.modes.map((g) => `${g.collection} → ${g.modes.map((m) => m.name).join(', ')}`).join('; ')};` +
       ' removing a mode drops its value from every variable in that collection.';
 
+/** Names shown per collection in `varNote` before the tail takes over. Small on purpose: the note names
+ *  the targets of the most numerous arm, so past a handful it would bury the count it sits beside rather
+ *  than inform it — the same truncate-and-say-so discipline as #1579's 60 kB report cap. Held here as a
+ *  named constant so the test drives a fixture past it and the cap fails by name (#1585). */
+const VAR_NOTE_CAP = 8;
+
+/**
+ * The variables a prune would remove, NAMED per collection — the most numerous arm, and until #1585 the
+ * one that showed only a count. A destructive action names its targets: the designer reads
+ * `color → surface.raised, surface.sunken, …` and cancels if one is theirs. Capped at `VAR_NOTE_CAP` names
+ * per collection with the remainder reported as `+K more`, so the note stays a summary and never becomes a
+ * wall that hides the count it replaced. Every name here is in this theme's namespace — the detector's root
+ * guard is what put it in the plan — so nothing outside the engine's own names is ever named for deletion.
+ */
+const varNote = (p: PrunePlan): string => {
+  if (p.variables.length === 0) return '';
+  const groups = p.variables.map((g) => {
+    const shown = g.names.slice(0, VAR_NOTE_CAP);
+    const extra = g.names.length - shown.length;
+    const items = extra > 0 ? [...shown, `… +${extra} more`] : shown;
+    return `${g.collection} → ${items.join(', ')}`;
+  });
+  return ` The variables are ${groups.join('; ')}.`;
+};
+
 /**
  * The styles admitted only by their description's signature (#1577), NAMED — the ones whose group the plan
  * no longer emits, so the designer cannot infer them from the plan in front of them. A rename is how a
@@ -564,6 +589,7 @@ export const prunePreviewSummary = (p: PrunePlan): string => {
     `${parts(styles, modes, vars, p.collections.length)} ${one ? 'is' : 'are'} in this file but not in ` +
     `the current plan, all within this theme's namespace. Deleting ${one ? 'it' : 'them'} also removes any ` +
     `bindings made to ${one ? 'it' : 'them'}; anything outside the namespace is left in place.` +
+    varNote(p) +
     modeNote(p) +
     styleNote(p)
   );

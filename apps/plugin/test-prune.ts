@@ -301,6 +301,31 @@ ok(/style/.test(preview) && /mode/.test(preview) && /variable/.test(preview) && 
 ok(/layout → sm, lg/.test(preview),
   `prunePreviewSummary NAMES the modes per collection — the one arm whose items are spelled out, because a mode carries no provenance ("${preview.slice(preview.indexOf('The modes'))}")`);
 
+// --- variables NAMED, grouped by collection (#1585) --------------------------------------------
+// The prune's most numerous arm used to show only a count; a destructive action names its targets. Arm (a):
+// the offered variable renders BY NAME under the collection it lives in. Dropping `varNote` fails this by
+// name — no other note produces `color → nbds/color/…` (`modeNote` is `layout → …`, `styleNote` is a kind).
+ok(preview.includes(`The variables are color → ${ROOT}/color/text/legacy`),
+  `prunePreviewSummary NAMES the offered variables grouped by collection (#1585) — the by-name pin ("${preview.slice(preview.indexOf('The variables'))}")`);
+
+// Arm (b): past VAR_NOTE_CAP names in one collection the note caps and reports the remainder. A collection
+// with 13 in-namespace orphans (none planned, so all 13 are offered) drives the cap; the first name shows,
+// the 13th does NOT, and the tail reads `… +5 more`. Dropping the cap shows all 13 and fails this by name —
+// the `+5 more` disappears and the beyond-cap `ghost-12` starts appearing.
+const capInput: PruneInput = {
+  collections: [{ name: 'color', variableNames: Array.from({ length: 13 }, (_v, i) => `${ROOT}/color/ghost-${String(i).padStart(2, '0')}`), modes: modes('light') }],
+  styles: styleNames({}),
+  plannedVariables: [],
+  plannedCollections: ['color'],
+  plannedStyles: styleNames({}),
+  plannedModes: [],
+  root: ROOT,
+};
+const capPreview = prunePreviewSummary(computePrunePlan(capInput));
+const capNote = capPreview.slice(capPreview.indexOf('The variables'));
+ok(capPreview.includes(`${ROOT}/color/ghost-00`) && /… \+5 more/.test(capPreview) && !capPreview.includes(`${ROOT}/color/ghost-12`),
+  `prunePreviewSummary caps at 8 names per collection and reports "+K more" for the rest (13 offered → 8 named + "… +5 more"; #1585) — the by-name pin, dropping the cap names all 13 ("${capNote}")`);
+
 // --- the empty case: nothing stale, and it says so rather than opening a dialog ---
 const cleanPlan = computePrunePlan({
   ...synthInput,

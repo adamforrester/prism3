@@ -24,6 +24,7 @@
     "binding-presence: gadget · size=sm · / · fills",
     "binding-presence: widget · size=md, state=rest · /label · textStyle",
     "binding-presence: widget · size=md, state=rest · /caption · textStyle",
+    "binding-presence: widget · size=md, state=rest · /caption · fills",
     "binding-target: widget · size=md, state=rest · /label · fills",
     "binding-target: widget · size=md, state=hover · / · strokeWeight",
     "value-match: fix/core/palette/neutral/900 [Default]",
