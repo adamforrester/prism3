@@ -13615,22 +13615,20 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         ok(JSON.stringify(plugStyle) === JSON.stringify(pasteStyle),
           `#1514 parity: both executors land every member's text STYLE on the node — the plugin by re-applying after the #865 defaults, the paste path by never writing a detaching property — plugin vs paste disagree on: ${JSON.stringify([...plugStyle.filter((s) => !pasteStyle.includes(s)), ...pasteStyle.filter((s) => !plugStyle.includes(s))].slice(0, 4))}`);
 
-        // #1567 — THE CAPTION COLLAPSE, ON BOTH PATHS, ON THE DEF THAT EXPOSES IT. field-message ships a
-        // per-status byVariant caption (#1018/#1474): default "This is a standard message.", and
-        // error/warning/success each carry their own. On the real host all four members read the set-level TEXT
-        // property's ONE `defaultValue`, and writing one member's caption writes THROUGH to it — so the
-        // re-assert both executors used to do here left the LAST member's string on the whole set (live: "All
-        // set." on every status). The stub now models that write-through (`guardRefs`), so this asserts the
-        // three things that replaced the re-assert:
+        // #1575 — ONE CAPTION, ON BOTH PATHS. field-message used to ship a per-status byVariant caption
+        // (#1018/#1474), but a characters-bound TEXT node is a VIEW onto the set-level TEXT property's ONE
+        // `defaultValue` — reading returns it, writing writes THROUGH — so the re-assert both executors used to
+        // do left the LAST member's string on the whole set (live: "All set." on every status, #1567). The
+        // owner kept the property (Option 2, #1575), so the def declares ONE caption, and the stub still models
+        // the write-through (`guardRefs`). This asserts the resolved state on BOTH paths:
         //
-        //   (1) both paths run CLEAN except for the collapse, which both REPORT by name;
-        //   (2) both leave the set holding its DECLARED default, deterministically — no last-write-wins; and
-        //   (3) the two paths still agree, which is what stops one of them drifting back to writing.
+        //   (1) both run CLEAN, with NO collapse — one caption, nothing to overwrite;
+        //   (2) both leave every member reading the DECLARED default; and
+        //   (3) the two paths agree, so neither can drift back to writing per member.
         //
-        // Whether field-message's `text` should keep its `characters` reference (one shared, instance-
-        // overridable caption) or drop it (four authored captions, no property) is a change to the def's
-        // declared API and therefore the owner's decision — see docs/00-progress.md. Until it is taken, this
-        // gate pins the collapse as REPORTED rather than silently caused.
+        // The collapse-report MECHANISM a mis-authored spread would trip is guarded BY NAME in
+        // `apps/plugin/test-roundtrip.ts` on a synthetic def, so retiring field-message as its exemplar here
+        // is not a silent gate deletion.
         const fmSet = figmaAnatomySet(fieldMessage, {});
         const fmOpts = {
           vars: fmSet.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
@@ -13641,17 +13639,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         const fmPlugPage: StubPage = { children: [] };
         const fmPasted = await runPayload(planSetToPluginJs(fmSet), { ...fmOpts, page: fmPastePage });
         const fmPlugged = await plugRun(fmSet, { ...fmOpts, page: fmPlugPage });
-        // (1) BOTH PATHS REPORT THE COLLAPSE, once, by name — and report NOTHING ELSE. Splitting the miss
-        // lists this way rather than asserting `length === 0` keeps the clean-run claim intact while making the
-        // collapse report itself an assertion: an executor that went back to writing per member would drop this
-        // miss and fail here, and one that broke anything else would fail the same assertion from the other side.
+        // (1) BOTH PATHS RUN CLEAN, with NO collapse. field-message declares ONE caption (Option 2, #1575),
+        // so there is nothing to overwrite and no COLLAPSED miss on either path. `fmOther` stays as the clean
+        // check; `fmCollapse` is now asserted EMPTY, and a re-added byVariant spread would fail it by name.
         const fmCollapse = (ms: string[]) => ms.filter((m) => /^text text\.characters -> COLLAPSED/.test(m));
         const fmOther = (ms: string[]) => ms.filter((m) => !/^text text\.characters -> COLLAPSED/.test(m));
         ok(fmOther(fmPasted.misses).length === 0 && fmOther(fmPlugged.misses).length === 0,
-          `#1567 field-message runs CLEAN on both paths apart from the reported collapse${[...fmOther(fmPasted.misses), ...fmOther(fmPlugged.misses)].length ? ` — ${JSON.stringify([...fmOther(fmPasted.misses), ...fmOther(fmPlugged.misses)].slice(0, 4))}` : ''}`);
-        ok(fmCollapse(fmPasted.misses).length === 1 && fmCollapse(fmPlugged.misses).length === 1
-          && fmCollapse(fmPasted.misses)[0] === fmCollapse(fmPlugged.misses)[0],
-          `#1567: BOTH executors report the caption collapse exactly once, in the same words — a set-level TEXT property cannot hold four per-status captions (paste ${JSON.stringify(fmCollapse(fmPasted.misses))}, plugin ${JSON.stringify(fmCollapse(fmPlugged.misses))})`);
+          `#1575 field-message runs CLEAN on both paths${[...fmOther(fmPasted.misses), ...fmOther(fmPlugged.misses)].length ? ` — ${JSON.stringify([...fmOther(fmPasted.misses), ...fmOther(fmPlugged.misses)].slice(0, 4))}` : ''}`);
+        ok(fmCollapse(fmPasted.misses).length === 0 && fmCollapse(fmPlugged.misses).length === 0,
+          `#1575: field-message declares ONE caption, so NEITHER executor reports a collapse (paste ${JSON.stringify(fmCollapse(fmPasted.misses))}, plugin ${JSON.stringify(fmCollapse(fmPlugged.misses))})`);
         const fmCaptions = (page: StubPage) => {
           const set = page.children.find((c) => c.type === 'COMPONENT_SET')!;
           const rows: string[] = [];
@@ -13662,20 +13658,19 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         };
         const plugCaptions = fmCaptions(fmPlugPage);
         const pasteCaptions = fmCaptions(fmPastePage);
-        // FLOOR (docs/34): the DEF genuinely declares four distinct captions, read off the plan tree — the one
-        // place they survive, since the built nodes now all read the shared property. Without this, "all four
-        // members read one string" is satisfied by a def that only ever had one, and the collapse report above
-        // would be a claim about nothing.
+        // FLOOR (docs/34): the DEF declares ONE caption (Option 2, #1575), read off the plan tree. Without this,
+        // "all four members read one string" is trivially true of any def; with it, a re-added byVariant spread
+        // fails here by name.
         const fmDeclared = [...new Set(fmSet.map((p) => {
           const walk = (n: FigmaNodePlan): FigmaNodePlan | undefined =>
             (n.characters !== undefined ? n : (n.children ?? []).map(walk).find(Boolean));
           return String(walk(p.root)?.characters);
         }))];
-        ok(fmDeclared.length === 4 && fmDeclared.includes('This is a standard message.') && fmDeclared.includes('All set.'),
-          `#1567 reachable: the def declares four DISTINCT per-status captions, so the collapse below is a real spread (${fmDeclared.join('; ')})`);
+        ok(fmDeclared.length === 1 && fmDeclared[0] === 'This is a status message.',
+          `#1575 reachable: the def declares ONE caption across all four status members — no byVariant spread (${fmDeclared.join('; ')})`);
         // (2) EVERY MEMBER READS THE DECLARED DEFAULT on both paths — deterministically, not whichever member
         // an executor happened to write last. This is the assertion the live "All set." everywhere fails.
-        const fmOnlyDefault = (rows: string[]) => rows.every((r) => r.endsWith('="This is a standard message."'));
+        const fmOnlyDefault = (rows: string[]) => rows.every((r) => r.endsWith('="This is a status message."'));
         ok(fmOnlyDefault(plugCaptions) && fmOnlyDefault(pasteCaptions),
           `#1567: every field-message member reads the set's ONE DECLARED default on both paths — no per-member write clobbered the shared cell (plugin ${plugCaptions.join('; ')} | paste ${pasteCaptions.join('; ')})`);
         // (3) AND THE TWO PATHS AGREE, so neither can drift back to writing without the other noticing.

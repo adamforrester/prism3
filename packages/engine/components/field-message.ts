@@ -263,11 +263,10 @@ export const fieldMessage: ComponentDef = {
   // `Message` (the meaningful name this comment first reached for and the coupling used to forbid), so the
   // key is `Message` too. `icon` was already a fine designer-facing name and stays as it is.
   //
-  // The TEXT defaults are GENERIC illustrative scaffolds, one DISTINCT per status (default "This is a
-  // standard message." / error "Something needs fixing." / warning "Double-check this." / success "All
-  // set.", #1474, owner-directed and owner-chosen), not `content.labelPattern`'s format example: the
-  // shipped placeholder must read as obviously illustrative for a white-label engine, never as a real
-  // product's rule.
+  // The TEXT default is a GENERIC illustrative scaffold ("This is a status message."), SHARED across all
+  // four status members (#1575, owner-decided Option 2 — see the `texts` note below for why one and not
+  // four), not `content.labelPattern`'s format example: the shipped placeholder must read as obviously
+  // illustrative for a white-label engine, never as a real product's rule.
   // `content.labelPattern` still carries the format-up-front ADVICE for the consumer's own copy — that
   // guidance is separate from the scaffold this member ships. An empty default is what #510 shipped and
   // what the schema now rejects.
@@ -284,32 +283,28 @@ export const fieldMessage: ComponentDef = {
     // `icon.size.xs` on both axes (`apps/plugin/test-write-components.ts`) and that ref resolves to 16px in
     // all five corpus brands (`test.ts`). See `FigmaProperties.footprintVaries`.
     footprintVaries: ['status'],
-    // PER-MEMBER copy (#1018). Each status carries its OWN distinct generic scaffold (#1474,
-    // owner-directed and owner-chosen — Set A): default "This is a standard message.", error "Something
-    // needs fixing.", warning "Double-check this.", success "All set." The four members read as one
-    // parallel set, each status uniquely identifiable at a glance, all obviously placeholder scaffolding a
-    // designer replaces, none of it competing with the brand a customer is building (voice-standard §1
-    // recessive). This gives each status distinct wording in the spirit of #1470's `switch` "Toggle label"
-    // → "Switch label" call, without reversing #1434's STANCE — generic scaffold, never a real product's
-    // rule. The pre-#1434 default, "Use 8+ characters", read as a real product's password rule (the #1434
-    // failure) — a placeholder demonstrating a format is the owner's copy, not the tool's;
-    // `content.labelPattern` still carries that format-up-front advice for the consumer's own copy. The
-    // #1018 per-member fix still holds: before it, one text default meant the error / warning / success
-    // members ALSO rendered the default's copy — a red alert triangle beside helper text, the opposite of
-    // `content.errorPattern`. `byVariant.status` gives each of the other three members its own copy; a
-    // coordinate not named here still falls back to `default`. Keyed on `status`, this def's only variant axis.
+    // ONE SHARED CAPTION, not four (#1575, owner-decided Option 2). #1018/#1474 gave each status its OWN
+    // scaffold via `byVariant.status` (default "This is a standard message.", error "Something needs
+    // fixing.", warning "Double-check this.", success "All set."). The #1567 live-host work proved that
+    // cannot ship: this text node references the set-level `message` TEXT property, and a bound TEXT node
+    // is a VIEW onto the property's single `defaultValue` — every member displays the same string, so a
+    // per-member write only reaches the last member written. #1474's four strings and #1018's one property
+    // are mutually exclusive on the real host. Given the choice (drop the property to keep four literal
+    // captions, or keep the property and share one caption), the owner chose to KEEP the property: a
+    // designer edits one `Message` field and it drives every member. So `byVariant` is REMOVED — declaring
+    // four captions this def cannot display would be a lie the executor has to report as a collapse (the
+    // #1567 by-name report exists exactly for a def that still does). The four members stay distinct where
+    // the host CAN carry it — each status still shows its own glyph (`warning-triangle` / `error-circle` /
+    // `check-circle`) and its own ink — so the set reads as four states at a glance; only the caption
+    // STRING is shared, which is the accepted cost of Option 2. `content.errorPattern` still carries the
+    // say-what-and-how-to-fix guidance for the consumer's own copy. The shared default is a GENERIC
+    // "This is a status message." (owner-chosen, #1575) — deliberately not Set A's default-status wording
+    // "This is a standard message.", since one caption now serves all four statuses. Full decision: #1575.
     texts: {
       // `message` lowercase per #1333 — validated against `props` above, so it renames with the prop.
       message: {
         part: 'text',
-        default: 'This is a standard message.',
-        byVariant: {
-          status: {
-            error: 'Something needs fixing.',
-            warning: 'Double-check this.',
-            success: 'All set.',
-          },
-        },
+        default: 'This is a status message.',
       },
     },
     // NO `swaps`, as of #1010, and the absence is the fix rather than a gap. This read

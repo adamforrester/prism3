@@ -7,6 +7,22 @@
 
 ---
 
+## (2026-09-23) — field-message: one shared caption, not four (owner-decided Option 2, #1575)
+
+**STATUS: LANDED (this lane). ENGINE bump 0.127.0 → 0.128.0; CONTRACT STANDS at 11.3.0.** The projected component surface moved (field-message member plans lose their per-status text), which `lint-component-surface` catches (#1252) though `out/**` carries only the generator restamp — no token value moved. `token-contract --check` re-accepted at 11.3.0 (informational `engineVersion` restamp only; guaranteed 598 unchanged). Full `npm run verify` **61/61**. Closes #1575. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`.
+
+── THE DECISION IT IMPLEMENTS ───────────────────────────────────────────────────────────────────────────
+
+The #1567 live-host work proved #1474's four distinct per-status captions and #1018's one set-level `Message` TEXT property are **mutually exclusive on the real host**: a characters-bound TEXT node is a VIEW onto the property's single `defaultValue` — reading returns it, writing writes THROUGH — so a per-member caption is not expressible, and the re-assert both executors used to do left the LAST member's string on all four ("All set." everywhere, live). Held for the owner as #1575; the owner chose **Option 2 — keep the property, share one caption**. So `figmaProperties.texts.message.byVariant` is REMOVED; the projection writes the single `default` — a generic "This is a status message." (owner-chosen, #1575) — to all four members. The members stay distinct by GLYPH + ink per status (`warning-triangle` / `error-circle` / `check-circle`) — only the caption STRING is shared, the accepted cost of Option 2.
+
+── WHAT MOVED, AND THE GATES THAT CAUGHT IT ─────────────────────────────────────────────────────────────
+
+Removing `byVariant` changes the field-message member plans → `lint-component-surface` DRIFTED (`4 members → 4 members`, different plan digest); accepted with the ENGINE bump. `out/**` moved only by the `$extensions.generator.version` restamp (8 token files, 0 values); `lint-emission-version` sees the stamp and the bump satisfies it. `token-contract --check` failed on the baseline's stale `engineVersion` stamp alone (guaranteed 598 = 598) → `--accept` re-stamped it at 11.3.0, no CONTRACT bump.
+
+── THE TESTS + the collapse mechanism (docs/34) ─────────────────────────────────────────────────────────
+
+`test-roundtrip.ts`, `test-write-components.ts`, and `test.ts`'s paste↔plugin parity all asserted the four-caption spread + the reported collapse; each is re-pointed to the resolved Option 2 state (the def declares ONE caption, every member reads it, NO collapse). **The collapse-report MECHANISM stays guarded** — `test-roundtrip.ts` gains a SYNTHETIC def (field-message cloned with `byVariant` re-added) that must still trip the executor's collapse report BY NAME, so retiring field-message as its exemplar is not a silent gate deletion. **By-name mutation, proven then restored (via a `wip:` commit):** re-adding `byVariant` to field-message fails the roundtrip `#1575 floor: declares ONE caption` arm AND the surface gate (`field-message … DRIFTED`) by name; restored → all green.
+
 ## (2026-09-22) — the live-host projection root: ONE stale snapshot, three reported symptoms (#1567, #1568)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Touches `apps/plugin/src/write-components.ts` (the plugin executor), `packages/engine/anatomy-figma.ts` (`PAYLOAD_WIRE_REFS`, the paste executor), `packages/engine/anatomy-readback.ts`, `apps/plugin/component-shim.ts`, and four test files. **No `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `regen --check` in sync (111 artifacts byte-match), `lint-emission-version` **0 artifacts changed**. Gate count **STANDS at 61** — every new assertion is an arm of an existing gate. Full `npm run verify`: **61/61 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY**. Closes #1567, #1568. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `tools/conformance-scan/` (#1569, the owner's lane), TokenPress.
