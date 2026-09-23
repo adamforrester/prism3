@@ -149,6 +149,10 @@
     },
     "widget|size=md, state=rest|/caption|fontSize": { "boundVariable": "fix/core/font/size/14" },
     "widget|size=md, state=rest|/caption|fontStyle": { "boundVariable": "fix/core/font/style/body/default" },
+    "widget|size=md, state=rest|/caption|fills": {
+      "_injected": "(a) binding-presence, the RAW LITERAL WHOSE VARIABLE THIS FILE DOES NOT HAVE — the un-rebindable twin of `/|fills` above, and the pair is the whole safe/unsafe boundary of the P2 fix loop (#1553 P2, fix.ts). The two findings are the same shape in the report: a hex where a variable belongs. Only one is safely fixable, because `fix/color/background/primary` is in this file and `fix/color/text/secondary` is the variable the (f) omission took out — so a rebind here has nothing to bind TO, and emitting one would be a fix that cannot run. Both halves in one file for the same reason the strokeWeight lenience is proven working and failing in one file.",
+      "rawLiteral": "rgba(90,90,90,1)"
+    },
     "widget|size=md, state=rest|/|strokeTopWeight": { "boundVariable": "fix/border-width/thin" },
     "widget|size=md, state=rest|/|strokeRightWeight": { "boundVariable": "fix/border-width/thin" },
     "widget|size=md, state=rest|/|strokeBottomWeight": { "boundVariable": "fix/border-width/thin" },
