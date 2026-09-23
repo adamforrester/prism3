@@ -519,13 +519,24 @@ mutate "$X" "the COLOR decode writes Figma's 0-1 channels" \
   "return { value: { r: c.r, g: c.g, b: c.b, a: c.a } };" \
   "$SELFTEST_FIX" have "value: the op for fix/core/palette/neutral/900 [Default] writes COLOR {\"r\":26,"
 
-# The accounting numbers must be COUNTED from the arrays, not derived from the finding total. Deriving them
-# is `docs/34` shape 1 in one line: the plan would then report a complete accounting because it subtracted,
-# and a finding lost between the buckets would be invisible.
-mutate "$X" "the accounting is counted, not derived" \
-  "const accounting = { findings: report.findings.length, ops: ops.length, excluded: excluded.length };" \
-  "const accounting = { findings: report.findings.length, ops: ops.length, excluded: report.findings.length - ops.length };" \
-  "$SELFTEST_FIX" have "accounting: the numbers are not counted from the arrays they describe"
+# The accounting invariant — the one that makes "a complete accounting of the diff" a checked claim rather
+# than a sentence. Mute the catch-all exclusion and seventeen findings land in NEITHER bucket, which is
+# precisely the plan-as-silent-subset failure: two ops, six exclusions, and nothing saying the other
+# seventeen were ever looked at.
+#
+# Muting `ops.push` would be the wrong mutation (see the shape note above) — and so, it turns out, is
+# rewriting `excluded: excluded.length` to `report.findings.length - ops.length`, the docs/34-shape-1 form
+# of the same bug: in THIS fixture 25 - 2 is 23, so the derived number and the counted one agree and the
+# mutant is equivalent. That is not a gap in the arm, it is where the two forms actually differ: a derived
+# accounting is only wrong once a finding is lost, and a lost finding is what this arm produces. The
+# counted-from-the-arrays assertion stays in `fix.ts` for the case a future bucket is added; it is honest
+# to say no mutation of this fixture can prove it.
+mutate "$X" "the accounting invariant catches findings that land in no bucket" \
+  "    exclude(finding);
+  }" \
+  "    if (false) exclude(finding);
+  }" \
+  "$SELFTEST_FIX" have "the plan does not account for every finding"
 
 # The re-scan arm: the claim that a plan ACHIEVES something. Make the modelled rebind a no-op and the
 # finding it addressed must still be reported — otherwise "the ops clear their findings" is a sentence
