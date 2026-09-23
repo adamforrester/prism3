@@ -24,7 +24,10 @@
  *   - reintroduce a white Text fill (`textBox.fills = solid('#FFFFFF')`) → the two
  *     "Text container fill is empty" arms fail BY NAME;
  *   - reintroduce the fixed height (drop the `layoutSizingVertical = 'HUG'` line, or set it to `'FIXED'`)
- *     → the "root HUGs its height (not a fixed 100)" arms fail BY NAME.
+ *     → the "root HUGs its height (not a fixed 100)" arms fail BY NAME;
+ *   - drop either half of `stackVariants` (#1600) — remove the `autoLayout(set, …)` call OR the
+ *     `layoutPositioning = 'AUTO'` loop → the "stacks variants VERTICALLY" / "every variant child is
+ *     in-flow" arms fail BY NAME.
  */
 import { buildFileComponents } from './src/file-components';
 import type { FileComponentsApi, FNode } from './src/file-components';
@@ -192,6 +195,27 @@ console.log('_Headings');
       ok(note?.fontSize === 14, `${exp.name}: Note fontSize 14 (got ${note?.fontSize})`);
     }
   }
+}
+
+// ── Variant stacking (#1600) ─────────────────────────────────────────────────────────────────────────
+// The overlap bug: `combineAsVariants` left XL/Medium/Small at `layoutPositioning='ABSOLUTE'` and the
+// scaffold never gave the set a stacking layout, so the variants piled on top of each other. The fix does
+// BOTH — a VERTICAL set layout AND `layoutPositioning='AUTO'` on every member. These arms are INDEPENDENT
+// of the #1563 structural arms above (they read the SET's layoutMode and the members' positioning, which no
+// other arm touches) and fail BY NAME if either half of `stackVariants` is reverted. The expected values
+// ('VERTICAL', 'AUTO') are the Figma Plugin-API constants for in-flow vertical stacking, not read off the
+// subject's `SECTION_SIZES` / `HEADINGS` tables.
+console.log('variant stacking (#1600)');
+for (const name of ['_Section-header', '_Headings']) {
+  const set = setsByName.get(name);
+  ok(!!set, `${name}: set exists for stacking check`);
+  if (!set) continue;
+  ok(set.layoutMode === 'VERTICAL', `${name}: set stacks variants VERTICALLY (layoutMode=VERTICAL, got ${String(set.layoutMode)})`);
+  ok(set.children.length > 0, `${name}: set has variant children to stack`);
+  ok(
+    set.children.every((c) => c.layoutPositioning === 'AUTO'),
+    `${name}: every variant child is in-flow (layoutPositioning=AUTO, not ABSOLUTE)`,
+  );
 }
 
 console.log(failures === 0 ? '\nfile-components: all assertions pass' : `\nfile-components: ${failures} FAILED`);

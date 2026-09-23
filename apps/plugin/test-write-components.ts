@@ -1826,6 +1826,63 @@ ok(labelInstr.progress.every((p) => p.done <= p.total) && labelInstr.progress.so
   `#804 ...and the fractions are bounded and end at the total (${labelInstr.yields.join(', ')})`);
 
 // =============================================================================================
+// #1599 — CHARACTERS ARE NEVER DISCARDED FOR WANT OF A LOADED FONT (the font floor)
+// =============================================================================================
+// The owner found this building NB `field-label`: one absent text style (`body/sm/strong`, created by
+// Apply, not by the component build) emptied EVERY text node — 252 discards on a 24-variant set. The
+// mechanism: the executor loaded only the STYLE'S font, inside the branch where the style was FOUND, so a
+// missing style meant no font loaded at all, and `node.characters = "Label"` threw "unloaded font" and was
+// discarded. `field-label` is the fixture because it IS the def the defect was found on and its two text
+// parts carry placeholder copy — so a run that lands nothing is the live catastrophe, in miniature.
+//
+// The arm runs the real def against a file with NO text styles (`styles: []`) — the exact trigger: the
+// plans still nominate `n.textStyle`, so every text node reports a style miss and NOTHING loads a font via
+// the style path. This is the shim world the #1599 floor must survive.
+const noStyleLabel = await run(labelPlans, { ...fullFor(labelPlans), styles: [], page: { children: [] } });
+// PIN THE TRIGGER first, so the "text lands" claim below is not vacuously satisfied by a run whose styles
+// were quietly present after all: the styles ARE absent, so the style-binding misses ARE reported.
+ok(noStyleLabel.misses.some((m) => /\.textStyle ->/.test(m)),
+  `#1599 (pin) the arm's trigger is real — every text node's style is absent and reported (${noStyleLabel.misses.filter((m) => /\.textStyle ->/.test(m)).length} style misses)`);
+// PIN THE SUBJECT: the plans actually carry characters to land, or "nothing discarded" is true of nothing.
+const labelCharCount = labelPlans.reduce((a, p) => {
+  let c = 0; const walk = (n: { characters?: unknown; children?: unknown[] }): void => {
+    if (typeof n.characters === 'string') c++; for (const k of (n.children as typeof n[]) ?? []) walk(k);
+  }; walk(p.root as { characters?: unknown; children?: unknown[] }); return a + c;
+}, 0);
+ok(labelCharCount > 0, `#1599 (pin) these plans DO carry text to write, so "nothing discarded" is a claim about real characters (${labelCharCount} across the set)`);
+// THE FIX, stated as the mutation that inverts it: WITH the floor, no character write is discarded even
+// though every style is missing — text lands in the node's own (fallback) font. Reverting the floor in
+// `write-components.ts` leaves the node on its unloaded `DEFAULT_FONT`, the `characters` write throws, and
+// this line goes red with the DISCARDED misses the field-label build actually produced. That is the
+// by-name mutation docs/34 requires: the arm names the defect it re-catches.
+// THE FLOOR, as the DISCARDED miss it removes — the exact symptom the field-label build produced (`set
+// "Label", reads ""`, ×252). WITH the floor no character write is discarded though every style is missing:
+// text lands in the node's own fallback font. Reverting the floor in `write-components.ts` leaves the node
+// on its unloaded `DEFAULT_FONT`, the write throws, and this line goes red naming the discards it re-catches
+// — the by-name mutation docs/34 requires. (A read-back of the built nodes is NOT a second witness here:
+// field-label's text is characters-BOUND, so a bound node reads its caption from the set-level property
+// default regardless of whether the build-time write landed — the DISCARDED miss is the only arm that
+// tells the floor apart from its absence, which is why it carries the gate alone.)
+const discarded = noStyleLabel.misses.filter((m) => /\.characters -> DISCARDED/.test(m));
+ok(discarded.length === 0,
+  `#1599 with the font floor, NO character is discarded when the style is absent — text lands in the fallback font (${discarded.length} discarded${discarded.length ? `: ${discarded.slice(0, 2).join('; ')}` : ''})`);
+
+// THE `figma.mixed` GUARD. The floor loads the node's OWN font, but a node whose text spans more than one
+// font reads `fontName === figma.mixed`, which `loadFontAsync` cannot take. The floor's shape check
+// (`typeof fn === 'object'`) skips it rather than crashing — and `mixedTextFonts` puts every text node in
+// that state, surviving to the write because no style is resolved. WITH the guard the run COMPLETES and no
+// `.font ->` miss is reported (the load was skipped, not attempted and failed). Dropping the shape check —
+// `if (fn)` alone — hands `figma.mixed` to `loadFontAsync`, which the shim refuses, surfacing exactly the
+// `.font ->` miss this asserts is absent: the by-name mutation for the guard.
+let mixedThrew = '';
+let mixedRun!: Awaited<ReturnType<typeof run>>;
+try { mixedRun = await run(labelPlans, { ...fullFor(labelPlans), styles: [], mixedTextFonts: true, page: { children: [] } }); }
+catch (e) { mixedThrew = (e as Error).message; }
+ok(mixedThrew === '', `#1599 a mixed-font node does not crash the build — the floor skips figma.mixed rather than loading it${mixedThrew ? ` — ${mixedThrew.slice(0, 90)}` : ''}`);
+ok(mixedThrew === '' && !mixedRun.misses.some((m) => /\.font ->/.test(m)),
+  `#1599 ...and nothing was handed to loadFontAsync — no font miss on the mixed arm (${mixedThrew ? 'threw' : mixedRun.misses.filter((m) => /\.font ->/.test(m)).join('; ') || 'none'})`);
+
+// =============================================================================================
 // #1337 — A REFUSED COMPONENT-PROPERTY REFERENCE IS RECOVERED, NOT DROPPED
 // =============================================================================================
 // THE DEFECT this reproduces, and why no other gate here could. The wire loop writes each reference on the

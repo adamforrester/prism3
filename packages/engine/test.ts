@@ -8803,6 +8803,31 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     + (match ? '' : ` — got ${gotOrder.map((n) => n.split('/').pop()).join(',')}`));
 }
 
+// ---------------------------------------------------- #1597: palette ramp steps emit in numeric-key order
+// The SAME JS key-iteration quirk as #1594, but in the separate `emit-figma-color.ts` palette emitter:
+// each chromatic ramp's leading-zero sub-steps (`025`,`050`) must sort by their MAGNITUDE, not trail every
+// integer-like step at the bottom of the panel. The raw palette walk (`leaves` over `Object.keys`) put
+// `025/050` AFTER `950`; passing `byNumericKey` fixes creation order.
+//
+// EXPECTED is a HAND-WRITTEN literal of the `red` ramp in numeric order — NOT derived from
+// `Object.keys(...)`, the side under test — so a mutation reverting the palette emit to raw `Object.keys`
+// order (sub-steps last) fails THIS arm BY NAME (docs/34 gate independence). The root comes from the theme
+// (never spelled), matching the #1097 sourcing rule the rest of this suite uses.
+{
+  const { palette } = buildFigmaColor(nbTheme());
+  const EXPECTED_RED_ORDER = [
+    '025', '050', '100', '150', '200', '250', '300', '350', '400', '450', '500',
+    '550', '600', '650', '700', '750', '800', '850', '900', '950',
+  ].map((k) => nbVar(`core/palette/red/${k}`));
+  const redOrder = palette.variables
+    .map((v) => v.name)
+    .filter((n) => n.startsWith(nbVar('core/palette/red/')));
+  const match = JSON.stringify(redOrder) === JSON.stringify(EXPECTED_RED_ORDER);
+  ok(match,
+    '#1597: palette ramp steps emit sorted by numeric key (025, 050, 100, …, 950), never with 025/050 trailing 950'
+    + (match ? '' : ` — got ${redOrder.map((n) => n.split('/').pop()).join(',')}`));
+}
+
 // ---------------------------------------------------- MCP adapter (docs/08 §5, roadmap C)
 // The agent-callable surface over the core: dependency-free JSON-RPC. Gate the handshake,
 // the tool catalogue, the "derives from the lever manifest" tie, and a full theme_brand
