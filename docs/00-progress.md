@@ -24,6 +24,33 @@ Gutter and margin were DERIVED from fixed arrays indexed by breakpoint (`GUTTER_
 ── THE NET (docs/34) ─────────────────────────────────────────────────────────────────────────────────────
 
 New engine gate block (19f, `test.ts`): EXPECTED hand-authored from the documented ladders ([16,16,24,24,32]/[16,24,24,32,48]) + the snap rule + the space key for 4px read from the SCALE; ACTUAL read from the EMITTED Figma Grid Styles (px) AND the DTCG grid node's alias `$value` (the space token) — never from `buildLayout`/`resolveGap`. **By-name mutations, each from a known-good `wip:` HEAD, restored:** (M1) `buildLayout` ignores the gutter override → the APPLY arm ("wins over the 16px ladder — got 16") and the ALIAS arm ("emits as an ALIAS to space/050 — got `{prism.space.200}`") fail by name; (M2) drop `resolveGap`'s on-ladder guard → the off-ladder gutter (5px) and margin (7px) THROW arms fail by name, while APPLY/ALIAS stay green (isolating the guard). **MCP ceiling (#1368):** the two new schema fields pushed `tools/list` over 60,000; clawed back under (59,927) by compressing sibling schema prose (`surfaceMode.inverseBase`, `modeLevers`, `typography.sizes`, `modeLevers.typeSizes` — redundancy trimmed, every load-bearing fact kept), the same move #1510 made. `lint-us-english`/`lint-voice` run after the web build and cover the built bundle + schema, so the new UI labels and schema prose are in scope.
+## (2026-09-23) — Figma dimension variables emit in numeric-key order (#1594)
+
+**STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Engine emission ORDER only — `packages/engine/emit-figma-dims.ts` (one new pure helper `byNumericKey`, applied at the seven dimension `Object.keys` sites), the regenerated `out/**` (three `space.json` reorder + the engine-stamp bump on the DTCG trees), `packages/engine/version.ts` (ENGINE 0.128.0 → **0.129.0**, changelog newest-first), `packages/engine/schema/token-contract.json` (`engineVersion` re-stamp only, CONTRACT STANDS at 11.3.0), `packages/engine/test.ts` (the by-name ordering arm), and this entry. **ENGINE bump, CONTRACT stands.** Gate count **STANDS at 61** — the new assertion is an arm of the existing engine `test`. Closes #1594. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `apps/plugin/`, `apps/tokenpress/`, `tools/`, `scale.ts` — no token name, value, scope or alias moved.
+
+── THE PROBLEM ───────────────────────────────────────────────────────────────────────────────────────────
+
+In the Figma variables panel the `space` sub-steps (`025`=2px, `050`=4px, `075`=6px) appeared **after `1200`**, reading as "missing" until you scroll to the bottom. Root cause is JS object-key iteration order: **integer-like** keys (`"0"`,`"100"`…`"1200"`) iterate first in ascending-numeric order, then **leading-zero string** keys (`"025"`,`"050"`,`"075"`) follow in insertion order. The emit maps over `Object.keys(brand.space)`, so the plugin *creates* the variables in that order and Figma shows creation order → sub-steps at the bottom.
+
+── THE FIX ───────────────────────────────────────────────────────────────────────────────────────────────
+
+One small pure helper, `byNumericKey(keys)`, sorts by the key's numeric magnitude (`parseFloat`), and is applied at each dimension `Object.keys` emission site (`core.dimension`, `space`, `radius`, `size`, `icon`, `control`, `opacity`). It is a **stable no-op** for named collections: t-shirt/rung keys (`radius.none`, `size.md`) `parseFloat` to NaN and compare equal, so their insertion order is preserved and their output is byte-identical. Only `space` actually carries leading-zero keys among the dimension sites, so of all the regenerated figma files only the three `space.json` (nb · aurora · wendys) reorder — each verified as a pure reorder (the variable set is byte-identical as a set; new order `0, 025, 050, 075, 100, 150, …, 1200`). Applying the helper broadly (not just to `space`) is the issue-endorsed recurrence guard: a leading-zero key added to any dimension collection later sorts correctly for free.
+
+── A PREMISE THAT DID NOT HOLD: `size` ───────────────────────────────────────────────────────────────────
+
+The issue named `size` (`050`, `075`) as a second mis-ordering collection. It does not, in the current corpus: the `size` Figma collection is keyed by **t-shirt rung** (`xs/sm/md/lg/xl`), not by leading-zero numeric steps, so `Object.keys(brand.size)` already iterates in the intended order and `byNumericKey` leaves it byte-identical. The helper is still applied there (no-op, recurrence guard), but `size` output does not change. Confirmed by `git diff` (only `space.json` files moved among figma output). Separately, the **color palette ramps** (`core.palette`, `emit-figma-color.ts`) mis-order the same way (`025`/`050` after each ramp's `950`) — out of scope for this dimension-only PR (guardrail: `emit-figma-dims.ts` only, one concern per PR); **filed as #1597.**
+
+── VERSIONING (principle 5) ──────────────────────────────────────────────────────────────────────────────
+
+Reordering emission is a behavior change → **ENGINE bumps** (0.128.0 → 0.129.0); the DTCG trees restamp `$extensions.generator.version`. CONTRACT **stands** at 11.3.0 — ordering is not a token NAME or `$type` change, so `token-contract --check` reports level `none`; the `--accept` refreshes only the informational `engineVersion` field in the baseline (diff is that one line). `regen --check` and `lint-emission-version` see the reordered `space.json` + restamped trees as the expected change for this bump.
+
+── THE NET (docs/34) ─────────────────────────────────────────────────────────────────────────────────────
+
+The by-name arm asserts nb's `space` variables emit in an **independently hand-written literal** order (`0, 025, 050, 075, 100, …, 1200`) — NOT derived from `Object.keys(brand.space)`, the side under test — so it is not a `x === x` gate. **By-name mutation, restored from a `wip:` commit:** reverting the `space` site to raw `Object.keys(...)` fails the named `#1594: space variables emit sorted by numeric key …` assertion (got `0,100,…,1200,025,050,075`); restored, `test.ts` is 3876/0 green again. `npm run verify` → 61/61, 0 SKIP.
+
+── THE CAVEAT (state in PR) ──────────────────────────────────────────────────────────────────────────────
+
+This fixes **creation** order, so **fresh** builds get numeric order. An **existing** Figma file's already-created variables keep their order — the plugin apply is idempotent find-by-name and Figma does not reorder on reuse — so the benefit lands on the next fresh build (the NB case that surfaced this).
 
 ## (2026-09-23) — the tracking UI reads in percent as well as em (#1590)
 

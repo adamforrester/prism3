@@ -47,6 +47,26 @@ const aliasFigName = (aliasStr: string): string => {
   return m ? figName(m[1]) : '';
 };
 
+/** Order dimension keys by numeric MAGNITUDE so leading-zero sub-steps (`025`,`050`,`075`) sort
+ *  with their value (`0, 025, 050, 075, 100, …`) instead of trailing every integer-like key (#1594).
+ *  JS object-key iteration emits integer-like keys (`"0"`,`"100"`,…`"1200"`) FIRST in ascending-numeric
+ *  order, then leading-zero string keys (`"025"`,`"050"`,`"075"`) in insertion order — so `space`'s
+ *  sub-steps landed after `1200` in the emitted (hence Figma-created) order. Purely reorders: maps over a
+ *  COPY, never mutates the input, never touches a key's value/scope/alias. Non-numeric keys (named rungs
+ *  like `radius.none`, t-shirt keys like `size.md`) `parseFloat` to NaN and compare EQUAL, so a stable
+ *  sort leaves every named collection in its insertion order — byte-identical output for those. */
+const byNumericKey = (keys: string[]): string[] =>
+  [...keys].sort((a, b) => {
+    const na = parseFloat(a);
+    const nb = parseFloat(b);
+    const aNum = Number.isFinite(na);
+    const bNum = Number.isFinite(nb);
+    if (aNum && bNum) return na - nb;
+    if (aNum) return -1;
+    if (bNum) return 1;
+    return 0;
+  });
+
 export type FigmaDimsCollections = {
   dimension: FigmaCollectionFile;
   space: FigmaCollectionFile;
@@ -130,7 +150,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // alias into this scale). Scopes stay at the four dim targets so, if a
   // component author needs a raw primitive for a bespoke case, the picker
   // guidance is still correct.
-  const dimVars: FigmaVar[] = Object.keys(brand.core.dimension).map((key) => ({
+  const dimVars: FigmaVar[] = byNumericKey(Object.keys(brand.core.dimension)).map((key) => ({
     name: coreDim(`dimension/${key}`),
     resolvedType: 'FLOAT' as const,
     scopes: DIMENSION_SCOPES,
@@ -146,7 +166,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // value (not a `{…}` alias) would ship `alias.name: ''` (aliasFigName returns '' off
   // a non-brace value): a dangling, empty-named binding Figma silently drops the link
   // for. Emit an alias only when the value IS a brace reference; otherwise null.
-  const spaceVars: FigmaVar[] = Object.keys(brand.space).map((key) => {
+  const spaceVars: FigmaVar[] = byNumericKey(Object.keys(brand.space)).map((key) => {
     const leaf = brand.space[key];
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
     return {
@@ -174,7 +194,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   const wireframe = theme.modes.includes('wireframe');
   const radiusModes = Object.keys(theme.dims.radiusByMode ?? {});
   const radiusVarsFor = (mode: string): FigmaVar[] =>
-    Object.keys(brand.radius).map((key) => {
+    byNumericKey(Object.keys(brand.radius)).map((key) => {
       const leaf = brand.radius[key];
       // Mode leaves are DTCG-only until the brand opts in; a rung that carries no override for this
       // mode (e.g. `radius.none`, already 0, or a rung whose per-mode px equals light) falls through
@@ -200,7 +220,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // size — nested { <tShirt>: { height, padding-x, padding-y } }. Emit one FLOAT
   // per leaf; height aliases dimension, padding aliases space.
   const sizeVars: FigmaVar[] = [];
-  for (const t of Object.keys(brand.size)) {
+  for (const t of byNumericKey(Object.keys(brand.size))) {
     // `min-height` (#1437) is the interactive target-size floor, present on `md` only; the `if (!leaf)`
     // guard skips it on the other rungs. It is a HEIGHT (aliases the dimension grid), so it takes the
     // height scopes, not the padding ones.
@@ -222,7 +242,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // icon — one FLOAT per step, aliasing the dimension grid (the DTCG tier already does; this mirrors
   // it so a Figma component has a variable to bind its visual slot against, which is the whole reason
   // #324 blocked the Button materialization spike).
-  const iconVars: FigmaVar[] = Object.keys(brand.icon?.size ?? {}).map((key) => {
+  const iconVars: FigmaVar[] = byNumericKey(Object.keys(brand.icon?.size ?? {})).map((key) => {
     const leaf = brand.icon.size[key];
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
     return {
@@ -239,7 +259,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // does, so a Figma checkbox/radio/switch has a variable to bind its box against (#900). Names use
   // `/` between rung and field (`control/size/md/height`), matching every sibling collection.
   const controlVars: FigmaVar[] = [];
-  for (const rung of Object.keys(brand.control?.size ?? {})) {
+  for (const rung of byNumericKey(Object.keys(brand.control?.size ?? {}))) {
     // Named rather than read off the leaf keys, deliberately: what Figma carries is an authored
     // decision, so a field added to the DTCG tier does not reach a client's file until someone puts it
     // here. `dot` arrived with radio's anatomy (#910); `line-box` with #1201 — the selection-control
@@ -316,7 +336,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // instead, so it is NOT hidden from publishing — it stays visible in the library
   // picker with its OPACITY scope, matching the sidecar (`consume: Consumable`),
   // eval (excluded from PRIMITIVE_GROUPS), and the prism3-consume skill.
-  const opacityVars: FigmaVar[] = Object.keys(brand.opacity).map((key) => ({
+  const opacityVars: FigmaVar[] = byNumericKey(Object.keys(brand.opacity)).map((key) => ({
     name: ns(`opacity/${key}`),
     resolvedType: 'FLOAT' as const,
     scopes: OPACITY_SCOPES,
