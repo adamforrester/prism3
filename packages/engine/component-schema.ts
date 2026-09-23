@@ -27,6 +27,9 @@
  * *verified contract* — a property Specs-CLI-style observed-value specs can't have.
  */
 import { normalizeRef, tokenPaths, isPrimitiveRef } from './eval';
+// #1602 — type-only (erased at runtime, so no cycle and no plugin-bundle weight) for the weightIntent
+// category. `theme.ts` imports nothing back from here.
+import type { TypeGroup } from './theme';
 
 /** A reference to a token by its root-relative dotted path (`color.interactive.primary.fill.rest`,
  *  `radius.md`). Validated to resolve against the generated tree. */
@@ -1076,6 +1079,15 @@ export type ComponentDef = {
    *  without it — the part-targeting maps resolve against `anatomy.parts`. */
   figmaProperties?: FigmaProperties;
 
+  /** WEIGHT INTENT (#1602) — this def's `axis` carries weight INTENTS (`regular`, `bold`), not role
+   *  names, and the brand resolves them against the roles it ships for `group` (`applyWeightIntent`).
+   *  The type token entries keyed under `axis` bind their DEFAULT-brand role (`field-label` binds
+   *  `type.body.*.strong` for `bold`); the materializer repoints that role per brand and DROPS the axis
+   *  when every intent coincides (a single-weight brand). Present only on a def whose weight varies —
+   *  `field-label` is the first. `group` is a `TypeGroup`; `axis` must be a declared `variants` axis
+   *  whose values are the intents. Validated in `validateComponentDef`. */
+  weightIntent?: { axis: VariantAxis; group: TypeGroup };
+
   // ---- accessibility (§15) ----
   accessibility: {
     role?: string;
@@ -1285,6 +1297,34 @@ export const validateComponentDef = (
 
   // Figma component properties (#487 §5). Optional; when present, every cross-reference must land.
   if (def.figmaProperties) errors.push(...figmaPropertyErrors(def));
+
+  // WEIGHT INTENT (#1602). Optional; when present it names an axis whose values the brand resolves. The
+  // checks are RELATIONAL — the axis must be declared, its values must be known intents, and every type
+  // token keyed under it must sit in the declared category — so a def that hard-binds a role NB never
+  // emits (the #1601 shape) is caught here rather than resolving to nothing at paste time.
+  if (def.weightIntent) {
+    const { axis, group } = def.weightIntent;
+    const axisValues = variantsOf(def)[axis];
+    if (!axisValues || !axisValues.length) {
+      errors.push(`weightIntent.axis '${axis}' is not a declared \`variants\` axis — the intents to resolve are that axis's values`);
+    } else {
+      for (const v of axisValues)
+        if (!(WEIGHT_INTENTS as readonly string[]).includes(v))
+          errors.push(`weightIntent: axis '${axis}' value '${v}' is not a weight intent [${WEIGHT_INTENTS.join(', ')}] — a value the projector has no resolution rule for would resolve to a bogus text style`);
+      // Every type token entry keyed under an intent value must name the declared category, and there
+      // must be at least one — a weightIntent that binds nothing under its axis is inert.
+      const typeUnderAxis = Object.entries(def.tokens ?? {}).filter(
+        ([k, ref]) => typeof ref === 'string' && ref.startsWith('type.') && k.split('.').some((s) => axisValues.includes(s)),
+      );
+      if (!typeUnderAxis.length)
+        errors.push(`weightIntent.axis '${axis}': no \`type.*\` token is keyed under any of its values [${axisValues.join(', ')}] — the intent resolves nothing`);
+      for (const [k, ref] of typeUnderAxis) {
+        const g = (ref as string).split('.')[1];
+        if (g !== group)
+          errors.push(`weightIntent: token '${k}' → '${ref}' is category '${g}' but weightIntent.group is '${group}' — one weight axis cannot span two categories' availabilities`);
+      }
+    }
+  }
 
   return { errors, warnings };
 };
@@ -2230,6 +2270,15 @@ export const VARIANT_AXES = [
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
 export type VariantAxis = (typeof VARIANT_AXES)[number];
+
+/** WEIGHT INTENTS (#1602) — the closed set a `weightIntent` axis's values are drawn from. Unlike other
+ *  axis VALUES (open, per `VARIANT_AXES`'s header), these are fixed because the projector resolves each
+ *  by name against a brand's roles (`resolveWeightIntent`): `regular` → the reading weight, `bold` → the
+ *  heaviest the brand ships. A value outside this set has no resolution rule, so it is a def bug. Lives
+ *  here (not in `anatomy-figma.ts`, which imports THIS file) so both the validator and the resolver read
+ *  one source without a cycle. */
+export const WEIGHT_INTENTS = ['regular', 'bold'] as const;
+export type WeightIntent = (typeof WEIGHT_INTENTS)[number];
 
 /**
  * Bindings that name a component this def WILL nest, before it has the `anatomy` block that would

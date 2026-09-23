@@ -60,6 +60,44 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "nbds/core/palette/red/025",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "brand (red) 025 — Highlight band",
+      "value": {
+        "r": 0.9960784316062927,
+        "g": 0.95686274766922,
+        "b": 0.9529411792755127,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "nbds/core/palette/red/050",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "brand (red) 050 — Highlight band",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.8980392217636108,
+        "b": 0.8941176533699036,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "nbds/core/palette/red/100",
       "resolvedType": "COLOR",
       "scopes": [
@@ -402,7 +440,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "nbds/core/palette/red/025",
+      "name": "nbds/core/palette/green/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -410,18 +448,18 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "brand (red) 025 — Highlight band",
+      "description": "success (green) 025 — Highlight band",
       "value": {
-        "r": 0.9960784316062927,
-        "g": 0.95686274766922,
-        "b": 0.9529411792755127,
+        "r": 0.95686274766922,
+        "g": 0.9725490212440491,
+        "b": 0.95686274766922,
         "a": 1
       },
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "nbds/core/palette/red/050",
+      "name": "nbds/core/palette/green/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -429,10 +467,10 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "brand (red) 050 — Highlight band",
+      "description": "success (green) 050 — Highlight band",
       "value": {
-        "r": 0.9686274528503418,
-        "g": 0.8980392217636108,
+        "r": 0.886274516582489,
+        "g": 0.9215686321258545,
         "b": 0.8941176533699036,
         "a": 1
       },
@@ -782,7 +820,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "nbds/core/palette/green/025",
+      "name": "nbds/core/palette/amber/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -790,18 +828,18 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success (green) 025 — Highlight band",
+      "description": "warning (amber) 025 — Highlight band",
       "value": {
-        "r": 0.95686274766922,
-        "g": 0.9725490212440491,
-        "b": 0.95686274766922,
+        "r": 0.9803921580314636,
+        "g": 0.9647058844566345,
+        "b": 0.9490196108818054,
         "a": 1
       },
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "nbds/core/palette/green/050",
+      "name": "nbds/core/palette/amber/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -809,11 +847,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success (green) 050 — Highlight band",
+      "description": "warning (amber) 050 — Highlight band",
       "value": {
-        "r": 0.886274516582489,
-        "g": 0.9215686321258545,
-        "b": 0.8941176533699036,
+        "r": 0.9450980424880981,
+        "g": 0.9098039269447327,
+        "b": 0.8823529481887817,
         "a": 1
       },
       "alias": null,
@@ -1162,7 +1200,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "nbds/core/palette/amber/025",
+      "name": "nbds/core/palette/neutral/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1170,18 +1208,18 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning (amber) 025 — Highlight band",
+      "description": "neutral 025 — Highlight band",
       "value": {
-        "r": 0.9803921580314636,
-        "g": 0.9647058844566345,
-        "b": 0.9490196108818054,
+        "r": 0.9647058844566345,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
         "a": 1
       },
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "nbds/core/palette/amber/050",
+      "name": "nbds/core/palette/neutral/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1189,11 +1227,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning (amber) 050 — Highlight band",
+      "description": "neutral 050 — Highlight band",
       "value": {
-        "r": 0.9450980424880981,
-        "g": 0.9098039269447327,
-        "b": 0.8823529481887817,
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": null,
@@ -1542,7 +1580,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "nbds/core/palette/neutral/025",
+      "name": "nbds/core/palette/info/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1550,18 +1588,18 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "neutral 025 — Highlight band",
+      "description": "info status (engine-synthesized — NB has no blue) 025 — Highlight band",
       "value": {
-        "r": 0.9647058844566345,
+        "r": 0.9529411792755127,
         "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "b": 0.9843137264251709,
         "a": 1
       },
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "nbds/core/palette/neutral/050",
+      "name": "nbds/core/palette/info/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1569,11 +1607,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "neutral 050 — Highlight band",
+      "description": "info status (engine-synthesized — NB has no blue) 050 — Highlight band",
       "value": {
-        "r": 0.9098039269447327,
-        "g": 0.9137254953384399,
-        "b": 0.9176470637321472,
+        "r": 0.8784313797950745,
+        "g": 0.9215686321258545,
+        "b": 0.95686274766922,
         "a": 1
       },
       "alias": null,
@@ -1916,44 +1954,6 @@
         "r": 0,
         "g": 0.054901961237192154,
         "b": 0.11764705926179886,
-        "a": 1
-      },
-      "alias": null,
-      "hiddenFromPublishing": true
-    },
-    {
-      "name": "nbds/core/palette/info/025",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
-      "description": "info status (engine-synthesized — NB has no blue) 025 — Highlight band",
-      "value": {
-        "r": 0.9529411792755127,
-        "g": 0.9686274528503418,
-        "b": 0.9843137264251709,
-        "a": 1
-      },
-      "alias": null,
-      "hiddenFromPublishing": true
-    },
-    {
-      "name": "nbds/core/palette/info/050",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL",
-        "STROKE_COLOR"
-      ],
-      "description": "info status (engine-synthesized — NB has no blue) 050 — Highlight band",
-      "value": {
-        "r": 0.8784313797950745,
-        "g": 0.9215686321258545,
-        "b": 0.95686274766922,
         "a": 1
       },
       "alias": null,

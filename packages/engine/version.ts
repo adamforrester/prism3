@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.131.0 — #1587: OPT-IN PER-RUNG DESKTOP/MOBILE type-size override (owner-decided 2026-09-23, four
+ * 0.133.0 — #1587: OPT-IN PER-RUNG DESKTOP/MOBILE type-size override (owner-decided 2026-09-23, four
  * decisions locked on the issue: override-derived storage, brand-axis only, inline-in-the-size-table UI,
  * Desktop/Mobile naming). `TypographyInput` gains optional `sizeOverrides`, keyed group → rung →
  * `{ desktop?, mobile? }`, on the heading groups only (display/title/eyebrow). A rung with no entry is
@@ -2944,6 +2944,39 @@
  * stamp-only restamp → ENGINE bump. CONTRACT STANDS at 11.3.0 — per-viewport values land in the EXISTING
  * `type-sets`/`font-fluid` mode variables (mobile and desktop are two MODES of one variable, not two
  * names), so no guaranteed token NAME appears; `token-contract --check` stays green with no CONTRACT bump.
+ * 0.132.0 — #1602/#1601: components resolve weight by INTENT against a brand's available roles, collapsing
+ * the axis when the intents coincide (owner-decided 2026-09-23). A weight axis declares `regular`/`bold`
+ * intents; `applyWeightIntent` (the `controlShape`-shaped materialize-before-projection) resolves them per
+ * brand — `regular`→default, `bold`→the heaviest body role at/above default — so NB (`body: [default,
+ * emphasis]`) binds `emphasis`, not a `strong` it never emits (#1601's silent 252 discards). A single-body-
+ * weight brand DROPS the axis (24→12). The DEFAULT projection is byte-identical (field-label authors its
+ * default-brand roles), so `out/**` and the plain component-surface rows do NOT move; the MINOR bump is
+ * owed by the new brand-conditional PROJECTION behavior, enforced by `lint-component-surface`'s new
+ * `<id>@<scenario>` rows (a def gaining a per-brand surface is a surface change). #1601's cross-check
+ * (`test.ts`) pins every def's `type.*` ref to an emitted composite per corpus brand, mutation-proven.
+ * CONTRACT STANDS at 11.3.0 — no token NAME moves (field-label binds the same `type.body.*` names; the
+ * brand simply resolves which role at each). A stamp-only regen (`$extensions.generator.version`).
+ * 0.131.0 — #1597: Figma COLOR PALETTE variables emit SORTED BY NUMERIC KEY so each ramp's leading-zero
+ *   sub-steps (`025`,`050`) sort with their magnitude instead of trailing `950`. The SAME JS key-iteration
+ *   quirk #1594 fixed for the dimension `space` collection, but in the separate `emit-figma-color.ts`
+ *   palette emitter: it walks the palette tree through the shared `leaves()` helper, which iterated child
+ *   keys in `Object.keys` order — integer-like (`"100"`…`"950"`) first ascending, then leading-zero strings
+ *   (`"025"`,`"050"`) in insertion order — so every chromatic ramp emitted `…, 900, 950, 025, 050`, putting
+ *   the two lightest tints at the BOTTOM of the Figma variables panel. Fix: a local `byNumericKey` mirror of
+ *   #1594's helper (the colour/dimension emitters are deliberately separate modules, so each carries its own
+ *   copy) plus an optional `orderKeys` param on `leaves` (defaults to identity — byte-identical for every
+ *   other caller); the palette emit passes `byNumericKey`, so each ramp's steps emit `025, 050, 100, …, 950`.
+ *   STABLE no-op for non-leading-zero groups: ramp names (`red`, `black-alpha`) and semantic keys
+ *   (`background`) `parseFloat` to NaN and compare equal, and alpha steps (`5`,`10`…`90`) are already
+ *   integer-like ascending — so ONLY the chromatic ramps with `025`/`050` reorder. Every brand's
+ *   `out/figma/<brand>/core.palette.json` reorders (nb · aurora · wendys) → ENGINE bump. ORDER ONLY — no
+ *   colour value, name, scope or alias moves; each `core.palette.json`'s variable set is byte-identical as a
+ *   set. GATE (test.ts, docs/34): a hand-authored numeric ramp literal (NOT derived from `Object.keys`, the
+ *   side under test) asserts the emitted palette ramp order; reverting the palette emit to raw `Object.keys`
+ *   order fails it BY NAME. CONTRACT STANDS at 11.3.0 — ordering is not a token NAME or `$type`
+ *   (`token-contract --check` level `none`; `--accept` refreshes only the informational `engineVersion`
+ *   stamp). Caveat (state in PR): this fixes CREATION order, so FRESH builds get numeric order; an existing
+ *   file's already-created variables keep their order (idempotent find-by-name apply doesn't reorder).
  *
  * 0.130.0 — #1593: per-breakpoint GUTTER + MARGIN OVERRIDES for the layout grid (owner-decided
  * 2026-09-23, building New Balance). `buildLayout` gained `layout.gutterOverrides` / `layout.marginOverrides`
@@ -3390,7 +3423,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.131.0';
+export const ENGINE_VERSION = '0.133.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

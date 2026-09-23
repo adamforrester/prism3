@@ -56,6 +56,20 @@ export const fontKey = (f: FontName): string => `${f.family}|${f.style}`;
  *  Regular so a style's font is DIFFERENT from the font a fresh `createText` node starts on — equal
  *  fonts would make the loaded-font model below unfalsifiable. */
 export const STYLE_FONT: FontName = { family: 'Inter', style: 'Semi Bold' };
+/** The font a fresh `createText` node STARTS on, before any style is applied — Figma's editor default,
+ *  and deliberately DIFFERENT from `STYLE_FONT` (Regular vs Semi Bold). Like every font here it is not
+ *  loaded until a `loadFontAsync` call names it, so a `characters` write against a node still carrying
+ *  it throws (`mkNode`'s TEXT setter) unless something loaded it first. That is the #1599 floor's whole
+ *  job: when a text node's style is ABSENT, nothing else loads this font, and every character write is
+ *  discarded (252 field-label nodes emptied by one missing style). A shim whose default font were
+ *  pre-loaded, or equal to `STYLE_FONT`, could not witness the floor at all. */
+export const DEFAULT_FONT: FontName = { family: 'Inter', style: 'Regular' };
+/** Figma's `figma.mixed` — a text node whose characters span more than one font reads its `fontName`
+ *  as this unique symbol. Modelled so the floor's guard (load the node's OWN font, but never
+ *  `figma.mixed`) is exercised: `loadFontAsync(figma.mixed)` is the crash the guard exists to avoid, so
+ *  the shim's `loadFontAsync` refuses anything that is not a `FontName`, and a run with `mixedTextFonts`
+ *  puts a node into that state on purpose. */
+export const mixed: unique symbol = Symbol('figma.mixed');
 
 /**
  * A node in the FILE the executor searches, beyond the plain components `comps` names.
@@ -92,6 +106,11 @@ export type ShimOpts = {
   /** The font every text style names. Overridable so a case can put a font the run cannot load behind
    *  a style the plan does resolve. */
   styleFont?: FontName;
+  /** Every fresh TEXT node starts with `fontName === figma.mixed` (the `mixed` sentinel) instead of
+   *  `DEFAULT_FONT` — the multi-font case the #1599 floor must SKIP rather than hand to `loadFontAsync`.
+   *  A style, once applied, still replaces it with the style's own font, so `mixed` survives to the
+   *  `characters` write only where no style is resolved. Opt-in, so every other run is single-font. */
+  mixedTextFonts?: boolean;
   /** DELIBERATE COST, in ms, charged to a named host call — the only way this harness can gate a rule
    *  about WHEN the clock starts. Everything else here is synchronous, so every `chunkMs` is 0 and the
    *  strongest available assertion is `>= 0`, which no clock rule can fail. `setup` burns inside
@@ -582,6 +601,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const fn = fontOfStyle(id);
         if (fn && !loadedFonts.has(fontKey(fn)))
           throw new Error(`in setTextStyleIdAsync: unloaded font "${fn.family} ${fn.style}". Please call figma.loadFontAsync({ family: "${fn.family}", style: "${fn.style}" }) and await the returned promise first.`);
+        // #1599 — APPLYING A STYLE RE-RESOLVES THE NODE'S FONT to the style's own (just loaded above),
+        // as the live host does. So after a style is applied a `characters` write succeeds against the
+        // style's font, while a node whose style was ABSENT still carries `DEFAULT_FONT` and depends on
+        // the floor. Left untouched when the style names no font, so the node keeps whatever it had.
+        if (fn) (node as Record<string, unknown>).fontName = fn;
         node._textStyleId = id;
         node.textStyleId = id;
       },
@@ -703,6 +727,33 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // including one added later, by different code, in a different phase. A model that keyed off the helper
     // would go green the moment someone wrote `paragraphSpacing` from somewhere else.
     if (type === 'TEXT') {
+      // #1599 — THE FONT A FRESH TEXT NODE CARRIES, and Figma's hard rule that a `characters` write
+      // needs the node's CURRENT font loaded. A `createText` node starts on `DEFAULT_FONT` (Inter
+      // Regular), which nothing has loaded; applying a style replaces it with the style's own font
+      // (`setTextStyleIdAsync` below, which loads that font first). Modelled here because without the
+      // refusal the `characters` setter accepts every write, and a shim that cannot refuse cannot
+      // witness the floor #1599 adds — deleting that floor from the executor would leave every arm here
+      // green (docs/34: a stub models the axis or it cannot gate it). `mixedTextFonts` puts the node
+      // into `figma.mixed`, the multi-font case the floor must skip rather than try to load.
+      (node as Record<string, unknown>).fontName = opts.mixedTextFonts ? mixed : { ...DEFAULT_FONT };
+      let _chars = String((node as Record<string, unknown>).characters ?? '');
+      Object.defineProperty(node, 'characters', {
+        configurable: true, enumerable: true,
+        get: () => _chars,
+        // Figma's own messages, verbatim from the failing build. `mixed` is refused outright (all its
+        // fonts would need loading); a concrete FontName is refused unless it was loaded THIS run — the
+        // #1599 catastrophe, `Cannot write to node with unloaded font "Inter Regular"`. Reachable
+        // because `loadedFonts` is per-run and a fresh node's `DEFAULT_FONT` is never in it until the
+        // executor loads it. `configurable` so the #1567 characters-bind (below) can still take over.
+        set: (text: unknown) => {
+          const fn = (node as Record<string, unknown>).fontName;
+          if (fn === mixed)
+            throw new Error('in set_characters: The font of the node is mixed and must be loaded before setting characters.');
+          if (fn && !loadedFonts.has(fontKey(fn as FontName)))
+            throw new Error(`in set_characters: Cannot write to node with unloaded font "${(fn as FontName).family} ${(fn as FontName).style}". Please call figma.loadFontAsync({ family: "${(fn as FontName).family}", style: "${(fn as FontName).style}" }) and await the returned promise first.`);
+          _chars = String(text);
+        },
+      });
       for (const prop of ['paragraphSpacing', 'leadingTrim'] as const) {
         const backing = `_${prop}`;
         Object.defineProperty(node, prop, {
@@ -816,6 +867,12 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // load; a font that exists but has not been loaded THIS RUN fails later, at the write. An
     // unconditional no-op models neither.
     loadFontAsync: async (fn: FontName) => {
+      // #1599 — A VALID FontName IS REQUIRED. Figma refuses `figma.mixed` (and any non-`{family,style}`)
+      // at the load call, so the floor MUST guard `node.fontName !== figma.mixed` before loading it.
+      // Modelled here so that guard is load-bearing: drop it and the executor hands `mixed` to this
+      // call, which throws and surfaces a `.font ->` miss the mixed arm asserts is absent.
+      if (!fn || typeof fn !== 'object' || typeof (fn as FontName).family !== 'string' || typeof (fn as FontName).style !== 'string')
+        throw new Error('in loadFontAsync: The provided font is not a valid FontName.');
       if (unavailable.has(fontKey(fn))) throw new Error(`Cannot load font "${fn.family} ${fn.style}": it is not available.`);
       loadedFonts.add(fontKey(fn));
     },
@@ -994,6 +1051,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const twinOf = (n: Node): Node => {
           const t = mkNode(String(n.type));
           t.name = n.name;
+          // #1599 — carry the original's `fontName` BEFORE its characters, so the twin's `characters`
+          // setter sees the same (already-loaded) font the original wrote against, rather than a fresh
+          // twin's unloaded `DEFAULT_FONT`. This is the host relocating a node it already accepted — not
+          // a plugin write — so it goes through the field like `_exposed` below, not through a re-load.
+          (t as Record<string, unknown>).fontName = (n as Record<string, unknown>).fontName;
           t.characters = n.characters;
           // Carry the fields the layout/box read-back and the binding read-back read off a live node, so
           // the twin measures and reads back like the original. `boundVariables` is copied (not dropped),
@@ -1050,7 +1112,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // No detach side-effect (unlike `twinOf` above): the original is detached separately, as a whole subtree.
       const twinAttached = (n: Node): Node => {
         const t = mkNode(String(n.type));
-        t.name = n.name; t.characters = n.characters;
+        // #1599 — carry `fontName` before `characters`, same reason as `twinOf` above.
+        t.name = n.name; (t as Record<string, unknown>).fontName = (n as Record<string, unknown>).fontName; t.characters = n.characters;
         (t as Record<string, unknown>).boundVariables = n.boundVariables;
         t.fills = n.fills; t.strokes = n.strokes;
         // #1516 — carry `visible` across the settle: real Figma keeps a node's built visibility through the

@@ -242,14 +242,43 @@ export const parseColor = (v: unknown): FigmaColor => {
   throw new Error(`emit-figma parseColor: cannot parse color '${s}' — expected #hex (3/6/8) or rgb()/rgba(); an unresolved alias or malformed value reached the emitter`);
 };
 
-/** Every leaf under a subtree, as [dotted-path-from-tree-root, leaf]. */
-export const leaves = (node: any, prefix: string): Array<[string, any]> => {
+/** Order object keys by numeric MAGNITUDE so leading-zero palette sub-steps (`025`,`050`) sort with
+ *  their value (`…, 025, 050, 075, 100, …`) instead of trailing every integer-like key (#1597). JS
+ *  key iteration emits integer-like keys (`"100"`…`"950"`) FIRST in ascending-numeric order, then
+ *  leading-zero string keys (`"025"`,`"050"`) in insertion order — so each palette ramp's two lightest
+ *  tints landed after `950` in the emitted (hence Figma-created) order. Sorts a COPY, never mutates the
+ *  input. Non-numeric keys (ramp names like `red`, `black-alpha`; semantic keys like `background`)
+ *  `parseFloat` to NaN and compare EQUAL, so a stable sort leaves them in insertion order — a no-op for
+ *  every non-leading-zero group. A local mirror of the same helper in `emit-figma-dims.ts` (#1594): the
+ *  two colour/dimension emitters are deliberately separate modules (see the `core-palette`/`core-dimension`
+ *  collection note above), so each carries its own copy rather than coupling them through a shared import. */
+const byNumericKey = (keys: string[]): string[] =>
+  [...keys].sort((a, b) => {
+    const na = parseFloat(a);
+    const nb = parseFloat(b);
+    const aNum = Number.isFinite(na);
+    const bNum = Number.isFinite(nb);
+    if (aNum && bNum) return na - nb;
+    if (aNum) return -1;
+    if (bNum) return 1;
+    return 0;
+  });
+
+/** Every leaf under a subtree, as [dotted-path-from-tree-root, leaf]. `orderKeys` reorders each level's
+ *  child keys before the walk; it defaults to identity (insertion/`Object.keys` order — the historical
+ *  behaviour, byte-identical for every caller that doesn't pass it), and the palette emit passes
+ *  `byNumericKey` so its ramp sub-steps emit in numeric order (#1597). */
+export const leaves = (
+  node: any,
+  prefix: string,
+  orderKeys: (keys: string[]) => string[] = (k) => k,
+): Array<[string, any]> => {
   const out: Array<[string, any]> = [];
-  for (const k in node) {
+  for (const k of orderKeys(Object.keys(node))) {
     if (k[0] === '$') continue;
     const child = node[k];
     if (child && child.$value !== undefined) out.push([`${prefix}.${k}`, child]);
-    else if (child && typeof child === 'object') out.push(...leaves(child, `${prefix}.${k}`));
+    else if (child && typeof child === 'object') out.push(...leaves(child, `${prefix}.${k}`, orderKeys));
   }
   return out;
 };
@@ -270,7 +299,7 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
     // Scopes stay at the four color fill/stroke targets so, if a component
     // author does need to bind a raw primitive for a bespoke case, the
     // picker guidance is still correct per role family.
-    variables: leaves(tree[root].core.palette, `${root}.${CORE_TIER}.palette`).map(([dotted, leaf]) => ({
+    variables: leaves(tree[root].core.palette, `${root}.${CORE_TIER}.palette`, byNumericKey).map(([dotted, leaf]) => ({
       name: figName(dotted),
       resolvedType: 'COLOR',
       scopes: PALETTE_SCOPES,
