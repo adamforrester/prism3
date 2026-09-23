@@ -285,6 +285,32 @@ export type ShimOpts = {
    * Opt-in; unset, no twin is ever installed and every set handle stays valid for the whole run.
    */
   staleSetAfterProperty?: number;
+
+  /**
+   * THE RUN STOPS AFTER THE SET EXISTS AND BEFORE THE EXECUTOR RETURNS (#1579) — modelled as a throw from
+   * the set's `resize`, the first set-level call the layout pass makes after `combineAsVariants`.
+   *
+   * Why the mode is needed at all. #1574's census narrowed `button-neutral` to two states, and one of them
+   * is (a) *the run aborted between `addComponentProperty('label')` and the first reference write*. That
+   * state leaves a set in the file and NO result object anywhere, which is exactly why the document could
+   * not be read afterwards: `applyComponentPlan` reports to the UI, and an aborted run has no UI report to
+   * give. The provisional build report #1579 writes at the combine is the only thing that survives it, and
+   * a write on a path no gate drives is a write no gate can hold to being correct.
+   *
+   * `resize` rather than a new hook, because the point is the ABORT and not the call that causes it: the
+   * executor's next set-level call after the combine is the layout `resize`, so a throw there is the
+   * EARLIEST post-combine stop and therefore the hardest case for the provisional report to survive. It
+   * also exercises the real failure path on the way out — `markPartialWrite` creates a park frame and
+   * moves the set into it — so the arm reads the report back off a node the failure handler has already
+   * relocated, rather than off one sitting where the build left it.
+   *
+   * NOT A MEASURED HOST BEHAVIOR, same honesty as `staleSetAfterProperty` above: nothing establishes that
+   * a live `resize` refuses here. It stands for the class of stop — a host throw, a closed plugin window,
+   * a cancelled run — and the arms behind it assert only what the FILE carries afterwards, never a message.
+   *
+   * Opt-in; unset, `resize` behaves exactly as it always has.
+   */
+  abortAfterCombine?: boolean;
 };
 
 /** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
@@ -1065,7 +1091,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // #1516 — under `deferSettleToWire` the settle is HELD past the layout `resize` (and
       // `addComponentProperty` below), so it fires only once the wire loop begins — after the executor has
       // snapshotted its live-member map. `onRefWrite` (installed at the end of this method) is the trigger.
-      set.resize = (nw: number, nh: number) => { if (!opts.deferSettleToWire) settle(); w = nw; h = nh; };
+      set.resize = (nw: number, nh: number) => {
+        // #1579 — the modelled abort. FIRST in the body, before the settle and before the box moves: a stop
+        // that had already resized is a later stop than the one this mode is for.
+        if (opts.abortAfterCombine) throw new Error(`in resize: the run stopped on ${String(set.id)} after the combine`);
+        if (!opts.deferSettleToWire) settle();
+        w = nw; h = nh;
+      };
       set.appendChild = (c: Node) => {
         (set.children as Node[]).push(c);
         takeFromPage([c]);

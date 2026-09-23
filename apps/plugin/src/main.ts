@@ -697,6 +697,12 @@ const buildComponents = async (defId?: string): Promise<void> => {
     // reached the file missing both INSTANCE_SWAP properties with zero references on 432 members, which is
     // the state this counter makes visible at build time rather than in a census three issues later.
     if (r.setReresolved > 0) console.log(`[prism3 #1574] re-resolved the component set's own handle ${r.setReresolved} time(s); its combine-time handle had been replaced`);
+    // #1579: where to look once this console is gone. The lines above are the live channel and they only
+    // exist while the plugin window does — which is why `button-neutral` cost a six-probe hand census. The
+    // report the build left on the set outlives the window, so this line is the pointer to it rather than
+    // another copy of the counters. Unconditional: the whole point is that it is there on a GOOD build too,
+    // since a reader cannot tell a build that went well from one that never wrote a report.
+    if (r.set) console.log(`[prism3 #1579] this build's own report is on the set '${r.set}': getSharedPluginData('prism3', 'build')`);
     // The telemetry block, printed LAST so it is the bottom of the console and can be copied in one
     // selection. It is the deliverable of the calibration run: `CHUNK` is set from these numbers.
     for (const line of summaryLines(reports, settleMs)) console.log(line);
