@@ -47,7 +47,7 @@
     },
     "modeLevers": {
       "type": "object",
-      "description": "OPTIONAL (Phase D). Per-mode NON-COLOR lever overrides, keyed by mode name (a customizable mode — light/dark or a `customModes` name). Each mode may override an input lever the engine RE-DERIVES for that mode: `radius` (the radius scale, 0=sharp…1=default…2=soft), `tempo`, `density`, `families`, `weights`, `lineHeights`, `letterSpacings`, `easings`, `shadow`, and `typeSizes`. NOT `typeScale` — it shifts heading rungs and stays brand-wide, never a per-mode lever. Distinct from the GLOBAL `radiusScale` (the baseline every mode inherits) — modeLevers deviate a single mode. Deep-validated by brandTheme() at resolve time (mode is customizable + generated; radius in [0,2]). Omit for none (byte-identical).",
+      "description": "OPTIONAL (Phase D). Per-mode NON-COLOR lever overrides, keyed by a customizable mode name (light/dark or a `customModes` name). Each mode may override a lever the engine RE-DERIVES for it: `radius` (scale 0=sharp…1=default…2=soft), `tempo`, `density`, `families`, `weights`, `lineHeights`, `letterSpacings`, `easings`, `shadow`, `typeSizes`. NOT `typeScale` — it shifts heading rungs and stays brand-wide. Distinct from the GLOBAL `radiusScale` (the baseline every mode inherits). Deep-validated by brandTheme() at resolve time (mode customizable + generated; radius in [0,2]). Omit for none (byte-identical).",
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
@@ -134,7 +134,7 @@
           "typeSizes": {
             "type": "object",
             "additionalProperties": false,
-            "description": "OPTIONAL (#328). Per-mode TYPE SIZE overrides per heading group. Heading groups ONLY — body, label, caption and code are mode-invariant by contract and are REJECTED here, not silently ignored. Names a NUMBER rather than a rung key (unlike the lineHeights/letterSpacings re-points) because a ladder STEP is itself the primitive: every step is always emitted, so any selection lands on a real leaf. Deep-validated by brandTheme() at resolve time (the rung exists in this brand's set; the value is a ladder step; it clears the group floor; and the MERGED per-mode ramp is strictly increasing). A re-sized rung recomputes its own mobile endpoint, so its fluid pair stays coherent. Omit for none (byte-identical).",
+            "description": "OPTIONAL (#328). Per-mode TYPE SIZE overrides per heading group. Heading groups ONLY — body, label, caption and code are mode-invariant by contract and are REJECTED here. Names a NUMBER, not a rung key (unlike the lineHeights/letterSpacings re-points), because a ladder STEP is itself the primitive: every step is emitted, so any selection lands on a real leaf. Deep-validated by brandTheme() (the rung exists; the value is a ladder step; it clears the group floor; the MERGED per-mode ramp is strictly increasing). A re-sized rung recomputes its own mobile endpoint, so its fluid pair stays coherent. Omit for none (byte-identical).",
             "properties": {
               "display": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 32 }, "description": "OPTIONAL. Per-mode display rung sizes, keyed by rung name (e.g. { \"3xl\": 96 }). Floor 32px — the smallest size this system emits for display anywhere." },
               "title": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 16 }, "description": "OPTIONAL. Per-mode title rung sizes, keyed by rung name (e.g. { \"2xl\": 32 }). Floor 16px — titleFloor's minimum." },
@@ -374,7 +374,7 @@
         "sizes": {
           "type": "object",
           "additionalProperties": false,
-          "description": "OPTIONAL. Per-size overrides for the heading groups — the BASELINE counterpart of modeLevers.<mode>.typeSizes. Heading groups ONLY; body, label, caption and code take their size from the category and are REJECTED here. Applied after the typeScale shift, so a pinned size is absolute and does not move when the scale changes — which is why changing typeScale with sizes pinned can collide, and is rejected rather than silently re-shifted. Modes then override on top of this customized baseline. Deep-validated by brandTheme() (the rung exists in this brand's set; the value is a ladder step; it clears the group floor; the merged ramp is strictly increasing). Omit for none (byte-identical).",
+          "description": "OPTIONAL. Per-size overrides for the heading groups — the BASELINE counterpart of modeLevers.<mode>.typeSizes. Heading groups ONLY; body, label, caption and code take their size from the category and are REJECTED here. Applied after the typeScale shift, so a pinned size is absolute — which is why pinning sizes then changing typeScale can collide, and is rejected rather than silently re-shifted. Modes override on top of this baseline. Deep-validated by brandTheme() (rung exists; value is a ladder step; clears the group floor; merged ramp strictly increasing). Omit for none (byte-identical).",
           "properties": {
             "display": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 32 }, "description": "OPTIONAL. Display sizes by rung name (e.g. { \"3xl\": 144 }). Floor 32px." },
             "title": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 16 }, "description": "OPTIONAL. Title sizes by rung name (e.g. { \"2xl\": 56 }). Floor 16px." },
@@ -466,11 +466,13 @@
     "layout": {
       "type": "object",
       "additionalProperties": false,
-      "description": "OPTIONAL. Layout axis — min-width breakpoints, a 12-col design grid (4/8/12 ladder, overridable per breakpoint), gutters/margins aliasing the spacing scale, fluid-first containers + a max cap.",
+      "description": "OPTIONAL. Layout axis — breakpoints, a 12-col grid (per-breakpoint overridable), gutter/margin aliasing the spacing scale, fluid containers + a max cap.",
       "properties": {
-        "breakpoints": { "type": "array", "items": { "type": "number" }, "description": "Min-width floors (px), ascending. Names are auto sm/md/lg/xl/2xl. Default [0,768,1024,1440,1920]." },
-        "columns": { "type": "number", "default": 12, "description": "Base column count (12 default; 16/24 for dense-data brands). Emitted as a 4/8/…/base ladder per breakpoint — a design grid, not the load-bearing code contract." },
-        "columnOverrides": { "type": "object", "additionalProperties": { "type": "number" }, "description": "OPTIONAL. Per-breakpoint column overrides (breakpoint name → count); wins over the ladder for that breakpoint, unset keeps it. Rounded + clamped to 4..24 on emit." },
+        "breakpoints": { "type": "array", "items": { "type": "number" }, "description": "Min-width floors (px), ascending. Auto-named sm/md/lg/xl/2xl. Default [0,768,1024,1440,1920]." },
+        "columns": { "type": "number", "default": 12, "description": "Base column count (12 default; 16/24 for dense-data brands). Emitted as a 4/8/…/base ladder per breakpoint — a design grid, not the code contract." },
+        "columnOverrides": { "type": "object", "additionalProperties": { "type": "number" }, "description": "OPTIONAL. Per-breakpoint column overrides (bp → count). Wins over the ladder; unset keeps it. Rounded + clamped to 4..24 on emit." },
+        "gutterOverrides": { "type": "object", "additionalProperties": { "type": "number" }, "description": "OPTIONAL. Per-breakpoint gutter overrides (bp → px). Wins over the ladder; unset keeps it. Must be a spacing step (aliases space/*), down to 4px; off-ladder throws." },
+        "marginOverrides": { "type": "object", "additionalProperties": { "type": "number" }, "description": "OPTIONAL. Per-breakpoint margin overrides (bp → px). Same snap-to-spacing-scale rule as gutterOverrides." },
         "containerMax": { "oneOf": [ { "type": "number", "default": 1440, "description": "Content max-width cap (px); layout is fluid below it." }, { "type": "string", "enum": ["narrow", "standard", "wide", "full"], "description": "Named stop — narrow 1120 · standard 1440 · wide 1680 · full 1920." } ] },
         "containerNarrow": { "oneOf": [ { "type": "number", "default": 720, "description": "Narrow / reading-measure container (px, ~65–75ch)." }, { "type": "string", "enum": ["tight", "standard", "generous", "wide"], "description": "Named stop — tight 600 · standard 720 · generous 840 · wide 960." } ] }
       }
@@ -591,7 +593,7 @@
         "floorStep": { "type": "number", "description": "The neutral step used as the contrast floor; defaults follow `base`." },
         "inverseBase": {
           "allOf": [{ "$ref": "#/$defs/surfaceSpec" }],
-          "description": "OPTIONAL. The inverse band for this mode — the dark hero / inverse section. Defaults to near-black 950 in light and near-white 25 in dark (NEAR the extreme, not at it: pure black reads muddy and pure white halates). A bare number is a neutral step; `{ palette, step }` names a non-status brand or custom palette so the band can be brand navy / a deep accent rather than a near-black neutral (#898). Declared here rather than through `overrides` on purpose — a ground is not a value, so setting it must re-derive `inverse.background.*`, `inverse.foreground.*` and every role gated against the band. The `overrides` post-pass runs after derivation and cannot, which is why routing an inverse band through it reported contrast the tokens did not have. High-contrast modes ignore this and keep the pure extremes."
+          "description": "OPTIONAL. The inverse band for this mode — the dark hero / inverse section. Defaults to near-black 950 in light and near-white 25 in dark (near the extreme, not at it: pure black reads muddy, pure white halates). A bare number is a neutral step; `{ palette, step }` names a non-status brand or custom palette so the band can be brand navy or a deep accent (#898). Declared here, not through `overrides`: a ground must RE-DERIVE `inverse.background.*`, `inverse.foreground.*` and every band-gated role — which the post-derivation `overrides` pass cannot, so routing a band through it reported contrast the tokens lacked. High-contrast modes keep the pure extremes."
         }
       }
     }

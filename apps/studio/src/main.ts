@@ -4612,9 +4612,10 @@ const renderLayoutPage = (host: PageHost): void => controlSplitPage(host, 'layou
     { title: 'Responsive type sizing', sub: 'Headings interpolate between a mobile floor and a desktop ceiling across this viewport range; body, label, caption and code stay fixed by design. Eyebrow shrinks only above 14px, so small kickers hold their size and hero kickers do not.', controls: renderResponsiveControls(), stack: true, paint: paintFluidPreview },
     { title: 'Grid columns', sub: 'Base column count for the design grid (16 / 24 for dense-data brands). Each breakpoint gets a 4/8/… ladder up to this base.', controls: colsCtl, paint: paintColumnsPreview },
     // The resolved per-breakpoint grid — the same `theme.layout.grid` the Figma grid-style emitter ships
-    // from (#1480/#1532), so the readout cannot drift from what a brand exports. Columns are editable per
-    // breakpoint (an override wins over the ladder); gutter and margin stay derived.
-    { title: 'Per-breakpoint columns', sub: 'The columns, gutter and margin the engine emits for each breakpoint — one Figma grid style each. Columns follow the base ladder; override a breakpoint to pin its count. Gutter and margin are derived.', controls: perBreakpointColsNote(), stack: true, paint: paintPerBreakpointGrid },
+    // from (#1480/#1532/#1593), so the readout cannot drift from what a brand exports. Columns, gutter and
+    // margin are each editable per breakpoint (an override wins over the ladder); gutter/margin snap to the
+    // spacing scale so they keep aliasing the space tokens.
+    { title: 'Per-breakpoint grid', sub: 'The columns, gutter and margin the engine emits for each breakpoint — one Figma grid style each. Each follows its ladder by default; override a breakpoint to pin its value. Gutter and margin snap to the spacing scale, reaching down to 4px.', controls: perBreakpointColsNote(), stack: true, paint: paintPerBreakpointGrid },
     { title: 'Container caps', sub: 'Content-width caps — layout is fluid below the cap. The content container is the narrower reading-measure column (~65–75ch).', controls: caps, stack: true, paint: paintContainersPreview },
   ];
 });
@@ -7395,9 +7396,10 @@ const paintColumnsPreview = (into: HTMLElement): void => {
 // The control-column copy for the editable per-breakpoint grid — says what an override does and that
 // unsetting it (choosing “Auto”) returns the breakpoint to the ladder.
 const perBreakpointColsNote = (): HTMLElement => el('p', 'ic-modenote',
-  'Each breakpoint’s columns default to the base ladder (smallest 4, next 8, up to the base). Override one '
-  + 'to pin its count — the override wins for that breakpoint only; choose Auto to return it to the ladder. '
-  + 'Values are held to 4–24, so an override can never emit a degenerate grid.');
+  'Each breakpoint’s columns default to the base ladder (smallest 4, next 8, up to the base); gutter and '
+  + 'margin default to their own ladders. Override one to pin its value for that breakpoint only; choose Auto '
+  + 'to return it to the ladder. Columns are held to 4–24. Gutter and margin snap to the spacing scale — the '
+  + 'menu runs down to 4px — so each stays a real spacing step and keeps aliasing the space tokens.');
 // The resolved per-breakpoint grid, read STRAIGHT from `theme.layout.grid` — the same derivation the Figma
 // grid-style emitter consumes (#1480), so this readout is the source of truth and cannot disagree with what
 // a brand ships. Columns carry an editable override select (Auto = the ladder value); gutter/margin are
@@ -7405,11 +7407,36 @@ const perBreakpointColsNote = (): HTMLElement => el('p', 'ic-modenote',
 const paintPerBreakpointGrid = (into: HTMLElement): void => {
   const ly = theme.layout;
   const overrides = (brandState.layout?.columnOverrides ?? {}) as Record<string, number>;
+  // The spacing steps a gutter/margin override may snap to (#1593) — the brand's OWN resolved scale, so
+  // the offered px are exactly the ones that alias `space/*`. Reaches down to space/050 = 4px (and 025/0),
+  // which is how a 4px mobile gutter becomes reachable instead of flooring at the derived 16px.
+  const spaceSteps = theme.dims.space.map((s) => s.px);
   into.innerHTML = '';
   const table = el('table', 'ly-table');
   const head = el('tr');
   head.append(el('th', undefined, 'Breakpoint'), el('th', undefined, 'Columns'), el('th', undefined, 'Gutter'), el('th', undefined, 'Margin'), el('th', undefined, 'Override'));
   table.append(head);
+  // A per-breakpoint gutter/margin editor — a resolved readout (`data-bpgut`/`data-bpmar`, straight off the
+  // engine's grid like the columns readout) above a select of spacing steps (Auto = the derived ladder).
+  // Mirrors the columns override write: a set value persists the px, Auto drops the entry, and an empty map
+  // is removed rather than left as `{}`. Gutter/margin snap to the ladder (the value MUST be a space step so
+  // it can alias `space/*`), which is why the options ARE the spacing scale rather than a free number input.
+  const gapEditor = (bp: string, field: 'gutterOverrides' | 'marginOverrides', resolvedPx: number, roAttr: 'bpgut' | 'bpmar', selAttr: 'bpgutsel' | 'bpmarsel'): HTMLElement => {
+    const cur = ((brandState.layout?.[field] ?? {}) as Record<string, number>)[bp];
+    const ro = el('div', 'mono', `${resolvedPx}px`); ro.dataset[roAttr] = bp;
+    const sel = selectEl('cap'); sel.dataset[selAttr] = bp;
+    sel.append(optionEl('auto', 'Auto', cur === undefined));
+    for (const px of spaceSteps) sel.append(optionEl(String(px), `${px}px`, cur === px));
+    sel.onchange = () => {
+      const next = { ...((brandState.layout?.[field] ?? {}) as Record<string, number>) };
+      if (sel.value === 'auto') delete next[bp]; else next[bp] = Number(sel.value);
+      if (Object.keys(next).length) setPath(brandState, `layout.${field}`, next);
+      else if (brandState.layout) delete (brandState.layout as Record<string, unknown>)[field];
+      apply();
+    };
+    const cell = el('td'); cell.append(ro, sel);
+    return cell;
+  };
   for (const g of ly.grid) {
     const tr = el('tr');
     // The RESOLVED column count — the readout, straight off the engine's grid. `data-bpcol` names the row
@@ -7431,7 +7458,10 @@ const paintPerBreakpointGrid = (into: HTMLElement): void => {
       apply();
     };
     const editCell = el('td'); editCell.append(sel);
-    tr.append(el('td', 'mono', g.bp), colCell, el('td', 'mono', `${g.gutterPx}px`), el('td', 'mono', `${g.marginPx}px`), editCell);
+    tr.append(el('td', 'mono', g.bp), colCell,
+      gapEditor(g.bp, 'gutterOverrides', g.gutterPx, 'bpgut', 'bpgutsel'),
+      gapEditor(g.bp, 'marginOverrides', g.marginPx, 'bpmar', 'bpmarsel'),
+      editCell);
     table.append(tr);
   }
   const scroll = el('div', 'ly-tscroll'); scroll.append(table);

@@ -2926,6 +2926,33 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.129.0 — #1593: per-breakpoint GUTTER + MARGIN OVERRIDES for the layout grid (owner-decided
+ * 2026-09-23, building New Balance). `buildLayout` gained `layout.gutterOverrides` / `layout.marginOverrides`
+ * (keyed by breakpoint name, mirroring #1532's `columnOverrides`): a set entry wins over the `GUTTER_PX` /
+ * `MARGIN_PX` ladder for that breakpoint, an unset one keeps the ladder. UNLIKE columns (rounded + clamped),
+ * a gutter/margin override is validated ON-LADDER and THROWS off-ladder by name (`resolveGap`): gutter and
+ * margin emit as ALIASES to `space/*` (`grid/gutter`·`grid/margin`, `emit-figma-dims.ts` + `tree.ts`'s
+ * `gridSpaceAlias`), so a value MUST be a real spacing step or the alias would have no space token to point
+ * at — snap-to-ladder was the owner's chosen shape for exactly that reason. The scale reaches down to
+ * `space/050`=4px (and `025`=2px, `0`), which is the concrete NB use the feature unlocks: a 4px mobile
+ * gutter, reachable instead of flooring at the derived 16px. NO EMITTER CHANGE — the Figma grid-style
+ * emitter (#1480), the layout float-variable emitter and the DTCG grid node all already read
+ * `theme.layout.grid`, so an override flows to the emitted per-breakpoint Grid Style value and the
+ * `grid/gutter`·`grid/margin` alias with no downstream change (a custom 4px gutter aliases `space/050`
+ * automatically). STUDIO: the Layout page's per-breakpoint grid table replaces the read-only gutter/margin
+ * cells with a select of spacing steps (Auto = the derived ladder), the full ladder down to 4px. The plugin
+ * runs the studio control UI verbatim, so it inherits the editor with no plugin change. No corpus brand sets
+ * an override, so every emitted grid VALUE is BYTE-IDENTICAL; `out/**` moves only its
+ * `$extensions.generator.version` stamp (`lint-emission-version` 0 artifacts). GATE (test.ts, docs/34): a
+ * custom per-breakpoint gutter lands in the EMITTED grid AND aliases the right `space/*`, an unset
+ * breakpoint keeps the ladder, and an OFF-LADDER override THROWS — EXPECTED hand-authored from the
+ * documented ladder + snap rule, ACTUAL read from the emitted grid styles / DTCG. BY-NAME MUTATIONS: make
+ * `buildLayout` ignore the gutter override (`resolveGap(...)` → the ladder value) → the "custom gutter lands
+ * + aliases" arm fails by name; drop `resolveGap`'s on-ladder guard (return the raw px) → the "off-ladder
+ * throws" arm fails by name. CONTRACT STANDS at 11.3.0 — an override is a value/structure knob; gutter and
+ * margin already emit as `grid/gutter`·`grid/margin` variables + grid-style values, so no guaranteed token
+ * NAME is added (`token-contract --check` level `none`, stamp-only `--accept`).
+ *
  * 0.128.0 — #1575: field-message shows ONE shared caption, not four (owner-decided Option 2). The #1567
  * live-host work proved #1474's four distinct per-status captions and #1018's single set-level `Message`
  * TEXT property are mutually exclusive on the real host: a characters-bound TEXT node is a VIEW onto the
@@ -3329,7 +3356,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.128.0';
+export const ENGINE_VERSION = '0.129.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
