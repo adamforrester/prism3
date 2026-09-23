@@ -949,19 +949,20 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // (one shared default, reached by every member) and pins that the executor now REPORTS the collapse by name
 // instead of silently causing it.
 //
-// THE COLLISION IS A DESIGN QUESTION, NOT A BUG, and it is held open deliberately: #1474 wants four authored
-// captions, #1018 wants one overridable TEXT property, and on this host `field-message`'s `text` part can have
-// one or the other. Which it should be changes the def's declared properties, so it is the owner's call — see
-// the PR and `docs/00-progress.md`. Until it is taken, four distinct captions is a state no assertion here can
-// legitimately demand.
+// THE COLLISION WAS A DESIGN QUESTION, NOW RESOLVED (Option 2, #1575): #1474 wanted four authored captions,
+// #1018 wanted one overridable TEXT property, and on this host `field-message`'s `text` part can have one or
+// the other. The owner kept the property, so the def declares ONE caption; the members stay distinct by GLYPH
+// per status. This arm pins that resolved state, and keeps the collapse-report mechanism guarded on a
+// SYNTHETIC divergent def below — so the safety net for a future mis-authored def is not deleted along with
+// the four-caption spread that used to exercise it.
 //
-// The oracle — the four Set A strings and the canonical default — is authored HERE, not read off the def
-// (docs/34). The FLOORS make the positive arms non-vacuous: (1) the def really does declare four distinct
-// captions, so "they collapse" is a claim about a real spread rather than about four identical strings, and
+// The oracle — the canonical default and the synthetic spread — is authored HERE, not read off the def
+// (docs/34). The FLOORS make the positive arms non-vacuous: (1) the def declares ONE caption, so "every member
+// reads one string" is a claim about an intended single default and a re-added spread fails by name; and
 // (2) write-through is LIVE — writing one member's caption moves every sibling's — so a green is the executor
-// declining to clobber a REAL shared cell, not a shim that has no sharing to break. Mutation-by-name:
-// re-introduce a per-member `characters` write in the post-wire seam and both the set-default read-back
-// (`property …#… .default -> DRIFTED`) and the caption assertion below fail by name.
+// reading a REAL shared cell, not a shim with no sharing to break. Mutation-by-name: re-add `byVariant` to
+// field-message and floor (2) + the surface baseline fail; delete the executor's collapse report and the
+// synthetic safety-net arm below fails.
 {
   const def = componentDefs.find((d) => d.id === 'field-message');
   ok(!!def, '#1513 host-truth: the field-message def is registered and projects');
@@ -982,9 +983,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     ok(members.length === 4 && texts.every(Boolean),
       `#1513 host-truth: field-message builds a caption TEXT into every status member (${texts.filter(Boolean).length}/${members.length})`);
     const captions = texts.map((t) => String(t?.characters ?? '<none>'));
-    // THE OWNER-DECIDED SET A ORACLE (#1474), authored here — not derived from the def (docs/34). `WANT[0]` is
-    // the `status=default` string, which `planSetProperties` declares as the property's one default.
-    const WANT = ['This is a standard message.', 'Something needs fixing.', 'Double-check this.', 'All set.'];
+    // THE CANONICAL DEFAULT (#1575, Option 2), authored here — not derived from the def (docs/34). `WANT[0]`
+    // is the one caption every bound member displays; `planSetProperties` declares it as the property's default.
+    const WANT = ['This is a status message.'];
 
     // FLOOR (1): the set carries ONE TEXT property, and its default is the canonical caption — the cell every
     // bound member reads. This is the assertion the live "All set." everywhere would have failed.
@@ -993,16 +994,16 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     ok(textKeys.length === 1 && defs[textKeys[0]].defaultValue === WANT[0],
       `#1513 floor: the set carries exactly ONE TEXT property and its default is the canonical caption "${WANT[0]}" (${textKeys.length} TEXT propert(ies), holding ${JSON.stringify(textKeys.map((k) => defs[k].defaultValue))})`);
 
-    // FLOOR (2): the def really declares FOUR DISTINCT captions. Without this, "the four members read one
-    // string" is satisfied by a def that only ever had one, and the collapse report below would be a claim
-    // about nothing.
+    // FLOOR (2): the def declares ONE caption — no `byVariant` spread (Option 2, #1575). Without this floor,
+    // "every member reads one string" is trivially true of any def; with it, a re-added `byVariant` fails
+    // here by name.
     const declared = plans.map((p) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- walking the plan tree for the text part
       const walk = (n: any): any => (n?.characters !== undefined ? n : (n?.children ?? []).map((c: any) => walk(c)).find(Boolean));
       return String(walk(p.root)?.characters);
     });
-    ok(new Set(declared).size === 4 && declared.join(' | ') === WANT.join(' | '),
-      `#1513 floor: the def declares four DISTINCT per-status captions, so the collapse is a real spread (${declared.join(' | ')})`);
+    ok(new Set(declared).size === 1 && declared[0] === WANT[0],
+      `#1575 floor: the def declares ONE caption across all four status members, not a spread (${[...new Set(declared)].join(' | ')})`);
 
     // FLOOR (3): WRITE-THROUGH is live. One member's caption write moves EVERY sibling's, which is the host
     // behavior that makes the per-member re-assert destructive rather than merely ineffective.
@@ -1030,11 +1031,36 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     ok(drifted.length === 0,
       `#1567: the executor's independent re-read of the SET's property definitions finds no drifted default (${drifted.length ? drifted.join(' | ') : 'none'})`);
 
-    // THE FIX, HALF THREE: and the collapse is REPORTED. A collapse this executor cannot resolve must reach the
-    // build report by name, or the file ships four identical captions with nothing anywhere saying so.
-    const collapse = res.misses.filter((m) => /^text text\.characters -> COLLAPSED/.test(m));
-    ok(collapse.length === 1 && collapse[0].includes('4 distinct captions'),
-      `#1567: the executor reports the caption collapse ONCE, by part and by name, naming all four declared strings (${collapse.length} miss(es): ${collapse[0] ?? '—'})`);
+    // THE RESOLVED STATE: field-message declares ONE caption, so there is nothing to collapse — the executor
+    // reports NO `COLLAPSED` miss for it. (The mechanism that catches a def which DOES declare a spread is
+    // guarded on a synthetic def below, so this is not a silent gate deletion.)
+    const collapse = res.misses.filter((m) => /text\.characters -> COLLAPSED/.test(m));
+    ok(collapse.length === 0,
+      `#1575: field-message declares one caption, so the executor reports NO collapse (${collapse.length ? collapse.join(' | ') : 'none'})`);
+  }
+
+  // THE SAFETY NET STAYS GUARDED (docs/34): a SYNTHETIC def that re-adds divergent captions on the bound
+  // `text` part must still trip the executor's #1567 collapse report BY NAME — so the mechanism a future
+  // mis-authored def would need is proven live, not deleted with the four-caption spread that used to
+  // exercise it. Cloning field-message and re-adding only `byVariant` keeps the synthetic minimal and real.
+  const base = componentDefs.find((d) => d.id === 'field-message');
+  if (base?.figmaProperties) {
+    const SPREAD = { error: 'Something needs fixing.', warning: 'Double-check this.', success: 'All set.' };
+    const synthetic = {
+      ...base,
+      figmaProperties: {
+        ...base.figmaProperties,
+        texts: { message: { part: 'text', default: 'This is a status message.', byVariant: { status: SPREAD } } },
+      },
+    } as typeof base;
+    const plans = figmaAnatomySet(synthetic, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    const res = await applyComponentPlan(plans, shim as any, {});
+    const collapse = res.misses.filter((m) => /text\.characters -> COLLAPSED/.test(m));
+    ok(collapse.length === 1 && collapse[0].includes('distinct captions'),
+      `#1575 safety net: a def that DECLARES divergent captions on the bound part still trips the collapse report by name (${collapse.length} miss(es): ${collapse[0] ?? '—'})`);
   }
 }
 
