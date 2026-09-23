@@ -7,6 +7,23 @@
 
 ---
 
+## (2026-09-23) — the prune preview names the variables it would delete, not just count them (#1585)
+
+**STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Plugin RUNTIME only — `apps/plugin/src/prune-figma.ts` (a new `varNote` composed beside the existing `modeNote`/`styleNote`) plus `apps/plugin/test-prune.ts` (two new arms). **No `out/**` change, NO version bump** — ENGINE STANDS, CONTRACT STANDS: nothing here is emission. Gate count **STANDS at 61** — both new assertions are arms of `plugin-test`. Closes #1585. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `tools/`, `packages/engine/`, TokenPress, `apps/plugin/src/main.ts` (the wiring already carries `p.variables` groups with `{ collection, names }`, so no read-side change was needed).
+
+── THE PROBLEM ───────────────────────────────────────────────────────────────────────────────────────────
+
+`prunePreviewSummary` NAMED the two arms whose items carry the weakest provenance — modes (`modeNote`, #1570) and description-recognized styles (`styleNote`, #1577) — but the VARIABLE arm, the most numerous, showed only a count. Counting was deliberate and stays defensible: an offered variable is namespace-guarded (only in-namespace, plan-dropped vars are ever offered; `inRoot`), so a hand-added variable outside the namespace is never in the list. But a destructive action should still show its targets — a designer scanning the preview before confirming deserves to see `color → nbds/color/text/legacy`, not `1 variable`.
+
+── THE CHANGE, AND THE ONE DISCIPLINE IT BORROWS ─────────────────────────────────────────────────────────
+
+`varNote(p)` names the offered variables GROUPED BY COLLECTION (`color → a, b, c; space → d`), the third helper of the same shape as `modeNote`/`styleNote`, appended in `prunePreviewSummary`. Names are shown VERBATIM — the raw `<root>/…` slash paths, which are exactly what the designer reads in Figma's variable list, so the note matches the file rather than a prettified derivation. **Collections stay COUNTED** (few and coarse); no per-item selection, no UI change, the confirm stays all-or-nothing — transparency only, per the issue's scope.
+
+Capped at `VAR_NOTE_CAP` (8) names per collection with the remainder reported as `… +K more` — the same truncate-and-say-so discipline as #1579's 60 kB report cap, and for the same reason: a preview that names its targets must not become a wall that hides the count it replaced. Held as a named constant so the test drives a fixture past it and the cap fails by name.
+
+── THE NET (docs/34) ─────────────────────────────────────────────────────────────────────────────────────
+
+Two new arms, each proved by a restored mutation (tree clean at a known-good HEAD before every one, per the CLAUDE.md mutation-battery rule): **(a)** the offered variable renders BY NAME under its collection — `The variables are color → nbds/color/text/legacy` — and dropping the `varNote` append fails it by name (no other note produces `color → nbds/…`; `modeNote` is `layout → …`, `styleNote` is a kind). **(b)** a fixture with 13 in-namespace orphans in one collection caps at 8 names and reads `… +5 more`, with the beyond-cap `ghost-12` NOT named; dropping the cap (show all 13) fails it by name — the `+5 more` disappears and `ghost-12` appears. Both mutations confirmed to fail exactly their arm, then restored, then re-confirmed green.
 ## (2026-09-23) — the conformance scan learns to fix, for two categories only (#1553 P2)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** `tools/` only — new `tools/conformance-scan/fix.ts` and `fixtures/fix-manifest.json`, ten new arms in `mutations.sh`, the run-loop + apply snippet in the README, one binding added to the three fixtures, and the section in `tools/CLAUDE.md` that described the harness as report-only. **No `out/**` change, NO version bump** — ENGINE STANDS, CONTRACT STANDS: nothing here is emission, and `lint-emission-version` reporting a single artifact would have meant it had leaked into one. Gate count **STANDS at 61**, `ci.yml` untouched — a tool answers a question and exits 0 (`tools/CLAUDE.md`), and this one's own self-checks are the author's, like `diff.ts --selftest` before it. Refs #1553 (P2). **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `apps/plugin/`, `apps/tokenpress/`, `packages/engine/`, the manifest's `main` (the deferred bridge, decision #4).
