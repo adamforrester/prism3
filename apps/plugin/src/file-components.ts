@@ -53,6 +53,10 @@ export interface FNode {
   layoutMode?: unknown;
   primaryAxisSizingMode?: unknown;
   counterAxisSizingMode?: unknown;
+  /** In-flow vs. absolute inside an auto-layout parent (#1600). `combineAsVariants` can leave some variant
+   *  children at `'ABSOLUTE'`, which piles them on top of each other; `stackVariants` sets `'AUTO'` on every
+   *  member so they lay out down the set. Host-verified, not type-verified, like the rest of this surface. */
+  layoutPositioning?: unknown;
   /** Axis-EXPLICIT sizing (#1563). Unlike primary/counter (which are relative to `layoutMode`), these name
    *  the real-world axis, so `FIXED` width + `HUG` height reads the same for a VERTICAL or HORIZONTAL root.
    *  Figma resolves them only once the node is an auto-layout frame — set them after `layoutMode`. */
@@ -180,6 +184,26 @@ const setFixedWidthHugHeight = (node: FNode, width: number): void => {
   node.layoutSizingVertical = 'HUG';
 };
 
+/**
+ * Stack a freshly-combined variant set instead of letting its members overlap (#1600). `combineAsVariants`
+ * leaves some variant children at `layoutPositioning: 'ABSOLUTE'` (the owner's screenshot: XL/Medium/Small
+ * piled on Large in `_Section-header`), so the set needs BOTH halves to be correct whichever state the
+ * combine produced:
+ *   1. give the SET a VERTICAL stacking auto-layout, so in-flow children lay out down the set with visible
+ *      separation (item spacing + padding); and
+ *   2. put every VARIANT child in-flow (`layoutPositioning: 'AUTO'`), clearing any ABSOLUTE the combine left.
+ * One without the other is not enough: (1) alone still overlaps the children the combine left absolute, and
+ * (2) alone leaves the set with no layout to arrange the now-in-flow children. Figma does not re-layout an
+ * already-built set on idempotent reuse, so this corrects FRESH builds only — an existing file must be
+ * rebuilt to pick it up.
+ */
+const SET_ITEM_SPACING = 80;
+const SET_PADDING = 40;
+const stackVariants = (set: FNode, members: readonly FNode[]): void => {
+  autoLayout(set, { dir: 'VERTICAL', itemSpacing: SET_ITEM_SPACING, padding: SET_PADDING });
+  for (const m of members) m.layoutPositioning = 'AUTO';
+};
+
 // ── _Section-header ────────────────────────────────────────────────────────────────────────────────
 // Size variants scale the two text nodes and the root's bottom stroke / spacing. XL is the default.
 interface SectionSize {
@@ -245,6 +269,7 @@ const buildSectionHeader = (
   // `Description` boolean property (default true) toggles the Description node's visibility.
   const propId = set.addComponentProperty?.('Description', 'BOOLEAN', true);
   if (propId) for (const m of members) m.desc.componentPropertyReferences = { visible: propId };
+  stackVariants(set, members.map((m) => m.root)); // #1600 — stack, don't overlap
   return set;
 };
 
@@ -318,6 +343,7 @@ const buildHeadings = (
   set.name = '_Headings';
   const propId = set.addComponentProperty?.('Description', 'BOOLEAN', true);
   if (propId) for (const m of members) m.desc.componentPropertyReferences = { visible: propId };
+  stackVariants(set, members.map((m) => m.root)); // #1600 — stack, don't overlap
   return set;
 };
 
