@@ -19,7 +19,7 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '@prism3/engine/theme';
+import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '@prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
@@ -3676,7 +3676,28 @@ const setBrandSize = (group: PerModeSizeGroup, variant: string, px: number | und
   }
   ((ty.sizes ??= {})[group] ??= {})[variant] = px;
 };
-/** How many sizes are pinned anywhere — drives the "customized" badge. */
+/** A #1587 per-rung VIEWPORT (desktop/mobile) endpoint pin, if set. The desktop endpoint is normally
+ *  authored through the base column (`typography.sizes`); this reads the viewport-override store, which
+ *  the studio uses for the MOBILE endpoint. */
+const viewportPin = (group: PerModeSizeGroup, variant: string, vp: 'desktop' | 'mobile'): number | undefined =>
+  brandState.typography?.sizeOverrides?.[group]?.[variant]?.[vp];
+/** Set or clear a per-rung viewport endpoint override, pruning empties so an all-cleared brand stays
+ *  byte-identical (mirrors `setBrandSize`, one axis deeper). */
+const setViewportSize = (group: PerModeSizeGroup, variant: string, vp: 'desktop' | 'mobile', px: number | undefined): void => {
+  const ty = (brandState.typography ??= {});
+  if (px === undefined) {
+    const rung = ty.sizeOverrides?.[group]?.[variant];
+    if (!rung || !ty.sizeOverrides) return;
+    delete rung[vp];
+    if (!Object.keys(rung).length) delete ty.sizeOverrides[group]![variant];
+    if (ty.sizeOverrides[group] && !Object.keys(ty.sizeOverrides[group]!).length) delete ty.sizeOverrides[group];
+    if (!Object.keys(ty.sizeOverrides).length) delete ty.sizeOverrides;
+    return;
+  }
+  (((ty.sizeOverrides ??= {})[group] ??= {})[variant] ??= {})[vp] = px;
+};
+/** How many sizes are pinned anywhere — drives the "customized" badge. Counts baseline sizes, per-mode
+ *  sizes, AND #1587 per-rung viewport endpoints, so the badge never hides that a viewport pin is set. */
 const pinnedSizeCount = (): number => {
   let n = 0;
   const bs = brandState.typography?.sizes ?? {};
@@ -3685,6 +3706,10 @@ const pinnedSizeCount = (): number => {
     const ms = brandState.modeLevers?.[m]?.typeSizes ?? {};
     for (const g of Object.keys(ms) as PerModeSizeGroup[]) n += Object.keys(ms[g] ?? {}).length;
   }
+  const vo = brandState.typography?.sizeOverrides ?? {};
+  for (const g of Object.keys(vo) as PerModeSizeGroup[])
+    for (const variant of Object.keys(vo[g] ?? {}))
+      n += Object.keys(vo[g]![variant] ?? {}).length;
   return n;
 };
 
@@ -3752,6 +3777,40 @@ const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
       return (m === 'light' ? undefined : c.sizeByMode?.[m]) ?? c.sizePx;
     }));
   }
+  // #1587 — the resolved MOBILE endpoint per in-range rung (the pin if set, else the clamp-derived value).
+  // Only meaningful when responsive is on; the size table sits on the theme axis, so the viewport endpoints
+  // ride in the BASE column alongside the desktop value (decision: inline, Desktop/Mobile labels).
+  const mobileResolved = live.map((r) => theme.typography.composites.find((x) => x.group === group && x.variant === r.variant)!.sizeMinPx);
+  const desktopResolved = resolvedByMode.get('light') ?? live.map((r) => r.px);
+  /** One editable MOBILE endpoint cell for a fluid heading rung. Shows the derived endpoint by default
+   *  (read-only in style until pinned — the #423 pattern) and opts into an override on the first step;
+   *  reset (↺) returns to derived. Bounds keep the ramp coherent: mobile stays on the ladder, at/above the
+   *  group floor, at most its own desktop, and non-decreasing against its neighbours — the same shape the
+   *  engine's coherence guard enforces, so the control never offers a step the build would reject. */
+  const mobileCell = (i: number): HTMLElement => {
+    const variant = live[i].variant;
+    const px = mobileResolved[i];
+    const desktop = desktopResolved[i];
+    const floor = HEADING_SIZE_FLOOR[group];
+    const larger = i > 0 ? mobileResolved[i - 1] : undefined;    // rows are largest-first, so i-1 is the bigger rung
+    const smaller = i + 1 < mobileResolved.length ? mobileResolved[i + 1] : undefined;
+    const derived = mobileEndpoint(theme.typography.sizesPx, group, desktop);
+    const pinned = viewportPin(group, variant, 'mobile') !== undefined;
+    const step = (dir: -1 | 1) => ladderStep(px, dir);
+    const dn = step(-1), up = step(1);
+    return stepCell({
+      px,
+      canDown: dn !== undefined && dn >= floor && (smaller === undefined || dn >= smaller),
+      canUp: up !== undefined && up <= desktop && (larger === undefined || up <= larger),
+      pinned,
+      label: `${group} ${variant} mobile`,
+      title: () => pinned
+        ? `Mobile size, pinned (the Responsive lever would derive ${derived}px)`
+        : `Mobile size, derived from the ${desktop}px desktop value by the Responsive lever`,
+      step,
+      write: (v) => { setViewportSize(group, variant, 'mobile', v); applyFull(); },
+    });
+  };
   for (const r of all) {
     const tr = el('tr', inRange.has(r.variant) ? '' : 'mtbl-off');
     const nameCell = el('td', 'mtbl-stick');
@@ -3769,6 +3828,16 @@ const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
           const self = el('span', 'mtbl-selfval mono', `${px}px`);
           self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it resolves to ${px}px and accepts no per-mode override.`;
           td.append(self);
+        } else if (m === 'light' && theme.typography.fluid) {
+          // #1587 — surface BOTH viewport endpoints inline, labelled Desktop / Mobile (captions stacked
+          // above each stepper so the fixed mode-column width is untouched). Desktop is the base value
+          // (authored here as before); Mobile is the derived endpoint with an opt-in pin.
+          const stack = el('div', 'mtbl-vpstack');
+          stack.append(
+            el('span', 'mtbl-vplab', 'Desktop'), sizeCell(group, live, i, null, resolvedByMode.get('light')!),
+            el('span', 'mtbl-vplab', 'Mobile'), mobileCell(i),
+          );
+          td.append(stack);
         } else {
           td.append(sizeCell(group, live, i, m === 'light' ? null : m, resolvedByMode.get(m)!));
         }
@@ -3832,7 +3901,7 @@ const renderTypeSizes = (): HTMLElement => {
     warn.append(el('span', undefined, 'Some shapes are unavailable while sizes are set individually — they would clash.'));
     const rel = el('button', 'shape-release', 'Release pinned sizes') as HTMLButtonElement;
     rel.onclick = () => {
-      if (brandState.typography) delete brandState.typography.sizes;
+      if (brandState.typography) { delete brandState.typography.sizes; delete brandState.typography.sizeOverrides; }
       for (const m of Object.keys(brandState.modeLevers ?? {})) setModeLever(m, 'typeSizes', undefined);
       applyFull();
     };
@@ -3897,7 +3966,7 @@ const renderTypeSizes = (): HTMLElement => {
   if (readout) tf.insertBefore(headLab, readout); else tf.append(headLab);
   head.append(tf);
   if (pins) head.append(el('span', 'szt-badge', `${pins} customized`));
-  sec.append(fieldBlock('Customize sizes', 'Set any size directly, and vary sizes per mode. The shape above still sets everything you don’t touch.', head));
+  sec.append(fieldBlock('Customize sizes', 'Set any size directly, vary it per mode, and — when Responsive is on — pin a desktop or mobile value per size. The shape above still sets everything you don’t touch.', head));
   if (open) for (const g of PER_MODE_SIZE_GROUPS) { const t = renderSizeTable(g); if (t) sec.append(t); }
   return sec;
 };

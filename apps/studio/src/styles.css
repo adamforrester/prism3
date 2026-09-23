@@ -1274,6 +1274,12 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mtbl-mode .select{width:calc(var(--tbl-col-mode) - 24px);min-width:0;text-overflow:ellipsis}
 .mtbl-mode .select.set{font-weight:650;border-color:var(--ink2)}
 .mtbl-ro{font-size:10px;color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0}
+/* #1587 — the two viewport endpoints stacked in the base column: a Desktop stepper over a Mobile
+   stepper, each under a small caption. Captions sit ABOVE their stepper (display:block) so the fixed
+   mode-column width is untouched — the same width discipline .mtbl-mode .select documents above.
+   (No backticks in this stylesheet — it is a template literal; see #366.) */
+.mtbl-vpstack{display:flex;flex-direction:column;gap:2px}
+.mtbl-vplab{display:block;font-size:10px;color:var(--faint);font-weight:400;line-height:1.3}
 /* The stepper states the constraint: a disabled −/+ means this size has no room that way, where a
    filtered dropdown just omitted the option and never said why. */
 .mcell{display:inline-flex;align-items:center;gap:4px}

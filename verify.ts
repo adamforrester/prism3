@@ -683,6 +683,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-cut-binding.ts'),
   },
   {
+    id: 'lint-size-override-coherence',
+    ciStep: 'A per-rung viewport size override never inverts or un-orders the ramp',
+    cmd: engine('lint-size-override-coherence.ts'),
+  },
+  {
     id: 'lint-standalone-floor',
     ciStep: 'A def offered as a build target projects something with an extent',
     cmd: engine('lint-standalone-floor.ts'),

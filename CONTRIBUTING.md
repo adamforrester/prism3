@@ -694,6 +694,21 @@ npx tsx packages/engine/lint-cut-binding.ts         # a text style's cut (weight
                                                     # a computed value. Mutation-verified BY NAME
                                                     # (bound:true→false fires A; binding fontWeight fires
                                                     # C).
+npx tsx packages/engine/lint-size-override-coherence.ts  # a per-rung DESKTOP/MOBILE size override
+                                                    # (typography.sizeOverrides, #1587) may not produce
+                                                    # an incoherent fluid ramp: mobile <= desktop per
+                                                    # rung (no inverted rung) and a non-decreasing mobile
+                                                    # ramp. The DERIVE gets this free (mobileEndpoint
+                                                    # clamps); an AUTHORED pin escapes it, so the engine
+                                                    # refuses an inverted/backwards pin at build. ARM A
+                                                    # reads the committed out/figma export (EXPECTED is
+                                                    # the invariant, never re-run through mobileEndpoint);
+                                                    # ARM B/C/D drive brandTheme over gate-authored inputs
+                                                    # (inversion/backwards REJECTED, a valid pin TAKES
+                                                    # EFFECT, a legal multi-rung override not over-refused).
+                                                    # Mutation-verified BY NAME (delete invert throw → B;
+                                                    # delete monotonicity throw → B; drop the resolution
+                                                    # hook → C; drop mobileEndpoint's Math.min +regen → A).
 npx tsx packages/engine/lint-standalone-floor.ts    # a def offered as a build target must project
                                                     # members that acquire an EXTENT, and a def that
                                                     # cannot must declare

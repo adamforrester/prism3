@@ -676,6 +676,19 @@ jobs:
       - name: A text style's cut is bound to a per-category STRING variable
         run: npx --yes tsx@4 packages/engine/lint-cut-binding.ts
 
+      # #1587 — an opt-in per-rung DESKTOP/MOBILE type-size override (typography.sizeOverrides) may not
+      # produce an incoherent fluid ramp: mobile <= desktop per rung (no inverted rung, growing on the
+      # smaller viewport), and the mobile ramp stays non-decreasing as size grows. The DERIVE gets this
+      # for free (mobileEndpoint clamps with Math.min); an AUTHORED pin escapes it, so the engine refuses
+      # an inverted/backwards pin at build. ARM A reads the committed out/figma type-sets export (EXPECTED
+      # is the invariant, never re-run through mobileEndpoint — docs/34 shape 1); ARM B/C/D drive
+      # brandTheme over inputs authored in the gate (an inverting/backwards override is REJECTED, a valid
+      # pin TAKES EFFECT, a legal multi-rung override is not over-refused). Mutation-verified BY NAME:
+      # deleting the invert throw fires ARM B; deleting the monotonicity throw fires ARM B; dropping the
+      # resolution hook fires ARM C; dropping mobileEndpoint's Math.min (+regen) fires ARM A.
+      - name: A per-rung viewport size override never inverts or un-orders the ramp
+        run: npx --yes tsx@4 packages/engine/lint-size-override-coherence.ts
+
       # A def offered as a build target must project members that acquire an EXTENT, and a def that
       # cannot must declare `figmaProperties.notStandalone`. #869: building `focus-ring` produced a
       # 100x100 white box with the correct focus color at 1px — not a crash and not a miss report, an

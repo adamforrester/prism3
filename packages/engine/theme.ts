@@ -1113,6 +1113,25 @@ export type TypographyInput = {
    *
    *  Modes then override on top of the customized baseline, not the derived one. */
   sizes?: Partial<Record<PerModeSizeGroup, Record<string, number>>>;
+  /** OPT-IN per-rung DESKTOP/MOBILE size override on the viewport axis (#1587). Keyed group → rung →
+   *  `{ desktop?, mobile? }`, heading groups only (display/title/eyebrow), so a "rung" is a
+   *  (group, variant) pair exactly as `sizes` above. It is the escape hatch for the viewport axis the
+   *  Responsive lever otherwise controls only globally: a brand pins a specific desktop and/or mobile
+   *  endpoint for ONE rung, overriding what the clamp/derive produced for that rung alone.
+   *
+   *  A rung with NO entry is fully clamp-derived — today's behaviour, byte-identical — so this is a pure
+   *  addition: `desktop` overrides the composite's `sizePx` (taking precedence over `sizes` for that
+   *  rung); `mobile` overrides the derived `sizeMinPx` (the fluid mobile endpoint `mobileEndpoint`
+   *  otherwise computes). The pipeline downstream is untouched: `tree.ts` reshapes `sizeMinPx`/`sizePx`
+   *  into `figma.modes.{mobile,desktop}` and the web `clamp()`, and both the plugin and paste write paths
+   *  read those — the override writes the field the entire fluid pipeline already consumes.
+   *
+   *  A `mobile` override needs `responsive.fluid` on (there is no mobile mode otherwise). All constraints
+   *  are enforced in `buildComposites` with by-name refusals (rung exists and is a heading rung; value is
+   *  a ladder step; clears the heading floor; mobile ≤ its own desktop — no inverted ramp; the mobile ramp
+   *  stays monotonic across rungs). `lint-size-override-coherence.ts` re-asserts the invariant
+   *  independently. Omit for none (byte-identical). */
+  sizeOverrides?: Partial<Record<PerModeSizeGroup, Record<string, { desktop?: number; mobile?: number }>>>;
   /** Per-role weight set. Weight is an axis on every type role (every composite
    *  carries the weight in its name). Defaults: display/title `[strong]`, body
    *  `[default, strong]` (add `emphasis` for a 3rd), caption `[default, strong]`,
@@ -1271,7 +1290,11 @@ const DISPLAY_MOBILE: Record<number, number> = {
   36: 32, 40: 32, 48: 36, 56: 40, 64: 40, 72: 40, 80: 40,
   96: 48, 112: 48, 128: 48, 144: 48, 160: 48,
 };
-const mobileEndpoint = (ladder: number[], group: TypeGroup, desktopPx: number): number => {
+// EXPORTED (#1587): the studio's per-rung DESKTOP/MOBILE override control shows the DERIVED mobile
+// endpoint alongside a pin (the #423 read-only-derived pattern), and computing that derived value with a
+// second copy of this curve is how the label and the build drift apart. One implementation means the
+// "what the clamp produces" the UI shows cannot disagree with what the engine emits when the pin is off.
+export const mobileEndpoint = (ladder: number[], group: TypeGroup, desktopPx: number): number => {
   if (group === 'display') return Math.min(desktopPx, DISPLAY_MOBILE[desktopPx] ?? Math.max(oneRungDown(ladder, desktopPx), 32));
   if (group === 'title') return desktopPx <= 20 ? desktopPx : Math.min(desktopPx, Math.max(oneRungDown(ladder, desktopPx), 20));
   // Eyebrow follows title's shape with its own numbers (#328) — fluid ABOVE a threshold, static at
@@ -1376,6 +1399,35 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
         throw new Error(`typography.sizes.${g}.${variant}: ${px}px is below the ${g} floor of ${floor}px — the smallest size this system emits for ${g} anywhere.`);
     }
   }
+  // #1587 — OPT-IN per-rung DESKTOP/MOBILE viewport override. Same heading-only contract and the same
+  // on-ladder/floor shape checks as `sizes` above; the SHAPE is validated here, and the two coherence
+  // properties that need the RESOLVED endpoints — mobile ≤ its own desktop (no inverted ramp) and a
+  // monotonic mobile ramp — are checked AFTER the composites are built, reading the composite's own
+  // `sizePx`/`sizeMinPx` rather than re-deriving them (the docs/34-independent form the coherence gate
+  // relies on too). `overrideFor` narrows the heading-only map once, like `brandSizeFor`.
+  const sizeOverrides: Partial<Record<PerModeSizeGroup, Record<string, { desktop?: number; mobile?: number }>>> = t.sizeOverrides ?? {};
+  const consumedOverrides = new Set<string>();
+  const overrideFor = (g: TypeGroup, v: string): { desktop?: number; mobile?: number } | undefined =>
+    (sizeOverrides as Record<string, Record<string, { desktop?: number; mobile?: number }> | undefined>)[g]?.[v];
+  for (const [g, rungs] of Object.entries(sizeOverrides)) {
+    if (!PER_MODE_SIZE_GROUPS.includes(g as PerModeSizeGroup))
+      throw new Error(`typography.sizeOverrides: '${g}' is not a heading group — per-viewport overrides cover ${PER_MODE_SIZE_GROUPS.join('/')} only. Reading and UI text takes one size from its category, not per viewport.`);
+    const floor = HEADING_SIZE_FLOOR[g as PerModeSizeGroup];
+    for (const [variant, ov] of Object.entries(rungs ?? {})) {
+      for (const vp of ['desktop', 'mobile'] as const) {
+        const px = ov?.[vp];
+        if (px == null) continue;
+        if (!ladderSet.has(px))
+          throw new Error(`typography.sizeOverrides.${g}.${variant}.${vp}: ${px}px is not a step on the size ladder (${ladder.join(', ')}).`);
+        if (px < floor)
+          throw new Error(`typography.sizeOverrides.${g}.${variant}.${vp}: ${px}px is below the ${g} floor of ${floor}px — the smallest size this system emits for ${g} anywhere.`);
+      }
+      // A mobile endpoint only exists in the fluid regime — with responsive off, every size is static and
+      // there is no mobile mode for the pin to land in. Refuse rather than silently drop it.
+      if (ov?.mobile != null && !fluid)
+        throw new Error(`typography.sizeOverrides.${g}.${variant}.mobile: a mobile override needs responsive typography — set responsive.fluid (it is off, so type is static and there is no mobile endpoint to pin).`);
+    }
+  }
   const weightsMap = { ...TYPE_WEIGHTS_DEFAULT, ...(t.weights ?? {}) };
   const linkGroups = new Set(t.links ?? TYPE_LINK_DEFAULT);
   const italicGroups = new Set(t.italics ?? []);   // default none — italics are opt-in per role
@@ -1406,7 +1458,13 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
   // (size omitted for sizeless roles like eyebrow). Adding a weight/modifier later is
   // purely additive — no renames.
   const push = (group: TypeGroup, variant: string, sizePx: number) => {
-    const sizeMinPx = fluid ? mobileEndpoint(ladder, group, sizePx) : sizePx;
+    // #1587 — an authored mobile endpoint OVERRIDES the derive; absent it, `mobileEndpoint` is the
+    // default (today's behaviour). `mobile` is only reachable when `fluid` (the shape check above
+    // refuses a mobile override with responsive off), so this never re-introduces a mobile mode a static
+    // brand does not have. `mobile ≤ sizePx` is asserted after the loop, against the resolved endpoints.
+    const mobilePin = overrideFor(group, variant)?.mobile;
+    const sizeMinPx = fluid ? (mobilePin ?? mobileEndpoint(ladder, group, sizePx)) : sizePx;
+    if (mobilePin != null) consumedOverrides.add(`${group}.${variant}`);
     const emit = (weightRole: WeightRoleName, link: boolean, italic: boolean) => {
       // Modifiers are hyphenated suffixes on the weight (`strong-italic-link`), clean
       // SIBLING leaves of the bare weight — not `.italic`/`.link` children (that would
@@ -1452,8 +1510,9 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     if (group === 'title' && titleFloor === 16) {
       // The 2xs rung is pinned at 16 by the floor, but a brand override still applies to it — the
       // floor decides that the rung EXISTS, never what it is worth (the set/size split, #328).
-      const px = brandSizes.title?.['2xs'] ?? 16;
+      const px = overrideFor('title', '2xs')?.desktop ?? brandSizes.title?.['2xs'] ?? 16;
       if (brandSizes.title?.['2xs'] !== undefined) consumedSizes.add('title.2xs');
+      if (overrideFor('title', '2xs')?.desktop !== undefined) consumedOverrides.add('title.2xs');
       push('title', '2xs', px); prev = px;
     }
     // Opt-in caption fine-print rungs, PINNED to their ladder step and pushed smallest-first so the
@@ -1475,17 +1534,21 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
       const shifted = isHeading ? shiftPx(base) : base;
       // A brand-level per-size override lands HERE — after the shift, before the ramp check. Absolute
       // px, exactly like the per-mode one: it pins the size, so it does NOT move when typeScale changes
-      // (which is why changing the scale with sizes pinned can collide — and should, loudly).
-      const sizePx = brandSizeFor(group, variant) ?? shifted;
+      // (which is why changing the scale with sizes pinned can collide — and should, loudly). A #1587
+      // per-viewport DESKTOP override pins the same endpoint and takes precedence over `sizes` for the rung.
+      const desktopOv = overrideFor(group, variant)?.desktop;
+      const sizePx = desktopOv ?? brandSizeFor(group, variant) ?? shifted;
       if (brandSizeFor(group, variant) !== undefined) consumedSizes.add(`${group}.${variant}`);
+      if (desktopOv !== undefined) consumedOverrides.add(`${group}.${variant}`);
       // The ramp must be STRICTLY INCREASING. This used to `continue` — silently dropping
       // the colliding rung and leaving a gap mid-ramp (`compact` lost title.sm). Dropping a
       // rung is never the right answer: it changes the type SET, which is the one thing the
       // set/size split exists to keep stable. Reject instead. validateBrandInput catches the
       // one reachable combination (compact + titleFloor 16) with a friendlier message.
       if (sizePx <= prev) {
-        const pinned = brandSizeFor(group, variant) !== undefined;
-        throw new Error(`typography: ${group}.${variant} resolves to ${sizePx}px, which is not larger than the previous rung (${prev}px) — the ramp must be strictly increasing. ${pinned ? `typography.sizes.${group}.${variant} pins it to ${sizePx}px; a pinned size does not move when the scale does, so either release it or move its neighbor.` : `Check typeScale '${t.typeScale ?? 'default'}'${group === 'title' ? ` + titleFloor ${titleFloor}` : ''}.`}`);
+        const pinned = brandSizeFor(group, variant) !== undefined || desktopOv !== undefined;
+        const where = desktopOv !== undefined ? `typography.sizeOverrides.${group}.${variant}.desktop` : `typography.sizes.${group}.${variant}`;
+        throw new Error(`typography: ${group}.${variant} resolves to ${sizePx}px, which is not larger than the previous rung (${prev}px) — the ramp must be strictly increasing. ${pinned ? `${where} pins it to ${sizePx}px; a pinned size does not move when the scale does, so either release it or move its neighbor.` : `Check typeScale '${t.typeScale ?? 'default'}'${group === 'title' ? ` + titleFloor ${titleFloor}` : ''}.`}`);
       }
       push(group, variant, sizePx);
       prev = sizePx;
@@ -1497,6 +1560,43 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
         const shipped = [...new Set(out.filter((c) => c.group === g).map((c) => c.variant))];
         throw new Error(`typography.sizes.${g}.${variant}: that rung is not in this brand's ${g} set${shipped.length ? ` (${shipped.join('/')})` : ''} — it is trimmed by displayCeiling or not enabled by titleFloor. A size override re-sizes a rung that exists; it never adds one.`);
       }
+  // #1587 — a per-viewport override rung that never landed (trimmed by displayCeiling, or not enabled by
+  // titleFloor) is a typo, not a silent no-op. `consumedOverrides` records the (group, variant) pairs the
+  // build actually resolved a desktop or mobile pin for above; anything named but unconsumed is rejected,
+  // exactly like the `sizes` unconsumed check. A rung with only `{}` (neither endpoint) is consumed vacuously.
+  for (const [g, rungs] of Object.entries(sizeOverrides))
+    for (const [variant, ov] of Object.entries(rungs ?? {})) {
+      const named = ov?.desktop !== undefined || ov?.mobile !== undefined;
+      if (named && !consumedOverrides.has(`${g}.${variant}`)) {
+        const shipped = [...new Set(out.filter((c) => c.group === g).map((c) => c.variant))];
+        throw new Error(`typography.sizeOverrides.${g}.${variant}: that rung is not in this brand's ${g} set${shipped.length ? ` (${shipped.join('/')})` : ''} — it is trimmed by displayCeiling or not enabled by titleFloor. A viewport override re-sizes a rung that exists; it never adds one.`);
+      }
+    }
+  // #1587 — THE COHERENCE THROW. Two properties an authored viewport pin can break that the derive never
+  // could (`mobileEndpoint` is `Math.min(desktop, …)` by construction, so the derived path is coherent for
+  // free — an authored pin escapes that guarantee, which is the whole reason this check exists):
+  //   1. mobile ≤ desktop, per rung — a pin that inverts a rung (mobile > desktop) is a ramp that grows on
+  //      the smaller viewport, the incoherent hand-authored shape the engine exists to replace.
+  //   2. the mobile ramp stays MONOTONIC across a group's rungs — non-decreasing as desktop grows, so a pin
+  //      on one rung cannot make a smaller rung's mobile exceed a larger rung's. (Non-decreasing, not
+  //      strictly increasing: the derived display curve legitimately plateaus — 96/112/128px all floor to
+  //      48px mobile — so a strict rule would reject the engine's own output.)
+  // Read from the composites' OWN resolved `sizePx`/`sizeMinPx`, never re-run through `mobileEndpoint`, so
+  // the check cannot silently agree with the derivation it is meant to police (docs/34 shape 1).
+  for (const g of PER_MODE_SIZE_GROUPS) {
+    const rungs = out.filter((c) => c.group === g)
+      // one row per rung (weights/modifiers share a size), ascending by desktop px so the ramp reads small→large
+      .reduce((acc: TypeComposite[], c) => (acc.some((a) => a.variant === c.variant) ? acc : [...acc, c]), [])
+      .sort((a, b) => a.sizePx - b.sizePx);
+    let prevMin = -Infinity;
+    for (const c of rungs) {
+      if (c.sizeMinPx > c.sizePx)
+        throw new Error(`typography.sizeOverrides.${g}.${c.variant}: mobile ${c.sizeMinPx}px is larger than desktop ${c.sizePx}px — an override may not invert a rung (mobile ≤ desktop; the ramp must not grow on the smaller viewport).`);
+      if (c.sizeMinPx < prevMin)
+        throw new Error(`typography.sizeOverrides.${g}.${c.variant}: mobile ${c.sizeMinPx}px is smaller than a lower rung's mobile ${prevMin}px — the mobile ramp must not decrease as size grows (an override broke its monotonicity).`);
+      prevMin = c.sizeMinPx;
+    }
+  }
   return out;
 };
 

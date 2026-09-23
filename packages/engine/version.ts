@@ -2926,6 +2926,24 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.133.0 — #1587: OPT-IN PER-RUNG DESKTOP/MOBILE type-size override (owner-decided 2026-09-23, four
+ * decisions locked on the issue: override-derived storage, brand-axis only, inline-in-the-size-table UI,
+ * Desktop/Mobile naming). `TypographyInput` gains optional `sizeOverrides`, keyed group → rung →
+ * `{ desktop?, mobile? }`, on the heading groups only (display/title/eyebrow). A rung with no entry is
+ * fully clamp-derived — today's behaviour, byte-identical — so no corpus brand moves and this is a pure
+ * INPUT-SURFACE + BEHAVIOUR addition. The whole hook is that a composite already carries BOTH endpoints
+ * (`sizePx` desktop, `sizeMinPx` mobile) and the entire fluid pipeline (`tree.ts` → `figma.modes` →
+ * `emit-figma-font` → the web clamp AND the paste path) reads them: the override just AUTHORS the endpoint
+ * the derive used to own. `mobileEndpoint` becomes the default, not the only source. A NEW build-time
+ * coherence throw (alongside the #328 per-mode-size validation) refuses an override that inverts a rung
+ * (mobile > desktop), leaves the ladder, drops below the heading floor, or breaks the mobile ramp's
+ * monotonicity — each failing BY NAME, mirroring #1368's face-pin refusals; and `lint-size-override-
+ * coherence.ts` re-asserts the invariant over the corpus INDEPENDENTLY (reading the composite's own
+ * emitted `sizeMinPx`/`sizePx`, never re-running `mobileEndpoint`) plus that an inverting input is
+ * rejected. Emitted bytes move only when a brand actually overrides a rung, so the corpus regen is a
+ * stamp-only restamp → ENGINE bump. CONTRACT STANDS at 11.3.0 — per-viewport values land in the EXISTING
+ * `type-sets`/`font-fluid` mode variables (mobile and desktop are two MODES of one variable, not two
+ * names), so no guaranteed token NAME appears; `token-contract --check` stays green with no CONTRACT bump.
  * 0.132.0 — #1602/#1601: components resolve weight by INTENT against a brand's available roles, collapsing
  * the axis when the intents coincide (owner-decided 2026-09-23). A weight axis declares `regular`/`bold`
  * intents; `applyWeightIntent` (the `controlShape`-shaped materialize-before-projection) resolves them per
@@ -3405,7 +3423,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.132.0';
+export const ENGINE_VERSION = '0.133.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
