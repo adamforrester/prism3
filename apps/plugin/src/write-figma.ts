@@ -63,6 +63,14 @@ export interface VarCollection {
   modes: VarMode[];
   renameMode(modeId: string, newName: string): void;
   addMode(name: string): string;
+  /** SHARED plugin data — the engine's mode provenance (#1581), see `stampOwnedModes`. OPTIONAL on the
+   *  port, and deliberately: the real `VariableCollection` implements Figma's `PluginDataMixin` (probed
+   *  live — `getSharedPluginData`/`setSharedPluginData`/`getSharedPluginDataKeys` are all functions on a
+   *  collection, and a value round-trips through a fresh `getLocalVariableCollectionsAsync`), while a
+   *  Node shim that has no reason to model it still satisfies the port and exercises the ABSENT path,
+   *  which is the fallback every file written before #1581 takes. */
+  getSharedPluginData?(namespace: string, key: string): string;
+  setSharedPluginData?(namespace: string, key: string, value: string): void;
 }
 export interface VariableAlias { type: 'VARIABLE_ALIAS'; id: string }
 /** The value a variable can hold in a mode, as the READ executor sees it (#109). A SUPERSET of the
@@ -192,6 +200,84 @@ export const claimModes = (modes: readonly VarMode[], planned: readonly string[]
   return claimed;
 };
 
+/** The key the engine's mode provenance lives under, on the COLLECTION. Read by the prune detector
+ *  through `ownedModeIds`; written by `stampOwnedModes` on every apply. */
+const MODES_OWNED_KEY = 'modes:owned';
+
+/**
+ * The mode ids this collection's stamp marks as NOT the designer's (#1581) — `[]` when there is no stamp,
+ * which every file written before this existed reports, and which the prune reads as "no knowledge".
+ *
+ * Tolerant by contract: a missing method, a missing key, an empty string, a non-JSON string and a JSON
+ * value that is not an array of strings all come back as `[]`. Provenance that cannot be read is absent
+ * provenance, never an error — the alternative is an apply or a prune that throws on a file somebody
+ * else's plugin has written into the same namespace. Host-measured: an unset key reads back `''`, and a
+ * value written as `''` REMOVES the key, so `''` is a safe absent sentinel in both directions.
+ */
+export const ownedModeIds = (collection: VarCollection): string[] => {
+  let raw = '';
+  try {
+    // namespace convention — 579 Lane 2; DRY later
+    raw = collection.getSharedPluginData?.('prism3', MODES_OWNED_KEY) ?? '';
+  } catch { return []; }
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  } catch { return []; }
+};
+
+/**
+ * Record, on the collection, which modes are the ENGINE's — the provenance a mode does not otherwise
+ * carry (#1581).
+ *
+ * A variable carries the brand root and a style carries a `description`, so both can be recognized by
+ * reading the file. A mode is a bare name on a collection: nothing distinguishes a `print` mode a
+ * designer added from an `xl` mode the engine wrote and then stopped writing, which is why #1570's prune
+ * arm had to fall back on naming every candidate and letting the designer veto. The fix is to WRITE the
+ * provenance while we still know it — here, on every apply, as a shared-plugin-data stamp.
+ *
+ * SHARED, not private: `setSharedPluginData` is readable by any plugin and by an agent `figma_execute`
+ * census, and `setPluginData` is not. Being able to verify the stamp from outside the plugin is the
+ * difference between a fact and a claim. (The namespace charset is enforced by Figma, measured: a
+ * hyphenated namespace throws `The namespace can only consist of alphanumeric characters, _ or .`, so
+ * `prism3` is spelled without one.)
+ *
+ * **APPEND-ONLY, and keep-last would be a bug.** The union is the whole mechanism: a mode the engine
+ * wrote at 6 breakpoints and does not write at 2 must STAY marked, because that is exactly the mode the
+ * prune exists to offer. A "the modes this apply wrote" snapshot would drop it and spare the drift. So
+ * this reads the prior stamp and unions — it never subtracts. Two host measurements back it: a second
+ * `setSharedPluginData` replaces the value wholesale (so the union has to happen here, in our code), and
+ * `removeMode` does NOT touch the stamp (so an id outlives its mode, which is what makes the record
+ * provenance rather than a mirror of current state).
+ *
+ * **THE MIGRATION SEED, and it is a deliberate deviation worth reviewing.** On the FIRST stamp for a
+ * collection (no prior stamp), the seed is every mode the collection currently holds — not just the ones
+ * this apply wrote. Without it, the feature REGRESSES every file that predates it: `layout` on the live
+ * test file holds four stale modes plus #1570's duplicate `sm`, none of which any stamp mentions, so a
+ * strict "∈ owned or spare" rule would silently stop offering them — permanently, and on exactly the
+ * damage #1570 built the prune arm to repair. The seed says instead: *at the moment knowledge begins, a
+ * plan-owned collection's modes are presumed ours* — which is precisely today's behavior, frozen. The
+ * cost is stated rather than hidden: a mode a designer hand-added BEFORE the first stamped apply is
+ * seeded as ours and will still be offered, exactly as it is today; from the first stamped apply onward,
+ * every hand-added mode is outside the set and spared. Provenance cannot be retrofitted, so the choice is
+ * only ever "which presumption for the modes that predate the record", and the one that loses no cleanup
+ * is the one that also changes no current behavior. Reversing it is one line — drop `seed`.
+ *
+ * Returns the stamp as written, so a caller can assert it; never throws (a shim without the method, or a
+ * host that refuses the write, leaves the file exactly as a pre-#1581 apply would).
+ */
+export const stampOwnedModes = (collection: VarCollection, written: Iterable<string>): string[] => {
+  const prior = ownedModeIds(collection);
+  const seed = prior.length === 0 ? collection.modes.map((m) => m.modeId) : [];
+  const union = [...new Set([...prior, ...seed, ...written])];
+  try {
+    // namespace convention — 579 Lane 2; DRY later
+    collection.setSharedPluginData?.('prism3', MODES_OWNED_KEY, JSON.stringify(union));
+  } catch { /* provenance is best-effort: an apply never fails because a stamp could not be written */ }
+  return union;
+};
+
 /**
  * Reconcile a collection's modes against the plan's — the fix for #1570's DUPLICATE MODE.
  *
@@ -247,6 +333,12 @@ export const reconcileModes = (collection: VarCollection, planned: readonly stri
   for (const name of planned) {
     if (!(name in modeIds)) modeIds[name] = collection.addMode(name);
   }
+  // Step 4 — RECORD what we just wrote (#1581). Here rather than in each executor because all three
+  // (`applyWritePlan`, `applyFloatPlan`, `applyVarCollectionPlan`) reach their modes through this function,
+  // so one call site covers every apply and no executor can be added later that writes modes without
+  // stamping them. The ids are the ones this apply ended up using — claimed, renamed and added alike, which
+  // is exactly "the modes the engine wrote here".
+  stampOwnedModes(collection, Object.values(modeIds));
   return modeIds;
 };
 

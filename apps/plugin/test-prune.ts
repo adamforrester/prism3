@@ -25,7 +25,7 @@
  */
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import {
-  buildWritePlan, buildFloatWritePlan, buildFontVarPlan, buildTextStylePlan, buildGridStylePlan,
+  buildWritePlan, buildFloatWritePlan, buildFontVarPlan, buildTextStylePlan, buildGridStylePlan, buildStylesPlan,
 } from '@prism3/engine/write-plan';
 import { nbThemeFrom, brandTheme } from '@prism3/engine/theme';
 import nbMeasured from '@prism3/engine/schema/nb-measured.json';
@@ -35,9 +35,10 @@ import { applyFloatPlan } from './src/write-figma';
 import { applyGridStylePlan } from './src/write-grid-styles';
 import {
   computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary, STYLE_KINDS,
+  isEngineDescription,
 } from './src/prune-figma';
-import type { PruneInput, PruneApi, StyleKind, StyleNames } from './src/prune-figma';
-import type { BrandInput } from '@prism3/engine/theme';
+import type { PruneInput, PruneApi, StyleKind, StyleNames, FileStyles } from './src/prune-figma';
+import type { BrandInput, Theme } from '@prism3/engine/theme';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -50,6 +51,10 @@ console.log('plugin OPT-IN PRUNE (#1521/#1570) — detector + executor against i
 /** Style names with every kind present — the detector reads all four, so a fixture that omitted one
  *  would exercise the arm with `undefined` rather than with an empty namespace. */
 const styleNames = (partial: Partial<StyleNames>): StyleNames =>
+  ({ text: [], effect: [], paint: [], grid: [], ...partial });
+
+/** The same, for the FILE side, where a style may carry the `description` the #1577 arm reads. */
+const fileStyles = (partial: Partial<FileStyles>): FileStyles =>
   ({ text: [], effect: [], paint: [], grid: [], ...partial });
 
 // ---- a removable in-memory shim -------------------------------------------------------------
@@ -69,6 +74,9 @@ class RColl {
 }
 class RStyle {
   removed = false;
+  /** Written by the REAL `applyGridStylePlan` (`s.description = row.description`), which is what makes the
+   *  descriptions the #1577 arm is tested against the ENGINE's own rather than strings typed here. */
+  description = '';
   constructor(public name: string) {}
   remove(): void { this.removed = true; }
 }
@@ -222,6 +230,49 @@ ok(prunedModes('space').length === 0,
   'mode: a collection the plan declares no modes for is left alone (no declaration is no knowledge)');
 ok(prunedModes('color.surface').length === 0 && plan.collections.includes('color.surface'),
   'mode: a STRANDED collection’s modes are not offered separately even though the plan declares modes for it — it goes whole, modes with it (the plan-owned guard, and the by-name pin for the header’s disjointness claim)');
+ok(plan.modes.every((g) => synthInput.collections.find((c) => c.name === g.collection)?.ownedModeIds === undefined),
+  'mode: the arm above ran with NO provenance stamp anywhere — the pre-#1581 behavior, which is what every file written before the stamp existed takes');
+
+// --- mode provenance (#1581): the stamp narrows the offer, its absence does not ---
+// A plan-owned `color` holding two stale modes: one the engine wrote (`legacy-dark`, stamped) and one the
+// designer added (`print`, not stamped). Built as its own input rather than folded into `synthInput`,
+// because the counts above are pinned and this arm is about which modes are OFFERED, not how many.
+const stampedInput: PruneInput = {
+  ...synthInput,
+  collections: [{
+    name: 'color',
+    variableNames: [`${ROOT}/color/text/primary`],
+    modes: modes('light', 'dark', 'print', 'legacy-dark'),
+    ownedModeIds: ['m0-light', 'm1-dark', 'm3-legacy-dark'],   // `m2-print` is deliberately absent: the designer's
+  }],
+  styles: styleNames({}),
+  plannedStyles: styleNames({}),
+  plannedModes: [{ collection: 'color', modes: ['light', 'dark'] }],
+};
+const stampedModes = (p: ReturnType<typeof computePrunePlan>): string[] =>
+  (p.modes.find((g) => g.collection === 'color')?.modes ?? []).map((m) => m.name);
+const stamped = computePrunePlan(stampedInput);
+ok(!stampedModes(stamped).includes('print'),
+  `mode provenance: a hand-added \`print\` mode is NOT offered once the collection carries the engine's stamp — the by-name pin, and the whole point of #1581 (offered: ${stampedModes(stamped).join(',') || 'none'})`);
+ok(stampedModes(stamped).join(',') === 'legacy-dark',
+  `mode provenance: …and the stale mode the engine DID write is still offered, so the stamp narrows the arm rather than disabling it (${stampedModes(stamped).join(',') || 'none'})`);
+// The paired negatives: the SAME file with the stamp absent, and with it present-but-empty, both offer
+// `print` again. Stated as assertions because they are what proves the stamp is doing the sparing above —
+// and because they are the fallback every pre-#1581 file relies on.
+const unstamped = computePrunePlan({
+  ...stampedInput,
+  collections: stampedInput.collections.map(({ ownedModeIds: _drop, ...c }) => c),
+});
+ok(stampedModes(unstamped).join(',') === 'print,legacy-dark',
+  `mode provenance: with NO stamp the same file offers BOTH stale modes, named, exactly as before #1581 (${stampedModes(unstamped).join(',') || 'none'}) — a file the engine has not re-applied must not become un-cleanable`);
+const emptyStamp = computePrunePlan({
+  ...stampedInput,
+  collections: stampedInput.collections.map((c) => ({ ...c, ownedModeIds: [] })),
+});
+ok(stampedModes(emptyStamp).join(',') === 'print,legacy-dark',
+  'mode provenance: an EMPTY stamp reads as no knowledge, not as "the engine owns nothing" — otherwise an unreadable stamp would silently spare every stale mode');
+ok(/color → legacy-dark/.test(prunePreviewSummary(stamped)),
+  'mode provenance: the offered mode is still NAMED in the review text — provenance informs the arm, it does not license it');
 
 // --- styles, four kinds ---
 ok(prunedStyles('text').includes('display/2xl'),
@@ -365,6 +416,97 @@ ok(realPlan.styles.length === 0 && realPlan.modes.length === 0,
   'real plans: a file whose styles and modes all match the plan prunes none of either');
 
 // =============================================================================================
+// STYLE PROVENANCE (#1577) — the description signature, against descriptions the ENGINE actually writes.
+//
+// The recognizer's patterns are hand-written in `prune-figma.ts`; the descriptions here come from the real
+// plan builders over three committed brands. Two independent derivations of the same claim, which is the
+// point: importing the emitter's own template into the recognizer would make it agree by construction and
+// stop being able to fail (docs/34 shape 2). If an emitter's prose moves, this arm goes red by name rather
+// than the arm silently recognizing nothing and the prune quietly losing the renamed-style case.
+// =============================================================================================
+/** The aurora brand and its breakpoint lever — shared by this arm and the CONFIG-SHRINK arm below, which
+ *  is the same shrink measured twice: here as a property of the DESCRIPTIONS, there end-to-end. */
+const auroraInput = exampleBrands['aurora'] as unknown as BrandInput;
+const withBps = (breakpoints: number[]): BrandInput =>
+  ({ ...auroraInput, layout: { ...((auroraInput as { layout?: object }).layout ?? {}), breakpoints } }) as BrandInput;
+
+const signatureBrands: { label: string; theme: Theme }[] = [
+  { label: 'aurora', theme: brandTheme(exampleBrands['aurora'] as unknown as BrandInput) },
+  { label: 'harbor', theme: brandTheme(exampleBrands['harbor'] as unknown as BrandInput) },
+  { label: 'nb', theme },
+];
+/** Every style the engine plans for a theme, per kind, as (name, description) — the four writers' rows. */
+const emittedStyles = (t: Theme): Record<StyleKind, { name: string; description: string }[]> => {
+  const sp = buildStylesPlan(t);
+  return {
+    text: buildTextStylePlan(t).map((r) => ({ name: r.name, description: r.description })),
+    effect: sp.effects.map((r) => ({ name: r.name, description: r.description })),
+    paint: sp.paints.map((r) => ({ name: r.name, description: r.description })),
+    grid: buildGridStylePlan(t).map((r) => ({ name: r.name, description: r.description })),
+  };
+};
+let swept = 0;
+const unrecognized: string[] = [];
+const crossMatched: string[] = [];
+for (const { label, theme: t } of signatureBrands) {
+  const emitted = emittedStyles(t);
+  for (const kind of STYLE_KINDS) {
+    const names = emitted[kind].map((r) => r.name);
+    for (const row of emitted[kind]) {
+      swept++;
+      if (!isEngineDescription(kind, row.description, names)) unrecognized.push(`${label} ${kind} ${row.name}`);
+      // KIND INDEPENDENCE, the same property the group namespace has: a grid description must not be read
+      // as an effect description. Four signatures, four surfaces, no pooling.
+      for (const other of STYLE_KINDS) {
+        if (other === kind) continue;
+        if (isEngineDescription(other, row.description, emitted[other].map((r) => r.name))) {
+          crossMatched.push(`${label} ${kind} ${row.name} read as ${other}`);
+        }
+      }
+    }
+  }
+}
+ok(swept > 100 && unrecognized.length === 0,
+  `style provenance: every one of the ${swept} styles the engine plans across ${signatureBrands.map((b) => b.label).join('/')} is recognized from its own description${unrecognized.length ? ` — MISSED ${unrecognized.slice(0, 4).join('; ')}` : ''}`);
+ok(crossMatched.length === 0,
+  `style provenance: and no kind's description is recognized as another kind's${crossMatched.length ? ` — ${crossMatched.slice(0, 4).join('; ')}` : ''} — four independent namespaces, as with the groups`);
+
+// The negative half, and it is the half that matters: a description a DESIGNER typed must not be
+// recognized, or the arm would offer hand-made styles for deletion. Each case names what makes it not the
+// engine's. `plannedText` gives the text vocabulary its shape-plus-vocabulary rule closes over.
+const plannedText = textPlan.map((r) => r.name);
+const handTyped: { kind: StyleKind; description: string; why: string }[] = [
+  { kind: 'grid', description: '', why: 'no description at all — the commonest hand-made style, and absent provenance is never a match' },
+  { kind: 'grid', description: 'My marketing grid — 12 columns, 24px gutter', why: 'a designer\'s own grid prose, close in subject and nothing like the template' },
+  { kind: 'grid', description: '4-column layout grid for the xs breakpoint — 16px gutter, 16px margin.', why: 'the emitter\'s OPENING clause with its closing sentence missing — a partial copy is not the template' },
+  { kind: 'effect', description: 'a soft glow for the hero card', why: 'hand-written effect prose' },
+  { kind: 'effect', description: 'shadow for cards', why: 'starts with `shadow` and stops there — the mode clause the emitter appends is the signature' },
+  { kind: 'paint', description: 'gradient for the hero banner', why: 'starts with `gradient` but carries none of the kind/stops/interpolation shape' },
+  { kind: 'text', description: 'body copy for the hero', why: 'starts with a planned group, but `copy`/`for`/`the`/`hero` are outside the plan\'s vocabulary' },
+  { kind: 'text', description: 'Heading', why: 'a single capitalised word — neither the shape nor the vocabulary' },
+  { kind: 'text', description: 'Display XL Strong', why: 'the engine\'s words in a designer\'s casing — the engine writes them lowercase' },
+];
+const falsePositives = handTyped.filter((c) => isEngineDescription(c.kind, c.description, c.kind === 'text' ? plannedText : emittedStyles(theme)[c.kind].map((r) => r.name)));
+for (const c of handTyped) {
+  ok(!falsePositives.includes(c),
+    `style provenance: a hand-typed ${c.kind} description is NOT recognized — ${c.why} ("${c.description}")`);
+}
+
+// THE TRAP, named. The obvious implementation compares a live description against the descriptions the
+// CURRENT plan would write. After a shrink the stranded styles carry descriptions naming breakpoints the
+// new plan does not have, so no planned description equals theirs — an exact match would spare exactly the
+// styles this arm exists to catch. The two assertions below are that trap, stated as facts about the real
+// plans: the stale description matches NO planned one, and is recognized anyway.
+const sixGridPlan = buildGridStylePlan(brandTheme(withBps([0, 480, 768, 1024, 1280, 1536])));
+const twoGridPlan = buildGridStylePlan(brandTheme(withBps([0, 768])));
+const staleXs = sixGridPlan.find((r) => r.name === 'Grid / xs')!;
+const twoGridDescriptions = new Set(twoGridPlan.map((r) => r.description));
+ok(!twoGridDescriptions.has(staleXs.description),
+  `style provenance TRAP: after a 6→2 shrink, the stranded \`Grid / xs\` description equals NO description the 2-breakpoint plan writes ("${staleXs.description.slice(0, 56)}…") — an exact-match recognizer spares it`);
+ok(isEngineDescription('grid', staleXs.description, twoGridPlan.map((r) => r.name)),
+  'style provenance TRAP: …and the TEMPLATE signature recognizes it anyway, against the current plan — which is the difference between catching a shrink\'s stale styles and sparing exactly them');
+
+// =============================================================================================
 // CONFIG-SHRINK ARM (#1570) — end-to-end, with the REAL executors writing the file.
 //
 // The owner's acceptance criterion, in three steps: apply a 6-breakpoint config; re-apply a 2-breakpoint
@@ -422,9 +564,7 @@ const asWritable = (shimRef: ShrinkShim, c: RColl): WritableColl => {
   return w;
 };
 
-const auroraInput = exampleBrands['aurora'] as unknown as BrandInput;
-const withBps = (breakpoints: number[]): BrandInput =>
-  ({ ...auroraInput, layout: { ...((auroraInput as { layout?: object }).layout ?? {}), breakpoints } }) as BrandInput;
+// `auroraInput` / `withBps` are defined with the STYLE PROVENANCE arm above — the same lever, measured twice.
 const sixTheme = brandTheme(withBps([0, 480, 768, 1024, 1280, 1536]));
 const twoTheme = brandTheme(withBps([0, 768]));
 
@@ -471,6 +611,41 @@ ok((shrinkPlan.styles.find((g) => g.kind === 'grid')?.names ?? []).join(',') ===
   `shrink: and exactly the four grid styles it stranded (${(shrinkPlan.styles.find((g) => g.kind === 'grid')?.names ?? []).join(',') || 'none'})`);
 ok(shrinkPlan.modes.length === 1,
   `shrink: no OTHER collection has a mode offered — the nine single-mode float axes are unchanged by a breakpoint change (${shrinkPlan.modes.map((g) => g.collection).join(',')})`);
+
+// --- the RENAMED stranded style (#1577), on the file the engine just wrote --------------------
+// The live test file's `Grid/xs` is this shape: an emitted `Grid / xs` a designer renamed, which drops it
+// out of the emitter's `Grid ` group and out of reach of the #1521 namespace. The descriptions below are
+// the ones the REAL `applyGridStylePlan` wrote onto the shim above, not strings composed here.
+const renamedTo = 'Layout grid — lg (renamed by hand)';
+const withRenamed = (keepDescriptions: boolean): PruneInput => ({
+  ...shrinkSnapshot,
+  styles: fileStyles({
+    grid: [
+      ...shrinkShim.gridStyles.map((s) => ({
+        name: s.name === 'Grid / lg' ? renamedTo : s.name,
+        description: keepDescriptions ? s.description : '',
+      })),
+      // A hand-made style in the same file, with a hand-typed description, so this arm cannot pass by
+      // admitting everything outside the group.
+      { name: 'Grid/wide', description: 'my own wide grid for marketing pages' },
+    ],
+  }),
+});
+const renamedPlan = computePrunePlan(withRenamed(true));
+const renamedGrid = renamedPlan.styles.find((g) => g.kind === 'grid');
+ok((renamedGrid?.names ?? []).includes(renamedTo),
+  `#1577 renamed: a stranded grid style the designer RENAMED out of the plan's group is offered anyway (offered ${(renamedGrid?.names ?? []).join(', ') || 'none'})`);
+ok((renamedGrid?.byProvenance ?? []).join(',') === renamedTo,
+  `#1577 renamed: …and it is the ONLY one admitted by its description — the other three are still in the \`Grid \` group (byProvenance: ${(renamedGrid?.byProvenance ?? []).join(', ') || 'none'})`);
+ok(!(renamedGrid?.names ?? []).includes('Grid/wide'),
+  '#1577 renamed: the hand-made `Grid/wide` in the same file is NOT offered — its description is not one the engine writes, and its group is not one the plan emits');
+ok(/renamed by hand/.test(prunePreviewSummary(renamedPlan)) && /description is one the engine wrote/.test(prunePreviewSummary(renamedPlan)),
+  '#1577 renamed: the review text NAMES the style and says the recognition came from its description — a rename means the name shown is the designer\'s own');
+// The paired negative, which is what proves the DESCRIPTION did the work above rather than something else
+// in the snapshot: strip the descriptions and the same renamed style is spared.
+const strippedGrid = computePrunePlan(withRenamed(false)).styles.find((g) => g.kind === 'grid');
+ok(!(strippedGrid?.names ?? []).includes(renamedTo) && (strippedGrid?.names ?? []).length === 3,
+  `#1577 renamed: with the descriptions stripped the same file spares it and offers only the three still in the group (${(strippedGrid?.names ?? []).join(', ') || 'none'}) — the provenance is doing the work`);
 // A breakpoint ladder is BOTH modes and variables: `ads/breakpoint/<name>` is one variable per rung, so
 // four of them are stranded too. They come out through the arm that has existed since #1521 — stated here
 // because it is what makes the file "clean", and because it is the one part of the shrink the pre-#1570
