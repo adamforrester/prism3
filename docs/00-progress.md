@@ -86,6 +86,69 @@ D1 and D2 port to `packages/engine/anatomy-figma.ts`; **D3 does not, and that is
 
 #1574's acceptance — *"`button-neutral` carries 9 properties + 882 refs like its siblings"* — **needs the owner's rebuild and cannot be produced from this lane.** `figma_execute`'s `code` parameter is the only channel into the sandbox (main-thread `fetch` is blocked against localhost, an external host and `figma.com` alike), and the smallest bundle carrying the real `figmaAnatomySet` + `applyComponentPlan` is ~160 KB; shipping the plans as data is worse (432 plans ≈ 3.3 MB). So: **rebuild `button-neutral` from the plugin and re-run the census.** If it still lands short, the next evidence to gather is the one thing missing here — a **surviving build report**, which argues for `setPluginData` on the set carrying the run's miss list. That is a design call, so it is held, not built.
 
+## (2026-09-22) — a shrinking config: modes reconciled by identity, and the prune extended to modes + styles (#1570)
+
+**STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Touches `apps/plugin/src/write-figma.ts` (the mode reconciliation), `apps/plugin/src/prune-figma.ts` (the detector + executor), `apps/plugin/src/main.ts` (the `prune()` snapshot), `apps/studio/src/main.ts` (the button's title), and two test files. **No `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**: the engine's emission is untouched, this is plugin-side reconciliation and deletion. Evidence: `drift` (regen `--check`) in sync, `lint-emission-version` 0 artifacts changed. Gate count **STANDS at 61** — both halves are new arms of `plugin-test`. Full `npm run verify`: **61/61 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY**. Closes #1570. Filed out of scope: **#1577**. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `tools/conformance-scan/`, TokenPress.
+
+── THE DEFECT: ONE POSITIONAL LINE, IN THREE PLACES ──────────────────────────────────────────────────────
+
+Three executors each carried the same block:
+
+```ts
+collection.renameMode(collection.modes[0].modeId, p.modes[0]);   // then add-or-reuse the rest by name
+```
+
+Positional and unconditional. It is correct exactly once — on the collection `createVariableCollection` just returned, whose single mode is called `Mode 1`. On a **re-apply after the config shrank** it is the bug: reduce `layout.breakpoints` from 6 to 2 and the plan's modes go `xs,sm,md,lg,xl,2xl` → `sm,md`, so the line renames the file's `xs` to `sm` **while a mode called `sm` is sitting beside it**. Measured on the live host (`Prism3 test file`, scratch collection, removed in a `finally`):
+
+| | modes after | `modes.find(name === 'sm')` resolves to |
+|---|---|---|
+| the pre-fix line | `sm, sm, md, lg, xl, 2xl` | **the renamed `xs`** |
+| `reconcileModes` | `xs, sm, md, lg, xl, 2xl` | the designer's own `sm`, same `modeId` |
+
+Figma allows the duplicate. Everything downstream is name-keyed — this file's own add-or-reuse loop, `read-figma.ts`, the conformance scan, the designer's mode dropdown — so one of the two `sm` modes becomes unreachable, and the new values land in the wrong one while the designer's layers keep resolving through the other.
+
+── THE FIX: CLAIM BY IDENTITY, AND A NARROW RENAME ───────────────────────────────────────────────────────
+
+`claimModes(modes, planned)` walks the planned names, matching each to an **unclaimed** live mode — so two modes called `sm` claim once and the second is left over. `reconcileModes` is three steps on top: claim, then rename, then add. The rename step is the decision worth recording, because my first draft had it wrong: "rename the first unclaimed mode into the first unmatched planned name" repairs the shrink *and* silently renames a designer's `print` mode on a config with no overlap at all. So the condition is deliberately narrow — **exactly one mode, and its name is not in the plan** — which is `Mode 1` on a fresh collection and nothing else. An apply ADDS and UPDATES (#479/#1152); renaming someone's mode is not ours to do. Verified on the host: a fresh collection's `Mode 1` is reused as `sm`, and a 6-mode collection gets no rename at all.
+
+It also **repairs a file the old code already damaged**: step 1 claims the first `sm`, and the second becomes a prune candidate.
+
+── WHY THE PRUNE ARM IS THE OTHER HALF OF THE SAME REPAIR, NOT A SEPARATE FEATURE ────────────────────────
+
+`VariableCollection` has `modes`, `renameMode`, `addMode`, `removeMode` — and that is all. Host-confirmed: `Object.keys` of its prototype yields `['defaultModeId', 'modes']`, `defaultModeId` throws `Cannot set property defaultModeId of #<VariableCollection> which has only a getter`, and there is no reorder call. So after a shrink the collection's default mode is still the stale `xs`, and the ONLY way back to a correct default is to **remove** the stale leading modes — which an apply must not do. Measured: default reads `xs` after the fixed re-apply, and `sm` the moment the four stale modes are pruned. The duplicate fix without the prune arm leaves the file half-repaired.
+
+So the Prune dialog (#1521, variables + stranded collections) grew two arms — owner-decided Option C, opt-in, no auto-delete on Apply:
+
+- **MODES** of a plan-owned collection — every mode `claimModes` does not claim, **the same function the writer uses**. A keep-set computed differently from the claim-set *is* #1570 in a new place, so `docs/34` shape 1 does not apply: the tests assert observable outcomes (a duplicate name, a surviving `modeId`, which mode the values land in), not that two expressions agree. Two guards, both pinned by name: plan-owned (a stranded collection is offered whole, modes with it) and **at least one claim** — which refuses to judge a collection this plan never wrote and guarantees the survivor Figma requires (host: `in removeMode: Could not delete last mode in collection`).
+- **STYLES, all four kinds** — `text`, `effect`, `paint`, `grid`. The dialog covered text only; a shrunk config strands grid styles too (#1480 emits one per breakpoint). The namespace is per kind, because the four are independent: a PAINT style called `shadow/legacy` is not in the effect plan's namespace just because the effect plan emits `shadow/*`. Pinned by name.
+
+**The residual, stated rather than defended: a mode has no provenance.** A variable carries the brand root, a style carries its group, a mode carries a bare name — so a hand-added `print` mode in a plan-owned collection is indistinguishable from an engine mode the config dropped, and it WILL be offered. No narrower guard exists, because the engine's mode vocabulary is brand-configurable (the breakpoint ladder IS the `layout` mode set). The mitigation is legibility: the modes arm is the only one whose items are **named** in the review sentence rather than counted, so the designer reads `layout → xs, lg, xl, 2xl` and cancels if one is theirs. Blast radius host-checked on a variable-bearing collection: `removeMode` drops that mode's entry from every variable in the collection, leaves the variables themselves and their other modes' values and aliases intact, and throws nothing.
+
+── THE TRIM I ADDED, THEN DELETED, AND WHAT IT COST ──────────────────────────────────────────────────────
+
+The grid emitter writes `Grid / ${bp}` — spaces around the separator — so `styleGroup` got a `.trim()` so `Grid ` and `Grid` would not read as two namespaces. **The mutation battery killed it: removing the trim failed nothing.** Both sides of the comparison come from the same emitter, so they match either way. What the trim *did* change was the one direction that matters: it pooled the emitter's `Grid ` with a designer's hand-made `Grid/wide` and put that style on the delete list. Deleted, and replaced with the opposite pin — `Grid/wide` is NOT offered, and re-adding the trim fails that assertion by name. **A guard that passes its own test but widens a delete set is worse than no guard.**
+
+The cost is real, and the host found it: the live file holds a **`Grid/xs`** — no spaces — carrying the engine's own description verbatim, i.e. an emitted style someone renamed. This rule leaves it behind, so a prune after a 6→2 shrink would not fully clean *that* file, and a re-Apply at 6 breakpoints creates `Grid / xs` beside it. Filed as **#1577** rather than fixed here: the fix is a provenance namespace (a style's `description`, which is strictly stronger for all four kinds) plus an owner decision about whether a designer's rename counts as drift. Not a character class, and not this PR's concern. Host probes confirmed Figma does not normalize style names in any direction — set once, set twice, renamed, all read back byte-identical — so the spelling was not lost on write.
+
+── VERIFICATION ─────────────────────────────────────────────────────────────────────────────────────────
+
+`test-write-float.ts` gained a CONFIG SHRINK arm (6bp applied, then 2bp applied to the SAME shim) and `test-prune.ts` was rebuilt around three arms: synthetic (the namespace policy), real-plan (the shipped NB plans, so `root` and the names are the engine's own), and an **end-to-end shrink** that drives the REAL `applyFloatPlan` + `applyGridStylePlan`, prunes the file they wrote, and asserts the owner's acceptance criterion directly — the pruned file's `layout` modes and grid styles ARE the current config's, and a second scan finds nothing stale.
+
+Six mutations, each failing its named assertion:
+
+| mutation | the assertion that went red |
+|---|---|
+| restore the positional `renameMode` | `#1570 shrink 6→2 creates NO duplicate mode name`, `… the plan's first mode \`sm\` exists exactly ONCE`, `… the 2-breakpoint values land in the designer's own \`sm\` mode` (+2 in `test-prune.ts`) |
+| drop the ≥1-claim guard | `mode: a plan-owned collection holding NONE of the plan's modes is left alone` |
+| pool the style namespace across kinds | `paint style: … \`shadow/hand-made\` is NOT [pruned], because \`shadow\` is a planned group for EFFECT styles only` |
+| re-add the `styleGroup` trim | `grid style: a hand-added \`Grid/wide\` … is NOT pruned` |
+| drop the plan-owned guard on modes | `mode: a STRANDED collection's modes are not offered separately …` |
+| overwrite instead of union `plannedModes` | `mode: modes declared by a SECOND plan for the same collection are NOT pruned` |
+
+The last one is the trap that made the union necessary: `core` is reconciled by **three** executors in one apply, and the font pass declares modes the float pass does not, so `computePrunePlan` unions every entry naming a collection and `main.ts` passes each plan's entry **separately**. A merge in the caller that lost one entry would offer that pass's modes for deletion.
+
+**What the host could NOT verify, and is the owner's click-through:** the plugin's own Apply and Prune buttons. `figma_execute` reaches the Figma API, not the built plugin, so what was measured live is every host semantic the fix rests on — the duplicate premise, the reconciliation, the default-mode follow, the last-mode floor, the absent reorder API, `removeMode` on a variable-bearing collection, and all four style getters plus a grid style's `.remove()`. The recipe left to run in the plugin: build at 6 breakpoints → Apply; reduce to 2 → re-Apply → the `layout` mode list should read `xs sm md lg xl 2xl` with one `sm`; then Prune → the dialog should name `layout → xs, lg, xl, 2xl` and count the four stale `Grid / *` styles and four `<root>/breakpoint/*` variables; confirm → `layout` left holding `sm, md`.
+
 ---
 
 ## (2026-09-22) — the live-host projection root: ONE stale snapshot, three reported symptoms (#1567, #1568)

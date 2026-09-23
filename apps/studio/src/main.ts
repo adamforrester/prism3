@@ -9267,8 +9267,10 @@ function renderBar(): void {
     // runs ~105s cold (#700), and nobody watches a rail page for that long.
     if (componentState) actions.append(renderApplyStatus(componentState, 'components'));
 
-    // PRUNE (#1521) — a secondary action beside Apply: remove the styles and variables a config change
-    // dropped. It never writes, only deletes, and only after the designer confirms the count in the
+    // PRUNE (#1521; modes + all four style kinds since #1570) — a secondary action beside Apply: remove
+    // the styles, modes and variables a config change dropped, which is the whole cleanup path for a
+    // config that SHRANK (6 breakpoints down to 2 strands four `layout` modes and four grid styles).
+    // It never writes, only deletes, and only after the designer confirms the count in the
     // dialog below — so the #479 / #1152 "never blind-delete on an apply" rule holds. Its verdict is its
     // own `.bar-seed` pill (a preview that finds nothing stale, or the outcome of a delete), never the
     // theme write's, for the same reason the component build keeps its own.
@@ -9281,7 +9283,7 @@ function renderBar(): void {
     // Disabled while a prune is in flight AND while a theme apply is pending — a prune reads the same
     // variables an apply writes, so overlapping the two would race a delete against a create.
     pruneBtn.disabled = !!pruneBusy || applyState === 'pending';
-    pruneBtn.title = 'Removes styles and variables this config no longer emits. Shows the count before deleting.';
+    pruneBtn.title = 'Removes the styles, modes and variables this config no longer emits. Shows the count before deleting, and names the modes.';
     pruneBtn.onclick = () => { pruneBusy = 'preview'; pruneVerdict = null; prunePreview = null; renderBar(); commit.postPrune(lastGoodInput, false); };
     actions.append(pruneBtn);
   }

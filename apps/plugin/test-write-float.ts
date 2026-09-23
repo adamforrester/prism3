@@ -9,7 +9,9 @@
  * `focus`/`opacity`/`layout`) materialise: all vars created, cross-collection aliases bound (space→core, size→…,
  * layout grid→space) with ZERO misses, opacity stored as 0–100, the `core` primitives hidden,
  * and a re-run is idempotent (+0 created, no duplicates). Also drives a wireframe brand to prove the
- * two-mode `radius` collection (every radius aliases `core/dimension/0` in the wireframe mode).
+ * two-mode `radius` collection (every radius aliases `core/dimension/0` in the wireframe mode). Since
+ * #1570 it also drives a CONFIG SHRINK — `layout.breakpoints` 6 → 2, re-applied to the same shim — which
+ * is the case the old positional `renameMode(modes[0], plan.modes[0])` turned into two modes named `sm`.
  *
  * Every variable name here carries the BRAND ROOT as its first segment (#1097), and aurora is an
  * engine-native brand, so the expected names are written out with the `ads/` root SPELLED — a literal,
@@ -142,6 +144,72 @@ const allWireToDim0 = radiusVars.every((v) => {
   return wfById.get(val.id)?.name === 'ads/core/dimension/0';
 });
 ok(radiusVars.length > 0 && allWireToDim0, 'wireframe mode: every radius aliases ads/core/dimension/0 (sharp corners)');
+
+// =============================================================================================
+// CONFIG SHRINK (#1570) — the same file re-applied after `layout.breakpoints` drops from 6 to 2.
+//
+// This is the sharp end of #1570, measured live: the executors used to rename mode[0] into the plan's
+// FIRST mode name unconditionally and positionally, so `xs` was renamed to `sm` while a mode called `sm`
+// was already sitting beside it. Figma allows it. The file ended with TWO modes named `sm`, one of them
+// unreachable to everything downstream (this file's own add-or-reuse loop, `read-figma`, the conformance
+// scan, the designer's own mode dropdown), and the new values landing in the wrong one.
+//
+// The pins below are by-name against BOTH halves of that: no duplicate name, and the DESIGNER'S existing
+// `sm` mode — held by modeId, captured before the shrink — is the one that receives the new values. The
+// second pin is the one a name-only test cannot make, because pre-fix the file really did have a mode
+// named `sm` holding stale values while another mode named `sm` held fresh ones.
+// =============================================================================================
+const auroraInput = exampleBrands['aurora'] as unknown as BrandInput;
+const withBps = (breakpoints: number[]): BrandInput =>
+  ({ ...auroraInput, layout: { ...((auroraInput as { layout?: object }).layout ?? {}), breakpoints } }) as BrandInput;
+const sixPlan = buildFloatWritePlan(brandTheme(withBps([0, 480, 768, 1024, 1280, 1536])));
+const twoPlan = buildFloatWritePlan(brandTheme(withBps([0, 768])));
+const sixLayout = sixPlan.find((p) => p.name === 'layout')!;
+const twoLayout = twoPlan.find((p) => p.name === 'layout')!;
+ok(sixLayout.modes.join(',') === 'xs,sm,md,lg,xl,2xl' && twoLayout.modes.join(',') === 'sm,md',
+  `#1570 premise: the shrink really moves the layout modes (${sixLayout.modes.join('/')} → ${twoLayout.modes.join('/')})`);
+
+const shrinkShim = new VariablesShim();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+await applyFloatPlan(sixPlan, shrinkShim as any);
+const shrinkLayout = shrinkShim.collections.find((c) => c.name === 'layout')!;
+// The designer's `sm` mode, by IDENTITY, taken while the config still had six breakpoints.
+const smIdBefore = shrinkLayout.modes.find((m) => m.name === 'sm')!.modeId;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+await applyFloatPlan(twoPlan, shrinkShim as any);
+
+const namesAfter = shrinkLayout.modes.map((m) => m.name);
+const duplicates = namesAfter.filter((n, i) => namesAfter.indexOf(n) !== i);
+ok(duplicates.length === 0,
+  `#1570 shrink 6→2 creates NO duplicate mode name (modes now ${namesAfter.join('/')}; duplicates: ${duplicates.join(',') || 'none'})`);
+ok(namesAfter.filter((n) => n === 'sm').length === 1,
+  '#1570 the plan’s first mode `sm` exists exactly ONCE — the pre-fix run renamed `xs` into a second `sm`');
+ok(shrinkLayout.modes.find((m) => m.modeId === smIdBefore)?.name === 'sm',
+  '#1570 the designer’s existing `sm` mode keeps its identity (same modeId, same name) — bindings survive the shrink');
+
+// The new values land in THAT mode, not in a renamed `xs` beside it. Only literal rows are checked:
+// pass B overwrites some with aliases, and an alias id is not the plan's number.
+const shrinkVars = new Map(
+  shrinkShim.vars.filter((v) => v.variableCollectionId === shrinkLayout.id).map((v) => [v.name, v] as const),
+);
+const smIndex = twoLayout.modes.indexOf('sm');
+let smMatch = 0;
+const smWrong: string[] = [];
+for (const row of twoLayout.create) {
+  const v = shrinkVars.get(row.name);
+  const got = v?.valuesByMode[smIdBefore];
+  if (typeof got !== 'number') continue;     // aliased in pass B — not a literal to compare
+  if (got === row.valuesByMode[smIndex]) smMatch++;
+  else smWrong.push(`${row.name} ${got} ≠ ${row.valuesByMode[smIndex]}`);
+}
+ok(smMatch > 0 && smWrong.length === 0,
+  `#1570 the 2-breakpoint values land in the designer’s own \`sm\` mode (${smMatch} literal rows match${smWrong.length ? `, WRONG: ${smWrong.slice(0, 3).join('; ')}` : ''}) — pre-fix they went to the renamed \`xs\``);
+
+// And the apply still DELETES nothing: the four modes the shrink stranded are all still there, for the
+// opt-in prune (#1521/#1570) to offer. `removeMode` is never called from an apply.
+const stranded = namesAfter.filter((n) => !twoLayout.modes.includes(n));
+ok(stranded.join(',') === 'xs,lg,xl,2xl',
+  `#1570 the apply strands the dropped modes rather than deleting them (${stranded.join('/')}) — deletion is the opt-in prune's`);
 
 console.log(`\nplugin FLOAT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

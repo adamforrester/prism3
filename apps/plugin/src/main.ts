@@ -308,7 +308,13 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
 };
 
 /**
- * OPT-IN PRUNE (#1521) — remove the styles/variables/collections the current config no longer emits.
+ * OPT-IN PRUNE (#1521, extended to modes + all four style kinds in #1570) — remove the styles, modes,
+ * variables and collections the current config no longer emits.
+ *
+ * #1570 widened the scope because a config that SHRINKS leaves drift the original three arms could not
+ * see: reducing `layout.breakpoints` from 6 to 2 strands four `layout` modes and four `Grid / *` styles,
+ * and neither had any cleanup path. The modes arm is also the only way the collection's DEFAULT mode
+ * becomes the plan's first again — Figma has no reorder API, so the stale leading modes have to go.
  *
  * The delete #479 / #1152 deliberately refused to do on a normal apply, done here because the designer
  * asked for it and, on `confirm`, saw the count first. It builds the SAME plans `applyTheme` builds
@@ -345,23 +351,54 @@ const prune = async (input: BrandInput, confirm: boolean): Promise<void> => {
       ...floatPlan.map((p) => p.name),
       ...fontPlan.map((p) => p.name),
     ];
-    const plannedTextStyles = textPlan.map((r) => r.name);
+    // The three non-text style surfaces (#1570) — the same builders `applyTheme` writes through, so
+    // "stale" means the same thing for a grid style as it does for a variable.
+    const stylesPlan = buildStylesPlan(theme);
+    const gridPlan = buildGridStylePlan(theme);
+    const plannedStyles = {
+      text: textPlan.map((r) => r.name),
+      effect: stylesPlan.effects.map((r) => r.name),
+      paint: stylesPlan.paints.map((r) => r.name),
+      grid: gridPlan.map((r) => r.name),
+    };
+    // Every plan's mode declaration, per collection — UNIONED by `computePrunePlan`, which is why each
+    // executor's entry is listed separately rather than merged here. `core` is written by three passes and
+    // the font pass can declare modes the float pass does not; a merge that lost one would offer that
+    // pass's modes for deletion. The colour collection's name comes from the emission (`$collection`), not
+    // from a literal, for the reason #1089 fixed twice in this file: the label must come from something
+    // that knows.
+    const plannedModes = [
+      ...[...new Set(colorFiles.color.map((c) => c.$collection))].map((collection) => ({ collection, modes: wp.color.modes })),
+      ...floatPlan.map((p) => ({ collection: p.name, modes: p.modes })),
+      ...fontPlan.map((p) => ({ collection: p.name, modes: p.modes })),
+    ];
     // The brand root every emitted variable carries — read positionally off any planned name (#1097), so
     // no prefix is spelled here. Empty (no planned vars) disables the namespace guard, which prunes nothing.
     const root = rootOf(plannedVariables[0] ?? '');
 
     const cols = await figma.variables.getLocalVariableCollectionsAsync();
     const vars = await figma.variables.getLocalVariablesAsync();
-    const styles = await figma.getLocalTextStylesAsync();
     const namesByCollectionId = new Map<string, string[]>();
     for (const c of cols) namesByCollectionId.set(c.id, []);
     for (const v of vars) namesByCollectionId.get(v.variableCollectionId)?.push(v.name);
     const snapshot: PruneInput = {
-      collections: cols.map((c) => ({ name: c.name, variableNames: namesByCollectionId.get(c.id) ?? [] })),
-      textStyles: styles.map((s) => s.name),
+      collections: cols.map((c) => ({
+        name: c.name,
+        variableNames: namesByCollectionId.get(c.id) ?? [],
+        // `modeId` as well as `name`: #1570 left files holding two modes called `sm`, and only the id
+        // distinguishes the reachable one from the ghost.
+        modes: c.modes.map((m) => ({ modeId: m.modeId, name: m.name })),
+      })),
+      styles: {
+        text: (await figma.getLocalTextStylesAsync()).map((s) => s.name),
+        effect: (await figma.getLocalEffectStylesAsync()).map((s) => s.name),
+        paint: (await figma.getLocalPaintStylesAsync()).map((s) => s.name),
+        grid: (await figma.getLocalGridStylesAsync()).map((s) => s.name),
+      },
       plannedVariables,
       plannedCollections,
-      plannedTextStyles,
+      plannedStyles,
+      plannedModes,
       root,
     };
     const plan = computePrunePlan(snapshot);
@@ -375,9 +412,12 @@ const prune = async (input: BrandInput, confirm: boolean): Promise<void> => {
       getLocalVariableCollectionsAsync: () => figma.variables.getLocalVariableCollectionsAsync(),
       getLocalVariablesAsync: () => figma.variables.getLocalVariablesAsync(),
       getLocalTextStylesAsync: () => figma.getLocalTextStylesAsync(),
+      getLocalEffectStylesAsync: () => figma.getLocalEffectStylesAsync(),
+      getLocalPaintStylesAsync: () => figma.getLocalPaintStylesAsync(),
+      getLocalGridStylesAsync: () => figma.getLocalGridStylesAsync(),
     };
     const res = await applyPrunePlan(plan, pruneApi);
-    const removed = res.variables + res.collections + res.textStyles;
+    const removed = res.variables + res.collections + res.modes + res.styles;
     postToUi({ type: 'prune-result', ok: res.misses.length === 0, applied: true, count: removed, summary: pruneAppliedSummary(res) });
   } catch (e) {
     // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch.

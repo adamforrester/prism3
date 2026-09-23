@@ -166,6 +166,91 @@ export const strandedCollections = (
 };
 
 /**
+ * Which of a collection's EXISTING modes a plan claims — by STABLE IDENTITY, pure, no mutation (#1570).
+ *
+ * The join is the modeId, not the position and not the name. A planned name is matched against the first
+ * still-unclaimed mode carrying it, so a mode a designer has bound layers to keeps its id (and therefore
+ * every binding) across a re-apply, and a name the file holds TWICE yields exactly one claim — the other
+ * copy is unreachable to a name-keyed writer and is a prune candidate rather than a second target.
+ *
+ * Shared by `reconcileModes` (which claims, then renames/adds the remainder) and the prune detector
+ * (which proposes exactly the UNclaimed modes). One rule, two consumers, deliberately: a keep-set
+ * computed differently from the claim-set is the #1570 defect in a new place — the writer would target a
+ * mode the detector thinks is stale, or the detector would offer to delete the mode the writer just wrote.
+ *
+ * Keyed by planned NAME and valued by modeId — and the value is what matters: with duplicates present, a
+ * set of names cannot say WHICH copy survived, so the prune arm reads `new Set(claimModes(…).values())`
+ * and calls everything outside it stale. A planned name with no match is simply absent from the map.
+ */
+export const claimModes = (modes: readonly VarMode[], planned: readonly string[]): Map<string, string> => {
+  const claimed = new Map<string, string>();
+  const taken = new Set<string>();
+  for (const name of planned) {
+    const m = modes.find((x) => x.name === name && !taken.has(x.modeId));
+    if (m) { claimed.set(name, m.modeId); taken.add(m.modeId); }
+  }
+  return claimed;
+};
+
+/**
+ * Reconcile a collection's modes against the plan's — the fix for #1570's DUPLICATE MODE.
+ *
+ * Every executor in this file used to do the same three lines inline:
+ *
+ *     collection.renameMode(collection.modes[0].modeId, p.modes[0]);   // positional, unconditional
+ *     …then add-or-reuse-by-name for modes[1…]
+ *
+ * which is correct exactly once — on a FRESH collection, where mode[0] is Figma's `Mode 1` and renaming
+ * it into the plan's first mode is what makes the default mode the plan's first. On a RE-APPLY after the
+ * config SHRANK it is wrong, and wrong in the worst available way. Reducing `layout.breakpoints` from 6
+ * to 2 moves the plan's modes from `xs,sm,md,lg,xl,2xl` to `sm,md`: the rename fires on mode[0] (`xs`)
+ * with the plan's new first name (`sm`) while a mode called `sm` is already sitting beside it, and Figma
+ * allows it. The file ends with TWO modes named `sm`, one of them permanently unreachable — everything
+ * downstream (this file's own add-or-reuse loop, `read-figma`, the conformance scan, a designer's mode
+ * dropdown) is keyed by NAME. `md` then resolves to the pre-existing `md`, so the new values land there
+ * while `lg`/`xl`/`2xl` keep values from a config that no longer exists. Measured live, #1570.
+ *
+ * The rule here, in order:
+ *
+ *   1. CLAIM every planned name that already exists, by identity (`claimedModeIds`). Bindings survive.
+ *   2. RENAME — only on a collection that is FRESH, spelled as the one condition that is actually
+ *      checkable here: it holds exactly ONE mode and that mode's name is not in the plan. That is what
+ *      `createVariableCollection` hands back (`Mode 1`), and renaming it is what makes the collection's
+ *      default mode the plan's first. Anything else is left alone, which is both the #1570 fix and this
+ *      executor's stated posture: an apply ADDS and UPDATES, so silently renaming a mode a designer's
+ *      layers resolve through is not ours to do. On the 6→2 shrink, step 1 has already claimed `sm` and
+ *      `md`, the collection holds six modes, and no rename happens at all.
+ *   3. ADD whatever is still unmatched.
+ *
+ * It also REPAIRS an already-damaged file rather than needing one: given two modes named `sm`, step 1
+ * claims the first, and the second becomes an unclaimed mode the Prune dialog can offer.
+ *
+ * **What this cannot do, stated because the prune arm depends on it.** Figma's API has `renameMode`,
+ * `addMode` and `removeMode` but NO reorder, and `defaultModeId` is readonly. So on a shrink the
+ * collection's default mode stays whatever it was (`xs`, now stale) — the only way the plan's first mode
+ * becomes the default again is to REMOVE the stale leading modes, which is the opt-in prune (#1570
+ * Option C), never something an apply does silently. The duplicate fix and the prune arm are two halves
+ * of one repair for that reason.
+ */
+export const reconcileModes = (collection: VarCollection, planned: readonly string[]): Record<string, string> => {
+  // Step 1 — the claims, by identity. The same call the prune detector makes.
+  const modeIds: Record<string, string> = {};
+  for (const [name, modeId] of claimModes(collection.modes, planned)) modeIds[name] = modeId;
+  // Step 2 — the fresh-collection rename, under the one-mode/unplanned-name condition above.
+  const unmatched = planned.filter((n) => !(n in modeIds));
+  const only = collection.modes.length === 1 ? collection.modes[0] : undefined;
+  if (unmatched.length && only && !planned.includes(only.name)) {
+    collection.renameMode(only.modeId, unmatched[0]);
+    modeIds[unmatched[0]] = only.modeId;
+  }
+  // Step 3 — add the rest.
+  for (const name of planned) {
+    if (!(name in modeIds)) modeIds[name] = collection.addMode(name);
+  }
+  return modeIds;
+};
+
+/**
  * The AXIS a plan owns, as the label its orphan report carries (#1097).
  *
  * `core` is written by three executors, so a report labeled `core` from any one of them reads as a
@@ -385,13 +470,8 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
   const { modes, create, aliases } = plan.color;
   const col = await upsertCollection(vars, 'color', create.map((r) => r.name), mig);
   const colPreExisting = [...col.byName.keys()];   // snapshot before creates (and after migration)
-  // Mode[0] is the collection's initial mode (rename it); the rest are added or reused by name.
-  col.collection.renameMode(col.collection.modes[0].modeId, modes[0]);
-  const modeIds: Record<string, string> = { [modes[0]]: col.collection.modes[0].modeId };
-  for (let i = 1; i < modes.length; i++) {
-    const existing = col.collection.modes.find((m) => m.name === modes[i]);
-    modeIds[modes[i]] = existing ? existing.modeId : col.collection.addMode(modes[i]);
-  }
+  // Modes by stable identity — claim, then rename only a fresh collection, then add (#1570).
+  const modeIds = reconcileModes(col.collection, modes);
   let colorCreated = 0;
   for (const row of create) {
     let v = col.byName.get(row.name);
@@ -480,7 +560,7 @@ export type FloatApplyResult = {
  * Materialise the FLOAT-variable axes into `figma.variables` (#146) — `core/dimension`, `space`,
  * `radius`, `size`, `border-width`, `focus`, `opacity`, and `layout`. Runs the SAME two-pass shape
  * as the colour `applyWritePlan`, generalised over N collections:
- *   • pass A — per collection: upsert, set up its modes (rename mode[0], add/reuse the rest by name),
+ *   • pass A — per collection: upsert, reconcile its modes by stable identity (`reconcileModes`, #1570),
  *     then create-or-update each FLOAT var (scopes, description, hidden, literal per-mode values).
  *   • pass B — build ONE global name→Variable map across ALL float collections (the cross-collection
  *     aliases: space→dimension, size→dimension/space, radius→dimension, layout grid→space), then bind
@@ -502,13 +582,9 @@ export const applyFloatPlan = async (
   for (const p of plans) {
     const { collection, byName } = await upsertCollection(vars, p.name, p.create.map((r) => r.name), mig);
     const preExisting = [...byName.keys()];   // snapshot before creates — see applyVarCollectionPlan
-    // Mode[0] is the collection's initial mode (rename it); the rest are added or reused by name.
-    collection.renameMode(collection.modes[0].modeId, p.modes[0]);
-    const modeIds: Record<string, string> = { [p.modes[0]]: collection.modes[0].modeId };
-    for (let i = 1; i < p.modes.length; i++) {
-      const existing = collection.modes.find((m) => m.name === p.modes[i]);
-      modeIds[p.modes[i]] = existing ? existing.modeId : collection.addMode(p.modes[i]);
-    }
+    // Modes by stable identity (#1570). `layout` is the collection this matters most for: its modes ARE
+    // the breakpoint ladder, so shrinking `layout.breakpoints` is what used to duplicate a mode name.
+    const modeIds = reconcileModes(collection, p.modes);
     modeIdsByCollection.set(p.name, modeIds);
 
     let created = 0;
@@ -620,12 +696,9 @@ export const applyVarCollectionPlan = async (
     // the fact would be existing+created, which still happens to give the right answer today only
     // because created names are by definition planned. Snapshotting says what we mean.
     const preExisting = [...byName.keys()];
-    collection.renameMode(collection.modes[0].modeId, p.modes[0]);
-    const modeIds: Record<string, string> = { [p.modes[0]]: collection.modes[0].modeId };
-    for (let i = 1; i < p.modes.length; i++) {
-      const existing = collection.modes.find((m) => m.name === p.modes[i]);
-      modeIds[p.modes[i]] = existing ? existing.modeId : collection.addMode(p.modes[i]);
-    }
+    // Modes by stable identity (#1570) — `core` is reconciled by three executors in one apply, and this
+    // is the one that may declare MORE modes than the float pass did (`Default` + any font modes).
+    const modeIds = reconcileModes(collection, p.modes);
     modeIdsByCollection.set(p.name, modeIds);
 
     let created = 0;
