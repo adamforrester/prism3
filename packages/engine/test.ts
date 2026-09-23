@@ -8293,6 +8293,83 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `#1532: an out-of-range override is rounded + clamped to [4,24] (never a degenerate grid)${clampWrong.length ? ` — ${clampWrong.join(', ')}` : ''}`);
 }
 
+// (19f) #1593 — PER-BREAKPOINT GUTTER + MARGIN OVERRIDES. `layout.gutterOverrides` / `layout.marginOverrides`
+// (keyed by breakpoint name, like #1532's columnOverrides) let a brand pin a breakpoint's gutter/margin over
+// the GUTTER_PX/MARGIN_PX ladder. UNLIKE columns (rounded + clamped), an override must be a SPACING-SCALE
+// STEP: gutter and margin emit as aliases to space/* (grid/gutter·grid/margin, emit-figma-dims + tree.ts's
+// gridSpaceAlias), so an off-ladder value has no space token to alias and is REJECTED by name (`resolveGap`).
+// The scale reaches space/050 = 4px, so a 4px mobile gutter (the concrete NB case) is reachable rather than
+// flooring at the derived 16px.
+//
+// INDEPENDENCE (docs/34 shape 1). EXPECTED is HAND-AUTHORED from the documented contract — NB's default
+// 5-floor gutter [16,16,24,24,32] and margin [16,24,24,32,48] (theme.ts GUTTER_PX/MARGIN_PX sliced to 5),
+// the override rule (a set on-ladder step wins, unset keeps the ladder), and the space KEY for 4px read from
+// the SCALE (spaceScale(SPACE_BASE)) — never by calling buildLayout/resolveGap. ACTUAL is read from the
+// EMITTED surfaces: the Figma Grid Styles (#1480 — the px a brand's grid ships) AND the DTCG grid node's
+// alias $value (the space token grid/gutter points at), so the arms see the whole derive→emit path.
+//
+// MUTATION REGISTER (docs/34: a gate that cannot see its subject cannot fail). Applied to the SUBJECT, the
+// suite re-run, the named assertion confirmed among the failures, then reverted:
+//   M1 (override application) `buildLayout`'s `resolveGap(gutterOverrides[b.name], …)` → the ladder value
+//      (ignore the map). sm's emitted gutter falls back to 16 ≠ 4 AND its DTCG alias stays {…space.200}, so
+//      the APPLY and ALIAS arms fail BY NAME while unset breakpoints stay green.
+//   M2 (on-ladder guard) `resolveGap`'s off-ladder throw → return the raw px. The off-ladder 5px no longer
+//      throws, so the THROW arm fails BY NAME.
+{
+  const BASE: BrandInput = { id: 'gapovr', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
+  // NB's default 5-floor gutter/margin ladders, hand-authored from theme.ts's GUTTER_PX/MARGIN_PX sliced to 5.
+  const GUT_LADDER: Record<string, number> = { sm: 16, md: 16, lg: 24, xl: 24, '2xl': 32 };
+  const MAR_LADDER: Record<string, number> = { sm: 16, md: 24, lg: 24, xl: 32, '2xl': 48 };
+  // The space key 4px snaps to — read from the SCALE, not asserted as a literal '050'.
+  const key4 = spaceScale(SPACE_BASE).find((s) => s.px === 4)?.key;
+  ok(key4 !== undefined, `#1593: 4px is a real spacing step (space/${key4}) — the NB mobile-gutter target`);
+
+  // ACTUAL from the emitted Grid Styles, keyed by breakpoint — { bp: {gutter, margin} }.
+  const emittedGaps = (layout?: BrandInput['layout']): Record<string, { gutter: number; margin: number }> => {
+    const g = buildFigmaGridStyles(brandTheme({ ...BASE, layout: layout ?? {} } as BrandInput));
+    const out: Record<string, { gutter: number; margin: number }> = {};
+    for (const s of g.styles) out[s.name.replace('Grid / ', '')] = { gutter: s.layoutGrids[0].gutterSize, margin: s.layoutGrids[0].offset };
+    return out;
+  };
+  // ACTUAL alias: the DTCG grid node's gutter $value for a bp (the space token grid/gutter aliases).
+  const gutterAlias = (bp: string, layout: BrandInput['layout']): { root: string; value: unknown } => {
+    const { tree } = buildTree(brandTheme({ ...BASE, layout } as BrandInput));
+    const root = Object.keys(tree)[0];
+    return { root, value: (tree as any)[root].grid[bp].gutter.$value };
+  };
+
+  // Baseline: no override → emitted gutter/margin ARE the ladders (proves the oracle matches the shipped floor).
+  const base = emittedGaps();
+  const baseBad = Object.keys(GUT_LADDER).filter((bp) => base[bp].gutter !== GUT_LADDER[bp] || base[bp].margin !== MAR_LADDER[bp]);
+  ok(baseBad.length === 0,
+    `#1593: no override → emitted per-breakpoint gutter [${Object.values(GUT_LADDER).join(',')}] + margin [${Object.values(MAR_LADDER).join(',')}]${baseBad.length ? ` — OFF: ${baseBad.join(', ')}` : ''}`);
+
+  // OVERRIDE (M1): pin sm's gutter to 4px (the NB mobile case, below the 16px floor) + lg's margin to 16px.
+  const over = emittedGaps({ gutterOverrides: { sm: 4 }, marginOverrides: { lg: 16 } });
+  ok(over.sm.gutter === 4, `#1593: a 4px gutter override on sm wins over the 16px ladder in the EMITTED grid (got ${over.sm.gutter})`);
+  ok(over.lg.margin === 16, `#1593: a margin override on lg wins over the ${MAR_LADDER.lg}px ladder (got ${over.lg.margin})`);
+  // Every UNSET gutter/margin keeps its ladder value.
+  const held = Object.keys(GUT_LADDER).filter((bp) => (bp !== 'sm' && over[bp].gutter !== GUT_LADDER[bp]) || (bp !== 'lg' && over[bp].margin !== MAR_LADDER[bp]));
+  ok(held.length === 0, `#1593: every UNSET breakpoint keeps its gutter/margin ladder value${held.length ? ` — MOVED: ${held.join(', ')}` : ''}`);
+
+  // ALIAS (M1, second face): sm's 4px gutter aliases {root.space.050} in the DTCG — the reason snap-to-ladder
+  // was chosen (an off-ladder px would have no space token to point at).
+  const a = gutterAlias('sm', { gutterOverrides: { sm: 4 } });
+  ok(a.value === `{${a.root}.space.${key4}}`,
+    `#1593: an on-ladder 4px gutter override emits as an ALIAS to space/${key4} (got ${JSON.stringify(a.value)})`);
+
+  // THROW (M2): an OFF-LADDER override is rejected by name at build. 5px is not a spacing step at base 8.
+  let threw: string | null = null;
+  try { brandTheme({ ...BASE, layout: { gutterOverrides: { md: 5 } } } as BrandInput); } catch (e) { threw = (e as Error).message; }
+  ok(threw !== null && /gutterOverrides/.test(threw) && /md/.test(threw),
+    `#1593: an off-ladder gutter override (5px) THROWS by name (naming gutterOverrides + the breakpoint)${threw === null ? ' — did NOT throw' : ` — got: ${threw}`}`);
+  // A margin off-ladder value throws the same way (the marginOverrides map runs the same guard).
+  let threwM: string | null = null;
+  try { brandTheme({ ...BASE, layout: { marginOverrides: { sm: 7 } } } as BrandInput); } catch (e) { threwM = (e as Error).message; }
+  ok(threwM !== null && /marginOverrides/.test(threwM),
+    `#1593: an off-ladder margin override (7px) THROWS naming marginOverrides${threwM === null ? ' — did NOT throw' : ''}`);
+}
+
 // (20) EMIT-FIGMA MODE OPT-OUT (post-#42 follow-up; #45 audit; reviewer flag on #46).
 // BrandInput.modes lets a brand ship any subset of {light, dark, hc-light, hc-dark}.
 // emit-figma's colour axis previously hardcoded all four; a light-only brand's

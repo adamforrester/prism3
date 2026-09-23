@@ -575,7 +575,16 @@ export type BrandInput = {
      *  `buildLayout` assigns from the count). A set entry wins over the 4/8/…/base ladder for that
      *  breakpoint; an unset breakpoint keeps the ladder value. Clamped to the base `columns` slider
      *  bounds (4..24, rounded) so an out-of-range authored value can never emit a degenerate grid. */
-    columnOverrides?: Record<string, number> };
+    columnOverrides?: Record<string, number>;
+    /** Per-breakpoint GUTTER / MARGIN OVERRIDES, keyed by breakpoint name (like `columnOverrides`).
+     *  A set entry wins over the `GUTTER_PX` / `MARGIN_PX` ladder for that breakpoint; an unset one
+     *  keeps the ladder value. Unlike columns, a set value is validated ON-LADDER (THROW off-ladder,
+     *  #1593): gutter/margin emit as aliases to `space/*` (`grid/gutter`·`grid/margin`), so a value
+     *  MUST be a real spacing-scale step (px) or the alias would have no space token to point at.
+     *  The scale reaches down to `space/050`=4px (and `025`/`0`), which is how a 4px mobile gutter
+     *  becomes reachable rather than flooring at the derived 16px. */
+    gutterOverrides?: Record<string, number>;
+    marginOverrides?: Record<string, number> };
   /** Gradient axis lever — OPT-IN (off by default; most systems abstain and
    *  gradients are contextual). `true` ships one default brand gradient
    *  (primary.600→primary.350, linear); an explicit array ships exactly those;
@@ -618,7 +627,7 @@ export type BrandInputAuthored =
     neutral: { hue: number | string; chroma: number | string; anchor?: OKLCH; auto?: boolean };
     radiusScale?: number | string;
     shadow?: { softness?: number | string; tint?: { hue?: number; amount?: number } };
-    layout?: { breakpoints?: number[]; columns?: number; containerMax?: number | string; containerNarrow?: number | string; columnOverrides?: Record<string, number> };
+    layout?: { breakpoints?: number[]; columns?: number; containerMax?: number | string; containerNarrow?: number | string; columnOverrides?: Record<string, number>; gutterOverrides?: Record<string, number>; marginOverrides?: Record<string, number> };
     /** Cross-cutting brand traits, resolved by `vocabulary.ts`. Fills only levers left absent. */
     personality?: string[];
   };
@@ -1787,6 +1796,22 @@ const resolveColumns = (override: number | undefined, ladder: number): number =>
   return Math.max(COLUMN_MIN, Math.min(COLUMN_MAX, Math.round(override)));
 };
 
+// The spacing-scale px set gutter/margin overrides SNAP to (#1593). Built once from the locked base
+// (`SPACE_BASE`), the same scale `tree.ts`'s `spaceKeyOf` aliases against, so any px this set admits is
+// guaranteed to have a `space/*` token for `grid/gutter`·`grid/margin` to alias — the whole reason the
+// override is snap-to-ladder rather than free px. Reaches down to `space/050`=4px (and `025`=2px, `0`).
+const SPACE_PX_LADDER = spaceScale(SPACE_BASE).map((s) => s.px).sort((a, b) => a - b);
+const SPACE_PX_SET = new Set(SPACE_PX_LADDER);
+// A per-breakpoint gutter/margin override wins over the ladder for that breakpoint; an unset/blank entry
+// keeps the ladder value. Unlike columns (clamped), an off-ladder value is REJECTED by name: only a real
+// spacing step can alias `space/*`, so a free px is a mistake to surface at build, not to silently coerce.
+const resolveGap = (override: number | undefined, ladder: number, field: string, bp: string): number => {
+  if (override === undefined || override === null) return ladder;
+  if (!Number.isFinite(override) || !SPACE_PX_SET.has(override))
+    throw new Error(`layout.${field}.${bp}: ${override}px is not a step on the spacing scale (${SPACE_PX_LADDER.join(', ')}) — gutter and margin snap to the ladder so they can alias space/*.`);
+  return override;
+};
+
 const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   const floors = input.breakpoints ?? [0, 768, 1024, 1440, 1920];
   const base = input.columns ?? 12;
@@ -1796,10 +1821,12 @@ const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   // column ladder: smallest = 4, next = 8, top reaches the base count.
   const cols = (i: number): number => i === 0 ? Math.min(4, base) : i === n - 1 ? base : i === 1 ? Math.min(8, base) : base;
   const overrides = input.columnOverrides ?? {};
+  const gutterOverrides = input.gutterOverrides ?? {};
+  const marginOverrides = input.marginOverrides ?? {};
   const grid: GridStep[] = breakpoints.map((b, i) => ({
     bp: b.name, columns: resolveColumns(overrides[b.name], cols(i)),
-    gutterPx: GUTTER_PX[Math.min(i, GUTTER_PX.length - 1)],
-    marginPx: MARGIN_PX[Math.min(i, MARGIN_PX.length - 1)],
+    gutterPx: resolveGap(gutterOverrides[b.name], GUTTER_PX[Math.min(i, GUTTER_PX.length - 1)], 'gutterOverrides', b.name),
+    marginPx: resolveGap(marginOverrides[b.name], MARGIN_PX[Math.min(i, MARGIN_PX.length - 1)], 'marginOverrides', b.name),
   }));
   return { breakpoints, grid, baseColumns: base, containerMax: input.containerMax ?? 1440, containerNarrow: input.containerNarrow ?? 720 };
 };
