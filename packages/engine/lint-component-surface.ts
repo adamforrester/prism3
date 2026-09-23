@@ -178,8 +178,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
 import { componentDefs } from './components/index';
-import { figmaAnatomySet, planComponentName, planStamp } from './anatomy-figma';
-import type { AnatomyPlan } from './anatomy-figma';
+import { figmaAnatomySet, planComponentName, planStamp, applyWeightIntent, DEFAULT_WEIGHT_AVAILABILITY } from './anatomy-figma';
+import type { AnatomyPlan, WeightAvailability } from './anatomy-figma';
 import type { ComponentDef } from './component-schema';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -252,9 +252,28 @@ const surfaceOf = (def: ComponentDef): Surface => {
   return { members: plans.length, sha256: createHash('sha256').update(rows.join('\n')).digest('hex') };
 };
 
+// BRAND-CONDITIONAL SURFACE (#1602). A def whose weight axis carries intents (`weightIntent`) projects a
+// DIFFERENT surface per brand — `field-label` resolves `bold` to `emphasis` on a Medium-heaviest brand, and
+// DROPS the weight axis entirely on a single-body-weight one. The default projection (the plain `<id>`
+// entry) cannot see that, because `applyWeightIntent` under the default availability is the identity. So for
+// each weight-intent def this gate ALSO records its surface under canonical availability SCENARIOS, keyed
+// `<id>@<scenario>`. The scenarios are ENGINE-defined, not brand-derived, so this stays deterministic and
+// brand-independent as an ARTIFACT while still pinning the brand-conditional BEHAVIOR: `body-emphasis` is
+// the NB shape (bold → emphasis), `body-single` exercises the axis collapse (24 → 12). A change to the
+// resolution or collapse rule moves one of these rows and forces an ENGINE_VERSION bump (arm B), which the
+// default-only baseline could not do. Real-brand coverage is `test.ts`'s #1601 cross-check; this pins shape.
+const BRAND_SURFACE_CONFIGS: { id: string; avail: WeightAvailability }[] = [
+  { id: 'body-emphasis', avail: { ...DEFAULT_WEIGHT_AVAILABILITY, body: ['default', 'emphasis'] } },
+  { id: 'body-single', avail: { ...DEFAULT_WEIGHT_AVAILABILITY, body: ['default'] } },
+];
+
 const liveDefs = (): Record<string, Surface> => {
   const out: Record<string, Surface> = {};
-  for (const def of componentDefs) out[def.id] = surfaceOf(def);
+  for (const def of componentDefs) {
+    out[def.id] = surfaceOf(def);
+    if (def.weightIntent)
+      for (const { id, avail } of BRAND_SURFACE_CONFIGS) out[`${def.id}@${id}`] = surfaceOf(applyWeightIntent(def, avail));
+  }
   return out;
 };
 
@@ -286,10 +305,13 @@ const NOTE =
   'ENGINE_VERSION has already moved — a gate allowed to rewrite what it reads has no memory. Per def: ' +
   'the member count of the DEFAULT Figma projection and a sha256 over its sorted ' +
   '`planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects ' +
-  'no set. Brand-independent: figmaAnatomySet takes a def and no theme, so this moves when the engine ' +
-  'moves and not when a brand input does. It records no engine version of its own on purpose — a pure ' +
-  'value change bumps the engine and moves no component surface. A failure here is a CHANGED ' +
-  'projection: read the diff, decide whether the change was intended, bump ENGINE_VERSION, then accept.';
+  'no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def ' +
+  'with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` ' +
+  'rows record the surface under canonical availability scenarios (body-emphasis = NB\'s bold→emphasis, ' +
+  'body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. It ' +
+  'records no engine version of its own on purpose — a pure value change bumps the engine and moves no ' +
+  'component surface. A failure here is a CHANGED projection: read the diff, decide whether the change ' +
+  'was intended, bump ENGINE_VERSION, then accept.';
 
 const serialize = (b: Baseline): string => `${JSON.stringify(b, null, 2)}\n`;
 

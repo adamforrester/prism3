@@ -23,8 +23,13 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames } from './component-schema';
+import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape } from './scale';
+// #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
+// weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
+// nothing back from here (no cycle); `theme.ts` already bundles into the plugin alongside this file.
+import { WEIGHT_ROLE_ORDER, TYPE_WEIGHTS_DEFAULT } from './theme';
+import type { TypeGroup, WeightRoleName } from './theme';
 // The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
 // plugin sandbox, which has no filesystem — see `emit-icons.ts`'s header.
@@ -1643,6 +1648,136 @@ export const applyControlShape = (def: ComponentDef, shape: ControlShape): Compo
     Object.entries(def.tokens).map(([k, ref]) => [k, ref === ROUNDED_RADIUS_RUNG ? target : ref]),
   );
   return { ...def, tokens };
+};
+
+// ── WEIGHT INTENT (#1602) ───────────────────────────────────────────────────────────────────────
+//
+// A component that varies by weight declares an INTENT — `regular`, `bold` — and the BRAND decides
+// what that intent resolves to, exactly as `controlShape` above lets the brand decide a corner. Two
+// surfaces split here (research in #1599/#1601): the numeric `font.weight-role.*` primitives are a
+// guaranteed 5-role core, but the TEXT STYLES a category ships are brand-configurable via
+// `typography.weights`. NB ships `body: [default, emphasis]` — its heaviest body cut is Medium/500, a
+// deliberate choice — so a def that hard-bound `type.body.*.strong` named a style NB never emits and
+// resolved to nothing at paste time (#1601, the 252 discards). Resolving by intent instead of by role
+// name is what stops Prism3 fabricating a weight a brand does not want.
+
+/** The weight roles a brand emits per category — `Partial` because a brand binds only some groups.
+ *  Produced by `weightAvailability` (theme.ts) from the emitted composites; `TYPE_WEIGHTS_DEFAULT` is
+ *  the vanilla-brand stand-in a themeless caller (every gate/test that projects a def alone) gets. */
+export type WeightAvailability = Partial<Record<TypeGroup, readonly WeightRoleName[]>>;
+
+/** The availability a caller with no brand in hand resolves against — the pre-override defaults. A def
+ *  authored to bind its DEFAULT-brand role (`field-label` binds `strong` for `bold`, `default` for
+ *  `regular`) is the identity under this, which is what keeps `figmaAnatomySet(def)` — called by seven
+ *  gates and the studio with a def and no theme — byte-identical to before #1602. */
+export const DEFAULT_WEIGHT_AVAILABILITY: WeightAvailability = TYPE_WEIGHTS_DEFAULT;
+
+/**
+ * One weight INTENT → the concrete role a brand resolves it to, off `WEIGHT_ROLE_ORDER`
+ * (`subtle < default < emphasis < strong < max`) and the roles the brand actually SHIPS for the
+ * category (`avail`). Owner-locked (#1602, 2026-09-23):
+ *
+ *   · `regular` → the brand's `default` body role (the reading weight).
+ *   · `bold`    → the brand's HEAVIEST available role AT OR ABOVE `default` — "the boldest the brand
+ *                 offers", not "one step above default". NB `[default, emphasis]` → `emphasis`; a
+ *                 default brand `[default, strong]` → `strong`.
+ *
+ * Falls back to the lightest available role when `default` itself is not shipped (a category that omits
+ * `default` is outside the corpus today; the fallback keeps the resolver total rather than throwing on a
+ * shape no def exercises). THROWS on an unknown intent name — a `weight` axis value that is not a
+ * declared intent is a def bug, and a silent identity would let it reach `figmaTextStyleName` as a bogus
+ * style name.
+ */
+export const resolveWeightIntent = (intent: string, avail: readonly WeightRoleName[]): WeightRoleName => {
+  const ordered = WEIGHT_ROLE_ORDER.filter((r) => avail.includes(r));
+  if (!ordered.length) throw new Error(`weight intent '${intent}': the brand ships no weight roles for this category, so no role can resolve`);
+  const defaultIdx = WEIGHT_ROLE_ORDER.indexOf('default');
+  if (intent === 'regular') return ordered.includes('default') ? 'default' : ordered[0];
+  if (intent === 'bold') {
+    const atOrAbove = ordered.filter((r) => WEIGHT_ROLE_ORDER.indexOf(r) >= defaultIdx);
+    const pool = atOrAbove.length ? atOrAbove : ordered;
+    return pool[pool.length - 1];
+  }
+  throw new Error(`unknown weight intent '${intent}' — the declared intents are [${WEIGHT_INTENTS.join(', ')}]`);
+};
+
+/**
+ * Materialize a def for a brand's weight availability (#1602), BEFORE projection — the same mechanism
+ * `applyControlShape` uses for a corner, and for the same reason: the projector stays a pure function of
+ * its def, and the brand-specificity lives here. Identity for a def with no `weightIntent` and for the
+ * default availability, so `figmaAnatomySet(def)` with a def and no theme is unchanged.
+ *
+ * TWO THINGS HAPPEN, and the second is why this is more than a token rewrite:
+ *
+ *   1. RESOLUTION. Each type ref whose token KEY carries a weight-intent value (`size.md.bold.text` →
+ *      `type.body.md.strong`) has its weight-role tail repointed to the brand's resolution of that
+ *      intent. The KEY names the intent (`bold`), so no reverse-mapping from the authored role is
+ *      needed — the authored role is just the default-brand resolution, and this moves it.
+ *   2. AXIS COLLAPSE. When every intent on the weight axis resolves to the SAME role for this brand — a
+ *      category shipping ONE body weight — the weight axis is DROPPED: removed from `variants` and from
+ *      `figmaProperties.variantAxes`, and the `{weight}` placeholder stripped from the type binding keys
+ *      and the parts that reference it. A variant axis with one distinct value is not an axis, so the
+ *      projected set loses the `weight` property and its members halve. This is what makes the projected
+ *      component surface BRAND-CONDITIONAL (issue #1602 §"single-weight edge"), which is why
+ *      `lint-component-surface` now records a per-brand arm.
+ *
+ * The type token keys are identified by their REF starting `type.` and carrying an intent segment —
+ * paint keys (`{emphasis}.{slot}`) and geometry keys are untouched. `group` is read from the ref
+ * (`type.<group>.…`) and checked against `weightIntent.group`, so a def that mixed categories under one
+ * weight axis fails loudly rather than resolving against the wrong availability.
+ */
+export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability): ComponentDef => {
+  const wi = def.weightIntent;
+  if (!wi) return def;
+  const groupAvail = avail[wi.group];
+  if (!groupAvail || !groupAvail.length)
+    throw new Error(`${def.id}: weightIntent.group '${wi.group}' has no emitted weight roles for this brand — a weight intent cannot resolve against a category the brand does not ship`);
+  const axisValues = def.variants?.[wi.axis] ?? [];
+  if (!axisValues.length)
+    throw new Error(`${def.id}: weightIntent.axis '${wi.axis}' names no values in \`variants\` — the intents to resolve are the axis values`);
+  const roleFor = new Map(axisValues.map((v) => [v, resolveWeightIntent(v, groupAvail)] as const));
+
+  // A type token entry keyed under this axis: its ref is a `type.<group>.<variant>.<role>` and the key
+  // carries one of the axis values. The repoint replaces the ref's role tail with the brand's role.
+  const repoint = (key: string, ref: string): string => {
+    if (!ref.startsWith('type.')) return ref;
+    const intent = key.split('.').find((s) => roleFor.has(s));
+    if (intent === undefined) return ref;
+    const segs = ref.split('.');
+    if (segs[1] !== wi.group)
+      throw new Error(`${def.id}: weight-intent type ref '${ref}' is in category '${segs[1]}' but weightIntent.group is '${wi.group}' — one weight axis cannot span two categories' availabilities`);
+    segs[segs.length - 1] = roleFor.get(intent)!;
+    return segs.join('.');
+  };
+
+  const resolved: Record<string, string> = {};
+  for (const [k, ref] of Object.entries(def.tokens)) resolved[k] = repoint(k, ref);
+
+  const collapse = new Set(roleFor.values()).size <= 1;
+  if (!collapse) return { ...def, tokens: resolved };
+
+  // COLLAPSE — drop the weight axis. The `{weight}` placeholder leaves the type binding keys and the
+  // parts, the axis leaves `variants` and `variantAxes`, and the now-duplicate type token entries merge.
+  const stripSeg = (path: string, seg: string): string => path.split('.').filter((s) => s !== seg).join('.');
+  const tokens: Record<string, string> = {};
+  for (const [k, ref] of Object.entries(resolved)) {
+    if (ref.startsWith('type.') && k.split('.').some((s) => roleFor.has(s))) {
+      tokens[axisValues.reduce((kk, v) => stripSeg(kk, v), k)] = ref; // regular & bold now equal → dedupe
+    } else {
+      tokens[k] = ref;
+    }
+  }
+  const variants = { ...(def.variants ?? {}) };
+  delete variants[wi.axis];
+  const parts = Object.fromEntries(
+    Object.entries(def.anatomy?.parts ?? {}).map(([name, p]) =>
+      [name, p.type ? { ...p, type: stripSeg(p.type, `{${wi.axis}}`) } : p]),
+  );
+  const anatomy = def.anatomy ? { ...def.anatomy, parts } : def.anatomy;
+  const figmaProperties = def.figmaProperties
+    ? { ...def.figmaProperties, variantAxes: (def.figmaProperties.variantAxes ?? []).filter((a) => a !== wi.axis) }
+    : def.figmaProperties;
+  return { ...def, tokens, variants, anatomy, figmaProperties } as ComponentDef;
 };
 
 /**

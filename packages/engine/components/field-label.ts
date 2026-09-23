@@ -54,7 +54,7 @@ export const fieldLabel: ComponentDef = {
     { name: 'required', type: 'boolean', default: true, required: false, description: 'Whether the field is required. ON — the default — shows the marker beside the label; turning it off hides it, following Prism 2\'s `Required` model. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only (§7).' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Pairs with the field size. THREE steps as of #872, converging with `text-field` and `textarea`, which have declared small/medium/large since tranche 1 — #872 deferred the third rung to the substrate ("they must agree, and field-label cannot answer alone") and the substrate has since answered. Scales the TYPE (`type.body.{sm,md,lg}` = 14/16/18px), not padding alone.' },
     { name: 'emphasis', type: "enum: 'primary' | 'secondary'", values: ['primary', 'secondary'], default: 'primary', required: false, description: 'The label\'s ink (#872 — Prism 2 calls this control "color"; renamed from `tone` to `emphasis` in #1334, splitting the overloaded axis name). `secondary` is the de-emphasized label a dense form or a read-only field wants, which #872 named as the sharpest of its three gaps: the ink was hard-bound with no way to express it. Semantic ROLES, never shades — `color.text.{primary,secondary}` — so a brand changing its text palette carries this without the def moving.' },
-    { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads (#1248 — Prism 2\'s third form-label control, and the last of its three to land here). `bold` resolves the `strong` type role (weight 700, Inter\'s Bold) at whichever size rung is chosen; `regular` resolves `default` (400). Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
+    { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads (#1248 — Prism 2\'s third form-label control, and the last of its three to land here). These are INTENTS, not role names (#1602): `regular` resolves the brand\'s default body weight, `bold` the heaviest body weight the brand ships — Inter\'s Bold (700) on a brand that ships it, a brand\'s Medium/500 where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
     // #1339 — DISABLED IS A STATE, NOT A PROP. The old `disabled` boolean prop duplicated the `disabled`
     // state axis; the owner decision (2026-09-13) collapses that to ONE mechanism. The label dims via the
     // projected `disabled` state (paint at the disabled coordinate → `color.disabled.text`, kept above the
@@ -81,6 +81,19 @@ export const fieldLabel: ComponentDef = {
     // `figmaProperties.booleans`, and its removal from this block moves in lockstep with its removal
     // from `lint-axis-values.ts`'s register (a stale register entry would fail that gate by name).
   },
+
+  // THE WEIGHT AXIS CARRIES INTENTS, NOT ROLE NAMES (#1602, owner-decided 2026-09-23). `regular`/`bold`
+  // are resolved against the roles the BRAND ships for `body` — `regular` → the brand's default body
+  // weight, `bold` → its HEAVIEST body weight — by `applyWeightIntent` before projection, the same
+  // "materialize the brand choice into the def" shape `controlShape` uses for a corner. The `tokens`
+  // below still name concrete roles (`type.body.*.strong` / `.default`), and that is deliberate: those
+  // are the DEFAULT-brand resolution, so a themeless projection (`figmaAnatomySet(fieldLabel)`) is
+  // byte-identical to before #1602, and a brand whose heaviest body cut is lighter than 700 repoints the
+  // `bold` tail to what it actually ships. NB (`body: [default, emphasis]`) resolves `bold` → `emphasis`
+  // (Medium/500), not the `strong` (700) it never emits — which is #1601's silent-miss, now closed. And
+  // when a brand ships ONE body weight, the two intents coincide and the axis DROPS entirely (a variant
+  // axis with one value is not an axis), which is why this def's projected surface is brand-conditional.
+  weightIntent: { axis: 'weight', group: 'body' },
 
   // Ink follows the `emphasis` axis — both text parts together — and TYPE follows `size` across three rungs
   // (#872). Disabled still dims to the shared disabled ink, the one treatment no axis moves. This
@@ -180,11 +193,18 @@ export const fieldLabel: ComponentDef = {
     // `{size}` alone, and `weight` is a name in `VARIANT_AXES`. The paragraph that stood here said
     // this def "binds one weight until that lands"; it has landed, and the grid is now the full 3 × 2.
     //
-    // THE ROLE EACH WEIGHT RESOLVES TO IS MEASURED, not matched by name. `bold` → `.strong`, because
-    // `type.body.*.strong` is `weight-role.strong` = `font.weight.700`, and 700 is what Inter calls
-    // Bold — which is the `fontStyle` Prism 2's Bold variants set. `.emphasis` is the trap: it reads
-    // like the emphatic one and is 600, a weight Prism 2's form-label never uses. `regular` → `.default`
-    // = `weight-role.default` = 400 = Inter Regular, which is Prism 2's default cell.
+    // THE ROLES BELOW ARE THE DEFAULT-BRAND RESOLUTION OF THE `weight` INTENT (#1602), not a hard
+    // binding. `weightIntent` (above) makes `bold`/`regular` resolve against the roles the BRAND ships
+    // for `body`; these entries name what that resolution is for the DEFAULT brand (`body: [default,
+    // strong]`), and `applyWeightIntent` repoints the tail for any brand whose heaviest body cut differs.
+    // Authoring the default here — rather than an `@intent` placeholder — is what keeps a themeless
+    // `figmaAnatomySet(fieldLabel)` byte-identical to before #1602 (the same trick `controlShape`'s
+    // `rounded` default plays). The default resolution: `bold` → `.strong` (`weight-role.strong` =
+    // `font.weight.700`, Inter's Bold — the `fontStyle` Prism 2's Bold variants set); `regular` →
+    // `.default` (400, Inter Regular, Prism 2's default cell). `.emphasis` was always the trap here — it
+    // reads emphatic and is 600, a weight Prism 2's form-label never uses — and on NB it is precisely
+    // what `bold` resolves TO, because NB's heaviest body cut IS 500/emphasis: the intent picks the
+    // brand's boldest body weight, and "boldest" is a fact about the brand, not a role name in this file.
     //
     // SIZE × WEIGHT, FULLY CROSSED, because Prism 2 crosses them: its `{size: Medium, weight: Bold}`
     // and `{size: Large, weight: Bold}` variants are authored and carry 16px/Bold and 18px/Bold. Six

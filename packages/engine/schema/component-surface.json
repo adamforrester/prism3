@@ -1,5 +1,5 @@
 {
-  "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless ENGINE_VERSION has already moved — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection and a sha256 over its sorted `planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects no set. Brand-independent: figmaAnatomySet takes a def and no theme, so this moves when the engine moves and not when a brand input does. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, bump ENGINE_VERSION, then accept.",
+  "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless ENGINE_VERSION has already moved — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection and a sha256 over its sorted `planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, bump ENGINE_VERSION, then accept.",
   "defs": {
     "icon": {
       "members": 43,
@@ -36,6 +36,14 @@
     "field-label": {
       "members": 24,
       "sha256": "14b07016c79e5057c44339dcb4ef46e485ee72ebcf0dabbd9bbb21bfae4ef1c0"
+    },
+    "field-label@body-emphasis": {
+      "members": 24,
+      "sha256": "b90042f1210b006571bbdaf93f73e0884dd7cc1ecee35d7435716c269259deae"
+    },
+    "field-label@body-single": {
+      "members": 12,
+      "sha256": "0e3a47009d5ab5238bbc5bdcbe8ff1b0c6eb8b02857267f8bbf1fab07090901b"
     },
     "field-message": {
       "members": 4,
