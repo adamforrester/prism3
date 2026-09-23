@@ -7,6 +7,85 @@
 
 ---
 
+## (2026-09-23) — field-message: one shared caption, not four (owner-decided Option 2, #1575)
+
+**STATUS: LANDED (this lane). ENGINE bump 0.127.0 → 0.128.0; CONTRACT STANDS at 11.3.0.** The projected component surface moved (field-message member plans lose their per-status text), which `lint-component-surface` catches (#1252) though `out/**` carries only the generator restamp — no token value moved. `token-contract --check` re-accepted at 11.3.0 (informational `engineVersion` restamp only; guaranteed 598 unchanged). Full `npm run verify` **61/61**. Closes #1575. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`.
+
+── THE DECISION IT IMPLEMENTS ───────────────────────────────────────────────────────────────────────────
+
+The #1567 live-host work proved #1474's four distinct per-status captions and #1018's one set-level `Message` TEXT property are **mutually exclusive on the real host**: a characters-bound TEXT node is a VIEW onto the property's single `defaultValue` — reading returns it, writing writes THROUGH — so a per-member caption is not expressible, and the re-assert both executors used to do left the LAST member's string on all four ("All set." everywhere, live). Held for the owner as #1575; the owner chose **Option 2 — keep the property, share one caption**. So `figmaProperties.texts.message.byVariant` is REMOVED; the projection writes the single `default` — a generic "This is a status message." (owner-chosen, #1575) — to all four members. The members stay distinct by GLYPH + ink per status (`warning-triangle` / `error-circle` / `check-circle`) — only the caption STRING is shared, the accepted cost of Option 2.
+
+── WHAT MOVED, AND THE GATES THAT CAUGHT IT ─────────────────────────────────────────────────────────────
+
+Removing `byVariant` changes the field-message member plans → `lint-component-surface` DRIFTED (`4 members → 4 members`, different plan digest); accepted with the ENGINE bump. `out/**` moved only by the `$extensions.generator.version` restamp (8 token files, 0 values); `lint-emission-version` sees the stamp and the bump satisfies it. `token-contract --check` failed on the baseline's stale `engineVersion` stamp alone (guaranteed 598 = 598) → `--accept` re-stamped it at 11.3.0, no CONTRACT bump.
+
+── THE TESTS + the collapse mechanism (docs/34) ─────────────────────────────────────────────────────────
+
+`test-roundtrip.ts`, `test-write-components.ts`, and `test.ts`'s paste↔plugin parity all asserted the four-caption spread + the reported collapse; each is re-pointed to the resolved Option 2 state (the def declares ONE caption, every member reads it, NO collapse). **The collapse-report MECHANISM stays guarded** — `test-roundtrip.ts` gains a SYNTHETIC def (field-message cloned with `byVariant` re-added) that must still trip the executor's collapse report BY NAME, so retiring field-message as its exemplar is not a silent gate deletion. **By-name mutation, proven then restored (via a `wip:` commit):** re-adding `byVariant` to field-message fails the roundtrip `#1575 floor: declares ONE caption` arm AND the surface gate (`field-message … DRIFTED`) by name; restored → all green.
+
+## (2026-09-22) — `button-neutral`'s missing properties: the SET's own handle, and two checks that could not see it (#1574)
+
+**STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Touches `apps/plugin/src/write-components.ts` (the plugin executor), `apps/plugin/src/main.ts` (one console line), `packages/engine/anatomy-figma.ts` (the paste payload's two reporting halves), `apps/plugin/component-shim.ts` (a new `staleSetAfterProperty` mode) and `apps/plugin/test-write-components.ts` (seven new assertions). **No `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `regen` rewrote every artifact and `git status` came back empty; `lint-emission-version` **0 artifacts changed**. Gate count **STANDS at 61** — every new assertion is an arm of `plugin-test`. Full `npm run verify`: **61/61 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY** in 211s. Closes #1574. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `tools/conformance-scan/` (#1569, the owner's lane), TokenPress.
+
+── READ THIS FIRST: THE ISSUE'S STATED CAUSE IS NOT SUPPORTED, AND THE FIX STILL STANDS ─────────────────
+
+#1574 was filed off my own #1573 census with the hypothesis *"the set handle went stale between `addComponentProperty` calls."* **Six host measurements do not support it.** They are recorded below because the next person to read this will otherwise re-derive them, and because the fix that shipped is justified on a different basis than the issue's title.
+
+What IS certain, and is what the PR fixes: **three real defects, found by reading the executor, two of which are why `button-neutral` was SILENT.** That silence is the expensive part — the census had to be taken by hand on the live file, one `figma_execute` probe at a time, because the build that produced the wrong set reported nothing about it.
+
+── HOST FACTS (read-only census of the owner's build + probes on a scratch page removed in a `finally`) ──
+
+| # | measurement | what it rules out |
+|---|---|---|
+| 1 | `button-neutral` (1:7851) is the **only** set in the file with missing properties: 1 non-variant property vs 3 on `button`/`button-destructive`, 0 swaps vs 2, 0 ref-bearing layers vs 13 sampled, 0/6 text styled vs 6/6. `icon-button-neutral` is **perfect**. | "the neutral defs project badly" |
+| 2 | All three button sets are structurally identical — 432 members, 378 icon slots that are INSTANCEs, **0 FRAME placeholders**, 486 icon-less coordinates. | "the swap target failed to resolve for some member" — it resolved for every member of `button-neutral`, including the last built |
+| 3 | `button-neutral`'s exact shape **accepts both INSTANCE_SWAP properties right now** — cloned to a scratch page, both created (86 ms, 46 ms), **set id unchanged across both calls**. | "this set cannot take those properties" |
+| 4 | `icon/FPO-default-icon` (1:837) is unique and alive; 2199 components in the file; **no duplicate member names** in any set; definitions readable on all three sets. | the duplicate-name cause the executor's only miss sentence blames |
+| 5 | `.id` on a **removed** node does **not** throw, and a stale COMPONENT_SET handle **could not be manufactured at all** — `addComponentProperty` does not invalidate the handle. | `def = target.id` as an uncaught thrower; and the issue's stated mechanism, as a *measured* behavior |
+| 6 | Property ids `1:90 … 1:2688` are contiguous at **stride 433** across the three sets, nothing allocated after them in that session, and **no `2:`/`3:`-prefixed property** exists on `button-neutral`. | "it was rebuilt and the second run half-succeeded" — it was built **exactly once**, and that build did not finish its property phase |
+
+**Why the stated cause does not fit.** A stale set handle has two possible effects and neither matches. If the definitions **read** throws, `readable` is false and the property loop is skipped entirely — so `label` would not exist, and it does. If `addComponentProperty` throws, it lands in its own `catch`, the loop continues, and the wire phase still runs — `if (!id) continue;` in the wire loop means a missing property suppresses **only that property's** references, so `label.characters` would still be on all 432 members. It is on none.
+
+**The two states that DO produce "label present, zero references":** (a) the run **aborted** between `addComponentProperty('label')` and the first reference write; (b) `readable === false` in the run that did the wiring — one failed getter zeroing both phases. **The document cannot distinguish them**: no `setPluginData` is written anywhere, so no build report survived (#1574 line 28 says the miss list is unavailable). Recording that as unresolved rather than picking one is the honest state.
+
+── THE THREE DEFECTS, ALL CERTAIN, ALL FIXED ────────────────────────────────────────────────────────────
+
+**D1 — the completeness read-back was blind by construction (docs/34 shape 1).** It stood as `if (propIds.has(p.name) && !bare.has(p.name))`: gated on the executor's own record of what it **succeeded in creating**. A property never created is absent from `propIds` too, so it was excluded from the completeness check **by the very failure the check exists to find**. The gate is dropped; `propIds` now only chooses *which sentence*, and the second sentence is the case that used to be unreportable. Gated on `reread` instead — not "did we succeed" but "can this check see the set at all", which is a different kind of condition.
+
+**D2 — one `readable` boolean gated two unrelated phases.** `const readable` was set by a single `set.componentPropertyDefinitions` read taken *before any property existed*, and then appeared in **both** `for (const p of readable ? props : [])` (property creation) and `const toWire = readable ? members : []` (reference wiring). One failed getter therefore produced zero properties **and** zero references, and reported one sentence blaming duplicate member names — a cause host fact 4 rules out. The read is now retried on a freshly-resolved handle, and the two outcomes are reported apart: *stale handle, recovered* vs *unreadable on both, so nothing was created and nothing wired*.
+
+**D3 — the set handle was never re-resolved.** `set` was captured from `combineAsVariants` and held across a 432-member combine, two chunked loops and every host yield in between. #1473/#1516/#1568 all re-resolve **member** and **part** handles; the one object none of them touched is the set's own. `liveSet()` re-resolves it by type and name off the placement page — the same `findOne` the executor already trusts at `:1715` — before the definitions read and before each `addComponentProperty`, and counts the re-resolutions in a new `setReresolved` result field that `main.ts` logs.
+
+**One mechanism per fix, deliberately.** A retry *inside the `addComponentProperty` catch* was written first and then **deleted**: it is unreachable for this fault (`liveSet()` ran a statement earlier with no yield between, so a refusal there is a real refusal), and — measured — it made mutation M1 stay **green**, which is a fix with no gate rather than a fix with a spare. Whoever is tempted to re-add belt-and-braces here: that is the cost.
+
+── THE SHIM MOVED FIRST, AND WHAT THAT MODEL IS WORTH ───────────────────────────────────────────────────
+
+`component-shim.ts` gains `staleSetAfterProperty`, which moves the **SET's** identity and nothing else's: a twin is installed at the original's coordinate in `page.children` (same `children` array, same `defs`), and the original handle starts throwing on `addComponentProperty` and on `componentPropertyDefinitions`. **Members stay live**, which is the restriction that makes it distinct from `detachPartsOnCombine`/`settleAfterCombine`/`deferSettleToWire`/`refuseRefsUntilYield` — all four are about member or part handles.
+
+Two injection points, because the fix has two halves that do not substitute for one another: **`0`** kills the handle at combine, so the definitions **read** is the first casualty (D2); **`1`** kills it after `label` lands, so the `↳ swap leading icon` call that follows is (D3) — the live shape exactly.
+
+**Stated plainly: this models a state the executor's code ASSUMED IMPOSSIBLE, not a measured host behavior** (host fact 5). It earns its place because the `button-neutral` census is consistent with it and with nothing else the code can currently reach, and because the resulting executor is strictly more robust either way. Every arm asserts the **outcome** — which properties the set ends up holding, read off the set's own definitions, and whether the references landed — and never the refusal string, per the #1573 caveat that `Could not create a new component property reference.` could not be reproduced on today's host.
+
+── THREE MUTATIONS, THREE BY-NAME FAILURES, EACH ON A DIFFERENT ASSERTION ───────────────────────────────
+
+A `wip:` commit before **every** mutation (#986), so each restore reached a known-good HEAD rather than the first one:
+
+| mutation | fails | what it prints |
+|---|---|---|
+| `liveSet()` → `set` in the property loop | **#1574b** only | `↳ swap leading icon -> INSTANCE_SWAP REFUSED (… does not exist)` + `DECLARED BY THE PLAN BUT NEVER CREATED`, 21/42 refs |
+| drop the retried definitions read | **#1574a** only | both properties absent, **0/42 refs on 0/21 members** — the live symptom |
+| restore the `propIds.has(p.name) &&` gate | **#1574c** only | the set is incomplete and the executor says **nothing** |
+
+The three arms failing **separately** is the point: each maps onto one mechanism. Each also carries a **paired floor** — the control projection reports `setReresolved === 0`, so the re-resolutions counted in the injected runs are attributable to the injection; and arm (c)'s floor reads the property's absence off the **set** before asserting the executor reports it, so the miss is a true report and not a complaint about a property that is in fact there.
+
+── THE ASYMMETRY BETWEEN THE TWO EXECUTORS, STATED AT THE SITE ──────────────────────────────────────────
+
+D1 and D2 port to `packages/engine/anatomy-figma.ts`; **D3 does not, and that is not an oversight.** The chunked payload already re-resolves the set off the page at the top of every chunk (`SET_NAME` `findOne` — the same lookup D3 adds), so its handle is at most one chunk old; the single-shot payload runs combine → declare with no yield between and binds `set` as a `const`. Neither has the plugin's window. The reasoning sits in a TS doc comment on `PAYLOAD_DECLARE_PROPS`, **outside** the template literal, because in-payload comments ship to the designer's console and count against the per-chunk byte budget. (`anatomy/icon-button`'s chunk pin **stays at 12** — nothing was added inside a literal.)
+
+── WHAT IS STILL HOST-ONLY, AND WHAT WOULD CLOSE IT ────────────────────────────────────────────────────
+
+#1574's acceptance — *"`button-neutral` carries 9 properties + 882 refs like its siblings"* — **needs the owner's rebuild and cannot be produced from this lane.** `figma_execute`'s `code` parameter is the only channel into the sandbox (main-thread `fetch` is blocked against localhost, an external host and `figma.com` alike), and the smallest bundle carrying the real `figmaAnatomySet` + `applyComponentPlan` is ~160 KB; shipping the plans as data is worse (432 plans ≈ 3.3 MB). So: **rebuild `button-neutral` from the plugin and re-run the census.** If it still lands short, the next evidence to gather is the one thing missing here — a **surviving build report**, which argues for `setPluginData` on the set carrying the run's miss list. That is a design call, so it is held, not built.
+
 ## (2026-09-22) — a shrinking config: modes reconciled by identity, and the prune extended to modes + styles (#1570)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Touches `apps/plugin/src/write-figma.ts` (the mode reconciliation), `apps/plugin/src/prune-figma.ts` (the detector + executor), `apps/plugin/src/main.ts` (the `prune()` snapshot), `apps/studio/src/main.ts` (the button's title), and two test files. **No `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**: the engine's emission is untouched, this is plugin-side reconciliation and deletion. Evidence: `drift` (regen `--check`) in sync, `lint-emission-version` 0 artifacts changed. Gate count **STANDS at 61** — both halves are new arms of `plugin-test`. Full `npm run verify`: **61/61 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY**. Closes #1570. Filed out of scope: **#1577**. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `tools/conformance-scan/`, TokenPress.

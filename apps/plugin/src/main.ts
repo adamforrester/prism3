@@ -691,6 +691,12 @@ const buildComponents = async (defId?: string): Promise<void> => {
     // `boundVariables` write (a bound `strokeWeight`, padding or radius) dropped by `combineAsVariants`'s
     // id rewrite and re-applied it onto the live node — the live signal #1218 verifies against.
     if (r.boundRepaired > 0) console.log(`[prism3 #1279] repaired ${r.boundRepaired} variable binding(s) onto the live post-combine node`);
+    // #1574: the SET-level sibling of the two lines above. A non-zero count means the host had replaced the
+    // component set object this run combined, and the property loop / wire loop were re-pointed at the live
+    // one instead of declaring properties into a handle that no longer names anything. `button-neutral`
+    // reached the file missing both INSTANCE_SWAP properties with zero references on 432 members, which is
+    // the state this counter makes visible at build time rather than in a census three issues later.
+    if (r.setReresolved > 0) console.log(`[prism3 #1574] re-resolved the component set's own handle ${r.setReresolved} time(s); its combine-time handle had been replaced`);
     // The telemetry block, printed LAST so it is the bottom of the console and can be copied in one
     // selection. It is the deliverable of the calibration run: `CHUNK` is set from these numbers.
     for (const line of summaryLines(reports, settleMs)) console.log(line);

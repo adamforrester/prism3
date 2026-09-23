@@ -1923,6 +1923,128 @@ ok(labelInstr.progress.every((p) => p.done <= p.total) && labelInstr.progress.so
 }
 
 // =============================================================================================
+// #1574 — THE SET'S OWN HANDLE, NOT A MEMBER'S: PROPERTIES DECLARED AFTER IT MOVES STILL LAND
+// =============================================================================================
+// THE LIVE SHAPE, and why none of the three arms above could see it. On a live aurora build `button` and
+// `button-destructive` each carry 9 component properties and 882 ref-bearing layers; `button-neutral`
+// carries 7 — `label` present, BOTH `↳ swap … icon` INSTANCE_SWAP properties absent — and 0 references.
+// #1337/#1473/#1516/#1568 all model a MEMBER or PART handle detaching, and the executor's whole recovery
+// vocabulary was built for that object. The one handle those four never touch is the SET's own, the object
+// `combineAsVariants` hands back, which the executor then held unexamined across a 432-member combine, two
+// chunked loops and every host yield in between. Two separate things rode on it:
+//
+//   (1) `set.componentPropertyDefinitions`, read ONCE before any property existed, set a single `readable`
+//       boolean — and that one boolean gated the property loop AND `toWire`. So one failed getter produced
+//       zero properties AND zero references and reported one sentence blaming duplicate member names.
+//   (2) every `addComponentProperty` call, made on that same captured handle.
+//
+// `staleSetAfterProperty` (component-shim.ts) models the set's identity moving and NOTHING else's — the
+// members stay live and shared, which is the restriction that keeps this distinct from the modes above and
+// is what lets these arms show that only the PROPERTIES are lost. Two injection points, because the fix has
+// two halves that do not substitute for one another: `0` kills the handle at combine, so the definitions
+// READ is the first casualty (defect 1); `1` kills it after `label` is created, so the `↳ swap leading icon`
+// call that follows is the casualty (defect 2) — the live shape exactly.
+//
+// FIDELITY, stated because it is the weak point: a stale COMPONENT_SET handle could NOT be manufactured on
+// today's host (`addComponentProperty` does not invalidate the handle; `.id` on a removed node does not
+// throw), so this models a state the executor's code ASSUMED IMPOSSIBLE rather than a measured behavior.
+// The arms therefore assert the OUTCOME — which properties the set ends up holding, read off the set
+// itself, and whether the references landed — and never the refusal string (the #1573 caveat).
+//
+// Mutation-by-name (docs/34): replace `liveSet()` with `set` in the property loop and arm (b) fails by name
+// on `↳ swap leading icon`; drop the retried definitions read and arm (a) fails by name on both properties
+// and on zero references. The FLOOR is the paired control: the same projection with no staleness injected
+// must report `setReresolved === 0`, so the re-resolutions counted in the injected runs are attributable to
+// the injection and not to something that would have happened anyway.
+{
+  const props1574 = planSetProperties(grid);
+  // Input pin: the fixture must declare a property AFTER the one the `1` injection kills, or arm (b) has
+  // nothing to lose and passes vacuously. `grid` is the live subject's own shape — TEXT then INSTANCE_SWAP.
+  ok(props1574.length >= 2 && props1574[0].type === 'TEXT' && props1574.some((p) => p.type === 'INSTANCE_SWAP'),
+    `#1574 input pin: the button grid declares a property after the first, the live button-neutral shape (${props1574.map((p) => `${p.name}:${p.type}`).join(', ')})`);
+
+  const run1574 = async (stale?: number) => {
+    const page: Page = { children: [] };
+    const res = await run(grid, { ...fullFor(grid), page, ...(stale == null ? {} : { staleSetAfterProperty: stale }) });
+    return { page, res };
+  };
+  // INDEPENDENT READ-BACK (docs/34): the expectation is the PLAN's declared properties; the actual is the
+  // set's OWN `componentPropertyDefinitions` and the members' own `componentPropertyReferences`. Neither
+  // reads the executor's `propIds`, which is the bookkeeping the old completeness check compared against
+  // itself (shape 1 — the check could not fail on the failure it existed to find).
+  const heldBy = (page: Page): { missing: string[]; unwired: string[]; members: number } => {
+    const liveSetNode = page.children[0] as Node | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's set
+    const defs = (liveSetNode ? (liveSetNode as any).componentPropertyDefinitions : {}) as Record<string, { type: string }>;
+    const keys = props1574.map((p) => ({ name: p.name, key: Object.keys(defs).find((k) => k.split('#')[0] === p.name) }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural walk over the shim tree
+    const refsIn = (m: any): Set<string> => {
+      const out = new Set<string>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const walk = (n: any): void => { for (const id of Object.values(n?.componentPropertyReferences ?? {})) out.add(id as string); for (const c of n?.children ?? []) walk(c); };
+      walk(m);
+      return out;
+    };
+    const unwired: string[] = [];
+    for (const m of (liveSetNode?.children ?? []) as Node[]) {
+      const held = refsIn(m);
+      for (const k of keys) if (k.key && !held.has(k.key)) unwired.push(`${String(m.name)}/${k.name}`);
+    }
+    return { missing: keys.filter((k) => !k.key).map((k) => k.name), unwired, members: ((liveSetNode?.children ?? []) as Node[]).length };
+  };
+
+  const control = await run1574();
+  // FLOOR: nothing re-resolves when nothing goes stale, so every `setReresolved` below is the injection's.
+  ok(control.res.setReresolved === 0 && control.res.refs > 0,
+    `#1574 floor: the control projection never re-resolves the set (setReresolved=${control.res.setReresolved}, refs=${control.res.refs}) — the counts below are attributable to the injected staleness`);
+  const wantRefs = grid.length * props1574.length;
+
+  // ---- (a) the handle is stale AT COMBINE: the definitions read is the first casualty ---------
+  const atCombine = await run1574(0);
+  ok(atCombine.res.setReresolved > 0 && atCombine.res.misses.some((m) => /definitions UNREADABLE on the combine-time handle/.test(m)),
+    `#1574a floor: the injected staleness really fired at the definitions read and was diagnosed as a stale handle rather than a poisoned set (setReresolved=${atCombine.res.setReresolved})`);
+  const aState = heldBy(atCombine.page);
+  ok(aState.missing.length === 0,
+    `#1574a a set handle already stale at combine still gets every declared property — read off the set's own definitions, 0 absent (${aState.missing.length ? aState.missing.join(', ') : 'none'})`);
+  ok(atCombine.res.refs === wantRefs && atCombine.res.wiredMembers === grid.length && aState.unwired.length === 0,
+    `#1574a ...and the unreadable getter no longer zeroes the WIRE phase too: ${atCombine.res.refs}/${wantRefs} refs on ${atCombine.res.wiredMembers}/${grid.length} members, 0 unwired (${aState.unwired.length ? aState.unwired.slice(0, 3).join(' | ') : 'none'})`);
+
+  // ---- (b) the handle goes stale AFTER `label`: the live button-neutral shape ------------------
+  const midWay = await run1574(1);
+  ok(midWay.res.setReresolved > 0,
+    `#1574b floor: the set's identity moved after the first property landed (setReresolved=${midWay.res.setReresolved})`);
+  const bState = heldBy(midWay.page);
+  const refused = midWay.res.misses.filter((m) => /^property .* (REFUSED|-> DECLARED BY THE PLAN BUT NEVER CREATED)/.test(m));
+  ok(bState.missing.length === 0 && refused.length === 0,
+    `#1574b a property declared after the set handle moves is created on the live set, not lost — all ${props1574.length} present on the set, 0 refused (${[...bState.missing, ...refused.slice(0, 2)].join(' | ') || 'none'})`);
+  ok(midWay.res.refs === wantRefs && bState.unwired.length === 0 && bState.members === grid.length,
+    `#1574b ...and every reference naming them still reaches every member (${midWay.res.refs}/${wantRefs} refs across ${bState.members}/${grid.length} members, 0 unwired ${bState.unwired.length ? `— ${bState.unwired.slice(0, 3).join(' | ')}` : ''})`);
+
+  // ---- (c) THE REPORT ITSELF — the read-back that could not see its own subject -----------------
+  // Separate arm because it gates a DIFFERENT thing from (a) and (b): not whether the properties land, but
+  // whether a set that ships incomplete SAYS SO. The completeness read-back stood as
+  // `if (propIds.has(p.name) && !bare.has(p.name))` — gated on the executor's own record of what it
+  // succeeded in creating, so a property never created was excluded from the completeness check BY THE
+  // FAILURE the check exists to find (docs/34 shape 1). That is why `button-neutral` was SILENT, which is
+  // the part of the defect that cost the most: the census had to be taken by hand on the live file.
+  //
+  // The fixture is a file that cannot satisfy the swap property AT ALL — the shim resolves every component
+  // the plans nominate EXCEPT the swap target — so `↳ swap leading icon` is genuinely never created, with
+  // no staleness involved. Mutation-by-name: restore the `propIds.has(p.name) &&` gate and this arm fails
+  // while (a) and (b) stay green, because they read the set rather than the report.
+  const noSwapPage: Page = { children: [] };
+  const noSwap = await run(grid, { ...fullFor(grid), page: noSwapPage, comps: fullFor(grid).comps!.filter((c) => c !== SWAP) });
+  const swapProp = props1574.find((p) => p.type === 'INSTANCE_SWAP')!;
+  // FLOOR: the property really is absent from the set, read off the set itself — so the miss asserted below
+  // is a true report and not the executor complaining about a property that is in fact there.
+  const cState = heldBy(noSwapPage);
+  ok(cState.missing.includes(swapProp.name),
+    `#1574c floor: with the swap target absent from the file the ${swapProp.name} property genuinely never reaches the set (absent: ${cState.missing.join(', ') || 'none'})`);
+  ok(noSwap.misses.some((m) => m.startsWith(`property ${swapProp.name} -> DECLARED BY THE PLAN BUT NEVER CREATED`)),
+    `#1574c ...and the executor REPORTS it — a property the plan declared and the loop never created is named as absent from the set, the case the propIds-gated read-back excluded by construction (${noSwap.misses.filter((m) => m.startsWith('property ')).slice(0, 2).join(' | ') || 'no property miss at all'})`);
+}
+
+// =============================================================================================
 // #1010 — THE STATUS GLYPH, READ OFF THE NODE THE EXECUTOR BUILT
 // =============================================================================================
 // WHY THIS IS HERE AND NOT IN `test.ts`. Every defect #1010 reports is a value that RESOLVES. The def
@@ -1944,13 +2066,13 @@ const fmPage: Page = { children: [] };
 const fmRun = await run(fmPlans, { ...fullFor(fmPlans), page: fmPage });
 ok(fmRun.set === 'field-message' && fmRun.variants === 4 && fmRun.added === 4,
   `#1010 the four status members assemble under one set (set=${fmRun.set}, variants=${fmRun.variants}, added=${fmRun.added})`);
-// The caption COLLAPSE is split out rather than folded into "no misses", and it is asserted in its own right
-// below: a set-level TEXT property holds ONE default, so this def's four distinct per-status captions cannot all
-// reach the host, and the executor reports that by name instead of causing it (#1567). Everything else must
-// still be clean — and holding the two apart is what keeps the clean-run claim from being quietly widened.
+// field-message declares ONE caption (Option 2, #1575), so the run is clean — there is nothing to collapse.
+// The collapse-report MECHANISM (for a def that DOES declare a divergent spread) stays guarded BY NAME in
+// `test-roundtrip.ts` on a synthetic def, so retiring field-message as its exemplar is not a silent gate
+// deletion.
 const fmCollapse = fmRun.misses.filter((m) => /^text text\.characters -> COLLAPSED/.test(m));
-const fmOther = fmRun.misses.filter((m) => !/^text text\.characters -> COLLAPSED/.test(m));
-ok(fmOther.length === 0, `#1010 ...with no misses beyond the reported caption collapse (${fmOther.join('; ') || 'none'})`);
+ok(fmCollapse.length === 0 && fmRun.misses.length === 0,
+  `#1575 field-message assembles with NO misses — one shared caption behind the bound property, nothing to collapse (${fmRun.misses.join('; ') || 'none'})`);
 
 const fmMembers = fmPage.children[0].children as Node[];
 const fmKids = (m: Node): Node[] => (m.children as Node[]) ?? [];
@@ -1965,37 +2087,26 @@ const fmInk = (n: Node): string =>
 ok(fmMembers.length === 4 && fmMembers.map((m) => m.name).join(' | ') === 'status=default | status=error | status=warning | status=success',
   `#1010 the members are named for the status axis (renamed from tone in #1334), in order (${fmMembers.map((m) => m.name).join(' | ')})`);
 
-// (#1018/#1474/#1567) THE DEF DECLARES FOUR DISTINCT CAPTIONS — AND THE HOST CAN SHOW ONLY ONE OF THEM.
+// (#1018/#1474/#1567/#1575) THE DEF DECLARES ONE CAPTION — the host can show only one behind a bound property.
 //
-// #1018 gave each status its own placeholder via `byVariant.status` and #1474 settled the four strings (Set A:
-// default "This is a standard message." / error "Something needs fixing." / warning "Double-check this." /
-// success "All set."), so the error member would stop shipping the generic helper string. That authored intent
-// is still checked, and it is checked ON THE PLAN, which is now the only place it survives.
-//
-// It used to be checked at the built NODE, on the stated reasoning that "only the node distinguishes a
-// per-member default from a set-wide one". The reasoning was right; the conclusion it licensed was not. On the
-// real host a characters-bound TEXT node is a VIEW onto the set-level property's one `defaultValue` — reading
-// it returns that default, writing it writes THROUGH to it — so the node cannot hold a per-member caption at
-// all, and the executor's attempt to give it one left the LAST member's string on the whole set (live: "All
-// set." on all four statuses, #1567). So the two claims are now made where each is true: the DEF declares four,
-// the HOST shows one, and the gap is REPORTED. Whether this part should keep its `characters` reference (one
-// shared caption, instance-overridable) or drop it (four authored captions, no property) is the owner's call —
-// see `docs/00-progress.md`.
+// #1018/#1474 gave each status its own placeholder via `byVariant.status` (Set A), but the #1567 live-host work
+// proved a characters-bound TEXT node is a VIEW onto the set-level property's one `defaultValue` — reading it
+// returns that default, writing it writes THROUGH — so a per-member caption is not expressible, and the
+// executor's attempt to give it one left the LAST member's string on all four ("All set." everywhere, live).
+// The owner kept the property (Option 2, #1575), so the def now declares ONE caption; the members stay distinct
+// by GLYPH per status. The collapse-report mechanism a mis-authored spread would trip is guarded BY NAME in
+// `test-roundtrip.ts` on a synthetic def.
 const fmCaption = (m: Node): string => String(fmKids(m).find((c) => c.type === 'TEXT')?.characters ?? '<none>');
 const fmCaptions = fmMembers.map(fmCaption);
 const fmDeclared = fmPlans.map((p) => String((p.root.children ?? []).find((c) => c.characters !== undefined)?.characters));
-ok(fmDeclared.join(' | ') === 'This is a standard message. | Something needs fixing. | Double-check this. | All set.',
-  `#1018/#1474 the def declares a distinct caption per status — one parallel set of generic scaffolds, with the error member not shipping the status=default helper string (${fmDeclared.join(' | ')})`);
-ok(new Set(fmDeclared).size === 4,
-  `#1018 ...and the four declared captions are pairwise distinct, so the collapse below is a real spread rather than four copies of one string (${new Set(fmDeclared).size} distinct)`);
-// AT THE NODE: all four read the set's ONE declared default, deterministically — not whichever member an
-// executor wrote last. This is the assertion the live symptom fails.
-ok(fmCaptions.every((c) => c === 'This is a standard message.'),
-  `#1567 every status member reads the set's ONE declared default at the node — a per-member caption is not expressible behind a set-level TEXT property (${fmCaptions.join(' | ')})`);
-// AND THE GAP IS REPORTED, once, by part, naming all four declared strings — so a file that ships four
-// identical captions never ships silently.
-ok(fmCollapse.length === 1 && fmCollapse[0].includes('4 distinct captions'),
-  `#1567 ...and the executor reports the collapse once, by name, naming the four declared strings (${fmCollapse.length} miss(es): ${fmCollapse[0] ?? '—'})`);
+ok(new Set(fmDeclared).size === 1 && fmDeclared[0] === 'This is a status message.',
+  `#1575 the def declares ONE caption across all four status members — no byVariant spread (${[...new Set(fmDeclared)].join(' | ')})`);
+// AT THE NODE: all four read the set's one declared default, by design.
+ok(fmCaptions.every((c) => c === 'This is a status message.'),
+  `#1575 every status member reads the set's one declared default at the node (${fmCaptions.join(' | ')})`);
+// AND THERE IS NO COLLAPSE: one caption, nothing to overwrite.
+ok(fmCollapse.length === 0,
+  `#1575 field-message declares one caption, so no collapse is reported (${fmCollapse.length ? fmCollapse.join('; ') : 'none'})`);
 
 // (1) THE DEFAULT MEMBER HAS NO GLYPH, and the three validation members have exactly one each. Read as a
 // COUNT PER MEMBER rather than a total: 3 artboards across 4 members is also what "two on error, one on
