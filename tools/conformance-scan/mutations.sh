@@ -9,9 +9,15 @@
 # up as a named MISSING row. This script is what makes that claim falsifiable — it breaks each arm in
 # turn and asserts the exact line the run must print.
 #
-# The last section does the same for the OTHER self-check in this harness, `expected.ts --selftest`
-# (#1569): the diff arms are only worth anything over an expectation built at the config the file was
-# really emitted from, so the wire that carries that config is proven here too.
+# The next-to-last section does the same for the OTHER read-only self-check in this harness, `expected.ts
+# --selftest` (#1569): the diff arms are only worth anything over an expectation built at the config the
+# file was really emitted from, so the wire that carries that config is proven here too.
+#
+# The LAST section covers `fix.ts --selftest` (#1553 P2), and its arms point the opposite way from every
+# arm above them. Everything before it can only fail by going quiet about a real defect. `fix.ts` leads to
+# a WRITE, so it can also fail by saying too much — and an op that should not exist is the failure that
+# hurts, because it is performed in someone's Figma file and not in this repo. Both directions are asserted
+# there, MISSING and EXTRA, and the EXTRA arms are the load-bearing ones.
 #
 # ── TWO THINGS THE FIRST DRAFT OF THIS SCRIPT GOT WRONG, BOTH WORTH KEEPING WRITTEN DOWN ────────────
 #
@@ -54,17 +60,19 @@ cd "$(dirname "$0")/../.." || exit 1
 D=tools/conformance-scan/diff.ts
 S=tools/conformance-scan/state.ts
 E=tools/conformance-scan/expected.ts
+X=tools/conformance-scan/fix.ts
 F=tools/conformance-scan/fixtures
 PASS=0; FAIL=0
 
-if ! git diff --quiet -- "$D" "$S" "$E"; then
-  echo "REFUSING: $D, $S or $E has uncommitted changes. Every revert here is \`git checkout --\`, which"
-  echo "reaches back to HEAD and would destroy them. Commit first."
+if ! git diff --quiet -- "$D" "$S" "$E" "$X" "$F/manifest.json" "$F/fix-manifest.json"; then
+  echo "REFUSING: one of $D, $S, $E, $X or the two manifests has uncommitted changes. Every revert here is"
+  echo "\`git checkout --\`, which reaches back to HEAD and would destroy them. Commit first."
   exit 1
 fi
 
 SELFTEST="npx tsx $D --selftest"
 SELFTEST_EXPECTED="npx tsx $E --selftest"
+SELFTEST_FIX="npx tsx $X --selftest"
 REPORT="npx tsx $D $F/expected.json $F/actual-dirty.json"
 
 # $1 file  $2 label  $3 literal to replace  $4 replacement  $5 command  $6 `have`|`gone`  $7 the line
@@ -442,9 +450,106 @@ mutate "$E" "the report NAMES the config it was built at" \
   "FAIL  arm 2 aurora: the two sources disagree only about which source they are"
 
 echo
+echo "MUTATING THE FIX PLAN — the two safe ops, and the guards that keep everything else out of it"
+echo
+
+# #1553 P2. `fix.ts` is the first thing in this harness that leads to a WRITE, so its arms split in two and
+# the second half is the load-bearing one:
+#
+#   a SAFE FIX GOING MISSING is an inconvenience — the plan gets smaller and the operator fixes by hand;
+#   an UNSAFE OP LEAKING IN is a destructive tool, and it leaks in silently, because every failure it
+#   causes happens in the Figma file minutes later and not in this repo.
+#
+# So the MISSING arms are here for completeness and the EXTRA arms are the point. `fix-manifest.json` is
+# hand-written for exactly this: it is the only thing in the loop that can say "this op should not exist".
+# Nothing downstream can — the in-memory apply will happily perform a rebind to a variable that is not in
+# the file, because that write only fails in Figma.
+#
+# TWO CLAIMS IN fix.ts ARE NOT PROVABLE HERE, AND FABRICATING FIXTURES FOR THEM WOULD MAKE THEM LOOK PROVEN:
+#
+# 1. "The value written comes from the expectation STATE, never off the report's prose." In this fixture the
+#    two agree — as they must, since the self-check computes the report from the same states — so mutating
+#    `wm.value` to `finding.expected` changes nothing observable. The claim is only falsifiable against a
+#    report kept from an EARLIER scan, which is a thing an operator can have and a self-check cannot make.
+#    The guard that catches it is asserted in code (`they must agree before anything is written`) and left
+#    unproven here on purpose.
+# 2. "Idempotence" beyond the second-plan-is-empty check. Every op is an absolute write by construction, so
+#    no mutation of this fixture produces a plan that oscillates; the arm exists as a net for a FUTURE op
+#    shape that is not absolute, and a mutation that faked one would be proving the fake.
+#
+# A note on shape, since it differs from the diff arms above: a dropped SAFE branch cannot be muted at the
+# `ops.push`, because the accounting invariant then throws — every finding must land in a bucket, and a
+# muted push drops one out of both. So these mutate the branch CONDITION, which sends the finding to the
+# catch-all exclusion instead: the plan stays well-formed and only the op disappears, which is the shape a
+# real regression takes.
+
+mutate "$X" "(c) the safe value fix is emitted at all" \
+  "if (finding.category === 'value-match')" \
+  "if (false && finding.category === 'value-match')" \
+  "$SELFTEST_FIX" have "MISSING  op set-var-value: fix/core/palette/neutral/900 [Default]"
+
+mutate "$X" "(a) the safe rebind is emitted at all" \
+  "if (finding.category === 'binding-presence')" \
+  "if (false && finding.category === 'binding-presence')" \
+  "$SELFTEST_FIX" have "MISSING  op rebind: widget · size=md, state=rest · / · fills"
+
+# THE SAFETY PIN. Drop the one guard that asks whether the variable the engine plans is IN THE FILE, and the
+# un-rebindable twin leaks in as an op: a `setBoundVariable` to `fix/color/text/secondary`, a variable this
+# file does not have. In Figma that is a failed write at best; what makes it dangerous is that everything
+# else in the loop reports success — the re-scan arm below clears, because the in-memory apply cannot know
+# the variable is missing either. The hand-written answer key is the only thing that notices.
+mutate "$X" "the safety pin: a rebind needs a variable that EXISTS to bind to" \
+  "if (!(variable in actual.variables))" \
+  "if (false)" \
+  "$SELFTEST_FIX" have "EXTRA    op rebind: widget · size=md, state=rest · /caption · fills"
+
+# The other half of the same pin: the whitelist that restricts category (a) to the RAW-LITERAL branch. Drop
+# it and `gadget · size=sm · / · fills` becomes an op — a node property bound on a component the file does
+# not have (finding 13 is that component's absence), which is the (f) structure gap this tool must never
+# try to paper over. One condition, two different unsafe ops behind it, so both are asserted.
+mutate "$X" "the safety pin: only the RAW-LITERAL branch of (a) is safe" \
+  "if (leadingKind(finding.actual) !== 'raw' || leadingKind(finding.expected) !== 'variable')" \
+  "if (false)" \
+  "$SELFTEST_FIX" have "EXTRA    op rebind: gadget · size=sm · / · fills"
+
+# The VALUE, not just the op. An op that exists and writes 26 where Figma wants 26/255 passes every by-name
+# check and lands a white-ish fill — a plan that is right about what to fix and wrong about what to write.
+mutate "$X" "the COLOR decode writes Figma's 0-1 channels" \
+  "return { value: { r: c.r / 255, g: c.g / 255, b: c.b / 255, a: c.a } };" \
+  "return { value: { r: c.r, g: c.g, b: c.b, a: c.a } };" \
+  "$SELFTEST_FIX" have "value: the op for fix/core/palette/neutral/900 [Default] writes COLOR {\"r\":26,"
+
+# The accounting numbers must be COUNTED from the arrays, not derived from the finding total. Deriving them
+# is `docs/34` shape 1 in one line: the plan would then report a complete accounting because it subtracted,
+# and a finding lost between the buckets would be invisible.
+mutate "$X" "the accounting is counted, not derived" \
+  "const accounting = { findings: report.findings.length, ops: ops.length, excluded: excluded.length };" \
+  "const accounting = { findings: report.findings.length, ops: ops.length, excluded: report.findings.length - ops.length };" \
+  "$SELFTEST_FIX" have "accounting: the numbers are not counted from the arrays they describe"
+
+# The re-scan arm: the claim that a plan ACHIEVES something. Make the modelled rebind a no-op and the
+# finding it addressed must still be reported — otherwise "the ops clear their findings" is a sentence
+# nothing checks.
+mutate "$X" "the re-scan arm notices an op that achieves nothing" \
+  "    else next.bindings[bindKey(o.component, o.member, o.node, o.property)] = { boundVariable: o.variable } as BindState;" \
+  "    else void o;" \
+  "$SELFTEST_FIX" have "re-scan: 1 finding(s) the plan addressed are still reported"
+
+# And the two arms that stop the answer key from being weakened instead of the tool being fixed — the same
+# shape as the manifest-row mutation above, one per new list.
+mutate "$F/fix-manifest.json" "the never-fixed list cannot quietly lose a category" \
+  '    "structure",
+' '' \
+  "$SELFTEST_FIX" have "nothing pins them: structure"
+
+mutate "$F/fix-manifest.json" "the collateral set is asserted in both directions" \
+  '    "contrast: light · interactive.overlay.hover on background.primary"' '""' \
+  "$SELFTEST_FIX" have "a fix reaching past the finding it addresses, or one that stopped reaching"
+
+echo
 echo "-------------------------------------------------------------------------------"
 echo "$PASS detected, $FAIL undetected"
-if ! git diff --quiet -- "$D" "$S" "$E" "$F/manifest.json" "$F/actual-dirty.json"; then
+if ! git diff --quiet -- "$D" "$S" "$E" "$X" "$F/manifest.json" "$F/fix-manifest.json" "$F/actual-dirty.json"; then
   echo "WARNING: a revert did not take — check \`git status\` before trusting anything above."
   exit 1
 fi
