@@ -24,7 +24,7 @@ import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { MainToUi, UiToMain } from './messages';
-import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration, strandedCollections } from './write-figma';
+import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration, strandedCollections, ownedModeIds } from './write-figma';
 import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary } from './prune-figma';
 import type { PruneInput, PruneApi } from './prune-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
@@ -388,12 +388,19 @@ const prune = async (input: BrandInput, confirm: boolean): Promise<void> => {
         // `modeId` as well as `name`: #1570 left files holding two modes called `sm`, and only the id
         // distinguishes the reachable one from the ghost.
         modes: c.modes.map((m) => ({ modeId: m.modeId, name: m.name })),
+        // The engine's own mode provenance (#1581), read off the collection where `stampOwnedModes` wrote
+        // it. Without this the mode arm judges by name alone and a designer's hand-added mode is offered
+        // for deletion — the residual #1570 shipped with.
+        ownedModeIds: ownedModeIds(c),
       })),
+      // `description` as well as `name` (#1577): the engine writes one on every style it emits, so it is
+      // what recognizes a style a designer RENAMED out of the plan's group. Reduced to plain data here
+      // rather than passed as live nodes, so `computePrunePlan` stays pure over a snapshot.
       styles: {
-        text: (await figma.getLocalTextStylesAsync()).map((s) => s.name),
-        effect: (await figma.getLocalEffectStylesAsync()).map((s) => s.name),
-        paint: (await figma.getLocalPaintStylesAsync()).map((s) => s.name),
-        grid: (await figma.getLocalGridStylesAsync()).map((s) => s.name),
+        text: (await figma.getLocalTextStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+        effect: (await figma.getLocalEffectStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+        paint: (await figma.getLocalPaintStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
+        grid: (await figma.getLocalGridStylesAsync()).map((s) => ({ name: s.name, description: s.description })),
       },
       plannedVariables,
       plannedCollections,
