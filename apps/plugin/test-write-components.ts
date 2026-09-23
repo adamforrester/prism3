@@ -74,9 +74,9 @@ import { brandTheme } from '@prism3/engine/theme';
 import { buildTree, pxOf } from '@prism3/engine/tree';
 import { nbTheme } from '@prism3/engine/nb-fixture';
 import { exampleBrands } from '@prism3/engine/emit-brandinput';
-import { applyComponentPlan, CHUNK, partialWriteOf } from './src/write-components';
+import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson } from './src/write-components';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
-import type { ComponentApplyOptions, ComponentProgress } from './src/write-components';
+import type { ComponentApplyOptions, ComponentProgress, BuildReport } from './src/write-components';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 
 let failed = 0;
@@ -2042,6 +2042,135 @@ ok(labelInstr.progress.every((p) => p.done <= p.total) && labelInstr.progress.so
     `#1574c floor: with the swap target absent from the file the ${swapProp.name} property genuinely never reaches the set (absent: ${cState.missing.join(', ') || 'none'})`);
   ok(noSwap.misses.some((m) => m.startsWith(`property ${swapProp.name} -> DECLARED BY THE PLAN BUT NEVER CREATED`)),
     `#1574c ...and the executor REPORTS it — a property the plan declared and the loop never created is named as absent from the set, the case the propIds-gated read-back excluded by construction (${noSwap.misses.filter((m) => m.startsWith('property ')).slice(0, 2).join(' | ') || 'no property miss at all'})`);
+}
+
+// =============================================================================================
+// #1579 — THE BUILD'S OWN REPORT, LEFT ON THE SET
+// =============================================================================================
+// WHAT THIS GATES, and why it is not another arm of the block above. #1574's three defects are about the
+// properties LANDING; this is about the run SAYING what it did, on a surface that outlives it. The census
+// narrowed `button-neutral` to two states — (a) the run aborted between `addComponentProperty('label')` and
+// the first reference write, (b) `readable` was false in the run that did the wiring — and the document
+// could not distinguish them, because `applyComponentPlan` reports its miss list to the UI and nowhere
+// else. So the diagnosis was six hand-written `figma_execute` probes re-establishing facts the run had
+// computed and discarded. The arms below hold the two states apart: (b) is the FINAL report, which carries
+// the UNREADABLE miss and the counters; (a) is the PROVISIONAL one, written at the combine and left behind
+// by a run that never returns.
+//
+// INDEPENDENCE (docs/34). The ACTUAL is necessarily the report — that is the subject. So every EXPECTED
+// comes from somewhere the executor does not write: the def id and the property count from the PLAN
+// (`grid[0].component`, `planSetProperties`), the engine version from `@prism3/engine/version`, and the
+// two counters from a WALK of the shim members' own `componentPropertyReferences`. Deliberately NOT from
+// `res.refs`/`res.wiredMembers`: the report and the result object are built from the same two locals, so an
+// assertion comparing them is shape 11 — two sides, one subject underneath both, green while the shared
+// thing moves anywhere. And the namespace and the key are written here as LITERALS rather than imported
+// from the executor, because they ARE the contract an outside census reads; a gate that follows a rename
+// is not a gate on a name.
+//
+// Mutation-by-name: drop the final `writeBuildReport` call and `#1579a` fails (nothing readable on the
+// set); write `refs: refs.length` — the PLAN's declared reference list — in place of `refs: refsWired` and
+// `#1579b` fails on a counter that is off by the references that did not land, while (a) and (c) stay green
+// because neither reads a counter.
+{
+  const props1579 = planSetProperties(grid);
+  const defId = grid[0].component;
+
+  /** The report as an OUTSIDE reader gets it: find the set anywhere on the page (the abort path parks it
+   *  inside a frame) and call `getSharedPluginData` with the literal namespace and key. `other` reads a key
+   *  nothing ever writes — the negative half, so a non-empty `raw` is a write this run made rather than
+   *  whatever the store returns for everything (docs/34 shape 12). */
+  const reportOn = (page: Page): { raw: string; other: string; set: Node | undefined } => {
+    const find = (ns: Node[]): Node | undefined => {
+      for (const n of ns) {
+        if (n.type === 'COMPONENT_SET') return n;
+        const kid = find((n.children ?? []) as Node[]);
+        if (kid) return kid;
+      }
+      return undefined;
+    };
+    const set = find(page.children);
+    const get = (k: string): string =>
+      (set?.getSharedPluginData as ((ns: string, key: string) => string) | undefined)?.('prism3', k) ?? '';
+    return { raw: get('build'), other: get('nosuchkey'), set };
+  };
+
+  /** THE INDEPENDENT COUNT: every `componentPropertyReferences` entry the shim tree actually holds, and how
+   *  many members hold at least one. Walked off the set's own children, so it answers "what is IN the file"
+   *  — the question the report claims to answer — rather than "what did the executor tally". */
+  const wiredIn = (set: Node | undefined): { refs: number; members: number } => {
+    let refs = 0;
+    let members = 0;
+    for (const m of ((set?.children ?? []) as Node[])) {
+      let n = 0;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural walk over the shim tree
+      const walk = (x: any): void => {
+        n += Object.keys(x?.componentPropertyReferences ?? {}).length;
+        for (const c of x?.children ?? []) walk(c);
+      };
+      walk(m);
+      refs += n;
+      if (n > 0) members++;
+    }
+    return { refs, members };
+  };
+
+  const okPage: Page = { children: [] };
+  const okRes = await run(grid, { ...fullFor(grid), page: okPage });
+  const okReport = reportOn(okPage);
+  const walked = wiredIn(okReport.set);
+
+  // INPUT PIN: the fixture must produce non-zero counters, or (b) compares zero against zero and passes on
+  // a report that says nothing. And the negative half of the probe: an unwritten key reads `''`.
+  ok(walked.refs > 0 && walked.members > 0 && props1579.length > 0 && okReport.other === '',
+    `#1579 input pin: the control build leaves ${walked.refs} references on ${walked.members} members for ${props1579.length} declared properties, and an unwritten key on the same set reads empty (${JSON.stringify(okReport.other)})`);
+
+  // ---- (a) THE SET CARRIES A READABLE REPORT ---------------------------------------------------
+  let a: Record<string, unknown> = {};
+  let aParsed = false;
+  try { a = JSON.parse(okReport.raw) as Record<string, unknown>; aParsed = true; } catch { /* reported below */ }
+  ok(aParsed && a.complete === true && a.def === defId && a.engine === ENGINE_VERSION
+    && typeof a.at === 'string' && (a.at as string).endsWith('Z') && !Number.isNaN(Date.parse(a.at as string))
+    && Array.isArray(a.misses) && typeof a.missesOmitted === 'number',
+    `#1579a a finished build leaves a readable report on the set — complete=${String(a.complete)}, def '${String(a.def)}' (want '${defId}'), engine '${String(a.engine)}' (want '${ENGINE_VERSION}'), written ${String(a.at)}, ${Array.isArray(a.misses) ? (a.misses as string[]).length : '?'} misses kept and ${String(a.missesOmitted)} omitted${aParsed ? '' : ` — UNPARSEABLE: ${JSON.stringify(okReport.raw.slice(0, 120))}`}`);
+
+  // ---- (b) THE COUNTERS ARE TRUE, against the file rather than against the tally ----------------
+  ok(a.refs === walked.refs && a.wiredMembers === walked.members && a.refs === grid.length * props1579.length,
+    `#1579b the report's counters match the references the FILE holds, walked independently: refs ${String(a.refs)} vs ${walked.refs} walked vs ${grid.length * props1579.length} the plan declares, wiredMembers ${String(a.wiredMembers)} vs ${walked.members} walked`);
+  ok(a.setReresolved === 0 && a.refsRepaired === 0 && a.boundRepaired === 0,
+    `#1579b floor: the undisturbed control reports its three repair counters as zero (setReresolved=${String(a.setReresolved)}, refsRepaired=${String(a.refsRepaired)}, boundRepaired=${String(a.boundRepaired)}) — so a non-zero one in a report from a disturbed run is the disturbance and not the baseline`);
+
+  // ---- (c) THE ABORT — #1574's state (a), now a positive record rather than an absence ----------
+  const abortPage: Page = { children: [] };
+  let threw: unknown = null;
+  try { await run(grid, { ...fullFor(grid), page: abortPage, abortAfterCombine: true }); }
+  catch (err) { threw = err; }
+  const parked = partialWriteOf(threw);
+  ok(threw !== null && parked !== null && parked.parked > 0,
+    `#1579c floor: the modelled abort really stopped the run after the set existed, and the failure path parked ${parked?.parked ?? 0} node(s) — so the report below is read off a node the handler has already relocated`);
+  const cReport = reportOn(abortPage);
+  let c: Record<string, unknown> = {};
+  let cParsed = false;
+  try { c = JSON.parse(cReport.raw) as Record<string, unknown>; cParsed = true; } catch { /* reported below */ }
+  ok(cParsed && c.complete === false && c.def === defId && c.engine === ENGINE_VERSION && typeof c.stage === 'string' && (c.stage as string).length > 0,
+    `#1579c a run that never returns still leaves a report, marked incomplete — the state #1574 could only infer from ABSENCE: complete=${String(c.complete)}, def '${String(c.def)}', engine '${String(c.engine)}', stage ${JSON.stringify(c.stage)}${cParsed ? '' : ` — NOTHING READABLE: ${JSON.stringify(cReport.raw.slice(0, 120))}`}`);
+
+  // ---- (d) THE MISS LIST IS CAPPED, and says how much it dropped -------------------------------
+  // Pure, against `buildReportJson` directly: a 432-member set can miss on every member AND every
+  // reference, which is past Figma's documented 100 kB per-entry ceiling, and an entry the host refuses is
+  // a report missing on exactly the builds worth reading. Both directions, per shape 12 — a cap that
+  // truncated everything would pass the "it truncated" half alone.
+  const bare: BuildReport = {
+    engine: ENGINE_VERSION, def: defId, at: new Date().toISOString(), complete: true, stage: 'x',
+    refs: 0, wiredMembers: 0, setReresolved: 0, refsRepaired: 0, boundRepaired: 0, misses: [],
+  };
+  const many = Array.from({ length: 400 }, (_, i) => `miss ${i} ${'x'.repeat(400)}`);
+  const big = JSON.parse(buildReportJson({ ...bare, misses: many })) as { misses: string[]; missesOmitted: number };
+  const small = JSON.parse(buildReportJson({ ...bare, misses: many.slice(0, 3) })) as { misses: string[]; missesOmitted: number };
+  ok(big.missesOmitted > 0 && big.misses.length + big.missesOmitted === many.length
+    && big.misses.every((m, i) => m === many[i])
+    && buildReportJson({ ...bare, misses: many }).length < 100_000
+    && small.missesOmitted === 0 && small.misses.length === 3,
+    `#1579d the miss list is capped and the loss is reported: ${many.length} sentences totalling ${many.reduce((n, m) => n + m.length, 0)} bytes keep ${big.misses.length} in document order and record ${big.missesOmitted} omitted, in a ${buildReportJson({ ...bare, misses: many }).length}-byte entry; a 3-sentence list keeps all 3 and omits ${small.missesOmitted}`);
 }
 
 // =============================================================================================
