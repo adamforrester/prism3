@@ -15,7 +15,7 @@ import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, 
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
-import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
+import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS } from './modes';
 import { groundsOf } from './grounds';
@@ -32,7 +32,7 @@ import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
-import { buildTree, validateBrandInput } from './emit-dtcg';
+import { buildTree, validateBrandInput, readExampleBrand } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
 import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS } from './version';
@@ -51,7 +51,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -10612,6 +10612,110 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const noStateErrors = validateComponentDef(noState as never).errors;
     ok(noStateErrors.some((e) => e.includes("'disabled.label'")),
       `#1339 MUTATION: dropping 'disabled' from states makes disabled.label an undeclared-state paint key — validation fails (${noStateErrors.length} error(s)), proving the STATE carries the dim`);
+  }
+
+  // ---- #1602 + #1601: components resolve weight by INTENT; a ref must name an emitted composite ----
+  // Owner decision (2026-09-23): a weight axis carries INTENTS (`regular`/`bold`), and the BRAND resolves
+  // them against the roles it ships — `regular` → default, `bold` → the heaviest at/above default. When the
+  // intents coincide (a single-weight brand) the axis DROPS. `applyWeightIntent` materializes this into the
+  // def before projection, the same shape `controlShape` uses. #1601 is the safety net: every def's `type.*`
+  // ref must correspond to a composite the brand EMITS, else the paste-time miss #1599 saw.
+  {
+    // (1) THE RESOLUTION RULE, owner-locked. Asserted directly on `resolveWeightIntent` for each shape,
+    //     independent of any def — the rule, not one def's symptom (docs/34 shape 10).
+    ok(resolveWeightIntent('regular', ['default', 'emphasis']) === 'default'
+      && resolveWeightIntent('bold', ['default', 'emphasis']) === 'emphasis',
+      '#1602 NB body [default, emphasis]: regular→default, bold→emphasis (the heaviest the brand ships — Medium/500, not a strong it never emits)');
+    ok(resolveWeightIntent('regular', ['default', 'strong']) === 'default'
+      && resolveWeightIntent('bold', ['default', 'strong']) === 'strong',
+      '#1602 default body [default, strong]: regular→default, bold→strong (700)');
+    ok(resolveWeightIntent('bold', ['default', 'emphasis', 'strong']) === 'strong',
+      '#1602 bold is HEAVIEST-available, not one-step-above-default: [default, emphasis, strong] → strong');
+    ok(resolveWeightIntent('bold', ['default']) === 'default' && resolveWeightIntent('regular', ['default']) === 'default',
+      '#1602 single body weight: both intents resolve to the one role (the collapse precondition)');
+    let unknownThrew = '';
+    try { resolveWeightIntent('semibold', ['default', 'strong']); } catch (e) { unknownThrew = (e as Error).message; }
+    ok(/unknown weight intent/.test(unknownThrew),
+      '#1602 an unknown intent THROWS rather than resolving to a bogus style name');
+
+    // (2) DEFAULT-BRAND PROJECTION IS BYTE-IDENTICAL (acceptance: a themeless caller is unchanged). The
+    //     def authors its default-brand roles, so `applyWeightIntent(def, DEFAULT_WEIGHT_AVAILABILITY)` and
+    //     the raw `figmaAnatomySet(def)` produce the same plans — which is what keeps the seven gates that
+    //     call `figmaAnatomySet(def)` with no theme unmoved by #1602.
+    ok(JSON.stringify(applyWeightIntent(fieldLabel, DEFAULT_WEIGHT_AVAILABILITY).tokens) === JSON.stringify(fieldLabel.tokens),
+      '#1602 applyWeightIntent under the DEFAULT availability is the identity (field-label already authors its default-brand roles)');
+
+    // (3) NB (the #1599 case): field-label resolves the body BOLD intent to `emphasis`, and NO plan carries
+    //     a dangling `body/*/strong`. EXPECTED is the owner rule; ACTUAL is the projected text styles under
+    //     nb-redesign's real availability (`body: [default, emphasis]`), read from the emitted composites —
+    //     two independent sides (docs/34).
+    const nbRedesign = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input);
+    const nbAvail = weightAvailability(nbRedesign.typography);
+    const nbEmitted = new Set(nbRedesign.typography.composites.map((c) => figmaTextStyleName(`type.${c.path}`)));
+    const nbStyles = new Set(figmaAnatomySet(applyWeightIntent(fieldLabel, nbAvail)).flatMap((p) => planTextStyles(p.root)));
+    ok([...nbStyles].some((s) => /^body\/.+\/emphasis$/.test(s)) && ![...nbStyles].some((s) => /^body\/.+\/strong$/.test(s)),
+      `#1602 field-label on NB resolves bold→emphasis and carries NO body/*/strong (${[...nbStyles].sort().join(', ')})`);
+    ok([...nbStyles].every((s) => nbEmitted.has(s)),
+      '#1602 every field-label text style on NB is one NB actually EMITS — the #1601 miss (252 discards) is closed');
+
+    // (4) BY-NAME MUTATION (b): revert field-label to the hard `strong` binding (drop weightIntent). The NB
+    //     projection then names `body/*/strong`, which NB does not emit — the #1601 miss fails BY NAME. This
+    //     is the "they land together" pin: the resolution is what makes the gate green.
+    const hardStrong = { ...fieldLabel, weightIntent: undefined } as ComponentDef; // tokens already carry strong
+    const hardStyles = new Set(figmaAnatomySet(applyWeightIntent(hardStrong, nbAvail)).flatMap((p) => planTextStyles(p.root)));
+    const hardMiss = [...hardStyles].filter((s) => !nbEmitted.has(s));
+    ok(hardMiss.some((s) => /^body\/.+\/strong$/.test(s)),
+      `#1602 MUTATION: reverting field-label to the hard strong binding dangles body/*/strong on NB BY NAME (missing: ${hardMiss.sort().join(', ')})`);
+
+    // (5) AXIS COLLAPSE: a brand shipping ONE body weight drops field-label's weight axis — 24 → 12
+    //     members, no `weight` variant property, and the type binding loses its {weight} placeholder.
+    const collapsed = applyWeightIntent(fieldLabel, { body: ['default'] });
+    const collapsedSet = figmaAnatomySet(collapsed);
+    ok(!('weight' in (collapsed.variants ?? {})) && !(collapsed.figmaProperties?.variantAxes ?? []).includes('weight'),
+      '#1602 collapse: a single-body-weight brand drops the weight axis from variants and variantAxes');
+    ok(collapsedSet.length === figmaAnatomySet(fieldLabel).length / 2 && !collapsedSet.some((p) => /weight=/.test(planComponentName(p))),
+      `#1602 collapse: the set halves (${figmaAnatomySet(fieldLabel).length} → ${collapsedSet.length}) and no member name carries weight= — a one-value axis is not an axis`);
+    ok(collapsedSet.flatMap((p) => planTextStyles(p.root)).every((s) => /^body\/.+\/default$/.test(s)),
+      '#1602 collapse: every projected text style is the single resolved role (body/*/default)');
+
+    // (6) #1601 THE GATE — every def's every `type.*` ref, projected per brand WITH intent resolution,
+    //     names a composite the brand EMITS. SUBJECT = the def's projected text-style refs; ORACLE = the
+    //     brand's emitted composite set (read from `typography.composites`, the tree `type.*` is emitted
+    //     from). Independent sides across the corpus brands, including nb-redesign (the [default, emphasis]
+    //     case) whose availability differs from the vanilla default.
+    const mdTheme = (f: string) => brandTheme(parseDesignMd(readFileSync(resolve(HERE, `./examples/${f}`), 'utf8')).input);
+    const stdTheme = (f: string) => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, `./examples/${f}`), 'utf8'))).input);
+    const corpus: { id: string; theme: Theme }[] = [
+      { id: 'nb-measured', theme: nbTheme() },
+      { id: 'nb-redesign', theme: nbRedesign },
+      { id: 'aurora', theme: mdTheme('aurora.design.md') },
+      { id: 'wendys', theme: stdTheme('wendys.design.md') },
+      { id: 'harbor', theme: brandTheme(readExampleBrand('./examples/harbor.design.md')) },
+    ];
+    let checked = 0;
+    const gateMiss: string[] = [];
+    for (const { id, theme } of corpus) {
+      const emitted = new Set(theme.typography.composites.map((c) => figmaTextStyleName(`type.${c.path}`)));
+      const avail = weightAvailability(theme.typography);
+      for (const def of componentDefs) {
+        if (!def.figmaProperties) continue;
+        for (const plan of figmaAnatomySet(applyWeightIntent(def, avail)))
+          for (const s of planTextStyles(plan.root)) { checked++; if (!emitted.has(s)) gateMiss.push(`${def.id} @ ${id}: '${s}'`); }
+      }
+    }
+    ok(checked > 0, `#1601 the cross-check LOOKED — ${checked} projected text-style ref(s) across ${corpus.length} brands (a pass over zero refs is not a pass — docs/34 shape 9)`);
+    ok(gateMiss.length === 0, `#1601 every component text-style ref resolves to a composite its brand emits${gateMiss.length ? ` — MISSING: ${[...new Set(gateMiss)].slice(0, 6).join('; ')}` : ''}`);
+
+    // (7) #1601 SELF-CHECK — the detector fires on a KNOWN-BAD ref. A green corpus never exercises the
+    //     failure path, so a plan carrying a composite no brand emits must be caught, or the gate above is a
+    //     covering assertion that cannot fail (docs/34). Reuses the shipped `planTextStyles` walker.
+    const goodPlan = figmaAnatomySet(fieldLabel)[0];
+    const bogus: AnatomyPlan = { ...goodPlan, root: { ...goodPlan.root, textStyle: 'body/md/fictional' } };
+    const bogusEmitted = new Set(nbRedesign.typography.composites.map((c) => figmaTextStyleName(`type.${c.path}`)));
+    ok(planTextStyles(bogus.root).includes('body/md/fictional'),
+      '#1601 self-check: planTextStyles surfaces the ref the detector filters');
+    ok(planTextStyles(bogus.root).some((s) => !bogusEmitted.has(s)),
+      '#1601 self-check: a composite no brand emits is flagged by the same membership test the gate uses — the detector can fail');
   }
 
   // The drift gate bites: a broken def is caught (missing avoid_when + an unresolvable binding).

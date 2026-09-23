@@ -1190,9 +1190,31 @@ const TYPE_FAMILY_DEFAULT: Record<TypeGroup, { face: string; fallback: string[] 
 // renames. Defaults stay lean — display/title single-weight (expandable: brands
 // that ship multi-weight hero ramps just list more), body 2 (default + strong;
 // `emphasis` is the opt-in 3rd), caption 2. Override per role via `weights`.
-const TYPE_WEIGHTS_DEFAULT: Record<TypeGroup, WeightRoleName[]> = {
+export const TYPE_WEIGHTS_DEFAULT: Record<TypeGroup, WeightRoleName[]> = {
   display: ['strong'], title: ['strong'], label: ['emphasis'], eyebrow: ['emphasis'],
   body: ['default', 'strong'], caption: ['default', 'strong'], code: ['default'],
+};
+/**
+ * #1602 — the weight roles a brand ACTUALLY EMITS per category, derived from the composites it
+ * built rather than from `TYPE_WEIGHTS_DEFAULT` (which is only the pre-override default). This is the
+ * surface a weight INTENT resolves against: `field-label`'s `bold` intent binds the heaviest body role
+ * the brand ships, and "which does it ship" is answered HERE, from the emitted tree, not from a
+ * hard-coded role name in a component def (#1601's whole point).
+ *
+ * Read off `composites` — the same array `tree.ts` emits `type.*` from — so the availability the
+ * projection resolves against is the availability a designer's file actually carries. A brand that
+ * ships `body: [default, emphasis]` (NB, its heaviest body cut Medium/500) yields `body → [default,
+ * emphasis]` here, and `bold` resolves to `emphasis`, not a `strong` the brand never wanted. Ordered
+ * lightest→heaviest by `WEIGHT_ROLE_ORDER` and de-duplicated (link/italic modifiers share a weight
+ * role, so they collapse to one entry). Groups the brand does not bind at all are absent.
+ */
+export const weightAvailability = (typography: Typography): Partial<Record<TypeGroup, WeightRoleName[]>> => {
+  const seen: Partial<Record<TypeGroup, Set<WeightRoleName>>> = {};
+  for (const c of typography.composites) (seen[c.group] ??= new Set()).add(c.weightRole);
+  const out: Partial<Record<TypeGroup, WeightRoleName[]>> = {};
+  for (const [g, roles] of Object.entries(seen))
+    out[g as TypeGroup] = WEIGHT_ROLE_ORDER.filter((r) => roles!.has(r));
+  return out;
 };
 // Which roles get an underlined `.link` variant for EVERY size×weight (inline
 // links inherit the surrounding text's size + weight). Underline is baked

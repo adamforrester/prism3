@@ -2926,6 +2926,19 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.131.0 — #1602/#1601: components resolve weight by INTENT against a brand's available roles, collapsing
+ * the axis when the intents coincide (owner-decided 2026-09-23). A weight axis declares `regular`/`bold`
+ * intents; `applyWeightIntent` (the `controlShape`-shaped materialize-before-projection) resolves them per
+ * brand — `regular`→default, `bold`→the heaviest body role at/above default — so NB (`body: [default,
+ * emphasis]`) binds `emphasis`, not a `strong` it never emits (#1601's silent 252 discards). A single-body-
+ * weight brand DROPS the axis (24→12). The DEFAULT projection is byte-identical (field-label authors its
+ * default-brand roles), so `out/**` and the plain component-surface rows do NOT move; the MINOR bump is
+ * owed by the new brand-conditional PROJECTION behavior, enforced by `lint-component-surface`'s new
+ * `<id>@<scenario>` rows (a def gaining a per-brand surface is a surface change). #1601's cross-check
+ * (`test.ts`) pins every def's `type.*` ref to an emitted composite per corpus brand, mutation-proven.
+ * CONTRACT STANDS at 11.3.0 — no token NAME moves (field-label binds the same `type.body.*` names; the
+ * brand simply resolves which role at each). A stamp-only regen (`$extensions.generator.version`).
+ *
  * 0.130.0 — #1593: per-breakpoint GUTTER + MARGIN OVERRIDES for the layout grid (owner-decided
  * 2026-09-23, building New Balance). `buildLayout` gained `layout.gutterOverrides` / `layout.marginOverrides`
  * (keyed by breakpoint name, mirroring #1532's `columnOverrides`): a set entry wins over the `GUTTER_PX` /
@@ -3371,7 +3384,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.130.0';
+export const ENGINE_VERSION = '0.131.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
