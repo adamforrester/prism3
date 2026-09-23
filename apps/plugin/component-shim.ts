@@ -248,6 +248,43 @@ export type ShimOpts = {
    * Opt-in; with it unset the refusing set is empty and the check below is dead on every other run.
    */
   refuseRefsUntilYield?: string[];
+  /**
+   * #1574 — THE SET'S OWN HANDLE GOES STALE PART-WAY THROUGH PROPERTY CREATION. After this many
+   * successful `addComponentProperty` calls, the object `combineAsVariants` handed back stops naming the
+   * live set: a TWIN set is installed in the page at the same coordinate (same name, same `children`
+   * array, the definitions declared so far) and the ORIGINAL handle starts throwing on
+   * `addComponentProperty` and on `componentPropertyDefinitions` the way the host throws on a handle whose
+   * node it has replaced.
+   *
+   * THE MEMBERS STAY LIVE, deliberately, and that restriction is what makes this a distinct arm rather
+   * than a louder `deferSettleToWire`. #1473/#1516/#1568 are all about MEMBER and PART handles detaching;
+   * this models the one object those three never touch. Keeping the members shared between twin and
+   * original means the wire loop can still place every reference — so the only thing an executor holding
+   * the stale handle loses is the properties, which is exactly the live `button-neutral` shape: `label`
+   * created, both `↳ swap …` properties absent, and then no references either, because a reference whose
+   * property was never created is skipped by name.
+   *
+   * The twin is findable by `findOne` on the page, so the repair available to the executor is the one the
+   * live host offers: re-resolve the set by type and name and use what comes back.
+   *
+   * **`0` is a DIFFERENT injection point, not a smaller one.** At `0` the handle `combineAsVariants` hands
+   * back is already stale, so the first casualty is the `componentPropertyDefinitions` READ that gates the
+   * property phase — not a property call. That read used to set a single `readable` boolean which gated the
+   * property loop AND the wire loop, so one failed getter produced zero properties and zero references and
+   * reported one sentence about duplicate member names. `1` and `0` therefore fail different halves of the
+   * fix and neither substitutes for the other.
+   *
+   * HONESTY ABOUT FIDELITY (the #1573 caveat, restated because it applies harder here): a stale
+   * COMPONENT_SET handle could NOT be manufactured on the live host — `addComponentProperty` does not
+   * invalidate the handle, and `.id` on a removed node does not throw. So this models the state the
+   * executor's code ASSUMED IMPOSSIBLE, not a measured host behavior. It earns its place because the
+   * `button-neutral` census is consistent with it and with nothing else the code can currently reach, and
+   * because the resulting executor is strictly more robust either way. Arms assert the OUTCOME — which
+   * properties the set holds, whether references landed — never the refusal string.
+   *
+   * Opt-in; unset, no twin is ever installed and every set handle stays valid for the whole run.
+   */
+  staleSetAfterProperty?: number;
 };
 
 /** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
@@ -1040,24 +1077,23 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // gained members by `appendChild` must report the wider axis. And a DUPLICATE member name makes
       // this getter THROW live while `addComponentProperty` keeps succeeding — precisely the trap the
       // executor's try/catch exists for.
-      Object.defineProperty(set, 'componentPropertyDefinitions', {
-        configurable: true,
-        get: () => {
-          const kids = set.children as Node[];
-          const kidNames = kids.map((m) => String(m.name));
-          if (new Set(kidNames).size !== kidNames.length) throw new Error('in get_componentPropertyDefinitions: Component set has existing errors');
-          const out: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
-          for (const n of kidNames)
-            for (const kv of n.split(', ')) {
-              const [k, v] = kv.split('=');
-              const d = (out[k] ??= { type: 'VARIANT', variantOptions: [] });
-              if (!d.variantOptions!.includes(v)) d.variantOptions!.push(v);
-            }
-          return Object.assign(out, defs);
-        },
-      });
-      set.addComponentProperty = (name: string, type: string, defaultValue: unknown) => {
-        if (!opts.deferSettleToWire) settle();   // #1473 — fallback trigger, in case a def declares properties without ever resizing; #1516 holds it to the wire phase
+      // THE BODY, lifted out of the getter (#1574) so the TWIN a stale handle is replaced by can share it.
+      // Both objects report the same definitions off the same `defs` and the same `children`, which is the
+      // whole restriction of that mode: the SET's identity moves and nothing else does.
+      const readDefs = (): Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> => {
+        const kids = set.children as Node[];
+        const kidNames = kids.map((m) => String(m.name));
+        if (new Set(kidNames).size !== kidNames.length) throw new Error('in get_componentPropertyDefinitions: Component set has existing errors');
+        const out: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
+        for (const n of kidNames)
+          for (const kv of n.split(', ')) {
+            const [k, v] = kv.split('=');
+            const d = (out[k] ??= { type: 'VARIANT', variantOptions: [] });
+            if (!d.variantOptions!.includes(v)) d.variantOptions!.push(v);
+          }
+        return Object.assign(out, defs);
+      };
+      const addProp = (name: string, type: string, defaultValue: unknown): string => {
         if (type === 'INSTANCE_SWAP' && typeof defaultValue !== 'string')
           throw new Error('in addComponentProperty: Property value is incompatible with component property type');
         if (type === 'BOOLEAN' && typeof defaultValue !== 'boolean')
@@ -1067,6 +1103,52 @@ export const makeShim = (opts: ShimOpts = {}) => {
         while (Object.keys(defs).some((k) => k.split('#')[0] === bare)) bare = /\d$/.test(bare) ? bare.replace(/\d$/, (d) => String(+d + 1)) : `${bare}2`;
         const key = `${bare}#103:${seq++}`;
         defs[key] = { type, defaultValue };
+        return key;
+      };
+      // #1574 — THE SET HANDLE'S OWN DEATH. `stale` is what the ORIGINAL handle throws once the host has
+      // replaced the node it names; the twin installed in its place never checks it. Figma's message for a
+      // call on a handle whose node is gone names the id, so this one does too — a gate that greps for the
+      // words would be pinned to a message Figma can change (the #1573 caveat), so the arms below assert the
+      // OUTCOME (which properties the set ends up holding) and never the string.
+      let dead = false;
+      let propsMade = 0;
+      const staleErr = (call: string): Error => new Error(`in ${call}: The node with id "${String(set.id)}" does not exist`);
+      /** Move the SET's identity: from here on the handle `combineAsVariants` returned refuses every call,
+       *  and a fresh by-name lookup off the page returns an equivalent twin — the only repair the live host
+       *  offers. Called either at combine time (`staleSetAfterProperty: 0`) or after the Nth property. */
+      const killSet = (): void => {
+        if (dead) return;
+        dead = true;
+        // The twin INHERITS: same `children` array, same name/id/geometry, same `defs`. Only the two
+        // accessors the dead handle refuses are re-declared on it, so a member or part handle taken before
+        // this point stays valid — the restriction that keeps these arms distinct from the member-staleness
+        // modes above.
+        const twin = Object.create(set) as Node;
+        Object.defineProperty(twin, 'componentPropertyDefinitions', { configurable: true, get: () => readDefs() });
+        twin.addComponentProperty = (n: string, t: string, d: unknown) => addProp(n, t, d);
+        // `declaredIds` and the members' own reference guards are NOT re-installed: both close over this
+        // same `defs`, so an id declared through the twin is already valid to the guards the original
+        // installed. Re-running `guardRefs` here would re-walk every member and re-install setters over
+        // live ones, which is a second behavior to reason about for no gain.
+        // FINDABLE IN PLACE OF THE ORIGINAL: the executor re-resolves the set by type and name off the page.
+        const kids = page?.children as Node[] | undefined;
+        const at = kids?.indexOf(set) ?? -1;
+        if (kids && at >= 0) kids[at] = twin;
+      };
+      Object.defineProperty(set, 'componentPropertyDefinitions', {
+        configurable: true,
+        get: () => {
+          if (dead) throw staleErr('get_componentPropertyDefinitions');
+          return readDefs();
+        },
+      });
+      set.addComponentProperty = (name: string, type: string, defaultValue: unknown) => {
+        if (dead) throw staleErr('addComponentProperty');
+        if (!opts.deferSettleToWire) settle();   // #1473 — fallback trigger, in case a def declares properties without ever resizing; #1516 holds it to the wire phase
+        const key = addProp(name, type, defaultValue);
+        // AFTER the Nth SUCCESS, not after the Nth call: a refusal above throws out of here and is not the
+        // host doing anything to the set's identity.
+        if (opts.staleSetAfterProperty != null && ++propsMade >= opts.staleSetAfterProperty) killSet();
         return key;
       };
       set.declaredIds = () => Object.keys(defs);
@@ -1089,6 +1171,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
       const parentNode = parent as { appendChild?: (n: Node) => void } | undefined;
       if (parentNode?.appendChild) parentNode.appendChild(set);
       else page?.children.push(set);
+      // `0` means the handle `combineAsVariants` hands back is ALREADY stale — so the first casualty is the
+      // definitions READ that gates the property phase, not a property call. See `staleSetAfterProperty`.
+      // LAST, after the append: `killSet` installs the twin AT the original's coordinate in `page.children`,
+      // so killing before the set is on the page would leave nothing findable and no repair to test.
+      if (opts.staleSetAfterProperty === 0) killSet();
       return set;
     },
     // A page the executor can SEARCH, not just append to. It finds its set here by name and type, so

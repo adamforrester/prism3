@@ -433,6 +433,13 @@ export type ComponentApplyResult = {
    *  `setBoundVariable` lands the binding where `findOne` now sees it. Almost always 0 — the divergence
    *  has not reproduced by hand — so a non-zero count is the live signal #1218 verifies against. */
   boundRepaired: number;
+  /** Times the SET's own handle was found to have been replaced and was re-resolved off the destination
+   *  page (#1574) — the set-level sibling of `refsRepaired`/`boundRepaired`, and the counter that says
+   *  whether the property loop and the wire loop ran against the live set or a handle the host had moved
+   *  out from under them. `button-neutral` reached the live file with one TEXT property, no `INSTANCE_SWAP`
+   *  properties and zero references on 432 members, which is what this counter exists to make visible
+   *  rather than inferable from a census. 0 on every offline run with stable identity. */
+  setReresolved: number;
   /** Host subtree searches the #1279 binding read-back made — its `refsSearched` analogue, exposed so
    *  the search-count gate can decompose the host total by loop. Zero on a warm re-run (its scope is the
    *  members this run combined). */
@@ -1893,6 +1900,8 @@ const writeComponentSet = async (
       // #1279's binding-repair counters — 0 here by construction: this mode never combines, so no binding
       // is ever dropped by a combine to repair or to search for.
       boundRepaired: 0,
+      // #1574 — 0 for the same reason: with no combine there is no set, so no set handle to go stale.
+      setReresolved: 0,
       boundSearched: 0,
       emittedComponents: emitted,
       misses,
@@ -1902,7 +1911,7 @@ const writeComponentSet = async (
   if (!set) {
     if (fresh.length === 0) {
       misses.push('set -> nothing to combine (no members built)');
-      return { set: null, id: '', variants: 0, added: 0, skipped, stale, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, refsRetained: 0, refsKnownAbsent: 0, refsSearched: 0, refsRepaired: 0, boundRepaired: 0, boundSearched: 0, misses };
+      return { set: null, id: '', variants: 0, added: 0, skipped, stale, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, refsRetained: 0, refsKnownAbsent: 0, refsSearched: 0, refsRepaired: 0, boundRepaired: 0, setReresolved: 0, boundSearched: 0, misses };
     }
     // COMBINE, once. Every later member joins by `appendChild`, which re-derives the axes correctly —
     // measured: appending `state=pressed` to a `state=rest|hover` set extends that axis.
@@ -1972,13 +1981,63 @@ const writeComponentSet = async (
   if (colW.length && rowH.length && (Math.round(set.width ?? 0) < Math.round(wantW) || Math.round(set.height ?? 0) < Math.round(wantH)))
     boxMiss.push(`set -> BOX ${Math.round(set.width ?? 0)}x${Math.round(set.height ?? 0)} does not contain its ${members.length} members (${Math.round(wantW)}x${Math.round(wantH)} needed; appending does NOT grow the frame)`);
 
+  /** #1574 — THE SET ITSELF, RE-RESOLVED FRESH FROM THE DESTINATION PAGE AT EACH USE.
+   *
+   *  #1473/#1516/#1568 are all the same shape one level DOWN: a handle captured before a set-level
+   *  operation, used after the host has replaced the object it names. Those three are about MEMBER and
+   *  PART handles; this is the `set` handle, which is captured once (`combineAsVariants` at the append
+   *  loop's end, or the `dest.findOne` above it) and then used for the definitions read, every
+   *  `addComponentProperty`, and — through `liveMember` — every member resolution in the wire loop.
+   *  Nothing re-reads it.
+   *
+   *  Reassigns the shared `set`, deliberately: `liveMember` closes over it, so re-resolving here also
+   *  puts the wire loop and #1568's deferred retry on the live handle instead of leaving each of them to
+   *  discover the same staleness separately. The lookup is the SAME one line 1715 already trusts to
+   *  identify this set on a re-run (`dest.findOne`, by type and name), so it introduces no new way to
+   *  resolve the wrong set — a page with two same-named sets was already ambiguous on that line.
+   *
+   *  INERT when identity is stable, which is every offline run and the live common case: `findOne`
+   *  returns the very object `set` already holds and nothing is reassigned. `setReresolved` counts the
+   *  times it did not, so a live run reports whether this fired rather than leaving it to be inferred. */
+  let setReresolved = 0;
+  const liveSet = (): CompSet => {
+    const found = dest.findOne((n) => n.type === 'COMPONENT_SET' && n.name === component) as CompSet | null;
+    if (found && found !== set) { set = found; setReresolved++; }
+    // The cast, not a guard: every call site below sits after the combine/append block, where `set` is
+    // non-null by control flow — a fact TS drops at the closure boundary for a `let`. A runtime guard here
+    // would have to invent a behavior for a case that cannot occur and would be the one branch no gate
+    // could reach.
+    return set as CompSet;
+  };
+
   // READ BACK the definitions, GUARDED. A duplicate member name poisons this getter live ("Component
   // set has existing errors") while `addComponentProperty` keeps succeeding, so an unguarded read
   // throws with no indication of which member caused it — and takes the whole report with it.
+  //
+  // #1574 — AND RETRIED ON A FRESHLY-RESOLVED SET before the failure is accepted, because the
+  // consequence of accepting it is far larger than the message says: `readable` gates the property loop
+  // AND (through `toWire`) the entire reference pass, so ONE failed read of ONE getter declares no
+  // properties and wires no references across every member, and reports it as a sentence about duplicate
+  // member names. `button-neutral` reached the live file in exactly that state — one TEXT property that
+  // predated the read, both INSTANCE_SWAP properties absent, and not one reference on any of its 432
+  // members. A stale handle is indistinguishable from a poisoned getter at this line, so the retry is
+  // what separates them: a duplicate name fails on BOTH handles, a stale handle only on the old one.
   let defs: Record<string, { type?: string; variantOptions?: readonly string[] }> = {};
   let readable = false;
   try { defs = set.componentPropertyDefinitions ?? {}; readable = true; }
-  catch (err) { misses.push(`set -> UNREADABLE (${(err as Error).message}) — two members almost certainly share a name, which combineAsVariants accepts silently`); }
+  catch (err) {
+    const first = (err as Error).message;
+    try {
+      defs = liveSet().componentPropertyDefinitions ?? {};
+      readable = true;
+      misses.push(`set -> definitions UNREADABLE on the combine-time handle (${first}) and READABLE on a freshly-resolved one, so the handle was stale rather than the set poisoned (#1574); the ${props.length} declared propert${props.length === 1 ? 'y' : 'ies'} and all ${members.length} members' references were placed on the live set`);
+    } catch {
+      // BOTH handles refused, so this is the duplicate-name case the guard was written for. The
+      // CONSEQUENCE now leads: it is the whole of what went wrong and it used to be unstated, which is
+      // how a set missing every property and every reference read as one line about member names.
+      misses.push(`set -> UNREADABLE on the combine-time handle AND on a freshly-resolved one (${first}) — so NONE of the ${props.length} declared propert${props.length === 1 ? 'y was' : 'ies were'} created and NONE of the ${members.length} members' references were wired; two members almost certainly share a name, which combineAsVariants accepts silently`);
+    }
+  }
 
   // VARIANT ONLY, and load-bearing rather than tidy: non-variant properties come back with a NODE-ID
   // SUFFIX (`children#104:25`) while variant keys do not, so comparing all keys reports an axis
@@ -2016,10 +2075,24 @@ const writeComponentSet = async (
       if (!target) { misses.push(`property ${p.name} -> swap target ${p.swapTarget} (${swapMissAdvice(swapFound(p.swapTarget), p.swapTarget)}; ${SWAP_NO_PROPERTY})`); continue; }
       def = target.id;
     } else def = p.default;
+    // #1574 — THE SET RE-RESOLVED BEFORE EACH CALL, which is the #1473/#1516 move applied to the object
+    // those two never touched. The live `button-neutral` shape is `label` created and both `↳ swap … icon`
+    // properties after it absent, so what has to be covered is a handle invalidated by a PREVIOUS call in
+    // this same loop — and the resolution sits immediately before the call, in the same synchronous tick,
+    // so nothing can invalidate it in between.
+    //
+    // DELIBERATELY NOT a retry in the catch as well. A second attempt on a freshly-resolved handle was
+    // written first and is provably unreachable for this fault: `liveSet()` already ran a statement earlier
+    // with no yield between, so a refusal here cannot be a stale handle — it is a real refusal, and
+    // retrying it would report one attempt twice or, worse, make the mutation that deletes the resolution
+    // above still pass (measured: mutation M1 stayed green with the retry in place, which is a fix with no
+    // gate rather than a fix with a spare). One mechanism, one gate.
     try {
-      const id = set.addComponentProperty?.(p.name, p.type, def);
+      const id = liveSet().addComponentProperty?.(p.name, p.type, def);
       if (id) propIds.set(p.name, id);
-    } catch (err) { misses.push(`property ${p.name} -> ${p.type} REFUSED (${(err as Error).message})`); }
+    } catch (err) {
+      misses.push(`property ${p.name} -> ${p.type} REFUSED (${(err as Error).message})`);
+    }
   }
 
   // WIRE the references, per MEMBER. They do NOT propagate: setting one on the first variant leaves
@@ -2079,8 +2152,12 @@ const writeComponentSet = async (
   // set's direct children (an array walk, not a `findOne` subtree search — orders of magnitude below the
   // #701 cost it feeds), so it does not touch the fast path. Geometry read-backs below deliberately KEEP
   // reading `members` — position/size ride the snapshot handle — so only the reference re-finds move here.
+  // The cast, not a guard: `set` is non-null from the early return above, but #1574 made it reassignable
+  // inside `liveSet()`, and TS drops control-flow narrowing for a `let` written from a closure. It reads
+  // whatever `set` currently names, which is the LIVE set — the property phase's `liveSet()` calls have
+  // already repointed it if the combine-time handle went stale.
   const liveMember = (name: string): CompNode | undefined =>
-    (set.children ?? []).find((c) => c.name != null && String(c.name) === name);
+    ((set as CompSet).children ?? []).find((c) => c.name != null && String(c.name) === name);
   mark = phaseStart = Date.now();
   const toWire = readable ? members : [];
   for (let i = 0; i < toWire.length; i++) {
@@ -2413,15 +2490,34 @@ const writeComponentSet = async (
   // RE-READ the definitions: the read above happened BEFORE the properties existed, and left stale it
   // reports every property "declared but absent from the set" on a perfectly correct run — noise that
   // masks the two checks below.
-  try { defs = set.componentPropertyDefinitions ?? {}; } catch { /* already reported as UNREADABLE */ }
+  let reread = false;
+  try { defs = liveSet().componentPropertyDefinitions ?? {}; reread = true; } catch { /* already reported as UNREADABLE */ }
   const propMiss: string[] = [];
   // ONE: a DUPLICATE name is accepted silently and RENAMED (`children` → `children2`, no throw), so the
   // check is that each declared name came back VERBATIM, not that the count matches.
   const bare = new Map<string, string>();
   for (const k of Object.keys(defs)) if (defs[k].type !== 'VARIANT') bare.set(k.split('#')[0], k);
-  for (const p of props)
-    if (propIds.has(p.name) && !bare.has(p.name))
-      propMiss.push(`property ${p.name} -> declared but absent from the set (Figma may have renamed it)`);
+  // #1574 — THE EXPECTED SET IS THE PLAN, NOT `propIds`. This read stood as
+  // `if (propIds.has(p.name) && !bare.has(p.name))` — gated on the executor's own record of what it
+  // SUCCEEDED in creating, which is `docs/34` shape 1 exactly: a property that was never created is
+  // excluded from the completeness check BY THE FAILURE the check exists to find. `button-neutral`
+  // shipped two declared `INSTANCE_SWAP` properties short and this line could not say so, because both
+  // were missing from `propIds` too. The gate is dropped; `propIds` now only chooses WHICH SENTENCE, and
+  // the second one is the case that used to be unreportable.
+  //
+  // Gated on `reread` instead, which is a different kind of condition: not "did we succeed" but "can this
+  // check see the set at all". An unreadable getter yields no ACTUAL, and reporting every declared
+  // property absent off an empty `defs` would be a check asserting its own blindness.
+  //
+  // Both sentences can follow a per-property miss from the creation loop (an unresolvable swap target, a
+  // refusal). That is not duplication to suppress: those lines say WHY one attempt failed, this one says
+  // the set is incomplete, and the case worth reporting most is the one where the loop said nothing.
+  if (reread)
+    for (const p of props)
+      if (!bare.has(p.name))
+        propMiss.push(propIds.has(p.name)
+          ? `property ${p.name} -> declared but absent from the set (Figma may have renamed it)`
+          : `property ${p.name} -> DECLARED BY THE PLAN BUT NEVER CREATED and absent from the set (#1574) — every reference naming it was skipped, so none of the ${members.length} members carry a ${p.type} property here`);
   // TWO: an ORPHAN — a property no node references. Figma shows it in the panel and changing it does
   // nothing, which is indistinguishable from a broken component to the designer holding it.
   const referenced = new Set<string>();
@@ -2475,6 +2571,7 @@ const writeComponentSet = async (
     refsSearched,
     refsRepaired,
     boundRepaired,
+    setReresolved,
     boundSearched,
     misses: misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss),
   };
