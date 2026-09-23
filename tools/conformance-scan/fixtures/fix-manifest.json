@@ -1,0 +1,85 @@
+{
+  "_comment": [
+    "What `fix.ts --selftest` must produce for actual-dirty.json — EXACTLY this, no more and no less.",
+    "",
+    "Hand-written, for the reason manifest.json is (docs/34-gate-independence.md): a manifest generated",
+    "from the plan's own output would be a gate built from its subject, and the direction it would fail to",
+    "catch is the dangerous one. Ordinary drift here fails as MISSING (an op that stopped being emitted).",
+    "The load-bearing direction is EXTRA: an op that appears for a category this tool must never act on.",
+    "",
+    "A row is `op <kind>: <subject>` or `excluded <category>: <subject>`, and therefore a SET — the two",
+    "findings on `caption/md/default` collapse to one row, as they do in manifest.json. `accounting` is what",
+    "pins the counts, so a lost finding cannot hide inside a shared row.",
+    "",
+    "The 24 findings of the dirty fixture sort into 2 ops and 23 exclusions. The two ops ARE the safe",
+    "boundary: the drifted value of `neutral/900`, and the one raw literal whose planned variable is in the",
+    "file. Its twin at `/caption fills` is right below it in the excluded list, planned variable absent, and",
+    "the two rows sitting one above the other is the whole design of this tool in two lines."
+  ],
+  "dirty": "actual-dirty.json",
+  "accounting": { "findings": 25, "ops": 2, "excluded": 23 },
+  "expect": [
+    "op set-var-value: fix/core/palette/neutral/900 [Default]",
+    "op rebind: widget · size=md, state=rest · / · fills",
+
+    "excluded binding-presence: widget · size=md, state=rest · /caption · fills",
+    "excluded binding-presence: widget · size=md, state=rest · /label · textStyle",
+    "excluded binding-presence: widget · size=md, state=rest · /caption · textStyle",
+    "excluded binding-presence: gadget · size=sm · / · fills",
+
+    "excluded binding-target: widget · size=md, state=rest · /label · fills",
+    "excluded binding-target: widget · size=md, state=hover · / · strokeWeight",
+
+    "excluded mode-coverage: fix/color/icon/primary [dark]",
+
+    "excluded scope-type: fix/opacity/veil",
+    "excluded scope-type: fix/size/md/height",
+
+    "excluded structure: collection 'legacy'",
+    "excluded structure: component 'gadget'",
+    "excluded structure: fix/color/text/secondary",
+
+    "excluded contrast: light · text.primary on background.primary",
+    "excluded contrast: light · interactive.overlay.hover on background.primary",
+
+    "excluded staleness: engine version",
+
+    "excluded style-definition: text style 'body/md/default'",
+    "excluded style-definition: text style 'caption/md/default'",
+    "excluded style-definition: text style 'label/sm/default'",
+    "excluded style-definition: text style 'designer/scratch'",
+    "excluded style-definition: effect style 'shadow/sm'",
+    "excluded style-definition: grid style 'Grid / xs'",
+    "excluded style-definition: paint style 'gradient/brand'"
+  ],
+  "values": {
+    "fix/core/palette/neutral/900 [Default]": "COLOR {\"r\":0.10196078431372549,\"g\":0.10196078431372549,\"b\":0.10196078431372549,\"a\":1}",
+    "widget · size=md, state=rest · / · fills": "variable fix/color/background/primary"
+  },
+  "_values_comment": [
+    "26/255 as a double, three channels — the emitted `rgba(26,26,26,1)` decoded for `setValueForMode`,",
+    "which takes 0-1 channels. Pinned because an op that EXISTS but writes the wrong value passes the",
+    "by-name check: `expect` says a write happens, `values` says what lands."
+  ],
+  "neverFixed": [
+    "binding-target",
+    "mode-coverage",
+    "scope-type",
+    "structure",
+    "contrast",
+    "staleness",
+    "style-definition"
+  ],
+  "collateral": [
+    "contrast: light · text.primary on background.primary",
+    "contrast: light · interactive.overlay.hover on background.primary"
+  ],
+  "_collateral_comment": [
+    "Both light-mode contrast contracts are re-measured through `text.primary`, which aliases",
+    "`neutral/900` — directly for the first, as `legibleFor` for the ink-on-composite second. So the (c)",
+    "value fix restores both ratios, and neither needed an op of its own. That is exactly why (g) is never",
+    "its own op: a contrast finding is a consequence. The list is asserted as an exact set, so a fix",
+    "reaching further than this — or a (g) finding that stops being a consequence — is a failure and not a",
+    "wash."
+  ]
+}
