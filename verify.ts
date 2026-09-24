@@ -713,6 +713,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-hit-target.ts'),
   },
   {
+    id: 'lint-lever-sweep',
+    ciStep: 'No lever setting silently deletes a guaranteed path or a component binding (#957)',
+    cmd: engine('lint-lever-sweep.ts'),
+  },
+  {
     // The FIRST gate outside `packages/engine/`, which is why `gateFilePattern` below now admits
     // `apps/*/lint-*.ts` as well as `.mjs`. It lives in `apps/plugin/` because it imports the plugin's
     // own executor; an engine-side copy would make the engine depend on a surface.

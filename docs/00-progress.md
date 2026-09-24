@@ -7,6 +7,29 @@
 
 ---
 
+## (2026-09-24) — the lever-sweep gate: no toggle/enum setting silently deletes a guaranteed path or a component binding (#957)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/lint-lever-sweep.ts` (**NEW**), wired into `verify.ts` + `ci.yml` + `CONTRIBUTING.md` §3 + the PR template + `CLAUDE.md` §4; `docs/30` (two `Decided (2026-08-27, #957)` headings); `docs/42` (two rows, and the Known-gaps bullet rewritten); `schema/decisions-index.json` (`--accept`). Gate-only: no emission change, no ENGINE or CONTRACT bump.
+
+**Why now.** #1608 was this class. `outlineInteraction: 'solid-tint'` stopped emitting the overlay wash that `button` bound, and the owner found 96 misses by building a button. The disposition half of #957 had already landed in #1115 (30 paths demoted via the `minimal-levers` corpus member). What was missing was the sweep, and a decisions-index row for each disposition.
+
+**The gate.** Every toggle and enum option in `leverManifest`, one at a time, from `minimal`, `harbor` and `nb-redesign`: 116 settings built, ~16s. **Arm (a)**: the guaranteed set is read from the committed `token-contract.json` as a file, never recomputed. A guaranteed path the brand's base emits and the setting does not (or retypes) must match `REMOVALS` exactly, per (brand, lever, value), in both directions. **Arm (b)**: every def is materialized for the setting (`applyControlShape` → `applyWeightIntent` → `applyOutlineInteraction`, the order `materializeForBrand` uses), projected, and checked with `planBindingErrors` against that setting's in-memory Figma emission (`figmaArtifacts`). Both oracles are emitted output, not the lever table and not `outlineFillRole`. Throws are verdicts: each must match `REFUSALS` by message, and a refusal that stops throwing fails. Scope is asserted: every lever is swept or its control kind has a reason in `NOT_SWEPT`.
+
+**What the first run found (two live contract gaps, both filed, not fixed here):**
+- **#1631.** `density: 'spacious'` removes `core.dimension.3` and `core.dimension.18` on all three brands. The grid is value-keyed and fed the control sizes, and only comfortable's produce 3 (an inset) and 18 (a thumb). It's on the allowlist as a `defect` entry that cites the issue. Because the allowlist is exact, either fix turns the gate red until the entry goes.
+- **#1632.** nb-redesign, at its own settings, emits none of 17 guaranteed `type.*.strong` paths, because `typography.weights` narrows its sets. That's an object lever, outside the sweep's reach, and nb-redesign isn't a contract corpus member, so `token-contract --check` can't see it either. The gate measures arm (a) as a delta from each brand's own base, so this doesn't show up as a lever removal. That's deliberate: the removal has to be attributable to the lever being swept.
+
+**Mutations, by name (committed before each):**
+- M1: `buildTree` drops `motion.duration.instant` under relaxed tempo. Arm (a) fails with `minimal @ motionPersonality.tempo="relaxed" REMOVES … motion.duration.instant` (and nb-redesign's line). Harbor is already relaxed, so its corpus-base precondition fires instead.
+- M2: `applyOutlineInteraction` reverted to identity. Arm (b) fails on 6 (brand × solid-tint/none) lines, each naming `button ×96 [bound variable 'color/interactive/primary/overlay/hover'; …]`, the owner's count.
+- M3: a `REMOVALS` entry for a path nothing removes. Fails with `(a) STALE allowlist entry`. Trimming the real `density` entry to one path fails `REMOVES … core.dimension.3` ×3.
+- M4: a `REFUSALS` entry that never throws. Fails with `STALE refusal`.
+- The (b) self-check projects the unmaterialized button, so M2 does not silence it.
+
+**Traps for whoever re-verifies.** The composition in arm (b) is restated, not imported from `apps/plugin/src/brand-def.ts`, so the engine does not depend on a surface. The gate therefore can't see the plugin dropping a wrap; `test-write-components.ts` owns that. #957 suggested folding `test.ts`'s inverse-vocabulary (a2) sweep into this gate. It's left in place: removing an assertion wasn't needed to land the gate, and it's a separate cleanup.
+
+---
+
 ## (2026-09-24) — a label-ink override carries to its icon twin (#1617)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/modes.ts` (**NEW** `withIconTwins`), `packages/engine/test.ts` (**IT-01**), `apps/studio/src/main.ts` (outline preview glyph), `packages/engine/version.ts` (ENGINE 0.136.0), stamp-only `out/**` + the `token-contract.json` `engineVersion` field (`--accept`, no surface change; CONTRACT stands at 11.3.0).

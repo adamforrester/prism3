@@ -764,6 +764,19 @@ jobs:
       - name: Interactive controls meet the 44px hit-target floor
         run: npx --yes tsx@4 packages/engine/lint-hit-target.ts
 
+      # #957 — the LEVER SWEEP. Every other gate sees a brand at its own settings, and the contract
+      # corpus runs almost every lever at its default, so a lever that deletes something OFF its default
+      # sits where no gate is handed the input (#895, #957, and #1608's 96 button misses, found by a
+      # designer building a button). Sweeps every toggle and enum option, one at a time, over minimal +
+      # harbor + nb-redesign. Arm (a): a guaranteed path from the COMMITTED token-contract.json that the
+      # brand's base emits and the setting does not must match the REMOVALS allowlist EXACTLY, both
+      # directions (a stale entry fails). Arm (b): every component def materialized for the setting
+      # (applyControlShape / applyWeightIntent / applyOutlineInteraction) binds only variables and styles
+      # that setting's Figma EMISSION holds. Both oracles are emitted output, never the lever table.
+      # Stated limits: sliders and structured levers are not swept (#1632), nor lever combinations.
+      - name: No lever setting silently deletes a guaranteed path or a component binding (#957)
+        run: npx --yes tsx@4 packages/engine/lint-lever-sweep.ts
+
       # THE SECOND DIRECTION (#865). Every write the component executor makes is verified by a read-back
       # — set the value, read it, report a miss if the host did not keep it. Nothing verified what it did
       # NOT write, and a Figma node is never silent: a property no def mentioned kept Figma's own default

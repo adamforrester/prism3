@@ -158,6 +158,42 @@ should never have been promised.
 Everything else the engine can emit is recorded as `brandDependent` (234 paths). Those are
 informational: they exist for some inputs only, and they **never** force a version bump.
 
+### Sparse is not suppressed: levers that remove paths (#957)
+
+`minimal` leaves every optional field unset, so every lever runs at its **default**, and a default
+is a value like any other. #957 swept every toggle and enum option away from its default and found
+two levers deleting paths the contract called guaranteed. Neither went the way #895's `inverse` did
+(retire the lever). In both cases, removing the paths is the lever's declared purpose. So the contract
+changed, not the lever: the `minimal-levers` corpus member (`token-contract.ts`) pulls both levers, and
+the paths drop out of the intersection. They are still emitted by every brand that doesn't pull the
+lever. They are no longer promised. Landed in #1115, under `CONTRACT_VERSION` 7.0.0.
+
+The cost is stated rather than hidden: a `brandDependent` path never forces a version bump, so a
+future rename of one of these families is no longer a MAJOR. That trade was made on purpose, because a
+guarantee that a supported setting breaks is not a guarantee.
+
+#### Decided (2026-08-27, #957): `outlineInteraction` keeps its `none` and `solid-tint` settings, and `interactive.*.overlay.*` is brand-dependent
+
+`outlineInteraction: 'none'` means "no overlay tokens", and `solid-tint` emits the opaque
+`subtle-fill` family instead. The two families are mutually exclusive by design. The overlay wash
+(`interactive.<c>.overlay.*` and its `inverse.` twin; 27 paths at the time, across the tiers that then
+existed) is demoted to `brandDependent`. It is not made
+unconditional, and the lever stays. A component that binds the wash is materialized per brand instead
+(`applyOutlineInteraction`, #1608).
+
+#### Decided (2026-08-27, #957): `typography.displayCeiling` keeps capping the display ramp, and the rungs above the lowest are brand-dependent
+
+A brand that stops at `display.md` has declined `display.xl`; it is not missing it. The 3
+`type.display.{xl,lg,md}.strong` paths a ceiling below `xl` removes are demoted to `brandDependent`.
+Only `display.sm`, the rung no ceiling can trim, stays guaranteed.
+
+**The gate that closes the class, not just these two instances**, is `lint-lever-sweep.ts` (#957). It
+sweeps every toggle and enum option, one at a time, over three brands. It fails on any guaranteed path
+a setting removes or retypes unless an allowlist entry, with its reason, names exactly that removal.
+The allowlist is exact in both directions, so a stale entry fails too. It also fails when a component,
+materialized for the setting, binds something the setting doesn't emit. Its header lists what it does
+not sweep: sliders, structured levers (`typography.weights`, #1632) and combinations.
+
 ## Change classification
 
 | change to the guaranteed set | level | why |
