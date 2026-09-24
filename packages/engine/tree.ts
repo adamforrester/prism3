@@ -16,7 +16,7 @@ import { RGB, contrast, hex } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
-import { resolveAllModes, ModeResult } from './modes';
+import { resolveAllModes, ModeResult, OPACITY_STEPS } from './modes';
 import { ENGINE_VERSION } from './version';
 
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
@@ -30,7 +30,7 @@ const alphaHex = (a: number) => Math.round(a * 255).toString(16).padStart(2, '0'
 const alphaColorValue = (rgb: RGB, a: number, fmt: 'rgb' | 'hex') =>
   fmt === 'hex' ? `${hex(rgb)}${alphaHex(a)}` : `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${round(a, 2)})`;
 // Shared opacity/alpha step set (percent). Ramps use 5–90; the opacity scale full.
-const ALPHA_STEPS = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+const ALPHA_STEPS = OPACITY_STEPS;
 
 const bandName: Record<string, string> = {
   Highlights: 'Highlight', Quarter: 'Quarter-Tone', Mid: 'Mid-Tone',
@@ -496,6 +496,10 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const washFields = (r: { model: string; legibleFor?: string }) =>
     r.model === 'ink-on-composite' ? { contrastModel: r.model, legibleFor: r.legibleFor } : {};
 
+  // A tint role's two sources, as references into this tree (#1614) — the fill role and the opacity token.
+  const tintRefs = (r: { tint?: { fill: string; opacity: number } }) =>
+    ({ color: `{${root}.color.${r.tint!.fill}}`, opacity: `{${root}.opacity.${r.tint!.opacity}}` });
+  const tintValue = (r: { hex: string; alpha?: number }) => alphaColorValue(rgbFromHex(r.hex), r.alpha!, theme.colorFormat);
   const byMode = new Map(modes.map((m) => [m.mode, m]));
   const lightMode = byMode.get('light')!;
   const colorRoles: Record<string, any> = {};
@@ -514,7 +518,31 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
       // each role per mode — the scrim's opacity, the raised high-contrast minimums — and this line used
       // to keep only light's, so every dark and high-contrast overlay carried light-mode prose beside a
       // different value. Absent means "same as `$description`", which keeps the unchanged majority lean.
-      modeOverrides[m] = { $value: `{${rr.path}}`, aliasOf: rr.path, contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) };
+      modeOverrides[m] = rr.tint
+        ? { $value: tintValue(rr), tint: tintRefs(rr), contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) }
+        : { $value: `{${rr.path}}`, aliasOf: rr.path, contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) };
+    }
+    if (lr.tint) {
+      // A `solid-tint` SUBTLE FILL (#1614): the existing fill at an existing opacity step, translucent. There
+      // is no single token it can alias — DTCG has no "this color at that opacity" reference, and minting a
+      // primitive for it is what the owner ruled out (PR #1622, superseded). So the `$value` is the RESOLVED
+      // translucent color (a stock consumer gets the right paint with no custom code), and `tint` carries the
+      // two references it was made from — the fill ROLE and the `opacity.<n>` TOKEN — so a consumer that can
+      // compose them (`color-mix`, a Figma paint's opacity) binds the originals and follows them.
+      const leaf: Token = {
+        $type: 'color', $value: tintValue(lr), $description: lr.description,
+        $extensions: { prism3: {
+          role: 'semantic', tint: tintRefs(lr),
+          contrast: round(lr.ratio, 2), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
+          modes: modeOverrides,
+          figma: { collection: 'color', note: 'not a Figma variable (a paint opacity cannot bind one): bind the fill variable in `tint.color` at the paint opacity `tint.opacity` resolves to' },
+        } },
+      };
+      const parts = roleKey.split('.');
+      let node = colorRoles;
+      for (let i = 0; i < parts.length - 1; i++) node = (node[parts[i]] ??= {});
+      node[parts[parts.length - 1]] = leaf;
+      continue;
     }
     // Elevation is not a colour group — a component composes a foreground tier +
     // a shadow step (see docs/06). No parallel `elevation.*` tree is emitted.

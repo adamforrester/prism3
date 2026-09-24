@@ -303,8 +303,8 @@ export type Theme = {
   // How an OUTLINE / TEXT interactive control expresses hover/pressed/selected
   // (docs/20 §10). 'overlay-neutral' (default): a translucent neutral wash that
   // composites over any surface — the `interactive.<color>.overlay.*` tokens are
-  // generated. 'solid-tint': an opaque tint of the control's own palette instead
-  // (`interactive.<color>.subtle-fill.{hover,pressed,selected}`), no overlays.
+  // generated. 'solid-tint': the control's own fill at an opacity-scale step instead
+  // (`interactive.<color>.subtle-fill.{hover,pressed,selected}`, #1614), no overlays.
   // 'none': no hover expression, no overlays. (`overlay-tint` — the colour's own
   // hue at low alpha — is scheduled; needs per-colour alpha ramps.)
   outlineInteraction: 'overlay-neutral' | 'solid-tint' | 'none';
@@ -513,8 +513,8 @@ export type BrandInput = {
   iconContrast?: 'text' | '3:1';
   /** How an outline/text interactive control expresses hover (docs/20 §10). Default
    *  'overlay-neutral' (generate translucent `interactive.<color>.overlay.*` washes);
-   *  'solid-tint' uses an opaque tint of the control's own palette instead
-   *  (`interactive.<color>.subtle-fill.{hover,pressed,selected}`); 'none' omits both. */
+   *  'solid-tint' uses the control's own fill at an opacity-scale step instead
+   *  (`interactive.<color>.subtle-fill.{hover,pressed,selected}`, #1614); 'none' omits both. */
   outlineInteraction?: 'overlay-neutral' | 'solid-tint' | 'none';
   /** Neutral interactive emphasis (docs/20 §10). 'subtle' (default) is a light-grey
    *  neutral fill; 'strong' is a bold near-black/near-white neutral fill. */
@@ -2810,8 +2810,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     : `disabled: 'reduced' (default) — disabled text/icon clears ${dMin}:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.`);
   const oInt = input.outlineInteraction ?? 'overlay-neutral';
   notes.push(oInt === 'overlay-neutral'
-    ? `interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque interactive.<color>.subtle-fill.{hover,pressed,selected}) or 'none' to opt out.`
-    : `interactive overlays: '${oInt}' — no translucent overlay tokens; outline/text hover uses ${oInt === 'solid-tint' ? 'opaque interactive.<color>.subtle-fill.* surfaces' : 'no hover expression'}`);
+    ? `interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.`
+    : `interactive overlays: '${oInt}' — no translucent overlay tokens; outline/text hover uses ${oInt === 'solid-tint' ? 'interactive.<color>.subtle-fill.*, the control\'s own fill at an opacity step' : 'no hover expression'}`);
 
   // ---- surface confirmation + validation ----
   // #898: the INVERSE band alone may name a NON-neutral palette via `{ palette, step }` (a brand-navy dark

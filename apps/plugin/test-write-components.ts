@@ -3104,26 +3104,32 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     /appearance=(outline|text)/.test(String(m.name)) && /state=(hover|pressed)/.test(String(m.name)) && new RegExp(`surface=${surface}`).test(String(m.name)));
   const fillMisses = (misses: string[]) => misses.filter((m) => /\.fills -> /.test(m));
 
-  // (a) SOLID-TINT — the opaque `subtle-fill` tint lands where the wash did, on the default ground.
+  // (a) SOLID-TINT (#1614) — the category's EXISTING fill variable at a PAINT OPACITY lands where the wash did.
+  // nb-redesign's primary hover steps DOWN to opacity.10 on both grounds (its label fails at 20); pressed stays
+  // at opacity.30. Read back off the BUILT node — the variable bound AND the opacity the paint kept — so
+  // dropping the opacity in `paint()` leaves every member an opaque fill, the label's own color, and fails here.
   const tint = { ...nbInput, outlineInteraction: 'solid-tint' } as BrandInput;
   const tintPlans = figmaAnatomySet(materializeForBrand(button, tint), { swapTarget: SWAP });
   const tintPage: Page = { children: [] };
   const tintRun = await run(tintPlans, { ...hostFor(tint, tintPlans), page: tintPage });
+  const paintOf = (n: Node): string => {
+    const f = (n.fills as { opacity?: number }[] | undefined) ?? [];
+    return `${fillVar(n)} @ ${f[0]?.opacity ?? 1}`;
+  };
+  const byState = (ms: Node[]) => [...new Set(ms.map((m) => `${/state=(hover|pressed)/.exec(String(m.name))![1]}: ${paintOf(m)}`))].sort();
   const tintDefault = hoverMembers(tintPage, 'default');
-  const tintBound = [...new Set(tintDefault.map(fillVar))].sort();
-  ok(tintDefault.length === 48 && JSON.stringify(tintBound) === JSON.stringify(['color/interactive/primary/subtle-fill/hover', 'color/interactive/primary/subtle-fill/pressed']),
-    `#1608 solid-tint NB button: the 48 default-ground outline/text (2 appearances × 2 states × 3 sizes × 4 slot combos) hover+pressed members bind interactive/primary/subtle-fill/{hover,pressed} (${tintDefault.length}: ${tintBound.join(', ')})`);
-  // #1613 (owner decision (a)) — the engine now emits the INVERSE twin, so the held pattern is gone: the
-  // inverse-band members bind `inverse…subtle-fill/{hover,pressed}` and the build has ZERO fill misses on
-  // either ground. Hand-named, both sides. Deleting the inverse emission puts the 48-miss shape back
-  // (`container.fills -> color/inverse/interactive/primary/subtle-fill/hover`, …) and both lines fail.
+  const tintBound = byState(tintDefault);
+  ok(tintDefault.length === 48 && JSON.stringify(tintBound) === JSON.stringify(['hover: color/interactive/primary/fill/rest @ 0.1', 'pressed: color/interactive/primary/fill/rest @ 0.3']),
+    `#1614 solid-tint NB button: the 48 default-ground outline/text (2 appearances × 2 states × 3 sizes × 4 slot combos) hover+pressed members bind interactive/primary/fill/rest at paint opacity 0.1 / 0.3 (${tintDefault.length}: ${tintBound.join(', ')})`);
+  // #1613 — the inverse-band members bind the BAND's fill (`inverse…fill/rest`, the one the owner sets per
+  // category in the plugin) at the band's own step. Hand-named, both sides.
   const tintInverse = hoverMembers(tintPage, 'inverse');
-  const tintInvBound = [...new Set(tintInverse.map(fillVar))].sort();
-  ok(tintInverse.length === 48 && JSON.stringify(tintInvBound) === JSON.stringify(['color/inverse/interactive/primary/subtle-fill/hover', 'color/inverse/interactive/primary/subtle-fill/pressed']),
-    `#1613 solid-tint NB button: the 48 inverse-band outline/text hover+pressed members bind inverse/interactive/primary/subtle-fill/{hover,pressed} (${tintInverse.length}: ${tintInvBound.join(', ')})`);
+  const tintInvBound = byState(tintInverse);
+  ok(tintInverse.length === 48 && JSON.stringify(tintInvBound) === JSON.stringify(['hover: color/inverse/interactive/primary/fill/rest @ 0.1', 'pressed: color/inverse/interactive/primary/fill/rest @ 0.3']),
+    `#1614 solid-tint NB button: the 48 inverse-band outline/text hover+pressed members bind inverse/interactive/primary/fill/rest at paint opacity 0.1 / 0.3 (${tintInverse.length}: ${tintInvBound.join(', ')})`);
   const tintFill = fillMisses(tintRun.misses);
   ok(tintFill.length === 0,
-    `#1613 solid-tint NB button: 0 container.fills misses on BOTH grounds — no inverse subtle-fill held, no overlay wash (${tintFill.length}${tintFill.length ? ` — ${[...new Set(tintFill)].slice(0, 3).join('; ')}` : ''})`);
+    `#1613 solid-tint NB button: 0 container.fills misses on BOTH grounds, opacity read back included (${tintFill.length}${tintFill.length ? ` — ${[...new Set(tintFill)].slice(0, 3).join('; ')}` : ''})`);
 
   // (b) NONE — no hover expression: no variable asked for, so nothing to miss, and no fill on the member.
   const none = { ...nbInput, outlineInteraction: 'none' } as BrandInput;

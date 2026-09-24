@@ -169,7 +169,11 @@ export type ModeCfg = {
  */
 export type ContrastModel = 'ink-on-surface' | 'ink-on-composite';
 
-export type ResolvedRole = { path: string; description: string; ratio: number; against: string; min: number; hex: string; alpha?: number } & (
+/** A `solid-tint` subtle fill's provenance (#1614): the EXISTING fill role it is a wash of (`fill`, a role key
+ *  in the same mode) and the EXISTING opacity-scale step it is laid at (`opacity`, a key of the `opacity.*`
+ *  scale — 20 means `opacity.20`). The role's `alpha` is `opacity / 100`; this names where both came from. */
+export type TintSource = { fill: string; opacity: number };
+export type ResolvedRole = { path: string; description: string; ratio: number; against: string; min: number; hex: string; alpha?: number; tint?: TintSource } & (
   | { model: 'ink-on-surface'; legibleFor?: undefined }
   | { model: 'ink-on-composite'; legibleFor: string; alpha: number }
 );
@@ -204,12 +208,12 @@ export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, R
  * (#575). A helper exists so that a FOURTH method cannot be added and miss a site — the exhaustive
  * switch below makes an unhandled value a compile error rather than a silently transparent swatch.
  *
- * `opaque` is the second half, and it is not decoration. The wash is translucent (it composites
- * over whatever ground it is on, which is the point of `overlay-neutral`), but the tint is a real
- * palette step that COVERS its ground. So under `solid-tint` a hovered control on an inverse band
- * is no longer on the band — it is on a page-tuned tint, and ink chosen for the band is measured
- * against the wrong thing. Consumers need to know which case they are in; `family` alone cannot
- * tell them.
+ * `opaque` is the second half, and it is not decoration: a consumer painting an opaque fill must
+ * measure the band's ink against the FILL, not the band. Since #1614 NO method is opaque — the
+ * `solid-tint` subtle fill is the category's existing fill at an opacity-scale step, translucent like
+ * the wash, so a hovered control on an inverse band is still on the band. It was a palette step that
+ * covered its ground until then. The field stays so a future opaque method cannot be added without
+ * every consumer that branches on it being re-read.
  *
  * NO BRAND SETS `solid-tint`, so the `subtle-fill` row below reaches no committed artifact and every
  * EMISSION-SCOPED gate passes without seeing the family — #1112. `test.ts` reaches it synthetically
@@ -223,7 +227,7 @@ export const outlineFillFamily = (
 ): { family: 'overlay' | 'subtle-fill' | null; opaque: boolean } => {
   switch (method) {
     case 'overlay-neutral': return { family: 'overlay', opaque: false };
-    case 'solid-tint':      return { family: 'subtle-fill', opaque: true };
+    case 'solid-tint':      return { family: 'subtle-fill', opaque: false };
     case 'none':            return { family: null, opaque: false };
   }
 };
@@ -1415,7 +1419,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // alpha ramp (darken in light, lighten in dark). The composited RESULT is contrast-gated
   // (§13): text.primary must stay ≥ AA on the page once the overlay sits on it — a real
   // contract that fails on too-heavy a wash (notably a lightening overlay in dark mode).
-  // `solid-tint` (opaque foreground.<color>-subtle) and `none` opt out — no overlay tokens. `none` is
+  // `solid-tint` (the category's own fill at an opacity step, `settleSolidTint`) and `none` opt out — no overlay tokens. `none` is
   // exercised by the `minimal-levers` corpus member; `solid-tint` is set by NO brand anywhere (#1112),
   // so this branch is the only one a brand with a committed Figma emission takes.
   // This branch deliberately tests the LEVER, not `outlineFillFamily`. Routing it through the helper
@@ -1486,121 +1490,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     }
   }
 
-  // `solid-tint` — the OPAQUE sibling of the overlay wash (#288). NO BRAND SETS IT (#1112), so nothing
-  // below this line reaches a committed artifact and no emission-scoped gate sees the family; the
-  // measurements quoted in this comment were taken by constructing the theme, not by reading `out/`.
-  // Same three states, same consumers,
-  // but a real palette step instead of a translucent neutral: the outline/text control's hover fill is
-  // a tint of ITS OWN column's palette, so a destructive outline hovers red-tinted rather than grey.
-  //
-  // This branch did not exist. The lever value was selectable and emitted NOTHING for any brand, ever
-  // — the doc comment above claimed it used `foreground.<color>-subtle`, but that role is only emitted
-  // for the five fixed SEMANTICS names (brand/success/warning/danger/info), never keyed by an
-  // interactive COLUMN name. Those are different naming spaces: `interactive.primary` follows
-  // `roleToPalette.action`, which for aurora is `accent`, not `brand`. So the dashboard had nothing
-  // correct to read and showed an empty swatch.
-  //
-  // The step choice has two constraints pulling opposite ways, and both are checked rather than
-  // assumed:
-  //   1. it must be DISTINGUISHABLE FROM THE PAGE, or the hover state is invisible and the lever is
-  //      inert — the #305 failure mode, which this repo has now hit three times;
-  //   2. the control's own label must STAY LEGIBLE on it.
-  // Pairing each tint with the ink of the SAME state is what makes both hold at once: `iText` already
-  // walks hover/pressed toward more contrast, so a darker pressed tint meets a stronger pressed ink
-  // and the ratio IMPROVES rather than degrading. Measured across aurora + harbor, light + dark,
-  // primary + destructive: worst ink-on-tint 4.90:1 (AA), worst tint-vs-page ΔE00 5.81 (well clear of
-  // the ~2.3 noticeable bar).
-  //
-  // The nominal step is a starting point, not a guarantee — an extreme brand can put the ink closer to
-  // the tint than the examples do. So the pick WALKS TOWARD THE PAGE (a lighter tint in a light mode)
-  // until the state's ink clears the text minimum, the same "pick a value that satisfies the contract"
-  // shape the rest of this file uses, rather than trusting two example brands to generalise.
-  // Tests the lever directly, for the reason spelled out at the `overlay-neutral` branch above.
-  if (theme.outlineInteraction === 'solid-tint') {
-    // Reachable only from a hand-constructed theme — see #1112 above. A change inside this branch is
-    // invisible to `regen --check`, to `nb-regression`, and to every gate that reads `out/`.
-    //
-    // Nominal: one subtle step for hover, one further for pressed/selected — the same "comes forward"
-    // progression the fill and ink states use.
-    // `fam` is the POLARITY OF THE GROUND the tint sits on, not the mode's: the page is `cfg.family`,
-    // the inverse band the opposite (#1613, below). The nominal table and the walk direction both key
-    // off it, which is what lets one derivation serve both grounds.
-    const nominalFor = (fam: 'light' | 'dark'): [string, number][] => fam === 'light'
-      ? [['hover', 100], ['pressed', 150], ['selected', 150]]
-      : [['hover', 900], ['pressed', 850], ['selected', 850]];
-    const tintColumns: [string, string][] = [
-      ['primary', r2p.action], ['neutral', r2p.neutral], ['destructive', r2p.danger],
-      ...theme.interactivePalettes.map((p) => [p.name, p.palette] as [string, string]),
-    ];
-    // One ground's tint family. `prefix` is '' for the page and 'inverse.' for the band; the ink, the
-    // key and the `against` all carry it, so a tint is only ever measured against its OWN ground's ink.
-    const emitTints = (prefix: '' | 'inverse.', fam: 'light' | 'dark', groundRgb: RGB, describe: (color: string, pal: string, st: string) => string): void => {
-      for (const [color, palette] of tintColumns) {
-        const ramp = ramps.get(palOf(palette));
-        if (!ramp) continue;                                 // a column whose palette the brand doesn't carry
-        for (const [st, nominal] of nominalFor(fam)) {
-          // The ink this tint sits under: `selected` reuses the pressed ink (same emphasis level).
-          const inkKey = `${prefix}interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`;
-          const inkRole = roles[inkKey];
-          const inkRgb = inkRole ? hexToRgb(inkRole.hex) : pickMostExtreme(textCands, groundRgb).rgb;
-          // Order the ramp from the nominal step TOWARD THE PAGE, so the first passing candidate is the
-          // most saturated tint that still keeps the label legible — never weaker than it needs to be.
-          const toward = [...ramp].sort((a, b) => {
-            const key = (n: number) => (fam === 'light' ? n - nominal : nominal - n);
-            const ka = key(a.num), kb = key(b.num);
-            // candidates at/inside the nominal first (ascending distance), then the rest
-            return (ka >= 0 ? ka : 1e6 - ka) - (kb >= 0 ? kb : 1e6 - kb);
-          });
-          const chosen = toward.find((s) => contrast(inkRgb, s.rgb) >= cfg.secondaryMin) ?? toward[0];
-          const ratio = contrast(inkRgb, chosen.rgb);
-          put(`${prefix}interactive.${color}.subtle-fill.${st}`,
-            { path: `${ns}.${palOf(palette)}.${chosen.key}`, rgb: chosen.rgb, ratio },
-            describe(color, palOf(palette), st),
-            // NOTE the direction: `against` normally names the surface a role sits ON, but this role IS
-            // the surface. The variable being chosen is the tint; the ink is already fixed by `iText`.
-            // So the promise worth publishing is "this tint keeps its own state ink legible", and the
-            // ink is what it is measured against.
-            //
-            // PRESSED / SELECTED ARE CATEGORICALLY UNGATED as of #1281 — the same owner decision the
-            // preview spec's `label on fill` contract records, expressed the same way and gated by the
-            // same predicate. At four rungs from rest the tint can no longer always carry its own ink
-            // (hot-yellow/hc-dark measured 5.77 against the 7 bar HC sets), and a pressed state's job
-            // is distinction from rest rather than legibility in its own right.
-            //
-            // A PREDICATE ON THE STATE, never a list of cells: no brand, mode or column is named here
-            // or anywhere, so a fifth brand's pressed tint needs no entry. `test.ts` runs the rule in
-            // BOTH directions over this family — a floored pressed role fails, and an unfloored rest or
-            // hover role fails — which is what stops "pressed is exempt" from decaying into "floors are
-            // optional".
-            //
-            // `min: 0` DECLARES the exemption — the ratio is still computed, recorded and published, it
-            // simply carries no floor — rather than leaving a contract to fail and be read as a
-            // regression. The tint SELECTION above is untouched: it still prefers the most saturated
-            // step that keeps the ink legible, so where legibility is reachable it is still taken. Only
-            // the promise changes, not the pick.
-            inkKey,
-            (st === 'pressed' || st === 'selected') ? 0 : cfg.secondaryMin);
-        }
-      }
-    };
-    emitTints('', cfg.family, baseRgb, (color, pal, st) =>
-      `${color} interactive subtle fill — ${st} (opaque tint of the ${pal} ramp; the outline/text control's ${st} background)`);
-    // THE INVERSE TWIN (#1613, owner decision (a)): "solid tint" means the same thing on both grounds.
-    // Before this, only the page family above was emitted, so a `surface=inverse` button/icon-button —
-    // which the projector rewrites to `color.inverse.*` — bound `inverse.interactive.<c>.subtle-fill.*`,
-    // a role that did not exist: 48 misses on the owner's solid-tint NB file, rendered as no hover.
-    //
-    // MIRRORED, not invented: the same derivation against the band. The band is the opposite lightness
-    // to the page (the same premise the inverse overlay wash flips on), so it takes the OPPOSITE
-    // polarity's nominals and walk; the ink is the band's own state ink `inverse.interactive.<c>.text.*`
-    // (selected reuses pressed), which is what `opaque` in `outlineFillFamily` warns about — the tint
-    // covers the band, so the band's ink is measured against the tint rather than assumed on it; and
-    // pressed/selected stay categorically ungated by the same #1281 predicate. `test.ts` checks both
-    // halves of the contract on this family against the BAND: ink-on-tint at hover, and ΔE00 vs
-    // `inverse.background.primary` (the #305 invisible-hover shape) on every state.
-    emitTints('inverse.', cfg.family === 'light' ? 'dark' : 'light', invRgb, (color, pal, st) =>
-      `${color} interactive subtle fill on a dark / inverse surface — ${st} (opaque tint of the ${pal} ramp; the outline/text control's ${st} background on the band)`);
-  }
+  // `solid-tint` (#288, #1614) is NOT emitted here. Its step is chosen ACROSS the brand's modes, so it
+  // is settled after every mode has resolved — see `settleSolidTint`, called from `resolveAllModes`.
 
   // ---- disabled — cross-cutting (docs/20 §7): ONE treatment, not per-colour. A disabled
   // control looks disabled regardless of intent (fill / on-fill / text / icon /
@@ -2148,5 +2039,115 @@ export const resolveAllModes = (theme: Theme): ModeResult[] => {
   // Only the modes the brand opted into (light always; dark/HC opt-in — docs/11 Pillar 1; customs
   // appended last). Canonical order preserved (Object.keys order: built-ins first, then customs),
   // so `rp.modes` is stable regardless of input order.
-  return (Object.keys(cfgs) as ModeName[]).filter((m) => theme.modes.includes(m)).map((m) => resolveMode(m, cfgs[m], theme, ramps));
+  const results = (Object.keys(cfgs) as ModeName[]).filter((m) => theme.modes.includes(m)).map((m) => resolveMode(m, cfgs[m], theme, ramps));
+  // Tests the lever directly, for the reason spelled out at the `overlay-neutral` branch in `resolveMode`.
+  if (theme.outlineInteraction === 'solid-tint') settleSolidTint(theme, results);
+  return results;
+};
+
+/**
+ * The opacity scale the `solid-tint` subtle fill steps along (#1614) — the EXISTING `opacity.*` scale
+ * (`tree.ts` emits one `opacity.<n>` token per entry, and reads this list to do it), minus 0, which is no
+ * fill at all. The tint never lands between two entries: the owner's rule is that both inputs are
+ * existing tokens, so a step that clears a bar is always one a consumer can name.
+ */
+export const OPACITY_STEPS = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+/** Where each state starts on that scale (owner, #1614 amendment): hover `opacity.20`, pressed/selected `opacity.30`. */
+export const TINT_NOMINAL: Record<string, number> = { hover: 20, pressed: 30, selected: 30 };
+/** ΔE00 below which a hover reads as no hover at all — the #305 just-noticeable bar the #288 arms assert. */
+const TINT_VISIBLE_DE = 2.3;
+
+/**
+ * `solid-tint` — the TINTED WASH (#288; redefined by #1614, owner decision). NO BRAND SETS IT (#1112), so
+ * nothing here reaches a committed artifact and no emission-scoped gate sees it; `test.ts` constructs it.
+ *
+ * WHAT IT IS. An outline/text control's hover/pressed/selected fill is the category's EXISTING fill color,
+ * laid over whatever it sits on at an EXISTING opacity step:
+ *   page:    `interactive.<c>.fill.rest`          at `opacity.20` hover, `opacity.30` pressed/selected
+ *   inverse: `inverse.interactive.<c>.fill.rest`  (the resolved role — the fill the owner sets per category
+ *            in the plugin, so its hue follows that setting with nothing re-derived here)
+ * Translucent by design, like the overlay wash: one binding works on any ground, so a destructive outline
+ * hovers red-tinted rather than gray. No color primitive and no opacity token is minted — the role is the
+ * pair (fill, step), which is what `tint` records and what both the tree and the Figma plan carry.
+ *
+ * WHAT IT REPLACED, and why twice. Until #1614 the tint was an opaque PALETTE STEP from a nominal table
+ * (100/150 light, 900/850 dark), "an actual fill color that only looks like a tint": on nb-redesign's
+ * light-mode `neutral.950` band the hover was `neutral.900`, ΔE00 2.00. PR #1622 then baked the fill
+ * composite into generated core primitives (`core.palette.tint.*`); the owner superseded that in favor of
+ * this — no new primitives, the existing fill at an existing opacity token.
+ *
+ * ONE STEP PER ROLE, ACROSS EVERY MODE. A Figma paint's opacity cannot bind a variable and cannot vary by
+ * mode, while the fill variable it binds does. So the step is chosen once per (ground, category, state)
+ * against every mode the brand resolves, and every mode — and the tree, and the Figma plan — carries that
+ * one step. A per-mode step would make code and Figma disagree in every mode but the one Figma used.
+ *
+ * THE TWO GUARDS, both along the scale, never to an in-between value:
+ *   · TEXT (hover only): if the hover label fails its bar on the COMPOSITED result in any mode, step DOWN
+ *     (20 → 10 → 5). nb-redesign's page primary and nb-redesign/Aurora's band primary land on `opacity.10`.
+ *     At `opacity.5` it stops; a brand that still fails there is left failing, and the contrast sweep below
+ *     warns — the rule is not to invent a value.
+ *   · VISIBILITY (#1621, "stronger for neutral"): if the composite is not perceptibly different from its
+ *     ground in some mode (ΔE00 < 2.3 — a light-gray `neutralEmphasis: subtle` fill at 20% is), step UP to
+ *     the minimum step visible in every mode, capped by the hover's text bar. Pressed/selected step up the
+ *     same way, and always sit at least one step above hover so pressed still reads as coming forward.
+ * PRESSED/SELECTED ARE UNGATED for text (#1281): `min: 0`, the ratio still computed and published.
+ *
+ * READS THE SETTLED ROLES. Fill, ground and ink are read off each mode's final roles, so an override on the
+ * fill or the ink (the per-mode override layer runs inside `resolveMode`) is what the tint follows and is
+ * measured against. A subtle fill itself has nothing to override: it is not a color, it is a step.
+ */
+const settleSolidTint = (theme: Theme, results: ModeResult[]): void => {
+  const steps = OPACITY_STEPS.filter((s) => s > 0);
+  const hexRgb = (r: ResolvedRole) => hexToRgb(r.hex);
+  const columns = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
+  for (const [prefix, groundKey, groundName] of [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'band']] as const) {
+    for (const color of columns) {
+      const fillKey = `${prefix}interactive.${color}.fill.rest`;
+      // Every mode must carry the fill and the ground, or there is no single step to choose.
+      if (!results.every((m) => m.roles[fillKey] && m.roles[groundKey])) continue;
+      const inkKeyOf = (st: string) => `${prefix}interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`;
+      const cells = (st: string) => results.map((m) => {
+        const ink = m.roles[inkKeyOf(st)];
+        return { m, fill: hexRgb(m.roles[fillKey]), ground: hexRgb(m.roles[groundKey]), ink: ink ? hexRgb(ink) : undefined, min: ink?.min ?? 0 };
+      });
+      const legible = (st: string, s: number) => cells(st).every((c) => !c.ink || contrast(c.ink, composite(c.ground, c.fill, s / 100)) >= c.min);
+      const visible = (st: string, s: number) => cells(st).every((c) => deltaE2000(composite(c.ground, c.fill, s / 100), c.ground) >= TINT_VISIBLE_DE);
+
+      // hover: the text guard steps down; failing nothing, the visibility guard steps up under the text cap.
+      let h = steps.indexOf(TINT_NOMINAL.hover);
+      if (!legible('hover', steps[h])) { while (h > 0 && !legible('hover', steps[h])) h--; }
+      else while (!visible('hover', steps[h]) && h + 1 < steps.length && legible('hover', steps[h + 1])) h++;
+      // pressed/selected: ungated for text; at least one step above hover, then up until visible.
+      let p = Math.max(steps.indexOf(TINT_NOMINAL.pressed), h + 1);
+      while (!visible('pressed', steps[p]) && p + 1 < steps.length) p++;
+
+      for (const [st, i] of [['hover', h], ['pressed', p], ['selected', p]] as const) {
+        const step = steps[i];
+        const nominal = TINT_NOMINAL[st];
+        const why = step < nominal ? `, stepped down from opacity.${nominal} to keep the ${st} label legible`
+          : step > nominal ? `, stepped up from opacity.${nominal} so the ${st} is visible on the ${groundName}` : '';
+        const gated = st === 'hover';
+        for (const c of cells(st)) {
+          const fill = c.m.roles[fillKey];
+          const inkKey = inkKeyOf(st);
+          c.m.roles[`${prefix}interactive.${color}.subtle-fill.${st}`] = {
+            path: fill.path,
+            description: `${color} interactive subtle fill${prefix ? ' on a dark / inverse surface' : ''} — ${st} (the ${color} fill at opacity.${step}${why}; translucent, the outline/text control's ${st} background)`,
+            ratio: c.ink ? contrast(c.ink, composite(c.ground, c.fill, step / 100)) : 0,
+            // A WASH (#963): `against` is the ground it composites over, `legibleFor` the ink that must survive
+            // on the result — which is what `min` bounds. `hex` is the OPAQUE fill; `alpha` is the step.
+            against: groundKey, legibleFor: inkKey, model: 'ink-on-composite',
+            min: gated ? c.min : 0,
+            hex: fill.hex, alpha: step / 100,
+            tint: { fill: fillKey, opacity: step },
+          };
+        }
+      }
+    }
+  }
+  // The contrast sweep `resolveMode` ends with, for the roles this pass added.
+  for (const m of results) {
+    const failing = Object.entries(m.roles).filter(([k, r]) => r.tint && r.min > 0 && r.ratio < r.min).map(([role, r]) => ({ role, ratio: r.ratio, min: r.min }));
+    if (failing.length) m.warnings = [...(m.warnings ?? []), ...failing];
+  }
 };

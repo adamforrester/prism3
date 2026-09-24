@@ -2926,6 +2926,20 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.140.0 — #1614 (owner decision, revised + amended): `solid-tint` is the category's EXISTING fill at an EXISTING
+ * opacity step. Each `[inverse.]interactive.<c>.subtle-fill.{hover,pressed,selected}` is now a translucent wash
+ * (`ink-on-composite`) of `[inverse.]interactive.<c>.fill.rest` at `opacity.20` hover / `opacity.30` pressed+selected,
+ * carrying `tint: { fill, opacity }`; it was an opaque palette step from a nominal table. The hover steps DOWN
+ * the scale until its label clears its bar on the composite (nb-redesign page primary and nb-redesign/Aurora band
+ * primary land on `opacity.10`); any state steps UP until visible (ΔE00 ≥ 2.3 — the subtle neutral, #1621); pressed
+ * sits ≥ one step above hover; ONE step per role across every mode, because a Figma paint opacity cannot vary
+ * by mode (`settleSolidTint`). Tree: the leaf's `$value` is the resolved translucent color and
+ * `$extensions.prism3.tint` references the fill role and the `opacity.<n>` token; the Figma color collection
+ * emits NO subtle-fill variable. Figma: `applyOutlineInteraction` binds the fill variable with a plan
+ * `paintOpacity`, which both executors write and read back. No primitive and no opacity token is minted (PR
+ * #1622's baked primitives were superseded). A value change under a lever no corpus brand sets (#1112) plus a
+ * moved `@outline-solid-tint` component surface → MINOR. `out/**` moves only its stamp, and
+ * `schema/lever-manifest.json` its lever description; CONTRACT STANDS (no guaranteed path moves).
  * 0.139.0 — #1623 batch B: the `.ai.json` sidecar says only what the token data supports. The primitive
  * tier dispatches below `core.` (946 "core primitive" entries, `intent` on none); type styles' `resolves_to`
  * is the emitted composite `$value` and weight roles are keyed at `core.font.weight-role.*`;
@@ -3485,7 +3499,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.139.0';
+export const ENGINE_VERSION = '0.140.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

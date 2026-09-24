@@ -435,6 +435,21 @@ export const FIELDS: Record<string, FieldCheck> = {
       return bad.length ? bad.join(', ') : null;
     },
   },
+  // #1614 — a `solid-tint` hover is the fill VARIABLE (`paints`, above) at a paint OPACITY. Read back off the
+  // host's first fill: an executor that bound the variable and dropped the opacity paints the category's
+  // fill opaque — the color its own label sits in — and every binding check above would still pass.
+  paintOpacity: {
+    show: (p) => `fills opacity ${String((p as { fills?: number }).fills)}`,
+    check: (p, n) => {
+      const want = (p as { fills?: number }).fills;
+      if (want === undefined) return null;
+      const arr = n.fills;
+      const first = Array.isArray(arr) ? (arr[0] as { opacity?: unknown } | undefined) : undefined;
+      if (!first) return 'fills→NO PAINT';
+      const got = typeof first.opacity === 'number' ? first.opacity : 1;
+      return Math.abs(got - want) < 0.001 ? null : `fills opacity ${got}`;
+    },
+  },
   descendantFills: { reason: 'applies to nodes the SVG importer created, which this reader does not name; the executor read-back at write time is the only thing that can address them' },
 };
 
