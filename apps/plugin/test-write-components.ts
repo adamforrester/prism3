@@ -76,6 +76,7 @@ import { nbTheme } from '@prism3/engine/nb-fixture';
 import { exampleBrands } from '@prism3/engine/emit-brandinput';
 // #1605 — the brand materialization `main.ts` projects through, plus NB's real input and emitted styles.
 import { materializeForBrand } from './src/brand-def';
+import { prebuildDependencies, missingDependencies, DependencyBuildError } from './src/build-deps';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
 // #1608 — the brand's COLOR emission, the host-side oracle for the outline-hover arm.
@@ -3072,7 +3073,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // (d) `main.ts` IS WIRED TO IT — source text only, the `(5)` limit above: this sees the call, the arms
   // above see what the call does.
-  ok(/figmaAnatomySet\(materializeForBrand\(def, brandInput\)/.test(mainSrc) && /brandInput = restoreInput\(figma\.root\)/.test(mainSrc),
+  ok(/figmaAnatomySet\(materializeForBrand\(\w+, brandInput\)/.test(mainSrc) && /brandInput = restoreInput\(figma\.root\)/.test(mainSrc),
     '#1605 main.ts projects `materializeForBrand(def, brandInput)`, off its one `restoreInput` read');
 }
 
@@ -3146,6 +3147,106 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const wash = { ...nbInput, outlineInteraction: 'overlay-neutral' } as BrandInput;
   ok(JSON.stringify(figmaAnatomySet(materializeForBrand(button, wash), { swapTarget: SWAP })) === JSON.stringify(figmaAnatomySet(materializeForBrand(button, { ...nbInput, outlineInteraction: undefined } as BrandInput), { swapTarget: SWAP })),
     '#1608 overlay-neutral is the default and the identity: an explicit overlay-neutral brand projects the button byte-identically to one that leaves the lever unset');
+}
+
+// =============================================================================================
+// #1633 — NESTED COMPONENTS BUILD FIRST
+// =============================================================================================
+// The owner built `button` into a fresh Aurora file and got 72 `focusRing.nestTarget -> focus-ring (not in
+// this file …)` misses. `prebuildDependencies` (`src/build-deps.ts`, the loop `main.ts` runs) now builds
+// every missing nested def first, through the REAL executor, into ONE shim whose root sees what the run
+// built (`liveRoot`). Expected dependency lists and build orders are HAND-NAMED (docs/34), never derived
+// from the resolver. Mutation: make `prebuildDependencies` return `[]` → the 0-miss arm fails with the
+// `focusRing.nestTarget` miss quoted in its label.
+{
+  const byDef = (id: string) => componentDefs.find((d) => d.id === id)!;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  // The file carries every variable/style every catalogue plan binds and NO components: what a themed,
+  // empty file looks like. `comps` is dropped on purpose — `fullFor` would otherwise pre-seed the nests.
+  const hostOpts = (): ShimOpts => {
+    const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+    const f = fullFor(all);
+    return { vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true };
+  };
+  const baseOpts = hostOpts();
+  const fileWith = (extra: ShimOpts = {}) => {
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...baseOpts, ...extra, page });
+    const order: string[] = [];
+    const build = async (d: ComponentDef) => {
+      order.push(d.id);
+      return applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    };
+    const ctx = { defs: componentDefs, project, host: shim as any, build };
+    return { page, shim, order, build, ctx };
+  };
+  const ringMisses = (m: string[]) => m.filter((x) => x.indexOf('focusRing') >= 0);
+
+  // REACHABILITY — without the pre-build, the fresh file reproduces the owner's report.
+  const bare = fileWith();
+  const bareRun = await bare.build(button);
+  ok(ringMisses(bareRun.misses).some((m) => m.indexOf('focusRing.nestTarget -> focus-ring') >= 0),
+    `#1633 reachable: button alone into an empty file misses its focus ring (${ringMisses(bareRun.misses).length} focusRing misses)`);
+
+  // (a) FRESH FILE — icon and focus-ring are built first, then button with no ring or slot miss.
+  const fresh = fileWith();
+  const built = await prebuildDependencies(button, fresh.ctx);
+  ok(JSON.stringify(built.map((b) => b.id)) === JSON.stringify(['icon', 'focus-ring']),
+    `#1633 fresh file: button's missing nests are built first — icon, focus-ring (${built.map((b) => b.id).join(', ') || 'none'})`);
+  const freshRun = await fresh.build(button);
+  const freshRing = ringMisses(freshRun.misses);
+  ok(freshRing.length === 0,
+    `#1633 fresh file: button builds with 0 focusRing misses after the pre-build (${freshRing.length}${freshRing.length ? ` — ${freshRing[0]}` : ''})`);
+  ok(!freshRun.misses.some((m) => m.includes('.swapTarget ->')),
+    `#1633 fresh file: button's icon slots resolve to the auto-built icon (${freshRun.misses.filter((m) => m.includes('.swapTarget ->')).slice(0, 1).join('') || 'none'})`);
+  const pageNames = () => fresh.page.children.map((c) => String(c.name)).join('|');
+
+  // (b) IDEMPOTENT — a second run builds nothing new and adds nothing to the page.
+  const before = pageNames();
+  const buildsBefore = fresh.order.length;
+  const again = await prebuildDependencies(button, fresh.ctx);
+  ok(again.length === 0 && fresh.order.length === buildsBefore && pageNames() === before,
+    `#1633 re-run: nothing is rebuilt once the nests are present (${again.map((b) => b.id).join(', ') || 'none'} built, ${fresh.order.length - buildsBefore} build calls)`);
+
+  // (c) FOCUS-RING ALREADY IN THE FILE — left alone; only the missing icon is built.
+  const ringMembers = figmaAnatomySet(byDef('focus-ring')).map(planComponentName);
+  const held = fileWith({ fileNodes: [{ name: 'focus-ring', type: 'COMPONENT_SET', variants: ringMembers }] });
+  const heldBuilt = await prebuildDependencies(button, held.ctx);
+  ok(!held.order.includes('focus-ring') && JSON.stringify(heldBuilt.map((b) => b.id)) === JSON.stringify(['icon']),
+    `#1633 existing focus-ring: never rebuilt — only icon is built (${held.order.join(', ') || 'nothing'})`);
+
+  // (d) A CHAIN — checkbox-group → checkbox-row → checkbox-control → focus-ring, plus the group's label.
+  const chain = fileWith();
+  await prebuildDependencies(byDef('checkbox-group'), chain.ctx);
+  ok(JSON.stringify(chain.order) === JSON.stringify(['field-label', 'focus-ring', 'checkbox-control', 'checkbox-row']),
+    `#1633 chain: checkbox-group's nests build deepest first — field-label, focus-ring, checkbox-control, checkbox-row (${chain.order.join(', ')})`);
+  const groupRun = await chain.build(byDef('checkbox-group'));
+  const nestMiss = groupRun.misses.filter((m) => m.indexOf('.nestTarget ->') >= 0 || m.indexOf('.nestVariant ->') >= 0);
+  ok(nestMiss.length === 0, `#1633 chain: checkbox-group then builds with 0 nest misses (${nestMiss.length}${nestMiss.length ? ` — ${nestMiss[0]}` : ''})`);
+
+  // (e) A FAILED DEPENDENCY stops the parent, naming both.
+  const broken = fileWith();
+  let thrown: unknown;
+  try {
+    await prebuildDependencies(button, { ...broken.ctx, build: async (d) => { broken.order.push(d.id); if (d.id === 'focus-ring') throw new Error('host refused'); return broken.build(d); } });
+  } catch (e) { thrown = e; }
+  ok(thrown instanceof DependencyBuildError && thrown.dependency === 'focus-ring' && /button nests focus-ring/.test(thrown.message) && /host refused/.test(thrown.message),
+    `#1633 a dependency that throws stops the run with a named error (${(thrown as Error)?.message ?? 'no throw'})`);
+
+  // (f) A CYCLE fails by name rather than looping.
+  const fake = (id: string) => ({ id, figmaProperties: {} } as unknown as ComponentDef);
+  const a = fake('a'), b = fake('b');
+  const nestOf: Record<string, string> = { a: 'b', b: 'a' };
+  let cyc = '';
+  try {
+    missingDependencies(a, { defs: [a, b], present: () => false, project: (d) => [{ root: { nestTarget: nestOf[d.id], children: [] } } as unknown as AnatomyPlan] });
+  } catch (e) { cyc = (e as Error).message; }
+  ok(cyc.indexOf('a → b → a') >= 0, `#1633 a nesting cycle throws, naming the path (${cyc || 'no throw'})`);
+
+  // MAIN.TS RUNS IT, before the parent's own build.
+  const pre = mainSrc.indexOf('await prebuildDependencies(def,');
+  const own = mainSrc.indexOf('await buildOne(def, reports)');
+  ok(pre >= 0 && own > pre, '#1633 main.ts pre-builds the nests before building the def it was asked for');
 }
 
 if (failed) process.exit(1);
