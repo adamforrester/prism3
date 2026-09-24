@@ -23,6 +23,7 @@
  *
  * Mirrors the sibling shim tests' dependency-free `ok(...)` style; exits non-zero on any failure.
  */
+import { existsSync, readFileSync } from 'node:fs';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import {
   buildWritePlan, buildFloatWritePlan, buildFontVarPlan, buildTextStylePlan, buildGridStylePlan, buildStylesPlan,
@@ -495,6 +496,28 @@ ok(swept > 100 && unrecognized.length === 0,
   `style provenance: every one of the ${swept} styles the engine plans across ${signatureBrands.map((b) => b.label).join('/')} is recognized from its own description${unrecognized.length ? ` — MISSED ${unrecognized.slice(0, 4).join('; ')}` : ''}`);
 ok(crossMatched.length === 0,
   `style provenance: and no kind's description is recognized as another kind's${crossMatched.length ? ` — ${crossMatched.slice(0, 4).join('; ')}` : ''} — four independent namespaces, as with the groups`);
+
+// THE COMMITTED BYTES (#1623). The sweep above reads the emitters in memory; a file the plugin already
+// applied carries whatever the committed emission said when it was applied. #1623 rewrote a large share of
+// the engine's description prose, all of it on VARIABLES, and this arm is the proof that no style
+// description moved with it: every style row in `out/figma/<brand>/*-styles.json` is still recognized by
+// its own kind's signature. It also reaches wendys, which the in-memory sweep does not build.
+const committedKinds: Record<StyleKind, string> = { grid: 'grid-styles', effect: 'shadow-styles', text: 'text-styles', paint: 'gradient-styles' };
+let committedSwept = 0;
+const committedMissed: string[] = [];
+for (const brand of ['nb', 'aurora', 'wendys']) {
+  for (const kind of STYLE_KINDS) {
+    const url = new URL(`../../packages/engine/out/figma/${brand}/${committedKinds[kind]}.json`, import.meta.url);
+    if (!existsSync(url)) continue;                 // a brand with no gradients commits no gradient file
+    const rows = (JSON.parse(readFileSync(url, 'utf8')) as { styles: { name: string; description: string }[] }).styles;
+    for (const row of rows) {
+      committedSwept++;
+      if (!isEngineDescription(kind, row.description, rows.map((r) => r.name))) committedMissed.push(`${brand} ${kind} ${row.name}: "${row.description}"`);
+    }
+  }
+}
+ok(committedSwept > 150 && committedMissed.length === 0,
+  `style provenance: every one of the ${committedSwept} COMMITTED style descriptions (nb/aurora/wendys) is recognized${committedMissed.length ? ` — MISSED ${committedMissed.slice(0, 3).join('; ')}` : ''}`);
 
 // The negative half, and it is the half that matters: a description a DESIGNER typed must not be
 // recognized, or the arm would offer hand-made styles for deletion. Each case names what makes it not the

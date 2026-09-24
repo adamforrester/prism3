@@ -598,6 +598,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-ratio-truth.ts'),
   },
   {
+    id: 'lint-description-claims',
+    ciStep: 'Every ratio and percentage a description states holds in its mode',
+    cmd: engine('lint-description-claims.ts'),
+  },
+  {
     id: 'lint-axis-values',
     ciStep: 'Every axis value set is declared, and stands in the relation it declares',
     cmd: engine('lint-axis-values.ts'),

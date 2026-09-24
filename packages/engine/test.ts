@@ -16676,7 +16676,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const o = x as Record<string, any>;
       if ('$value' in o) {
         const mv = o.$extensions?.prism3?.modes?.[mode];
-        if (mv && '$value' in mv && JSON.stringify(mv.$value) !== JSON.stringify(o.$value)) n++;
+        // A leaf belongs when its VALUE moves, or when only its PROSE does (#1623 DT/T-1): a mode whose
+        // raised minimum rewrites the description must carry that description even where the step held.
+        const proseMoves = mv && typeof mv.description === 'string' && mv.description !== o.$description;
+        if (mv && '$value' in mv && (JSON.stringify(mv.$value) !== JSON.stringify(o.$value) || proseMoves)) n++;
         return;
       }
       for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v);
@@ -16707,15 +16710,17 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       if ('$value' in o) {
         const canon = at(t, path);
         const want = canon?.$extensions?.prism3?.modes?.[m]?.$value;
+        const wantDesc = canon?.$extensions?.prism3?.modes?.[m]?.description ?? canon?.$description;
         if (JSON.stringify(o.$value) !== JSON.stringify(want)) valueFails.push(`${path.join('.')}=${JSON.stringify(o.$value)}≠${JSON.stringify(want)}`);
-        else if (JSON.stringify(o.$value) === JSON.stringify(canon?.$value)) valueFails.push(`${path.join('.')}:unchanged-from-base`);
+        else if (o.$description !== wantDesc) valueFails.push(`${path.join('.')}:carries-another-mode's-description`);
+        else if (JSON.stringify(o.$value) === JSON.stringify(canon?.$value) && o.$description === canon?.$description) valueFails.push(`${path.join('.')}:unchanged-from-base`);
         return;
       }
       for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) checkValues(v, [...path, k]);
     };
     checkValues(ov, []);
     ok(valueFails.length === 0,
-      `overlay ${m}: every leaf carries the MODE's value, and it differs from base${valueFails.length ? ` — ${valueFails.slice(0, 3).join(', ')}` : ''}`);
+      `overlay ${m}: every leaf carries the MODE's value and description, and one of them differs from base${valueFails.length ? ` — ${valueFails.slice(0, 3).join(', ')}` : ''}`);
   }
 
   // A leaf whose mode value EQUALS its default must not appear. The engine emits those, and including
@@ -16723,6 +16728,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const equalMode = { x: { $type: 'color', $value: '#fff', $extensions: { prism3: { modes: { dark: { $value: '#fff' } } } } } };
   ok(leafCount(buildOverlay(equalMode, 'dark')) === 0,
     'overlay: a mode value identical to the default is excluded (the overlay reports real change only)');
+  // ...unless the mode's PROSE moved (#1623 DT/T-1). Same value, a different description: the leaf is
+  // carried so a consumer merging base + overlay reads this mode's sentence, not the base's.
+  const proseOnly = { x: { $type: 'color', $value: '#fff', $description: 'clears 3:1', $extensions: { prism3: { modes: { dark: { $value: '#fff', description: 'clears 4.5:1' } } } } } };
+  const proseOv = buildOverlay(proseOnly, 'dark') as any;
+  ok(leafCount(proseOv) === 1 && proseOv.x.$description === 'clears 4.5:1' && !('description' in (proseOv.x.$extensions?.prism3 ?? {})),
+    `overlay: a mode whose description differs is carried with ITS description as $description, not as an extension field (${JSON.stringify(proseOv)})`);
   const diffMode = { x: { $type: 'color', $value: '#fff', $extensions: { prism3: { modes: { dark: { $value: '#000' } } } } } };
   ok(leafCount(buildOverlay(diffMode, 'dark')) === 1,
     'overlay: a mode value that DIFFERS is included (the exclusion above is not blanket)');

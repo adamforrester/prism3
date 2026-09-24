@@ -404,6 +404,27 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
   // (`desc` is now the module-level helper hoisted for the #76 description threading.)
   const modes = Object.keys(gridNode);
 
+  // ONE description per grid variable, shared by every breakpoint mode (#1623 FG/F-1). A Figma variable
+  // carries a single description across its modes, and the plan builder keeps the first mode file's, so a
+  // per-breakpoint sentence ("grid xs — 4 columns") was the only text a designer saw in all six modes and
+  // was false in five. The shared line lists the value per breakpoint instead, runs of equal values merged.
+  const perBreakpoint = (valueOf: (mode: string) => number, unit: string): string => {
+    const runs: { from: string; to: string; v: number }[] = [];
+    for (const m of modes) {
+      const v = valueOf(m);
+      const last = runs[runs.length - 1];
+      if (last && last.v === v) last.to = m; else runs.push({ from: m, to: m, v });
+    }
+    return runs.map((r) => `${r.from === r.to ? r.from : `${r.from}–${r.to}`} ${r.v}${unit}`).join(' · ');
+  };
+  const isAliasLeaf = (leaf: any): boolean => typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
+  const gridDescription = {
+    columns: `Layout grid columns — set per breakpoint mode (${perBreakpoint((m) => gridNode[m].columns.$value as number, '')})`,
+    ...Object.fromEntries((['gutter', 'margin'] as const).map((key) => [key,
+      `Layout grid ${key} — set per breakpoint mode (${perBreakpoint((m) => pxFromValue(tree, gridNode[m][key].$value), 'px')})`
+      + (modes.every((m) => isAliasLeaf(gridNode[m][key])) ? ', aliased to the space scale' : '')])),
+  } as Record<'columns' | 'gutter' | 'margin', string>;
+
   return modes.map((mode) => {
     const variables: FigmaVar[] = [];
 
@@ -427,7 +448,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
       name: ns('grid/columns'),
       resolvedType: 'FLOAT',
       scopes: LAYOUT_COLUMNS_SCOPES,
-      description: desc(g.columns),
+      description: gridDescription.columns,
       value: g.columns.$value as number,
       alias: null,
     });
@@ -438,7 +459,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
         name: ns(`grid/${key}`),
         resolvedType: 'FLOAT',
         scopes: LAYOUT_GAP_SCOPES,
-        description: desc(leaf),
+        description: gridDescription[key],
         value: pxFromValue(tree, leaf.$value),
         alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
       });

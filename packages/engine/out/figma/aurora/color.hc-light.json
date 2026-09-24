@@ -28,7 +28,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Page surface, second tier — a slightly tinted page / band",
+      "description": "Page surface, second tier — a band one step off the base (equal to the base in high-contrast modes)",
       "value": {
         "r": 1,
         "g": 1,
@@ -123,7 +123,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
+      "description": "Bold brand fill — clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.27843138575553894,
         "g": 0.21568627655506134,
@@ -142,7 +142,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Bold success fill — clears 3:1 on the floor (neutral.050)",
+      "description": "Bold success fill — clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.10588235408067703,
         "g": 0.30588236451148987,
@@ -161,7 +161,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Bold warning fill — clears 3:1 on the floor (neutral.050)",
+      "description": "Bold warning fill — clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.364705890417099,
         "g": 0.239215686917305,
@@ -180,7 +180,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Bold info fill — clears 3:1 on the floor (neutral.050)",
+      "description": "Bold info fill — clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.27843138575553894,
@@ -294,7 +294,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Bold danger fill — clears 3:1 on the floor (neutral.050)",
+      "description": "Bold danger fill — clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.48235294222831726,
         "g": 0.13725490868091583,
@@ -330,7 +330,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Secondary text — 4.5:1 on the floor",
+      "description": "Secondary text — 4.5:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.26274511218070984,
         "g": 0.26274511218070984,
@@ -348,7 +348,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Tertiary text — 3:1 on the floor",
+      "description": "Tertiary text — 3:1 (4.5:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.40784314274787903,
         "g": 0.40784314274787903,
@@ -366,7 +366,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "description": "brand text — 4.5:1 (7:1 in high-contrast modes) on background.secondary and on its own tint",
       "value": {
         "r": 0.239215686917305,
         "g": 0.1764705926179886,
@@ -384,7 +384,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "description": "success text — 4.5:1 (7:1 in high-contrast modes) on background.secondary and on its own tint",
       "value": {
         "r": 0.10588235408067703,
         "g": 0.30588236451148987,
@@ -402,7 +402,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "description": "warning text — 4.5:1 (7:1 in high-contrast modes) on background.secondary and on its own tint",
       "value": {
         "r": 0.364705890417099,
         "g": 0.239215686917305,
@@ -420,7 +420,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "description": "danger text — 4.5:1 (7:1 in high-contrast modes) on background.secondary and on its own tint",
       "value": {
         "r": 0.48235294222831726,
         "g": 0.13725490868091583,
@@ -438,7 +438,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "description": "info text — 4.5:1 (7:1 in high-contrast modes) on background.secondary and on its own tint",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.27843138575553894,
@@ -456,7 +456,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted brand text — low-emphasis accent, 3:1 on the page",
+      "description": "Muted brand text — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on background.primary",
       "value": {
         "r": 0.4470588266849518,
         "g": 0.4117647111415863,
@@ -474,7 +474,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted success text — low-emphasis accent, 3:1 on the page",
+      "description": "Muted success text — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on background.primary",
       "value": {
         "r": 0.26274511218070984,
         "g": 0.5137255191802979,
@@ -492,7 +492,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted warning text — low-emphasis accent, 3:1 on the page",
+      "description": "Muted warning text — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on background.primary",
       "value": {
         "r": 0.6235294342041016,
         "g": 0.41960784792900085,
@@ -510,7 +510,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted danger text — low-emphasis accent, 3:1 on the page",
+      "description": "Muted danger text — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on background.primary",
       "value": {
         "r": 0.7882353067398071,
         "g": 0.2980392277240753,
@@ -528,7 +528,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted info text — low-emphasis accent, 3:1 on the page",
+      "description": "Muted info text — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on background.primary",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -546,7 +546,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "text on a solid brand fill",
+      "description": "Text on a solid brand fill — 4.5:1",
       "value": {
         "r": 1,
         "g": 1,
@@ -564,7 +564,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "text on a solid success fill",
+      "description": "Text on a solid success fill — 4.5:1",
       "value": {
         "r": 1,
         "g": 1,
@@ -582,7 +582,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "text on a solid warning fill",
+      "description": "Text on a solid warning fill — 4.5:1",
       "value": {
         "r": 1,
         "g": 1,
@@ -600,7 +600,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "text on a solid danger fill",
+      "description": "Text on a solid danger fill — 4.5:1",
       "value": {
         "r": 1,
         "g": 1,
@@ -618,7 +618,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "text on a solid info fill",
+      "description": "Text on a solid info fill — 4.5:1",
       "value": {
         "r": 1,
         "g": 1,
@@ -636,7 +636,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text — default",
+      "description": "Link text — default, 4.5:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.27843138575553894,
@@ -654,7 +654,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text — hover",
+      "description": "Link text — hover, 4.5:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.1882352977991104,
@@ -672,7 +672,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text — visited",
+      "description": "Link text — visited, 4.5:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.05882352963089943,
@@ -690,7 +690,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text — focused",
+      "description": "Link text — focused, 4.5:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.27843138575553894,
@@ -708,7 +708,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text — pressed",
+      "description": "Link text — pressed, 4.5:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.09803921729326248,
@@ -748,7 +748,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Secondary icon — 3:1 on the floor",
+      "description": "Secondary icon — 3:1 (4.5:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.40784314274787903,
         "g": 0.40784314274787903,
@@ -768,7 +768,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Tertiary icon — 3:1 on the floor",
+      "description": "Tertiary icon — 3:1 (4.5:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.40784314274787903,
         "g": 0.40784314274787903,
@@ -788,7 +788,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "brand icon — 3:1 on the floor (neutral.050) and on its own tint",
+      "description": "brand icon — 3:1 (4.5:1 in high-contrast modes) on background.secondary and on its own tint",
       "value": {
         "r": 0.3686274588108063,
         "g": 0.29411765933036804,
@@ -808,7 +808,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success icon — 3:1 on the floor (neutral.050) and on its own tint",
+      "description": "success icon — 3:1 (4.5:1 in high-contrast modes) on background.secondary and on its own tint",
       "value": {
         "r": 0.18431372940540314,
         "g": 0.40784314274787903,
@@ -828,7 +828,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning icon — 3:1 on the floor (neutral.050) and on its own tint",
+      "description": "warning icon — 3:1 (4.5:1 in high-contrast modes) on background.secondary and on its own tint",
       "value": {
         "r": 0.4941176474094391,
         "g": 0.32549020648002625,
@@ -848,7 +848,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger icon — 3:1 on the floor (neutral.050) and on its own tint",
+      "description": "danger icon — 3:1 (4.5:1 in high-contrast modes) on background.secondary and on its own tint",
       "value": {
         "r": 0.6313725709915161,
         "g": 0.21568627655506134,
@@ -868,7 +868,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info icon — 3:1 on the floor (neutral.050) and on its own tint",
+      "description": "info icon — 3:1 (4.5:1 in high-contrast modes) on background.secondary and on its own tint",
       "value": {
         "r": 0.12156862765550613,
         "g": 0.3764705955982208,
@@ -888,7 +888,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted brand icon — low-emphasis accent, 3:1 on the page",
+      "description": "Muted brand icon — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on background.primary",
       "value": {
         "r": 0.4470588266849518,
         "g": 0.4117647111415863,
@@ -908,7 +908,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted success icon — low-emphasis accent, 3:1 on the page",
+      "description": "Muted success icon — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on background.primary",
       "value": {
         "r": 0.26274511218070984,
         "g": 0.5137255191802979,
@@ -928,7 +928,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted warning icon — low-emphasis accent, 3:1 on the page",
+      "description": "Muted warning icon — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on background.primary",
       "value": {
         "r": 0.6235294342041016,
         "g": 0.41960784792900085,
@@ -948,7 +948,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted danger icon — low-emphasis accent, 3:1 on the page",
+      "description": "Muted danger icon — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on background.primary",
       "value": {
         "r": 0.7882353067398071,
         "g": 0.2980392277240753,
@@ -968,7 +968,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted info icon — low-emphasis accent, 3:1 on the page",
+      "description": "Muted info icon — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on background.primary",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -988,7 +988,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "icon on a solid brand fill",
+      "description": "Icon on a solid brand fill — 4.5:1",
       "value": {
         "r": 1,
         "g": 1,
@@ -1008,7 +1008,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "icon on a solid success fill",
+      "description": "Icon on a solid success fill — 4.5:1",
       "value": {
         "r": 1,
         "g": 1,
@@ -1028,7 +1028,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "icon on a solid warning fill",
+      "description": "Icon on a solid warning fill — 4.5:1",
       "value": {
         "r": 1,
         "g": 1,
@@ -1048,7 +1048,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "icon on a solid danger fill",
+      "description": "Icon on a solid danger fill — 4.5:1",
       "value": {
         "r": 1,
         "g": 1,
@@ -1068,7 +1068,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "icon on a solid info fill",
+      "description": "Icon on a solid info fill — 4.5:1",
       "value": {
         "r": 1,
         "g": 1,
@@ -1088,7 +1088,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Link icon — default",
+      "description": "Link icon — default, 3:1 (4.5:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.4313725531101227,
@@ -1108,7 +1108,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Link icon — hover",
+      "description": "Link icon — hover, 3:1 (4.5:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.3294117748737335,
@@ -1128,7 +1128,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Link icon — visited",
+      "description": "Link icon — visited, 3:1 (4.5:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.1411764770746231,
@@ -1148,7 +1148,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Link icon — focused",
+      "description": "Link icon — focused, 3:1 (4.5:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.4313725531101227,
@@ -1168,7 +1168,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Link icon — pressed",
+      "description": "Link icon — pressed, 3:1 (4.5:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.23137255012989044,
@@ -1187,7 +1187,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill — rest",
+      "description": "primary interactive fill — rest, clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.27843138575553894,
@@ -1206,7 +1206,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill — hover",
+      "description": "primary interactive fill — hover, clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.1882352977991104,
@@ -1225,7 +1225,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill — pressed",
+      "description": "primary interactive fill — pressed, clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.09803921729326248,
@@ -1244,7 +1244,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill — focused",
+      "description": "primary interactive fill — focused, clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.1882352977991104,
@@ -1263,7 +1263,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill — selected",
+      "description": "primary interactive fill — selected, clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0,
         "g": 0.09803921729326248,
@@ -1527,7 +1527,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill — rest",
+      "description": "destructive interactive fill — rest, clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.48235294222831726,
         "g": 0.13725490868091583,
@@ -1546,7 +1546,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill — hover",
+      "description": "destructive interactive fill — hover, clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.34117648005485535,
         "g": 0.05882352963089943,
@@ -1565,7 +1565,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill — pressed",
+      "description": "destructive interactive fill — pressed, clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.2078431397676468,
         "g": 0,
@@ -1584,7 +1584,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill — focused",
+      "description": "destructive interactive fill — focused, clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.34117648005485535,
         "g": 0.05882352963089943,
@@ -1603,7 +1603,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill — selected",
+      "description": "destructive interactive fill — selected, clears 3:1 (7:1 in high-contrast modes) on background.secondary",
       "value": {
         "r": 0.2078431397676468,
         "g": 0,
@@ -1867,7 +1867,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill — rest",
+      "description": "neutral interactive fill — rest, clears 0:1 on background.secondary",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.8078431487083435,
@@ -1886,7 +1886,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill — hover",
+      "description": "neutral interactive fill — hover, clears 0:1 on background.secondary",
       "value": {
         "r": 0.7058823704719543,
         "g": 0.7058823704719543,
@@ -1905,7 +1905,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill — pressed",
+      "description": "neutral interactive fill — pressed, clears 0:1 on background.secondary",
       "value": {
         "r": 0.6039215922355652,
         "g": 0.6039215922355652,
@@ -1924,7 +1924,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill — focused",
+      "description": "neutral interactive fill — focused, clears 0:1 on background.secondary",
       "value": {
         "r": 0.7058823704719543,
         "g": 0.7058823704719543,
@@ -1943,7 +1943,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill — selected",
+      "description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
       "value": {
         "r": 0.6039215922355652,
         "g": 0.6039215922355652,
@@ -2227,7 +2227,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label / icon on a disabled fill — muted but clears 3:1",
+      "description": "Label / icon on a disabled fill — muted but clears 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.30980393290519714,
         "g": 0.30980393290519714,
@@ -2245,7 +2245,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Disabled text — clears 3:1 (reduced contrast, legible)",
+      "description": "Disabled text — reduced contrast, legible; clears 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.40784314274787903,
         "g": 0.40784314274787903,
@@ -2265,7 +2265,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Disabled icon — clears 3:1 (reduced contrast, legible)",
+      "description": "Disabled icon — reduced contrast, legible; clears 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.40784314274787903,
         "g": 0.40784314274787903,
@@ -2301,7 +2301,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Default border — decorative, ~1.4:1",
+      "description": "Default border — decorative, ~1.4:1 (~1.8:1 in dark; ~4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.4588235318660736,
         "g": 0.4627451002597809,
@@ -2355,7 +2355,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "brand border — 3:1 (SC 1.4.11)",
+      "description": "brand border — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.4470588266849518,
         "g": 0.4117647111415863,
@@ -2373,7 +2373,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "success border — 3:1 (SC 1.4.11)",
+      "description": "success border — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.26274511218070984,
         "g": 0.5137255191802979,
@@ -2391,7 +2391,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "warning border — 3:1 (SC 1.4.11)",
+      "description": "warning border — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.6235294342041016,
         "g": 0.41960784792900085,
@@ -2409,7 +2409,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "danger border — 3:1 (SC 1.4.11)",
+      "description": "danger border — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.7882353067398071,
         "g": 0.2980392277240753,
@@ -2427,7 +2427,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "info border — 3:1 (SC 1.4.11)",
+      "description": "info border — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -2445,7 +2445,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Focus ring color (keyboard focus)",
+      "description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes) on background.primary",
       "value": {
         "r": 0,
         "g": 0.27843138575553894,
@@ -2464,7 +2464,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Scrim — 40% black backdrop (modals / drawers)",
+      "description": "Scrim — black backdrop behind modals and drawers; opacity 40% (60% in dark and hc-light; 70% in hc-dark)",
       "value": {
         "r": 0,
         "g": 0,
@@ -2597,7 +2597,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Form field fill — TRANSPARENT by default (no paint): the border is the field boundary, so the fill sits correctly on any ground. Kept themable — point it at a surface step for a filled field. Hover is a translucent wash, not a fill swap (#1342)",
+      "description": "Form field fill — transparent by default (no paint): the border is the field boundary, so the fill sits correctly on any ground. Kept themable — point it at a surface step for a filled field. Hover adds a translucent wash; the fill itself does not change",
       "value": {
         "r": 0,
         "g": 0,
@@ -2615,7 +2615,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable 3:1 (SC 1.4.11) against the darkest permissible ground (the tinted `background.secondary` tier), not the page alone",
+      "description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 (4.5:1 in high-contrast modes) against the darkest permissible ground (`background.secondary`), not the page alone",
       "value": {
         "r": 0.4588235318660736,
         "g": 0.4627451002597809,
@@ -2633,7 +2633,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (never the sole state carrier — KB §4)",
+      "description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (4.5:1 in high-contrast modes) on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)",
       "value": {
         "r": 0.3607843220233917,
         "g": 0.3607843220233917,
@@ -2651,7 +2651,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
+      "description": "Form field placeholder ink — a readable hint, 4.5:1 (7:1 in high-contrast modes) on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
       "value": {
         "r": 0.30980393290519714,
         "g": 0.30980393290519714,
@@ -2670,7 +2670,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Inverse page surface — a dark band in light mode",
+      "description": "Inverse page surface — the opposite-polarity band (dark on a light page, light on a dark page)",
       "value": {
         "r": 0,
         "g": 0,
@@ -2727,7 +2727,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Inverse / bold surface — a dark fill in light mode",
+      "description": "Inverse / bold surface — the opposite-polarity fill (dark on a light page, light on a dark page)",
       "value": {
         "r": 0,
         "g": 0,
@@ -2784,7 +2784,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Bold brand fill on an inverse surface — clears 3:1 on the inverse floor",
+      "description": "Bold brand fill on an inverse surface — clears 3:1 (7:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.5882353186607361,
         "g": 0.5803921818733215,
@@ -2803,7 +2803,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Bold success fill on an inverse surface — clears 3:1 on the inverse floor",
+      "description": "Bold success fill on an inverse surface — clears 3:1 (7:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.3803921639919281,
         "g": 0.6784313917160034,
@@ -2822,7 +2822,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Bold warning fill on an inverse surface — clears 3:1 on the inverse floor",
+      "description": "Bold warning fill on an inverse surface — clears 3:1 (7:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.800000011920929,
         "g": 0.5529412031173706,
@@ -2841,7 +2841,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Bold danger fill on an inverse surface — clears 3:1 on the inverse floor",
+      "description": "Bold danger fill on an inverse surface — clears 3:1 (7:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.8901960849761963,
         "g": 0.4901960790157318,
@@ -2860,7 +2860,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Bold info fill on an inverse surface — clears 3:1 on the inverse floor",
+      "description": "Bold info fill on an inverse surface — clears 3:1 (7:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.29411765933036804,
         "g": 0.6313725709915161,
@@ -2879,7 +2879,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
       "value": {
         "r": 0.08235294371843338,
         "g": 0.03529411926865578,
@@ -2898,7 +2898,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
       "value": {
         "r": 0,
         "g": 0.11764705926179886,
@@ -2917,7 +2917,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
       "value": {
         "r": 0.13725490868091583,
         "g": 0.0784313753247261,
@@ -2936,7 +2936,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
       "value": {
         "r": 0.2078431397676468,
         "g": 0,
@@ -2955,7 +2955,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
       "value": {
         "r": 0,
         "g": 0.09803921729326248,
@@ -2973,7 +2973,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "primary interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+      "description": "primary interactive ink on an inverse surface — rest (outline / text on the inverse band)",
       "value": {
         "r": 0.33725491166114807,
         "g": 0.6313725709915161,
@@ -2991,7 +2991,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+      "description": "primary interactive ink on an inverse surface — hover (outline / text on the inverse band)",
       "value": {
         "r": 0.5372549295425415,
         "g": 0.7254902124404907,
@@ -3009,7 +3009,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+      "description": "primary interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
       "value": {
         "r": 0.7137255072593689,
         "g": 0.8235294222831726,
@@ -3029,7 +3029,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "primary interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+      "description": "primary interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
       "value": {
         "r": 0.33725491166114807,
         "g": 0.6313725709915161,
@@ -3049,7 +3049,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "primary interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+      "description": "primary interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
       "value": {
         "r": 0.5372549295425415,
         "g": 0.7254902124404907,
@@ -3069,7 +3069,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "primary interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+      "description": "primary interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
       "value": {
         "r": 0.7137255072593689,
         "g": 0.8235294222831726,
@@ -3088,7 +3088,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+      "description": "primary interactive fill on an inverse surface — rest (the crisp white / black default)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3107,7 +3107,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "primary interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
@@ -3126,7 +3126,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "primary interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.7568627595901489,
         "g": 0.7568627595901489,
@@ -3145,7 +3145,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "primary interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
@@ -3164,7 +3164,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "primary interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.7568627595901489,
         "g": 0.7568627595901489,
@@ -3184,7 +3184,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)",
+      "description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
       "value": {
         "r": 0,
         "g": 0,
@@ -3202,7 +3202,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "primary interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+      "description": "primary interactive border on an inverse surface — rest (the outline edge; follows the ink)",
       "value": {
         "r": 0.33725491166114807,
         "g": 0.6313725709915161,
@@ -3220,7 +3220,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+      "description": "primary interactive border on an inverse surface — hover (the outline edge; follows the ink)",
       "value": {
         "r": 0.5372549295425415,
         "g": 0.7254902124404907,
@@ -3238,7 +3238,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+      "description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
         "r": 0.7137255072593689,
         "g": 0.8235294222831726,
@@ -3257,7 +3257,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+      "description": "primary interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3276,7 +3276,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+      "description": "primary interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3295,7 +3295,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+      "description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3313,7 +3313,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+      "description": "destructive interactive ink on an inverse surface — rest (outline / text on the inverse band)",
       "value": {
         "r": 0.8901960849761963,
         "g": 0.4901960790157318,
@@ -3331,7 +3331,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+      "description": "destructive interactive ink on an inverse surface — hover (outline / text on the inverse band)",
       "value": {
         "r": 0.9137254953384399,
         "g": 0.6352941393852234,
@@ -3349,7 +3349,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+      "description": "destructive interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
       "value": {
         "r": 0.9333333373069763,
         "g": 0.772549033164978,
@@ -3369,7 +3369,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "destructive interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+      "description": "destructive interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
       "value": {
         "r": 0.8901960849761963,
         "g": 0.4901960790157318,
@@ -3389,7 +3389,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "destructive interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+      "description": "destructive interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
       "value": {
         "r": 0.9137254953384399,
         "g": 0.6352941393852234,
@@ -3409,7 +3409,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "destructive interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+      "description": "destructive interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
       "value": {
         "r": 0.9333333373069763,
         "g": 0.772549033164978,
@@ -3428,7 +3428,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+      "description": "destructive interactive fill on an inverse surface — rest (the crisp white / black default)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3447,7 +3447,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "destructive interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
@@ -3466,7 +3466,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "destructive interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.7568627595901489,
         "g": 0.7568627595901489,
@@ -3485,7 +3485,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "destructive interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
@@ -3504,7 +3504,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "destructive interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.7568627595901489,
         "g": 0.7568627595901489,
@@ -3524,7 +3524,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)",
+      "description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
       "value": {
         "r": 0,
         "g": 0,
@@ -3542,7 +3542,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+      "description": "destructive interactive border on an inverse surface — rest (the outline edge; follows the ink)",
       "value": {
         "r": 0.8901960849761963,
         "g": 0.4901960790157318,
@@ -3560,7 +3560,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+      "description": "destructive interactive border on an inverse surface — hover (the outline edge; follows the ink)",
       "value": {
         "r": 0.9137254953384399,
         "g": 0.6352941393852234,
@@ -3578,7 +3578,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+      "description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
         "r": 0.9333333373069763,
         "g": 0.772549033164978,
@@ -3597,7 +3597,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+      "description": "destructive interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3616,7 +3616,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+      "description": "destructive interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3635,7 +3635,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+      "description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3653,7 +3653,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "neutral interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+      "description": "neutral interactive ink on an inverse surface — rest (outline / text on the inverse band)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3671,7 +3671,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "neutral interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+      "description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3689,7 +3689,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "neutral interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+      "description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3709,7 +3709,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "neutral interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+      "description": "neutral interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3729,7 +3729,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "neutral interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+      "description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3749,7 +3749,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "neutral interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+      "description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3768,7 +3768,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+      "description": "neutral interactive fill on an inverse surface — rest (the crisp white / black default)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3787,7 +3787,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "neutral interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
@@ -3806,7 +3806,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "neutral interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.7568627595901489,
         "g": 0.7568627595901489,
@@ -3825,7 +3825,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "neutral interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
@@ -3844,7 +3844,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "description": "neutral interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "value": {
         "r": 0.7568627595901489,
         "g": 0.7568627595901489,
@@ -3882,7 +3882,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "neutral interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+      "description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3900,7 +3900,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "neutral interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+      "description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3918,7 +3918,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "neutral interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+      "description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3937,7 +3937,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+      "description": "neutral interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3956,7 +3956,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+      "description": "neutral interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "value": {
         "r": 1,
         "g": 1,
@@ -3975,7 +3975,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+      "description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "value": {
         "r": 1,
         "g": 1,
@@ -4014,7 +4014,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Label / icon on a disabled fill on an inverse surface — muted but clears 3:1",
+      "description": "Label / icon on a disabled fill on an inverse surface — muted but clears 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.6039215922355652,
         "g": 0.6039215922355652,
@@ -4032,7 +4032,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Disabled text on an inverse surface — clears 3:1 (reduced contrast, legible)",
+      "description": "Disabled text on an inverse surface — reduced contrast, legible; clears 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.4588235318660736,
         "g": 0.4627451002597809,
@@ -4052,7 +4052,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Disabled icon on an inverse surface — clears 3:1 (reduced contrast, legible)",
+      "description": "Disabled icon on an inverse surface — reduced contrast, legible; clears 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.4588235318660736,
         "g": 0.4627451002597809,
@@ -4089,7 +4089,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Form field fill on an inverse surface — TRANSPARENT by default (no paint), the same paint-less field the page takes; the border frames it on the dark band",
+      "description": "Form field fill on an inverse surface — transparent by default (no paint), the same paint-less field the page takes; the border frames it on the inverse band",
       "value": {
         "r": 0,
         "g": 0,
@@ -4107,7 +4107,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable 3:1 (SC 1.4.11) against the darkest permissible inverse ground",
+      "description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 (4.5:1 in high-contrast modes) against the darkest permissible inverse ground",
       "value": {
         "r": 0.4588235318660736,
         "g": 0.4627451002597809,
@@ -4125,7 +4125,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (never the sole state carrier — KB §4)",
+      "description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 (4.5:1 in high-contrast modes) on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)",
       "value": {
         "r": 0.5568627715110779,
         "g": 0.5568627715110779,
@@ -4143,7 +4143,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill",
+      "description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 (7:1 in high-contrast modes) on the darkest permissible inverse ground behind the transparent fill",
       "value": {
         "r": 0.6039215922355652,
         "g": 0.6039215922355652,
@@ -4161,7 +4161,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Primary text — strongest neutral",
+      "description": "Primary text on an inverse surface — strongest neutral",
       "value": {
         "r": 1,
         "g": 1,
@@ -4179,7 +4179,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Secondary text — 4.5:1 on the floor",
+      "description": "Secondary text on an inverse surface — 4.5:1 (7:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.6039215922355652,
         "g": 0.6039215922355652,
@@ -4197,7 +4197,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Tertiary text — 3:1 on the floor",
+      "description": "Tertiary text on an inverse surface — 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.4588235318660736,
         "g": 0.4627451002597809,
@@ -4215,7 +4215,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "brand text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "description": "brand text — 4.5:1 (7:1 in high-contrast modes) on inverse.background.secondary and on its own tint",
       "value": {
         "r": 0.6392157077789307,
         "g": 0.6352941393852234,
@@ -4233,7 +4233,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "success text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "description": "success text — 4.5:1 (7:1 in high-contrast modes) on inverse.background.secondary and on its own tint",
       "value": {
         "r": 0.42352941632270813,
         "g": 0.7333333492279053,
@@ -4251,7 +4251,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "warning text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "description": "warning text — 4.5:1 (7:1 in high-contrast modes) on inverse.background.secondary and on its own tint",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.6000000238418579,
@@ -4269,7 +4269,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "danger text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "description": "danger text — 4.5:1 (7:1 in high-contrast modes) on inverse.background.secondary and on its own tint",
       "value": {
         "r": 0.9019607901573181,
         "g": 0.5647059082984924,
@@ -4287,7 +4287,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "info text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "description": "info text — 4.5:1 (7:1 in high-contrast modes) on inverse.background.secondary and on its own tint",
       "value": {
         "r": 0.40784314274787903,
         "g": 0.6823529601097107,
@@ -4305,7 +4305,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted brand text — low-emphasis accent, 3:1 on the inverse band",
+      "description": "Muted brand text — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on inverse.background.primary",
       "value": {
         "r": 0.4470588266849518,
         "g": 0.4117647111415863,
@@ -4323,7 +4323,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted success text — low-emphasis accent, 3:1 on the inverse band",
+      "description": "Muted success text — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on inverse.background.primary",
       "value": {
         "r": 0.26274511218070984,
         "g": 0.5137255191802979,
@@ -4341,7 +4341,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted warning text — low-emphasis accent, 3:1 on the inverse band",
+      "description": "Muted warning text — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on inverse.background.primary",
       "value": {
         "r": 0.6235294342041016,
         "g": 0.41960784792900085,
@@ -4359,7 +4359,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted danger text — low-emphasis accent, 3:1 on the inverse band",
+      "description": "Muted danger text — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on inverse.background.primary",
       "value": {
         "r": 0.7882353067398071,
         "g": 0.2980392277240753,
@@ -4377,7 +4377,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted info text — low-emphasis accent, 3:1 on the inverse band",
+      "description": "Muted info text — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on inverse.background.primary",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -4395,7 +4395,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text — default",
+      "description": "Link text on an inverse surface — default, 4.5:1 (7:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.33725491166114807,
         "g": 0.6313725709915161,
@@ -4413,7 +4413,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text — hover",
+      "description": "Link text on an inverse surface — hover, 4.5:1 (7:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.5372549295425415,
         "g": 0.7254902124404907,
@@ -4431,7 +4431,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text — visited",
+      "description": "Link text on an inverse surface — visited, 4.5:1 (7:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.8784313797950745,
         "g": 0.9215686321258545,
@@ -4449,7 +4449,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text — focused",
+      "description": "Link text on an inverse surface — focused, 4.5:1 (7:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.33725491166114807,
         "g": 0.6313725709915161,
@@ -4467,7 +4467,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text — pressed",
+      "description": "Link text on an inverse surface — pressed, 4.5:1 (7:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.7137255072593689,
         "g": 0.8235294222831726,
@@ -4487,7 +4487,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Primary icon — strongest neutral",
+      "description": "Primary icon on an inverse surface — strongest neutral",
       "value": {
         "r": 1,
         "g": 1,
@@ -4507,7 +4507,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Secondary icon — 3:1 on the floor",
+      "description": "Secondary icon on an inverse surface — 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.4588235318660736,
         "g": 0.4627451002597809,
@@ -4527,7 +4527,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Tertiary icon — 3:1 on the floor",
+      "description": "Tertiary icon on an inverse surface — 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.4588235318660736,
         "g": 0.4627451002597809,
@@ -4547,7 +4547,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "brand icon — 3:1 on the floor (inverse.background.secondary) and on its own tint",
+      "description": "brand icon — 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary and on its own tint",
       "value": {
         "r": 0.4901960790157318,
         "g": 0.46666666865348816,
@@ -4567,7 +4567,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success icon — 3:1 on the floor (inverse.background.secondary) and on its own tint",
+      "description": "success icon — 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary and on its own tint",
       "value": {
         "r": 0.3019607961177826,
         "g": 0.5686274766921997,
@@ -4587,7 +4587,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning icon — 3:1 on the floor (inverse.background.secondary) and on its own tint",
+      "description": "warning icon — 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary and on its own tint",
       "value": {
         "r": 0.6823529601097107,
         "g": 0.4627451002597809,
@@ -4607,7 +4607,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger icon — 3:1 on the floor (inverse.background.secondary) and on its own tint",
+      "description": "danger icon — 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary and on its own tint",
       "value": {
         "r": 0.8509804010391235,
         "g": 0.3333333432674408,
@@ -4627,7 +4627,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info icon — 3:1 on the floor (inverse.background.secondary) and on its own tint",
+      "description": "info icon — 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary and on its own tint",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,
@@ -4647,7 +4647,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted brand icon — low-emphasis accent, 3:1 on the inverse band",
+      "description": "Muted brand icon — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on inverse.background.primary",
       "value": {
         "r": 0.4470588266849518,
         "g": 0.4117647111415863,
@@ -4667,7 +4667,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted success icon — low-emphasis accent, 3:1 on the inverse band",
+      "description": "Muted success icon — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on inverse.background.primary",
       "value": {
         "r": 0.26274511218070984,
         "g": 0.5137255191802979,
@@ -4687,7 +4687,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted warning icon — low-emphasis accent, 3:1 on the inverse band",
+      "description": "Muted warning icon — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on inverse.background.primary",
       "value": {
         "r": 0.6235294342041016,
         "g": 0.41960784792900085,
@@ -4707,7 +4707,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted danger icon — low-emphasis accent, 3:1 on the inverse band",
+      "description": "Muted danger icon — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on inverse.background.primary",
       "value": {
         "r": 0.7882353067398071,
         "g": 0.2980392277240753,
@@ -4727,7 +4727,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted info icon — low-emphasis accent, 3:1 on the inverse band",
+      "description": "Muted info icon — low-emphasis accent, 3:1 (4.5:1 in high-contrast modes) on inverse.background.primary",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -4747,7 +4747,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Link icon — default",
+      "description": "Link icon on an inverse surface — default, 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0,
         "g": 0.48627451062202454,
@@ -4767,7 +4767,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Link icon — hover",
+      "description": "Link icon on an inverse surface — hover, 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.2078431397676468,
         "g": 0.5843137502670288,
@@ -4787,7 +4787,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Link icon — visited",
+      "description": "Link icon on an inverse surface — visited, 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.6274510025978088,
         "g": 0.772549033164978,
@@ -4807,7 +4807,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Link icon — focused",
+      "description": "Link icon on an inverse surface — focused, 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0,
         "g": 0.48627451062202454,
@@ -4827,7 +4827,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Link icon — pressed",
+      "description": "Link icon on an inverse surface — pressed, 3:1 (4.5:1 in high-contrast modes) on inverse.background.secondary",
       "value": {
         "r": 0.4431372582912445,
         "g": 0.6784313917160034,
@@ -4845,7 +4845,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Default border on an inverse surface — decorative, ~1.4:1",
+      "description": "Default border on an inverse surface — decorative, ~1.4:1 (~1.8:1 in dark; ~4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.4588235318660736,
         "g": 0.4627451002597809,
@@ -4899,7 +4899,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "brand border on an inverse surface — 3:1 (SC 1.4.11)",
+      "description": "brand border on an inverse surface — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.4470588266849518,
         "g": 0.4117647111415863,
@@ -4917,7 +4917,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "success border on an inverse surface — 3:1 (SC 1.4.11)",
+      "description": "success border on an inverse surface — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.26274511218070984,
         "g": 0.5137255191802979,
@@ -4935,7 +4935,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "warning border on an inverse surface — 3:1 (SC 1.4.11)",
+      "description": "warning border on an inverse surface — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.6235294342041016,
         "g": 0.41960784792900085,
@@ -4953,7 +4953,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "danger border on an inverse surface — 3:1 (SC 1.4.11)",
+      "description": "danger border on an inverse surface — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.7882353067398071,
         "g": 0.2980392277240753,
@@ -4971,7 +4971,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "info border on an inverse surface — 3:1 (SC 1.4.11)",
+      "description": "info border on an inverse surface — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes)",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -4989,7 +4989,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Focus ring color on inverse surfaces (keyboard focus)",
+      "description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 (4.5:1 in high-contrast modes) on inverse.background.primary",
       "value": {
         "r": 0.33725491166114807,
         "g": 0.6313725709915161,

@@ -2926,6 +2926,20 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.138.0 — #1623 batch A: token description prose is made true in every mode it is read in, and stripped of
+ * internal references. (1) Per-mode prose: `tree.ts` now carries a mode's own `description` in
+ * `modes.<mode>` when it differs from light's, and the DTCG overlays emit it as that leaf's `$description`
+ * (a leaf whose value holds but whose prose moves — a raised HC minimum — now joins the overlay). Figma
+ * variables, which share one description across modes, get one sentence whose varying claims name the other
+ * modes' values: `4.5:1 (7:1 in high-contrast modes)`; the layout grid variables list their value per
+ * breakpoint instead of showing xs's in every mode. Templates name the ground role (`background.secondary`)
+ * rather than a mode's palette step, and inverse roles no longer call the band "dark". (2) The step-500
+ * "mid-tone AA pivot (≥4.5:1 on white & black)" is measured, not stamped: nb `green.500` and wendys
+ * `secondary.500` now state their measured pair. (3) Issue numbers, "KB §4", "Prism 2" and "Primer" are gone
+ * from token prose, along with code-comment caps and the "consumer-facing type style" tail. New gate
+ * `lint-description-claims.ts` recomputes every `N:1` / `N%` in emitted prose per mode. Emitted
+ * `$description` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS at 11.3.0 (no token
+ * name moves; `token-contract --check` level `none`).
  * 0.137.0 — #1623 batch C: stale facts in component-def prose corrected (retired ids `radio`/`switch`/
  * `checkbox` → their `-row` defs; `radio-row`'s `ai.avoidWhen` no longer says the radio group is unbuilt;
  * `focus-ring`'s `docs.do` names the `surface` axis, not the retired `color`; icon-button's small heights
@@ -3462,7 +3476,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.137.0';
+export const ENGINE_VERSION = '0.138.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
