@@ -7,6 +7,22 @@
 
 ---
 
+## (2026-09-24) — the plugin builds a component's missing nested components first (#1633)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `apps/plugin/src/build-deps.ts` (**NEW**: the dependency resolver and pre-build loop), `apps/plugin/src/main.ts` (`buildComponents` builds through one `buildOne` and runs the pre-build first), `apps/plugin/component-shim.ts` (opt-in `liveRoot`), `apps/plugin/test-write-components.ts` (#1633 arm). Plugin-only, so no ENGINE bump.
+
+**The report.** The owner built `button` into a fresh Aurora file without `focus-ring` and got 72 misses, one per member: `focusRing.nestTarget -> focus-ring (not in this file — build focus-ring FIRST …)`. The advice was right, and the plugin can follow it itself: every name a plan nests or swaps to is a def the catalogue already holds.
+
+**How it works.** Dependencies are read off the PROJECTED plans, not `anatomy.parts[*].nests`, because the plan is what the executor resolves. A `nestTarget` is a def id (the set a def builds is named `plan.component`, which is `def.id`). A `swapTarget` like `icon/FPO-default-icon` maps to an `emitAsComponents` def by its `<id>/` prefix. A name that maps to no def is left to the file, and the executor's own miss still reports it. "Present" is the executor's lookup: a COMPONENT or COMPONENT_SET under that exact name. A present dependency is never rebuilt or descended into, so the STALE guard is unchanged. Missing ones build deepest first through the same `buildOne` the parent uses: same `materializeForBrand`, same #1554 page. A cycle throws with its path. A dependency that throws, is refused by `notStandalone`, or builds without producing the name its parent needs raises `DependencyBuildError`, and the parent is not built. The summary ends `Also built: icon, focus-ring`, and a dependency with misses shows `focus-ring (N misses)`.
+
+**Decisions left open for the owner.** (1) A dependency's misses do NOT flip the parent's `ok`. They are named in the summary only. (2) The `icon` swap target counts as a dependency, so a `button` in a fresh file also builds the ~39 `icon/<glyph>` components. That is the brief's reading ("the `icon` set used as the default swap target"). (3) The wording `Also built: …` is a placeholder, open to refinement.
+
+**Gate.** The #1633 arm in `test-write-components.ts` runs the real executor in ONE shim whose root sees what the run built (`liveRoot`; off by default, so every other case keeps its frozen file). Every expected list is hand-named. Reachability: `button` alone reproduces the 72 `focusRing` misses exactly. The arm covers five more cases: a fresh file builds `icon, focus-ring`, then `button` with 0 `focusRing` and 0 swap misses; a re-run builds nothing and leaves the page untouched; an existing `focus-ring` set is never rebuilt; the `checkbox-group` chain builds `field-label, focus-ring, checkbox-control, checkbox-row` in that order and then the group with 0 nest misses; a dependency that throws, and a synthetic `a → b → a` cycle, both fail by name. There is also a source check that `main.ts` pre-builds before `buildOne(def, reports)`. Mutations, committed first: `prebuildDependencies` returning `[]` → 7 #1633 arms fail, including the 0-miss arm quoting `focusRing.nestTarget -> focus-ring`. Dropping the `main.ts` call → the source-order arm fails by name.
+
+**Trap for whoever re-verifies.** The stock shim's `root` searches answer only `comps`/`fileNodes`: a file frozen at the start of the run. A multi-def test without `liveRoot` would build `focus-ring` and then still miss it in `button`, which looks like a resolver bug and is not.
+
+---
+
 ## (2026-09-24) — a label-ink override carries to its icon twin (#1617)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/modes.ts` (**NEW** `withIconTwins`), `packages/engine/test.ts` (**IT-01**), `apps/studio/src/main.ts` (outline preview glyph), `packages/engine/version.ts` (ENGINE 0.136.0), stamp-only `out/**` + the `token-contract.json` `engineVersion` field (`--accept`, no surface change; CONTRACT stands at 11.3.0).
