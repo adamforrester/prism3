@@ -20,8 +20,33 @@
 
 **Trap met: `lint-rung-names` refused the 0px group gap.** Once the groups dropped `size.{size}.gap`, their `size` axis bound no `size.*` key of their own, and arm 2 read that as "a size that resolves to nothing". Two tempting fixes are both wrong. Size-keying `space.0` per rung fails the rungless arm. Binding some other size-varying key just to satisfy the gate would be gaming it. The fix is a new admission list, `SIZE_BY_FOLLOW_ONLY` (the two groups), and it is re-checked structurally rather than trusted. An admitted def must bind no `size.*` key (else STALE). It must have at least one `nest` part that `follow`s `size`. Every followed def must admit every value of the group's enum. Mutation-proven by name: dropping radio-group from the list brings back arm 2's failures, adding a `size.small.gap` to checkbox-group fires STALE, and emptying radio-group's `follow` fires "no nest part follows 'size'".
 
-**ENGINE 0.141.0 → 0.142.0** (component members moved). CONTRACT stands, because every bound role already ships.
+**ENGINE 0.142.0 → 0.143.0** (component members moved). CONTRACT stands, because every bound role already ships.
 
+## (2026-09-24) — weight-role type styles are brand-dependent (#1632)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Owner decision: a brand that narrows `typography.weights` drops the styles for the weights it doesn't use, and that's correct, so the contract stops promising them ("if we are removing anything we are removing unused weights"). Files: `packages/engine/token-contract.ts` (new `minimal-weights` corpus member), `schema/token-contract.json` (`--accept`), `version.ts` (CONTRACT 11.3.0 → **12.0.0**, MAJOR), `test.ts` (two hardcoded corpus counts, 7 → 8: the contract corpus assertion and #1010's status-glyph sweep), `lint-lever-sweep.ts` (comments only), `docs/30` (a `Decided (2026-09-24, #1632)` heading), `docs/42` (a row, and the Known-gaps bullet), `schema/decisions-index.json` (`--accept`). ENGINE stays at 0.141.0: `out/**` is byte-identical, since the corpus member is contract-only.
+
+**What moved.** Exactly the 17 paths the issue listed demote from `guaranteed` to `brandDependent` (598 → 581): `type.{body,caption}.<size>.strong` and `-strong-link`, `type.display.sm.strong`, `type.title.{2xl,xl,lg,md,sm,xs}.strong`. They report as DEMOTED (still emitted, no migration), so there's no DEPRECATIONS entry. The union grows by the member's own `subtle`/`emphasis` composites, which land in `brandDependent` and move nothing.
+
+**Why this member shape.** It's nb-redesign's weight sets verbatim on `MINIMAL_BRAND`, not a hand-picked narrowing. So the demotion is exactly the case that was found, and the sets are the only thing that varies from `minimal`, the same attributability rule `minimal-levers` and `minimal-bp2` follow. A narrower "drop only `strong`" can't be expressed for display/title: their default set is `[strong]`, so declining it means replacing it.
+
+**Components.** No def binds a demoted path by name. `field-label` resolves `bold`/`regular` by intent (#1602), and every other `type.*` binding is `body.*.default`, `caption.md.default` or `label.*.emphasis`, none of which this member declines. `lint-lever-sweep` arm (b) already checks nb-redesign's materialized bindings against its own emission under every swept setting, and it's green.
+
+**Mutation, by name (committed first).** Deleting the `minimal-weights` line from `corpus()` fails `token-contract.ts --check` with `ADDED type.body.lg.strong` … `ADDED type.title.xs.strong`, all 17 by name, and `test.ts` fails the corpus-count assertion. Restored with `git checkout -- packages/engine/token-contract.ts` against the wip commit.
+
+**Residual, filed as #1639.** `label`, `eyebrow` and `code` ship one-role default sets, so a brand can only replace them (e.g. `label: ['strong']`, which the engine accepts and which drops `type.label.*.emphasis`). The corpus doesn't, so those stay guaranteed on the same "nobody pulled the lever" footing, and `button` binds `label.*.emphasis` by name. Demoting means taking another MAJOR and moving `button` onto a weight intent; the alternative is making those roles non-optional. That's the owner's call.
+
+---
+
+## (2026-09-24) — `density: 'spacious'` keeps `core.dimension.3` and `.18` (#1631)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/theme.ts` (the `dimensionGrid(...)` call in `buildDims`), `lint-lever-sweep.ts` (the #1631 `defect` entry removed, so `REMOVALS` is empty), `test.ts` (a new arm), `version.ts` (ENGINE 0.141.0 → 0.142.0), `schema/token-contract.json` (`--accept` at level none: only the `engineVersion` stamp moves). CONTRACT stays at 11.3.0.
+
+**Owner decision.** Disposition 1 ("we should not remove dimension tokens, just leave those"), not demotion. At spacious the grid is now also fed the comfortable control px, so 3 (a comfortable `inset`) and 18 (a comfortable `thumb`) stay on it. Spacious's grid only grows, and no existing alias moves. No committed brand sets spacious, so `out/**` moves only its version stamp.
+
+**The approach tried and discarded, and why it is flagged, not settled.** The first cut fed the comfortable px at every non-comfortable density (compact too), which is the literal reading of "unconditional". Measured with regen, aurora (compact, a contract-corpus brand) then gains `core.dimension.30`, and `token-contract --check` reports **MINOR: ADDED core.dimension.30**. The lane was told the contract must not move, so the shipped cut feeds only spacious. That costs nothing today: compact is a corpus density, so it can't remove a guaranteed path by construction (the corpus would demote it and `--check` would call that MAJOR). Feeding every density is a one-token change (`density === 'spacious'` → `density !== 'comfortable'`) plus a CONTRACT MINOR to 11.4.0. That choice is left to the owner in the PR body.
+
+**Verification.** `lint-lever-sweep.ts` passes with 0 allowlisted removals. The new `test.ts` arm builds minimal, harbor and nb-redesign at each of the three densities and asserts that `core.dimension.3` and `.18` are in the emitted tree, with the paths written out rather than read from `controlSizes`. By-name mutation: with the theme.ts change reverted (committed first), `lint-lever-sweep` fails with `minimal @ density="spacious" REMOVES 2 guaranteed path(s) … core.dimension.18, core.dimension.3` (same for harbor and nb-redesign), and the `#1631 … spacious` test arms fail too.
 ## (2026-09-24) — the outline-hover option is labeled "Tinted wash"
 
 **STATUS: landed by the orchestrator.** Owner decision: the `outlineInteraction` option `solid-tint` reads "Tinted wash" in the studio and plugin (it read "Opaque subtle tint"). Files: `packages/engine/levers.ts` (the one label), regenerated `schema/lever-manifest.json`, the `out/**` stamp, `version.ts` (ENGINE 0.141.0).

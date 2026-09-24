@@ -2066,6 +2066,24 @@ for (const b of brands) {
       '#910 …negative control: 10 is absent from the base-4 ladder, the space extras, the icon ladder AND the two older control fields, so the assertion above is about the `dot` feed and nothing else');
   }
 
+  // ---- NO DENSITY DROPS A GUARANTEED DIMENSION PRIMITIVE (#1631, owner-decided: unconditional) ----
+  // At comfortable, `core.dimension.3` (an `inset`) and `.18` (a `thumb`) exist only because the
+  // comfortable control px are fed into the grid; spacious's own controls produce neither, so before
+  // the fix `density: 'spacious'` removed both guaranteed paths. Read from the EMITTED tree of three
+  // brands at every density, with the two px authored here rather than read off `controlSizes`.
+  // `lint-lever-sweep.ts` catches the same removal against the whole contract; this arm names the pair.
+  {
+    const brief1631 = (f: string): BrandInput => parseDesignMd(readFileSync(resolve(HERE, './examples', f), 'utf8')).input;
+    const briefs: [string, BrandInput][] = [['minimal', MINIMAL_BRAND], ['harbor', brief1631('harbor.design.md')], ['nb-redesign', brief1631('nb-redesign.design.md')]];
+    for (const [id, input] of briefs)
+      for (const density of ['comfortable', 'compact', 'spacious'] as const) {
+        const paths = pathsOf(brandTheme({ ...input, density }));
+        const missing = ['core.dimension.3', 'core.dimension.18'].filter((p) => !paths.has(p));
+        ok(missing.length === 0, `#1631 ${id} at density '${density}' keeps core.dimension.3 and core.dimension.18 (guaranteed primitives)`
+          + (missing.length ? ` — MISSING: ${missing.join(', ')}` : ''));
+      }
+  }
+
   // ---- BRAND VARIANCE: the check that this is not the glyph ladder renamed ----------------------
   // The owner's own trap, encoded: `icon.size.*` is 16/20/24 in ALL FOUR brands, and a control family
   // that came out brand-invariant would be that ladder under a new name whatever its description
@@ -16413,7 +16431,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // `minimal` omits `layout.breakpoints`, so the count takes its 5-floor default, and a default is a
   // value like any other. Without `minimal-bp2` the upper breakpoint tiers would read as guaranteed
   // purely because every richer brand ships 5+ floors.
-  ok(live.corpus.length === 7, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, and the minimal input with a two-breakpoint layout (${live.corpus.length} brands)`);
+  // EIGHT since #1632, which added `minimal-weights` — the sparse input WITH narrowed weight sets. It
+  // separates SPARSE from the DEFAULT SETS on the weight axis: without it the default sets' `strong`
+  // composites would read as guaranteed purely because no member declined a weight.
+  ok(live.corpus.length === 8, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, the minimal input with a two-breakpoint layout, and the minimal input with narrowed weight sets (${live.corpus.length} brands)`);
   for (const { id, theme } of corpus()) {
     const paths = pathsOf(theme);
     const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
@@ -17723,7 +17744,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
       return { brand: id.split(' ')[0], px: ext };
     });
-    ok(px.length === 7 && px.every((b) => b.px === 16),
+    ok(px.length === 8 && px.every((b) => b.px === 16),
       `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
   }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),
