@@ -4810,7 +4810,9 @@ const renderPreviewPage = (host: PageHost): void => {
  * elimination is a size optimization, not a dependency boundary.
  */
 const COMPONENT_CATALOGUE: {
-  readonly buildable: readonly { id: string; name: string; members: number }[];
+  /** `components` marks a def built as separate top-level components (`emitAsComponents`, icon) rather
+   *  than one set of variants, so the picker counts it in the right unit (#1623). */
+  readonly buildable: readonly { id: string; name: string; members: number; components: boolean }[];
   /** Not offered, each WITH its own reason — see the second-reason paragraph above. `reason` is the def's
    *  own `notStandalone` string where it declared one, and `null` where the projector threw. */
   readonly missing: readonly { name: string; reason: string | null }[];
@@ -4822,7 +4824,7 @@ const COMPONENT_CATALOGUE: {
           // excludes, so a post-hoc filter would spend the work and then discard a valid-looking plan.
           if (d.figmaProperties?.notStandalone) return [];
           try {
-            return [{ id: d.id, name: d.name, members: figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).length }];
+            return [{ id: d.id, name: d.name, members: figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).length, components: d.figmaProperties?.emitAsComponents === true }];
           } catch {
             return [];
           }
@@ -4959,9 +4961,9 @@ const renderComponentsPage = (host: PageHost): void => {
     const gap = el('p', 'cw-note');
     gap.append(
       document.createTextNode(
-        `${threw.join(', ')} ${threw.length === 1 ? 'is' : 'are'} not offered here yet. A set needs a `
-        + 'declared size axis to project, which is a limit in our own projector rather than something '
-        + 'Figma cannot hold — tracked on #795.',
+        `${threw.join(', ')} ${threw.length === 1 ? 'is' : 'are'} not offered here yet. The projector `
+        + 'cannot build a Figma set from the definition yet, which is a limit in our own projector rather '
+        + 'than something Figma cannot hold.',
       ),
     );
     sec.append(gap);
@@ -4998,7 +5000,8 @@ const renderComponentsPage = (host: PageHost): void => {
   // for a rule identical to one that exists.
   const sel = selectEl('cap');
   for (const b of buildable) {
-    const opt = el('option', undefined, `${b.name} — ${b.members} variant${b.members === 1 ? '' : 's'}`) as HTMLOptionElement;
+    const unit = b.components ? 'component' : 'variant';
+    const opt = el('option', undefined, `${b.name} — ${b.members} ${unit}${b.members === 1 ? '' : 's'}`) as HTMLOptionElement;
     opt.value = b.id;
     if (b.id === 'button') opt.selected = true;
     sel.append(opt);

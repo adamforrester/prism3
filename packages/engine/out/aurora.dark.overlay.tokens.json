@@ -28,7 +28,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{ads.core.palette.neutral.900}",
-          "$description": "Page surface, second tier — a slightly tinted page / band",
+          "$description": "Page surface, second tier — a band one step off the base (equal to the base in high-contrast modes)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -145,7 +145,7 @@
         "brand": {
           "$type": "color",
           "$value": "{ads.core.palette.primary.500}",
-          "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
+          "$description": "Bold brand fill — clears 3:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -310,7 +310,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{ads.core.palette.neutral.450}",
-          "$description": "Secondary text — 4.5:1 on the floor",
+          "$description": "Secondary text — 4.5:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -334,7 +334,7 @@
         "tertiary": {
           "$type": "color",
           "$value": "{ads.core.palette.neutral.550}",
-          "$description": "Tertiary text — 3:1 on the floor",
+          "$description": "Tertiary text — 3:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -358,7 +358,7 @@
         "brand": {
           "$type": "color",
           "$value": "{ads.core.palette.primary.450}",
-          "$description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
+          "$description": "brand text — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -382,7 +382,7 @@
         "success": {
           "$type": "color",
           "$value": "{ads.core.palette.success.450}",
-          "$description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
+          "$description": "success text — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -406,7 +406,7 @@
         "warning": {
           "$type": "color",
           "$value": "{ads.core.palette.warning.450}",
-          "$description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
+          "$description": "warning text — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -430,7 +430,7 @@
         "danger": {
           "$type": "color",
           "$value": "{ads.core.palette.danger.450}",
-          "$description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
+          "$description": "danger text — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -454,7 +454,7 @@
         "info": {
           "$type": "color",
           "$value": "{ads.core.palette.info.450}",
-          "$description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
+          "$description": "info text — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -478,7 +478,7 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.primary.350}",
-          "$description": "Muted brand text — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted brand text — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -502,7 +502,7 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.success.350}",
-          "$description": "Muted success text — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted success text — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -526,7 +526,7 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.warning.350}",
-          "$description": "Muted warning text — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted warning text — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -550,7 +550,7 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.danger.350}",
-          "$description": "Muted danger text — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted danger text — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -574,7 +574,7 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.info.350}",
-          "$description": "Muted info text — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted info text — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -598,7 +598,7 @@
         "on-brand": {
           "$type": "color",
           "$value": "{ads.core.palette.black}",
-          "$description": "text on a solid brand fill",
+          "$description": "Text on a solid brand fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -622,7 +622,7 @@
         "on-danger": {
           "$type": "color",
           "$value": "{ads.core.palette.black}",
-          "$description": "text on a solid danger fill",
+          "$description": "Text on a solid danger fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -646,7 +646,7 @@
         "on-info": {
           "$type": "color",
           "$value": "{ads.core.palette.black}",
-          "$description": "text on a solid info fill",
+          "$description": "Text on a solid info fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -671,7 +671,7 @@
           "default": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.400}",
-            "$description": "Link text — default",
+            "$description": "Link text — default, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -695,7 +695,7 @@
           "hover": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.300}",
-            "$description": "Link text — hover",
+            "$description": "Link text — hover, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -719,7 +719,7 @@
           "visited": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.100}",
-            "$description": "Link text — visited",
+            "$description": "Link text — visited, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -743,7 +743,7 @@
           "focused": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.400}",
-            "$description": "Link text — focused",
+            "$description": "Link text — focused, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -767,7 +767,7 @@
           "pressed": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.200}",
-            "$description": "Link text — pressed",
+            "$description": "Link text — pressed, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -818,7 +818,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{ads.core.palette.neutral.550}",
-          "$description": "Secondary icon — 3:1 on the floor",
+          "$description": "Secondary icon — 3:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -842,7 +842,7 @@
         "tertiary": {
           "$type": "color",
           "$value": "{ads.core.palette.neutral.550}",
-          "$description": "Tertiary icon — 3:1 on the floor",
+          "$description": "Tertiary icon — 3:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -866,7 +866,7 @@
         "brand": {
           "$type": "color",
           "$value": "{ads.core.palette.primary.500}",
-          "$description": "brand icon — 3:1 on the floor (neutral.050) and on its own tint",
+          "$description": "brand icon — 3:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -890,7 +890,7 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.primary.350}",
-          "$description": "Muted brand icon — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted brand icon — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -914,7 +914,7 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.success.350}",
-          "$description": "Muted success icon — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted success icon — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -938,7 +938,7 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.warning.350}",
-          "$description": "Muted warning icon — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted warning icon — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -962,7 +962,7 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.danger.350}",
-          "$description": "Muted danger icon — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted danger icon — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -986,7 +986,7 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{ads.core.palette.info.350}",
-          "$description": "Muted info icon — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted info icon — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -1010,7 +1010,7 @@
         "on-brand": {
           "$type": "color",
           "$value": "{ads.core.palette.black}",
-          "$description": "icon on a solid brand fill",
+          "$description": "Icon on a solid brand fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -1034,7 +1034,7 @@
         "on-danger": {
           "$type": "color",
           "$value": "{ads.core.palette.black}",
-          "$description": "icon on a solid danger fill",
+          "$description": "Icon on a solid danger fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -1058,7 +1058,7 @@
         "on-info": {
           "$type": "color",
           "$value": "{ads.core.palette.black}",
-          "$description": "icon on a solid info fill",
+          "$description": "Icon on a solid info fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -1083,7 +1083,7 @@
           "hover": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.400}",
-            "$description": "Link icon — hover",
+            "$description": "Link icon — hover, 3:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -1107,7 +1107,7 @@
           "visited": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.200}",
-            "$description": "Link icon — visited",
+            "$description": "Link icon — visited, 3:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -1131,7 +1131,7 @@
           "pressed": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.300}",
-            "$description": "Link icon — pressed",
+            "$description": "Link icon — pressed, 3:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -1160,7 +1160,7 @@
             "hover": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.400}",
-              "$description": "primary interactive fill — hover",
+              "$description": "primary interactive fill — hover, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -1184,7 +1184,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.300}",
-              "$description": "primary interactive fill — pressed",
+              "$description": "primary interactive fill — pressed, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -1208,7 +1208,7 @@
             "focused": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.400}",
-              "$description": "primary interactive fill — focused",
+              "$description": "primary interactive fill — focused, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -1232,7 +1232,7 @@
             "selected": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.300}",
-              "$description": "primary interactive fill — selected",
+              "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -1586,7 +1586,7 @@
             "hover": {
               "$type": "color",
               "$value": "{ads.core.palette.danger.400}",
-              "$description": "destructive interactive fill — hover",
+              "$description": "destructive interactive fill — hover, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -1610,7 +1610,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{ads.core.palette.danger.300}",
-              "$description": "destructive interactive fill — pressed",
+              "$description": "destructive interactive fill — pressed, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -1634,7 +1634,7 @@
             "focused": {
               "$type": "color",
               "$value": "{ads.core.palette.danger.400}",
-              "$description": "destructive interactive fill — focused",
+              "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -1658,7 +1658,7 @@
             "selected": {
               "$type": "color",
               "$value": "{ads.core.palette.danger.300}",
-              "$description": "destructive interactive fill — selected",
+              "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -2012,7 +2012,7 @@
             "rest": {
               "$type": "color",
               "$value": "{ads.core.palette.neutral.850}",
-              "$description": "neutral interactive fill — rest",
+              "$description": "neutral interactive fill — rest, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -2035,7 +2035,7 @@
             "hover": {
               "$type": "color",
               "$value": "{ads.core.palette.neutral.750}",
-              "$description": "neutral interactive fill — hover",
+              "$description": "neutral interactive fill — hover, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -2058,7 +2058,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{ads.core.palette.neutral.650}",
-              "$description": "neutral interactive fill — pressed",
+              "$description": "neutral interactive fill — pressed, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -2081,7 +2081,7 @@
             "focused": {
               "$type": "color",
               "$value": "{ads.core.palette.neutral.750}",
-              "$description": "neutral interactive fill — focused",
+              "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -2104,7 +2104,7 @@
             "selected": {
               "$type": "color",
               "$value": "{ads.core.palette.neutral.650}",
-              "$description": "neutral interactive fill — selected",
+              "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -2504,7 +2504,7 @@
         "text": {
           "$type": "color",
           "$value": "{ads.core.palette.neutral.550}",
-          "$description": "Disabled text — clears 3:1 (reduced contrast, legible)",
+          "$description": "Disabled text — reduced contrast, legible; clears 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2528,7 +2528,7 @@
         "icon": {
           "$type": "color",
           "$value": "{ads.core.palette.neutral.550}",
-          "$description": "Disabled icon — clears 3:1 (reduced contrast, legible)",
+          "$description": "Disabled icon — reduced contrast, legible; clears 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2577,7 +2577,7 @@
         "primary": {
           "$type": "color",
           "$value": "{ads.core.palette.neutral.750}",
-          "$description": "Default border — decorative, ~1.4:1",
+          "$description": "Default border — decorative, ~1.8:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2646,7 +2646,7 @@
         "focus": {
           "$type": "color",
           "$value": "{ads.core.palette.accent.450}",
-          "$description": "Focus ring color (keyboard focus)",
+          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2672,7 +2672,7 @@
         "default": {
           "$type": "color",
           "$value": "{ads.core.palette.black-alpha.60}",
-          "$description": "Scrim — 40% black backdrop (modals / drawers)",
+          "$description": "Scrim — black backdrop behind modals and drawers; opacity 60%",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2698,7 +2698,7 @@
           "rest": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.550}",
-            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable 3:1 (SC 1.4.11) against the darkest permissible ground (the tinted `background.secondary` tier), not the page alone",
+            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible ground (`background.secondary`), not the page alone",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -2722,7 +2722,7 @@
           "hover": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.450}",
-            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (never the sole state carrier — KB §4)",
+            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -2747,7 +2747,7 @@
         "placeholder": {
           "$type": "color",
           "$value": "{ads.core.palette.neutral.450}",
-          "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
+          "$description": "Form field placeholder ink — a readable hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2774,7 +2774,7 @@
           "primary": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.025}",
-            "$description": "Inverse page surface — a dark band in light mode",
+            "$description": "Inverse page surface — the opposite-polarity band (dark on a light page, light on a dark page)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -2845,7 +2845,7 @@
           "primary": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.050}",
-            "$description": "Inverse / bold surface — a dark fill in light mode",
+            "$description": "Inverse / bold surface — the opposite-polarity fill (dark on a light page, light on a dark page)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -2914,7 +2914,7 @@
           "brand": {
             "$type": "color",
             "$value": "{ads.core.palette.primary.550}",
-            "$description": "Bold brand fill on an inverse surface — clears 3:1 on the inverse floor",
+            "$description": "Bold brand fill on an inverse surface — clears 3:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -2938,7 +2938,7 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.primary.100}",
-            "$description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -2961,7 +2961,7 @@
           "success-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.success.100}",
-            "$description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -2984,7 +2984,7 @@
           "warning-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.warning.100}",
-            "$description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -3007,7 +3007,7 @@
           "danger-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.danger.100}",
-            "$description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -3030,7 +3030,7 @@
           "info-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.info.100}",
-            "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -3057,7 +3057,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.accent.550}",
-                "$description": "primary interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+                "$description": "primary interactive ink on an inverse surface — rest (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3081,7 +3081,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.accent.650}",
-                "$description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+                "$description": "primary interactive ink on an inverse surface — hover (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3105,7 +3105,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.accent.750}",
-                "$description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$description": "primary interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3131,7 +3131,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.accent.550}",
-                "$description": "primary interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "primary interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3155,7 +3155,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.accent.650}",
-                "$description": "primary interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "primary interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3179,7 +3179,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.accent.750}",
-                "$description": "primary interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "primary interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3205,7 +3205,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black}",
-                "$description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+                "$description": "primary interactive fill on an inverse surface — rest (the crisp white / black default)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3229,7 +3229,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.900}",
-                "$description": "primary interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "primary interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3253,7 +3253,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.800}",
-                "$description": "primary interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "primary interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3277,7 +3277,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.900}",
-                "$description": "primary interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "primary interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3301,7 +3301,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.800}",
-                "$description": "primary interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "primary interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3327,7 +3327,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.accent.550}",
-                "$description": "primary interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+                "$description": "primary interactive border on an inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3351,7 +3351,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.accent.650}",
-                "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+                "$description": "primary interactive border on an inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3375,7 +3375,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.accent.750}",
-                "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3401,7 +3401,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black-alpha.10}",
-                "$description": "primary interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+                "$description": "primary interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3427,7 +3427,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black-alpha.20}",
-                "$description": "primary interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+                "$description": "primary interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3453,7 +3453,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black-alpha.20}",
-                "$description": "primary interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+                "$description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3483,7 +3483,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.danger.600}",
-                "$description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+                "$description": "destructive interactive ink on an inverse surface — rest (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3507,7 +3507,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.danger.700}",
-                "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+                "$description": "destructive interactive ink on an inverse surface — hover (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3531,7 +3531,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.danger.800}",
-                "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$description": "destructive interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3557,7 +3557,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.danger.600}",
-                "$description": "destructive interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "destructive interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3581,7 +3581,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.danger.700}",
-                "$description": "destructive interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "destructive interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3605,7 +3605,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.danger.800}",
-                "$description": "destructive interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "destructive interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3631,7 +3631,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black}",
-                "$description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+                "$description": "destructive interactive fill on an inverse surface — rest (the crisp white / black default)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3655,7 +3655,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.900}",
-                "$description": "destructive interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "destructive interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3679,7 +3679,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.800}",
-                "$description": "destructive interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "destructive interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3703,7 +3703,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.900}",
-                "$description": "destructive interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "destructive interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3727,7 +3727,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.800}",
-                "$description": "destructive interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "destructive interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3753,7 +3753,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.danger.600}",
-                "$description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on an inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3777,7 +3777,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.danger.700}",
-                "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on an inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3801,7 +3801,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.danger.800}",
-                "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3827,7 +3827,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black-alpha.10}",
-                "$description": "destructive interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+                "$description": "destructive interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3853,7 +3853,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black-alpha.20}",
-                "$description": "destructive interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+                "$description": "destructive interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3879,7 +3879,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black-alpha.20}",
-                "$description": "destructive interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+                "$description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3909,7 +3909,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.950}",
-                "$description": "neutral interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+                "$description": "neutral interactive ink on an inverse surface — rest (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3933,7 +3933,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.950}",
-                "$description": "neutral interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+                "$description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3957,7 +3957,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.950}",
-                "$description": "neutral interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3983,7 +3983,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.950}",
-                "$description": "neutral interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "neutral interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4007,7 +4007,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.950}",
-                "$description": "neutral interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4031,7 +4031,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.950}",
-                "$description": "neutral interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4057,7 +4057,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black}",
-                "$description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+                "$description": "neutral interactive fill on an inverse surface — rest (the crisp white / black default)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4081,7 +4081,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.900}",
-                "$description": "neutral interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "neutral interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4105,7 +4105,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.800}",
-                "$description": "neutral interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "neutral interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4129,7 +4129,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.900}",
-                "$description": "neutral interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "neutral interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4153,7 +4153,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.800}",
-                "$description": "neutral interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "neutral interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4203,7 +4203,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.950}",
-                "$description": "neutral interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4227,7 +4227,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.950}",
-                "$description": "neutral interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4251,7 +4251,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.neutral.950}",
-                "$description": "neutral interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4277,7 +4277,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black-alpha.10}",
-                "$description": "neutral interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+                "$description": "neutral interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4303,7 +4303,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black-alpha.20}",
-                "$description": "neutral interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+                "$description": "neutral interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4329,7 +4329,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{ads.core.palette.black-alpha.20}",
-                "$description": "neutral interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+                "$description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4406,7 +4406,7 @@
           "text": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.450}",
-            "$description": "Disabled text on an inverse surface — clears 3:1 (reduced contrast, legible)",
+            "$description": "Disabled text on an inverse surface — reduced contrast, legible; clears 3:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4430,7 +4430,7 @@
           "icon": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.450}",
-            "$description": "Disabled icon on an inverse surface — clears 3:1 (reduced contrast, legible)",
+            "$description": "Disabled icon on an inverse surface — reduced contrast, legible; clears 3:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4480,7 +4480,7 @@
             "rest": {
               "$type": "color",
               "$value": "{ads.core.palette.neutral.450}",
-              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable 3:1 (SC 1.4.11) against the darkest permissible inverse ground",
+              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible inverse ground",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -4504,7 +4504,7 @@
             "hover": {
               "$type": "color",
               "$value": "{ads.core.palette.neutral.550}",
-              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (never the sole state carrier — KB §4)",
+              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -4529,7 +4529,7 @@
           "placeholder": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.550}",
-            "$description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill",
+            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4555,7 +4555,7 @@
           "primary": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.950}",
-            "$description": "Primary text — strongest neutral",
+            "$description": "Primary text on an inverse surface — strongest neutral",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4579,7 +4579,7 @@
           "secondary": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.550}",
-            "$description": "Secondary text — 4.5:1 on the floor",
+            "$description": "Secondary text on an inverse surface — 4.5:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4603,7 +4603,7 @@
           "tertiary": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.450}",
-            "$description": "Tertiary text — 3:1 on the floor",
+            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4627,7 +4627,7 @@
           "brand": {
             "$type": "color",
             "$value": "{ads.core.palette.primary.550}",
-            "$description": "brand text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "brand text — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4651,7 +4651,7 @@
           "success": {
             "$type": "color",
             "$value": "{ads.core.palette.success.600}",
-            "$description": "success text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "success text — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4675,7 +4675,7 @@
           "warning": {
             "$type": "color",
             "$value": "{ads.core.palette.warning.600}",
-            "$description": "warning text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "warning text — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4699,7 +4699,7 @@
           "danger": {
             "$type": "color",
             "$value": "{ads.core.palette.danger.600}",
-            "$description": "danger text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "danger text — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4723,7 +4723,7 @@
           "info": {
             "$type": "color",
             "$value": "{ads.core.palette.info.600}",
-            "$description": "info text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "info text — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4747,7 +4747,7 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.primary.650}",
-            "$description": "Muted brand text — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted brand text — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4771,7 +4771,7 @@
           "success-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.success.650}",
-            "$description": "Muted success text — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted success text — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4795,7 +4795,7 @@
           "warning-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.warning.650}",
-            "$description": "Muted warning text — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted warning text — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4819,7 +4819,7 @@
           "danger-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.danger.650}",
-            "$description": "Muted danger text — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted danger text — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4843,7 +4843,7 @@
           "info-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.info.650}",
-            "$description": "Muted info text — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted info text — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4868,7 +4868,7 @@
             "default": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.550}",
-              "$description": "Link text — default",
+              "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -4892,7 +4892,7 @@
             "hover": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.650}",
-              "$description": "Link text — hover",
+              "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -4916,7 +4916,7 @@
             "visited": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.850}",
-              "$description": "Link text — visited",
+              "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -4940,7 +4940,7 @@
             "focused": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.550}",
-              "$description": "Link text — focused",
+              "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -4964,7 +4964,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.750}",
-              "$description": "Link text — pressed",
+              "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -4991,7 +4991,7 @@
           "primary": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.950}",
-            "$description": "Primary icon — strongest neutral",
+            "$description": "Primary icon on an inverse surface — strongest neutral",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5015,7 +5015,7 @@
           "secondary": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.450}",
-            "$description": "Secondary icon — 3:1 on the floor",
+            "$description": "Secondary icon on an inverse surface — 3:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5039,7 +5039,7 @@
           "tertiary": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.450}",
-            "$description": "Tertiary icon — 3:1 on the floor",
+            "$description": "Tertiary icon on an inverse surface — 3:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5063,7 +5063,7 @@
           "brand": {
             "$type": "color",
             "$value": "{ads.core.palette.primary.550}",
-            "$description": "brand icon — 3:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "brand icon — 3:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5087,7 +5087,7 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.primary.650}",
-            "$description": "Muted brand icon — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted brand icon — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5111,7 +5111,7 @@
           "success-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.success.650}",
-            "$description": "Muted success icon — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted success icon — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5135,7 +5135,7 @@
           "warning-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.warning.650}",
-            "$description": "Muted warning icon — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted warning icon — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5159,7 +5159,7 @@
           "danger-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.danger.650}",
-            "$description": "Muted danger icon — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted danger icon — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5183,7 +5183,7 @@
           "info-subtle": {
             "$type": "color",
             "$value": "{ads.core.palette.info.650}",
-            "$description": "Muted info icon — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted info icon — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5208,7 +5208,7 @@
             "hover": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.600}",
-              "$description": "Link icon — hover",
+              "$description": "Link icon on an inverse surface — hover, 3:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -5232,7 +5232,7 @@
             "visited": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.800}",
-              "$description": "Link icon — visited",
+              "$description": "Link icon on an inverse surface — visited, 3:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -5256,7 +5256,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{ads.core.palette.accent.700}",
-              "$description": "Link icon — pressed",
+              "$description": "Link icon on an inverse surface — pressed, 3:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -5283,7 +5283,7 @@
           "primary": {
             "$type": "color",
             "$value": "{ads.core.palette.neutral.200}",
-            "$description": "Default border on an inverse surface — decorative, ~1.4:1",
+            "$description": "Default border on an inverse surface — decorative, ~1.8:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5352,7 +5352,7 @@
           "focus": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.550}",
-            "$description": "Focus ring color on inverse surfaces (keyboard focus)",
+            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",

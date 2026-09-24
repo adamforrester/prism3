@@ -5872,6 +5872,174 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(ai.color['border.primary']?.avoid_when_level === 'SHOULD' && !ai.color['border.primary']?.contrast_with,
     'sidecar: border.primary (decorative, no contract of its own) is SHOULD, not a false MUST');
 }
+// #1623 (batch B) — the sidecar gate, extended from "do its cross-references name a role" to "is what it
+// SAYS true". The audit found every HIGH `.ai.json` defect sitting behind the check above: names that do
+// not exist in the tree (`neutral.050`, `font.weight-role.*`, `line-height.*`), pairings that fail in dark
+// or HC mode, and a primitive tier whose fields had silently stopped being emitted. Three arms, each read
+// from the COMMITTED `out/<brand>.ai.json` and judged against the COMMITTED `out/<brand>.tokens.json` —
+// never against the generator that wrote the sidecar, and never against a ratio the sidecar states
+// (docs/34: a gate whose expected value comes from its subject cannot fail). The color math below is this
+// block's own; `regen --check` is what keeps the two committed files in step.
+{
+  const BRANDS = ['aurora', 'harbor', 'nb', 'wendys'];
+  type C4 = { r: number; g: number; b: number; a: number };
+  const parseColor = (v: string): C4 => {
+    const m = v.match(/^rgba?\(([^)]+)\)$/);
+    if (m) { const [r, g, b, a] = m[1].split(',').map((x) => parseFloat(x)); return { r, g, b, a: a ?? 1 }; }
+    const h = v.replace('#', '');
+    const n = (i: number) => parseInt(h.slice(i, i + 2), 16);
+    return { r: n(0), g: n(2), b: n(4), a: h.length === 8 ? n(6) / 255 : 1 };
+  };
+  const lum = (c: C4) => { const f = (x: number) => { const s = x / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const ratio = (x: C4, y: C4) => { const a = lum(x) + 0.05, b = lum(y) + 0.05; return Math.max(a, b) / Math.min(a, b); };
+  const over = (top: C4, under: C4): C4 => ({ r: top.r * top.a + under.r * (1 - top.a), g: top.g * top.a + under.g * (1 - top.a), b: top.b * top.a + under.b * (1 - top.a), a: 1 });
+  // A ground is something ink sits ON — named by the tree's own vocabulary, not by the sidecar.
+  const isGround = (role: string) => { const s = role.replace(/^inverse\./, '').split('.'); return ['background', 'foreground', 'scrim', 'veil'].includes(s[0]) || s.includes('fill') || s.includes('overlay'); };
+  const isBorder = (role: string) => role.replace(/^inverse\./, '').split('.').includes('border');
+  const PATHISH = /^[a-z][a-z0-9-]*(?:\.[a-z0-9*-]+)+$/;
+  // Role-shaped names written OUTSIDE backticks — prose the path arm could not otherwise see.
+  const BARE = /\b(?:text|icon|background|foreground|border|interactive|disabled|field|scrim|veil|inverse|type|core|color|font|space|radius|size|motion)\.[a-z0-9*<]/g;
+  // AI/A-11 is IN FLUX under #1614 and deliberately untouched by batch B: the overlay's avoid_when names
+  // `foreground.<color>-subtle`, which no brand emits. Exempt by exact shape, and only while it still
+  // ships — once #1614 rewrites the sentence this exemption fails as STALE, so it cannot outlive its reason.
+  const A11 = /\bforeground\.(?:primary|neutral|destructive|accent)-subtle\b/g;
+  let a11Seen = 0;
+
+  const pathBad: string[] = [], pairBad: string[] = [], primBad: string[] = [];
+  let pairsChecked = 0, cwChecked = 0, clausesChecked = 0, tracking = 0, pathsChecked = 0;
+  const perBrand = new Map<string, number>();
+  for (const b of BRANDS) {
+    const tj = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'));
+    const ai = JSON.parse(readFileSync(resolve(HERE, `out/${b}.ai.json`), 'utf8'));
+    const root = Object.keys(tj).find((k) => !k.startsWith('$'))!;
+    const at = (p: string): any => p.split('.').reduce((o: any, k) => o?.[k], tj[root]);
+    const leaves: string[] = [];
+    const walk = (o: any, p: string[]) => { if (!o || typeof o !== 'object') return; if (o.$type !== undefined) { leaves.push(p.join('.')); return; } for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v, [...p, k]); };
+    walk(tj[root], []);
+    const globRe = (p: string) => new RegExp('^' + p.split('.').map((s) => s.split('*').map((x) => x.replace(/[-]/g, '\\-')).join('[^.]*')).join('\\.') + '(?:\\..+)?$');
+    const exists = (p: string) => (p.includes('*') ? leaves.some((l) => globRe(p).test(l)) : at(p) !== undefined);
+    const ref = (s: string) => { const m = String(s).match(/^\{(.+)\}$/); return m && m[1].startsWith(root + '.') ? m[1].slice(root.length + 1) : undefined; };
+    const isRole = (r: string) => at(`color.${r}`)?.$type === 'color';
+    const named = (p: string) => exists(`color.${p}`) || exists(p);
+    const miss = (where: string, p: string) => { pathsChecked++; if (!named(p)) pathBad.push(`${b} ${where}: ${p}`); };
+    const refMiss = (where: string, s: string) => { pathsChecked++; const r = ref(s); if (!r || !exists(r)) pathBad.push(`${b} ${where}: ${s}`); };
+
+    // ── arm 1: every token path the sidecar names resolves in this brand's emitted tree ──
+    for (const [k, e] of Object.entries<any>(ai.color)) {
+      pathsChecked++; if (!isRole(k)) pathBad.push(`${b} color key: ${k}`);
+      for (const p of e.paired_with ?? []) { pathsChecked++; if (!isRole(p)) pathBad.push(`${b} ${k}.paired_with: ${p}`); }
+      for (const cw of e.contrast_with ?? []) for (const p of [cw.token, cw.composited_over].filter(Boolean)) { pathsChecked++; if (!isRole(p)) pathBad.push(`${b} ${k}.contrast_with: ${p}`); }
+      for (const v of Object.values<string>(e.mode_overrides ?? {})) refMiss(`${k}.mode_overrides`, v);
+    }
+    for (const [k, e] of Object.entries<any>(ai.typography)) {
+      miss('typography key', k);
+      for (const v of typeof e.resolves_to === 'string' ? [e.resolves_to] : Object.values<string>(e.resolves_to ?? {})) if (String(v).startsWith('{')) refMiss(`${k}.resolves_to`, v);
+      for (const p of e.used_by ?? []) miss(`${k}.used_by`, p);
+    }
+    for (const [k, e] of Object.entries<any>(ai.primitives)) { miss('primitive key', k); for (const p of e.aliased_by ?? []) miss(`${k}.aliased_by`, p); }
+    for (const [k, e] of Object.entries<any>(ai.gradient ?? {})) { miss('gradient key', k); for (const v of e.resolves_to ?? []) refMiss(`${k}.resolves_to`, v); }
+    for (const tier of ['color', 'typography', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) for (const f of ['meaning', 'intent', 'consume', 'when_to_use', 'avoid_when']) {
+      const t: string = e[f]; if (typeof t !== 'string') continue;
+      for (const m of t.matchAll(/`([^`]+)`/g)) if (PATHISH.test(m[1])) miss(`${tier}.${k}.${f}`, m[1]);
+      const outside = t.replace(/`[^`]*`/g, '');
+      a11Seen += (outside.match(A11) ?? []).length;
+      const bare = outside.replace(A11, '').match(BARE);
+      if (bare) pathBad.push(`${b} ${tier}.${k}.${f}: unquoted ${bare.join(', ')}`);
+      // AI/A-14: on an inverse role, a named role that HAS an inverse twin must be named as the twin.
+      // The decoration's opening sentence names the page twin on purpose, so it is set aside.
+      if (tier === 'color' && k.startsWith('inverse.')) {
+        const body = t.replace(/^Do not use on the page ground; that is `[^`]+`\. /, '');
+        for (const m of body.matchAll(/`([^`]+)`/g)) if (!m[1].startsWith('inverse.') && !m[1].includes('*') && isRole(m[1]) && isRole(`inverse.${m[1]}`)) pathBad.push(`${b} ${k}.${f}: page role \`${m[1]}\` on an inverse entry (twin exists)`);
+      }
+    }
+
+    // ── arm 2: every stated pairing clears its stated floor in EVERY mode, recomputed from the tree ──
+    const modesOf = (r: string): string[] => at(`color.${r}`)?.$extensions?.prism3?.figma?.modes ?? ['light'];
+    const colorIn = (path: string, mode: string, depth = 0): C4 => {
+      const n = at(path); if (!n || depth > 16) throw new Error(`sidecar gate: cannot resolve ${path}`);
+      const v = mode === 'light' ? n.$value : (n.$extensions?.prism3?.modes?.[mode]?.$value ?? n.$value);
+      const r = ref(v); return r ? colorIn(r, mode, depth + 1) : parseColor(v);
+    };
+    const roleIn = (r: string, mode: string) => colorIn(`color.${r}`, mode);
+    const minOf = (m: string) => parseFloat(m);
+    /** The modes in which `ink` on `ground` (composited over `under` if translucent) is below `min`. */
+    const failingModes = (ink: string, ground: string, min: number, under?: string): string[] => modesOf(ink).filter((m) => {
+      let g = roleIn(ground, m);
+      if (g.a < 1) { if (!under) return true; g = over(g, roleIn(under, m)); }
+      return ratio(roleIn(ink, m), g) < min;
+    });
+    for (const [k, e] of Object.entries<any>(ai.color)) {
+      for (const cw of e.contrast_with ?? []) {
+        if (!isRole(cw.token) || (cw.composited_over && !isRole(cw.composited_over))) continue;   // arm 1 reports it
+        cwChecked++;
+        const f = cw.composited_over ? failingModes(cw.token, k, minOf(cw.min), cw.composited_over) : failingModes(k, cw.token, minOf(cw.min));
+        if (f.length) pairBad.push(`${b} ${k} contrast_with ${cw.token}${cw.composited_over ? ` over ${cw.composited_over}` : ''} < ${cw.min} in ${f.join(', ')}`);
+      }
+      for (const p of e.paired_with ?? []) {
+        if (!isRole(p)) continue;                                                                   // arm 1 reports it
+        // Ground↔ground and ink↔ink pairings are "travels with", not legibility claims (AI/D-3 — the
+        // schema split is the owner's). Counted, so a regression that turns everything into one is visible.
+        if (isGround(k) === isGround(p)) { tracking++; continue; }
+        const [g, i] = isGround(k) ? [k, p] : [p, k];
+        const gcw = ai.color[g]?.contrast_with?.[0], icw = ai.color[i]?.contrast_with?.[0];
+        const floor = gcw?.token === i ? gcw.min : icw?.min;
+        if (!floor) { if (isBorder(i)) { tracking++; continue; } pairBad.push(`${b} ${k} ~ ${p}: an ink pairing that states no floor`); continue; }
+        pairsChecked++; perBrand.set(b, (perBrand.get(b) ?? 0) + 1);
+        const f = failingModes(i, g, minOf(floor), gcw?.composited_over ?? icw?.token);
+        if (f.length) pairBad.push(`${b} ${k} ~ ${p} < ${floor} in ${f.join(', ')}`);
+      }
+      // The computed surface prose: "[`subject`] clears N:1 in every mode on …" and "Below N:1 on … in at
+      // least one mode [— use `alt` there]". Both directions are claims, so both are checked.
+      for (const f of ['when_to_use', 'avoid_when']) {
+        const t: string = e[f] ?? '';
+        const names = (s: string) => [...s.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+        for (const m of t.matchAll(/(?:`([^`]+)` )?[Cc]lears (\d+(?:\.\d+)?):1 in every mode on ((?:`[^`]+`(?:, | and )?)+)/g)) {
+          const subject = m[1] ?? k;
+          for (const s of names(m[3])) { clausesChecked++; const x = failingModes(subject, s, +m[2]); if (x.length) pairBad.push(`${b} ${k}.${f}: says \`${subject}\` clears ${m[2]}:1 on \`${s}\` — not in ${x.join(', ')}`); }
+        }
+        for (const m of t.matchAll(/Below (\d+(?:\.\d+)?):1 on ((?:`[^`]+`(?:, | and )?)+) in at least one mode(?: — use `([^`]+)` there)?/g)) {
+          for (const s of names(m[2])) {
+            clausesChecked++;
+            if (!failingModes(k, s, +m[1]).length) pairBad.push(`${b} ${k}.${f}: says below ${m[1]}:1 on \`${s}\`, but it clears in every mode`);
+            if (m[3]) { const x = failingModes(m[3], s, +m[1]); if (x.length) pairBad.push(`${b} ${k}.${f}: redirects to \`${m[3]}\` on \`${s}\`, which is below ${m[1]}:1 in ${x.join(', ')}`); }
+          }
+        }
+      }
+    }
+
+    // ── arm 3: every primitive entry carries its required fields (and the typography tier its own) ──
+    const FALLBACK_CONSUME = 'Private primitive — prefer a semantic token.';
+    for (const [k, e] of Object.entries<any>(ai.primitives)) {
+      for (const f of ['$description', 'meaning', 'consume']) if (typeof e[f] !== 'string' || !e[f].trim()) primBad.push(`${b} ${k}: missing ${f}`);
+      if (e.tier !== 'primitive') primBad.push(`${b} ${k}: tier is ${e.tier}`);
+      // A meaning that is only "<group> primitive" is the placeholder the generator falls back to (AI/A-1).
+      if (/^\S+ primitive$/.test(e.meaning ?? '')) primBad.push(`${b} ${k}: placeholder meaning "${e.meaning}"`);
+      if (/^core\.(palette|font|dimension)\./.test(k) && e.consume === FALLBACK_CONSUME) primBad.push(`${b} ${k}: fallback consume`);
+      // A pivot claim is a contrast claim: 4.5:1 on white AND black, from the tree's own value (AI/A-18 tail).
+      if (/both light and dark fills/.test(e.intent ?? '')) {
+        const c = colorIn(k, 'light'), W = { r: 255, g: 255, b: 255, a: 1 }, K = { r: 0, g: 0, b: 0, a: 1 };
+        if (ratio(c, W) < 4.5 || ratio(c, K) < 4.5) primBad.push(`${b} ${k}: pivot intent, but ${ratio(c, W).toFixed(2)}:1 on white / ${ratio(c, K).toFixed(2)}:1 on black`);
+      }
+    }
+    // Every ramp step the TREE marks with a band gets a usage intent — the tree decides which, not the sidecar.
+    for (const l of leaves) if (at(l)?.$extensions?.prism3?.band && !ai.primitives[l]?.intent) primBad.push(`${b} ${l}: banded ramp step without intent`);
+    for (const [k, e] of Object.entries<any>(ai.typography)) for (const f of ['$description', 'meaning', 'when_to_use', 'avoid_when', 'resolves_to']) if (e[f] === undefined) primBad.push(`${b} typography ${k}: missing ${f}`);
+    // Every weight role in the TREE has an entry, and the ones a type style uses say so (AI/A-3).
+    const roles = leaves.filter((l) => l.startsWith('core.font.weight-role.'));
+    for (const r of roles) if (!ai.typography[r]) primBad.push(`${b} ${r}: weight role without an entry`);
+    if (!roles.some((r) => ai.typography[r]?.used_by?.length)) primBad.push(`${b}: no weight role carries used_by`);
+    // A field list names only fields its tier emits (AI/A-17).
+    for (const [list, tier] of [['color_fields', 'color'], ['typography_fields', 'typography'], ['primitive_fields', 'primitives'], ['gradient_fields', 'gradient']])
+      for (const f of ai[list] ?? []) if (!Object.values<any>(ai[tier] ?? {}).some((e) => f in e)) primBad.push(`${b} ${list} lists ${f}, which no entry carries`);
+  }
+  // Represented, not merely counted (docs/34): every brand, and enough of each claim kind to be a real check.
+  ok(pathsChecked > 20_000 && pairsChecked > 2_000 && cwChecked > 800 && clausesChecked > 2_500 && BRANDS.every((b) => perBrand.get(b)! > 500),
+    `sidecar gate scope: ${pathsChecked} paths, ${pairsChecked} pairings (+${tracking} tracking), ${cwChecked} contrast_with, ${clausesChecked} surface clauses across ${BRANDS.length} brands`);
+  ok(pathBad.length === 0, 'sidecar paths: every token path named in .ai.json resolves in the brand\'s emitted tree' + (pathBad.length ? ` — ${pathBad.length}: ${pathBad.slice(0, 5).join(' | ')}` : ''));
+  ok(a11Seen > 0, `sidecar paths: the AI/A-11 exemption (held for #1614) is still live (${a11Seen}) — once it reads 0, delete the exemption`);
+  ok(pairBad.length === 0, 'sidecar pairings: every paired_with / contrast_with pair and surface claim clears its stated floor in every mode' + (pairBad.length ? ` — ${pairBad.length}: ${pairBad.slice(0, 5).join(' | ')}` : ''));
+  ok(primBad.length === 0, 'sidecar fields: every primitive entry carries its required fields' + (primBad.length ? ` — ${primBad.length}: ${primBad.slice(0, 5).join(' | ')}` : ''));
+}
 // (5) STANDARD dialect — the brand-skills / google-labs design.md path (docs/07 §11):
 // the reader + colour-role classifier + x-prism3 levers, on the real Wendy's file.
 {
@@ -9240,12 +9408,28 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const payload = JSON.parse(themed.content[0].text);
   ok(payload.contracts.checks > 0 && payload.contracts.pass === payload.contracts.checks && payload.contracts.failures.length === 0, `MCP: theme_brand reports all ${payload.contracts.checks} contrast contracts passing`);
   ok(payload.aliases.broken.length === 0 && payload.aliases.resolved === payload.aliases.total, 'MCP: theme_brand reports every alias resolving');
-  ok(payload.tokens === undefined && payload.aiMetadata === undefined, 'MCP: theme_brand withholds the token tree + ai metadata by default (they measure ~824KB together)');
+  ok(payload.tokens === undefined && payload.aiMetadata === undefined, 'MCP: theme_brand withholds the token tree + ai metadata by default (they measure ~1,350,000 characters together)');
   ok(typeof payload.hint === 'string' && payload.omitted.includes('tokens'), 'MCP: theme_brand SAYS what it withheld and how to ask for it');
   // The default result has to be small enough to actually spend on.
   ok(themed.content[0].text.length < 20_000, `MCP: the default theme_brand result stays under 20,000 chars (${themed.content[0].text.length.toLocaleString()})`);
   const full = JSON.parse(callTool('theme_brand', { brand, include: ['tokens', 'aiMetadata', 'notes'] }).content[0].text);
   ok(full.tokens?.prism && full.aiMetadata && Array.isArray(full.notes), 'MCP: include:[tokens,aiMetadata,notes] returns the DTCG tree, the .ai.json metadata and the decisions log');
+  // #1623 AI/M-1: the size figures an agent reads in the tool descriptions had drifted to 537,000 /
+  // 287,000 against a measured ~850,000 / ~500,000, and three sites disagreed with each other. Measured
+  // here through the real tool path on this four-mode probe, and held to ±15% of what the description says.
+  {
+    const base = themed.content[0].text.length;
+    const measured = {
+      tokens: callTool('theme_brand', { brand, include: ['tokens'] }).content[0].text.length - base,
+      ai: callTool('theme_brand', { brand, include: ['aiMetadata'] }).content[0].text.length - base,
+    };
+    const desc = toolDefs({}).find((d: any) => d.name === 'theme_brand')!.description as string;
+    const m = desc.match(/roughly ([\d,]+) and ([\d,]+) characters/);
+    const stated = m ? { tokens: +m[1].replace(/,/g, ''), ai: +m[2].replace(/,/g, '') } : undefined;
+    const near = (a: number, b: number) => Math.abs(a - b) / b <= 0.15;
+    ok(!!stated && near(stated.tokens, measured.tokens) && near(stated.ai, measured.ai),
+      `MCP: theme_brand's stated payload sizes match the measured ones within 15% (stated ${stated?.tokens} / ${stated?.ai}, measured ${measured.tokens} / ${measured.ai})`);
+  }
   ok(themed.structuredContent !== undefined, 'MCP: results carry structuredContent alongside the text block');
 
   // The decisions log ships BY DEFAULT. It was opt-in, grouped with `tokens` and `aiMetadata` under
@@ -9617,6 +9801,77 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(vnb.errors.length === 0, `component: every ${name} token binding resolves in nb${vnb.errors.length ? ' — ' + vnb.errors.join('; ') : ''}`);
     ok(vau.errors.length === 0, `component: every ${name} token binding resolves in aurora${vau.errors.length ? ' — ' + vau.errors.join('; ') : ''}`);
     ok(vnb.warnings.length === 0 && vau.warnings.length === 0, `component: ${name} binds only semantic roles, no primitive-tier leak${[...vnb.warnings, ...vau.warnings].length ? ' — ' + [...vnb.warnings, ...vau.warnings].join('; ') : ''}`);
+  }
+
+  // (#1623) EVERY COMPONENT A DEF NAMES IS ONE THAT EXISTS, UNDER ITS CURRENT ID. The stale-fact class the
+  // #1623 audit found by hand, three ways: `checkbox-group` named `radio-row` as its alternative where the
+  // twin is `radio-group`; `radio-row`'s `ai.avoidWhen` told agents the radio group "is not authored yet"
+  // after it was; and `radio-control` / `switch-control` pointed at `radio` / `switch`, ids retired by the
+  // #1468 rename. Nothing read these fields, so nothing failed.
+  //
+  // Two arms, each with an oracle the defs do not author:
+  //  (a) every name in `ai.commonPartners`, `composition.composesWith` and `composition.alternativeTo` is a
+  //      registered id OR a member of NOT_YET_BUILT — a list written HERE, by hand, of the concepts the
+  //      catalogue names but has not built. Derived from the defs it would admit whatever they say
+  //      (`docs/34` shape 1). A concept that gets built must leave the list (the second loop), so the list
+  //      cannot quietly outlive what it describes. Free-text entries (a space in them) are descriptions,
+  //      not ids, and are skipped.
+  //  (b) no consumer-facing prose names a RETIRED id in backticks. A retired id is a def's alias that is a
+  //      strict prefix of its id (`radio` → `radio-row`) — the shape a `<family>` → `<family>-row` rename
+  //      leaves behind. Only backticked whole names are read, so the plain word "radio" in a sentence is
+  //      not a hit — and neither is an ARIA role ("The role is `radio`"), which spells the same word and is
+  //      correct: `checkbox`, `radio` and `switch` are all roles as well as retired ids.
+  {
+    const ids = new Set(componentDefs.map((d) => d.id));
+    const NOT_YET_BUILT = new Set([
+      'aria-label', 'badge', 'button-group', 'card', 'chip', 'code-editor', 'combobox', 'date-picker', 'emoji',
+      'form', 'illustration', 'inline-alert', 'link', 'link-button', 'logo', 'menu', 'number-field',
+      'password-field', 'popover', 'rich-text-editor', 'scrim', 'search-field', 'segmented-control', 'spinner',
+      'split-button', 'thumbnail', 'toggle-button', 'tooltip',
+    ]);
+    for (const def of componentDefs) {
+      const lists: [string, readonly string[] | undefined][] = [
+        ['ai.commonPartners', def.ai?.commonPartners],
+        ['composition.composesWith', def.composition?.composesWith],
+        ['composition.alternativeTo', def.composition?.alternativeTo],
+      ];
+      for (const [field, list] of lists) {
+        for (const name of list ?? []) {
+          if (name.includes(' ') || ids.has(name)) continue;
+          ok(NOT_YET_BUILT.has(name), `component-refs: ${def.id} ${field} names '${name}', which is neither a registered def id nor a listed unbuilt concept`);
+        }
+      }
+    }
+    for (const c of NOT_YET_BUILT) ok(!ids.has(c), `component-refs: '${c}' is a registered def now — remove it from NOT_YET_BUILT`);
+
+    const retired = new Map<string, string>();
+    for (const d of componentDefs) for (const a of d.aliases ?? []) if (d.id.startsWith(`${a}-`) && !ids.has(a)) retired.set(a, d.id);
+    ok(retired.size >= 3, `component-refs: the retired-id set is live (${retired.size}) — checkbox, radio and switch each left one`);
+    const prose = (d: ComponentDef): [string, string][] => {
+      const out: [string, string][] = [];
+      const walk = (path: string, v: unknown): void => {
+        if (typeof v === 'string') out.push([path, v]);
+        else if (Array.isArray(v)) v.forEach((x, i) => walk(`${path}[${i}]`, x));
+        else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(`${path}.${k}`, x);
+      };
+      walk('description', d.description);
+      for (const p of d.props ?? []) walk(`props.${p.name}`, p.description);
+      walk('accessibility', d.accessibility);
+      walk('content', d.content);
+      walk('docs', d.docs);
+      walk('ai', d.ai);
+      for (const [part, pd] of Object.entries(d.anatomy?.parts ?? {})) walk(`anatomy.parts.${part}.note`, (pd as { note?: string }).note);
+      return out;
+    };
+    for (const def of componentDefs) {
+      for (const [path, text] of prose(def)) {
+        for (const m of text.matchAll(/`([a-z][a-z0-9-]*)`/g)) {
+          if (/\brole(?: is|=)?\s*$/i.test(text.slice(0, m.index))) continue;
+          const now = retired.get(m[1]);
+          ok(now === undefined, `component-refs: ${def.id} ${path} names \`${m[1]}\`, a retired id — the def is \`${now}\``);
+        }
+      }
+    }
   }
 
   // (#1134) THE BOUNDED INVERSE SET BINDS ONLY COVERED ROLES — the enforceable half of the gap rule, one
@@ -16755,7 +17010,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const o = x as Record<string, any>;
       if ('$value' in o) {
         const mv = o.$extensions?.prism3?.modes?.[mode];
-        if (mv && '$value' in mv && JSON.stringify(mv.$value) !== JSON.stringify(o.$value)) n++;
+        // A leaf belongs when its VALUE moves, or when only its PROSE does (#1623 DT/T-1): a mode whose
+        // raised minimum rewrites the description must carry that description even where the step held.
+        const proseMoves = mv && typeof mv.description === 'string' && mv.description !== o.$description;
+        if (mv && '$value' in mv && (JSON.stringify(mv.$value) !== JSON.stringify(o.$value) || proseMoves)) n++;
         return;
       }
       for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v);
@@ -16786,15 +17044,17 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       if ('$value' in o) {
         const canon = at(t, path);
         const want = canon?.$extensions?.prism3?.modes?.[m]?.$value;
+        const wantDesc = canon?.$extensions?.prism3?.modes?.[m]?.description ?? canon?.$description;
         if (JSON.stringify(o.$value) !== JSON.stringify(want)) valueFails.push(`${path.join('.')}=${JSON.stringify(o.$value)}≠${JSON.stringify(want)}`);
-        else if (JSON.stringify(o.$value) === JSON.stringify(canon?.$value)) valueFails.push(`${path.join('.')}:unchanged-from-base`);
+        else if (o.$description !== wantDesc) valueFails.push(`${path.join('.')}:carries-another-mode's-description`);
+        else if (JSON.stringify(o.$value) === JSON.stringify(canon?.$value) && o.$description === canon?.$description) valueFails.push(`${path.join('.')}:unchanged-from-base`);
         return;
       }
       for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) checkValues(v, [...path, k]);
     };
     checkValues(ov, []);
     ok(valueFails.length === 0,
-      `overlay ${m}: every leaf carries the MODE's value, and it differs from base${valueFails.length ? ` — ${valueFails.slice(0, 3).join(', ')}` : ''}`);
+      `overlay ${m}: every leaf carries the MODE's value and description, and one of them differs from base${valueFails.length ? ` — ${valueFails.slice(0, 3).join(', ')}` : ''}`);
   }
 
   // A leaf whose mode value EQUALS its default must not appear. The engine emits those, and including
@@ -16802,6 +17062,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const equalMode = { x: { $type: 'color', $value: '#fff', $extensions: { prism3: { modes: { dark: { $value: '#fff' } } } } } };
   ok(leafCount(buildOverlay(equalMode, 'dark')) === 0,
     'overlay: a mode value identical to the default is excluded (the overlay reports real change only)');
+  // ...unless the mode's PROSE moved (#1623 DT/T-1). Same value, a different description: the leaf is
+  // carried so a consumer merging base + overlay reads this mode's sentence, not the base's.
+  const proseOnly = { x: { $type: 'color', $value: '#fff', $description: 'clears 3:1', $extensions: { prism3: { modes: { dark: { $value: '#fff', description: 'clears 4.5:1' } } } } } };
+  const proseOv = buildOverlay(proseOnly, 'dark') as any;
+  ok(leafCount(proseOv) === 1 && proseOv.x.$description === 'clears 4.5:1' && !('description' in (proseOv.x.$extensions?.prism3 ?? {})),
+    `overlay: a mode whose description differs is carried with ITS description as $description, not as an extension field (${JSON.stringify(proseOv)})`);
   const diffMode = { x: { $type: 'color', $value: '#fff', $extensions: { prism3: { modes: { dark: { $value: '#000' } } } } } };
   ok(leafCount(buildOverlay(diffMode, 'dark')) === 1,
     'overlay: a mode value that DIFFERS is included (the exclusion above is not blanket)');

@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.137.0 — #1614 (owner decision, revised + amended): `solid-tint` is the category's EXISTING fill at an EXISTING
+ * 0.140.0 — #1614 (owner decision, revised + amended): `solid-tint` is the category's EXISTING fill at an EXISTING
  * opacity step. Each `[inverse.]interactive.<c>.subtle-fill.{hover,pressed,selected}` is now a translucent wash
  * (`ink-on-composite`) of `[inverse.]interactive.<c>.fill.rest` at `opacity.20` hover / `opacity.30` pressed+selected,
  * carrying `tint: { fill, opacity }`; it was an opaque palette step from a nominal table. The hover steps DOWN
@@ -2940,6 +2940,38 @@
  * #1622's baked primitives were superseded). A value change under a lever no corpus brand sets (#1112) plus a
  * moved `@outline-solid-tint` component surface → MINOR. `out/**` moves only its stamp, and
  * `schema/lever-manifest.json` its lever description; CONTRACT STANDS (no guaranteed path moves).
+ * 0.139.0 — #1623 batch B: the `.ai.json` sidecar says only what the token data supports. The primitive
+ * tier dispatches below `core.` (946 "core primitive" entries, `intent` on none); type styles' `resolves_to`
+ * is the emitted composite `$value` and weight roles are keyed at `core.font.weight-role.*`;
+ * `contrast_with.token` names the floor's ROLE instead of a bare palette step; every ink's surface claim
+ * and `paired_with` list is computed per mode (no more "on any surface"); pairings that fail in some mode
+ * are dropped (veil, inverse intent fills, non-rest fills); the inverse decoration remaps role names in
+ * prose; the note and `*_fields` lists match what ships. Three new sidecar gate arms in `test.ts` read the
+ * committed `out/*.ai.json` against `out/*.tokens.json`. Emitted `.ai.json` changes → MINOR bump. CONTRACT
+ * STANDS: no token name moves (`token-contract --check`).
+ * 0.138.0 — #1623 batch A: token description prose is made true in every mode it is read in, and stripped of
+ * internal references. (1) Per-mode prose: `tree.ts` now carries a mode's own `description` in
+ * `modes.<mode>` when it differs from light's, and the DTCG overlays emit it as that leaf's `$description`
+ * (a leaf whose value holds but whose prose moves — a raised HC minimum — now joins the overlay). Figma
+ * variables, which share one description across modes, get one sentence whose varying claims name the other
+ * modes' values: `4.5:1 (7:1 in high-contrast modes)`; the layout grid variables list their value per
+ * breakpoint instead of showing xs's in every mode. Templates name the ground role (`background.secondary`)
+ * rather than a mode's palette step, and inverse roles no longer call the band "dark". (2) The step-500
+ * "mid-tone AA pivot (≥4.5:1 on white & black)" is measured, not stamped: nb `green.500` and wendys
+ * `secondary.500` now state their measured pair. (3) Issue numbers, "KB §4", "Prism 2" and "Primer" are gone
+ * from token prose, along with code-comment caps and the "consumer-facing type style" tail. New gate
+ * `lint-description-claims.ts` recomputes every `N:1` / `N%` in emitted prose per mode. Emitted
+ * `$description` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS at 11.3.0 (no token
+ * name moves; `token-contract --check` level `none`).
+ * 0.137.0 — #1623 batch C: stale facts in component-def prose corrected (retired ids `radio`/`switch`/
+ * `checkbox` → their `-row` defs; `radio-row`'s `ai.avoidWhen` no longer says the radio group is unbuilt;
+ * `focus-ring`'s `docs.do` names the `surface` axis, not the retired `color`; icon-button's small heights
+ * restated from the tokens; wrong `alternativeTo`/`commonPartners`/`composesWith` entries; `'false'`
+ * strings typed as booleans), issue numbers and file paths stripped from consumer-facing def fields, and
+ * the studio Components page's absent-def reason and icon count unit corrected. `lint-us-english` gains an
+ * `-isable` branch and a `judgement` word match. The plugin bundle's def strings move → ENGINE bump; no
+ * emitted token or projected component member moves, so `out/**` is a stamp-only regen. CONTRACT STANDS.
+ *
  * 0.136.0 — #1617: a per-mode override on an outline/text control's LABEL ink carries to its GLYPH ink.
  * `interactive.<c>.icon.<st>` (and the `inverse.` column) is minted as a value twin of `…text.<st>` (#1471),
  * but the override layer rewrote exactly one role, so an override on `text.rest` moved the label and left
@@ -3467,7 +3499,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.137.0';
+export const ENGINE_VERSION = '0.140.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -174,12 +174,19 @@ const MODE_SCOPED = ['aliasOf', 'contrast', 'against', 'min', 'contrastModel', '
  * overlays the `MODE_SCOPED` fields — see that list for why silence has to mean absence.
  */
 const modeLeaf = (n: Node, m: Node): Node => {
-  const { $value: modeValue, ...modeFields } = m;
+  const { $value: modeValue, description: modeDescription, ...modeFields } = m;
   const projected = projectLeaf(n);
   const ext = (projected.$extensions as Node | undefined) ?? {};
   const p3: Node = { ...((ext.prism3 as Node | undefined) ?? {}) };
   for (const f of MODE_SCOPED) delete p3[f];
-  return { ...projected, $value: modeValue, $extensions: { ...ext, prism3: { ...p3, ...modeFields } } };
+  // The mode's own prose replaces the base's (#1623 DT/T-1). An overlay is a separate DTCG document, so
+  // its leaf can carry the `$description` true for ITS value; copying the base's is how every dark and
+  // high-contrast overlay came to describe a light-mode value.
+  return {
+    ...projected, $value: modeValue,
+    ...(typeof modeDescription === 'string' ? { $description: modeDescription } : {}),
+    $extensions: { ...ext, prism3: { ...p3, ...modeFields } },
+  };
 };
 
 /** The diagnostic for a mode entry the projector cannot read. Its own function so the message is one
@@ -226,7 +233,11 @@ export const buildOverlay = (tree: unknown, mode: string): unknown => {
       if (!modes || !(mode in modes)) return undefined;
       const m = modes[mode] as Node | undefined;
       if (!m || typeof m !== 'object' || !('$value' in m)) throw new Error(unreadableMode(mode, m));
-      if (JSON.stringify(m.$value) === JSON.stringify((n as Node).$value)) return undefined;
+      // A leaf whose VALUE is unchanged still belongs here when its DESCRIPTION is not (#1623): a
+      // consumer merging base + overlay would otherwise read the base's prose for this mode, which is
+      // exactly the light-mode claim the per-mode description exists to replace.
+      const sameProse = !('description' in m) || m.description === (n as Node).$description;
+      if (JSON.stringify(m.$value) === JSON.stringify((n as Node).$value) && sameProse) return undefined;
       return modeLeaf(n, m);
     }
     const out: Node = {};

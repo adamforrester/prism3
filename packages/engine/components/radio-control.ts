@@ -233,7 +233,7 @@ export const radioControl: ComponentDef = {
         strokeWidth: 'border-width',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['dot', 'focusRing'],
-        note: 'The outlined ring AND the nominal hit-target marker. The real hit target is the whole labeled ROW, which lives on `radio`; this circle is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `checkbox-control`\'s `control` carries. No fill: the Prism 2 visual is a constant-WEIGHT outlined ring at both selections that RECOLORS on select — neutral `field.border.*` when unchecked, the interactive brand edge `interactive.primary.border.*` when checked — with the inner dot as an additional selection cue (#1348, #1423).',
+        note: 'The outlined ring AND the nominal hit-target marker. The real hit target is the whole labeled ROW, which lives on `radio-row`; this circle is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `checkbox-control`\'s `control` carries. No fill: the Prism 2 visual is a constant-WEIGHT outlined ring at both selections that RECOLORS on select — neutral `field.border.*` when unchecked, the interactive brand edge `interactive.primary.border.*` when checked — with the inner dot as an additional selection cue (#1348, #1423).',
       },
       // THE INNER DOT. A `box`, not a `vector`, and sized from its OWN key rather than the control's — a
       // filled shape has no artboard to carry an optical inset, so full-bleed would draw the disc rather
@@ -293,16 +293,16 @@ export const radioControl: ComponentDef = {
     role: 'The visual control only — the accessible radio role, name and aria-checked belong to the host input the Row wires, and the exclusivity and roving-tabindex keyboard model to the RadioGroup. A standalone use must supply role and name itself.',
     wcag: [
       '1.4.11 Non-text Contrast (the ring border, and the inner dot against the page)',
-      '2.4.13 Focus Appearance (the nested focus ring, offset, at least 3:1 — circular for this round host, F2/#1388)',
+      '2.4.13 Focus Appearance (the nested focus ring, offset, at least 3:1 — circular for this round host)',
       '4.1.2 Name Role Value (carried by the host; this atom is presentational when nested)',
     ],
     keyboard: 'None of its own — the atom is not a tab stop. Focus, Space-to-select and the group\'s roving tabindex / arrow navigation belong to the host input and the RadioGroup; the ring here renders the host\'s `:focus-visible` state.',
-    focus: 'The nested focus ring surrounds the circle on `:focus-visible`, offset so an unbroken sliver of background separates the ring from the control\'s own border (WCAG 1.4.11). Circular, because the host is full-round (F2/#1388). Keyboard traversal only.',
+    focus: 'The nested focus ring surrounds the circle on `:focus-visible`, offset so an unbroken sliver of background separates the ring from the control\'s own border (WCAG 1.4.11). Circular, because the host is full-round. Keyboard traversal only.',
     aria: 'When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `radio`; a lone radio announces "radio button, 1 of N" with no indication of what is being chosen, which is why the GROUP label is mandatory and lives on the RadioGroup, not here.',
   },
 
   content: {
-    labelPattern: 'None — the atom carries no label. The option label and its rules live on the Radio row (`radio`); the decision it belongs to lives on the RadioGroup.',
+    labelPattern: 'None — the atom carries no label. The option label and its rules live on the Radio row (`radio-row`); the decision it belongs to lives on the RadioGroup.',
     errorPattern: 'None of its own — an error boundary is a color treatment the host coordinate selects, and radio error is GROUP-level only, never per-option; the message is the group\'s.',
   },
 
@@ -327,7 +327,7 @@ export const radioControl: ComponentDef = {
     primaryPurpose: 'Render the atomic radio control — the outlined circle, its inner selection dot and its focus ring — for a host row to nest.',
     whenToUse: 'Nested by the labeled Radio row (the common case), or standalone only for a control with an external label and its own aria wiring.',
     avoidWhen: 'You want the labeled case (that is Radio), a staged binary opt-in (Checkbox / Checkbox.Control), or an immediate-effect toggle (Switch / Switch.Control). Never place a bare circle as the clickable element — the hit target is the labeled row.',
-    commonPartners: ['radio-row', 'focus-ring'],
+    commonPartners: ['radio-row', 'focus-ring', 'radio-group'],
     triggerKeywords: ['radio control', 'radio circle', 'radio disc', 'radio dot', 'option control'],
     generationPriority: 3,
   },

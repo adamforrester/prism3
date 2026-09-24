@@ -63,7 +63,7 @@ export const fieldMessage: ComponentDef = {
   category: 'form',
   status: 'draft',
   description:
-    'The small icon + caption below a form field. In its default tone it is persistent helper guidance (the format shown BEFORE failure); its error / warning / success tones carry a validation result. A shared field part — the same component under every field control, not re-authored per host. Icon + text together, never color alone.',
+    'The small icon + caption below a form field. In its default status it is persistent helper guidance (the format shown BEFORE failure); its error / warning / success statuses carry a validation result. A shared field part — the same component under every field control, not re-authored per host. Icon + text together, never color alone.',
 
   props: [
     { name: 'status', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'default = helper guidance (neutral); error / warning / success = a validation result. The status re-points both the caption ink and the icon at the matching semantic role.' },
@@ -71,8 +71,8 @@ export const fieldMessage: ComponentDef = {
     // (`figmaProperties.texts` keys against `props`), and this component's text is a MESSAGE, not a
     // label — so the sweep off the React-ism lands here on the meaningful name this def's own comment
     // below always wanted (see `figmaProperties.texts`), not on Button's `label`. LOWERCASE per #1333.
-    { name: 'message', type: 'string | node', required: true, description: 'The message text. For error tone, say what is wrong AND how to fix it (SC 3.3.3) — "Enter a valid email, e.g. name@example.com", not "Invalid input".' },
-    { name: 'icon', type: 'slot', required: false, description: 'Overrides the leading status glyph, aria-hidden (the text carries the meaning). Rarely needed: each validation tone already picks its own mark — an exclamation in a triangle for error, in a circle for warning, a circled check for success — so this is for a host with a domain-specific status mark, not for supplying the one the tone implies. On the default tone there is no glyph unless one is supplied here, which is what makes it the only tone where this prop adds a node rather than replacing one.' },
+    { name: 'message', type: 'string | node', required: true, description: 'The message text. For error status, say what is wrong AND how to fix it (SC 3.3.3) — "Enter a valid email, e.g. name@example.com", not "Invalid input".' },
+    { name: 'icon', type: 'slot', required: false, description: 'Overrides the leading status glyph, aria-hidden (the text carries the meaning). Rarely needed: each validation status already picks its own mark — an exclamation in a triangle for error, in a circle for warning, a circled check for success — so this is for a host with a domain-specific status mark, not for supplying the one the status implies. On the default status there is no glyph unless one is supplied here, which is what makes it the only status where this prop adds a node rather than replacing one.' },
     { name: 'id', type: 'string', required: false, description: 'Set by the host so it can reference this node from the field\'s aria-describedby chain. Auto-generated with useId when composed inside TextField.' },
   ],
 
@@ -319,8 +319,8 @@ export const fieldMessage: ComponentDef = {
   accessibility: {
     role: 'none (rendered text; the host associates it via aria-describedby)',
     wcag: [
-      '1.4.1 Use of Color (tone is carried by icon + text, never color alone)',
-      '3.3.1 Error Identification / 3.3.3 Error Suggestion (the error tone names the problem and the fix — wired by the host)',
+      '1.4.1 Use of Color (status is carried by icon + text, never color alone)',
+      '3.3.1 Error Identification / 3.3.3 Error Suggestion (the error status names the problem and the fix — wired by the host)',
       '1.4.3 Contrast (caption ink clears 4.5:1; the engine gates text.<role> per mode)',
     ],
     aria: 'The status icon is aria-hidden — the caption text carries the meaning. The message does NOT self-announce; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus.',
@@ -328,14 +328,14 @@ export const fieldMessage: ComponentDef = {
 
   content: {
     errorPattern: 'Say what is wrong AND how to fix it (SC 3.3.3): "Enter a valid email address, e.g. name@example.com" — specific, human, not "Invalid input", not blaming the user.',
-    labelPattern: 'Default tone carries the format up front ("Use 8+ characters") so the guidance is seen before failure, not only in the error.',
+    labelPattern: 'Default status carries the format up front ("Use 8+ characters") so the guidance is seen before failure, not only in the error.',
   },
 
   docs: {
-    usage: 'Place directly below a field to carry persistent helper guidance (default tone) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into aria-describedby.',
+    usage: 'Place directly below a field to carry persistent helper guidance (default status) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into aria-describedby.',
     do: [
-      'Show the format/constraint in the default tone BEFORE the user can fail',
-      'Pair the tone with an icon so it is never color-only',
+      'Show the format/constraint in the default status BEFORE the user can fail',
+      'Pair the status with an icon so it is never color-only',
       'Let the host own aria-describedby + aria-invalid; keep this node presentational',
     ],
     dont: [
@@ -355,7 +355,7 @@ export const fieldMessage: ComponentDef = {
   },
 
   composition: {
-    composesWith: ['text-field', 'field-label', 'icon'],
+    composesWith: ['text-field', 'select', 'field-label', 'icon'],
     alternativeTo: ['tooltip', 'inline-alert'],
   },
 
@@ -365,7 +365,7 @@ export const fieldMessage: ComponentDef = {
       'THREE PARTS WHERE ONE TEMPLATE WOULD DO, and whether the grammar should gain a value→glyph map (#1010). `PartDef.glyph` is templatable on a variant axis today, but `resolveGlyph` substitutes the axis VALUE verbatim — so `glyph: \'{status}\'` asks for glyphs literally named `error` / `warning` / `success` and throws. A map (`glyphByValue: { status: { error: \'warning-triangle\', … } }`) would collapse these three near-identical parts to one and would generalize: any def whose axis selects a glyph hits this, and `checkbox`\'s `mark`/`dash` pair is the same shape from before the glyph set existed. What it would COST is the reason it is contested rather than proposed: the map is a second place a glyph name can be written, so `lint-glyph-geometry.ts` (which ranges over parts) and the nearest-name error (which fires at resolve time) would both need to learn it, and a def could then name a glyph for an axis value that no longer exists with nothing failing. Three explicit parts are verbose and each one is independently checkable by the gates that already exist. Revisit when a THIRD def needs it — two is not yet a pattern.',
     ],
     unverified: [
-      'The 16px glyph beside an 11px caption, optically. `icon.size.xs` is the only 16px rung and is 16 in every brand (it aliases `dimension.16` on the fixed grid), while `type.caption.md` resolves `font.size.11` — so the ARTBOARD is 45% larger than the caption\'s type size. That is expected rather than wrong (an icon artboard is ink plus its surrounding air, and this set\'s ink fills roughly 58-71% of it), and the reference asks for a glyph "at the same optical weight as the text", which is a judgement no gate here makes. Check it in Figma against a real caption before treating the size as settled.',
+      'The 16px glyph beside an 11px caption, optically. `icon.size.xs` is the only 16px rung and is 16 in every brand (it aliases `dimension.16` on the fixed grid), while `type.caption.md` resolves `font.size.11` — so the ARTBOARD is 45% larger than the caption\'s type size. That is expected rather than wrong (an icon artboard is ink plus its surrounding air, and this set\'s ink fills roughly 58-71% of it), and the reference asks for a glyph "at the same optical weight as the text", which is a judgment no gate here makes. Check it in Figma against a real caption before treating the size as settled.',
       'The WRAPPING case, which is where this def meets #1009 and is deliberately not fixed here. The row is `align: \'start\'`, so the glyph aligns to the top of the caption box; #1009\'s reference for the sibling control shows the mark aligning to the FIRST LINE of a wrapping label, which is neither top nor block-center and is not the same rule as `start` once the caption\'s line-height exceeds the glyph. A single-line message cannot tell the two apart, and every member this def projects is single-line. Measure a two-line message before assuming `start` is the rule #1009 lands on.',
     ],
   },

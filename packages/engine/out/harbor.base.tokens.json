@@ -31,7 +31,7 @@
         "transparent": {
           "$type": "color",
           "$value": "#00000000",
-          "$description": "Transparent — alpha 0, no paint. The default field fill aliases this so its border is the boundary on any ground (#1341)",
+          "$description": "Transparent — alpha 0, no paint. field.fill aliases it, so a field is framed by its border on any ground",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -4304,7 +4304,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.100}",
-          "$description": "Page surface, second tier — a slightly tinted page / band",
+          "$description": "Page surface, second tier — a band one step off the base (equal to the base in high-contrast modes)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4421,7 +4421,7 @@
         "brand": {
           "$type": "color",
           "$value": "{hds.core.palette.primary.600}",
-          "$description": "Bold brand fill — clears 3:1 on the floor (neutral.100)",
+          "$description": "Bold brand fill — clears 3:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4445,7 +4445,7 @@
         "success": {
           "$type": "color",
           "$value": "{hds.core.palette.success.500}",
-          "$description": "Bold success fill — clears 3:1 on the floor (neutral.100)",
+          "$description": "Bold success fill — clears 3:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4469,7 +4469,7 @@
         "warning": {
           "$type": "color",
           "$value": "{hds.core.palette.warning.500}",
-          "$description": "Bold warning fill — clears 3:1 on the floor (neutral.100)",
+          "$description": "Bold warning fill — clears 3:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4493,7 +4493,7 @@
         "info": {
           "$type": "color",
           "$value": "{hds.core.palette.info.500}",
-          "$description": "Bold info fill — clears 3:1 on the floor (neutral.100)",
+          "$description": "Bold info fill — clears 3:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4632,7 +4632,7 @@
         "danger": {
           "$type": "color",
           "$value": "{hds.core.palette.danger.500}",
-          "$description": "Bold danger fill — clears 3:1 on the floor (neutral.100)",
+          "$description": "Bold danger fill — clears 3:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4682,7 +4682,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.600}",
-          "$description": "Secondary text — 4.5:1 on the floor",
+          "$description": "Secondary text — 4.5:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4706,7 +4706,7 @@
         "tertiary": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.500}",
-          "$description": "Tertiary text — 3:1 on the floor",
+          "$description": "Tertiary text — 3:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4730,7 +4730,7 @@
         "brand": {
           "$type": "color",
           "$value": "{hds.core.palette.primary.600}",
-          "$description": "brand text — 4.5:1 on the floor (neutral.100) and on its own tint",
+          "$description": "brand text — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4754,7 +4754,7 @@
         "success": {
           "$type": "color",
           "$value": "{hds.core.palette.success.600}",
-          "$description": "success text — 4.5:1 on the floor (neutral.100) and on its own tint",
+          "$description": "success text — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4778,7 +4778,7 @@
         "warning": {
           "$type": "color",
           "$value": "{hds.core.palette.warning.600}",
-          "$description": "warning text — 4.5:1 on the floor (neutral.100) and on its own tint",
+          "$description": "warning text — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4802,7 +4802,7 @@
         "danger": {
           "$type": "color",
           "$value": "{hds.core.palette.danger.600}",
-          "$description": "danger text — 4.5:1 on the floor (neutral.100) and on its own tint",
+          "$description": "danger text — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4826,7 +4826,7 @@
         "info": {
           "$type": "color",
           "$value": "{hds.core.palette.info.600}",
-          "$description": "info text — 4.5:1 on the floor (neutral.100) and on its own tint",
+          "$description": "info text — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4850,7 +4850,7 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.primary.450}",
-          "$description": "Muted brand text — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted brand text — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4874,7 +4874,7 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.success.450}",
-          "$description": "Muted success text — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted success text — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4898,7 +4898,7 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.warning.450}",
-          "$description": "Muted warning text — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted warning text — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4922,7 +4922,7 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.danger.450}",
-          "$description": "Muted danger text — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted danger text — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4946,7 +4946,7 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.info.450}",
-          "$description": "Muted info text — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted info text — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4970,7 +4970,7 @@
         "on-brand": {
           "$type": "color",
           "$value": "{hds.core.palette.white}",
-          "$description": "text on a solid brand fill",
+          "$description": "Text on a solid brand fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4994,7 +4994,7 @@
         "on-success": {
           "$type": "color",
           "$value": "{hds.core.palette.white}",
-          "$description": "text on a solid success fill",
+          "$description": "Text on a solid success fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5018,7 +5018,7 @@
         "on-warning": {
           "$type": "color",
           "$value": "{hds.core.palette.white}",
-          "$description": "text on a solid warning fill",
+          "$description": "Text on a solid warning fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5042,7 +5042,7 @@
         "on-danger": {
           "$type": "color",
           "$value": "{hds.core.palette.white}",
-          "$description": "text on a solid danger fill",
+          "$description": "Text on a solid danger fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5066,7 +5066,7 @@
         "on-info": {
           "$type": "color",
           "$value": "{hds.core.palette.white}",
-          "$description": "text on a solid info fill",
+          "$description": "Text on a solid info fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5091,7 +5091,7 @@
           "default": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.600}",
-            "$description": "Link text — default",
+            "$description": "Link text — default, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5115,7 +5115,7 @@
           "hover": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.700}",
-            "$description": "Link text — hover",
+            "$description": "Link text — hover, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5139,7 +5139,7 @@
           "visited": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.900}",
-            "$description": "Link text — visited",
+            "$description": "Link text — visited, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5163,7 +5163,7 @@
           "focused": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.600}",
-            "$description": "Link text — focused",
+            "$description": "Link text — focused, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5187,7 +5187,7 @@
           "pressed": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.800}",
-            "$description": "Link text — pressed",
+            "$description": "Link text — pressed, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5238,7 +5238,7 @@
         "secondary": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.600}",
-          "$description": "Secondary icon — 4.5:1 on the floor",
+          "$description": "Secondary icon — 4.5:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5262,7 +5262,7 @@
         "tertiary": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.500}",
-          "$description": "Tertiary icon — 3:1 on the floor",
+          "$description": "Tertiary icon — 3:1 on background.secondary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5286,7 +5286,7 @@
         "brand": {
           "$type": "color",
           "$value": "{hds.core.palette.primary.600}",
-          "$description": "brand icon — 4.5:1 on the floor (neutral.100) and on its own tint",
+          "$description": "brand icon — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5310,7 +5310,7 @@
         "success": {
           "$type": "color",
           "$value": "{hds.core.palette.success.600}",
-          "$description": "success icon — 4.5:1 on the floor (neutral.100) and on its own tint",
+          "$description": "success icon — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5334,7 +5334,7 @@
         "warning": {
           "$type": "color",
           "$value": "{hds.core.palette.warning.600}",
-          "$description": "warning icon — 4.5:1 on the floor (neutral.100) and on its own tint",
+          "$description": "warning icon — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5358,7 +5358,7 @@
         "danger": {
           "$type": "color",
           "$value": "{hds.core.palette.danger.600}",
-          "$description": "danger icon — 4.5:1 on the floor (neutral.100) and on its own tint",
+          "$description": "danger icon — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5382,7 +5382,7 @@
         "info": {
           "$type": "color",
           "$value": "{hds.core.palette.info.600}",
-          "$description": "info icon — 4.5:1 on the floor (neutral.100) and on its own tint",
+          "$description": "info icon — 4.5:1 on background.secondary and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5406,7 +5406,7 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.primary.450}",
-          "$description": "Muted brand icon — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted brand icon — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5430,7 +5430,7 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.success.450}",
-          "$description": "Muted success icon — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted success icon — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5454,7 +5454,7 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.warning.450}",
-          "$description": "Muted warning icon — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted warning icon — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5478,7 +5478,7 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.danger.450}",
-          "$description": "Muted danger icon — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted danger icon — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5502,7 +5502,7 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.info.450}",
-          "$description": "Muted info icon — low-emphasis accent, 3:1 on the page",
+          "$description": "Muted info icon — low-emphasis accent, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5526,7 +5526,7 @@
         "on-brand": {
           "$type": "color",
           "$value": "{hds.core.palette.white}",
-          "$description": "icon on a solid brand fill",
+          "$description": "Icon on a solid brand fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5550,7 +5550,7 @@
         "on-success": {
           "$type": "color",
           "$value": "{hds.core.palette.white}",
-          "$description": "icon on a solid success fill",
+          "$description": "Icon on a solid success fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5574,7 +5574,7 @@
         "on-warning": {
           "$type": "color",
           "$value": "{hds.core.palette.white}",
-          "$description": "icon on a solid warning fill",
+          "$description": "Icon on a solid warning fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5598,7 +5598,7 @@
         "on-danger": {
           "$type": "color",
           "$value": "{hds.core.palette.white}",
-          "$description": "icon on a solid danger fill",
+          "$description": "Icon on a solid danger fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5622,7 +5622,7 @@
         "on-info": {
           "$type": "color",
           "$value": "{hds.core.palette.white}",
-          "$description": "icon on a solid info fill",
+          "$description": "Icon on a solid info fill — 4.5:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -5647,7 +5647,7 @@
           "default": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.600}",
-            "$description": "Link icon — default",
+            "$description": "Link icon — default, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5671,7 +5671,7 @@
           "hover": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.700}",
-            "$description": "Link icon — hover",
+            "$description": "Link icon — hover, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5695,7 +5695,7 @@
           "visited": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.900}",
-            "$description": "Link icon — visited",
+            "$description": "Link icon — visited, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5719,7 +5719,7 @@
           "focused": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.600}",
-            "$description": "Link icon — focused",
+            "$description": "Link icon — focused, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5743,7 +5743,7 @@
           "pressed": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.800}",
-            "$description": "Link icon — pressed",
+            "$description": "Link icon — pressed, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5772,7 +5772,7 @@
             "rest": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.600}",
-              "$description": "primary interactive fill — rest",
+              "$description": "primary interactive fill — rest, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -5796,7 +5796,7 @@
             "hover": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.700}",
-              "$description": "primary interactive fill — hover",
+              "$description": "primary interactive fill — hover, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -5820,7 +5820,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.800}",
-              "$description": "primary interactive fill — pressed",
+              "$description": "primary interactive fill — pressed, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -5844,7 +5844,7 @@
             "focused": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.700}",
-              "$description": "primary interactive fill — focused",
+              "$description": "primary interactive fill — focused, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -5868,7 +5868,7 @@
             "selected": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.800}",
-              "$description": "primary interactive fill — selected",
+              "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -6222,7 +6222,7 @@
             "rest": {
               "$type": "color",
               "$value": "{hds.core.palette.danger.500}",
-              "$description": "destructive interactive fill — rest",
+              "$description": "destructive interactive fill — rest, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -6246,7 +6246,7 @@
             "hover": {
               "$type": "color",
               "$value": "{hds.core.palette.danger.600}",
-              "$description": "destructive interactive fill — hover",
+              "$description": "destructive interactive fill — hover, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -6270,7 +6270,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{hds.core.palette.danger.700}",
-              "$description": "destructive interactive fill — pressed",
+              "$description": "destructive interactive fill — pressed, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -6294,7 +6294,7 @@
             "focused": {
               "$type": "color",
               "$value": "{hds.core.palette.danger.600}",
-              "$description": "destructive interactive fill — focused",
+              "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -6318,7 +6318,7 @@
             "selected": {
               "$type": "color",
               "$value": "{hds.core.palette.danger.700}",
-              "$description": "destructive interactive fill — selected",
+              "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -6672,7 +6672,7 @@
             "rest": {
               "$type": "color",
               "$value": "{hds.core.palette.neutral.150}",
-              "$description": "neutral interactive fill — rest",
+              "$description": "neutral interactive fill — rest, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -6695,7 +6695,7 @@
             "hover": {
               "$type": "color",
               "$value": "{hds.core.palette.neutral.250}",
-              "$description": "neutral interactive fill — hover",
+              "$description": "neutral interactive fill — hover, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -6718,7 +6718,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{hds.core.palette.neutral.350}",
-              "$description": "neutral interactive fill — pressed",
+              "$description": "neutral interactive fill — pressed, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -6741,7 +6741,7 @@
             "focused": {
               "$type": "color",
               "$value": "{hds.core.palette.neutral.250}",
-              "$description": "neutral interactive fill — focused",
+              "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -6764,7 +6764,7 @@
             "selected": {
               "$type": "color",
               "$value": "{hds.core.palette.neutral.350}",
-              "$description": "neutral interactive fill — selected",
+              "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -7164,7 +7164,7 @@
         "text": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.500}",
-          "$description": "Disabled text — clears 3:1 (reduced contrast, legible)",
+          "$description": "Disabled text — reduced contrast, legible; clears 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7188,7 +7188,7 @@
         "icon": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.500}",
-          "$description": "Disabled icon — clears 3:1 (reduced contrast, legible)",
+          "$description": "Disabled icon — reduced contrast, legible; clears 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7306,7 +7306,7 @@
         "brand": {
           "$type": "color",
           "$value": "{hds.core.palette.primary.500}",
-          "$description": "brand border — 3:1 (SC 1.4.11)",
+          "$description": "brand border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7330,7 +7330,7 @@
         "success": {
           "$type": "color",
           "$value": "{hds.core.palette.success.500}",
-          "$description": "success border — 3:1 (SC 1.4.11)",
+          "$description": "success border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7354,7 +7354,7 @@
         "warning": {
           "$type": "color",
           "$value": "{hds.core.palette.warning.500}",
-          "$description": "warning border — 3:1 (SC 1.4.11)",
+          "$description": "warning border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7378,7 +7378,7 @@
         "danger": {
           "$type": "color",
           "$value": "{hds.core.palette.danger.500}",
-          "$description": "danger border — 3:1 (SC 1.4.11)",
+          "$description": "danger border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7402,7 +7402,7 @@
         "info": {
           "$type": "color",
           "$value": "{hds.core.palette.info.500}",
-          "$description": "info border — 3:1 (SC 1.4.11)",
+          "$description": "info border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7426,7 +7426,7 @@
         "focus": {
           "$type": "color",
           "$value": "{hds.core.palette.primary.600}",
-          "$description": "Focus ring color (keyboard focus)",
+          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7452,7 +7452,7 @@
         "default": {
           "$type": "color",
           "$value": "{hds.core.palette.black-alpha.40}",
-          "$description": "Scrim — 40% black backdrop (modals / drawers)",
+          "$description": "Scrim — black backdrop behind modals and drawers; opacity 40%",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7621,7 +7621,7 @@
         "fill": {
           "$type": "color",
           "$value": "{hds.core.palette.transparent}",
-          "$description": "Form field fill — TRANSPARENT by default (no paint): the border is the field boundary, so the fill sits correctly on any ground. Kept themable — point it at a surface step for a filled field. Hover is a translucent wash, not a fill swap (#1342)",
+          "$description": "Form field fill — transparent by default (no paint): the border is the field boundary, so the fill sits correctly on any ground. Kept themable — point it at a surface step for a filled field. Hover adds a translucent wash; the fill itself does not change",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7645,7 +7645,7 @@
           "rest": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.500}",
-            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable 3:1 (SC 1.4.11) against the darkest permissible ground (the tinted `background.secondary` tier), not the page alone",
+            "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible ground (`background.secondary`), not the page alone",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -7669,7 +7669,7 @@
           "hover": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.600}",
-            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (never the sole state carrier — KB §4)",
+            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -7694,7 +7694,7 @@
         "placeholder": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.600}",
-          "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
+          "$description": "Form field placeholder ink — a readable hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7721,7 +7721,7 @@
           "primary": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.950}",
-            "$description": "Inverse page surface — a dark band in light mode",
+            "$description": "Inverse page surface — the opposite-polarity band (dark on a light page, light on a dark page)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -7792,7 +7792,7 @@
           "primary": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.900}",
-            "$description": "Inverse / bold surface — a dark fill in light mode",
+            "$description": "Inverse / bold surface — the opposite-polarity fill (dark on a light page, light on a dark page)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -7861,7 +7861,7 @@
           "brand": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.550}",
-            "$description": "Bold brand fill on an inverse surface — clears 3:1 on the inverse floor",
+            "$description": "Bold brand fill on an inverse surface — clears 3:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -7885,7 +7885,7 @@
           "success": {
             "$type": "color",
             "$value": "{hds.core.palette.success.500}",
-            "$description": "Bold success fill on an inverse surface — clears 3:1 on the inverse floor",
+            "$description": "Bold success fill on an inverse surface — clears 3:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -7909,7 +7909,7 @@
           "warning": {
             "$type": "color",
             "$value": "{hds.core.palette.warning.500}",
-            "$description": "Bold warning fill on an inverse surface — clears 3:1 on the inverse floor",
+            "$description": "Bold warning fill on an inverse surface — clears 3:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -7933,7 +7933,7 @@
           "danger": {
             "$type": "color",
             "$value": "{hds.core.palette.danger.500}",
-            "$description": "Bold danger fill on an inverse surface — clears 3:1 on the inverse floor",
+            "$description": "Bold danger fill on an inverse surface — clears 3:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -7957,7 +7957,7 @@
           "info": {
             "$type": "color",
             "$value": "{hds.core.palette.info.500}",
-            "$description": "Bold info fill on an inverse surface — clears 3:1 on the inverse floor",
+            "$description": "Bold info fill on an inverse surface — clears 3:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -7981,7 +7981,7 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.900}",
-            "$description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -8004,7 +8004,7 @@
           "success-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.success.900}",
-            "$description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -8027,7 +8027,7 @@
           "warning-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.warning.900}",
-            "$description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -8050,7 +8050,7 @@
           "danger-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.danger.900}",
-            "$description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -8073,7 +8073,7 @@
           "info-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.info.900}",
-            "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -8100,7 +8100,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.primary.450}",
-                "$description": "primary interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+                "$description": "primary interactive ink on an inverse surface — rest (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8124,7 +8124,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.primary.350}",
-                "$description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+                "$description": "primary interactive ink on an inverse surface — hover (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8148,7 +8148,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.primary.250}",
-                "$description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$description": "primary interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8174,7 +8174,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.primary.450}",
-                "$description": "primary interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "primary interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8198,7 +8198,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.primary.350}",
-                "$description": "primary interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "primary interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8222,7 +8222,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.primary.250}",
-                "$description": "primary interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "primary interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8248,7 +8248,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white}",
-                "$description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+                "$description": "primary interactive fill on an inverse surface — rest (the crisp white / black default)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8272,7 +8272,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "primary interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "primary interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8296,7 +8296,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "primary interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "primary interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8320,7 +8320,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "primary interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "primary interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8344,7 +8344,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "primary interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "primary interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8369,7 +8369,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.500}",
-              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -8394,7 +8394,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.primary.450}",
-                "$description": "primary interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+                "$description": "primary interactive border on an inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8418,7 +8418,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.primary.350}",
-                "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+                "$description": "primary interactive border on an inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8442,7 +8442,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.primary.250}",
-                "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8468,7 +8468,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white-alpha.10}",
-                "$description": "primary interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+                "$description": "primary interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8494,7 +8494,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white-alpha.20}",
-                "$description": "primary interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+                "$description": "primary interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8520,7 +8520,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white-alpha.20}",
-                "$description": "primary interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+                "$description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8550,7 +8550,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.danger.400}",
-                "$description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+                "$description": "destructive interactive ink on an inverse surface — rest (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8574,7 +8574,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.danger.300}",
-                "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+                "$description": "destructive interactive ink on an inverse surface — hover (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8598,7 +8598,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.danger.200}",
-                "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$description": "destructive interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8624,7 +8624,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.danger.400}",
-                "$description": "destructive interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "destructive interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8648,7 +8648,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.danger.300}",
-                "$description": "destructive interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "destructive interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8672,7 +8672,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.danger.200}",
-                "$description": "destructive interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "destructive interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8698,7 +8698,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white}",
-                "$description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+                "$description": "destructive interactive fill on an inverse surface — rest (the crisp white / black default)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8722,7 +8722,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "destructive interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8746,7 +8746,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "destructive interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8770,7 +8770,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "destructive interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8794,7 +8794,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "destructive interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8819,7 +8819,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{hds.core.palette.danger.500}",
-              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -8844,7 +8844,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.danger.400}",
-                "$description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on an inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8868,7 +8868,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.danger.300}",
-                "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on an inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8892,7 +8892,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.danger.200}",
-                "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8918,7 +8918,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white-alpha.10}",
-                "$description": "destructive interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+                "$description": "destructive interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8944,7 +8944,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white-alpha.20}",
-                "$description": "destructive interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+                "$description": "destructive interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8970,7 +8970,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white-alpha.20}",
-                "$description": "destructive interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+                "$description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9000,7 +9000,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.025}",
-                "$description": "neutral interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+                "$description": "neutral interactive ink on an inverse surface — rest (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9024,7 +9024,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.025}",
-                "$description": "neutral interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+                "$description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9048,7 +9048,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.025}",
-                "$description": "neutral interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9074,7 +9074,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.025}",
-                "$description": "neutral interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "neutral interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9098,7 +9098,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.025}",
-                "$description": "neutral interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9122,7 +9122,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.025}",
-                "$description": "neutral interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+                "$description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9148,7 +9148,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white}",
-                "$description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+                "$description": "neutral interactive fill on an inverse surface — rest (the crisp white / black default)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9172,7 +9172,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "neutral interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "neutral interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9196,7 +9196,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "neutral interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "neutral interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9220,7 +9220,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "neutral interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "neutral interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9244,7 +9244,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "neutral interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+                "$description": "neutral interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9294,7 +9294,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.025}",
-                "$description": "neutral interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9318,7 +9318,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.025}",
-                "$description": "neutral interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9342,7 +9342,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.025}",
-                "$description": "neutral interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9368,7 +9368,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white-alpha.10}",
-                "$description": "neutral interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+                "$description": "neutral interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9394,7 +9394,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white-alpha.20}",
-                "$description": "neutral interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+                "$description": "neutral interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9420,7 +9420,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white-alpha.20}",
-                "$description": "neutral interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+                "$description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9497,7 +9497,7 @@
           "text": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.550}",
-            "$description": "Disabled text on an inverse surface — clears 3:1 (reduced contrast, legible)",
+            "$description": "Disabled text on an inverse surface — reduced contrast, legible; clears 3:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9521,7 +9521,7 @@
           "icon": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.550}",
-            "$description": "Disabled icon on an inverse surface — clears 3:1 (reduced contrast, legible)",
+            "$description": "Disabled icon on an inverse surface — reduced contrast, legible; clears 3:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9570,7 +9570,7 @@
           "fill": {
             "$type": "color",
             "$value": "{hds.core.palette.transparent}",
-            "$description": "Form field fill on an inverse surface — TRANSPARENT by default (no paint), the same paint-less field the page takes; the border frames it on the dark band",
+            "$description": "Form field fill on an inverse surface — transparent by default (no paint), the same paint-less field the page takes; the border frames it on the inverse band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9594,7 +9594,7 @@
             "rest": {
               "$type": "color",
               "$value": "{hds.core.palette.neutral.550}",
-              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable 3:1 (SC 1.4.11) against the darkest permissible inverse ground",
+              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible inverse ground",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9618,7 +9618,7 @@
             "hover": {
               "$type": "color",
               "$value": "{hds.core.palette.neutral.450}",
-              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (never the sole state carrier — KB §4)",
+              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9643,7 +9643,7 @@
           "placeholder": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.450}",
-            "$description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill",
+            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9669,7 +9669,7 @@
           "primary": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.025}",
-            "$description": "Primary text — strongest neutral",
+            "$description": "Primary text on an inverse surface — strongest neutral",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9693,7 +9693,7 @@
           "secondary": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.450}",
-            "$description": "Secondary text — 4.5:1 on the floor",
+            "$description": "Secondary text on an inverse surface — 4.5:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9717,7 +9717,7 @@
           "tertiary": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.550}",
-            "$description": "Tertiary text — 3:1 on the floor",
+            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9741,7 +9741,7 @@
           "brand": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.450}",
-            "$description": "brand text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "brand text — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9765,7 +9765,7 @@
           "success": {
             "$type": "color",
             "$value": "{hds.core.palette.success.450}",
-            "$description": "success text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "success text — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9789,7 +9789,7 @@
           "warning": {
             "$type": "color",
             "$value": "{hds.core.palette.warning.450}",
-            "$description": "warning text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "warning text — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9813,7 +9813,7 @@
           "danger": {
             "$type": "color",
             "$value": "{hds.core.palette.danger.450}",
-            "$description": "danger text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "danger text — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9837,7 +9837,7 @@
           "info": {
             "$type": "color",
             "$value": "{hds.core.palette.info.450}",
-            "$description": "info text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "info text — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9861,7 +9861,7 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.550}",
-            "$description": "Muted brand text — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted brand text — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9885,7 +9885,7 @@
           "success-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.success.550}",
-            "$description": "Muted success text — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted success text — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9909,7 +9909,7 @@
           "warning-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.warning.550}",
-            "$description": "Muted warning text — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted warning text — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9933,7 +9933,7 @@
           "danger-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.danger.550}",
-            "$description": "Muted danger text — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted danger text — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9957,7 +9957,7 @@
           "info-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.info.550}",
-            "$description": "Muted info text — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted info text — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9982,7 +9982,7 @@
             "default": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.450}",
-              "$description": "Link text — default",
+              "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10006,7 +10006,7 @@
             "hover": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.350}",
-              "$description": "Link text — hover",
+              "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10030,7 +10030,7 @@
             "visited": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.150}",
-              "$description": "Link text — visited",
+              "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10054,7 +10054,7 @@
             "focused": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.450}",
-              "$description": "Link text — focused",
+              "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10078,7 +10078,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.250}",
-              "$description": "Link text — pressed",
+              "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10105,7 +10105,7 @@
           "primary": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.025}",
-            "$description": "Primary icon — strongest neutral",
+            "$description": "Primary icon on an inverse surface — strongest neutral",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10129,7 +10129,7 @@
           "secondary": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.450}",
-            "$description": "Secondary icon — 4.5:1 on the floor",
+            "$description": "Secondary icon on an inverse surface — 4.5:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10153,7 +10153,7 @@
           "tertiary": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.550}",
-            "$description": "Tertiary icon — 3:1 on the floor",
+            "$description": "Tertiary icon on an inverse surface — 3:1 on inverse.background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10177,7 +10177,7 @@
           "brand": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.450}",
-            "$description": "brand icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "brand icon — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10201,7 +10201,7 @@
           "success": {
             "$type": "color",
             "$value": "{hds.core.palette.success.450}",
-            "$description": "success icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "success icon — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10225,7 +10225,7 @@
           "warning": {
             "$type": "color",
             "$value": "{hds.core.palette.warning.450}",
-            "$description": "warning icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "warning icon — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10249,7 +10249,7 @@
           "danger": {
             "$type": "color",
             "$value": "{hds.core.palette.danger.450}",
-            "$description": "danger icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "danger icon — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10273,7 +10273,7 @@
           "info": {
             "$type": "color",
             "$value": "{hds.core.palette.info.450}",
-            "$description": "info icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+            "$description": "info icon — 4.5:1 on inverse.background.secondary and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10297,7 +10297,7 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.550}",
-            "$description": "Muted brand icon — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted brand icon — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10321,7 +10321,7 @@
           "success-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.success.550}",
-            "$description": "Muted success icon — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted success icon — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10345,7 +10345,7 @@
           "warning-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.warning.550}",
-            "$description": "Muted warning icon — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted warning icon — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10369,7 +10369,7 @@
           "danger-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.danger.550}",
-            "$description": "Muted danger icon — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted danger icon — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10393,7 +10393,7 @@
           "info-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.info.550}",
-            "$description": "Muted info icon — low-emphasis accent, 3:1 on the inverse band",
+            "$description": "Muted info icon — low-emphasis accent, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10418,7 +10418,7 @@
             "default": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.450}",
-              "$description": "Link icon — default",
+              "$description": "Link icon on an inverse surface — default, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10442,7 +10442,7 @@
             "hover": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.350}",
-              "$description": "Link icon — hover",
+              "$description": "Link icon on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10466,7 +10466,7 @@
             "visited": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.150}",
-              "$description": "Link icon — visited",
+              "$description": "Link icon on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10490,7 +10490,7 @@
             "focused": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.450}",
-              "$description": "Link icon — focused",
+              "$description": "Link icon on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10514,7 +10514,7 @@
             "pressed": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.250}",
-              "$description": "Link icon — pressed",
+              "$description": "Link icon on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -10610,7 +10610,7 @@
           "brand": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.500}",
-            "$description": "brand border on an inverse surface — 3:1 (SC 1.4.11)",
+            "$description": "brand border on an inverse surface — SC 1.4.11 non-text contrast, 3:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10634,7 +10634,7 @@
           "success": {
             "$type": "color",
             "$value": "{hds.core.palette.success.500}",
-            "$description": "success border on an inverse surface — 3:1 (SC 1.4.11)",
+            "$description": "success border on an inverse surface — SC 1.4.11 non-text contrast, 3:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10658,7 +10658,7 @@
           "warning": {
             "$type": "color",
             "$value": "{hds.core.palette.warning.500}",
-            "$description": "warning border on an inverse surface — 3:1 (SC 1.4.11)",
+            "$description": "warning border on an inverse surface — SC 1.4.11 non-text contrast, 3:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10682,7 +10682,7 @@
           "danger": {
             "$type": "color",
             "$value": "{hds.core.palette.danger.500}",
-            "$description": "danger border on an inverse surface — 3:1 (SC 1.4.11)",
+            "$description": "danger border on an inverse surface — SC 1.4.11 non-text contrast, 3:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10706,7 +10706,7 @@
           "info": {
             "$type": "color",
             "$value": "{hds.core.palette.info.500}",
-            "$description": "info border on an inverse surface — 3:1 (SC 1.4.11)",
+            "$description": "info border on an inverse surface — SC 1.4.11 non-text contrast, 3:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10730,7 +10730,7 @@
           "focus": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.450}",
-            "$description": "Focus ring color on inverse surfaces (keyboard focus)",
+            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -11124,7 +11124,7 @@
             1,
             1
           ],
-          "$description": "easing linear",
+          "$description": "easing linear — constant speed, no easing",
           "$extensions": {
             "prism3": {
               "generated": true
@@ -11139,7 +11139,7 @@
             0,
             1
           ],
-          "$description": "easing standard",
+          "$description": "easing standard — symmetric ease for in-place changes",
           "$extensions": {
             "prism3": {
               "generated": true
@@ -11154,7 +11154,7 @@
             0.2,
             1
           ],
-          "$description": "easing decelerate",
+          "$description": "easing decelerate — fast start, soft landing; for entrances",
           "$extensions": {
             "prism3": {
               "generated": true
@@ -11169,7 +11169,7 @@
             1,
             1
           ],
-          "$description": "easing accelerate",
+          "$description": "easing accelerate — soft start, fast finish; for exits",
           "$extensions": {
             "prism3": {
               "generated": true
@@ -11184,7 +11184,7 @@
             0.3,
             1
           ],
-          "$description": "easing expressive",
+          "$description": "easing expressive — S-curve for emphasized moments",
           "$extensions": {
             "prism3": {
               "generated": true
@@ -11275,7 +11275,7 @@
             "timingFunction": "{hds.motion.easing-role.enter}",
             "delay": "0ms"
           },
-          "$description": "motion enter — entrance — element settles in (normal + decelerate)",
+          "$description": "motion enter — element settles in (normal + decelerate)",
           "$extensions": {
             "prism3": {
               "role": "composite"
@@ -11289,7 +11289,7 @@
             "timingFunction": "{hds.motion.easing-role.exit}",
             "delay": "0ms"
           },
-          "$description": "motion exit — exit — element accelerates out (fast + accelerate)",
+          "$description": "motion exit — element accelerates out (fast + accelerate)",
           "$extensions": {
             "prism3": {
               "role": "composite"
@@ -11336,7 +11336,7 @@
               "lineHeight": "{hds.core.font.line-height-role.snug}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.tight}"
             },
-            "$description": "display sm strong — 32→40px fluid Inter, snug line-height, strong weight, tight tracking — consumer-facing type style",
+            "$description": "display sm strong — 32→40px fluid Inter, snug line-height, strong weight, tight tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11394,7 +11394,7 @@
               "lineHeight": "{hds.core.font.line-height-role.snug}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.tight}"
             },
-            "$description": "display md strong — 40→56px fluid Inter, snug line-height, strong weight, tight tracking — consumer-facing type style",
+            "$description": "display md strong — 40→56px fluid Inter, snug line-height, strong weight, tight tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11452,7 +11452,7 @@
               "lineHeight": "{hds.core.font.line-height-role.tight}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.tight}"
             },
-            "$description": "display lg strong — 40→72px fluid Inter, tight line-height, strong weight, tight tracking — consumer-facing type style",
+            "$description": "display lg strong — 40→72px fluid Inter, tight line-height, strong weight, tight tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11510,7 +11510,7 @@
               "lineHeight": "{hds.core.font.line-height-role.tight}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.tight}"
             },
-            "$description": "display xl strong — 40→80px fluid Inter, tight line-height, strong weight, tight tracking — consumer-facing type style",
+            "$description": "display xl strong — 40→80px fluid Inter, tight line-height, strong weight, tight tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11568,7 +11568,7 @@
               "lineHeight": "{hds.core.font.line-height-role.tight}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.tighter}"
             },
-            "$description": "display 2xl strong — 48→112px fluid Inter, tight line-height, strong weight, tighter tracking — consumer-facing type style",
+            "$description": "display 2xl strong — 48→112px fluid Inter, tight line-height, strong weight, tighter tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11626,7 +11626,7 @@
               "lineHeight": "{hds.core.font.line-height-role.tight}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.tighter}"
             },
-            "$description": "display 3xl strong — 48→144px fluid Inter, tight line-height, strong weight, tighter tracking — consumer-facing type style",
+            "$description": "display 3xl strong — 48→144px fluid Inter, tight line-height, strong weight, tighter tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11686,7 +11686,7 @@
               "lineHeight": "{hds.core.font.line-height-role.compact}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
             },
-            "$description": "title xs strong — 16px Inter, compact line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title xs strong — 16px Inter, compact line-height, strong weight, snug tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11726,7 +11726,7 @@
               "lineHeight": "{hds.core.font.line-height-role.compact}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
             },
-            "$description": "title sm strong — 18px Inter, compact line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title sm strong — 18px Inter, compact line-height, strong weight, snug tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11766,7 +11766,7 @@
               "lineHeight": "{hds.core.font.line-height-role.compact}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
             },
-            "$description": "title md strong — 20px Inter, compact line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title md strong — 20px Inter, compact line-height, strong weight, snug tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11806,7 +11806,7 @@
               "lineHeight": "{hds.core.font.line-height-role.compact}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
             },
-            "$description": "title lg strong — 20→24px fluid Inter, compact line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title lg strong — 20→24px fluid Inter, compact line-height, strong weight, snug tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11864,7 +11864,7 @@
               "lineHeight": "{hds.core.font.line-height-role.snug}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
             },
-            "$description": "title xl strong — 24→28px fluid Inter, snug line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title xl strong — 24→28px fluid Inter, snug line-height, strong weight, snug tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11922,7 +11922,7 @@
               "lineHeight": "{hds.core.font.line-height-role.snug}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.snug}"
             },
-            "$description": "title 2xl strong — 32→36px fluid Inter, snug line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title 2xl strong — 32→36px fluid Inter, snug line-height, strong weight, snug tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11982,7 +11982,7 @@
               "lineHeight": "{hds.core.font.line-height-role.normal}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "body sm default — 14px Inter, normal line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "body sm default — 14px Inter, normal line-height, default weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12021,7 +12021,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body sm default link — 14px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body sm default link — 14px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12061,7 +12061,7 @@
               "lineHeight": "{hds.core.font.line-height-role.normal}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "body sm strong — 14px Inter, normal line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "body sm strong — 14px Inter, normal line-height, strong weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12100,7 +12100,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body sm strong link — 14px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body sm strong link — 14px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12142,7 +12142,7 @@
               "lineHeight": "{hds.core.font.line-height-role.normal}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "body md default — 16px Inter, normal line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "body md default — 16px Inter, normal line-height, default weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12181,7 +12181,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body md default link — 16px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body md default link — 16px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12221,7 +12221,7 @@
               "lineHeight": "{hds.core.font.line-height-role.normal}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "body md strong — 16px Inter, normal line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "body md strong — 16px Inter, normal line-height, strong weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12260,7 +12260,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body md strong link — 16px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body md strong link — 16px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12302,7 +12302,7 @@
               "lineHeight": "{hds.core.font.line-height-role.normal}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "body lg default — 18px Inter, normal line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "body lg default — 18px Inter, normal line-height, default weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12341,7 +12341,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body lg default link — 18px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body lg default link — 18px Inter, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12381,7 +12381,7 @@
               "lineHeight": "{hds.core.font.line-height-role.normal}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "body lg strong — 18px Inter, normal line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "body lg strong — 18px Inter, normal line-height, strong weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12420,7 +12420,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body lg strong link — 18px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body lg strong link — 18px Inter, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12464,7 +12464,7 @@
               "lineHeight": "{hds.core.font.line-height-role.snug}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "label sm emphasis — 12px Inter, snug line-height, emphasis weight, normal tracking — consumer-facing type style",
+            "$description": "label sm emphasis — 12px Inter, snug line-height, emphasis weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12504,7 +12504,7 @@
               "lineHeight": "{hds.core.font.line-height-role.snug}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "label md emphasis — 14px Inter, snug line-height, emphasis weight, normal tracking — consumer-facing type style",
+            "$description": "label md emphasis — 14px Inter, snug line-height, emphasis weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12544,7 +12544,7 @@
               "lineHeight": "{hds.core.font.line-height-role.snug}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "label lg emphasis — 18px Inter, snug line-height, emphasis weight, normal tracking — consumer-facing type style",
+            "$description": "label lg emphasis — 18px Inter, snug line-height, emphasis weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12586,7 +12586,7 @@
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "caption md default — 11px Inter, cozy line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "caption md default — 11px Inter, cozy line-height, default weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12625,7 +12625,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption md default link — 11px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption md default link — 11px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12665,7 +12665,7 @@
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "caption md strong — 11px Inter, cozy line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "caption md strong — 11px Inter, cozy line-height, strong weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12704,7 +12704,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption md strong link — 11px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption md strong link — 11px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12746,7 +12746,7 @@
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "caption lg default — 12px Inter, cozy line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "caption lg default — 12px Inter, cozy line-height, default weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12785,7 +12785,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg default link — 12px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption lg default link — 12px Inter, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12825,7 +12825,7 @@
               "lineHeight": "{hds.core.font.line-height-role.cozy}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "caption lg strong — 12px Inter, cozy line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "caption lg strong — 12px Inter, cozy line-height, strong weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12864,7 +12864,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg strong link — 12px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption lg strong link — 12px Inter, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color)",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12909,7 +12909,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.wider}",
               "textCase": "uppercase"
             },
-            "$description": "eyebrow sm emphasis — 11px Inter, snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+            "$description": "eyebrow sm emphasis — 11px Inter, snug line-height, emphasis weight, wider tracking, uppercase",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12952,7 +12952,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.wider}",
               "textCase": "uppercase"
             },
-            "$description": "eyebrow md emphasis — 12px Inter, snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+            "$description": "eyebrow md emphasis — 12px Inter, snug line-height, emphasis weight, wider tracking, uppercase",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12995,7 +12995,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.wider}",
               "textCase": "uppercase"
             },
-            "$description": "eyebrow lg emphasis — 16→18px fluid Inter, snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+            "$description": "eyebrow lg emphasis — 16→18px fluid Inter, snug line-height, emphasis weight, wider tracking, uppercase",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -13057,7 +13057,7 @@
               "lineHeight": "{hds.core.font.line-height-role.normal}",
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
             },
-            "$description": "code inline default — 14px JetBrains Mono, normal line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "code inline default — 14px JetBrains Mono, normal line-height, default weight, normal tracking",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -13765,7 +13765,7 @@
       "narrow": {
         "$type": "dimension",
         "$value": "720px",
-        "$description": "container narrow — 720px reading measure (~65–75ch)",
+        "$description": "container narrow — 720px reading measure",
         "$extensions": {
           "prism3": {
             "generated": true,
@@ -14153,7 +14153,7 @@
         "width": {
           "$type": "dimension",
           "$value": "{hds.core.dimension.2}",
-          "$description": "focus ring width — 2px (WCAG 2.4.13 floor; 3px for extra clarity)",
+          "$description": "focus ring width — 2px (the WCAG 2.4.13 minimum thickness; raise to 3px for more visibility)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14177,7 +14177,7 @@
         "offset-field": {
           "$type": "dimension",
           "$value": "{hds.core.dimension.0}",
-          "$description": "focus ring offset, form fields — 0px (ring hugs the field; Primer)",
+          "$description": "focus ring offset, form fields — 0px (the ring sits on the field edge, so it does not collide with adjacent fields)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14228,7 +14228,7 @@
         "padding-x-visual": {
           "$type": "dimension",
           "$value": "{hds.space.075}",
-          "$description": "size.xs horizontal inset on the VISUAL side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
+          "$description": "size.xs horizontal inset on the visual side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14291,7 +14291,7 @@
         "padding-x-visual": {
           "$type": "dimension",
           "$value": "{hds.space.150}",
-          "$description": "size.sm horizontal inset on the VISUAL side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+          "$description": "size.sm horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14354,7 +14354,7 @@
         "padding-x-visual": {
           "$type": "dimension",
           "$value": "{hds.space.150}",
-          "$description": "size.md horizontal inset on the VISUAL side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+          "$description": "size.md horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14429,7 +14429,7 @@
         "padding-x-visual": {
           "$type": "dimension",
           "$value": "{hds.space.200}",
-          "$description": "size.lg horizontal inset on the VISUAL side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
+          "$description": "size.lg horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14492,7 +14492,7 @@
         "padding-x-visual": {
           "$type": "dimension",
           "$value": "{hds.space.200}",
-          "$description": "size.xl horizontal inset on the VISUAL side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
+          "$description": "size.xl horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14533,7 +14533,7 @@
           "height": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.16}",
-            "$description": "control.size.sm — 16px box edge for a SQUARE control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is NOT square and reads `track`/`width` instead (#1425).",
+            "$description": "control.size.sm — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14559,7 +14559,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.8}",
-            "$description": "control.size.sm dot — 8px inner mark for a RADIO's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$description": "control.size.sm dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14585,7 +14585,7 @@
           "track": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.24}",
-            "$description": "control.size.sm track — 24px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+            "$description": "control.size.sm track — 24px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14598,7 +14598,7 @@
           "thumb": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.18}",
-            "$description": "control.size.sm thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$description": "control.size.sm thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14611,7 +14611,7 @@
           "radius": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.2}",
-            "$description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and the 16÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+            "$description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and the 16÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14625,7 +14625,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "21px",
-            "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+            "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -14638,7 +14638,7 @@
           "height": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.20}",
-            "$description": "control.size.md — 20px box edge for a SQUARE control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is NOT square and reads `track`/`width` instead (#1425).",
+            "$description": "control.size.md — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14664,7 +14664,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.10}",
-            "$description": "control.size.md dot — 10px inner mark for a RADIO's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$description": "control.size.md dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14690,7 +14690,7 @@
           "track": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.32}",
-            "$description": "control.size.md track — 32px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+            "$description": "control.size.md track — 32px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14703,7 +14703,7 @@
           "thumb": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.24}",
-            "$description": "control.size.md thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$description": "control.size.md thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14716,7 +14716,7 @@
           "radius": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.2}",
-            "$description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and the 20÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+            "$description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and the 20÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14730,7 +14730,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "24px",
-            "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+            "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -14743,7 +14743,7 @@
           "height": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.24}",
-            "$description": "control.size.lg — 24px box edge for a SQUARE control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is NOT square and reads `track`/`width` instead (#1425).",
+            "$description": "control.size.lg — 24px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14769,7 +14769,7 @@
           "dot": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.12}",
-            "$description": "control.size.lg dot — 12px inner mark for a RADIO's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$description": "control.size.lg dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14795,7 +14795,7 @@
           "track": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.40}",
-            "$description": "control.size.lg track — 40px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+            "$description": "control.size.lg track — 40px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14808,7 +14808,7 @@
           "thumb": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.30}",
-            "$description": "control.size.lg thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$description": "control.size.lg thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14821,7 +14821,7 @@
           "radius": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.2}",
-            "$description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and the 24÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+            "$description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and the 24÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14835,7 +14835,7 @@
           "line-box": {
             "$type": "dimension",
             "$value": "27px",
-            "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+            "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -14850,7 +14850,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.137.0",
+      "version": "0.140.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

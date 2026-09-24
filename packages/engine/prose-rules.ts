@@ -50,7 +50,11 @@
 // trap: **a self-check written from the same mental model as the scan inherits its blind spot.** The
 // plural case is now sampled too. Found by mutating a file into failure and watching the gate stay
 // green — the reason to test a gate by breaking something rather than by reading it.
-const PATTERN = /\b[A-Za-z]{3,}(?:is(?:e|ed|es|ing|ation)|our)s?\b/g;
+//
+// `able` joined the `-ise` branch in #1623: `recognisable` sat in shipped def prose (`icon-button`
+// `docs.do`) through every scan, because no branch ended in `-isable`. It brings en-US words with it
+// (`advisable`), subtracted in NOT_EN_GB below.
+const PATTERN = /\b[A-Za-z]{3,}(?:is(?:e|ed|es|ing|ation|able)|our)s?\b/g;
 // ...and a second scan, because ONE shape cannot cover both and the pattern alone was under-counting
 // in the opposite direction from the word list it replaced.
 //
@@ -90,6 +94,10 @@ const DOUBLE_L = /\b[A-Za-z]*(?:travel|label|cancel|model|signal|fuel|level|chan
 // spelling of every stem here differs by letter ORDER, not by a suffix, which is what makes a
 // substring scan safe where the `-ise` one needs a false-positive list. A bare `\b\w+re\b` suffix scan
 // would flag `are`/`more`/`figure`/`measure`/`structure` and is not what this is.
+// ...and a FIFTH (#1623): whole en-GB words no suffix shape reaches. `judgement` ends in `-ment`,
+// which en-US shares, so the word itself is the only handle — a list, anchored at both boundaries,
+// with `[A-Za-z]*` in front for the prefixed forms (`misjudgement`).
+const EN_GB_WORDS = /\b[A-Za-z]*judgements?\b/gi;
 const RE_ENDINGS = /\b[A-Za-z]*(?:centre|metre|litre|theatre|fibre|calibre|lustre|sabre|spectre|meagre|manoeuvre|sepulchre)[A-Za-z]*\b/gi;
 // Ordinary English that merely ENDS in those letters. Subtracting these is what makes a pattern scan
 // usable; adding to this list is the correct fix for a false positive, never narrowing the pattern.
@@ -101,6 +109,7 @@ const NOT_EN_GB = new Set([
   'noise', 'raise', 'raises', 'raised', 'advertise', 'advertised', 'advertises', 'praise', 'praised',
   'cruise', 'paradise', 'franchise', 'merchandise', 'poise', 'poised', 'guise', 'disguise', 'excise',
   'incise', 'anise', 'demise', 'chastise', 'baptise',
+  'advisable', 'inadvisable', // the `-isable` branch (#1623): en-US spells these with `s` too
   'your', 'yours', 'our', 'ours', 'four', 'hour', 'hours', 'pour', 'pours', 'tour', 'tours', 'detour',
   'source', 'sources', 'sourced', 'sourcing', 'resource', 'resources', 'outsource', 'flour', 'devour',
   'contour', 'contours', 'velour', 'dour', 'scour', 'sour',
@@ -119,7 +128,7 @@ const NOT_EN_GB = new Set([
 // it calls — so it has to call the thing that runs.
 export const enGb = (txt: string): { word: string; index: number }[] => {
   const found: { word: string; index: number }[] = [];
-  for (const re of [PATTERN, STEMS, DOUBLE_L, RE_ENDINGS]) {
+  for (const re of [PATTERN, STEMS, DOUBLE_L, RE_ENDINGS, EN_GB_WORDS]) {
     for (const m of txt.matchAll(re)) {
       if (NOT_EN_GB.has(m[0].toLowerCase())) continue;
       found.push({ word: m[0], index: m.index ?? 0 });

@@ -49,7 +49,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Transparent — alpha 0, no paint. The default field fill aliases this so its border is the boundary on any ground (#1341)",
+      "description": "Transparent — alpha 0, no paint. field.fill aliases it, so a field is framed by its border on any ground",
       "value": {
         "r": 0,
         "g": 0,
@@ -1018,7 +1018,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "description": "Brand secondary 500 — Mid-Tone band — 5.03:1 on white, 4.16:1 on black",
       "value": {
         "r": 0,
         "g": 0.46666666865348816,

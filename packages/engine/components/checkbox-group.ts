@@ -78,12 +78,12 @@ export const checkboxGroup: ComponentDef = {
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'The group heading, rendered as the nested FieldLabel and the group\'s accessible name (role="group" + aria-labelledby). Names the decision the set answers ("Notification preferences"), letting its rows read the abstracted-up short labels ("Email", "SMS", "Push").' },
     { name: 'value', type: 'string[]', required: false, description: 'The controlled array of checked option values. The GROUP owns it; each row\'s checked appearance is DERIVED (`checked = value.includes(row.value)`), never wired on the row. Pair with `onChange`; use `defaultValue` for the uncontrolled form.' },
-    { name: 'defaultValue', type: 'string[]', required: false, description: 'Uncontrolled initial selection. Never pre-check a consent option — a dark pattern, and for marketing consent often unlawful (brief §7).' },
+    { name: 'defaultValue', type: 'string[]', required: false, description: 'Uncontrolled initial selection. Never pre-check a consent option — a dark pattern, and for marketing consent often unlawful.' },
     { name: 'onChange', type: '(value: string[], event) => void', required: false, description: 'Fires with the NEW value array when any row toggles. The group dispatches it; a row never owns its own onChange inside a group.' },
-    { name: 'required', type: 'boolean', default: true, required: false, description: 'Whether at least one option must be chosen. Drives the nested FieldLabel\'s required marker (Prism 2\'s group defaults it on) and aria-required on the group. Group-level: an individual row never owns its own required. [HELD] the required-by-default follows Prism 2\'s spec; a form that marks the optional minority instead sets this false.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the group — the label\'s type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`. [HELD] Prism 2\'s group is single-size (Large label); this def carries the family-universal size axis so the group is not frozen at one size.' },
+    { name: 'required', type: 'boolean', default: true, required: false, description: 'Whether at least one option must be chosen. Drives the nested FieldLabel\'s required marker (Prism 2\'s group defaults it on) and aria-required on the group. Group-level: an individual row never owns its own required. The required-by-default follows Prism 2\'s spec; a form that marks the optional minority instead sets this false.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the group — the label\'s type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`. Prism 2\'s group is single-size (Large label); this def carries the family-universal size axis so the group is not frozen at one size.' },
     { name: 'name', type: 'string', required: false, description: 'A shared control name so the set submits as one field and works uncontrolled in a native form.' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the field\'s native disabled is the source of truth). [HELD] not projected as a Figma state; Prism 2\'s group shows no disabled treatment.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the field\'s native disabled is the source of truth). Not projected as a Figma state; Prism 2\'s group shows no disabled treatment.' },
   ],
 
   // No interactive state of the group's OWN — Prism 2's group is a single configuration. The rows and the
@@ -247,7 +247,7 @@ export const checkboxGroup: ComponentDef = {
 
   content: {
     labelPattern: 'The group label NAMES THE DECISION or asks the question ("Notification preferences", "Which contact methods?"), abstracting the shared word up so its rows read the short remainder ("Email", "SMS", "Push"). Sentence case, no trailing colon — FieldLabel\'s rules.',
-    errorPattern: 'GROUP-LEVEL and specific — "Select at least one option", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The rows stay neutral; the group carries the message. [HELD] the error VISUAL is not settled by Prism 2 and is not invented here.',
+    errorPattern: 'GROUP-LEVEL and specific — "Select at least one option", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The rows stay neutral; the group carries the message. The error VISUAL is not settled by Prism 2 and is not invented here.',
   },
 
   docs: {
@@ -280,7 +280,7 @@ export const checkboxGroup: ComponentDef = {
 
   composition: {
     composesWith: ['checkbox-row', 'field-label', 'field-message', 'form'],
-    alternativeTo: ['radio-row', 'select', 'combobox', 'switch-row'],
+    alternativeTo: ['radio-group', 'select', 'combobox', 'switch-row'],
     supersedes: [
       'a bare set of <input type="checkbox"> with no shared label or group wiring',
       'per-row required / error scattered across the options instead of owned by the group',
