@@ -303,7 +303,8 @@ export type Theme = {
   // How an OUTLINE / TEXT interactive control expresses hover/pressed/selected
   // (docs/20 §10). 'overlay-neutral' (default): a translucent neutral wash that
   // composites over any surface — the `interactive.<color>.overlay.*` tokens are
-  // generated. 'solid-tint': an opaque tint of the control's own palette instead
+  // generated. 'solid-tint': an opaque tint of the control's own fill instead — the
+  // fill over its ground at 15% / 25%, baked (#1614)
   // (`interactive.<color>.subtle-fill.{hover,pressed,selected}`), no overlays.
   // 'none': no hover expression, no overlays. (`overlay-tint` — the colour's own
   // hue at low alpha — is scheduled; needs per-colour alpha ramps.)
@@ -386,8 +387,8 @@ const STATUS_DEFAULTS: Record<'success' | 'warning' | 'danger' | 'info', OKLCH &
 // `new Map(palettes)` / `palette[name] = node` (last-wins) would let a brandColor named
 // `neutral`/`primary` REPLACE the ramp the whole surface model is built on, or a status name
 // silently replace the brandColor — gates stay green on corrupted output (CR-03). Includes the
-// tree.ts base swatches (`white`/`black`/`transparent`/`*-alpha`).
-const RESERVED_PALETTES = new Set(['primary', 'neutral', 'success', 'warning', 'info', 'danger', 'white', 'black', 'transparent', 'black-alpha', 'white-alpha']);
+// tree.ts base swatches (`white`/`black`/`transparent`/`*-alpha`) and the generated `tint` group (#1614).
+const RESERVED_PALETTES = new Set(['primary', 'neutral', 'success', 'warning', 'info', 'danger', 'white', 'black', 'transparent', 'black-alpha', 'white-alpha', 'tint']);
 // A brandColor name is a palette slug: it becomes a `{root.palette.<name>.<step>}` alias path,
 // so it must be a single lowercase kebab segment — no dots (break alias paths), spaces, or
 // symbols (also closes the CR-07 XSS vector at the source: an HTML-metachar name can't validate).
@@ -513,7 +514,7 @@ export type BrandInput = {
   iconContrast?: 'text' | '3:1';
   /** How an outline/text interactive control expresses hover (docs/20 §10). Default
    *  'overlay-neutral' (generate translucent `interactive.<color>.overlay.*` washes);
-   *  'solid-tint' uses an opaque tint of the control's own palette instead
+   *  'solid-tint' uses an opaque tint of the control's own fill instead (#1614)
    *  (`interactive.<color>.subtle-fill.{hover,pressed,selected}`); 'none' omits both. */
   outlineInteraction?: 'overlay-neutral' | 'solid-tint' | 'none';
   /** Neutral interactive emphasis (docs/20 §10). 'subtle' (default) is a light-grey

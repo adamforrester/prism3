@@ -248,6 +248,7 @@ const colorIntent = (seg: string[], node: any): string | undefined => {
   if (seg[1] === 'white') return 'Pure highlight base — default light surface / on-color text';
   if (seg[1] === 'black') return 'Shadow base — scrim & shadow source / on-color text';
   if (seg[1] === 'black-alpha' || seg[1] === 'white-alpha') return 'Overlay / scrim / shadow compositing (alpha — composites over any surface)';
+  if (seg[1] === 'tint') return 'Solid-tint hover / pressed fill — a control fill composited over its ground, baked opaque';
   const ext = node.$extensions?.prism3 ?? {};
   if (!ext.band) return undefined;
   // Usage-framed tails (what the step UNLOCKS) — distinct from the identity the
@@ -271,6 +272,7 @@ const primMeaning = (seg: string[]): string => {
     if (seg[1] === 'white' || seg[1] === undefined) return 'Pure white primitive';
     if (seg.length === 2) return `Pure ${seg[1]} primitive`;
     if (seg[1] === 'black-alpha' || seg[1] === 'white-alpha') return `${seg[1].startsWith('black') ? 'Black' : 'White'} at ${seg[2]}% alpha (composites over any surface)`;
+    if (seg[1] === 'tint') return `Generated solid tint — ${seg[2]}`;
     return `${seg[1]} ramp — raw step ${seg[2]}`;
   }
   if (seg[0] === 'opacity') return 'Opacity scale primitive';

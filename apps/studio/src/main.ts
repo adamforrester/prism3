@@ -2252,8 +2252,8 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     //
     // The switch is PER STATE, not per row, and fixing the fill above is what forced that. The wash
     // is translucent, so a hovered control on the inverse band is still on the band and the
-    // `inverse` ink is right for all three states. The `solid-tint` fill is an OPAQUE palette
-    // step: it covers the band, so from `hover` onward the ground is a page-tuned tint and the
+    // `inverse` ink is right for all three states. The `solid-tint` fill is an OPAQUE color
+    // (a baked tint since #1614): it covers the band, so from `hover` onward the ground is a page-tuned tint and the
     // band's ink is measured against something that is no longer there. Probed across the corpus —
     // 5 brands × 4 modes × {primary, destructive} × {hover, pressed} — the inverse ink on that tint
     // fails 3:1 in **79 of 80** combinations, worst 1.32:1. The engine gates the tint against the
@@ -2888,13 +2888,17 @@ const overlayRow = (col: ICol): HTMLElement | null => {
  *  `outlineInteraction: solid-tint` is the method (the role is absent otherwise, so this returns null
  *  and the row self-hides, same as `overlayRow` does under the other methods).
  *
- *  The step picker is bound to the COLUMN'S OWN palette, not the neutral one the overlay row uses —
- *  choosing which tint of its own ramp a control hovers to is the whole point of the method.
+ *  The default is a TRUE tint since #1614: the column's own fill over the page at 15% (hover) / 25%
+ *  (pressed), baked opaque — a generated primitive, not a ramp step, so "Auto" names the strength
+ *  rather than a step. The picker still offers the COLUMN'S OWN ramp steps as overrides.
  *
- *  The engine picks a default step that keeps the state's ink legible, but an override is applied and
+ *  The engine eases the hover strength until the state's ink stays legible, but an override is applied and
  *  WARNED, never blocked (the established `overrides` behaviour). Since the role's `against` is the
  *  state ink, `ratio`/`min` already carry that verdict — so a pick that costs legibility says so here
  *  rather than only in an engine warning the designer never sees. */
+/** The generated tint primitive's key ends in its strength (`primary-page-light-15`, #1614); the picker's
+ *  "Auto" reads `fill at 15%` rather than a key that is not one of the ramp's steps. */
+const tintAutoLabel = (key: string): string => { const m = /-(\d+)$/.exec(key); return m ? `fill at ${m[1]}%` : key; };
 const subtleFillRow = (col: ICol): HTMLElement | null => {
   const roles = iRoles();
   const r = roles[`interactive.${col.name}.subtle-fill.hover`]; if (!r) return null;
@@ -2904,9 +2908,9 @@ const subtleFillRow = (col: ICol): HTMLElement | null => {
   const short = (n: number) => n.toFixed(2).replace(/\.00$/, '');
   return iRow({
     swatchBg: r.hex, label: 'Subtle tint',
-    select: roleSourceSelect(roles, `interactive.${col.name}.subtle-fill.hover`, col.palette, baselineStepOf(`interactive.${col.name}.subtle-fill.hover`)),
+    select: roleSourceSelect(roles, `interactive.${col.name}.subtle-fill.hover`, col.palette, tintAutoLabel(baselineStepOf(`interactive.${col.name}.subtle-fill.hover`))),
     pill: colorPath(`interactive.${col.name}.subtle-fill.hover`),
-    desc: 'The opaque hover / pressed tint for this palette’s outline & text actions — a step of its own ramp, so the control keeps its color identity.',
+    desc: 'The opaque hover / pressed fill for outline & text actions — a 15% tint of the fill (25% pressed), so the control keeps its color.',
     // `min`/`ratio` are optional on the resolved role, so a missing pair means "no contract stated" —
     // which must read as no warning, not as a failed one.
     warn: (r.min ?? 0) > 0 && (r.ratio ?? Infinity) < (r.min ?? 0)
@@ -3217,10 +3221,10 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
   const roles = iRoles();
 
   // The second sentence is method-specific: the Overlay wash row only tunes the translucent method.
-  // Under solid-tint the fill comes from the control's own palette automatically, so pointing at a
+  // Under solid-tint the fill comes from the control's own fill automatically (#1614), so pointing at a
   // control that does nothing there would be the same species of wrong answer as the empty swatch.
   const ohBlurb = theme.outlineInteraction === 'solid-tint'
-    ? 'How every outline & text action reacts on hover. The tint is a step of each control’s own palette, so a destructive outline hovers red-tinted rather than gray.'
+    ? 'How every outline & text action reacts on hover. The hover is a 15% tint of each control’s own fill, so a destructive outline hovers red-tinted rather than gray.'
     : theme.outlineInteraction === 'none'
       ? 'How every outline & text action reacts on hover. No hover fill — the border and ink carry the state on their own.'
       : 'How every outline & text action reacts on hover. Each palette’s Overlay wash row tunes the tint it uses.';
@@ -3254,7 +3258,7 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
   const ohRes = ohRole ? roles[ohRole] : undefined;
   const ohWash = !ohRes ? 'transparent'
     : outlineFillFamily(theme.outlineInteraction).opaque
-      ? ohRes.hex              // opaque — a real palette step, no alpha
+      ? ohRes.hex              // opaque — the baked tint (#1614), no alpha
       : rgbaOf(ohRes);
   oh.append(iRow({ lead: true, srcLabel: 'Method', select: iEnumSelect('outlineInteraction'),
     example: twoUp(['Rest', exOutline(ohEdge, 'transparent', false, undefined, undefined, { ink: ohInk })],

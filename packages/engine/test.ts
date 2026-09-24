@@ -1562,8 +1562,18 @@ for (const b of brands) {
 
     // And the tint must be VISIBLE against the page, or the hover does nothing — the inert-control
     // class this repo has now hit three times (#288 itself, #305, pre-#297 leading). ΔE00 2.3 is the
-    // classic just-noticeable bar; measured worst across the example brands was 5.81.
+    // classic just-noticeable bar.
+    //
+    // HELD, BY A PREDICATE ON THE INPUT, NOT A LIST OF CELLS (#1614). Since the tint became a true tint
+    // of the FILL, the NEUTRAL column on the PAGE is a tint of a fill that, at the default
+    // `neutralEmphasis: subtle`, is itself a page-luminance surface (its whole design, see the #1281
+    // note above). 15% of a near-page fill is near-page: measured ΔE00 0.6–1.6 across these brands. The
+    // brief was explicit that this is not a color to invent here, so it is held and flagged for the owner
+    // (#1621). A `strong` neutral (nb-redesign) is NOT held and clears. The companion line fails if a
+    // held cell stops being invisible, so a fix upstream turns this red until the hold is deleted.
+    const heldNeutralPage = (t: any, key: string) => key.startsWith('interactive.neutral.') && t.neutralEmphasis !== 'strong';
     const invisible: string[] = [];
+    let heldInvisible = 0;
     for (const [id, t] of brands) {
       for (const m of tintRoles(t)) {
         const page = m.roles['background.primary'];
@@ -1572,16 +1582,21 @@ for (const b of brands) {
           // The PAGE family only: the inverse twin (#1613) sits on the band and is judged against it below.
           if (!key.includes('.subtle-fill.') || key.startsWith('inverse.')) continue;
           const d = deltaE2000(hexToRgb(r.hex), hexToRgb(page.hex));
+          if (d < 2.3 && heldNeutralPage(t, key)) { heldInvisible++; continue; }
           if (d < 2.3) invisible.push(`${id}/${m.mode}/${key} ΔE ${d.toFixed(2)}`);
         }
       }
     }
-    ok(invisible.length === 0, '#288 every subtle-fill is perceptibly different from the page (ΔE00 ≥ 2.3)'
+    ok(invisible.length === 0, '#288 every subtle-fill is perceptibly different from the page (ΔE00 ≥ 2.3; subtle-emphasis neutral held, #1621)'
       + (invisible.length ? ` — INVISIBLE: ${invisible.slice(0, 4).join(', ')}` : ''));
+    // Some held cells clear the bar on their own (a 25% pressed tint on a white page can); the hold only
+    // excuses the ones that fail, and this line fails once NONE do.
+    ok(heldInvisible > 0,
+      `#1621 the subtle-neutral page hold still excuses something (${heldInvisible} cells below ΔE00 2.3) — if this fails the hold is stale; delete it`);
 
     // ---- #1613: THE INVERSE TWIN — `solid-tint` means the same thing on the band ----------------------
-    // Owner decision (a): the engine emits `inverse.interactive.<c>.subtle-fill.{hover,pressed,selected}`,
-    // mirrored from the page derivation against the inverse ground. Three arms, each against the BAND:
+    // The engine emits `inverse.interactive.<c>.subtle-fill.{hover,pressed,selected}`. Three arms, each
+    // against the BAND:
     //   1. EXISTENCE, hand-named per column × state — a brand whose band has no hover tint is the 48-miss
     //      button the owner built.
     //   2. HOVER INK-ON-TINT — the tint COVERS the band (`outlineFillFamily`'s `opaque`), so the band's own
@@ -1590,13 +1605,14 @@ for (const b of brands) {
     //      `ratio`/`min` — those are the subject's claims about itself (docs/34). Also pins `against` to
     //      that ink by name, so a tint gated against the PAGE ink (the #575 shape) fails here.
     //   3. DISTINGUISHABLE FROM THE BAND — ΔE00 ≥ 2.3 vs `inverse.background.primary` on every state, the
-    //      #305 invisible-hover shape. Not vs the page: a dark tint trivially differs from a white page.
+    //      #305 invisible-hover shape. No hold: #1614 resolved the two nb-redesign/light cells #1613 held
+    //      (a `neutral.900` step on a `neutral.950` band, ΔE00 2.00) — the band hover is now a composite.
     // Synthetic solid-tint brands (no corpus brand sets it, #1112), plus nb-redesign — the owner's file.
+    const invBrands: Array<[string, any]> = [
+      ...brands,
+      ['nb-redesign', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input)],
+    ];
     {
-      const invBrands: Array<[string, any]> = [
-        ...brands,
-        ['nb-redesign', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input)],
-      ];
       const COLUMNS = ['primary', 'neutral', 'destructive'];
       const STATES = ['hover', 'pressed', 'selected'];
       const absent: string[] = [], illegible: string[] = [], invisibleInv: string[] = [];
@@ -1629,24 +1645,113 @@ for (const b of brands) {
       ok(hoverJudged > 0 && illegible.length === 0,
         `#1613 every inverse subtle-fill hover keeps the band's hover ink legible (≥ the ink's secondaryMin, recomputed from hex; ${hoverJudged} judged)`
         + (illegible.length ? ` — FAILING: ${illegible.slice(0, 4).join(', ')}` : ''));
-      // HELD, NOT INVENTED — the one place mirroring does not satisfy the contract, named cell by cell.
-      // nb-redesign (the owner's brand) routes `action` to its NEUTRAL palette and sets a neutral.950 band
-      // in light mode; the mirrored hover nominal is neutral.900, which clears the ink (6.55 / 17.15) but
-      // sits ΔE00 2.00 from the band. The walk never leaves the nominal (it stops at the first step that
-      // clears the INK), and teaching it to also clear ΔE is a change to the derivation — the owner's
-      // call (#1614), not a color to pick here. Every OTHER cell fails; and each held
-      // cell must STILL be invisible, so a fix upstream turns this line red until the hold is deleted.
-      const HELD_INVISIBLE = [
-        'nb-redesign/light/inverse.interactive.primary.subtle-fill.hover',
-        'nb-redesign/light/inverse.interactive.neutral.subtle-fill.hover',
+      ok(deJudged > 0 && invisibleInv.length === 0,
+        `#1613 every inverse subtle-fill is perceptibly different from the inverse band (ΔE00 ≥ 2.3 vs inverse.background.primary; ${deJudged} judged, none held since #1614)`
+        + (invisibleInv.length ? ` — INVISIBLE: ${invisibleInv.slice(0, 4).join(', ')}` : ''));
+    }
+
+    // ---- #1614: THE TINT IS A TRUE TINT OF THE FILL ---------------------------------------------------
+    // Owner decision: the subtle fill is the column's `fill.rest` on that ground, laid over the ground at
+    // 15% (hover) / 25% (pressed, selected) and baked opaque; the hover strength backs off toward the
+    // ground until the hover ink clears its floor.
+    //
+    // INDEPENDENT OF THE SUBJECT (docs/34): the expected colors come from `mixHex` below — a straight
+    // sRGB source-over written here, NOT the engine's `composite` — and from hex literals the owner
+    // measured by hand on #1614. The back-off expectation is re-derived here from the ink ROLE's own
+    // `min`, never from the tint's path, `ratio` or description.
+    {
+      const mixHex = (fg: string, bg: string, a: number): string => {
+        const ch = (h: string, i: number) => parseInt(h.slice(1 + 2 * i, 3 + 2 * i), 16);
+        return '#' + [0, 1, 2].map((i) => Math.round(ch(fg, i) * a + ch(bg, i) * (1 - a)).toString(16).padStart(2, '0')).join('');
+      };
+      // The strength the rule should land on: 25 for pressed/selected (ungated, #1281); for hover, the
+      // largest whole percent ≤ 15 at which the hover ink clears its own floor.
+      const expectedPct = (st: string, fill: string, ground: string, ink: any): number => {
+        if (st !== 'hover') return 25;
+        let p = 15;
+        while (p > 1 && contrast(hexToRgb(ink.hex), hexToRgb(mixHex(fill, ground, p / 100))) < ink.min) p--;
+        return p;
+      };
+      const tintBrands: Array<[string, any]> = [...invBrands,
+        // Constructed so 15% FAILS: a mid-lightness warm primary whose band hover ink sits near 4.5 on a
+        // light-mode band. Measured: light-mode inverse primary hover needs 13%.
+        ['back-off', brandTheme({ id: 'bo', primary: { l: 0.55, c: 0.1, h: 30 }, neutral: { hue: 30, chroma: 0.006, auto: true } } as any)]];
+      const wrong: string[] = [];
+      let judged = 0;
+      for (const [id, t] of tintBrands) {
+        for (const m of tintRoles(t)) {
+          for (const [prefix, groundKey] of [['', 'background.primary'], ['inverse.', 'inverse.background.primary']] as const) {
+            const ground = m.roles[groundKey];
+            for (const c of ['primary', 'neutral', 'destructive']) {
+              const fill = m.roles[`${prefix}interactive.${c}.fill.rest`];
+              for (const st of ['hover', 'pressed', 'selected']) {
+                const tint = m.roles[`${prefix}interactive.${c}.subtle-fill.${st}`];
+                const ink = m.roles[`${prefix}interactive.${c}.text.${st === 'selected' ? 'pressed' : st}`];
+                if (!ground || !fill || !tint || !ink) { wrong.push(`${id}/${m.mode}/${prefix}${c}.${st} missing a role`); continue; }
+                judged++;
+                const want = mixHex(fill.hex, ground.hex, expectedPct(st, fill.hex, ground.hex, ink) / 100);
+                if (tint.hex !== want) wrong.push(`${id}/${m.mode}/${prefix}interactive.${c}.subtle-fill.${st} ${tint.hex} ≠ ${want}`);
+              }
+            }
+          }
+        }
+      }
+      ok(judged > 0 && wrong.length === 0,
+        `#1614 every subtle fill is its column's fill.rest over its own ground at 15% hover / 25% pressed+selected, baked (independent mix; ${judged} judged)`
+        + (wrong.length ? ` — WRONG (${wrong.length}): ${wrong.slice(0, 4).join(', ')}` : ''));
+
+      // Two cells by hand, from the owner's own measurements on #1614 — a page cell and an inverse cell,
+      // on the owner's brand and on Aurora. Literals, so no computation in this file can agree with a
+      // wrong engine by construction.
+      const light = (t: any) => tintRoles(t).find((m) => m.mode === 'light')!.roles;
+      const nbr = light(invBrands.find(([id]) => id === 'nb-redesign')![1]);
+      const aur = light(brands.find(([id]) => id === 'aurora')![1]);
+      const HAND: Array<[string, any, string, string]> = [
+        ['nb-redesign', nbr, 'interactive.primary.subtle-fill.hover', '#dcdcdc'],
+        ['nb-redesign', nbr, 'inverse.interactive.primary.subtle-fill.hover', '#313131'],
+        ['aurora', aur, 'interactive.primary.subtle-fill.hover', '#d9ebf5'],
+        ['aurora', aur, 'inverse.interactive.primary.subtle-fill.hover', '#313132'],
       ];
-      const heldSeen = invisibleInv.filter((x) => HELD_INVISIBLE.some((h) => x.startsWith(`${h} `)));
-      const unheldInv = invisibleInv.filter((x) => !HELD_INVISIBLE.some((h) => x.startsWith(`${h} `)));
-      ok(deJudged > 0 && unheldInv.length === 0,
-        `#1613 every inverse subtle-fill is perceptibly different from the inverse band (ΔE00 ≥ 2.3 vs inverse.background.primary; ${deJudged} judged, ${HELD_INVISIBLE.length} held by name)`
-        + (unheldInv.length ? ` — INVISIBLE: ${unheldInv.slice(0, 4).join(', ')}` : ''));
-      ok(heldSeen.length === HELD_INVISIBLE.length,
-        `#1613 the held nb-redesign/light inverse hover cells are still below ΔE00 2.3 — if this fails they were fixed; delete the hold (${heldSeen.join('; ')})`);
+      for (const [id, roles, key, want] of HAND)
+        ok(roles[key]?.hex === want, `#1614 hand-computed: ${id}/light/${key} is the 15% tint ${want} (got ${roles[key]?.hex})`);
+
+      // THE BACK-OFF ENGAGES where 15% would fail. Asserted on the constructed brand, and asserted as a
+      // PRECONDITION first: if 15% stops failing there, the arm is not testing the back-off any more.
+      const bo = light(tintBrands.find(([id]) => id === 'back-off')![1]);
+      const boTint = bo['inverse.interactive.primary.subtle-fill.hover'];
+      const boInk = bo['inverse.interactive.primary.text.hover'];
+      const boFill = bo['inverse.interactive.primary.fill.rest'].hex, boBand = bo['inverse.background.primary'].hex;
+      const at15 = contrast(hexToRgb(boInk.hex), hexToRgb(mixHex(boFill, boBand, 0.15)));
+      ok(at15 < boInk.min, `#1614 back-off precondition: 15% fails the band hover ink on the constructed brand (${at15.toFixed(2)} < ${boInk.min})`);
+      const boPct = expectedPct('hover', boFill, boBand, boInk);
+      const boGot = contrast(hexToRgb(boInk.hex), hexToRgb(boTint.hex));
+      ok(boPct < 15 && boTint.hex === mixHex(boFill, boBand, boPct / 100) && boGot >= boInk.min && boTint.description.includes(`${boPct}%`),
+        `#1614 back-off: the constructed brand's band hover eases to ${boPct}% (${boTint.hex}, ink ${boGot.toFixed(2)} ≥ ${boInk.min}) and its description records the strength`);
+
+      // THE ALIAS GRAPH STAYS INTACT: each subtle fill aliases a GENERATED `core.palette.tint.*` primitive
+      // whose value is the role's color, and a brand that does not set `solid-tint` mints none.
+      const auroraT = brands.find(([id]) => id === 'aurora')![1];
+      const { tree } = buildTree({ ...auroraT, outlineInteraction: 'solid-tint' });
+      const rt = tree[auroraT.root];
+      const aliasBad: string[] = [];
+      let aliased = 0;
+      for (const prefix of ['', 'inverse.']) for (const c of ['primary', 'neutral', 'destructive']) for (const st of ['hover', 'pressed', 'selected']) {
+        const leaf = at(rt.color, `${prefix}interactive.${c}.subtle-fill.${st}`);
+        const perMode: Array<[string, string]> = [['light', leaf?.$value], ...Object.entries(leaf?.$extensions?.prism3?.modes ?? {}).map(([m, v]: [string, any]) => [m, v.$value] as [string, string])];
+        for (const [mode, ref] of perMode) {
+          aliased++;
+          const m = /^\{(.+)\}$/.exec(String(ref));
+          const prim = m ? at(tree, m[1]) : undefined;
+          const roleHex = tintRoles(auroraT).find((x) => x.mode === mode)?.roles[`${prefix}interactive.${c}.subtle-fill.${st}`]?.hex;
+          if (!m || !m[1].startsWith(`${auroraT.root}.core.palette.tint.`)) aliasBad.push(`${mode}/${prefix}${c}.${st} → ${ref} (not a tint primitive)`);
+          else if (!prim || prim.$extensions?.prism3?.generated !== true || prim.$extensions?.prism3?.hex !== roleHex) aliasBad.push(`${mode}/${prefix}${c}.${st} → ${m[1]} (missing, not generated, or ≠ ${roleHex})`);
+        }
+      }
+      ok(aliased > 0 && aliasBad.length === 0,
+        `#1614 every subtle fill aliases a generated core.palette.tint.* primitive holding its color (${aliased} mode-values)`
+        + (aliasBad.length ? ` — BAD: ${aliasBad.slice(0, 3).join(', ')}` : ''));
+      ok(buildTree(auroraT).tree[auroraT.root].core.palette.tint === undefined,
+        '#1614 the tint primitives are minted only under solid-tint (the default brand carries no core.palette.tint)');
     }
   }
 }

@@ -455,6 +455,13 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // a second path; the rename gives every role the short name directly, including the 113 inverse ones
   // that never got a pointer at all (`docs/20` §9.9).
   const modes = resolveAllModes(theme);
+  // Generated `solid-tint` primitives (#1614): a composited tint is not a ramp step, so each mode mints
+  // it and the subtle-fill role aliases it here. Absent unless the brand sets `solid-tint`.
+  for (const m of modes) for (const [key, p] of Object.entries(m.primitives ?? {}))
+    (palette.tint ??= {})[key] = {
+      $type: 'color', $value: colorValue(p.rgb, theme.colorFormat), $description: p.description,
+      $extensions: { prism3: { generated: true, source: 'composite', hex: hex(p.rgb) } },
+    };
   // light is canonical ($value); the rest carry per-mode overrides — only those the brand
   // opted into (docs/11 Pillar 1). A light-only brand emits no mode overrides.
   const OVERRIDE_MODES = theme.modes.filter((m) => m !== 'light');

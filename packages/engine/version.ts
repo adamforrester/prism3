@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.137.0 — #1614 (owner decision): `solid-tint` is a TRUE TINT of the fill. Each
+ * `[inverse.]interactive.<c>.subtle-fill.{hover,pressed,selected}` is now `[inverse.]interactive.<c>.fill.rest`
+ * composited over its own ground (`background.primary` / `inverse.background.primary`) at 15% hover / 25%
+ * pressed+selected (sRGB straight alpha), baked to an opaque 8-bit color. It was a palette STEP picked from a
+ * nominal table. The hover strength eases one point at a time until the hover ink clears `secondaryMin`, and
+ * the effective strength is written into the description; pressed/selected stay ungated (#1281). Because a
+ * composite is not a ramp step, each tint is MINTED as a generated primitive
+ * `core.palette.tint.<column>-<page|inverse>-<mode>-<pct>` and the role aliases it (minted only under
+ * `solid-tint`; `tint` joins the reserved palette names). A value change plus new primitives under a lever
+ * → MINOR. No corpus brand sets `solid-tint` (#1112), so `out/**` moves its stamp plus the lever description
+ * in `schema/lever-manifest.json`; CONTRACT STANDS (no guaranteed path moves).
  * 0.136.0 — #1617: a per-mode override on an outline/text control's LABEL ink carries to its GLYPH ink.
  * `interactive.<c>.icon.<st>` (and the `inverse.` column) is minted as a value twin of `…text.<st>` (#1471),
  * but the override layer rewrote exactly one role, so an override on `text.rest` moved the label and left
@@ -3453,7 +3464,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.136.0';
+export const ENGINE_VERSION = '0.137.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

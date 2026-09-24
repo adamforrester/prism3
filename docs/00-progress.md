@@ -7,6 +7,43 @@
 
 ---
 
+## (2026-09-24) — `solid-tint` is a true tint of the fill; the #1613 ΔE hold is gone (#1614)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Owner decision on #1614. Files: `packages/engine/modes.ts` (the `solid-tint` branch rewritten; `MintedPrimitive` + `ModeResult.primitives`), `packages/engine/tree.ts` (mints `core.palette.tint.*`), `theme.ts` (`tint` reserved), `ai-metadata.ts` (tint meaning/intent), `levers.ts` + `schema/lever-manifest.json` (lever copy), `apps/studio/src/main.ts` (Subtle tint row + Outline hover blurb), `test.ts` (#1614 arms; #1613 hold removed), `version.ts` (ENGINE 0.136.0 → 0.137.0; CONTRACT stands at 11.3.0, `--accept` of the informational stamp only).
+
+── THE RULE ────────────────────────────────────────────────────────────────────────────────────────────
+
+`[inverse.]interactive.<c>.subtle-fill.<st>` = `[inverse.]interactive.<c>.fill.rest` over `[inverse.]background.primary` at **15% hover / 25% pressed+selected**. It is composited in sRGB with straight alpha (`color.ts` `composite`) and rounded to 8-bit, so the primitive, the role hex and the ratio are one color. Both the fill and the ground are read through `asGround`, so an overridden fill is honored. The inverse fill is the resolved role, so the owner's per-category plugin setting sets its hue. **Guard:** the hover strength eases one point at a time until the hover ink clears `secondaryMin`; the effective % is in the description. Pressed/selected are unchanged by it and stay ungated (#1281). The owner's measured cells reproduce exactly: nb-redesign page `#dcdcdc` 4.93:1 and band `#313131` 4.64:1; Aurora `#d9ebf5` 5.60:1 and `#313132` 4.55:1. The two nb-redesign/light band cells #1613 held (ΔE00 2.00) are now 10.66.
+
+── THE ALIAS GRAPH ─────────────────────────────────────────────────────────────────────────────────────
+
+A composite isn't a ramp step, so every tint is **minted** as a generated primitive, `core.palette.tint.<column>-<page|inverse>-<mode>-<pct>`. Examples: `primary-page-light-15`, `neutral-inverse-hc-dark-25`. The role aliases it.
+- **Placement.** Same group as `black-alpha` / `white-alpha`, so the Figma core palette picks it up with no emitter change.
+- **Scope.** Minted only under `solid-tint`. `tint` joins `RESERVED_PALETTES`.
+- **Naming.** The name carries the mode because the core palette has no modes. Pressed and selected share one primitive. The naming is flagged for owner review.
+- **Leaf metadata.** `source: 'composite'`, not `'oklch'`: `baseLeaf` would have claimed an OKLCH origin the value doesn't have.
+
+── HELD — THE NEUTRAL PAGE TINT (#1621) ────────────────────────────────────────────────────────────
+
+At the default `neutralEmphasis: subtle`, the neutral `fill.rest` is a page-lightness gray by design, so 15% of it over the page is near-invisible. Measured ΔE00 was 0.6–1.6 on every synthetic brand, hover and pressed. Per the brief **no color was invented.** The page ΔE arm holds it with a **predicate** (neutral column, page ground, emphasis ≠ strong), not a list of cells, and excuses only cells that actually fail; some 25% pressed cells on white clear 2.3 on their own. A companion line fails once the hold excuses nothing. A `strong` neutral (nb-redesign `#dfdfdf`, 6.72) and every band neutral clear. Options are on #1621.
+
+── THE GATES (docs/34) ────────────────────────────────────────────────────────────────────────────────
+
+**Independent of the subject:** the expected color comes from a `mixHex` written in `test.ts`, not the engine's `composite`, and the expected back-off strength is re-derived from the ink ROLE's `min`. The #1614 arms:
+- (1) Every subtle fill on both grounds equals the independent mix at the expected %. That is 450 cells across 6 synthetic brands, nb-redesign and a constructed back-off brand.
+- (2) Four literal hexes from the owner's #1614 comment.
+- (3) Back-off: on the constructed brand (primary `l 0.55 c 0.1 h 30`), 15% fails as a checked precondition. The band hover eases to 13%, clears 4.5, and its description says `13%`.
+- (4) Every mode-value of every subtle fill aliases a `generated` `core.palette.tint.*` leaf whose hex is the role's, and a default brand has no `core.palette.tint`.
+
+The #1613 existence, band-ink and band-ΔE arms stay unchanged, now with no hold. The #1608 gates didn't move, because role paths are unchanged.
+
+**Mutations, each from a committed `wip:` head:**
+- **M1 (main's palette-step `modes.ts`)** fails 9 lines by name: the #1614 mix arm (450 wrong), all 4 hand-computed lines, the back-off line, the alias line (`→ {ads.core.palette.accent.100} (not a tint primitive)`), the #1613 band-ΔE arm (the old 2.00 cells), and the #1621 staleness line.
+- **M2 (back-off disabled)** fails the back-off line (`#323131, ink 4.34`) and the mix arm (3 wrong), by name.
+
+**Side effect, left open:** the hover ink is read through `asGround`, so an overridden label ink now drives the back-off. That is direction 1 of #1618, but it has no gate of its own here, so #1618 stays open.
+
+---
 ## (2026-09-24) — a label-ink override carries to its icon twin (#1617)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/modes.ts` (**NEW** `withIconTwins`), `packages/engine/test.ts` (**IT-01**), `apps/studio/src/main.ts` (outline preview glyph), `packages/engine/version.ts` (ENGINE 0.136.0), stamp-only `out/**` + the `token-contract.json` `engineVersion` field (`--accept`, no surface change; CONTRACT stands at 11.3.0).
