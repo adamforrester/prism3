@@ -2926,6 +2926,14 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.135.0 — #1617: a per-mode override on an outline/text control's LABEL ink carries to its GLYPH ink.
+ * `interactive.<c>.icon.<st>` (and the `inverse.` column) is minted as a value twin of `…text.<st>` (#1471),
+ * but the override layer rewrote exactly one role, so an override on `text.rest` moved the label and left
+ * the icon at the derived value (label near-black, icon grey on the owner's NB file). New `withIconTwins`
+ * expands a `text.<st>` override onto its `icon.<st>` twin unless the icon carries its own explicit
+ * override (explicit wins); the icon is re-rated against its own `against` and swept for warnings like any
+ * override. `border` stays independent. A value-resolution behavior change under overrides → MINOR bump;
+ * no corpus brand overrides these roles, so `out/**` is a stamp-only regen. CONTRACT STANDS — no name moves.
  * 0.134.0 — #1608: an outline/text control's hover fill binds the family the brand's `outlineInteraction`
  * EMITS. `button` ×3, `icon-button` ×3, `select` and `text-field` bound `interactive.<c>.overlay.*` (the
  * translucent wash) unconditionally, which the engine emits only at `overlay-neutral`; a `solid-tint` /
@@ -3436,7 +3444,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.134.0';
+export const ENGINE_VERSION = '0.135.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

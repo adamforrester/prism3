@@ -7,6 +7,20 @@
 
 ---
 
+## (2026-09-24) — a label-ink override carries to its icon twin (#1617)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/modes.ts` (**NEW** `withIconTwins`), `packages/engine/test.ts` (**IT-01**), `apps/studio/src/main.ts` (outline preview glyph), `packages/engine/version.ts` (ENGINE 0.135.0), stamp-only `out/**` + the `token-contract.json` `engineVersion` field (`--accept`, no surface change; CONTRACT stands at 11.3.0).
+
+**Diagnosis.** It was not the icon swap and not the border. The projection binds correctly: `leadingVisual → interactive.<c>.icon.rest`, `label → …text.rest`. The engine mints `icon.<st>` as a value twin of `text.<st>` (#1471, the same candidate `c` in `iText`), but the per-mode override layer rewrites exactly ONE role after derivation. The studio exposes `Text · rest` / `Border · rest` override rows and no icon row, so an override on the label moved the label and left the glyph at the DERIVED value. On NB's primary ink the derived value is a grey that happens to match the owner's (independent) grey border override, which is why it looked like the icon followed the border. The studio's outline preview painted the glyph with the TEXT ink, so it could not show the divergence.
+
+**Fix.** `withIconTwins` expands the mode's override map before the loop: any `(inverse.)interactive.<c>.text.<rest|hover|pressed>` entry is copied onto `…icon.<st>` unless the icon has its own entry (explicit wins). The expanded entry goes through the same loop, so it is re-rated against its own `against` and the final contrast sweep warns for it like any other override. `border` is not coupled: the owner set that override on purpose. The outline preview now draws the glyph from `icon.rest`.
+
+**Checked and deliberately not touched.** The pre-derivation `ovRgb` / `asGround` path substitutes overrides only at GROUND reads. Neither twin is a ground (nothing is measured against a label or glyph ink), so it needs no twin handling. Separately, the `solid-tint` subtle-fill pick (`modes.ts` ~1536) reads the *derived* `interactive.<c>.text.*` during derivation, before the override layer runs, so it is chosen against the pre-override label. That's a separate, pre-existing defect, filed as #1618.
+
+**Gate.** IT-01 in `test.ts` covers four things: a page and an inverse `text.rest` override land on `icon.rest` (EXPECTED is the pinned ramp step's hex, and the ratio is recomputed with `contrast` against the icon's own `against`); an explicit icon override wins in either key order; and a border override leaves the icon derived. Mutations, committed before each one: `withIconTwins` returning its input → 3 IT-01 arms fail by name; dropping the explicit-wins check → both explicit-wins arms fail by name. No corpus brand overrides these roles, so `regen --check` moves only the version stamp.
+
+---
+
 ## (2026-09-24) — an outline/text hover fill binds the family the brand's `outlineInteraction` emits (#1608)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/anatomy-figma.ts` (**NEW** `applyOutlineInteraction`), `apps/plugin/src/brand-def.ts` (`materializeForBrand` gains the third lever), `packages/engine/lint-component-surface.ts` + `schema/component-surface.json` (16 new `<id>@outline-{solid-tint,none}` rows; **no plain row moved**), `packages/engine/test.ts` + `apps/plugin/test-write-components.ts` (the #1608 blocks), `packages/engine/components/button.ts` (the known-limitation note named the wrong role), a comment in `apps/plugin/src/write-components.ts`, `version.ts` (ENGINE **0.133.0 → 0.134.0**), `schema/token-contract.json` (`engineVersion` only, informational `--accept`), the stamp-only `out/**` restamp, and this entry. **CONTRACT STANDS at 11.3.0.** Closes #1608. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `apps/tokenpress/`, `tools/`.
