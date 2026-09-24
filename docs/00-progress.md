@@ -7,6 +7,15 @@
 
 ---
 
+## (2026-09-24) — `density: 'spacious'` keeps `core.dimension.3` and `.18` (#1631)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/theme.ts` (the `dimensionGrid(...)` call in `buildDims`), `lint-lever-sweep.ts` (the #1631 `defect` entry removed, so `REMOVALS` is empty), `test.ts` (a new arm), `version.ts` (ENGINE 0.141.0 → 0.142.0), `schema/token-contract.json` (`--accept` at level none: only the `engineVersion` stamp moves). CONTRACT stays at 11.3.0.
+
+**Owner decision.** Disposition 1 ("we should not remove dimension tokens, just leave those"), not demotion. At spacious the grid is now also fed the comfortable control px, so 3 (a comfortable `inset`) and 18 (a comfortable `thumb`) stay on it. Spacious's grid only grows, and no existing alias moves. No committed brand sets spacious, so `out/**` moves only its version stamp.
+
+**The approach tried and discarded, and why it is flagged, not settled.** The first cut fed the comfortable px at every non-comfortable density (compact too), which is the literal reading of "unconditional". Measured with regen, aurora (compact, a contract-corpus brand) then gains `core.dimension.30`, and `token-contract --check` reports **MINOR: ADDED core.dimension.30**. The lane was told the contract must not move, so the shipped cut feeds only spacious. That costs nothing today: compact is a corpus density, so it can't remove a guaranteed path by construction (the corpus would demote it and `--check` would call that MAJOR). Feeding every density is a one-token change (`density === 'spacious'` → `density !== 'comfortable'`) plus a CONTRACT MINOR to 11.4.0. That choice is left to the owner in the PR body.
+
+**Verification.** `lint-lever-sweep.ts` passes with 0 allowlisted removals. The new `test.ts` arm builds minimal, harbor and nb-redesign at each of the three densities and asserts that `core.dimension.3` and `.18` are in the emitted tree, with the paths written out rather than read from `controlSizes`. By-name mutation: with the theme.ts change reverted (committed first), `lint-lever-sweep` fails with `minimal @ density="spacious" REMOVES 2 guaranteed path(s) … core.dimension.18, core.dimension.3` (same for harbor and nb-redesign), and the `#1631 … spacious` test arms fail too.
 ## (2026-09-24) — the outline-hover option is labeled "Tinted wash"
 
 **STATUS: landed by the orchestrator.** Owner decision: the `outlineInteraction` option `solid-tint` reads "Tinted wash" in the studio and plugin (it read "Opaque subtle tint"). Files: `packages/engine/levers.ts` (the one label), regenerated `schema/lever-manifest.json`, the `out/**` stamp, `version.ts` (ENGINE 0.141.0).
