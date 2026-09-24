@@ -7,6 +7,28 @@
 
 ---
 
+## (2026-09-24) — `solid-tint` emits the inverse `subtle-fill` twin; the #1608 hold is gone (#1613)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Owner decision (a) on #1613: "solid tint" means the same thing on both grounds. Files: `packages/engine/modes.ts` (the `solid-tint` branch becomes one `emitTints(prefix, fam, ground, describe)` called per ground), `packages/engine/test.ts` (new #1613 arms; #1608 hold removed), `apps/plugin/test-write-components.ts` (hold removed; inverse members hand-named), `anatomy-figma.ts` (the "NOT HANDLED, and held" note), `version.ts` (ENGINE 0.134.0 → 0.135.0; CONTRACT stands at 11.3.0, `--accept` of the informational stamp only).
+
+── THE DERIVATION — MIRRORED ──────────────────────────────────────────────────────────────────────────
+
+The page loop was lifted into `emitTints` unchanged and called twice: once for the page (`''`, `cfg.family`, `baseRgb`) and once for the band (`'inverse.'`, the OPPOSITE polarity, `invRgb`). The polarity picks the nominal table and the walk direction; the prefix picks the ink (`inverse.interactive.<c>.text.<st>`, selected reuses pressed), the key and the `against`. Pressed/selected ungated by the same #1281 predicate. **The page family is byte-identical:** every subtle-fill role for the 7 corpus brands + near-black + hot-yellow at solid-tint was dumped before/after and `cmp`'d (324 roles, identical). No corpus brand sets `solid-tint` (#1112), so `out/**` moves only its version stamp.
+
+── HELD — WHERE MIRRORING DOES NOT MEET THE CONTRACT (#1614) ────────────────────────────────────────
+
+On **nb-redesign (the owner's brand), light mode**, `inverse.interactive.{primary,neutral}.subtle-fill.hover` lands on `neutral.900` against a `neutral.950` band: ink clears (6.55 / 17.15) but **ΔE00 2.00 < 2.3**. nb-redesign routes `action` to neutral, and the walk only tests the ink, so it never leaves the nominal. Per the brief no color was picked: the two cells are hand-named in the ΔE arm, with a companion line that fails once they stop being invisible. Options (walk also gates ΔE / a different inverse nominal / accept) are on #1614. The page family has the same structural exposure in dark mode (900 vs a 950 page, 2.48–2.51 on four brands — just over the bar).
+
+── A TRAP FOR WHOEVER TOUCHES THE WALK (#1615) ──────────────────────────────────────────────────────
+
+The walk's comment says "toward the page"; the sort walks AWAY from the ground (light: 100, 150, 200…). The brief repeated the comment. I mirrored the CODE, not the comment, since the page must stay byte-identical. Latent: 0 of 666 roles leave the nominal across every brand measured. Filed as #1615.
+
+── THE GATES (docs/34) ────────────────────────────────────────────────────────────────────────────────
+
+**Engine (`test.ts`, #1613 block inside #288), over 5 synthetic solid-tint brands + nb-redesign:** (1) existence, hand-named per primary/neutral/destructive × hover/pressed/selected in every mode; (2) hover ink-on-tint RECOMPUTED from the two hexes and held to the INK role's `min` (not the tint's self-reported ratio/min), plus `against` pinned to `inverse.interactive.<c>.text.hover` by name; (3) ΔE00 ≥ 2.3 vs `inverse.background.primary` (the page ΔE arm is now scoped to page keys — judging a dark tint against a white page would pass trivially). The #1608 cross-brand gate drops `HELD_INVERSE_TINT`: every miss fails, either ground; a new hand-named line pins the inverse outline hover to `color/inverse/interactive/primary/subtle-fill/hover`. **Plugin:** the solid-tint NB-redesign button's 48 inverse hover+pressed members bind `inverse…subtle-fill/{hover,pressed}`, and fill misses are 0 on both grounds.
+
+**Mutations, each from a committed `wip:` head:** M1 (skip the inverse `emitTints` call) → the 3 #1613 engine arms, both `#1608 … @ solid-tint` lines (216 missing), the new inverse-hover line, and both plugin #1613 lines fail by name — the plugin with the owner's shape, `48 — container.fills -> color/inverse/interactive/primary/subtle-fill/hover`. M2a (walk the band tint against the PAGE ink) → the #1613 ink arm fails by name (nb/light 1.55 < 4.5, `against=interactive…`). M2b (no ink walk on the band, page polarity) → the #1613 ink arm and #288's arm fail. **Recorded because it surprised me:** flipping ONLY the polarity is absorbed — the walk goes on until the ink clears, so every gate stays green (the hold's staleness line fires, since the held cells move). The walk earns its keep there.
+
 ## (2026-09-24) — an outline/text hover fill binds the family the brand's `outlineInteraction` emits (#1608)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/anatomy-figma.ts` (**NEW** `applyOutlineInteraction`), `apps/plugin/src/brand-def.ts` (`materializeForBrand` gains the third lever), `packages/engine/lint-component-surface.ts` + `schema/component-surface.json` (16 new `<id>@outline-{solid-tint,none}` rows; **no plain row moved**), `packages/engine/test.ts` + `apps/plugin/test-write-components.ts` (the #1608 blocks), `packages/engine/components/button.ts` (the known-limitation note named the wrong role), a comment in `apps/plugin/src/write-components.ts`, `version.ts` (ENGINE **0.133.0 → 0.134.0**), `schema/token-contract.json` (`engineVersion` only, informational `--accept`), the stamp-only `out/**` restamp, and this entry. **CONTRACT STANDS at 11.3.0.** Closes #1608. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `apps/tokenpress/`, `tools/`.

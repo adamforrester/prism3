@@ -3113,11 +3113,17 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const tintBound = [...new Set(tintDefault.map(fillVar))].sort();
   ok(tintDefault.length === 48 && JSON.stringify(tintBound) === JSON.stringify(['color/interactive/primary/subtle-fill/hover', 'color/interactive/primary/subtle-fill/pressed']),
     `#1608 solid-tint NB button: the 48 default-ground outline/text (2 appearances × 2 states × 3 sizes × 4 slot combos) hover+pressed members bind interactive/primary/subtle-fill/{hover,pressed} (${tintDefault.length}: ${tintBound.join(', ')})`);
-  // The held design question (#1608 PR): no inverse `subtle-fill` twin exists, so the inverse members are
-  // the ONLY misses left, and nothing else — no page wash, no default-ground miss — may appear.
+  // #1613 (owner decision (a)) — the engine now emits the INVERSE twin, so the held pattern is gone: the
+  // inverse-band members bind `inverse…subtle-fill/{hover,pressed}` and the build has ZERO fill misses on
+  // either ground. Hand-named, both sides. Deleting the inverse emission puts the 48-miss shape back
+  // (`container.fills -> color/inverse/interactive/primary/subtle-fill/hover`, …) and both lines fail.
+  const tintInverse = hoverMembers(tintPage, 'inverse');
+  const tintInvBound = [...new Set(tintInverse.map(fillVar))].sort();
+  ok(tintInverse.length === 48 && JSON.stringify(tintInvBound) === JSON.stringify(['color/inverse/interactive/primary/subtle-fill/hover', 'color/inverse/interactive/primary/subtle-fill/pressed']),
+    `#1613 solid-tint NB button: the 48 inverse-band outline/text hover+pressed members bind inverse/interactive/primary/subtle-fill/{hover,pressed} (${tintInverse.length}: ${tintInvBound.join(', ')})`);
   const tintFill = fillMisses(tintRun.misses);
-  ok(tintFill.every((m) => /-> color\/inverse\/interactive\/primary\/subtle-fill\/(hover|pressed)$/.test(m)) && !tintFill.some((m) => /\/overlay\//.test(m)),
-    `#1608 solid-tint NB button: 0 container.fills misses on the default ground and NO overlay-wash miss — the only misses left are the held inverse subtle-fill (${tintFill.length}${tintFill.length ? ` — ${[...new Set(tintFill)].slice(0, 3).join('; ')}` : ''})`);
+  ok(tintFill.length === 0,
+    `#1613 solid-tint NB button: 0 container.fills misses on BOTH grounds — no inverse subtle-fill held, no overlay wash (${tintFill.length}${tintFill.length ? ` — ${[...new Set(tintFill)].slice(0, 3).join('; ')}` : ''})`);
 
   // (b) NONE — no hover expression: no variable asked for, so nothing to miss, and no fill on the member.
   const none = { ...nbInput, outlineInteraction: 'none' } as BrandInput;

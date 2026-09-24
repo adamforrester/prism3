@@ -1506,7 +1506,8 @@ for (const b of brands) {
         const page = m.roles['background.primary'];
         if (!page) continue;
         for (const [key, r] of Object.entries(m.roles) as [string, any][]) {
-          if (!key.includes('.subtle-fill.')) continue;
+          // The PAGE family only: the inverse twin (#1613) sits on the band and is judged against it below.
+          if (!key.includes('.subtle-fill.') || key.startsWith('inverse.')) continue;
           const d = deltaE2000(hexToRgb(r.hex), hexToRgb(page.hex));
           if (d < 2.3) invisible.push(`${id}/${m.mode}/${key} ΔE ${d.toFixed(2)}`);
         }
@@ -1514,6 +1515,76 @@ for (const b of brands) {
     }
     ok(invisible.length === 0, '#288 every subtle-fill is perceptibly different from the page (ΔE00 ≥ 2.3)'
       + (invisible.length ? ` — INVISIBLE: ${invisible.slice(0, 4).join(', ')}` : ''));
+
+    // ---- #1613: THE INVERSE TWIN — `solid-tint` means the same thing on the band ----------------------
+    // Owner decision (a): the engine emits `inverse.interactive.<c>.subtle-fill.{hover,pressed,selected}`,
+    // mirrored from the page derivation against the inverse ground. Three arms, each against the BAND:
+    //   1. EXISTENCE, hand-named per column × state — a brand whose band has no hover tint is the 48-miss
+    //      button the owner built.
+    //   2. HOVER INK-ON-TINT — the tint COVERS the band (`outlineFillFamily`'s `opaque`), so the band's own
+    //      hover ink `inverse.interactive.<c>.text.hover` must clear its floor on the tint. RECOMPUTED from
+    //      the two hexes and held to the INK's `min` (the text role's contract), never the tint's own
+    //      `ratio`/`min` — those are the subject's claims about itself (docs/34). Also pins `against` to
+    //      that ink by name, so a tint gated against the PAGE ink (the #575 shape) fails here.
+    //   3. DISTINGUISHABLE FROM THE BAND — ΔE00 ≥ 2.3 vs `inverse.background.primary` on every state, the
+    //      #305 invisible-hover shape. Not vs the page: a dark tint trivially differs from a white page.
+    // Synthetic solid-tint brands (no corpus brand sets it, #1112), plus nb-redesign — the owner's file.
+    {
+      const invBrands: Array<[string, any]> = [
+        ...brands,
+        ['nb-redesign', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input)],
+      ];
+      const COLUMNS = ['primary', 'neutral', 'destructive'];
+      const STATES = ['hover', 'pressed', 'selected'];
+      const absent: string[] = [], illegible: string[] = [], invisibleInv: string[] = [];
+      let hoverJudged = 0, deJudged = 0;
+      for (const [id, t] of invBrands) {
+        for (const m of tintRoles(t)) {
+          const band = m.roles['inverse.background.primary'];
+          for (const c of COLUMNS) for (const st of STATES) {
+            const key = `inverse.interactive.${c}.subtle-fill.${st}`;
+            const tint = m.roles[key];
+            if (!tint) { absent.push(`${id}/${m.mode}/${key}`); continue; }
+            if (band) {
+              deJudged++;
+              const d = deltaE2000(hexToRgb(tint.hex), hexToRgb(band.hex));
+              if (d < 2.3) invisibleInv.push(`${id}/${m.mode}/${key} ΔE ${d.toFixed(2)} vs band`);
+            }
+            if (st !== 'hover') continue;
+            const ink = m.roles[`inverse.interactive.${c}.text.hover`];
+            if (!ink) { absent.push(`${id}/${m.mode}/inverse.interactive.${c}.text.hover (the ink)`); continue; }
+            hoverJudged++;
+            const r = contrast(hexToRgb(ink.hex), hexToRgb(tint.hex));
+            if (r < ink.min - 0.005) illegible.push(`${id}/${m.mode}/${key} ${r.toFixed(2)} < ${ink.min}`);
+            if (tint.against !== `inverse.interactive.${c}.text.hover`) illegible.push(`${id}/${m.mode}/${key} against=${tint.against}`);
+          }
+        }
+      }
+      ok(absent.length === 0,
+        `#1613 solid-tint emits inverse.interactive.<c>.subtle-fill.{hover,pressed,selected} for primary/neutral/destructive in every mode (${invBrands.length} brands)`
+        + (absent.length ? ` — ABSENT (${absent.length}): ${absent.slice(0, 4).join(', ')}` : ''));
+      ok(hoverJudged > 0 && illegible.length === 0,
+        `#1613 every inverse subtle-fill hover keeps the band's hover ink legible (≥ the ink's secondaryMin, recomputed from hex; ${hoverJudged} judged)`
+        + (illegible.length ? ` — FAILING: ${illegible.slice(0, 4).join(', ')}` : ''));
+      // HELD, NOT INVENTED — the one place mirroring does not satisfy the contract, named cell by cell.
+      // nb-redesign (the owner's brand) routes `action` to its NEUTRAL palette and sets a neutral.950 band
+      // in light mode; the mirrored hover nominal is neutral.900, which clears the ink (6.55 / 17.15) but
+      // sits ΔE00 2.00 from the band. The walk never leaves the nominal (it stops at the first step that
+      // clears the INK), and teaching it to also clear ΔE is a change to the derivation — the owner's
+      // call (#1614), not a color to pick here. Every OTHER cell fails; and each held
+      // cell must STILL be invisible, so a fix upstream turns this line red until the hold is deleted.
+      const HELD_INVISIBLE = [
+        'nb-redesign/light/inverse.interactive.primary.subtle-fill.hover',
+        'nb-redesign/light/inverse.interactive.neutral.subtle-fill.hover',
+      ];
+      const heldSeen = invisibleInv.filter((x) => HELD_INVISIBLE.some((h) => x.startsWith(`${h} `)));
+      const unheldInv = invisibleInv.filter((x) => !HELD_INVISIBLE.some((h) => x.startsWith(`${h} `)));
+      ok(deJudged > 0 && unheldInv.length === 0,
+        `#1613 every inverse subtle-fill is perceptibly different from the inverse band (ΔE00 ≥ 2.3 vs inverse.background.primary; ${deJudged} judged, ${HELD_INVISIBLE.length} held by name)`
+        + (unheldInv.length ? ` — INVISIBLE: ${unheldInv.slice(0, 4).join(', ')}` : ''));
+      ok(heldSeen.length === HELD_INVISIBLE.length,
+        `#1613 the held nb-redesign/light inverse hover cells are still below ΔE00 2.3 — if this fails they were fixed; delete the hold (${heldSeen.join('; ')})`);
+    }
   }
 }
 
@@ -10835,10 +10906,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const emittedColor = (t: Theme): Set<string> =>
       new Set(buildFigmaColor(t).color.flatMap((c) => c.variables.map((v: { name: string }) => v.name.replace(/^[^/]+\//, ''))));
     const onInverse = (p: AnatomyPlan) => /surface=inverse/.test(planComponentName(p));
-    // The ONE held gap, named rather than derived: the engine emits no inverse twin of `subtle-fill`, so an
-    // inverse member under `solid-tint` has no role to rebind to. A design question on #1608's PR — any
-    // OTHER miss, or this one on a default-surface member, fails the gate.
-    const HELD_INVERSE_TINT = /^color\/inverse\/interactive\/[^/]+\/subtle-fill\/(hover|pressed)$/;
+    // No held gap since #1613: the engine emits the inverse `subtle-fill` twin, so an inverse member under
+    // `solid-tint` resolves like a default-ground one and EVERY miss fails the gate, on either ground.
     const missesOf = (t: Theme, wrap: boolean) => {
       const emitted = emittedColor(t);
       const out: { def: string; member: string; v: string; inverse: boolean }[] = [];
@@ -10857,9 +10926,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const t = { ...theme, outlineInteraction: method };
       const { out, looked } = missesOf(t, true);
       ok(looked > 0, `#1608 ${id} @ ${method}: the cross-check LOOKED — ${looked} projected paint ref(s) (a pass over zero refs is not a pass — docs/34 shape 9)`);
-      const unheld = out.filter((m) => !(method === 'solid-tint' && m.inverse && HELD_INVERSE_TINT.test(m.v)));
-      ok(unheld.length === 0,
-        `#1608 ${id} @ ${method}: every materialized component paint ref resolves to a color variable the brand EMITS${unheld.length ? ` — MISSING: ${[...new Set(unheld.map((m) => `${m.def}: ${m.v}`))].slice(0, 6).join('; ')}` : ''}`);
+      ok(out.length === 0,
+        `#1608 ${id} @ ${method}: every materialized component paint ref resolves to a color variable the brand EMITS${out.length ? ` — MISSING (${out.length}): ${[...new Set(out.map((m) => `${m.def}: ${m.v}`))].slice(0, 6).join('; ')}` : ''}`);
     }
 
     // HAND-NAMED: what each method binds on the member the owner hit — primary outline, hover, default ground.
@@ -10872,6 +10940,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       `#1608 overlay-neutral: button outline hover binds the wash color/interactive/primary/overlay/hover (${hoverFill('overlay-neutral')})`);
     ok(hoverFill('solid-tint') === 'color/interactive/primary/subtle-fill/hover',
       `#1608 solid-tint: button outline hover binds the opaque tint color/interactive/primary/subtle-fill/hover (${hoverFill('solid-tint')})`);
+    // #1613 — the same member on the INVERSE band binds the inverse twin, which the brand now emits.
+    const invHoverFill = (method: typeof METHODS[number]): string | undefined => {
+      const p = figmaAnatomySet(applyOutlineInteraction(button, method))
+        .find((q) => /appearance=outline/.test(planComponentName(q)) && /state=hover/.test(planComponentName(q)) && onInverse(q));
+      return p?.root.paints?.fills;
+    };
+    ok(invHoverFill('solid-tint') === 'color/inverse/interactive/primary/subtle-fill/hover'
+      && emittedColor({ ...nbTheme(), outlineInteraction: 'solid-tint' }).has('color/inverse/interactive/primary/subtle-fill/hover'),
+      `#1613 solid-tint: inverse-band button outline hover binds color/inverse/interactive/primary/subtle-fill/hover, and the brand emits it (${invHoverFill('solid-tint')})`);
     ok(hoverFill('none') === undefined,
       `#1608 none: button outline hover binds NO container fill — the intended no-hover (${hoverFill('none')})`);
 
