@@ -49,9 +49,9 @@
       ]
     },
     "background.secondary": {
-      "$description": "Page surface, second tier — a slightly tinted page / band",
+      "$description": "Page surface, second tier — a band one step off the base (equal to the base in high-contrast modes)",
       "meaning": "Page / canvas surface",
-      "when_to_use": "A slightly tinted page or page band.",
+      "when_to_use": "A second page tier — one step off the base in light and dark; identical to `background.primary` in high-contrast modes.",
       "avoid_when": "Do not use for surfaces placed on the page (use `foreground.*`) or for ink (use `text.*` or `icon.*`).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
@@ -85,7 +85,7 @@
       ]
     },
     "inverse.background.primary": {
-      "$description": "Inverse page surface — a dark band in light mode",
+      "$description": "Inverse page surface — the opposite-polarity band (dark on a light page, light on a dark page)",
       "meaning": "Page / canvas surface (inverse ground)",
       "when_to_use": "The page / base canvas. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `background.primary`. Do not use for surfaces placed on the page (use `foreground.*`) or for ink (use `text.*` or `icon.*`).",
@@ -105,7 +105,7 @@
     "inverse.background.secondary": {
       "$description": "Inverse page surface, second tier",
       "meaning": "Page / canvas surface (inverse ground)",
-      "when_to_use": "A slightly tinted page or page band. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "A second page tier — one step off the base in light and dark; identical to `inverse.background.primary` in high-contrast modes. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `background.secondary`. Do not use for surfaces placed on the page (use `foreground.*`) or for ink (use `text.*` or `icon.*`).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
@@ -139,7 +139,7 @@
       ]
     },
     "scrim.default": {
-      "$description": "Scrim — 40% black backdrop (modals / drawers)",
+      "$description": "Scrim — black backdrop behind modals and drawers; opacity 40%",
       "meaning": "Background dimming / modal focus",
       "when_to_use": "The dimming layer behind a modal, dialog, or drawer.",
       "avoid_when": "Do not use as a solid surface or for any opaque element.",
@@ -284,7 +284,7 @@
       ]
     },
     "inverse.foreground.primary": {
-      "$description": "Inverse / bold surface — a dark fill in light mode",
+      "$description": "Inverse / bold surface — the opposite-polarity fill (dark on a light page, light on a dark page)",
       "meaning": "Surface / fill on the canvas (inverse ground)",
       "when_to_use": "Cards — the default surface placed on the page. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.primary`. Do not use for the page itself (use `background.*`) or for ink (use `text.*` or `icon.*`).",
@@ -335,7 +335,7 @@
       ]
     },
     "foreground.brand": {
-      "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
+      "$description": "Bold brand fill — clears 3:1 on background.secondary",
       "meaning": "Brand identity",
       "when_to_use": "Filled brand elements — badges, banners, status chips.",
       "avoid_when": "Do not use for brand ink (use `text.brand`) or as a subtle tint (use `foreground.brand-subtle`).",
@@ -359,7 +359,7 @@
       ]
     },
     "foreground.success": {
-      "$description": "Bold success fill — clears 3:1 on the floor (neutral.050)",
+      "$description": "Bold success fill — clears 3:1 on background.secondary",
       "meaning": "Success / positive signaling",
       "when_to_use": "Filled success elements — badges, banners, status chips.",
       "avoid_when": "Do not use for success ink (use `text.success`) or as a subtle tint (use `foreground.success-subtle`).",
@@ -383,7 +383,7 @@
       ]
     },
     "foreground.warning": {
-      "$description": "Bold warning fill — clears 3:1 on the floor (neutral.050)",
+      "$description": "Bold warning fill — clears 3:1 on background.secondary",
       "meaning": "Warning / caution signaling",
       "when_to_use": "Filled warning elements — badges, banners, status chips.",
       "avoid_when": "Do not use for warning ink (use `text.warning`) or as a subtle tint (use `foreground.warning-subtle`).",
@@ -407,7 +407,7 @@
       ]
     },
     "foreground.info": {
-      "$description": "Bold info fill — clears 3:1 on the floor (neutral.050)",
+      "$description": "Bold info fill — clears 3:1 on background.secondary",
       "meaning": "Informational signaling",
       "when_to_use": "Filled info elements — badges, banners, status chips.",
       "avoid_when": "Do not use for info ink (use `text.info`) or as a subtle tint (use `foreground.info-subtle`).",
@@ -516,7 +516,7 @@
       ]
     },
     "inverse.foreground.brand": {
-      "$description": "Bold brand fill on an inverse surface — clears 3:1 on the inverse floor",
+      "$description": "Bold brand fill on an inverse surface — clears 3:1 on inverse.background.secondary",
       "meaning": "Brand identity (inverse ground)",
       "when_to_use": "Filled brand elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.brand`. Do not use for brand ink (use `inverse.text.brand`) or as a subtle tint (use `inverse.foreground.brand-subtle`).",
@@ -536,7 +536,7 @@
       ]
     },
     "inverse.foreground.success": {
-      "$description": "Bold success fill on an inverse surface — clears 3:1 on the inverse floor",
+      "$description": "Bold success fill on an inverse surface — clears 3:1 on inverse.background.secondary",
       "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Filled success elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.success`. Do not use for success ink (use `inverse.text.success`) or as a subtle tint (use `inverse.foreground.success-subtle`).",
@@ -556,7 +556,7 @@
       ]
     },
     "inverse.foreground.warning": {
-      "$description": "Bold warning fill on an inverse surface — clears 3:1 on the inverse floor",
+      "$description": "Bold warning fill on an inverse surface — clears 3:1 on inverse.background.secondary",
       "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Filled warning elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.warning`. Do not use for warning ink (use `inverse.text.warning`) or as a subtle tint (use `inverse.foreground.warning-subtle`).",
@@ -576,7 +576,7 @@
       ]
     },
     "inverse.foreground.danger": {
-      "$description": "Bold danger fill on an inverse surface — clears 3:1 on the inverse floor",
+      "$description": "Bold danger fill on an inverse surface — clears 3:1 on inverse.background.secondary",
       "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Filled danger elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.danger`. Do not use for danger ink (use `inverse.text.danger`) or as a subtle tint (use `inverse.foreground.danger-subtle`).",
@@ -596,7 +596,7 @@
       ]
     },
     "inverse.foreground.info": {
-      "$description": "Bold info fill on an inverse surface — clears 3:1 on the inverse floor",
+      "$description": "Bold info fill on an inverse surface — clears 3:1 on inverse.background.secondary",
       "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Filled info elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.info`. Do not use for info ink (use `inverse.text.info`) or as a subtle tint (use `inverse.foreground.info-subtle`).",
@@ -616,7 +616,7 @@
       ]
     },
     "inverse.foreground.brand-subtle": {
-      "$description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "$description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
       "meaning": "Brand identity (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis brand surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.brand-subtle`. Do not use as a solid brand fill (use `inverse.foreground.brand`) or for brand ink (use `inverse.text.brand`).",
@@ -633,7 +633,7 @@
       ]
     },
     "inverse.foreground.success-subtle": {
-      "$description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "$description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
       "meaning": "Success / positive signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis success surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.success-subtle`. Do not use as a solid success fill (use `inverse.foreground.success`) or for success ink (use `inverse.text.success`).",
@@ -650,7 +650,7 @@
       ]
     },
     "inverse.foreground.warning-subtle": {
-      "$description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "$description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
       "meaning": "Warning / caution signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis warning surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.warning-subtle`. Do not use as a solid warning fill (use `inverse.foreground.warning`) or for warning ink (use `inverse.text.warning`).",
@@ -667,7 +667,7 @@
       ]
     },
     "inverse.foreground.danger-subtle": {
-      "$description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "$description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
       "meaning": "Destructive / error signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis danger surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.danger-subtle`. Do not use as a solid danger fill (use `inverse.foreground.danger`) or for danger ink (use `inverse.text.danger`).",
@@ -684,7 +684,7 @@
       ]
     },
     "inverse.foreground.info-subtle": {
-      "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on the inverse band",
       "meaning": "Informational signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis info surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `foreground.info-subtle`. Do not use as a solid info fill (use `inverse.foreground.info`) or for info ink (use `inverse.text.info`).",
@@ -701,7 +701,7 @@
       ]
     },
     "foreground.danger": {
-      "$description": "Bold danger fill — clears 3:1 on the floor (neutral.050)",
+      "$description": "Bold danger fill — clears 3:1 on background.secondary",
       "meaning": "Destructive / error signaling",
       "when_to_use": "Filled danger elements — badges, banners, status chips.",
       "avoid_when": "Do not use for danger ink (use `text.danger`) or as a subtle tint (use `foreground.danger-subtle`).",
@@ -725,7 +725,7 @@
       ]
     },
     "interactive.primary.fill.rest": {
-      "$description": "primary interactive fill — rest",
+      "$description": "primary interactive fill — rest, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -748,7 +748,7 @@
       ]
     },
     "interactive.primary.fill.hover": {
-      "$description": "primary interactive fill — hover",
+      "$description": "primary interactive fill — hover, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows on pointer hover. `interactive.primary.on-fill` is gated against `interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -768,7 +768,7 @@
       ]
     },
     "interactive.primary.fill.pressed": {
-      "$description": "primary interactive fill — pressed",
+      "$description": "primary interactive fill — pressed, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows while pressed. `interactive.primary.on-fill` is gated against `interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -788,7 +788,7 @@
       ]
     },
     "interactive.primary.fill.focused": {
-      "$description": "primary interactive fill — focused",
+      "$description": "primary interactive fill — focused, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows when keyboard-focused. `interactive.primary.on-fill` is gated against `interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -808,7 +808,7 @@
       ]
     },
     "interactive.primary.fill.selected": {
-      "$description": "primary interactive fill — selected",
+      "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows when selected / active. `interactive.primary.on-fill` is gated against `interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -1085,7 +1085,7 @@
       ]
     },
     "interactive.destructive.fill.rest": {
-      "$description": "destructive interactive fill — rest",
+      "$description": "destructive interactive fill — rest, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -1108,7 +1108,7 @@
       ]
     },
     "interactive.destructive.fill.hover": {
-      "$description": "destructive interactive fill — hover",
+      "$description": "destructive interactive fill — hover, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows on pointer hover. `interactive.destructive.on-fill` is gated against `interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -1128,7 +1128,7 @@
       ]
     },
     "interactive.destructive.fill.pressed": {
-      "$description": "destructive interactive fill — pressed",
+      "$description": "destructive interactive fill — pressed, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows while pressed. `interactive.destructive.on-fill` is gated against `interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -1148,7 +1148,7 @@
       ]
     },
     "interactive.destructive.fill.focused": {
-      "$description": "destructive interactive fill — focused",
+      "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows when keyboard-focused. `interactive.destructive.on-fill` is gated against `interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -1168,7 +1168,7 @@
       ]
     },
     "interactive.destructive.fill.selected": {
-      "$description": "destructive interactive fill — selected",
+      "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows when selected / active. `interactive.destructive.on-fill` is gated against `interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -1449,7 +1449,7 @@
       ]
     },
     "interactive.neutral.fill.rest": {
-      "$description": "neutral interactive fill — rest",
+      "$description": "neutral interactive fill — rest, clears 0:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -1465,7 +1465,7 @@
       ]
     },
     "interactive.neutral.fill.hover": {
-      "$description": "neutral interactive fill — hover",
+      "$description": "neutral interactive fill — hover, clears 0:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows on pointer hover.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -1481,7 +1481,7 @@
       ]
     },
     "interactive.neutral.fill.pressed": {
-      "$description": "neutral interactive fill — pressed",
+      "$description": "neutral interactive fill — pressed, clears 0:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows while pressed.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -1497,7 +1497,7 @@
       ]
     },
     "interactive.neutral.fill.focused": {
-      "$description": "neutral interactive fill — focused",
+      "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows when keyboard-focused.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -1513,7 +1513,7 @@
       ]
     },
     "interactive.neutral.fill.selected": {
-      "$description": "neutral interactive fill — selected",
+      "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows when selected / active.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -1792,7 +1792,7 @@
       ]
     },
     "inverse.interactive.primary.text.rest": {
-      "$description": "primary interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+      "$description": "primary interactive ink on an inverse surface — rest (outline / text on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.text.rest`. Do not use on a filled primary control (use `inverse.interactive.primary.on-fill`).",
@@ -1817,7 +1817,7 @@
       ]
     },
     "inverse.interactive.primary.icon.rest": {
-      "$description": "primary interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+      "$description": "primary interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The icon for OUTLINE and TEXT primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.icon.rest`. Do not use on a filled primary control (use `inverse.interactive.primary.on-fill`).",
@@ -1842,7 +1842,7 @@
       ]
     },
     "inverse.interactive.primary.text.hover": {
-      "$description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+      "$description": "primary interactive ink on an inverse surface — hover (outline / text on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.text.hover`. Do not use on a filled primary control (use `inverse.interactive.primary.on-fill`).",
@@ -1870,7 +1870,7 @@
       ]
     },
     "inverse.interactive.primary.icon.hover": {
-      "$description": "primary interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+      "$description": "primary interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The icon for OUTLINE and TEXT primary interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.icon.hover`. Do not use on a filled primary control (use `inverse.interactive.primary.on-fill`).",
@@ -1898,7 +1898,7 @@
       ]
     },
     "inverse.interactive.primary.text.pressed": {
-      "$description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+      "$description": "primary interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.text.pressed`. Do not use on a filled primary control (use `inverse.interactive.primary.on-fill`).",
@@ -1926,7 +1926,7 @@
       ]
     },
     "inverse.interactive.primary.icon.pressed": {
-      "$description": "primary interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+      "$description": "primary interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The icon for OUTLINE and TEXT primary interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.icon.pressed`. Do not use on a filled primary control (use `inverse.interactive.primary.on-fill`).",
@@ -1954,7 +1954,7 @@
       ]
     },
     "inverse.interactive.primary.fill.rest": {
-      "$description": "primary interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+      "$description": "primary interactive fill on an inverse surface — rest (the crisp white / black default)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.rest`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -1977,7 +1977,7 @@
       ]
     },
     "inverse.interactive.primary.fill.hover": {
-      "$description": "primary interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "primary interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows on pointer hover. `inverse.interactive.primary.on-fill` is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.hover`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -1997,7 +1997,7 @@
       ]
     },
     "inverse.interactive.primary.fill.pressed": {
-      "$description": "primary interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "primary interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows while pressed. `inverse.interactive.primary.on-fill` is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.pressed`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -2017,7 +2017,7 @@
       ]
     },
     "inverse.interactive.primary.fill.focused": {
-      "$description": "primary interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "primary interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows when keyboard-focused. `inverse.interactive.primary.on-fill` is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.focused`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -2037,7 +2037,7 @@
       ]
     },
     "inverse.interactive.primary.fill.selected": {
-      "$description": "primary interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "primary interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows when selected / active. `inverse.interactive.primary.on-fill` is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.selected`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -2057,7 +2057,7 @@
       ]
     },
     "inverse.interactive.primary.on-fill": {
-      "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)",
+      "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The label / icon placed on a filled primary interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.on-fill`. Do not use on the page or on outline controls — use `interactive.primary.text.*`.",
@@ -2080,7 +2080,7 @@
       ]
     },
     "inverse.interactive.primary.border.rest": {
-      "$description": "primary interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+      "$description": "primary interactive border on an inverse surface — rest (the outline edge; follows the ink)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The border of an OUTLINE primary interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.border.rest`. Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `inverse.border.primary`).",
@@ -2104,7 +2104,7 @@
       ]
     },
     "inverse.interactive.primary.border.hover": {
-      "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+      "$description": "primary interactive border on an inverse surface — hover (the outline edge; follows the ink)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The border of an OUTLINE primary interactive element on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.border.hover`. Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `inverse.border.primary`).",
@@ -2128,7 +2128,7 @@
       ]
     },
     "inverse.interactive.primary.border.pressed": {
-      "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+      "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The border of an OUTLINE primary interactive element while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.border.pressed`. Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `inverse.border.primary`).",
@@ -2152,7 +2152,7 @@
       ]
     },
     "inverse.interactive.destructive.text.rest": {
-      "$description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+      "$description": "destructive interactive ink on an inverse surface — rest (outline / text on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it). Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary` and `inverse.foreground.secondary`. Below 4.5:1 on `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.rest`. Do not use on a filled destructive control (use `inverse.interactive.destructive.on-fill`).",
@@ -2179,7 +2179,7 @@
       ]
     },
     "inverse.interactive.destructive.icon.rest": {
-      "$description": "destructive interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+      "$description": "destructive interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The icon for OUTLINE and TEXT destructive interactive elements (no fill behind it). Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary` and `inverse.foreground.secondary`. Below 4.5:1 on `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.icon.rest`. Do not use on a filled destructive control (use `inverse.interactive.destructive.on-fill`).",
@@ -2206,7 +2206,7 @@
       ]
     },
     "inverse.interactive.destructive.text.hover": {
-      "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+      "$description": "destructive interactive ink on an inverse surface — hover (outline / text on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.hover`. Do not use on a filled destructive control (use `inverse.interactive.destructive.on-fill`).",
@@ -2234,7 +2234,7 @@
       ]
     },
     "inverse.interactive.destructive.icon.hover": {
-      "$description": "destructive interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+      "$description": "destructive interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The icon for OUTLINE and TEXT destructive interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.icon.hover`. Do not use on a filled destructive control (use `inverse.interactive.destructive.on-fill`).",
@@ -2262,7 +2262,7 @@
       ]
     },
     "inverse.interactive.destructive.text.pressed": {
-      "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+      "$description": "destructive interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.pressed`. Do not use on a filled destructive control (use `inverse.interactive.destructive.on-fill`).",
@@ -2290,7 +2290,7 @@
       ]
     },
     "inverse.interactive.destructive.icon.pressed": {
-      "$description": "destructive interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+      "$description": "destructive interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The icon for OUTLINE and TEXT destructive interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.icon.pressed`. Do not use on a filled destructive control (use `inverse.interactive.destructive.on-fill`).",
@@ -2318,7 +2318,7 @@
       ]
     },
     "inverse.interactive.destructive.fill.rest": {
-      "$description": "destructive interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+      "$description": "destructive interactive fill on an inverse surface — rest (the crisp white / black default)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.rest`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -2341,7 +2341,7 @@
       ]
     },
     "inverse.interactive.destructive.fill.hover": {
-      "$description": "destructive interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "destructive interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows on pointer hover. `inverse.interactive.destructive.on-fill` is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.hover`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -2361,7 +2361,7 @@
       ]
     },
     "inverse.interactive.destructive.fill.pressed": {
-      "$description": "destructive interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "destructive interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows while pressed. `inverse.interactive.destructive.on-fill` is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.pressed`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -2381,7 +2381,7 @@
       ]
     },
     "inverse.interactive.destructive.fill.focused": {
-      "$description": "destructive interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "destructive interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows when keyboard-focused. `inverse.interactive.destructive.on-fill` is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.focused`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -2401,7 +2401,7 @@
       ]
     },
     "inverse.interactive.destructive.fill.selected": {
-      "$description": "destructive interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "destructive interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows when selected / active. `inverse.interactive.destructive.on-fill` is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.selected`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -2421,7 +2421,7 @@
       ]
     },
     "inverse.interactive.destructive.on-fill": {
-      "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)",
+      "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The label / icon placed on a filled destructive interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.on-fill`. Do not use on the page or on outline controls — use `interactive.destructive.text.*`.",
@@ -2444,7 +2444,7 @@
       ]
     },
     "inverse.interactive.destructive.border.rest": {
-      "$description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+      "$description": "destructive interactive border on an inverse surface — rest (the outline edge; follows the ink)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The border of an OUTLINE destructive interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.rest`. Do not use as ink (use `interactive.destructive.text.*`) or as a page divider (use `inverse.border.primary`).",
@@ -2468,7 +2468,7 @@
       ]
     },
     "inverse.interactive.destructive.border.hover": {
-      "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+      "$description": "destructive interactive border on an inverse surface — hover (the outline edge; follows the ink)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The border of an OUTLINE destructive interactive element on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.hover`. Do not use as ink (use `interactive.destructive.text.*`) or as a page divider (use `inverse.border.primary`).",
@@ -2492,7 +2492,7 @@
       ]
     },
     "inverse.interactive.destructive.border.pressed": {
-      "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+      "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The border of an OUTLINE destructive interactive element while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.pressed`. Do not use as ink (use `interactive.destructive.text.*`) or as a page divider (use `inverse.border.primary`).",
@@ -2516,7 +2516,7 @@
       ]
     },
     "inverse.interactive.neutral.text.rest": {
-      "$description": "neutral interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+      "$description": "neutral interactive ink on an inverse surface — rest (outline / text on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it). Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.text.rest`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
@@ -2544,7 +2544,7 @@
       ]
     },
     "inverse.interactive.neutral.icon.rest": {
-      "$description": "neutral interactive icon ink on a dark / inverse surface — rest (the glyph in an outline / ghost / text control on a dark hero)",
+      "$description": "neutral interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The icon for OUTLINE and TEXT neutral interactive elements (no fill behind it). Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.icon.rest`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
@@ -2572,7 +2572,7 @@
       ]
     },
     "inverse.interactive.neutral.text.hover": {
-      "$description": "neutral interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+      "$description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.text.hover`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
@@ -2600,7 +2600,7 @@
       ]
     },
     "inverse.interactive.neutral.icon.hover": {
-      "$description": "neutral interactive icon ink on a dark / inverse surface — hover (the glyph in an outline / ghost / text control on a dark hero)",
+      "$description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The icon for OUTLINE and TEXT neutral interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.icon.hover`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
@@ -2628,7 +2628,7 @@
       ]
     },
     "inverse.interactive.neutral.text.pressed": {
-      "$description": "neutral interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+      "$description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.text.pressed`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
@@ -2656,7 +2656,7 @@
       ]
     },
     "inverse.interactive.neutral.icon.pressed": {
-      "$description": "neutral interactive icon ink on a dark / inverse surface — pressed (the glyph in an outline / ghost / text control on a dark hero)",
+      "$description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The icon for OUTLINE and TEXT neutral interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.icon.pressed`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
@@ -2684,7 +2684,7 @@
       ]
     },
     "inverse.interactive.neutral.fill.rest": {
-      "$description": "neutral interactive fill on a dark / inverse surface — rest (the crisp white / black default — #1456)",
+      "$description": "neutral interactive fill on an inverse surface — rest (the crisp white / black default)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.rest`. Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -2707,7 +2707,7 @@
       ]
     },
     "inverse.interactive.neutral.fill.hover": {
-      "$description": "neutral interactive fill on a dark / inverse surface — hover (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "neutral interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.hover`. Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -2730,7 +2730,7 @@
       ]
     },
     "inverse.interactive.neutral.fill.pressed": {
-      "$description": "neutral interactive fill on a dark / inverse surface — pressed (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "neutral interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.pressed`. Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -2753,7 +2753,7 @@
       ]
     },
     "inverse.interactive.neutral.fill.focused": {
-      "$description": "neutral interactive fill on a dark / inverse surface — focused (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "neutral interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows when keyboard-focused. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.focused`. Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -2776,7 +2776,7 @@
       ]
     },
     "inverse.interactive.neutral.fill.selected": {
-      "$description": "neutral interactive fill on a dark / inverse surface — selected (stepped 2 neutral rungs per state away from the extreme — #1456)",
+      "$description": "neutral interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows when selected / active. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.selected`. Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -2822,7 +2822,7 @@
       ]
     },
     "inverse.interactive.neutral.border.rest": {
-      "$description": "neutral interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
+      "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The border of an OUTLINE neutral interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.rest`. Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `inverse.border.primary`).",
@@ -2846,7 +2846,7 @@
       ]
     },
     "inverse.interactive.neutral.border.hover": {
-      "$description": "neutral interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
+      "$description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The border of an OUTLINE neutral interactive element on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.hover`. Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `inverse.border.primary`).",
@@ -2870,7 +2870,7 @@
       ]
     },
     "inverse.interactive.neutral.border.pressed": {
-      "$description": "neutral interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+      "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The border of an OUTLINE neutral interactive element while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.pressed`. Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `inverse.border.primary`).",
@@ -3110,7 +3110,7 @@
       ]
     },
     "inverse.interactive.primary.overlay.hover": {
-      "$description": "primary interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+      "$description": "primary interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent primary hover wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.hover`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle) or as a modal backdrop (use `scrim.default`).",
@@ -3134,7 +3134,7 @@
       ]
     },
     "inverse.interactive.primary.overlay.pressed": {
-      "$description": "primary interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+      "$description": "primary interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent primary pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.pressed`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle) or as a modal backdrop (use `scrim.default`).",
@@ -3158,7 +3158,7 @@
       ]
     },
     "inverse.interactive.primary.overlay.selected": {
-      "$description": "primary interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+      "$description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent primary selected wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.selected`. Do not use as an opaque fill (use `interactive.primary.fill.*` or foreground.primary-subtle) or as a modal backdrop (use `scrim.default`).",
@@ -3182,7 +3182,7 @@
       ]
     },
     "inverse.interactive.neutral.overlay.hover": {
-      "$description": "neutral interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+      "$description": "neutral interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent neutral hover wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.hover`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle) or as a modal backdrop (use `scrim.default`).",
@@ -3206,7 +3206,7 @@
       ]
     },
     "inverse.interactive.neutral.overlay.pressed": {
-      "$description": "neutral interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+      "$description": "neutral interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent neutral pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.pressed`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle) or as a modal backdrop (use `scrim.default`).",
@@ -3230,7 +3230,7 @@
       ]
     },
     "inverse.interactive.neutral.overlay.selected": {
-      "$description": "neutral interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+      "$description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent neutral selected wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.selected`. Do not use as an opaque fill (use `interactive.neutral.fill.*` or foreground.neutral-subtle) or as a modal backdrop (use `scrim.default`).",
@@ -3254,7 +3254,7 @@
       ]
     },
     "inverse.interactive.destructive.overlay.hover": {
-      "$description": "destructive interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+      "$description": "destructive interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent destructive hover wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.hover`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle) or as a modal backdrop (use `scrim.default`).",
@@ -3278,7 +3278,7 @@
       ]
     },
     "inverse.interactive.destructive.overlay.pressed": {
-      "$description": "destructive interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+      "$description": "destructive interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent destructive pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.pressed`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle) or as a modal backdrop (use `scrim.default`).",
@@ -3302,7 +3302,7 @@
       ]
     },
     "inverse.interactive.destructive.overlay.selected": {
-      "$description": "destructive interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+      "$description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "A translucent destructive selected wash for outline/text controls and hover/pressed/selected rows, menus, cards. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.selected`. Do not use as an opaque fill (use `interactive.destructive.fill.*` or foreground.destructive-subtle) or as a modal backdrop (use `scrim.default`).",
@@ -3365,7 +3365,7 @@
       ]
     },
     "disabled.text": {
-      "$description": "Disabled text — clears 3:1 (reduced contrast, legible)",
+      "$description": "Disabled text — reduced contrast, legible; clears 3:1",
       "meaning": "Unavailable / inactive state",
       "when_to_use": "Text of a disabled or inactive element (a disabled outline/text control, disabled body copy).",
       "avoid_when": "Do not use for active content (use `text.primary` or `text.secondary`).",
@@ -3385,7 +3385,7 @@
       ]
     },
     "disabled.icon": {
-      "$description": "Disabled icon — clears 3:1 (reduced contrast, legible)",
+      "$description": "Disabled icon — reduced contrast, legible; clears 3:1",
       "meaning": "Unavailable / inactive state",
       "when_to_use": "Icon of a disabled or inactive element.",
       "avoid_when": "Do not use for active icons (use `icon.primary` or `icon.secondary`).",
@@ -3460,7 +3460,7 @@
       ]
     },
     "inverse.disabled.text": {
-      "$description": "Disabled text on an inverse surface — clears 3:1 (reduced contrast, legible)",
+      "$description": "Disabled text on an inverse surface — reduced contrast, legible; clears 3:1",
       "meaning": "Unavailable / inactive state (inverse ground)",
       "when_to_use": "Text of a disabled or inactive element (a disabled outline/text control, disabled body copy). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `disabled.text`. Do not use for active content (use `inverse.text.primary` or `inverse.text.secondary`).",
@@ -3480,7 +3480,7 @@
       ]
     },
     "inverse.disabled.icon": {
-      "$description": "Disabled icon on an inverse surface — clears 3:1 (reduced contrast, legible)",
+      "$description": "Disabled icon on an inverse surface — reduced contrast, legible; clears 3:1",
       "meaning": "Unavailable / inactive state (inverse ground)",
       "when_to_use": "Icon of a disabled or inactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `disabled.icon`. Do not use for active icons (use `inverse.icon.primary` or `inverse.icon.secondary`).",
@@ -3516,7 +3516,7 @@
       ]
     },
     "field.fill": {
-      "$description": "Form field fill — TRANSPARENT by default (no paint): the border is the field boundary, so the fill sits correctly on any ground. Kept themable — point it at a surface step for a filled field. Hover is a translucent wash, not a fill swap (#1342)",
+      "$description": "Form field fill — transparent by default (no paint): the border is the field boundary, so the fill sits correctly on any ground. Kept themable — point it at a surface step for a filled field. Hover adds a translucent wash; the fill itself does not change",
       "meaning": "Form input / field chrome",
       "when_to_use": "The fill of a text input / form field — TRANSPARENT by default, so the border frames the field on whatever ground it sits. Point it at a surface step for a filled field.",
       "avoid_when": "Do not use for the page (use `background.*`) or a card (use `foreground.*`).",
@@ -3534,7 +3534,7 @@
       ]
     },
     "field.border.rest": {
-      "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable 3:1 (SC 1.4.11) against the darkest permissible ground (the tinted `background.secondary` tier), not the page alone",
+      "$description": "Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible ground (`background.secondary`), not the page alone",
       "meaning": "Form input / field chrome",
       "when_to_use": "The RESTING boundary of a transparent-fill field, before focus (SC 1.4.11). Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for the focus ring (use `border.focus`) or a validation state (use an intent border such as `border.danger`).",
@@ -3557,7 +3557,7 @@
       ]
     },
     "field.border.hover": {
-      "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (never the sole state carrier — KB §4)",
+      "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)",
       "meaning": "Form input / field chrome",
       "when_to_use": "The HOVER boundary of a form field — a subtly stronger perceivable border (SC 1.4.11) on pointer hover. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use as the resting border (use `field.border.rest`), the focus ring (use `border.focus`), or a validation state (use an intent border such as `border.danger`).",
@@ -3580,7 +3580,7 @@
       ]
     },
     "field.placeholder": {
-      "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
+      "$description": "Form field placeholder ink — a readable hint, 4.5:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)",
       "meaning": "Form input / field chrome",
       "when_to_use": "Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use as a label (a11y anti-pattern) or for the entered value (use `text.primary`).",
@@ -3603,7 +3603,7 @@
       ]
     },
     "inverse.field.fill": {
-      "$description": "Form field fill on an inverse surface — TRANSPARENT by default (no paint), the same paint-less field the page takes; the border frames it on the dark band",
+      "$description": "Form field fill on an inverse surface — transparent by default (no paint), the same paint-less field the page takes; the border frames it on the inverse band",
       "meaning": "Form input / field chrome (inverse ground)",
       "when_to_use": "The fill of a text input / form field — TRANSPARENT by default, so the border frames the field on whatever ground it sits. Point it at a surface step for a filled field. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.fill`. Do not use for the page (use `background.*`) or a card (use `foreground.*`).",
@@ -3621,7 +3621,7 @@
       ]
     },
     "inverse.field.border.rest": {
-      "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable 3:1 (SC 1.4.11) against the darkest permissible inverse ground",
+      "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible inverse ground",
       "meaning": "Form input / field chrome (inverse ground)",
       "when_to_use": "The RESTING boundary of a transparent-fill field, before focus (SC 1.4.11). Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.border.rest`. Do not use for the focus ring (use `inverse.border.focus`) or a validation state (use an intent border such as `inverse.border.danger`).",
@@ -3644,7 +3644,7 @@
       ]
     },
     "inverse.field.border.hover": {
-      "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (never the sole state carrier — KB §4)",
+      "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)",
       "meaning": "Form input / field chrome (inverse ground)",
       "when_to_use": "The HOVER boundary of a form field — a subtly stronger perceivable border (SC 1.4.11) on pointer hover. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.border.hover`. Do not use as the resting border (use `inverse.field.border.rest`), the focus ring (use `inverse.border.focus`), or a validation state (use an intent border such as `inverse.border.danger`).",
@@ -3667,7 +3667,7 @@
       ]
     },
     "inverse.field.placeholder": {
-      "$description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill",
+      "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill",
       "meaning": "Form input / field chrome (inverse ground)",
       "when_to_use": "Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `field.placeholder`. Do not use as a label (a11y anti-pattern) or for the entered value (use `inverse.text.primary`).",
@@ -3718,7 +3718,7 @@
       ]
     },
     "text.secondary": {
-      "$description": "Secondary text — 4.5:1 on the floor",
+      "$description": "Secondary text — 4.5:1 on background.secondary",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Secondary text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
       "avoid_when": "Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill.",
@@ -3743,7 +3743,7 @@
       ]
     },
     "text.tertiary": {
-      "$description": "Tertiary text — 3:1 on the floor",
+      "$description": "Tertiary text — 3:1 on background.secondary",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
       "avoid_when": "Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill.",
@@ -3768,7 +3768,7 @@
       ]
     },
     "text.brand": {
-      "$description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "$description": "brand text — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Brand identity",
       "when_to_use": "Brand text — e.g. a brand accent or highlighted label. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid brand fill. Use `text.on-brand` there.",
@@ -3793,7 +3793,7 @@
       ]
     },
     "text.success": {
-      "$description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "$description": "success text — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Success / positive signaling",
       "when_to_use": "Success text — e.g. a success confirmation. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid success fill. Use `text.on-success` there.",
@@ -3818,7 +3818,7 @@
       ]
     },
     "text.warning": {
-      "$description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "$description": "warning text — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Warning / caution signaling",
       "when_to_use": "Warning text — e.g. a caution note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid warning fill. Use `text.on-warning` there.",
@@ -3843,7 +3843,7 @@
       ]
     },
     "text.danger": {
-      "$description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "$description": "danger text — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Destructive / error signaling",
       "when_to_use": "Danger text — e.g. an inline validation error. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid danger fill. Use `text.on-danger` there.",
@@ -3868,7 +3868,7 @@
       ]
     },
     "text.info": {
-      "$description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "$description": "info text — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Informational signaling",
       "when_to_use": "Info text — e.g. an informational note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid info fill. Use `text.on-info` there.",
@@ -3893,7 +3893,7 @@
       ]
     },
     "text.brand-subtle": {
-      "$description": "Muted brand text — low-emphasis accent, 3:1 on the page",
+      "$description": "Muted brand text — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Brand identity (low-emphasis)",
       "when_to_use": "Low-emphasis brand text and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "For safety-critical brand messaging use the bold `text.brand`; verify contrast for body text.",
@@ -3921,7 +3921,7 @@
       ]
     },
     "text.success-subtle": {
-      "$description": "Muted success text — low-emphasis accent, 3:1 on the page",
+      "$description": "Muted success text — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Success / positive signaling (low-emphasis)",
       "when_to_use": "Low-emphasis success text and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "For safety-critical success messaging use the bold `text.success`; verify contrast for body text.",
@@ -3946,7 +3946,7 @@
       ]
     },
     "text.warning-subtle": {
-      "$description": "Muted warning text — low-emphasis accent, 3:1 on the page",
+      "$description": "Muted warning text — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Warning / caution signaling (low-emphasis)",
       "when_to_use": "Low-emphasis warning text and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "For safety-critical warning messaging use the bold `text.warning`; verify contrast for body text.",
@@ -3971,7 +3971,7 @@
       ]
     },
     "text.danger-subtle": {
-      "$description": "Muted danger text — low-emphasis accent, 3:1 on the page",
+      "$description": "Muted danger text — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Destructive / error signaling (low-emphasis)",
       "when_to_use": "Low-emphasis danger text and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "For safety-critical danger messaging use the bold `text.danger`; verify contrast for body text.",
@@ -3996,7 +3996,7 @@
       ]
     },
     "text.info-subtle": {
-      "$description": "Muted info text — low-emphasis accent, 3:1 on the page",
+      "$description": "Muted info text — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Informational signaling (low-emphasis)",
       "when_to_use": "Low-emphasis info text and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "For safety-critical info messaging use the bold `text.info`; verify contrast for body text.",
@@ -4021,7 +4021,7 @@
       ]
     },
     "text.on-brand": {
-      "$description": "text on a solid brand fill",
+      "$description": "Text on a solid brand fill — 4.5:1",
       "meaning": "Legible content on brand identity fills",
       "when_to_use": "Text placed on the brand fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
@@ -4044,7 +4044,7 @@
       ]
     },
     "text.on-success": {
-      "$description": "text on a solid success fill",
+      "$description": "Text on a solid success fill — 4.5:1",
       "meaning": "Legible content on success / positive fills",
       "when_to_use": "Text placed on the success fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
@@ -4067,7 +4067,7 @@
       ]
     },
     "text.on-warning": {
-      "$description": "text on a solid warning fill",
+      "$description": "Text on a solid warning fill — 4.5:1",
       "meaning": "Legible content on warning / caution fills",
       "when_to_use": "Text placed on the warning fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
@@ -4090,7 +4090,7 @@
       ]
     },
     "text.on-danger": {
-      "$description": "text on a solid danger fill",
+      "$description": "Text on a solid danger fill — 4.5:1",
       "meaning": "Legible content on destructive / error fills",
       "when_to_use": "Text placed on the danger fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
@@ -4113,7 +4113,7 @@
       ]
     },
     "text.on-info": {
-      "$description": "text on a solid info fill",
+      "$description": "Text on a solid info fill — 4.5:1",
       "meaning": "Legible content on informational fills",
       "when_to_use": "Text placed on the info fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
@@ -4136,7 +4136,7 @@
       ]
     },
     "text.link.default": {
-      "$description": "Link text — default",
+      "$description": "Link text — default, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
@@ -4161,7 +4161,7 @@
       ]
     },
     "text.link.hover": {
-      "$description": "Link text — hover",
+      "$description": "Link text — hover, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
@@ -4189,7 +4189,7 @@
       ]
     },
     "text.link.visited": {
-      "$description": "Link text — visited",
+      "$description": "Link text — visited, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
@@ -4217,7 +4217,7 @@
       ]
     },
     "text.link.focused": {
-      "$description": "Link text — focused",
+      "$description": "Link text — focused, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
@@ -4242,7 +4242,7 @@
       ]
     },
     "text.link.pressed": {
-      "$description": "Link text — pressed",
+      "$description": "Link text — pressed, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
@@ -4298,7 +4298,7 @@
       ]
     },
     "icon.secondary": {
-      "$description": "Secondary icon — 4.5:1 on the floor",
+      "$description": "Secondary icon — 4.5:1 on background.secondary",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Secondary icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `icon.primary` there.",
       "avoid_when": "Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill.",
@@ -4323,7 +4323,7 @@
       ]
     },
     "icon.tertiary": {
-      "$description": "Tertiary icon — 3:1 on the floor",
+      "$description": "Tertiary icon — 3:1 on background.secondary",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary icon. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `icon.primary` there.",
       "avoid_when": "Do not use on solid or vivid fills. Use the `icon.on-*` ink paired with the fill.",
@@ -4348,7 +4348,7 @@
       ]
     },
     "icon.brand": {
-      "$description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "$description": "brand icon — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Brand identity",
       "when_to_use": "Brand icons — e.g. the icon beside a brand accent or highlighted label. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid brand fill. Use `icon.on-brand` there.",
@@ -4373,7 +4373,7 @@
       ]
     },
     "icon.success": {
-      "$description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "$description": "success icon — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Success / positive signaling",
       "when_to_use": "Success icons — e.g. the icon beside a success confirmation. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid success fill. Use `icon.on-success` there.",
@@ -4398,7 +4398,7 @@
       ]
     },
     "icon.warning": {
-      "$description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "$description": "warning icon — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Warning / caution signaling",
       "when_to_use": "Warning icons — e.g. the icon beside a caution note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid warning fill. Use `icon.on-warning` there.",
@@ -4423,7 +4423,7 @@
       ]
     },
     "icon.danger": {
-      "$description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "$description": "danger icon — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Destructive / error signaling",
       "when_to_use": "Danger icons — e.g. the icon beside an inline validation error. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid danger fill. Use `icon.on-danger` there.",
@@ -4448,7 +4448,7 @@
       ]
     },
     "icon.info": {
-      "$description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint",
+      "$description": "info icon — 4.5:1 on background.secondary and on its own tint",
       "meaning": "Informational signaling",
       "when_to_use": "Info icons — e.g. the icon beside an informational note. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a solid info fill. Use `icon.on-info` there.",
@@ -4473,7 +4473,7 @@
       ]
     },
     "icon.brand-subtle": {
-      "$description": "Muted brand icon — low-emphasis accent, 3:1 on the page",
+      "$description": "Muted brand icon — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Brand identity (low-emphasis)",
       "when_to_use": "Low-emphasis brand icons and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "For safety-critical brand messaging use the bold `icon.brand`; verify contrast for body text.",
@@ -4501,7 +4501,7 @@
       ]
     },
     "icon.success-subtle": {
-      "$description": "Muted success icon — low-emphasis accent, 3:1 on the page",
+      "$description": "Muted success icon — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Success / positive signaling (low-emphasis)",
       "when_to_use": "Low-emphasis success icons and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "For safety-critical success messaging use the bold `icon.success`; verify contrast for body text.",
@@ -4526,7 +4526,7 @@
       ]
     },
     "icon.warning-subtle": {
-      "$description": "Muted warning icon — low-emphasis accent, 3:1 on the page",
+      "$description": "Muted warning icon — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Warning / caution signaling (low-emphasis)",
       "when_to_use": "Low-emphasis warning icons and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "For safety-critical warning messaging use the bold `icon.warning`; verify contrast for body text.",
@@ -4551,7 +4551,7 @@
       ]
     },
     "icon.danger-subtle": {
-      "$description": "Muted danger icon — low-emphasis accent, 3:1 on the page",
+      "$description": "Muted danger icon — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Destructive / error signaling (low-emphasis)",
       "when_to_use": "Low-emphasis danger icons and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "For safety-critical danger messaging use the bold `icon.danger`; verify contrast for body text.",
@@ -4576,7 +4576,7 @@
       ]
     },
     "icon.info-subtle": {
-      "$description": "Muted info icon — low-emphasis accent, 3:1 on the page",
+      "$description": "Muted info icon — low-emphasis accent, 3:1 on background.primary",
       "meaning": "Informational signaling (low-emphasis)",
       "when_to_use": "Low-emphasis info icons and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "For safety-critical info messaging use the bold `icon.info`; verify contrast for body text.",
@@ -4601,7 +4601,7 @@
       ]
     },
     "icon.on-brand": {
-      "$description": "icon on a solid brand fill",
+      "$description": "Icon on a solid brand fill — 4.5:1",
       "meaning": "Legible content on brand identity fills",
       "when_to_use": "Icon placed on the brand fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
@@ -4624,7 +4624,7 @@
       ]
     },
     "icon.on-success": {
-      "$description": "icon on a solid success fill",
+      "$description": "Icon on a solid success fill — 4.5:1",
       "meaning": "Legible content on success / positive fills",
       "when_to_use": "Icon placed on the success fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
@@ -4647,7 +4647,7 @@
       ]
     },
     "icon.on-warning": {
-      "$description": "icon on a solid warning fill",
+      "$description": "Icon on a solid warning fill — 4.5:1",
       "meaning": "Legible content on warning / caution fills",
       "when_to_use": "Icon placed on the warning fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
@@ -4670,7 +4670,7 @@
       ]
     },
     "icon.on-danger": {
-      "$description": "icon on a solid danger fill",
+      "$description": "Icon on a solid danger fill — 4.5:1",
       "meaning": "Legible content on destructive / error fills",
       "when_to_use": "Icon placed on the danger fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
@@ -4693,7 +4693,7 @@
       ]
     },
     "icon.on-info": {
-      "$description": "icon on a solid info fill",
+      "$description": "Icon on a solid info fill — 4.5:1",
       "meaning": "Legible content on informational fills",
       "when_to_use": "Icon placed on the info fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
@@ -4716,7 +4716,7 @@
       ]
     },
     "icon.link.default": {
-      "$description": "Link icon — default",
+      "$description": "Link icon — default, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
@@ -4741,7 +4741,7 @@
       ]
     },
     "icon.link.hover": {
-      "$description": "Link icon — hover",
+      "$description": "Link icon — hover, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
@@ -4769,7 +4769,7 @@
       ]
     },
     "icon.link.visited": {
-      "$description": "Link icon — visited",
+      "$description": "Link icon — visited, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
@@ -4797,7 +4797,7 @@
       ]
     },
     "icon.link.focused": {
-      "$description": "Link icon — focused",
+      "$description": "Link icon — focused, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
@@ -4822,7 +4822,7 @@
       ]
     },
     "icon.link.pressed": {
-      "$description": "Link icon — pressed",
+      "$description": "Link icon — pressed, 4.5:1 on background.secondary",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
@@ -4850,7 +4850,7 @@
       ]
     },
     "inverse.text.primary": {
-      "$description": "Primary text — strongest neutral",
+      "$description": "Primary text on an inverse surface — strongest neutral",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Primary text. Clears 7:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.primary`. Do not use on solid or vivid fills.",
@@ -4878,7 +4878,7 @@
       ]
     },
     "inverse.text.secondary": {
-      "$description": "Secondary text — 4.5:1 on the floor",
+      "$description": "Secondary text on an inverse surface — 4.5:1 on inverse.background.secondary",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Secondary text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.text.primary` there. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.secondary`. Do not use on solid or vivid fills.",
@@ -4903,7 +4903,7 @@
       ]
     },
     "inverse.text.tertiary": {
-      "$description": "Tertiary text — 3:1 on the floor",
+      "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.text.primary` there. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.tertiary`. Do not use on solid or vivid fills.",
@@ -4928,7 +4928,7 @@
       ]
     },
     "inverse.text.brand": {
-      "$description": "brand text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "$description": "brand text — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Brand identity (inverse ground)",
       "when_to_use": "Brand text — e.g. a brand accent or highlighted label. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.brand`. Do not use on a solid brand fill.",
@@ -4953,7 +4953,7 @@
       ]
     },
     "inverse.text.success": {
-      "$description": "success text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "$description": "success text — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Success text — e.g. a success confirmation. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.success`. Do not use on a solid success fill.",
@@ -4978,7 +4978,7 @@
       ]
     },
     "inverse.text.warning": {
-      "$description": "warning text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "$description": "warning text — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Warning text — e.g. a caution note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.warning`. Do not use on a solid warning fill.",
@@ -5003,7 +5003,7 @@
       ]
     },
     "inverse.text.danger": {
-      "$description": "danger text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "$description": "danger text — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Danger text — e.g. an inline validation error. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.danger`. Do not use on a solid danger fill.",
@@ -5028,7 +5028,7 @@
       ]
     },
     "inverse.text.info": {
-      "$description": "info text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "$description": "info text — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Info text — e.g. an informational note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.info`. Do not use on a solid info fill.",
@@ -5053,7 +5053,7 @@
       ]
     },
     "inverse.text.brand-subtle": {
-      "$description": "Muted brand text — low-emphasis accent, 3:1 on the inverse band",
+      "$description": "Muted brand text — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Brand identity (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis brand text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.brand-subtle`. For safety-critical brand messaging use the bold `inverse.text.brand`; verify contrast for body text.",
@@ -5078,7 +5078,7 @@
       ]
     },
     "inverse.text.success-subtle": {
-      "$description": "Muted success text — low-emphasis accent, 3:1 on the inverse band",
+      "$description": "Muted success text — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Success / positive signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis success text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.success-subtle`. For safety-critical success messaging use the bold `inverse.text.success`; verify contrast for body text.",
@@ -5103,7 +5103,7 @@
       ]
     },
     "inverse.text.warning-subtle": {
-      "$description": "Muted warning text — low-emphasis accent, 3:1 on the inverse band",
+      "$description": "Muted warning text — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Warning / caution signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis warning text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.warning-subtle`. For safety-critical warning messaging use the bold `inverse.text.warning`; verify contrast for body text.",
@@ -5128,7 +5128,7 @@
       ]
     },
     "inverse.text.danger-subtle": {
-      "$description": "Muted danger text — low-emphasis accent, 3:1 on the inverse band",
+      "$description": "Muted danger text — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Destructive / error signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis danger text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.danger-subtle`. For safety-critical danger messaging use the bold `inverse.text.danger`; verify contrast for body text.",
@@ -5153,7 +5153,7 @@
       ]
     },
     "inverse.text.info-subtle": {
-      "$description": "Muted info text — low-emphasis accent, 3:1 on the inverse band",
+      "$description": "Muted info text — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Informational signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis info text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.info-subtle`. For safety-critical info messaging use the bold `inverse.text.info`; verify contrast for body text.",
@@ -5178,7 +5178,7 @@
       ]
     },
     "inverse.text.link.default": {
-      "$description": "Link text — default",
+      "$description": "Link text on an inverse surface — default, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use `inverse.text.primary`).",
@@ -5203,7 +5203,7 @@
       ]
     },
     "inverse.text.link.hover": {
-      "$description": "Link text — hover",
+      "$description": "Link text on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use `inverse.text.primary`).",
@@ -5231,7 +5231,7 @@
       ]
     },
     "inverse.text.link.visited": {
-      "$description": "Link text — visited",
+      "$description": "Link text on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use `inverse.text.primary`).",
@@ -5259,7 +5259,7 @@
       ]
     },
     "inverse.text.link.focused": {
-      "$description": "Link text — focused",
+      "$description": "Link text on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.focused`. Do not use for non-interactive text (use `inverse.text.primary`).",
@@ -5284,7 +5284,7 @@
       ]
     },
     "inverse.text.link.pressed": {
-      "$description": "Link text — pressed",
+      "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.link.pressed`. Do not use for non-interactive text (use `inverse.text.primary`).",
@@ -5312,7 +5312,7 @@
       ]
     },
     "inverse.icon.primary": {
-      "$description": "Primary icon — strongest neutral",
+      "$description": "Primary icon on an inverse surface — strongest neutral",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Primary icon. Clears 7:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.primary`. Do not use on solid or vivid fills.",
@@ -5340,7 +5340,7 @@
       ]
     },
     "inverse.icon.secondary": {
-      "$description": "Secondary icon — 4.5:1 on the floor",
+      "$description": "Secondary icon on an inverse surface — 4.5:1 on inverse.background.secondary",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Secondary icon. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.icon.primary` there. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.secondary`. Do not use on solid or vivid fills.",
@@ -5365,7 +5365,7 @@
       ]
     },
     "inverse.icon.tertiary": {
-      "$description": "Tertiary icon — 3:1 on the floor",
+      "$description": "Tertiary icon on an inverse surface — 3:1 on inverse.background.secondary",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Tertiary icon. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.icon.primary` there. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.tertiary`. Do not use on solid or vivid fills.",
@@ -5390,7 +5390,7 @@
       ]
     },
     "inverse.icon.brand": {
-      "$description": "brand icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "$description": "brand icon — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Brand identity (inverse ground)",
       "when_to_use": "Brand icons — e.g. the icon beside a brand accent or highlighted label. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.brand`. Do not use on a solid brand fill.",
@@ -5415,7 +5415,7 @@
       ]
     },
     "inverse.icon.success": {
-      "$description": "success icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "$description": "success icon — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Success icons — e.g. the icon beside a success confirmation. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.success`. Do not use on a solid success fill.",
@@ -5440,7 +5440,7 @@
       ]
     },
     "inverse.icon.warning": {
-      "$description": "warning icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "$description": "warning icon — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Warning icons — e.g. the icon beside a caution note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.warning`. Do not use on a solid warning fill.",
@@ -5465,7 +5465,7 @@
       ]
     },
     "inverse.icon.danger": {
-      "$description": "danger icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "$description": "danger icon — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Danger icons — e.g. the icon beside an inline validation error. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.danger`. Do not use on a solid danger fill.",
@@ -5490,7 +5490,7 @@
       ]
     },
     "inverse.icon.info": {
-      "$description": "info icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
+      "$description": "info icon — 4.5:1 on inverse.background.secondary and on its own tint",
       "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Info icons — e.g. the icon beside an informational note. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.info`. Do not use on a solid info fill.",
@@ -5515,7 +5515,7 @@
       ]
     },
     "inverse.icon.brand-subtle": {
-      "$description": "Muted brand icon — low-emphasis accent, 3:1 on the inverse band",
+      "$description": "Muted brand icon — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Brand identity (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis brand icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.brand-subtle`. For safety-critical brand messaging use the bold `inverse.icon.brand`; verify contrast for body text.",
@@ -5540,7 +5540,7 @@
       ]
     },
     "inverse.icon.success-subtle": {
-      "$description": "Muted success icon — low-emphasis accent, 3:1 on the inverse band",
+      "$description": "Muted success icon — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Success / positive signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis success icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.success-subtle`. For safety-critical success messaging use the bold `inverse.icon.success`; verify contrast for body text.",
@@ -5565,7 +5565,7 @@
       ]
     },
     "inverse.icon.warning-subtle": {
-      "$description": "Muted warning icon — low-emphasis accent, 3:1 on the inverse band",
+      "$description": "Muted warning icon — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Warning / caution signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis warning icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.warning-subtle`. For safety-critical warning messaging use the bold `inverse.icon.warning`; verify contrast for body text.",
@@ -5590,7 +5590,7 @@
       ]
     },
     "inverse.icon.danger-subtle": {
-      "$description": "Muted danger icon — low-emphasis accent, 3:1 on the inverse band",
+      "$description": "Muted danger icon — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Destructive / error signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis danger icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.danger-subtle`. For safety-critical danger messaging use the bold `inverse.icon.danger`; verify contrast for body text.",
@@ -5615,7 +5615,7 @@
       ]
     },
     "inverse.icon.info-subtle": {
-      "$description": "Muted info icon — low-emphasis accent, 3:1 on the inverse band",
+      "$description": "Muted info icon — low-emphasis accent, 3:1 on inverse.background.primary",
       "meaning": "Informational signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis info icons and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.info-subtle`. For safety-critical info messaging use the bold `inverse.icon.info`; verify contrast for body text.",
@@ -5640,7 +5640,7 @@
       ]
     },
     "inverse.icon.link.default": {
-      "$description": "Link icon — default",
+      "$description": "Link icon on an inverse surface — default, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.default`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
@@ -5665,7 +5665,7 @@
       ]
     },
     "inverse.icon.link.hover": {
-      "$description": "Link icon — hover",
+      "$description": "Link icon on an inverse surface — hover, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.hover`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
@@ -5693,7 +5693,7 @@
       ]
     },
     "inverse.icon.link.visited": {
-      "$description": "Link icon — visited",
+      "$description": "Link icon on an inverse surface — visited, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon after it has been visited. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.visited`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
@@ -5721,7 +5721,7 @@
       ]
     },
     "inverse.icon.link.focused": {
-      "$description": "Link icon — focused",
+      "$description": "Link icon on an inverse surface — focused, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 4.5:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.focused`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
@@ -5746,7 +5746,7 @@
       ]
     },
     "inverse.icon.link.pressed": {
-      "$description": "Link icon — pressed",
+      "$description": "Link icon on an inverse surface — pressed, 4.5:1 on inverse.background.secondary",
       "meaning": "Interactivity / navigation (inverse ground)",
       "when_to_use": "Hyperlinks and interactive icon while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `icon.link.pressed`. Do not use for non-interactive icon (use `inverse.icon.primary`).",
@@ -5813,7 +5813,7 @@
       }
     },
     "border.brand": {
-      "$description": "brand border — 3:1 (SC 1.4.11)",
+      "$description": "brand border — SC 1.4.11 non-text contrast, 3:1",
       "meaning": "Brand identity",
       "when_to_use": "Validation/state borders for brand (e.g. invalid fields).",
       "avoid_when": "Do not use as brand ink or fill — use `text.brand` or `foreground.brand`.",
@@ -5833,7 +5833,7 @@
       ]
     },
     "border.success": {
-      "$description": "success border — 3:1 (SC 1.4.11)",
+      "$description": "success border — SC 1.4.11 non-text contrast, 3:1",
       "meaning": "Success / positive signaling",
       "when_to_use": "Validation/state borders for success (e.g. invalid fields).",
       "avoid_when": "Do not use as success ink or fill — use `text.success` or `foreground.success`.",
@@ -5853,7 +5853,7 @@
       ]
     },
     "border.warning": {
-      "$description": "warning border — 3:1 (SC 1.4.11)",
+      "$description": "warning border — SC 1.4.11 non-text contrast, 3:1",
       "meaning": "Warning / caution signaling",
       "when_to_use": "Validation/state borders for warning (e.g. invalid fields).",
       "avoid_when": "Do not use as warning ink or fill — use `text.warning` or `foreground.warning`.",
@@ -5873,7 +5873,7 @@
       ]
     },
     "border.danger": {
-      "$description": "danger border — 3:1 (SC 1.4.11)",
+      "$description": "danger border — SC 1.4.11 non-text contrast, 3:1",
       "meaning": "Destructive / error signaling",
       "when_to_use": "Validation/state borders for danger (e.g. invalid fields).",
       "avoid_when": "Do not use as danger ink or fill — use `text.danger` or `foreground.danger`.",
@@ -5893,7 +5893,7 @@
       ]
     },
     "border.info": {
-      "$description": "info border — 3:1 (SC 1.4.11)",
+      "$description": "info border — SC 1.4.11 non-text contrast, 3:1",
       "meaning": "Informational signaling",
       "when_to_use": "Validation/state borders for info (e.g. invalid fields).",
       "avoid_when": "Do not use as info ink or fill — use `text.info` or `foreground.info`.",
@@ -5913,7 +5913,7 @@
       ]
     },
     "border.focus": {
-      "$description": "Focus ring color (keyboard focus)",
+      "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on background.primary",
       "meaning": "Keyboard focus indication",
       "when_to_use": "The keyboard-focus indicator on interactive elements. Clears 3:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use as a decorative divider (use `border.primary`). On an inverse band, use `inverse.border.focus`.",
@@ -5980,7 +5980,7 @@
       }
     },
     "inverse.border.brand": {
-      "$description": "brand border on an inverse surface — 3:1 (SC 1.4.11)",
+      "$description": "brand border on an inverse surface — SC 1.4.11 non-text contrast, 3:1",
       "meaning": "Brand identity (inverse ground)",
       "when_to_use": "Validation/state borders for brand (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.brand`. Do not use as brand ink or fill — use `inverse.text.brand` or `inverse.foreground.brand`.",
@@ -6000,7 +6000,7 @@
       ]
     },
     "inverse.border.success": {
-      "$description": "success border on an inverse surface — 3:1 (SC 1.4.11)",
+      "$description": "success border on an inverse surface — SC 1.4.11 non-text contrast, 3:1",
       "meaning": "Success / positive signaling (inverse ground)",
       "when_to_use": "Validation/state borders for success (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.success`. Do not use as success ink or fill — use `inverse.text.success` or `inverse.foreground.success`.",
@@ -6020,7 +6020,7 @@
       ]
     },
     "inverse.border.warning": {
-      "$description": "warning border on an inverse surface — 3:1 (SC 1.4.11)",
+      "$description": "warning border on an inverse surface — SC 1.4.11 non-text contrast, 3:1",
       "meaning": "Warning / caution signaling (inverse ground)",
       "when_to_use": "Validation/state borders for warning (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.warning`. Do not use as warning ink or fill — use `inverse.text.warning` or `inverse.foreground.warning`.",
@@ -6040,7 +6040,7 @@
       ]
     },
     "inverse.border.danger": {
-      "$description": "danger border on an inverse surface — 3:1 (SC 1.4.11)",
+      "$description": "danger border on an inverse surface — SC 1.4.11 non-text contrast, 3:1",
       "meaning": "Destructive / error signaling (inverse ground)",
       "when_to_use": "Validation/state borders for danger (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.danger`. Do not use as danger ink or fill — use `inverse.text.danger` or `inverse.foreground.danger`.",
@@ -6060,7 +6060,7 @@
       ]
     },
     "inverse.border.info": {
-      "$description": "info border on an inverse surface — 3:1 (SC 1.4.11)",
+      "$description": "info border on an inverse surface — SC 1.4.11 non-text contrast, 3:1",
       "meaning": "Informational signaling (inverse ground)",
       "when_to_use": "Validation/state borders for info (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.info`. Do not use as info ink or fill — use `inverse.text.info` or `inverse.foreground.info`.",
@@ -6080,7 +6080,7 @@
       ]
     },
     "inverse.border.focus": {
-      "$description": "Focus ring color on inverse surfaces (keyboard focus)",
+      "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on inverse.background.primary",
       "meaning": "Keyboard focus indication (inverse ground)",
       "when_to_use": "The keyboard-focus indicator on interactive elements. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `border.focus`. Do not use as a decorative divider (use `inverse.border.primary`).",
@@ -6836,7 +6836,7 @@
       ]
     },
     "core.palette.transparent": {
-      "$description": "Transparent — alpha 0, no paint. The default field fill aliases this so its border is the boundary on any ground (#1341)",
+      "$description": "Transparent — alpha 0, no paint. field.fill aliases it, so a field is framed by its border on any ground",
       "meaning": "Pure transparent primitive",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
@@ -7687,7 +7687,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.secondary.500": {
-      "$description": "Brand secondary 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "$description": "Brand secondary 500 — Mid-Tone band — 5.03:1 on white, 4.16:1 on black",
       "meaning": "secondary ramp — raw step 500",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -10138,13 +10138,13 @@
       ]
     },
     "motion.easing.linear": {
-      "$description": "easing linear",
+      "$description": "easing linear — constant speed, no easing",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
     },
     "motion.easing.standard": {
-      "$description": "easing standard",
+      "$description": "easing standard — symmetric ease for in-place changes",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
@@ -10154,7 +10154,7 @@
       ]
     },
     "motion.easing.decelerate": {
-      "$description": "easing decelerate",
+      "$description": "easing decelerate — fast start, soft landing; for entrances",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
@@ -10164,7 +10164,7 @@
       ]
     },
     "motion.easing.accelerate": {
-      "$description": "easing accelerate",
+      "$description": "easing accelerate — soft start, fast finish; for exits",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
@@ -10174,7 +10174,7 @@
       ]
     },
     "motion.easing.expressive": {
-      "$description": "easing expressive",
+      "$description": "easing expressive — S-curve for emphasized moments",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
@@ -10316,7 +10316,7 @@
       "consume": "Private primitive — prefer a semantic token."
     },
     "container.narrow": {
-      "$description": "container narrow — 720px reading measure (~65–75ch)",
+      "$description": "container narrow — 720px reading measure",
       "meaning": "Container primitive — narrow",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
@@ -10340,19 +10340,19 @@
       "consume": "Private primitive — prefer a semantic token."
     },
     "control.size.sm.line-box": {
-      "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "meaning": "Control primitive — size sm line-box",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
     },
     "control.size.md.line-box": {
-      "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "meaning": "Control primitive — size md line-box",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
     },
     "control.size.lg.line-box": {
-      "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "meaning": "Control primitive — size lg line-box",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."

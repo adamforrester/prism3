@@ -205,7 +205,7 @@ export const checkboxControl: ComponentDef = {
         strokeWidth: 'border-width',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['mark', 'dash', 'focusRing'],
-        note: 'The control square AND the nominal hit-target marker. The real hit target is the whole labeled ROW, which lives on `checkbox`; this square is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part carries.',
+        note: 'The control square AND the nominal hit-target marker. The real hit target is the whole labeled ROW, which lives on `checkbox-row`; this square is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part carries.',
       },
       // THE CHECK. The FRAME is bound to the control box (`size.{size}.control`), and `glyphScale: 0.8`
       // (#1346) pads the emitted artboard so the drawn grid — and the ~71% of it the `check` artwork
@@ -286,7 +286,7 @@ export const checkboxControl: ComponentDef = {
     usage: 'Do not place this on its own. It is the box a Checkbox row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring — the ~10% case the labeled Checkbox does not cover.',
     do: [
       'Nest this from the Checkbox row rather than redrawing the box per host',
-      'Let the host row pass `selection`, `size` and `state` through by `follow`, so the nested control tracks the row',
+      'Let the host row expose `selection` and `state` and `follow` its size, so the nested control tracks the row',
       'Supply an external aria-label only when using the control genuinely alone, with no labeled row to name it',
     ],
     dont: [
@@ -308,7 +308,7 @@ export const checkboxControl: ComponentDef = {
 
   composition: {
     composesWith: ['focus-ring'],
-    alternativeTo: ['radio-control', 'switch-row'],
+    alternativeTo: ['radio-control', 'switch-control'],
     supersedes: [
       'the painted control inlined in a checkbox row',
     ],

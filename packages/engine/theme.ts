@@ -801,8 +801,8 @@ const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
     }),
     transitions: [
       { name: 'default', duration: 'normal', easing: 'standard', desc: 'standard in-place transition' },
-      { name: 'enter', duration: 'normal', easing: 'decelerate', desc: 'entrance — element settles in' },
-      { name: 'exit', duration: 'fast', easing: 'accelerate', desc: 'exit — element accelerates out' },
+      { name: 'enter', duration: 'normal', easing: 'decelerate', desc: 'element settles in' },
+      { name: 'exit', duration: 'fast', easing: 'accelerate', desc: 'element accelerates out' },
       { name: 'emphasized', duration: 'moderate', easing: 'expressive', desc: 'expressive / hero moment' },
     ],
   };
@@ -2415,7 +2415,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   } else {
     // Primary is not a saturated red, so carve a dedicated danger red the brand never gave us.
     const d = STATUS_DEFAULTS.danger;
-    palettes.push({ palette: 'danger', role: 'danger', description: 'danger status (engine-carved red — primary is not red)', steps: statusRamp(d.h, d.chroma) });
+    palettes.push({ palette: 'danger', role: 'danger', description: 'danger status, engine-generated red ramp (the brand supplies no danger hue)', steps: statusRamp(d.h, d.chroma) });
     // Distinguish the two carve reasons (M-05): a red-ish-but-greige primary must NOT be reused
     // for danger (a near-grey can't signal destruction), even though its hue is in the window.
     const hueIsRed = hueDist(input.primary.h, STATUS_DEFAULTS.danger.h) <= 20;
@@ -2951,7 +2951,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     palette: spec.palette, role: spec.role, description: spec.name, steps: buildRamp(spec),
   }));
   // NB ships no blue; synthesise an info palette so the semantic layer is complete.
-  palettes.push({ palette: 'info', role: 'info', description: 'info status (engine-synthesized — NB has no blue)', steps: statusRamp(STATUS_DEFAULTS.info.h, STATUS_DEFAULTS.info.chroma) });
+  palettes.push({ palette: 'info', role: 'info', description: 'info status, engine-generated blue ramp (the brand supplies no info hue)', steps: statusRamp(STATUS_DEFAULTS.info.h, STATUS_DEFAULTS.info.chroma) });
   const baseUnit = s.density?.baseUnit ?? 4;
   const baseMd = s.radius?.baseMd ?? 4;
   // Engine taxonomy (not NB's): 8px space rhythm reproducing Prism2's numbered

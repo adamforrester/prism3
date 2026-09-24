@@ -132,7 +132,7 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
 
   // background — the CANVAS (thin, page-level)
   if (group === 'background') {
-    if (TIER_N[variant]) return { when_to_use: variant === 'primary' ? 'The page / base canvas.' : variant === 'secondary' ? 'A slightly tinted page or page band.' : 'A third page-level surface step.', avoid_when: 'Do not use for surfaces placed on the page (use `foreground.*`) or for ink (use `text.*` or `icon.*`).', paired_with: ['foreground.primary', 'text.primary', 'border.primary'] };
+    if (TIER_N[variant]) return { when_to_use: variant === 'primary' ? 'The page / base canvas.' : variant === 'secondary' ? 'A second page tier — one step off the base in light and dark; identical to `background.primary` in high-contrast modes.' : 'A third page-level surface step.', avoid_when: 'Do not use for surfaces placed on the page (use `foreground.*`) or for ink (use `text.*` or `icon.*`).', paired_with: ['foreground.primary', 'text.primary', 'border.primary'] };
   }
 
   // foreground — SURFACES & FILLS placed on the canvas

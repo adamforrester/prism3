@@ -8,7 +8,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.sm — 16px box edge for a SQUARE control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is NOT square and reads `track`/`width` instead (#1425).",
+      "description": "control.size.sm — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -34,7 +34,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.sm dot — 8px inner mark for a RADIO's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "description": "control.size.sm dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -47,7 +47,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "value": 21,
       "alias": null
     },
@@ -70,7 +70,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and the 16÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+      "description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and the 16÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -83,7 +83,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.sm track — 24px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "description": "control.size.sm track — 24px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -96,7 +96,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.sm thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "description": "control.size.sm thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
       "value": 18,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -109,7 +109,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.md — 20px box edge for a SQUARE control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is NOT square and reads `track`/`width` instead (#1425).",
+      "description": "control.size.md — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "value": 20,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -135,7 +135,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.md dot — 10px inner mark for a RADIO's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "description": "control.size.md dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "value": 10,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -148,7 +148,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "value": 24,
       "alias": null
     },
@@ -171,7 +171,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and the 20÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+      "description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and the 20÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -184,7 +184,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.md track — 32px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "description": "control.size.md track — 32px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
       "value": 32,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -197,7 +197,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.md thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "description": "control.size.md thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -210,7 +210,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.lg — 24px box edge for a SQUARE control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is NOT square and reads `track`/`width` instead (#1425).",
+      "description": "control.size.lg — 24px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -236,7 +236,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.lg dot — 12px inner mark for a RADIO's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "description": "control.size.lg dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -249,7 +249,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "value": 27,
       "alias": null
     },
@@ -272,7 +272,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and the 24÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+      "description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and the 24÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -285,7 +285,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.lg track — 40px track HEIGHT for a switch (Prism 2's 32px toggle at the default `md`; density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "description": "control.size.lg track — 40px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
       "value": 40,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -298,7 +298,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.lg thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`, Prism 2's toggle proportion). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "description": "control.size.lg thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
       "value": 30,
       "alias": {
         "type": "VARIABLE_ALIAS",
