@@ -78,6 +78,8 @@ import { exampleBrands } from '@prism3/engine/emit-brandinput';
 import { materializeForBrand } from './src/brand-def';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
+// #1608 — the brand's COLOR emission, the host-side oracle for the outline-hover arm.
+import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import type { BrandInput } from '@prism3/engine/theme';
 import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson } from './src/write-components';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
@@ -3072,6 +3074,66 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // above see what the call does.
   ok(/figmaAnatomySet\(materializeForBrand\(def, brandInput\)/.test(mainSrc) && /brandInput = restoreInput\(figma\.root\)/.test(mainSrc),
     '#1605 main.ts projects `materializeForBrand(def, brandInput)`, off its one `restoreInput` read');
+}
+
+// =============================================================================================
+// #1608 — THE PLUGIN RESOLVES THE OUTLINE HOVER FAMILY PER BRAND
+// =============================================================================================
+// `button` binds `interactive.<c>.overlay.{hover,pressed}` on outline/text hover — a wash the engine
+// EMITS only at `outlineInteraction: overlay-neutral`. The owner's NB file (solid-tint or none) built the
+// button with 96 `container.fills` misses. `materializeForBrand` now applies `applyOutlineInteraction`.
+//
+// The HOST holds ONLY the brand's emitted COLOR variables — `buildFigmaColor` off the brand's theme, the
+// emitter's side, not the projection's — plus the plans' non-color names (dimensions, styles, nested
+// components), which this arm is not about. Expected bindings are HAND-NAMED (docs/34). Removing the wrap
+// from `materializeForBrand` puts the page wash back in the plans, the host has no such variable, and the
+// lines below fail by their #1608 names.
+{
+  const nbInput = parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input as BrandInput;
+  const hostFor = (input: BrandInput, plans: AnatomyPlan[]): ShimOpts => {
+    const full = fullFor(plans);
+    const colors = buildFigmaColor(brandTheme(input)).color.flatMap((c) => c.variables.map((v) => v.name.replace(/^[^/]+\//, '')));
+    return { ...full, vars: [...new Set([...(full.vars ?? []).filter((v) => !v.startsWith('color/')), ...colors])] };
+  };
+  const members = (page: Page): Node[] => (page.children[0].children as Node[]) ?? [];
+  const fillVar = (n: Node): string => {
+    const f = (n.fills as { boundVariables?: { color?: { id?: string } } }[] | undefined) ?? [];
+    return f.length ? String(f[0]?.boundVariables?.color?.id ?? 'UNBOUND').replace(/^V:/, '') : 'NONE';
+  };
+  const hoverMembers = (page: Page, surface: string) => members(page).filter((m) =>
+    /appearance=(outline|text)/.test(String(m.name)) && /state=(hover|pressed)/.test(String(m.name)) && new RegExp(`surface=${surface}`).test(String(m.name)));
+  const fillMisses = (misses: string[]) => misses.filter((m) => /\.fills -> /.test(m));
+
+  // (a) SOLID-TINT — the opaque `subtle-fill` tint lands where the wash did, on the default ground.
+  const tint = { ...nbInput, outlineInteraction: 'solid-tint' } as BrandInput;
+  const tintPlans = figmaAnatomySet(materializeForBrand(button, tint), { swapTarget: SWAP });
+  const tintPage: Page = { children: [] };
+  const tintRun = await run(tintPlans, { ...hostFor(tint, tintPlans), page: tintPage });
+  const tintDefault = hoverMembers(tintPage, 'default');
+  const tintBound = [...new Set(tintDefault.map(fillVar))].sort();
+  ok(tintDefault.length === 48 && JSON.stringify(tintBound) === JSON.stringify(['color/interactive/primary/subtle-fill/hover', 'color/interactive/primary/subtle-fill/pressed']),
+    `#1608 solid-tint NB button: the 48 default-ground outline/text (2 appearances × 2 states × 3 sizes × 4 slot combos) hover+pressed members bind interactive/primary/subtle-fill/{hover,pressed} (${tintDefault.length}: ${tintBound.join(', ')})`);
+  // The held design question (#1608 PR): no inverse `subtle-fill` twin exists, so the inverse members are
+  // the ONLY misses left, and nothing else — no page wash, no default-ground miss — may appear.
+  const tintFill = fillMisses(tintRun.misses);
+  ok(tintFill.every((m) => /-> color\/inverse\/interactive\/primary\/subtle-fill\/(hover|pressed)$/.test(m)) && !tintFill.some((m) => /\/overlay\//.test(m)),
+    `#1608 solid-tint NB button: 0 container.fills misses on the default ground and NO overlay-wash miss — the only misses left are the held inverse subtle-fill (${tintFill.length}${tintFill.length ? ` — ${[...new Set(tintFill)].slice(0, 3).join('; ')}` : ''})`);
+
+  // (b) NONE — no hover expression: no variable asked for, so nothing to miss, and no fill on the member.
+  const none = { ...nbInput, outlineInteraction: 'none' } as BrandInput;
+  const nonePlans = figmaAnatomySet(materializeForBrand(button, none), { swapTarget: SWAP });
+  const nonePage: Page = { children: [] };
+  const noneRun = await run(nonePlans, { ...hostFor(none, nonePlans), page: nonePage });
+  ok(fillMisses(noneRun.misses).length === 0,
+    `#1608 none NB button: 0 container.fills misses (${fillMisses(noneRun.misses).length}${fillMisses(noneRun.misses).length ? ` — ${[...new Set(fillMisses(noneRun.misses))].slice(0, 3).join('; ')}` : ''})`);
+  const noneHover = [...hoverMembers(nonePage, 'default'), ...hoverMembers(nonePage, 'inverse')];
+  ok(noneHover.length === 96 && noneHover.every((m) => fillVar(m) === 'NONE'),
+    `#1608 none NB button: all 96 outline/text hover+pressed members (48 per ground) carry NO fill (${noneHover.length}: ${[...new Set(noneHover.map(fillVar))].join(', ')})`);
+
+  // (c) OVERLAY-NEUTRAL — the default: the materialized plans are byte-identical to the raw def's.
+  const wash = { ...nbInput, outlineInteraction: 'overlay-neutral' } as BrandInput;
+  ok(JSON.stringify(figmaAnatomySet(materializeForBrand(button, wash), { swapTarget: SWAP })) === JSON.stringify(figmaAnatomySet(materializeForBrand(button, { ...nbInput, outlineInteraction: undefined } as BrandInput), { swapTarget: SWAP })),
+    '#1608 overlay-neutral is the default and the identity: an explicit overlay-neutral brand projects the button byte-identically to one that leaves the lever unset');
 }
 
 if (failed) process.exit(1);

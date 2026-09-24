@@ -1572,6 +1572,9 @@ const writeComponentSet = async (
       // two states are indistinguishable to a viewer and neither may be the frame's arbitrary white.
       // TEXT is exempt for the same reason `claimDefaults` reports rather than neutralizes it — `[]` is
       // invisible text, a worse defect than an unpainted box.
+      // #1608 closed the CAUSE upstream: `materializeForBrand` now rebinds (solid-tint) or drops (none) the
+      // wash before projection, so a correctly materialized build no longer reaches this branch for it. It
+      // stays as the floor for any other declared-but-unresolvable fill (a stale file, a held inverse tint).
       else if (node.type !== 'TEXT') node.fills = [];
     }
     if (n.paints?.strokes) {

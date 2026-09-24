@@ -51,7 +51,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -10816,6 +10816,82 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       '#1601 self-check: planTextStyles surfaces the ref the detector filters');
     ok(planTextStyles(bogus.root).some((s) => !bogusEmitted.has(s)),
       '#1601 self-check: a composite no brand emits is flagged by the same membership test the gate uses — the detector can fail');
+  }
+
+  // ---- #1608: an outline/text hover fill binds the family the brand's `outlineInteraction` EMITS ----
+  // `button` (and icon-button, select, text-field) bind `interactive.<c>.overlay.{hover,pressed}`, a wash
+  // the engine emits ONLY at `overlay-neutral`. A `solid-tint` / `none` brand built the button with 96
+  // misses (the owner's NB file). `applyOutlineInteraction` materializes the def before projection, off
+  // `outlineFillRole`. SUBJECT = every def's projected paint variables, materialized per method; ORACLE =
+  // the brand's Figma COLOR EMISSION (`buildFigmaColor`, the files Apply writes), namespace stripped —
+  // independent sides (docs/34). No corpus brand sets `solid-tint` (#1112), so the brands are SYNTHETIC:
+  // a corpus theme with the lever overridden, as (10h) does.
+  {
+    const METHODS = ['overlay-neutral', 'solid-tint', 'none'] as const;
+    const bases: { id: string; theme: Theme }[] = [
+      { id: 'nb-measured', theme: nbTheme() },
+      { id: 'harbor', theme: brandTheme(readExampleBrand('./examples/harbor.design.md')) },
+    ];
+    const emittedColor = (t: Theme): Set<string> =>
+      new Set(buildFigmaColor(t).color.flatMap((c) => c.variables.map((v: { name: string }) => v.name.replace(/^[^/]+\//, ''))));
+    const onInverse = (p: AnatomyPlan) => /surface=inverse/.test(planComponentName(p));
+    // The ONE held gap, named rather than derived: the engine emits no inverse twin of `subtle-fill`, so an
+    // inverse member under `solid-tint` has no role to rebind to. A design question on #1608's PR — any
+    // OTHER miss, or this one on a default-surface member, fails the gate.
+    const HELD_INVERSE_TINT = /^color\/inverse\/interactive\/[^/]+\/subtle-fill\/(hover|pressed)$/;
+    const missesOf = (t: Theme, wrap: boolean) => {
+      const emitted = emittedColor(t);
+      const out: { def: string; member: string; v: string; inverse: boolean }[] = [];
+      let looked = 0;
+      for (const def of componentDefs) {
+        if (!def.figmaProperties) continue;
+        for (const p of figmaAnatomySet(wrap ? applyOutlineInteraction(def, t.outlineInteraction) : def))
+          for (const v of planPaintVars(p.root)) {
+            looked++;
+            if (!emitted.has(v)) out.push({ def: def.id, member: planComponentName(p), v, inverse: onInverse(p) });
+          }
+      }
+      return { out, looked };
+    };
+    for (const { id, theme } of bases) for (const method of METHODS) {
+      const t = { ...theme, outlineInteraction: method };
+      const { out, looked } = missesOf(t, true);
+      ok(looked > 0, `#1608 ${id} @ ${method}: the cross-check LOOKED — ${looked} projected paint ref(s) (a pass over zero refs is not a pass — docs/34 shape 9)`);
+      const unheld = out.filter((m) => !(method === 'solid-tint' && m.inverse && HELD_INVERSE_TINT.test(m.v)));
+      ok(unheld.length === 0,
+        `#1608 ${id} @ ${method}: every materialized component paint ref resolves to a color variable the brand EMITS${unheld.length ? ` — MISSING: ${[...new Set(unheld.map((m) => `${m.def}: ${m.v}`))].slice(0, 6).join('; ')}` : ''}`);
+    }
+
+    // HAND-NAMED: what each method binds on the member the owner hit — primary outline, hover, default ground.
+    const hoverFill = (method: typeof METHODS[number]): string | undefined => {
+      const p = figmaAnatomySet(applyOutlineInteraction(button, method))
+        .find((q) => /appearance=outline/.test(planComponentName(q)) && /state=hover/.test(planComponentName(q)) && !onInverse(q));
+      return p?.root.paints?.fills;
+    };
+    ok(hoverFill('overlay-neutral') === 'color/interactive/primary/overlay/hover',
+      `#1608 overlay-neutral: button outline hover binds the wash color/interactive/primary/overlay/hover (${hoverFill('overlay-neutral')})`);
+    ok(hoverFill('solid-tint') === 'color/interactive/primary/subtle-fill/hover',
+      `#1608 solid-tint: button outline hover binds the opaque tint color/interactive/primary/subtle-fill/hover (${hoverFill('solid-tint')})`);
+    ok(hoverFill('none') === undefined,
+      `#1608 none: button outline hover binds NO container fill — the intended no-hover (${hoverFill('none')})`);
+
+    // IDENTITY at the default: `overlay-neutral` returns the SAME object for every def, so every default
+    // projection (out/**, the plain component-surface rows) is byte-identical.
+    ok(componentDefs.every((d) => applyOutlineInteraction(d, 'overlay-neutral') === d),
+      '#1608 applyOutlineInteraction at overlay-neutral is the identity on every def (same object)');
+    ok(applyOutlineInteraction(fieldLabel, 'solid-tint') === fieldLabel && applyOutlineInteraction(fieldLabel, 'none') === fieldLabel,
+      '#1608 a def binding no wash is untouched at every method (field-label)');
+
+    // THE REACH: every def that binds the wash is rewritten — named, so a fifth binder must be added here.
+    const binders = componentDefs.filter((d) => applyOutlineInteraction(d, 'none') !== d).map((d) => d.id).sort();
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'select', 'text-field']),
+      `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, select, text-field (${binders.join(', ')})`);
+
+    // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
+    // shape the owner saw. The wrap is what makes the gate above green.
+    const raw = missesOf({ ...nbTheme(), outlineInteraction: 'solid-tint' }, false).out.filter((m) => m.def === 'button');
+    ok(raw.length === 96 && raw.some((m) => m.v === 'color/interactive/primary/overlay/hover'),
+      `#1608 MUTATION: unmaterialized, solid-tint NB button misses color/interactive/primary/overlay/{hover,pressed} — 96, the owner's count (${raw.length})`);
   }
 
   // The drift gate bites: a broken def is caught (missing avoid_when + an unresolvable binding).
