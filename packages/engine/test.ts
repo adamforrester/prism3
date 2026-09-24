@@ -1112,7 +1112,7 @@ for (const b of brands) {
   //   neutral here), neutral → the neutral extreme; each clears a HARD 4.5 floor on the crisp REST fill —
   //   REST ONLY (#1456): hover/pressed are transient states EXEMPT from the on-fill ink contract, so a stepped
   //   hover/pressed fill whose ink dips below AA is BY DESIGN and is not gated here (nor by the per-mode
-  //   contract — on-fill is a single role gated only against `fill.rest`). The lever (primary only) is proven
+  //   contract — on-fill is a single role gated only against `fill.rest`). The lever (primary + destructive) is proven
   //   real: OFF keeps primary on the BRAND ramp, ON swaps it to the NEUTRAL extreme AND that extreme clears
   //   4.5 at every state (the lever OPTS IN to all-state strictness; it survives the step). All ratios are
   //   recomputed from emitted hexes, never read off the role's own `ratio`.
@@ -1314,6 +1314,52 @@ for (const b of brands) {
     ok(onDips.length === 0,
       `#1389 GATE B: …and with the lever ON that neutral ink clears ${FLOOR}:1 at EVERY interactive state (hover/pressed/focused/selected), not just rest — the tightening actually holds`
       + (onDips.length ? ` — STILL DIPS: ${onDips.join('; ')}` : ''));
+
+    // ---- GATE B (lever, every category): the lever protects EVERY interactive label, not only primary ----
+    // Owner decision 2026-09-24: "Setting should cover destructive." Before it, the lever swapped primary's
+    // inverse ink only, so destructive's danger ink kept dipping to ~2.5:1 on the stepped inverse fills with
+    // the lever ON — the setting was silently partial. Here, with the lever ON, every family's on-fill is
+    // measured against EVERY state fill, in ALL FOUR modes (hc included), on the inverse ground — primary,
+    // destructive, neutral, and a declared interactive palette (an nb variant carrying `accent`, so the
+    // declared-palette category is represented, not assumed). Ratios recomputed from emitted hexes.
+    //
+    // The PAGE ground is measured too, in every mode but `dark`: there the page fill steps LIGHTER under an
+    // already-neutral near-white label (primary and destructive, lever ON or OFF, down to ~2.4:1). The lever's
+    // mechanism — swap a brand ink for the neutral extreme — cannot reach it, because the page ink already IS
+    // the neutral extreme; fixing it means re-picking the ink per state or re-stepping the fill, a design call
+    // held in #1626. Excluding that one mode is named here and asserted as represented below, not silent.
+    const strictDips: string[] = [];
+    const strictSeen = new Set<string>();
+    let strictCells = 0;
+    const STRICT_CORPUS: Array<[string, any]> = [
+      ...CORPUS,
+      ['nb+accent', { ...nbTheme(), interactivePalettes: [{ name: 'accent', palette: 'green', anchorStep: 500 }] }],
+    ];
+    for (const [id, base] of STRICT_CORPUS) {
+      const built = buildTree({ ...(base as any), strictInteractiveContrast: true }).tree as any;
+      const tree = built[Object.keys(built)[0]];
+      const fams = ['primary', 'destructive', 'neutral', ...((base as any).interactivePalettes ?? []).map((p: any) => p.name as string)];
+      for (const mode of MODES)
+        for (const ground of ['inverse.', ''] as const) {
+          if (ground === '' && mode === 'dark') continue; // #1626 — see above
+          for (const fam of fams) {
+            const inkHex = hexAt(tree, `color.${ground}interactive.${fam}.on-fill`, mode);
+            for (const st of STATES) {
+              const fillHex = hexAt(tree, `color.${ground}interactive.${fam}.fill.${st}`, mode);
+              if (!inkHex || !fillHex) { strictDips.push(`${id}/${mode}/${ground || 'page.'}${fam}/${st}: MISSING`); continue; }
+              strictCells++; strictSeen.add(`${ground || 'page.'}${fam}`);
+              const r = contrast(rgb255(inkHex), rgb255(fillHex));
+              if (r < FLOOR) strictDips.push(`${id}/${mode}/${ground || 'page.'}${fam}/${st}: ${r.toFixed(2)}:1`);
+            }
+          }
+        }
+    }
+    const strictWant = ['inverse.', 'page.'].flatMap((g) => ['primary', 'destructive', 'neutral', 'accent'].map((f) => g + f));
+    ok(strictWant.every((k) => strictSeen.has(k)) && strictCells >= 5 * STATES.length * (4 * 3 + 3 * 3),
+      `strict lever (every category) represented: inverse in 4 modes and page in 3 (dark held by #1626), across primary/destructive/neutral/accent and 5 brands (${strictCells} cells; seen ${[...strictSeen].sort().join(', ')})`);
+    ok(strictDips.length === 0,
+      `strict lever (every category): with strictInteractiveContrast ON, every destructive (and primary, neutral, declared-palette) state fill keeps its on-fill label at ${FLOOR}:1 or more in every mode — a lever that swaps primary's ink but not destructive's fails HERE`
+      + (strictDips.length ? ` — DIPS: ${strictDips.slice(0, 6).join('; ')}${strictDips.length > 6 ? ` (+${strictDips.length - 6})` : ''}` : ''));
   }
 
   // (e) Figma slots are scoped by SLOT (fill→paint, text→TEXT_FILL, border→STROKE_COLOR).

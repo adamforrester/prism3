@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.148.0 — owner decision 2026-09-24 ("Setting should cover destructive"): the `strictInteractiveContrast`
+ * lever now swaps EVERY brand-ink inverse label to the neutral extreme — destructive's danger ink as well as
+ * primary's brand ink — so with the lever ON no inverse state fill drops its label below 4.5:1 (destructive
+ * dipped to ~2.5:1 on the #1456 stepped hover/pressed fills). The rule is by category (`inkPalette !== null`):
+ * neutral and declared interactive palettes already carried the neutral extreme, so nothing else moves. The
+ * default-off destructive inverse hover/pressed `$description` reverts to the approved primary wording (the
+ * setting "keeps it at 4.5:1 or more"). Emission changes only with the lever ON (no committed brand sets it)
+ * plus that description line → ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
  * 0.147.0 — #1623 sign-off (owner decisions on the description audit). Figma gets its OWN description register:
  * `figma-description.ts` builds every Figma variable and style description from structured data (px, each
  * mode's `min`, alpha, the ground role, the face) — never from the DTCG `$description` — at about 90
@@ -3556,7 +3565,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.147.0';
+export const ENGINE_VERSION = '0.148.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

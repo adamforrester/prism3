@@ -315,8 +315,8 @@ export type Theme = {
   neutralEmphasis: 'subtle' | 'strong';
   // Strict interactive contrast (#1389, B4a). false (default): the inverse PRIMARY filled button
   // carries the vivid brand `on-fill` ink (#1244), which clears AA at `rest` but may dip below it on
-  // the TRANSIENT hover / pressed states now that the fill steps toward the ground. true: primary's
-  // inverse `on-fill` swaps to the neutral high-contrast extreme (near-black / near-white, the ink the
+  // the TRANSIENT hover / pressed states now that the fill steps toward the ground. true: primary's and
+  // destructive's inverse `on-fill` swap to the neutral high-contrast extreme (near-black / near-white, the ink the
   // other families already use), so every interactive state clears AA — trading the brand-colored
   // label for guaranteed legibility. The per-state on-fill contract enforces the hover/pressed floor
   // only when this is on; `rest` is a hard floor either way.
@@ -522,9 +522,9 @@ export type BrandInput = {
    *  neutral fill; 'strong' is a bold near-black/near-white neutral fill. */
   neutralEmphasis?: 'subtle' | 'strong';
   /** Strict interactive contrast (#1389, B4a). OPTIONAL, OPT-IN (off by default). The inverse filled
-   *  button steps its fill per state; the primary label's vivid brand ink (#1244) clears AA at `rest`
-   *  but dips on the transient hover/pressed steps. Off keeps the brand ink (rest AA held, later states
-   *  exempt). `true` swaps the primary inverse `on-fill` to the neutral high-contrast extreme so every
+   *  button steps its fill per state; the primary and destructive labels' brand ink (#1244/#1384) clears AA at
+   *  `rest` but dips on the transient hover/pressed steps. Off keeps the brand ink (rest AA held, later states
+   *  exempt). `true` swaps the primary and destructive inverse `on-fill` to the neutral high-contrast extreme so every
    *  state clears AA, trading brand color for guaranteed legibility. */
   strictInteractiveContrast?: boolean;
   /** Opt-in accent interactive colour (docs/20 §3) — the BACK-COMPAT single-column lever. Names a
@@ -2905,7 +2905,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-gray, default)'}; inverse surface-context: always generated (#895 removed the lever)`);
 
   const strictInteractiveContrast = input.strictInteractiveContrast ?? false;
-  notes.push(`strict interactive contrast: ${strictInteractiveContrast ? "ON — inverse primary on-fill is the neutral extreme, AA-clean in every state (#1389/B4a)" : "off — inverse primary carries the vivid brand on-fill (#1244); rest clears AA, transient hover/pressed may dip"}`);
+  notes.push(`strict interactive contrast: ${strictInteractiveContrast ? "ON — inverse primary and destructive on-fill are the neutral extreme, AA-clean in every state (#1389/B4a, destructive 2026-09-24)" : "off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip"}`);
 
   return {
     id: input.id, root, namespace: `${root}.${CORE_TIER}.palette`, colorFormat: 'hex', modes: modesAll, palettes, roleToPalette, notes,

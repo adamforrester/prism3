@@ -89,7 +89,7 @@ export const leverManifest: Lever[] = [
   { key: 'surfaces', group: 'color', label: 'Page surfaces', control: 'object', advanced: true,
     description: 'Non-default page surface per mode (e.g. a warm off-white). The contrast floor moves with it.' },
   { key: 'strictInteractiveContrast', group: 'color', label: 'Strict interactive contrast', control: 'toggle', advanced: true, default: false,
-    description: 'Opt-in (off by default). The inverse filled button steps its fill per state; the primary label’s vivid brand ink clears AA at rest but dips on the transient hover/pressed steps. On swaps the primary inverse label to the neutral high-contrast ink so every state clears AA — guaranteed legibility over brand color.' },
+    description: 'Opt-in (off by default). The inverse filled button steps its fill per state; the primary and destructive labels’ colored ink clears AA at rest but dips on the transient hover/pressed steps. On swaps both inverse labels to the neutral high-contrast ink so every state clears AA — guaranteed legibility over brand color.' },
   { key: 'linkStateRungs', group: 'color', label: 'Link states', control: 'object', advanced: true,
     description: 'Optional. Set how far each engaged link state — hover, pressed, visited — steps from the resting link, one state at a time, as a count of ramp steps. An unset state keeps the tuned walk; the resting link and its focus follow the action palette. Each step is held to the link’s contrast floor, so it respaces a state without dropping the link below 4.5:1.' },
 
