@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.142.0 — #1623 sign-off: the `.ai.json` sidecar is built for machine readers (schema
+ * `prism3-ai-metadata/0.3`, published as `schema/ai-metadata.schema.json` and validated in test.ts by the
+ * in-repo `json-schema-lite.ts`). Owner decisions: `.ai.json` is the payload channel, so `avoid_when_level`
+ * is gone and the one `MUST` is a `requirement` on each `contrast_with` entry, gated by `lint-voice.ts`'s
+ * new `normative` rule (AI/C-1); tertiary and subtle inks carry a structured `usage_limit` and say "large
+ * text, icons and non-essential text only" (AI/C-2, ELSEWHERE-2); no capitals for emphasis (AI/C-3);
+ * `paired_with` splits into `sits_on` / `carries` / `tracks` (AI/D-3); the scrim tracks `foreground.primary`
+ * (AI/D-2); `on-fill` relates to `fill.rest` only (ELSEWHERE-1); new `layout` and `motion` tiers plus the
+ * font roles give every tree leaf an entry (AI/D-1). Emitted `out/*.ai.json` changes → MINOR. CONTRACT
+ * STANDS (the sidecar is not the token-name surface; no token path moves).
+ *
  * 0.141.0 — The `outlineInteraction` option `solid-tint` is relabeled "Tinted wash" (was "Opaque subtle tint"),
  * owner decision after #1614 made the tint translucent: the old label described the retired opaque palette step.
  * Label only — the option key, its values and every emitted token are unchanged. `schema/lever-manifest.json`
@@ -3503,7 +3514,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.141.0';
+export const ENGINE_VERSION = '0.142.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -5,30 +5,62 @@
  * agent surface for the SEMANTIC layer, per the practice's schema
  * (knowledge-base 31-color-systems §9 + 00-principles "descriptions = highest-ROI;
  * avoid_when > when_to_use"). Every field is GENERATED — `meaning`/`when_to_use`/
- * `avoid_when` from a deterministic role→intent model, and `paired_with` /
+ * `avoid_when` from a deterministic role→intent model, and `sits_on` / `carries` / `tracks` /
  * `contrast_with` / `mode_overrides` reshaped from data the engine already
  * computes (the on-* pairings, the floor contract, the per-mode resolution). The
  * point: contract-true metadata that regenerates, vs the field's hand-authored
  * metadata that rots. Keeps tokens.json DTCG-pure (no non-standard sibling keys).
+ *
+ * The reader is a MODEL (#1623 sign-off: `.ai.json` is the payload channel of docs/voice-standard.md §4),
+ * so the file is built for machine reading: stable keys that are real tree paths, every name in prose
+ * backticked and resolvable, facts in structured fields as well as prose, and a versioned JSON Schema
+ * (`schema/ai-metadata.schema.json`, `$id` === `AI_METADATA_SCHEMA`) documenting every field.
  */
 import { Theme, CORE_TIER } from './theme';
 import { resolveAllModes, ResolvedRole } from './modes';
 import { contrast, hexToRgb } from './color';
+
+/** One contrast contract. `requirement` is the one place the sidecar carries an RFC 2119 keyword
+ *  (#1623 AI/C-1, owner decision: `.ai.json` is the payload channel of `docs/voice-standard.md` §4).
+ *  It is BUILT from the entry's own `min` / `token` / `composited_over`, so the `MUST` names exactly the
+ *  check a reading agent can run against `tokens.json` — and `lint-voice.ts` refuses a `MUST` anywhere
+ *  else in the file, or on a sentence that is not this one. It replaces `avoid_when_level`, which put a
+ *  `MUST` on usage sentences no check covered (199 of 219 per brand). */
+type Contrast = { token: string; min: string; ratio: number; composited_over?: string; requirement: string };
+
+/** The large-text-only classification (#1623 AI/C-2 + ELSEWHERE-2, owner decision): an ink whose floor
+ *  is below the 4.5:1 body-text floor in some mode is for large text, icons and non-essential text
+ *  only. Structured, so an agent can filter on it, and stated in prose as well. */
+type UsageLimit = {
+  use_for: ('large-text' | 'icons' | 'non-essential-text')[];
+  floor: string;
+  body_text_floor: string;
+  large_text: { min_px: number; bold_min_px: number };
+  body_text_alternative?: string;
+};
+
+/** The three relation fields that replace `paired_with` (#1623 AI/D-3, owner decision). Two of them are
+ *  legibility claims, measured in every mode; the third is not a contrast claim at all.
+ *   - `sits_on`: the grounds this ink or edge is placed on (ink → ground).
+ *   - `carries`: the inks placed on this ground (ground → ink) — the inverse of `sits_on`.
+ *   - `tracks`: companion roles used alongside this one (a border and the ink it follows, a field's
+ *     border and its placeholder, the surface over a scrim). No contrast is implied — two tracked roles
+ *     can be the same color. */
+type Relations = { sits_on?: string[]; carries?: string[]; tracks?: string[] };
 
 type AiToken = {
   $description: string;
   meaning: string;
   when_to_use: string;
   avoid_when: string;
-  // #621 — RFC 2119, DERIVED not authored: MUST iff a real computed contrast contract backs this
-  // token (`contrast_with` below, from the same `light.min > 0` check). A `MUST` with no gate behind
-  // it is worse than no label (manufactures rigor it can't back up) — so the level can only ever be
-  // as strong as the contract computation it reads, never hand-typed on a per-statement basis.
-  avoid_when_level: 'MUST' | 'SHOULD';
-  paired_with?: string[];
-  contrast_with?: { token: string; min: string; ratio: number }[];
+  usage_limit?: UsageLimit;
+  contrast_with?: Contrast[];
   mode_overrides: Record<string, string>;
-};
+} & Relations;
+
+/** The body-text floor (WCAG 1.4.3) and the large-text thresholds (24px, or 18.66px bold — 18pt / 14pt). */
+const BODY_FLOOR = 4.5;
+const LARGE_TEXT = { min_px: 24, bold_min_px: 18.66 };
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const INTENT: Record<string, string> = {
@@ -85,6 +117,21 @@ type Ctx = {
   min: (role: string) => number;
   /** The modes in which `ink` falls below `min` on `ground`. Empty means it holds in every mode. */
   failing: (ink: string, ground: string, min: number) => string[];
+  /** The lowest floor a role carries in any mode, 0 when it has none — the one an agent must design to. */
+  floorMin: (role: string) => number;
+};
+
+/** The large-text-only sentence (AI/C-2), or nothing when the ink's floor meets the body-text floor in
+ *  every mode. `alt` is named only when it clears the body-text floor in every mode itself. */
+const limitClause = (ctx: Ctx, self: string, alt: string): { text: string; alt?: string } | undefined => {
+  const f = ctx.floorMin(self);
+  if (!(f > 0 && f < BODY_FLOOR)) return undefined;
+  const altFloor = ctx.floorMin(alt);
+  const altOk = altFloor >= BODY_FLOOR;
+  return {
+    text: `Large text (${LARGE_TEXT.min_px}px and up, or ${LARGE_TEXT.bold_min_px}px bold), icons and non-essential text only — ${f}:1 is below the ${BODY_FLOOR}:1 floor for body text${altOk ? `; for body-size text use ${q(alt)} (${altFloor}:1)` : ''}.`,
+    ...(altOk ? { alt } : {}),
+  };
 };
 
 /** "Clears N:1 in every mode on …" — the surface list an ink really holds on, plus where it does not.
@@ -110,7 +157,7 @@ const EXAMPLE: Record<string, string> = {
 const modeList = (ms: string[]) => (ms.length === 1 ? `${ms[0]} mode` : `${ms.slice(0, -1).join(', ')} and ${ms[ms.length - 1]} modes`);
 const inkNoun = (k: string) => (k === 'icon' ? 'icons' : 'text');
 
-type Described = { when_to_use: string; avoid_when: string; paired_with?: string[]; page_note?: string };
+type Described = { when_to_use: string; avoid_when: string; page_note?: string; limit?: { alt?: string } } & Relations;
 
 /** Generate the prose + relationship fields for one semantic role. The key splits
  *  as [group, variant, state]; nested ladders (background.secondary, text.link.hover)
@@ -132,14 +179,14 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
 
   // background — the CANVAS (thin, page-level)
   if (group === 'background') {
-    if (TIER_N[variant]) return { when_to_use: variant === 'primary' ? 'The page / base canvas.' : variant === 'secondary' ? 'A second page tier — one step off the base in light and dark; identical to `background.primary` in high-contrast modes.' : 'A third page-level surface step.', avoid_when: 'Do not use for surfaces placed on the page (use `foreground.*`) or for ink (use `text.*` or `icon.*`).', paired_with: ['foreground.primary', 'text.primary', 'border.primary'] };
+    if (TIER_N[variant]) return { when_to_use: variant === 'primary' ? 'The page / base canvas.' : variant === 'secondary' ? 'A second page tier — one step off the base in light and dark; identical to `background.primary` in high-contrast modes.' : 'A third page-level surface step.', avoid_when: 'Do not use for surfaces placed on the page (use `foreground.*`) or for ink (use `text.*` or `icon.*`).', carries: ['text.primary'], tracks: ['foreground.primary', 'border.primary'] };
   }
 
   // foreground — SURFACES & FILLS placed on the canvas
   if (group === 'foreground') {
-    if (TIER_N[variant]) return { when_to_use: variant === 'primary' ? 'Cards — the default surface placed on the page.' : variant === 'secondary' ? 'Panels / nested containers.' : 'A third surface step.', avoid_when: 'Do not use for the page itself (use `background.*`) or for ink (use `text.*` or `icon.*`).', paired_with: ['text.primary', 'border.primary'] };
-    if (variant.endsWith('-subtle')) { const i = variant.replace('-subtle', ''); return { when_to_use: `Low-emphasis ${i} surfaces — banners, badges, selected rows.`, avoid_when: `Do not use as a solid ${i} fill (use ${q(`foreground.${i}`)}) or for ${i} ink (use ${q(`text.${i}`)}).`, paired_with: [`text.${i}`, `icon.${i}`] }; }
-    if (intent) return { when_to_use: `Filled ${variant} elements — badges, banners, status chips.`, avoid_when: `Do not use for ${variant} ink (use ${q(`text.${variant}`)}) or as a subtle tint (use ${q(`foreground.${variant}-subtle`)}).`, paired_with: [`text.on-${variant}`, `icon.on-${variant}`] };
+    if (TIER_N[variant]) return { when_to_use: variant === 'primary' ? 'Cards — the default surface placed on the page.' : variant === 'secondary' ? 'Panels / nested containers.' : 'A third surface step.', avoid_when: 'Do not use for the page itself (use `background.*`) or for ink (use `text.*` or `icon.*`).', carries: ['text.primary'], tracks: ['border.primary'] };
+    if (variant.endsWith('-subtle')) { const i = variant.replace('-subtle', ''); return { when_to_use: `Low-emphasis ${i} surfaces — banners, badges, selected rows.`, avoid_when: `Do not use as a solid ${i} fill (use ${q(`foreground.${i}`)}) or for ${i} ink (use ${q(`text.${i}`)}).`, carries: [`text.${i}`, `icon.${i}`] }; }
+    if (intent) return { when_to_use: `Filled ${variant} elements — badges, banners, status chips.`, avoid_when: `Do not use for ${variant} ink (use ${q(`text.${variant}`)}) or as a subtle tint (use ${q(`foreground.${variant}-subtle`)}).`, carries: [`text.on-${variant}`, `icon.on-${variant}`] };
   }
 
   // text / icon — INK. Every surface claim is the computed clause (AI/A-5), and `paired_with` is the
@@ -150,24 +197,28 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
     const floor = (fallback: number) => ctx.min(self) || fallback;
     if (TIER_N[variant]) {
       const c = surfaceClause(ctx, self, floor(4.5), variant === 'primary' ? undefined : `${k}.primary`);
+      // AI/C-2: a tier whose floor is below body text says so, and names the body-size text role.
+      const lim = variant === 'tertiary' ? limitClause(ctx, self, ctx.floorMin('text.secondary') >= BODY_FLOOR ? 'text.secondary' : 'text.primary') : undefined;
       // The on-* redirect is a `page_note`: the on-* inks are measured on the page fills only, so on an
-      // inverse band it would be the wrong-ground pairing AI/A-7 removed from `paired_with`.
-      return { when_to_use: `${cap(variant)} ${k}. ${c.text}`, avoid_when: 'Do not use on solid or vivid fills.', page_note: `Use the ${q(`${k}.on-*`)} ink paired with the fill.`, ...(c.ok.length ? { paired_with: c.ok } : {}) };
+      // inverse band it would be the wrong-ground pairing AI/A-7 removed from the relations.
+      return { when_to_use: `${cap(variant)} ${k}. ${c.text}`, avoid_when: `${lim ? `${lim.text} ` : ''}Do not use on solid or vivid fills.`, page_note: `Use the ${q(`${k}.on-*`)} ink paired with the fill.`, ...(lim ? { limit: { alt: lim.alt } } : {}), ...(c.ok.length ? { sits_on: c.ok } : {}) };
     }
     // (disabled ink is the cross-cutting disabled.text / disabled.icon, group === 'disabled' below.)
     if (variant === 'link') {
       const c = surfaceClause(ctx, self, floor(4.5));
-      return { when_to_use: `Hyperlinks and interactive ${k}${sc(state)}. ${c.text}`, avoid_when: `Do not use for non-interactive ${k} (use ${q(`${k}.primary`)}).`, ...(c.ok.length ? { paired_with: c.ok } : {}) };
+      return { when_to_use: `Hyperlinks and interactive ${k}${sc(state)}. ${c.text}`, avoid_when: `Do not use for non-interactive ${k} (use ${q(`${k}.primary`)}).`, ...(c.ok.length ? { sits_on: c.ok } : {}) };
     }
     if (variant.endsWith('-subtle')) {
       const i = variant.replace('-subtle', '');
       const c = surfaceClause(ctx, self, floor(3));
-      return { when_to_use: `Low-emphasis ${i} ${inkNoun(k)} and quiet accents. ${c.text}`, avoid_when: `For safety-critical ${i} messaging use the bold ${q(`${k}.${i}`)}; verify contrast for body text.`, ...(c.ok.length ? { paired_with: c.ok } : {}) };
+      // AI/C-2: the limit is stated, not hedged ("verify contrast for body text" was the old tail).
+      const lim = limitClause(ctx, self, `text.${i}`);
+      return { when_to_use: `Low-emphasis ${i} ${inkNoun(k)} and quiet accents. ${c.text}`, avoid_when: `${lim ? `${lim.text} ` : ''}For safety-critical ${i} messaging use the bold ${q(`${k}.${i}`)}.`, ...(lim ? { limit: { alt: lim.alt } } : {}), ...(c.ok.length ? { sits_on: c.ok } : {}) };
     }
-    if (variant.startsWith('on-')) { const x = variant.slice(3); return { when_to_use: `${cap(k)} placed on the ${x} fill it is paired with.`, avoid_when: `Do not use on standard surfaces — use ${q(`${k}.primary`)} or ${q(`${k}.secondary`)}.`, paired_with: [onTarget(x)] }; }
+    if (variant.startsWith('on-')) { const x = variant.slice(3); return { when_to_use: `${cap(k)} placed on the ${x} fill it is paired with.`, avoid_when: `Do not use on standard surfaces — use ${q(`${k}.primary`)} or ${q(`${k}.secondary`)}.`, sits_on: [onTarget(x)] }; }
     if (intent) {
       const c = surfaceClause(ctx, self, floor(4.5));
-      return { when_to_use: `${cap(variant)} ${inkNoun(k)} — e.g. ${k === 'icon' ? 'the icon beside ' : ''}${EXAMPLE[variant]}. ${c.text}`, avoid_when: `Do not use on a solid ${variant} fill.`, page_note: `Use ${q(`${k}.on-${variant}`)} there.`, ...(c.ok.length ? { paired_with: c.ok } : {}) };
+      return { when_to_use: `${cap(variant)} ${inkNoun(k)} — e.g. ${k === 'icon' ? 'the icon beside ' : ''}${EXAMPLE[variant]}. ${c.text}`, avoid_when: `Do not use on a solid ${variant} fill.`, page_note: `Use ${q(`${k}.on-${variant}`)} there.`, ...(c.ok.length ? { sits_on: c.ok } : {}) };
     }
   }
 
@@ -188,34 +239,38 @@ const describe = (group: string, variant: string, state: string | undefined, ctx
     if (variant === 'tertiary') return { when_to_use: `The most prominent structural edge — a table outline, a section rule, the boundary that has to read as deliberate. ${surfaceClause(ctx, 'border.tertiary', 3).text}`, avoid_when: `Do not use as a hairline (use ${q('border.primary')}) or as a focus ring (use ${q('border.focus')}) — the ring has its own hue for a reason.` };
     if (variant === 'focus') {
       const c = surfaceClause(ctx, 'border.focus', ctx.min('border.focus') || 3);
-      return { when_to_use: `The keyboard-focus indicator on interactive elements. ${c.text}`, avoid_when: `Do not use as a decorative divider (use ${q('border.primary')}).`, page_note: `On an inverse band, use ${q('inverse.border.focus')}.`, ...(c.ok.length ? { paired_with: c.ok } : {}) };
+      return { when_to_use: `The keyboard-focus indicator on interactive elements. ${c.text}`, avoid_when: `Do not use as a decorative divider (use ${q('border.primary')}).`, page_note: `On an inverse band, use ${q('inverse.border.focus')}.`, ...(c.ok.length ? { sits_on: c.ok } : {}) };
     }
     if (intent) return { when_to_use: `Validation/state borders for ${variant} (e.g. invalid fields).`, avoid_when: `Do not use as ${variant} ink or fill — use ${q(`text.${variant}`)} or ${q(`foreground.${variant}`)}.` };
   }
 
   // disabled — cross-cutting (docs/20 §7): one treatment, any intent.
   if (group === 'disabled') {
-    if (variant === 'fill') return { when_to_use: 'The fill of ANY disabled control (button, chip, field), regardless of intent — a disabled control looks disabled.', avoid_when: 'Do not use for enabled controls (use `interactive.*` fills or `foreground.*`).', paired_with: ['disabled.on-fill'] };
-    if (variant === 'on-fill') return { when_to_use: "The label or icon on a disabled control's fill — muted but legible on it.", avoid_when: 'Do not use on an enabled fill (use `interactive.*` on-fill inks) or on the page (use `disabled.text`).', paired_with: ['disabled.fill'] };
+    if (variant === 'fill') return { when_to_use: 'The fill of any disabled control (button, chip, field), regardless of intent — a disabled control looks disabled.', avoid_when: 'Do not use for enabled controls (use `interactive.*` fills or `foreground.*`).', carries: ['disabled.on-fill'] };
+    if (variant === 'on-fill') return { when_to_use: "The label or icon on a disabled control's fill — muted but legible on it.", avoid_when: 'Do not use on an enabled fill (use `interactive.*` on-fill inks) or on the page (use `disabled.text`).', sits_on: ['disabled.fill'] };
     if (variant === 'text') return { when_to_use: 'Text of a disabled or inactive element (a disabled outline/text control, disabled body copy).', avoid_when: 'Do not use for active content (use `text.primary` or `text.secondary`).' };
     if (variant === 'icon') return { when_to_use: 'Icon of a disabled or inactive element.', avoid_when: 'Do not use for active icons (use `icon.primary` or `icon.secondary`).' };
-    if (variant === 'border') return { when_to_use: 'The border of a disabled outline control.', avoid_when: 'Do not use as a page divider (use `border.primary`) or on an enabled control (use `interactive.*` borders).', paired_with: ['disabled.fill'] };
+    if (variant === 'border') return { when_to_use: 'The border of a disabled outline control.', avoid_when: 'Do not use as a page divider (use `border.primary`) or on an enabled control (use `interactive.*` borders).', tracks: ['disabled.fill'] };
   }
 
   // field — form-element chrome (docs/20 §17). Minimal; states compose from other families.
   if (group === 'field') {
     const validation = 'a validation state (use an intent border such as `border.danger`)';
-    if (variant === 'fill') return { when_to_use: 'The fill of a text input / form field — TRANSPARENT by default, so the border frames the field on whatever ground it sits. Point it at a surface step for a filled field.', avoid_when: 'Do not use for the page (use `background.*`) or a card (use `foreground.*`).', paired_with: ['field.border.rest', 'field.placeholder', 'text.primary'] };
+    if (variant === 'fill') return { when_to_use: 'The fill of a text input / form field — transparent by default, so the border frames the field on whatever ground it sits. Point it at a surface step for a filled field.', avoid_when: 'Do not use for the page (use `background.*`) or a card (use `foreground.*`).', tracks: ['field.border.rest', 'field.placeholder', 'text.primary'] };
     if (variant === 'border') {
       // AI/A-10: "gated on the darkest permissible ground" named nothing an agent could resolve, and was
       // false on the darker steps. The clause names the real surfaces.
-      if (state === 'hover') return { when_to_use: `The HOVER boundary of a form field — a subtly stronger perceivable border (SC 1.4.11) on pointer hover. ${surfaceClause(ctx, 'field.border.hover', ctx.min('field.border.hover') || 3).text}`, avoid_when: `Do not use as the resting border (use \`field.border.rest\`), the focus ring (use \`border.focus\`), or ${validation}.`, paired_with: ['field.border.rest'] };
-      return { when_to_use: `The RESTING boundary of a transparent-fill field, before focus (SC 1.4.11). ${surfaceClause(ctx, 'field.border.rest', ctx.min('field.border.rest') || 3).text}`, avoid_when: `Do not use for the focus ring (use \`border.focus\`) or ${validation}.`, paired_with: ['field.placeholder'] };
+      if (state === 'hover') { const c = surfaceClause(ctx, 'field.border.hover', ctx.min('field.border.hover') || 3); return { when_to_use: `The hover boundary of a form field — a subtly stronger perceivable border (SC 1.4.11) on pointer hover. ${c.text}`, avoid_when: `Do not use as the resting border (use \`field.border.rest\`), the focus ring (use \`border.focus\`), or ${validation}.`, ...(c.ok.length ? { sits_on: c.ok } : {}), tracks: ['field.border.rest'] }; }
+      const c = surfaceClause(ctx, 'field.border.rest', ctx.min('field.border.rest') || 3);
+      return { when_to_use: `The resting boundary of a transparent-fill field, before focus (SC 1.4.11). ${c.text}`, avoid_when: `Do not use for the focus ring (use \`border.focus\`) or ${validation}.`, ...(c.ok.length ? { sits_on: c.ok } : {}), tracks: ['field.placeholder'] };
     }
-    if (variant === 'placeholder') return { when_to_use: `Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: ${surfaceClause(ctx, 'field.placeholder', ctx.min('field.placeholder') || 4.5).text.replace(/^C/, 'c')}`, avoid_when: 'Do not use as a label (a11y anti-pattern) or for the entered value (use `text.primary`).', paired_with: ['field.border.rest'] };
+    if (variant === 'placeholder') { const c = surfaceClause(ctx, 'field.placeholder', ctx.min('field.placeholder') || 4.5); return { when_to_use: `Placeholder / hint text inside a field. The fill is transparent, so the ground behind it decides: ${c.text.replace(/^C/, 'c')}`, avoid_when: 'Do not use as a label (a11y anti-pattern) or for the entered value (use `text.primary`).', ...(c.ok.length ? { sits_on: c.ok } : {}), tracks: ['field.border.rest'] }; }
   }
 
-  if (group === 'scrim') return { when_to_use: 'The dimming layer behind a modal, dialog, or drawer.', avoid_when: 'Do not use as a solid surface or for any opaque element.', paired_with: ['inverse.foreground.primary'] };
+  // AI/D-2 (owner decision): the modal over the scrim is the ordinary card surface, `foreground.primary`.
+  // It used to name `inverse.foreground.primary`, which reads as a dark modal in light mode. A `tracks`
+  // relation, not a contrast claim — the scrim is translucent and the modal is opaque over it.
+  if (group === 'scrim') return { when_to_use: 'The dimming layer behind a modal, dialog, or drawer. The modal itself uses `foreground.primary`.', avoid_when: 'Do not use as a solid surface or for any opaque element.', tracks: ['foreground.primary'] };
 
   // veil — the media wash (#1030, renamed #1317). `variant` is the polarity, `state` the rung. A rung
   // names an INTENSITY (subtle / medium / strong), so the guidance is decision-shaped: pick the polarity
@@ -247,27 +302,31 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
   const others = ['primary', 'neutral', 'destructive'].filter((o) => o !== c);
   const other = `${c === 'destructive' ? 'a non-destructive intent' : 'another intent'} (use ${others.map((o) => q(`interactive.${o}.*`)).join(' or ')})`;
   if (slot === 'fill') {
-    // AI/A-8: `on-fill` is gated against `fill.rest` only, so a non-rest state is paired with it only
-    // where it measurably holds in every mode; otherwise the entry says where it does not.
+    // ELSEWHERE-1 (owner decision): `on-fill` is paired with `fill.rest` ONLY — the one fill its contract
+    // is gated against. Batch B paired it with a non-rest state wherever it happened to measure clear;
+    // that was a pairing no contract backs, so every non-rest state now carries no ink and says which
+    // label it keeps and where that label is measured, plus the modes where it drops (AI/A-8).
     const onFill = `interactive.${c}.on-fill`, min = ctx.min(onFill);
-    const fails = state && state !== 'rest' ? ctx.failing(onFill, `interactive.${c}.fill.${state}`, min || 4.5) : [];
-    const note = fails.length ? ` ${q(onFill)} is gated against ${q(`interactive.${c}.fill.rest`)} only; on this fill it drops below ${min || 4.5}:1 in ${modeList(fails)}.` : '';
-    return { when_to_use: `The fill of a FILLED ${c} interactive element — buttons, controls, selectable rows${sc(state)}.${note}`, avoid_when: `Do not use for ${other}, or for outline/text appearances (use ${q(`interactive.${c}.text.*`)} or ${q(`interactive.${c}.border.*`)}).`, ...(fails.length ? {} : { paired_with: [onFill] }) };
+    const rest = !state || state === 'rest';
+    const fails = rest ? [] : ctx.failing(onFill, `interactive.${c}.fill.${state}`, min || 4.5);
+    const note = rest ? '' : ` The label stays ${q(onFill)}, which is gated against ${q(`interactive.${c}.fill.rest`)} only${fails.length ? `; on this fill it drops below ${min || 4.5}:1 in ${modeList(fails)}` : ''}.`;
+    return { when_to_use: `The fill of a filled ${c} interactive element — buttons, controls, selectable rows${sc(state)}.${note}`, avoid_when: `Do not use for ${other}, or for outline/text appearances (use ${q(`interactive.${c}.text.*`)} or ${q(`interactive.${c}.border.*`)}).`, ...(rest ? { carries: [onFill] } : {}) };
   }
-  if (slot === 'on-fill') return { when_to_use: `The label / icon placed on a filled ${c} interactive element.`, avoid_when: `Do not use on the page or on outline controls — use ${q(`interactive.${c}.text.*`)}.`, paired_with: [`interactive.${c}.fill.rest`] };
+  if (slot === 'on-fill') return { when_to_use: `The label / icon placed on a filled ${c} interactive element.`, avoid_when: `Do not use on the page or on outline controls — use ${q(`interactive.${c}.text.*`)}.`, sits_on: [`interactive.${c}.fill.rest`] };
   // text and icon (AI/A-15: the icon slot had no branch and fell through to the generic fallback) —
   // the ink of an outline or text control, with its surface list computed like every other ink's.
   if (slot === 'text' || slot === 'icon') {
     const self = `interactive.${c}.${slot}.${state ?? 'rest'}`;
     const min = ctx.min(self);
     const clause = min > 0 ? surfaceClause(ctx, self, min) : undefined;
-    return { when_to_use: `The ${slot === 'icon' ? 'icon' : 'ink'} for OUTLINE and TEXT ${c} interactive elements (no fill behind it)${sc(state)}.${clause ? ` ${clause.text}` : ''}`, avoid_when: `Do not use on a filled ${c} control (use ${q(`interactive.${c}.on-fill`)}).`, ...(clause?.ok.length ? { paired_with: clause.ok } : {}) };
+    return { when_to_use: `The ${slot === 'icon' ? 'icon' : 'ink'} for outline and text ${c} interactive elements (no fill behind it)${sc(state)}.${clause ? ` ${clause.text}` : ''}`, avoid_when: `Do not use on a filled ${c} control (use ${q(`interactive.${c}.on-fill`)}).`, ...(clause?.ok.length ? { sits_on: clause.ok } : {}) };
   }
   // The border is stateful (#576), so it is described per state exactly like `fill` — and it names
-  // its matching ink as `paired_with`, because by default the two ARE the same value and an agent
-  // choosing one should know the other tracks it.
+  // its matching ink under `tracks`, because by default the two ARE the same value (1:1) and an agent
+  // choosing one should know the other follows it. That is the pairing AI/D-3 split out: under the old
+  // single `paired_with` it read as a legibility pair.
   if (slot === 'border') {
-    return { when_to_use: `The border of an OUTLINE ${c} interactive element${sc(state)}.`, avoid_when: `Do not use as ink (use ${q(`interactive.${c}.text.*`)}) or as a page divider (use ${q('border.primary')}).`, paired_with: [`interactive.${c}.text.${state ?? 'rest'}`, 'background.primary'] };
+    return { when_to_use: `The border of an outline ${c} interactive element${sc(state)}.`, avoid_when: `Do not use as ink (use ${q(`interactive.${c}.text.*`)}) or as a page divider (use ${q('border.primary')}).`, sits_on: ['background.primary'], tracks: [`interactive.${c}.text.${state ?? 'rest'}`] };
   }
   // A `slot === 'inverse'` BLOCK STOOD HERE UNTIL #1140, and it was the clearest single argument for the
   // restructure. The inverse column nested its real slot one deeper (`inverse.<slot>.<state>`), so `state`
@@ -279,7 +338,7 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
   //
   // The ground-specific sentence is a `page_note` (AI/A-13): on the inverse twin it used to tell the
   // role to use itself instead of itself. (`foreground.${c}-subtle` is AI/A-11 — held for #1614.)
-  if (slot === 'overlay') return { when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)} or foreground.${c}-subtle) or as a modal backdrop (use ${q('scrim.default')}).`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.overlay.*`)} — the page wash takes the page's polarity.`, paired_with: ['text.primary'] };
+  if (slot === 'overlay') return { when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)} or foreground.${c}-subtle) or as a modal backdrop (use ${q('scrim.default')}).`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.overlay.*`)} — the page wash takes the page's polarity.`, carries: ['text.primary'] };
   return { when_to_use: `The ${slot} of a ${c} interactive element.`, avoid_when: `Do not use outside the ${c} interactive family.` };
 };
 
@@ -324,14 +383,23 @@ const toInverse = (name: string, known: (role: string) => boolean): string => {
   return known(twin) ? twin : name;
 };
 
+const RELATIONS = ['sits_on', 'carries', 'tracks'] as const;
+
 const onInverseGround = (d: Described, pageKey: string, known: (role: string) => boolean): Described => {
   const note = pageKey.split('.').map((s) => INVERSE_NOTE[s]).find(Boolean) ?? '';
   const remap = (text: string) => text.replace(/`([a-z][a-z0-9.*-]*)`/g, (_, n: string) => `\`${toInverse(n, known)}\``);
-  const paired = d.paired_with?.map((p) => toInverse(p, known)).filter((p) => p.startsWith(`${INVERSE_GROUP}.`));
+  const rel: Relations = {};
+  for (const f of RELATIONS) {
+    const names = d[f]?.map((p) => toInverse(p, known)).filter((p) => p.startsWith(`${INVERSE_GROUP}.`));
+    if (names?.length) rel[f] = names;
+  }
+  const alt = d.limit?.alt ? toInverse(d.limit.alt, known) : undefined;
   return {
-    when_to_use: `${remap(d.when_to_use)} Only on an INVERSE ground — a dark band on a light page, or the reverse.${note}`,
+    // AI/C-3: the ground is named as the path family it is, not in capitals.
+    when_to_use: `${remap(d.when_to_use)} Only on an \`${INVERSE_GROUP}.*\` ground — a dark band on a light page, or the reverse.${note}`,
     avoid_when: `Do not use on the page ground; that is \`${pageKey}\`. ${remap(d.avoid_when)}`,
-    ...(paired?.length ? { paired_with: paired } : {}),
+    ...(d.limit ? { limit: alt?.startsWith(`${INVERSE_GROUP}.`) ? { alt } : {} } : {}),
+    ...rel,
   };
 };
 
@@ -410,6 +478,52 @@ const refsIn = (v: any): string[] => {
  *  `tokens.json`, not `<id>.tokens.json`, so it passes its own name (AI/A-17). */
 export type AiMetadataOptions = { tokensFile?: string };
 
+/** The sidecar's schema id. The JSON Schema at `schema/ai-metadata.schema.json` carries the same `$id`,
+ *  and a test holds the two equal — bump both together when a field is added, renamed or removed. */
+export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.3';
+
+/** The one normative sentence (AI/C-1) — a check a reader can run with `tokens.json` alone: resolve both
+ *  roles in each mode, composite a translucent one over its ground, compare with `min`. `lint-voice.ts`
+ *  matches this shape with its own pattern (not this function) and refuses any other `MUST`. */
+const contrastRequirement = (role: string, token: string, min: string, compositedOver?: string): string =>
+  compositedOver
+    ? `MUST keep \`${token}\` at ${min} or more on \`${role}\` composited over \`${compositedOver}\`, in every mode.`
+    : `MUST clear ${min} against \`${token}\` in every mode.`;
+
+/** A thin-tier entry (AI/D-1): identity, purpose and resolution, and the per-mode values when a mode
+ *  lever moves it. `resolves_to` is the token's own `$value` — an alias, a composite, or a literal. */
+type ThinEntry = { $description: string; meaning: string; when_to_use: string; avoid_when?: string; resolves_to: unknown; mode_overrides?: Record<string, unknown> };
+
+/** Which thin tier a tree path belongs to, and the prose for it — or nothing when the path is not a
+ *  thin role. Keyed by the path's own family, so a new leaf in a known family is covered on arrival. */
+const thinRole = (path: string): { tier: 'layout' | 'motion' | 'typography'; meaning: string; when: string; avoid?: string } | undefined => {
+  const s = path.split('.');
+  const last = s[s.length - 1];
+  const tail = (n: number) => s.slice(n).join('.');
+  if (s[0] === 'space') return { tier: 'layout', meaning: `Spacing step ${last}`, when: 'Padding, gaps and margins. Reference the step, not its pixel value, so a brand re-scale reflows every consumer.' };
+  if (s[0] === 'radius') return { tier: 'layout', meaning: `Corner-radius role — ${last}`, when: 'Corner rounding of surfaces and controls.' };
+  if (s[0] === 'border-width') return { tier: 'layout', meaning: `Border-width role — ${last}`, when: 'Stroke width of borders, dividers and outlines.' };
+  if (s[0] === 'focus' && s[1] === 'ring') return { tier: 'layout', meaning: `Focus-ring geometry — ${tail(2)}`, when: 'The keyboard-focus ring drawn around a focused element. Its color is `border.focus`.' };
+  if (s[0] === 'size' && s.length === 3) return { tier: 'layout', meaning: `Control size step ${s[1]} — ${s[2]}`, when: `The ${s[2]} of a button, field or other control at the ${s[1]} size step. Take every dimension of one control from the same step.` };
+  if (s[0] === 'control' && s[1] === 'size') return { tier: 'layout', meaning: `Selection-control geometry, ${s[2]} step — ${tail(3)}`, when: `The ${tail(3)} of a checkbox, radio or switch at the ${s[2]} step.` };
+  if (s[0] === 'icon' && s[1] === 'size') return { tier: 'layout', meaning: `Icon size step ${last}`, when: 'The rendered size of an icon glyph.' };
+  if (s[0] === 'grid' && s.length === 3) return { tier: 'layout', meaning: `Layout grid ${s[2]} at the ${s[1]} breakpoint`, when: `The ${s[2]} of the page layout grid from the ${s[1]} breakpoint up.` };
+  if (s[0] === 'motion') {
+    if (s[1] === 'duration') return { tier: 'motion', meaning: `Motion duration role — ${last}`, when: `How long a transition runs. Under reduced motion, use \`motion.duration-reduced.${last}\`.` };
+    if (s[1] === 'duration-reduced') return { tier: 'motion', meaning: `Reduced-motion duration role — ${last}`, when: `The duration of \`motion.duration.${last}\` when the user prefers reduced motion.` };
+    if (s[1] === 'easing-role') return { tier: 'motion', meaning: `Easing role — ${last}`, when: 'The easing curve of a transition, named by purpose. Reference the role, not the curve it maps to.' };
+    if (s[1] === 'transition') return { tier: 'motion', meaning: `Transition composite — ${last}`, when: 'A complete transition (duration and easing). Apply it whole.' };
+    if (s[1] === 'stagger') return { tier: 'motion', meaning: 'Stagger delay role', when: 'The delay between items that animate in sequence.' };
+  }
+  if (s[0] === CORE_TIER && s[1] === 'font') {
+    const avoid = 'Do not apply it on its own — a type style sets it together with the size and weight it was chosen for.';
+    if (s[2] === 'family') return { tier: 'typography', meaning: `Font family role — ${last}`, when: `The typeface stack for ${last} type. Reach for it through a type style (\`type.*\`).`, avoid };
+    if (s[2] === 'line-height-role') return { tier: 'typography', meaning: `Line-height role — ${last}`, when: 'A line-height multiplier, named by purpose. Reach for it through a type style (`type.*`).', avoid };
+    if (s[2] === 'letter-spacing-role') return { tier: 'typography', meaning: `Letter-spacing role — ${last}`, when: 'A letter-spacing value, named by purpose. Reach for it through a type style (`type.*`).', avoid };
+  }
+  return undefined;
+};
+
 /** The ground steps that can supply an ink's floor, most likely first. The engine records the floor as a
  *  bare palette step (`neutral.050`), which is not a role an agent can bind (AI/A-4); this is the order
  *  in which a role standing on that step is looked for. */
@@ -446,6 +560,10 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
         if (!i || !g || (i.alpha ?? 1) < 1 || (g.alpha ?? 1) < 1) return true;
         return contrast(hexToRgb(i.hex), hexToRgb(g.hex)) < min;
       }),
+      floorMin: (r) => {
+        const floors = Object.values(byRole[real(r)] ?? {}).map((x) => x.min).filter((m) => m > 0);
+        return floors.length ? Math.min(...floors) : 0;
+      },
     };
     // interactive.<color>.<slot>.<state?> carries a 4th segment — describe it whole.
     const base = group === 'interactive'
@@ -466,13 +584,16 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
       meaning,
       when_to_use: d.when_to_use,
       avoid_when: d.avoid_when,
-      // Same condition as `contrast_with` below, on purpose — the level IS the presence of a real
-      // contract, not a second opinion about it. See the AiToken comment for why that coupling is
-      // the point, not duplication to clean up.
-      avoid_when_level: light.min > 0 ? 'MUST' : 'SHOULD',
       mode_overrides,
     };
-    if (d.paired_with?.length) ai.paired_with = d.paired_with;
+    for (const f of RELATIONS) if (d[f]?.length) ai[f] = d[f];
+    if (d.limit) ai.usage_limit = {
+      use_for: ['large-text', 'icons', 'non-essential-text'],
+      floor: `${ctx.floorMin(pageKey)}:1`,
+      body_text_floor: `${BODY_FLOOR}:1`,
+      large_text: { ...LARGE_TEXT },
+      ...(d.limit.alt ? { body_text_alternative: d.limit.alt } : {}),
+    };
     // `contrast_with` names the token the ratio was measured WITH — for a translucent wash that is
     // `legibleFor`, the ink that must survive on the composited result.
     //
@@ -496,12 +617,18 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
       const onFloor = FLOOR_ROLES.map(real).find((r) => byRole[r]?.light?.path.endsWith(`.palette.${against}`));
       return onFloor ?? `${CORE_TIER}.palette.${against}`;
     };
-    if (light.min > 0) ai.contrast_with = [{
-      token: light.model === 'ink-on-composite' ? light.legibleFor : asRole(light.against),
-      min: `${light.min}:1`,
-      ratio: Math.round(light.ratio * 100) / 100,
-      ...(light.model === 'ink-on-composite' ? { composited_over: asRole(light.against) } : {}),
-    }];
+    if (light.min > 0) {
+      const composite = light.model === 'ink-on-composite';
+      const token = composite ? light.legibleFor : asRole(light.against);
+      const over = composite ? asRole(light.against) : undefined;
+      ai.contrast_with = [{
+        token,
+        min: `${light.min}:1`,
+        ratio: Math.round(light.ratio * 100) / 100,
+        ...(over ? { composited_over: over } : {}),
+        requirement: contrastRequirement(roleKey, token, `${light.min}:1`, over),
+      }];
+    }
     colorRoles[roleKey] = ai;
   }
 
@@ -549,6 +676,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
   const primitives: Record<string, AiPrimitive> = {};
   for (const { path, node } of leaves) {
     if (refsIn(node.$value).length > 0) continue;       // skip aliases/composites — primitives only
+    if (thinRole(path)) continue;                        // a role with a literal value (`grid.md.columns`) is still a role
     // The palette, font and dimension primitives live under `core.` (CORE_TIER, theme.ts). Dispatch on
     // the family BELOW it — before #1623 (AI/A-1) every branch keyed on `seg[0]`, which is `core` for all
     // three, so 946 entries read "core primitive", none carried `intent`, and `consume` fell back.
@@ -617,6 +745,26 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     typography[key] = entry;
   }
 
+  // ---- the thin role tiers: layout, motion, and the remaining font roles (#1623 AI/D-1) ----
+  // About a fifth of the tree had no entry: every space, size, radius, border-width, focus-ring, icon-size,
+  // control-size, grid and motion role, and the font family / line-height / letter-spacing roles. The
+  // consume skill sends agents to exactly these names (`space.400`, `focus.ring.width`), and the primitive
+  // tier's `aliased_by` pointed into the gap. Each gets a thin entry: what it is (the token's own
+  // `$description`), what it is for, and what it resolves to. The font roles join the typography tier,
+  // beside the weight roles they parallel.
+  const layout: Record<string, ThinEntry> = {}, motion: Record<string, ThinEntry> = {};
+  for (const { path, node } of leaves) {
+    const thin = thinRole(path);
+    if (!thin) continue;
+    const e: ThinEntry = { $description: node.$description ?? thin.meaning, meaning: thin.meaning, when_to_use: thin.when, ...(thin.avoid ? { avoid_when: thin.avoid } : {}), resolves_to: node.$value };
+    const modeOv = node.$extensions?.prism3?.modes;
+    if (modeOv && typeof modeOv === 'object' && !Array.isArray(modeOv)) {
+      e.mode_overrides = { light: node.$value };
+      for (const [m, v] of Object.entries<any>(modeOv)) if (v?.$value !== undefined) e.mode_overrides[m] = v.$value;
+    }
+    (thin.tier === 'motion' ? motion : thin.tier === 'typography' ? typography : layout)[path] = e;
+  }
+
   // ---- gradient tier (opt-in brand gradients) ----
   // Keyed by the real tree path (`gradient.<name>`) so an aliased_by reference (a
   // colour primitive listing a gradient that consumes it) resolves to a real entry.
@@ -652,20 +800,29 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     return [...order.filter((f) => seen.has(f)), ...[...seen].filter((f) => !order.includes(f)).sort()];
   };
   return {
-    $schema: 'prism3-ai-metadata/0.2',
+    $schema: AI_METADATA_SCHEMA,
     brand: theme.id,
     generated: true,
-    note: `Agent-readable metadata, companion to ${tokensFile}. The color tier (semantic roles) and the typography tier ` +
-      '(type styles and weight roles) carry the full field set; the primitive tier carries a reduced set, with a usage ' +
-      '`intent` on color-ramp steps and `aliased_by` — the reverse index of the tokens that resolve to each primitive, ' +
-      'directly or through another alias, so a type style shows up under the numeric weight its weight role maps to. ' +
-      '`aliased_by` is recomputed from the token tree on every build. `contrast_with.ratio` is the light-mode measurement; ' +
-      'the surfaces named in `when_to_use` and `paired_with` are measured in every mode.',
-    color_fields: fieldsOf(colorRoles, ['$description', 'meaning', 'when_to_use', 'avoid_when', 'avoid_when_level', 'paired_with', 'contrast_with', 'mode_overrides']),
+    note: `Agent-readable metadata, companion to ${tokensFile}. Every token in that tree has one entry here, keyed by ` +
+      'its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color ' +
+      'roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, focus-ring, icon, ' +
+      'control and grid roles), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw ' +
+      'values the roles resolve to). A primitive carries `aliased_by`, every token that resolves to it directly or through ' +
+      'another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on ' +
+      'and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and ' +
+      'implies no contrast. `contrast_with` is the role\'s contrast contract: `requirement` states it as a check that ' +
+      'resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is ' +
+      'for large text, icons and non-essential text only. Field definitions: the JSON Schema whose `$id` is this ' +
+      'file\'s `$schema`.',
+    color_fields: fieldsOf(colorRoles, ['$description', 'meaning', 'when_to_use', 'avoid_when', 'usage_limit', 'sits_on', 'carries', 'tracks', 'contrast_with', 'mode_overrides']),
     typography_fields: fieldsOf(typography, ['$description', 'meaning', 'when_to_use', 'avoid_when', 'resolves_to', 'used_by']),
+    layout_fields: fieldsOf(layout, ['$description', 'meaning', 'when_to_use', 'resolves_to', 'mode_overrides']),
+    motion_fields: fieldsOf(motion, ['$description', 'meaning', 'when_to_use', 'resolves_to', 'mode_overrides']),
     primitive_fields: fieldsOf(primitives, ['$description', 'meaning', 'intent', 'tier', 'consume', 'aliased_by']),
     color: colorRoles,
     typography,
+    layout,
+    motion,
     ...(Object.keys(gradient).length ? { gradient_fields: fieldsOf(gradient, ['$description', 'meaning', 'when_to_use', 'avoid_when', 'resolves_to', 'a11y']), gradient } : {}),
     primitives,
   };

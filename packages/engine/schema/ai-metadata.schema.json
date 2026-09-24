@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "prism3-ai-metadata/0.3",
+  "title": "Prism3 agent metadata sidecar (<brand>.ai.json)",
+  "description": "Agent-readable metadata for one generated brand, companion to its DTCG token tree (<brand>.tokens.json). Every token in the tree has exactly one entry, keyed by its path below the brand root. Every field is generated from the token data on each build. The sidecar's own `$schema` value equals this schema's `$id`; both change together when a field is added, renamed or removed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "brand", "generated", "note", "color_fields", "typography_fields", "layout_fields", "motion_fields", "primitive_fields", "color", "typography", "layout", "motion", "primitives"],
+  "properties": {
+    "$schema": { "const": "prism3-ai-metadata/0.3", "description": "The schema version this file follows. Equal to this schema's `$id`." },
+    "brand": { "$ref": "#/$defs/path", "description": "The brand id, as in the token tree's file name." },
+    "generated": { "const": true, "description": "Always true: no field is hand-authored." },
+    "note": { "type": "string", "minLength": 1, "description": "A one-paragraph guide to the tiers and fields, for a reader without this schema." },
+    "color_fields": { "$ref": "#/$defs/fieldList", "description": "The fields the color tier's entries carry, in reading order." },
+    "typography_fields": { "$ref": "#/$defs/fieldList", "description": "The fields the typography tier's entries carry." },
+    "layout_fields": { "$ref": "#/$defs/fieldList", "description": "The fields the layout tier's entries carry." },
+    "motion_fields": { "$ref": "#/$defs/fieldList", "description": "The fields the motion tier's entries carry." },
+    "primitive_fields": { "$ref": "#/$defs/fieldList", "description": "The fields the primitive tier's entries carry." },
+    "gradient_fields": { "$ref": "#/$defs/fieldList", "description": "The fields the gradient tier's entries carry. Present only when the brand has a gradient." },
+    "color": {
+      "type": "object",
+      "description": "Semantic color roles, keyed by the role's path without the leading `color.` segment (`text.primary` is the tree's `color.text.primary`). Roles on an inverse ground start with `inverse.`.",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z0-9][a-z0-9-]*(\\.[a-z0-9-]+)+$": { "$ref": "#/$defs/colorEntry" } }
+    },
+    "typography": {
+      "type": "object",
+      "description": "Type styles (`type.*`) and font roles (`core.font.weight-role.*`, `core.font.family.*`, `core.font.line-height-role.*`, `core.font.letter-spacing-role.*`), keyed by full tree path.",
+      "additionalProperties": false,
+      "patternProperties": { "^(type|core\\.font)\\.[a-z0-9-]+(\\.[a-z0-9-]+)*$": { "$ref": "#/$defs/typographyEntry" } }
+    },
+    "layout": {
+      "type": "object",
+      "description": "Space, control size, radius, border-width, focus-ring, icon-size, selection-control size and grid roles, keyed by full tree path.",
+      "additionalProperties": false,
+      "patternProperties": { "^(space|size|radius|border-width|focus|icon|control|grid)\\.[a-z0-9-]+(\\.[a-z0-9-]+)*$": { "$ref": "#/$defs/thinEntry" } }
+    },
+    "motion": {
+      "type": "object",
+      "description": "Motion roles (duration, reduced-motion duration, easing role, transition, stagger), keyed by full tree path. The raw motion values are primitives.",
+      "additionalProperties": false,
+      "patternProperties": { "^motion(\\.[a-z0-9-]+)+$": { "$ref": "#/$defs/thinEntry" } }
+    },
+    "gradient": {
+      "type": "object",
+      "description": "Brand gradients, keyed by full tree path (`gradient.<name>`).",
+      "additionalProperties": false,
+      "patternProperties": { "^gradient\\.[a-z0-9-]+$": { "$ref": "#/$defs/gradientEntry" } }
+    },
+    "primitives": {
+      "type": "object",
+      "description": "The raw values roles resolve to — palette steps, dimensions, font values, opacity, motion values, shadows and other literal tokens — keyed by full tree path.",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z0-9][a-z0-9-]*(\\.[a-z0-9-]+)*$": { "$ref": "#/$defs/primitiveEntry" } }
+    }
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*(\\.[a-z0-9-]+)*$",
+      "description": "A token path below the brand root, dot-separated, lower case. Color roles are named without the leading `color.` segment."
+    },
+    "reference": {
+      "type": "string",
+      "pattern": "^\\{[a-z0-9][a-z0-9-]*(\\.[a-z0-9-]+)+\\}$",
+      "description": "A DTCG alias in brace syntax, naming a full token path including the brand root."
+    },
+    "ratio": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)?:1$",
+      "description": "A contrast ratio written as `N:1`."
+    },
+    "prose": { "type": "string", "minLength": 1, "description": "Generated guidance. Every token name in it is backticked and resolves in the token tree." },
+    "roleList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/path" },
+      "description": "Color role keys from this file's `color` tier."
+    },
+    "fieldList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^\\$?[a-z0-9_]+$" },
+      "description": "Field names, listing only fields at least one entry of the tier carries."
+    },
+    "colorEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["$description", "meaning", "when_to_use", "avoid_when", "mode_overrides"],
+      "properties": {
+        "$description": { "$ref": "#/$defs/prose", "description": "What the token is: the token's own `$description`, copied from the tree." },
+        "meaning": { "$ref": "#/$defs/prose", "description": "What the role signifies, in a few words." },
+        "when_to_use": { "$ref": "#/$defs/prose", "description": "Where to use the role, including the surfaces it measurably clears its floor on in every mode." },
+        "avoid_when": { "$ref": "#/$defs/prose", "description": "Where not to use the role, and the role to use instead." },
+        "usage_limit": { "$ref": "#/$defs/usageLimit" },
+        "sits_on": { "$ref": "#/$defs/roleList", "description": "The grounds this ink or edge is placed on. Each clears this role's contrast floor in every mode." },
+        "carries": { "$ref": "#/$defs/roleList", "description": "The inks placed on this ground. Each clears its contrast floor on this ground in every mode. The inverse of `sits_on`." },
+        "tracks": { "$ref": "#/$defs/roleList", "description": "Companion roles used alongside this one: a border and the ink it follows, a field's border and its placeholder, the modal surface over a scrim. Implies no contrast — two tracked roles can share a color." },
+        "contrast_with": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/contrast" },
+          "description": "The role's contrast contract. Absent when the role has none (a decorative border, a scrim)."
+        },
+        "mode_overrides": {
+          "type": "object",
+          "required": ["light"],
+          "additionalProperties": false,
+          "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/reference" } },
+          "description": "The primitive the role resolves to in each mode, keyed by mode name."
+        }
+      }
+    },
+    "contrast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["token", "min", "ratio", "requirement"],
+      "properties": {
+        "token": { "$ref": "#/$defs/path", "description": "The role this one is measured against: its ground, or, for a translucent wash, the ink that has to stay legible on it." },
+        "min": { "$ref": "#/$defs/ratio", "description": "The contrast floor, held in every mode." },
+        "ratio": { "type": "number", "minimum": 1, "description": "The measured ratio in light mode, to two decimals." },
+        "composited_over": { "$ref": "#/$defs/path", "description": "For a translucent role: the ground it is composited over before `token` is measured on the result." },
+        "requirement": { "type": "string", "minLength": 1, "description": "The contract as one normative sentence, and the only place this file uses an RFC 2119 keyword. Built from `min`, `token` and `composited_over`, so a reader can check it with the token tree alone: resolve both roles in each mode, composite a translucent one over its ground, and compare the ratio with `min`." }
+      }
+    },
+    "usageLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["use_for", "floor", "body_text_floor", "large_text"],
+      "description": "Present on an ink whose floor is below the body-text floor in some mode. The ink is for large text, icons and non-essential text only.",
+      "properties": {
+        "use_for": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["large-text", "icons", "non-essential-text"] },
+          "description": "What the ink may be used for."
+        },
+        "floor": { "$ref": "#/$defs/ratio", "description": "The ink's lowest contrast floor across modes." },
+        "body_text_floor": { "$ref": "#/$defs/ratio", "description": "The body-text floor it falls below (WCAG 1.4.3)." },
+        "large_text": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["min_px", "bold_min_px"],
+          "description": "The WCAG large-text thresholds.",
+          "properties": {
+            "min_px": { "type": "number", "description": "Smallest regular-weight size that counts as large text, in px (18pt)." },
+            "bold_min_px": { "type": "number", "description": "Smallest bold size that counts as large text, in px (14pt)." }
+          }
+        },
+        "body_text_alternative": { "$ref": "#/$defs/path", "description": "A text role that clears the body-text floor in every mode, for body-size text." }
+      }
+    },
+    "typographyEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["$description", "meaning", "when_to_use", "avoid_when", "resolves_to"],
+      "properties": {
+        "$description": { "$ref": "#/$defs/prose", "description": "What the style or role is." },
+        "meaning": { "$ref": "#/$defs/prose", "description": "What it is for, with its size and face where it is a type style." },
+        "when_to_use": { "$ref": "#/$defs/prose" },
+        "avoid_when": { "$ref": "#/$defs/prose" },
+        "resolves_to": {
+          "anyOf": [
+            { "$ref": "#/$defs/reference" },
+            { "type": "object", "additionalProperties": { "type": ["string", "number"] } }
+          ],
+          "description": "A font role's alias, or a type style's composite value: each property an alias or a literal."
+        },
+        "used_by": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/path" }, "description": "The type styles that carry this weight role." }
+      }
+    },
+    "thinEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["$description", "meaning", "when_to_use", "resolves_to"],
+      "properties": {
+        "$description": { "$ref": "#/$defs/prose", "description": "What the token is: the token's own `$description`, copied from the tree." },
+        "meaning": { "$ref": "#/$defs/prose", "description": "What the role is, in a few words." },
+        "when_to_use": { "$ref": "#/$defs/prose" },
+        "resolves_to": {
+          "anyOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "array" },
+            { "type": "object" }
+          ],
+          "description": "The token's own `$value`: an alias, a composite whose properties are aliases or literals, or a literal."
+        },
+        "mode_overrides": { "type": "object", "description": "The value in each mode, keyed by mode name. Present only when a mode moves the role." }
+      }
+    },
+    "gradientEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["$description", "meaning", "when_to_use", "avoid_when", "resolves_to", "a11y"],
+      "properties": {
+        "$description": { "$ref": "#/$defs/prose" },
+        "meaning": { "$ref": "#/$defs/prose" },
+        "when_to_use": { "$ref": "#/$defs/prose" },
+        "avoid_when": { "$ref": "#/$defs/prose", "description": "Which ink holds on the gradient at every sampled point, and which does not." },
+        "resolves_to": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/reference" }, "description": "The stop colors, in order." },
+        "a11y": {
+          "type": "object",
+          "description": "The gradient's worst-case text contrast, sampled along it.",
+          "additionalProperties": false,
+          "required": ["worst_on_white", "worst_on_black"],
+          "properties": {
+            "worst_on_white": { "type": "number", "description": "Lowest contrast of white text at any sampled point." },
+            "worst_on_black": { "type": "number", "description": "Lowest contrast of black text at any sampled point." }
+          }
+        }
+      }
+    },
+    "primitiveEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["$description", "meaning", "tier", "consume"],
+      "properties": {
+        "$description": { "$ref": "#/$defs/prose" },
+        "meaning": { "$ref": "#/$defs/prose" },
+        "intent": { "$ref": "#/$defs/prose", "description": "On a color-ramp step: the usage its lightness band suits." },
+        "tier": { "const": "primitive", "description": "Always `primitive`: the entry is a raw value, not a role." },
+        "consume": { "$ref": "#/$defs/prose", "description": "Whether to bind the primitive directly or reach it through a role." },
+        "aliased_by": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/path" }, "description": "Every token that resolves to this primitive, directly or through another alias. Each has its own entry in this file." }
+      }
+    }
+  }
+}

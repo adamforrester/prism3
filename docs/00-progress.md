@@ -7,6 +7,20 @@
 
 ---
 
+## (2026-09-24) — the `.ai.json` sidecar is built for machine readers (#1623 sign-off)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/ai-metadata.ts`, `out/*.ai.json`, `schema/ai-metadata.schema.json` (**NEW**, hand-named in both prose gates), `json-schema-lite.ts` (**NEW**), `lint-voice.ts` (the payload channel), `lint-us-english.ts` + `lint-skills.ts` (scope and vocabulary), `test.ts`, `theme.ts` (one note), `skills/prism3-consume/SKILL.md`, `README.md`, `docs/voice-standard.md` §4, `docs/29` §4.1, `version.ts` (ENGINE 0.142.0; CONTRACT stands).
+
+**What moved, per owner decision.** AI/C-1: `.ai.json` is the payload channel, so `avoid_when_level` is gone and the one `MUST` is `contrast_with[].requirement` ("MUST clear 4.5:1 against `background.primary` in every mode."). AI/C-2 + ELSEWHERE-2: tertiary and subtle inks (text and icon, page and inverse) carry a structured `usage_limit` and say "large text (24px and up, or 18.66px bold), icons and non-essential text only" with a body-size alternative. AI/C-3: no capitals for emphasis; "on an `inverse.*` ground". AI/D-1: new `layout` and `motion` tiers, and the font family / line-height / letter-spacing roles in `typography` — every tree leaf has an entry, and `aliased_by` names only entries. AI/D-2: the scrim `tracks` `foreground.primary`. AI/D-3: `paired_with` splits into `sits_on` / `carries` (legibility, measured) and `tracks` (companion, no contrast). ELSEWHERE-1: `on-fill` relates to `fill.rest` only.
+
+**The diagnosis that kept it small.** The MUST was wrong in two ways at once — wrong channel and wrong sentence — and moving it onto the contract fixes both: the sentence is built from the entry's own `min` / `token`, so the reader can check it with `tokens.json`, and the gate can recognize it by shape. `lint-voice.ts` matches that shape with its own pattern against the entry's own fields; a requirement naming a different token fails as `normative` (mutation: 660 hits).
+
+**Gates, and what each mutation proved (commit before each; all fail by name).** `test.ts` sidecar arms: requirement not its own check → "states its requirement as the check…"; `usage_limit` dropped → "sidecar fields: … usage_limit"; "INVERSE" back → "capitals for emphasis"; motion tier dropped → "has no sidecar entry"; scrim → inverse → "relates the scrim to an inverse role"; border's text in `sits_on` → "is not a ground or … not an ink"; `on-fill` on non-rest fills → "on-fill related to a non-rest fill"; an undeclared field → "sidecar schema: … is not allowed". `lint-voice.ts`: a `MUST` in `avoid_when` → `[normative]`.
+
+**Traps for whoever re-verifies.** (1) The relation arm no longer has a "tracking" escape: a `sits_on`/`carries` with no floor is a failure, so anything that is not a legibility claim belongs in `tracks`. (2) The validator throws on a JSON Schema keyword it does not implement — implement it; do not delete the keyword. (3) Grid columns, `focus.ring.style` and control `line-box` moved from `primitives` to `layout`: they are roles with literal values. (4) The `normative` rule found a live `MUST` in a `theme.ts` decisions-log note (it reaches the studio bundle); it now reads "links need an underline".
+
+---
+
 ## (2026-09-24) — the outline-hover option is labeled "Tinted wash"
 
 **STATUS: landed by the orchestrator.** Owner decision: the `outlineInteraction` option `solid-tint` reads "Tinted wash" in the studio and plugin (it read "Opaque subtle tint"). Files: `packages/engine/levers.ts` (the one label), regenerated `schema/lever-manifest.json`, the `out/**` stamp, `version.ts` (ENGINE 0.141.0).

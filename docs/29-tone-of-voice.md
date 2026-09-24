@@ -282,6 +282,17 @@ payload artifacts inherit that problem rather than introduce it, and §8's open 
 `.ai.json` a channel?*) is still open. #675 settled the register for prose written *as* rules for
 an agent; it did not retroactively relabel prose already shipping.
 
+**Settled 2026-09-24 — `.ai.json` IS the payload channel (#1623 sign-off, AI/C-1, owner decision).**
+The reader of the sidecar is a model resolving token names, which is this column's reader and job.
+The owner reclassified it, and the consequences follow the rule above rather than exempt it:
+`avoid_when_level` (a `MUST` on 219 usage sentences per brand, 199 of them unrelated to the contrast
+check that earned it) is gone; the one `MUST` left is a `requirement` on each `contrast_with` entry —
+"MUST clear 4.5:1 against `background.primary` in every mode." — a check the reading agent can run
+with `tokens.json`, which travels with the sidecar. `lint-voice.ts` now carries the channel: an
+RFC 2119 level (`MUST` / `SHALL` / `SHOULD`) fails on every gated surface except that one field, and
+only when the sentence is the check its own entry defines. §2's bans still apply to the sidecar
+unchanged. This answers §8 open question 4.
+
 ---
 
 ## 5. Tone by context (per KB 04's matrix, at the plugin surface)
