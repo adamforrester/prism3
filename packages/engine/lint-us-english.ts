@@ -298,6 +298,10 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'a controlled, compelled caller', expect: false }, // en-US doubles these too — must NOT trip
   { sample: 'cancellation, totally, equally', expect: false }, // suffixes DOUBLE_L must NOT reach
   { sample: 'the diameter parameter is centered', expect: false }, // `meter`, not `metre`; en-US `-er`
+  // #1623 — two en-GB words the four shapes above could not see; both sat in shipped def prose.
+  { sample: 'use recognisable icons', expect: true },    // PATTERN's `-isable` branch
+  { sample: 'a judgement call', expect: true },          // EN_GB_WORDS — no suffix to match
+  { sample: 'it is advisable to', expect: false },       // en-US `-isable`; NOT_EN_GB must subtract
 ];
 // Drives `enGb` — the same function `scan()` calls — so neutering either regex fails HERE. See the
 // comment on `enGb`; reimplementing the match inline is what let a real `greyscale` ship clean.
