@@ -3249,7 +3249,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(pre >= 0 && own > pre, '#1633 main.ts pre-builds the nests before building the def it was asked for');
 }
 
-// ======================================================================================}
+// =============================================================================================
 // #1623 sign-off — THE DEF'S `summary` IS THE FIGMA DESCRIPTION
 // =============================================================================================
 // The plugin writes one line per built component: the set's description (or each component's, in
@@ -3285,7 +3285,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1623 emitAsComponents: every one of the ${icPlans.length} icon components carries the summary (${undescribed.length} without)`);
 
   ok(/description:\s*target\.summary/.test(mainSrc), "#1623 main.ts passes the def's summary as the build's description");
-=======
+}
 
 // ---- #1611: THE FOOTPRINT HOLDS ACROSS RUNTIME AXES, NOT AUTHORING AXES --------------------
 // The owner-found case: NB's emphasis weight (Medium) sets 1px wider than Regular at `small`, and the build
