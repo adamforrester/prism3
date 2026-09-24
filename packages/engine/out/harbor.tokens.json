@@ -13010,7 +13010,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting does not change the destructive label).",
+                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -13025,7 +13025,7 @@
                         "contrast": 16.7,
                         "against": "inverse.background.primary",
                         "min": 3,
-                        "description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.9:1 in this brief state (exempt by default; the strict interactive contrast setting does not change the destructive label)."
+                        "description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.9:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more)."
                       },
                       "hc-light": {
                         "$value": "{hds.core.palette.neutral.100}",
@@ -13060,7 +13060,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting does not change the destructive label).",
+                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -13075,7 +13075,7 @@
                         "contrast": 12.96,
                         "against": "inverse.background.primary",
                         "min": 3,
-                        "description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 3:1 in this brief state (exempt by default; the strict interactive contrast setting does not change the destructive label)."
+                        "description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more)."
                       },
                       "hc-light": {
                         "$value": "{hds.core.palette.neutral.200}",
@@ -21352,7 +21352,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.147.0",
+      "version": "0.148.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -21378,7 +21378,7 @@
         "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.",
         "light primary surface is NON-default (neutral.50) — CONFIRM this is the page color; the contrast floor moves with it",
         "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)",
-        "strict interactive contrast: off — inverse primary carries the vivid brand on-fill (#1244); rest clears AA, transient hover/pressed may dip"
+        "strict interactive contrast: off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip"
       ]
     }
   }

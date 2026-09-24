@@ -152,7 +152,7 @@
       "control": "toggle",
       "advanced": true,
       "default": false,
-      "description": "Opt-in (off by default). The inverse filled button steps its fill per state; the primary label’s vivid brand ink clears AA at rest but dips on the transient hover/pressed steps. On swaps the primary inverse label to the neutral high-contrast ink so every state clears AA — guaranteed legibility over brand color."
+      "description": "Opt-in (off by default). The inverse filled button steps its fill per state; the primary and destructive labels’ colored ink clears AA at rest but dips on the transient hover/pressed steps. On swaps both inverse labels to the neutral high-contrast ink so every state clears AA — guaranteed legibility over brand color."
     },
     {
       "key": "linkStateRungs",

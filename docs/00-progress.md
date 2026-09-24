@@ -7,6 +7,24 @@
 
 ---
 
+## (2026-09-24) — Strict interactive contrast covers destructive; `isPending` kept everywhere
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.148.0 (MINOR: emission changes when the lever is on, plus one description line); CONTRACT stands at 12.0.0 (no token name moves; the baseline's `engineVersion` stamp only). Files: `packages/engine/modes.ts` (the lever condition + the inverse fill `labelNote`), `theme.ts` / `levers.ts` (lever prose names destructive), `version.ts`, `test.ts` (new GATE B arm), regenerated `out/**` + `modes-report.md`.
+
+**Owner decision (2026-09-24): "Setting should cover destructive."** On an inverse surface the #1456 stepped hover/pressed (and focused/selected) fills drop the `on-fill` label to about 2.5:1, exempt by default as transient. With `strictInteractiveContrast` ON, primary's brand ink was swapped to the neutral extreme so it held ≥4.5:1; destructive's danger ink (#1384) was not, so the setting silently did not protect destructive. The fix is one condition: `useBrandInk = inkPalette !== null && !strict` instead of `… && !(name === 'primary' && strict)`.
+
+**Why it generalizes with no design choice.** The rule is by category, "a brand-ink label gives way to the neutral extreme under the lever". Only primary and destructive carry a brand ink on the inverse fill (`inkPalette !== null`); neutral and every declared interactive palette already carry `onColor`, the neutral extreme, so the uniform rule moves nothing else. Measured with the lever ON across nb / aurora / harbor / wendys and an nb variant declaring an `accent` palette: every inverse state fill, every family, all four modes (hc included), label ≥4.5:1.
+
+**Description.** #1645 worded destructive's inverse hover/pressed fills "(exempt by default; the strict interactive contrast setting does not change the destructive label)". Now that the setting does change it, the wording reverts to the owner-approved primary sentence: "(exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more)". `labelNote` keys the claim on `inkPalette !== null` (the families the lever actually swaps), not on the name, so the claim and the mechanism share one condition. `lint-description-claims` checks the "keeps it at N:1 or more" claim.
+
+**The trap: the PAGE column in `dark` is not covered, and the lever cannot cover it.** The task asked for page and inverse columns. On the page ground in the `dark` mode, the fill steps LIGHTER on hover/pressed under a near-white label that is *already* the neutral extreme, so primary and destructive drop to about 2.4–3.7:1 with the lever ON or OFF (nb, harbor, wendys). The lever's mechanism, swapping a brand ink for the neutral extreme, has nothing to swap there. Fixing it means re-picking the ink per state or re-stepping the page fill, a visual change the owner has not approved. It was already filed as **#1626**, so it is held there and not built here. The new test measures the page ground in base / hc-light / hc-dark and names `dark` as the one excluded mode, pointing at #1626. It does not silently skip.
+
+**Gate.** `test.ts` GATE B (lever, every category): with the lever ON, every family's `on-fill` against every state fill, recomputed from emitted hexes, inverse in 4 modes and page in 3, plus a representation assertion over inverse/page × primary/destructive/neutral/accent. **By-name mutation:** reverting the `modes.ts` condition to primary-only fails exactly that assertion (`strict lever (every category) … fails HERE — DIPS: nb/base/inverse.destructive/hover: 3.33:1 …`, 104691 passed / 1 failed), then restored.
+
+**Also decided (owner, 2026-09-24): KEEP `isPending` everywhere** (button, icon-button, text-field, switch-row), per the #1326 canon. Audit item C2/K-30 is withdrawn. No code change.
+
+---
+
 ## (2026-09-24) — Figma gets its own short description; DTCG prose per the #1623 sign-off
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.147.0 (MINOR, emitted prose moves); CONTRACT stands at 11.3.0 (the baseline's `engineVersion` stamp only). Files: `packages/engine/figma-description.ts` (**NEW**, the Figma register), `emit-figma-{color,dims,font,styles}.ts` (every description now comes from it; the `desc` passthrough is deleted), `modes.ts` / `tree.ts` / `theme.ts` (DTCG prose), `lint-description-claims.ts` (grammar follows), `lint-figma-descriptions.ts` (**NEW** gate, wired in `verify.ts`, `ci.yml`, CONTRIBUTING §3, the PR template, CLAUDE.md), `apps/plugin/src/prune-figma.ts` + `test-prune.ts`, `test.ts`.

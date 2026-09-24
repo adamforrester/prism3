@@ -3823,7 +3823,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.900}",
-                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.9:1 in this brief state (exempt by default; the strict interactive contrast setting does not change the destructive label).",
+                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.9:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3847,7 +3847,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.800}",
-                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 3:1 in this brief state (exempt by default; the strict interactive contrast setting does not change the destructive label).",
+                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",

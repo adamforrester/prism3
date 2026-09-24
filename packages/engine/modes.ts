@@ -1334,18 +1334,22 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // (owner sign-off, #1623 DT/T-6). It is still `put` after the loop, so the emitted order is unchanged.
     const inkGround = asGround(`inverse.interactive.${name}.fill.rest`, fillRestAbs.rgb);
     const inkPalette = name === 'primary' ? (r2p.action ?? r2p.brand) : name === 'destructive' ? r2p.danger : null;
-    const useBrandInk = inkPalette !== null && !(name === 'primary' && theme.strictInteractiveContrast);
+    // The `strictInteractiveContrast` lever swaps EVERY brand-ink family (primary AND destructive, 2026-09-24
+    // owner decision) to the neutral extreme, so the setting protects every inverse label that can dip.
+    // neutral and the declared interactive palettes already carry `onColor` (inkPalette null), so the rule is
+    // by category — "a brand-ink label gives way to the neutral extreme" — and moves nothing else.
+    const useBrandInk = inkPalette !== null && !theme.strictInteractiveContrast;
     const ink = useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround) : onColor(inkGround);
     // What a state's label does, measured. Silent where the ink clears its floor on this fill. Where it does
     // not: hover / pressed are the #1456 transient states, exempt by the owner's decision, and the strict
-    // setting lifts that exemption for PRIMARY only (it swaps primary's ink, never destructive's). Focused /
-    // selected are not transient, so no exemption is claimed for them — the ratio and the floor are stated.
+    // setting lifts that exemption for every brand-ink family (primary and destructive). Focused / selected
+    // are not transient, so no exemption is claimed for them — the ratio and the floor are stated.
     const labelNote = (fill: RGB, st: string): string => {
       const r = contrast(ink.rgb, fill);
       if (r >= onMin) return '';
       const about = `about ${+r.toFixed(1)}:1`;
       if (st === 'hover' || st === 'pressed')
-        return ` The label on it drops to ${about} in this brief state (exempt by default; ${name === 'primary'
+        return ` The label on it drops to ${about} in this brief state (exempt by default; ${inkPalette !== null
           ? `the strict interactive contrast setting keeps it at ${onMin}:1 or more`
           : `the strict interactive contrast setting does not change the ${name} label`}).`;
       return ` The label on it measures ${about}, below its ${onMin}:1 floor.`;
@@ -1372,8 +1376,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // lands on a grey step — which the wireframe alias contract requires ("every wireframe alias routes
     // to palette/neutral/*"). Caught by that gate on the first run, when the ink resolved to
     // `accent/950` in wireframe.
-    // PRIMARY carries the VIVID brand ink (#1244) by DEFAULT; every other family (and primary under the
-    // `strictInteractiveContrast` lever) takes the neutral extreme via `onColor`. The lever is the escape
+    // PRIMARY carries the VIVID brand ink (#1244) by DEFAULT; DESTRUCTIVE its danger ink (#1384); every other family
+    // (and both of those under the `strictInteractiveContrast` lever) takes the neutral extreme via `onColor`. The lever is the escape
     // hatch B4a conditioned acceptance on: a brand that requires AA on the label in every interactive
     // state — not just `rest` — swaps primary onto the neutral extreme, which clears the floor on the
     // stepped fill at 7.6–16:1 where the brand step dips to ~2.7. The ink is still gated against
@@ -1384,8 +1388,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // clear AA on the absolute fill via the existing contrast-aware mechanism. primary → the vivid action /
     // brand step (#1244); DESTRUCTIVE → its DANGER step (the #1384 change — #1208/#1389 shipped a NEUTRAL ink
     // here, deferred as #1253; the owner now decides destructive carries danger ink); neutral (and any accent
-    // column) → the neutral extreme via `onColor`. The `strictInteractiveContrast` lever still swaps PRIMARY
-    // to the neutral extreme (B4a). Every family's ink resolves ≥AA on white/black across the corpus (measured
+    // column) → the neutral extreme via `onColor`. The `strictInteractiveContrast` lever swaps PRIMARY (B4a)
+    // and DESTRUCTIVE (2026-09-24) to the neutral extreme. Every family's ink resolves ≥AA on white/black across the corpus (measured
     // primary/danger land on a vivid ~step-500 at ~4.5–4.6); a brand whose family ink cannot stay itself AND
     // clear AA on white is a design call, surfaced to the owner — not forced, not allowlisted.
     put(`inverse.interactive.${name}.on-fill`,

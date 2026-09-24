@@ -1159,7 +1159,7 @@ Component sizes — t-shirt, density `comfortable` (height + paired padding from
 - interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.
 - action anchored at accent 'accent' step 500 (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor
 - neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)
-- strict interactive contrast: off — inverse primary carries the vivid brand on-fill (#1244); rest clears AA, transient hover/pressed may dip
+- strict interactive contrast: off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip
 
 Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws from `danger`.
 
@@ -2311,7 +2311,7 @@ Component sizes — t-shirt, density `compact` (height + paired padding from the
 - interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.
 - light primary surface is NON-default (neutral.50) — CONFIRM this is the page color; the contrast floor moves with it
 - neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)
-- strict interactive contrast: off — inverse primary carries the vivid brand on-fill (#1244); rest clears AA, transient hover/pressed may dip
+- strict interactive contrast: off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip
 
 Palettes: primary, neutral, success, warning, info, danger. Danger draws from `danger`.
 
