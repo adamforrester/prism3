@@ -8,7 +8,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: Clash Display, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — display → Clash Display",
+      "description": "Display font — Clash Display; falls back to system-ui, -apple-system, Segoe UI, Roboto, …",
       "value": "Clash Display",
       "alias": null,
       "hiddenFromPublishing": true
@@ -19,7 +19,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: Clash Display, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — title → Clash Display",
+      "description": "Title font — Clash Display; falls back to system-ui, -apple-system, Segoe UI, Roboto, …",
       "value": "Clash Display",
       "alias": null,
       "hiddenFromPublishing": true
@@ -30,7 +30,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — body → Inter",
+      "description": "Body font — Inter; falls back to system-ui, -apple-system, Segoe UI, Roboto, Helvetica, …",
       "value": "Inter",
       "alias": null,
       "hiddenFromPublishing": true
@@ -41,7 +41,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — label → Inter",
+      "description": "Label font — Inter; falls back to system-ui, -apple-system, Segoe UI, Roboto, Helvetica, …",
       "value": "Inter",
       "alias": null,
       "hiddenFromPublishing": true
@@ -52,7 +52,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — caption → Inter",
+      "description": "Caption font — Inter; falls back to system-ui, -apple-system, Segoe UI, Roboto, …",
       "value": "Inter",
       "alias": null,
       "hiddenFromPublishing": true
@@ -63,7 +63,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: Clash Display, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — eyebrow → Clash Display",
+      "description": "Eyebrow font — Clash Display; falls back to system-ui, -apple-system, Segoe UI, Roboto, …",
       "value": "Clash Display",
       "alias": null,
       "hiddenFromPublishing": true
@@ -74,7 +74,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace — font family — code → JetBrains Mono",
+      "description": "Code font — JetBrains Mono; falls back to ui-monospace, SFMono-Regular, Menlo, Consolas, …",
       "value": "JetBrains Mono",
       "alias": null,
       "hiddenFromPublishing": true
@@ -85,7 +85,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 10px (0.625rem) — curated ladder primitive",
+      "description": "10px (0.625rem) font size",
       "value": 10,
       "alias": null,
       "hiddenFromPublishing": true
@@ -96,7 +96,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 11px (0.6875rem) — curated ladder primitive",
+      "description": "11px (0.6875rem) font size",
       "value": 11,
       "alias": null,
       "hiddenFromPublishing": true
@@ -107,7 +107,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 12px (0.75rem) — curated ladder primitive",
+      "description": "12px (0.75rem) font size",
       "value": 12,
       "alias": null,
       "hiddenFromPublishing": true
@@ -118,7 +118,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 14px (0.875rem) — curated ladder primitive",
+      "description": "14px (0.875rem) font size",
       "value": 14,
       "alias": null,
       "hiddenFromPublishing": true
@@ -129,7 +129,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 16px (1rem) — curated ladder primitive",
+      "description": "16px (1rem) font size",
       "value": 16,
       "alias": null,
       "hiddenFromPublishing": true
@@ -140,7 +140,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 18px (1.125rem) — curated ladder primitive",
+      "description": "18px (1.125rem) font size",
       "value": 18,
       "alias": null,
       "hiddenFromPublishing": true
@@ -151,7 +151,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 20px (1.25rem) — curated ladder primitive",
+      "description": "20px (1.25rem) font size",
       "value": 20,
       "alias": null,
       "hiddenFromPublishing": true
@@ -162,7 +162,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 24px (1.5rem) — curated ladder primitive",
+      "description": "24px (1.5rem) font size",
       "value": 24,
       "alias": null,
       "hiddenFromPublishing": true
@@ -173,7 +173,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 28px (1.75rem) — curated ladder primitive",
+      "description": "28px (1.75rem) font size",
       "value": 28,
       "alias": null,
       "hiddenFromPublishing": true
@@ -184,7 +184,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 32px (2rem) — curated ladder primitive",
+      "description": "32px (2rem) font size",
       "value": 32,
       "alias": null,
       "hiddenFromPublishing": true
@@ -195,7 +195,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 36px (2.25rem) — curated ladder primitive",
+      "description": "36px (2.25rem) font size",
       "value": 36,
       "alias": null,
       "hiddenFromPublishing": true
@@ -206,7 +206,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 40px (2.5rem) — curated ladder primitive",
+      "description": "40px (2.5rem) font size",
       "value": 40,
       "alias": null,
       "hiddenFromPublishing": true
@@ -217,7 +217,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 48px (3rem) — curated ladder primitive",
+      "description": "48px (3rem) font size",
       "value": 48,
       "alias": null,
       "hiddenFromPublishing": true
@@ -228,7 +228,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 56px (3.5rem) — curated ladder primitive",
+      "description": "56px (3.5rem) font size",
       "value": 56,
       "alias": null,
       "hiddenFromPublishing": true
@@ -239,7 +239,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 64px (4rem) — curated ladder primitive",
+      "description": "64px (4rem) font size",
       "value": 64,
       "alias": null,
       "hiddenFromPublishing": true
@@ -250,7 +250,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 72px (4.5rem) — curated ladder primitive",
+      "description": "72px (4.5rem) font size",
       "value": 72,
       "alias": null,
       "hiddenFromPublishing": true
@@ -261,7 +261,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 80px (5rem) — curated ladder primitive",
+      "description": "80px (5rem) font size",
       "value": 80,
       "alias": null,
       "hiddenFromPublishing": true
@@ -272,7 +272,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 96px (6rem) — curated ladder primitive",
+      "description": "96px (6rem) font size",
       "value": 96,
       "alias": null,
       "hiddenFromPublishing": true
@@ -283,7 +283,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 112px (7rem) — curated ladder primitive",
+      "description": "112px (7rem) font size",
       "value": 112,
       "alias": null,
       "hiddenFromPublishing": true
@@ -294,7 +294,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 128px (8rem) — curated ladder primitive",
+      "description": "128px (8rem) font size",
       "value": 128,
       "alias": null,
       "hiddenFromPublishing": true
@@ -305,7 +305,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 144px (9rem) — curated ladder primitive",
+      "description": "144px (9rem) font size",
       "value": 144,
       "alias": null,
       "hiddenFromPublishing": true
@@ -316,7 +316,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "font size 160px (10rem) — curated ladder primitive",
+      "description": "160px (10rem) font size",
       "value": 160,
       "alias": null,
       "hiddenFromPublishing": true
@@ -327,7 +327,7 @@
       "scopes": [
         "FONT_WEIGHT"
       ],
-      "description": "font weight 300 — numeric reference (the brand's literal axis value)",
+      "description": "Font weight 300",
       "value": 300,
       "alias": null,
       "hiddenFromPublishing": true
@@ -338,7 +338,7 @@
       "scopes": [
         "FONT_WEIGHT"
       ],
-      "description": "font weight 400 — numeric reference (the brand's literal axis value)",
+      "description": "Font weight 400",
       "value": 400,
       "alias": null,
       "hiddenFromPublishing": true
@@ -349,7 +349,7 @@
       "scopes": [
         "FONT_WEIGHT"
       ],
-      "description": "font weight 500 — numeric reference (the brand's literal axis value)",
+      "description": "Font weight 500",
       "value": 500,
       "alias": null,
       "hiddenFromPublishing": true
@@ -360,7 +360,7 @@
       "scopes": [
         "FONT_WEIGHT"
       ],
-      "description": "font weight 700 — numeric reference (the brand's literal axis value)",
+      "description": "Font weight 700",
       "value": 700,
       "alias": null,
       "hiddenFromPublishing": true
@@ -371,7 +371,7 @@
       "scopes": [
         "FONT_WEIGHT"
       ],
-      "description": "font weight 900 — numeric reference (the brand's literal axis value)",
+      "description": "Font weight 900",
       "value": 900,
       "alias": null,
       "hiddenFromPublishing": true
@@ -382,7 +382,7 @@
       "scopes": [
         "FONT_WEIGHT"
       ],
-      "description": "weight role 'subtle' → 300 — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)",
+      "description": "Weight role 'subtle' → 300.",
       "value": 300,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -395,7 +395,7 @@
       "scopes": [
         "FONT_WEIGHT"
       ],
-      "description": "weight role 'default' → 400 — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)",
+      "description": "Weight role 'default' → 400.",
       "value": 400,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -408,7 +408,7 @@
       "scopes": [
         "FONT_WEIGHT"
       ],
-      "description": "weight role 'emphasis' → 500 — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)",
+      "description": "Weight role 'emphasis' → 500.",
       "value": 500,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -421,7 +421,7 @@
       "scopes": [
         "FONT_WEIGHT"
       ],
-      "description": "weight role 'strong' → 700 — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)",
+      "description": "Weight role 'strong' → 700.",
       "value": 700,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -434,7 +434,7 @@
       "scopes": [
         "FONT_WEIGHT"
       ],
-      "description": "weight role 'max' → 900 — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)",
+      "description": "Weight role 'max' → 900.",
       "value": 900,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -447,7 +447,7 @@
       "scopes": [
         "FONT_STYLE"
       ],
-      "description": "display strong — the Figma style cut this text style binds",
+      "description": "Font style for display strong text styles",
       "value": "Bold",
       "alias": null
     },
@@ -457,7 +457,7 @@
       "scopes": [
         "FONT_STYLE"
       ],
-      "description": "title strong — the Figma style cut this text style binds",
+      "description": "Font style for title strong text styles",
       "value": "Bold",
       "alias": null
     },
@@ -467,7 +467,7 @@
       "scopes": [
         "FONT_STYLE"
       ],
-      "description": "body default — the Figma style cut this text style binds",
+      "description": "Font style for body default text styles",
       "value": "Regular",
       "alias": null
     },
@@ -477,7 +477,7 @@
       "scopes": [
         "FONT_STYLE"
       ],
-      "description": "body strong — the Figma style cut this text style binds",
+      "description": "Font style for body strong text styles",
       "value": "Bold",
       "alias": null
     },
@@ -487,7 +487,7 @@
       "scopes": [
         "FONT_STYLE"
       ],
-      "description": "label emphasis — the Figma style cut this text style binds",
+      "description": "Font style for label emphasis text styles",
       "value": "Medium",
       "alias": null
     },
@@ -497,7 +497,7 @@
       "scopes": [
         "FONT_STYLE"
       ],
-      "description": "caption default — the Figma style cut this text style binds",
+      "description": "Font style for caption default text styles",
       "value": "Regular",
       "alias": null
     },
@@ -507,7 +507,7 @@
       "scopes": [
         "FONT_STYLE"
       ],
-      "description": "caption strong — the Figma style cut this text style binds",
+      "description": "Font style for caption strong text styles",
       "value": "Bold",
       "alias": null
     },
@@ -517,7 +517,7 @@
       "scopes": [
         "FONT_STYLE"
       ],
-      "description": "eyebrow emphasis — the Figma style cut this text style binds",
+      "description": "Font style for eyebrow emphasis text styles",
       "value": "Medium",
       "alias": null
     },
@@ -527,7 +527,7 @@
       "scopes": [
         "FONT_STYLE"
       ],
-      "description": "code default — the Figma style cut this text style binds",
+      "description": "Font style for code default text styles",
       "value": "Regular",
       "alias": null
     }

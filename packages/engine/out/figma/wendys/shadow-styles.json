@@ -3,7 +3,7 @@
   "styles": [
     {
       "name": "shadow/xs",
-      "description": "shadow xs — elevation 1 of 6, 2-layer (key+ambient) — light mode",
+      "description": "Elevation 1 of 6 — light mode",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -43,7 +43,7 @@
     },
     {
       "name": "shadow/sm",
-      "description": "shadow sm — elevation 2 of 6, 2-layer (key+ambient) — light mode",
+      "description": "Elevation 2 of 6 — light mode",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -83,7 +83,7 @@
     },
     {
       "name": "shadow/md",
-      "description": "shadow md — elevation 3 of 6, 2-layer (key+ambient) — light mode",
+      "description": "Elevation 3 of 6 — light mode",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -123,7 +123,7 @@
     },
     {
       "name": "shadow/lg",
-      "description": "shadow lg — elevation 4 of 6, 2-layer (key+ambient) — light mode",
+      "description": "Elevation 4 of 6 — light mode",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -163,7 +163,7 @@
     },
     {
       "name": "shadow/xl",
-      "description": "shadow xl — elevation 5 of 6, 2-layer (key+ambient) — light mode",
+      "description": "Elevation 5 of 6 — light mode",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -203,7 +203,7 @@
     },
     {
       "name": "shadow/2xl",
-      "description": "shadow 2xl — elevation 6 of 6, 2-layer (key+ambient) — light mode",
+      "description": "Elevation 6 of 6 — light mode",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -243,7 +243,7 @@
     },
     {
       "name": "shadow/inset",
-      "description": "shadow inset — inner shadow for wells / pressed states / inputs — light mode",
+      "description": "Inner shadow for wells, pressed states and inputs — light mode",
       "effects": [
         {
           "type": "INNER_SHADOW",
@@ -266,7 +266,7 @@
     },
     {
       "name": "shadow-dark/xs",
-      "description": "shadow xs — elevation 1 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+      "description": "Elevation 1 of 6 — dark mode (softer; surfaces lift instead)",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -306,7 +306,7 @@
     },
     {
       "name": "shadow-dark/sm",
-      "description": "shadow sm — elevation 2 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+      "description": "Elevation 2 of 6 — dark mode (softer; surfaces lift instead)",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -346,7 +346,7 @@
     },
     {
       "name": "shadow-dark/md",
-      "description": "shadow md — elevation 3 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+      "description": "Elevation 3 of 6 — dark mode (softer; surfaces lift instead)",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -386,7 +386,7 @@
     },
     {
       "name": "shadow-dark/lg",
-      "description": "shadow lg — elevation 4 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+      "description": "Elevation 4 of 6 — dark mode (softer; surfaces lift instead)",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -426,7 +426,7 @@
     },
     {
       "name": "shadow-dark/xl",
-      "description": "shadow xl — elevation 5 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+      "description": "Elevation 5 of 6 — dark mode (softer; surfaces lift instead)",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -466,7 +466,7 @@
     },
     {
       "name": "shadow-dark/2xl",
-      "description": "shadow 2xl — elevation 6 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+      "description": "Elevation 6 of 6 — dark mode (softer; surfaces lift instead)",
       "effects": [
         {
           "type": "DROP_SHADOW",
@@ -506,7 +506,7 @@
     },
     {
       "name": "shadow-dark/inset",
-      "description": "shadow inset — inner shadow for wells / pressed states / inputs — dark mode (reduced; surface-lift pattern)",
+      "description": "Inner shadow for wells, pressed states and inputs — dark mode (softer; surfaces lift instead)",
       "effects": [
         {
           "type": "INNER_SHADOW",

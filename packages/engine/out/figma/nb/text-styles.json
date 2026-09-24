@@ -3,7 +3,7 @@
   "styles": [
     {
       "name": "display/3xl/strong",
-      "description": "display 3xl strong",
+      "description": "display 3xl strong — 48→160px Inter, tight line-height, for hero headlines.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -53,7 +53,7 @@
     },
     {
       "name": "display/2xl/strong",
-      "description": "display 2xl strong",
+      "description": "display 2xl strong — 48→128px Inter, tight line-height, for hero headlines.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -103,7 +103,7 @@
     },
     {
       "name": "display/xl/strong",
-      "description": "display xl strong",
+      "description": "display xl strong — 48→96px Inter, tight line-height, for hero headlines.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -153,7 +153,7 @@
     },
     {
       "name": "display/lg/strong",
-      "description": "display lg strong",
+      "description": "display lg strong — 40→80px Inter, tight line-height, for hero headlines.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -203,7 +203,7 @@
     },
     {
       "name": "display/md/strong",
-      "description": "display md strong",
+      "description": "display md strong — 40→64px Inter, tight line-height, for hero headlines.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -253,7 +253,7 @@
     },
     {
       "name": "display/sm/strong",
-      "description": "display sm strong",
+      "description": "display sm strong — 36→48px Inter, snug line-height, for hero headlines.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -303,7 +303,7 @@
     },
     {
       "name": "title/2xl/strong",
-      "description": "title 2xl strong",
+      "description": "title 2xl strong — 36→40px Inter, snug line-height, for headings.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -353,7 +353,7 @@
     },
     {
       "name": "title/xl/strong",
-      "description": "title xl strong",
+      "description": "title xl strong — 28→32px Inter, snug line-height, for headings.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -403,7 +403,7 @@
     },
     {
       "name": "title/lg/strong",
-      "description": "title lg strong",
+      "description": "title lg strong — 24→28px Inter, snug line-height, for headings.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -453,7 +453,7 @@
     },
     {
       "name": "title/md/strong",
-      "description": "title md strong",
+      "description": "title md strong — 20→24px Inter, compact line-height, for headings.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -503,7 +503,7 @@
     },
     {
       "name": "title/sm/strong",
-      "description": "title sm strong",
+      "description": "title sm strong — 20px Inter, compact line-height, for headings.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -553,7 +553,7 @@
     },
     {
       "name": "title/xs/strong",
-      "description": "title xs strong",
+      "description": "title xs strong — 18px Inter, compact line-height, for headings.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -603,7 +603,7 @@
     },
     {
       "name": "body/lg/default",
-      "description": "body lg default",
+      "description": "body lg default — 18px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -653,7 +653,7 @@
     },
     {
       "name": "body/lg/default-link",
-      "description": "body lg default link",
+      "description": "body lg default link — 18px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -703,7 +703,7 @@
     },
     {
       "name": "body/lg/strong",
-      "description": "body lg strong",
+      "description": "body lg strong — 18px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -753,7 +753,7 @@
     },
     {
       "name": "body/lg/strong-link",
-      "description": "body lg strong link",
+      "description": "body lg strong link — 18px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -803,7 +803,7 @@
     },
     {
       "name": "body/md/default",
-      "description": "body md default",
+      "description": "body md default — 16px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -853,7 +853,7 @@
     },
     {
       "name": "body/md/default-link",
-      "description": "body md default link",
+      "description": "body md default link — 16px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -903,7 +903,7 @@
     },
     {
       "name": "body/md/strong",
-      "description": "body md strong",
+      "description": "body md strong — 16px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -953,7 +953,7 @@
     },
     {
       "name": "body/md/strong-link",
-      "description": "body md strong link",
+      "description": "body md strong link — 16px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1003,7 +1003,7 @@
     },
     {
       "name": "body/sm/default",
-      "description": "body sm default",
+      "description": "body sm default — 14px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1053,7 +1053,7 @@
     },
     {
       "name": "body/sm/default-link",
-      "description": "body sm default link",
+      "description": "body sm default link — 14px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1103,7 +1103,7 @@
     },
     {
       "name": "body/sm/strong",
-      "description": "body sm strong",
+      "description": "body sm strong — 14px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1153,7 +1153,7 @@
     },
     {
       "name": "body/sm/strong-link",
-      "description": "body sm strong link",
+      "description": "body sm strong link — 14px Inter, normal line-height, for running text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1203,7 +1203,7 @@
     },
     {
       "name": "label/lg/emphasis",
-      "description": "label lg emphasis",
+      "description": "label lg emphasis — 18px Inter, snug line-height, for control and form labels.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1253,7 +1253,7 @@
     },
     {
       "name": "label/md/emphasis",
-      "description": "label md emphasis",
+      "description": "label md emphasis — 14px Inter, snug line-height, for control and form labels.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1303,7 +1303,7 @@
     },
     {
       "name": "label/sm/emphasis",
-      "description": "label sm emphasis",
+      "description": "label sm emphasis — 12px Inter, snug line-height, for control and form labels.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1353,7 +1353,7 @@
     },
     {
       "name": "caption/lg/default",
-      "description": "caption lg default",
+      "description": "caption lg default — 12px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1403,7 +1403,7 @@
     },
     {
       "name": "caption/lg/default-link",
-      "description": "caption lg default link",
+      "description": "caption lg default link — 12px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1453,7 +1453,7 @@
     },
     {
       "name": "caption/lg/strong",
-      "description": "caption lg strong",
+      "description": "caption lg strong — 12px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1503,7 +1503,7 @@
     },
     {
       "name": "caption/lg/strong-link",
-      "description": "caption lg strong link",
+      "description": "caption lg strong link — 12px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1553,7 +1553,7 @@
     },
     {
       "name": "caption/md/default",
-      "description": "caption md default",
+      "description": "caption md default — 11px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1603,7 +1603,7 @@
     },
     {
       "name": "caption/md/default-link",
-      "description": "caption md default link",
+      "description": "caption md default link — 11px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1653,7 +1653,7 @@
     },
     {
       "name": "caption/md/strong",
-      "description": "caption md strong",
+      "description": "caption md strong — 11px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1703,7 +1703,7 @@
     },
     {
       "name": "caption/md/strong-link",
-      "description": "caption md strong link",
+      "description": "caption md strong link — 11px Inter, cozy line-height, for captions and helper text.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1753,7 +1753,7 @@
     },
     {
       "name": "eyebrow/lg/emphasis",
-      "description": "eyebrow lg emphasis",
+      "description": "eyebrow lg emphasis — 18→20px Inter, snug line-height, for labels above headings.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1803,7 +1803,7 @@
     },
     {
       "name": "eyebrow/md/emphasis",
-      "description": "eyebrow md emphasis",
+      "description": "eyebrow md emphasis — 14px Inter, snug line-height, for labels above headings.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1853,7 +1853,7 @@
     },
     {
       "name": "eyebrow/sm/emphasis",
-      "description": "eyebrow sm emphasis",
+      "description": "eyebrow sm emphasis — 12px Inter, snug line-height, for labels above headings.",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1903,7 +1903,7 @@
     },
     {
       "name": "code/inline/default",
-      "description": "code inline default",
+      "description": "code inline default — 14px JetBrains Mono, normal line-height, for code.",
       "properties": {
         "fontFamily": {
           "bound": true,

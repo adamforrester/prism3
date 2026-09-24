@@ -8,7 +8,7 @@
       "scopes": [
         "STROKE_FLOAT"
       ],
-      "description": "focus ring width — 2px (the WCAG 2.4.13 minimum thickness; raise to 3px for more visibility)",
+      "description": "Focus ring width — 2px (meets WCAG 2.4.13, AAA focus appearance).",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -21,7 +21,7 @@
       "scopes": [
         "STROKE_FLOAT"
       ],
-      "description": "focus ring offset — 2px (separates ring from the element edge)",
+      "description": "Focus ring offset — 2px from the element edge",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -34,7 +34,7 @@
       "scopes": [
         "STROKE_FLOAT"
       ],
-      "description": "focus ring offset, form fields — 0px (the ring sits on the field edge, so it does not collide with adjacent fields)",
+      "description": "Focus ring offset on form fields — 0px, so the ring sits on the field edge",
       "value": 0,
       "alias": {
         "type": "VARIABLE_ALIAS",

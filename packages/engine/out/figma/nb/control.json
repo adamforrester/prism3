@@ -8,7 +8,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.sm — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+      "description": "Checkbox / radio box — 16px square",
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -21,7 +21,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.sm width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "description": "Switch track width — 48px (twice the 24px track height)",
       "value": 48,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -34,7 +34,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.sm dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "description": "Radio dot — 8px (half the 16px box)",
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -47,7 +47,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
+      "description": "Label line height (body sm, 21px) — the control centers on the label's first line.",
       "value": 21,
       "alias": null
     },
@@ -57,7 +57,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "control.size.sm inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+      "description": "Switch thumb inset — 3px ((24px track − 18px thumb) ÷ 2). Switches only.",
       "value": 3,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -70,7 +70,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and the 16÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "description": "Checkbox/radio corner — 2px, clamped to the 16px box (does not follow the radius scale).",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -83,7 +83,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.sm track — 24px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "description": "Switch track height — 24px. Switches only.",
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -96,7 +96,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.sm thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "description": "Switch thumb — 18px (0.75 × the 24px track). Switches only.",
       "value": 18,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -109,7 +109,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.md — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+      "description": "Checkbox / radio box — 20px square",
       "value": 20,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -122,7 +122,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.md width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "description": "Switch track width — 64px (twice the 32px track height)",
       "value": 64,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -135,7 +135,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.md dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "description": "Radio dot — 10px (half the 20px box)",
       "value": 10,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -148,7 +148,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
+      "description": "Label line height (body md, 24px) — the control centers on the label's first line.",
       "value": 24,
       "alias": null
     },
@@ -158,7 +158,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "control.size.md inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+      "description": "Switch thumb inset — 4px ((32px track − 24px thumb) ÷ 2). Switches only.",
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -171,7 +171,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and the 20÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "description": "Checkbox/radio corner — 2px, clamped to the 20px box (does not follow the radius scale).",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -184,7 +184,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.md track — 32px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "description": "Switch track height — 32px. Switches only.",
       "value": 32,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -197,7 +197,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.md thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "description": "Switch thumb — 24px (0.75 × the 32px track). Switches only.",
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -210,7 +210,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.lg — 24px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+      "description": "Checkbox / radio box — 24px square",
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -223,7 +223,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.lg width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "description": "Switch track width — 80px (twice the 40px track height)",
       "value": 80,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -236,7 +236,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.lg dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "description": "Radio dot — 12px (half the 24px box)",
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -249,7 +249,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
+      "description": "Label line height (body lg, 27px) — the control centers on the label's first line.",
       "value": 27,
       "alias": null
     },
@@ -259,7 +259,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "control.size.lg inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+      "description": "Switch thumb inset — 5px ((40px track − 30px thumb) ÷ 2). Switches only.",
       "value": 5,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -272,7 +272,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and the 24÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "description": "Checkbox/radio corner — 2px, clamped to the 24px box (does not follow the radius scale).",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -285,7 +285,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.lg track — 40px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "description": "Switch track height — 40px. Switches only.",
       "value": 40,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -298,7 +298,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "control.size.lg thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "description": "Switch thumb — 30px (0.75 × the 40px track). Switches only.",
       "value": 30,
       "alias": {
         "type": "VARIABLE_ALIAS",

@@ -498,10 +498,10 @@ ok(crossMatched.length === 0,
   `style provenance: and no kind's description is recognized as another kind's${crossMatched.length ? ` — ${crossMatched.slice(0, 4).join('; ')}` : ''} — four independent namespaces, as with the groups`);
 
 // THE COMMITTED BYTES (#1623). The sweep above reads the emitters in memory; a file the plugin already
-// applied carries whatever the committed emission said when it was applied. #1623 rewrote a large share of
-// the engine's description prose, all of it on VARIABLES, and this arm is the proof that no style
-// description moved with it: every style row in `out/figma/<brand>/*-styles.json` is still recognized by
-// its own kind's signature. It also reaches wendys, which the in-memory sweep does not build.
+// applied carries whatever the committed emission said when it was applied. The #1623 sign-off moved the
+// grid, effect and text style descriptions into the short Figma register, and this arm is the proof the
+// recognizer moved with them: every style row in `out/figma/<brand>/*-styles.json` is recognized by its
+// own kind's signature. It also reaches wendys, which the in-memory sweep does not build.
 const committedKinds: Record<StyleKind, string> = { grid: 'grid-styles', effect: 'shadow-styles', text: 'text-styles', paint: 'gradient-styles' };
 let committedSwept = 0;
 const committedMissed: string[] = [];
@@ -519,6 +519,20 @@ for (const brand of ['nb', 'aurora', 'wendys']) {
 ok(committedSwept > 150 && committedMissed.length === 0,
   `style provenance: every one of the ${committedSwept} COMMITTED style descriptions (nb/aurora/wendys) is recognized${committedMissed.length ? ` — MISSED ${committedMissed.slice(0, 3).join('; ')}` : ''}`);
 
+// THE LEGACY WORDS (#1623 sign-off). A client file applied before the Figma register moved still holds
+// styles described in the engine's OLD words, and a stranded one of those is exactly what this arm prunes.
+// Frozen literals, copied from the committed emission before the rewrite — not generated, because the
+// engine no longer writes them and a generator would now produce the new words.
+const legacyStyles: { kind: StyleKind; description: string; names: string[] }[] = [
+  { kind: 'grid', description: '4-column layout grid for the sm breakpoint — 16px gutter, 16px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.', names: [] },
+  { kind: 'effect', description: 'shadow md — elevation 3 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)', names: [] },
+  { kind: 'effect', description: 'shadow inset — inner shadow for wells / pressed states / inputs — light mode', names: [] },
+  { kind: 'text', description: 'display xl strong', names: textPlan.map((r) => r.name) },
+  { kind: 'text', description: 'body md default link', names: textPlan.map((r) => r.name) },
+];
+for (const c of legacyStyles)
+  ok(isEngineDescription(c.kind, c.description, c.names), `style provenance: a LEGACY ${c.kind} description, written before the #1623 sign-off, is still recognized ("${c.description.slice(0, 48)}…")`);
+
 // The negative half, and it is the half that matters: a description a DESIGNER typed must not be
 // recognized, or the arm would offer hand-made styles for deletion. Each case names what makes it not the
 // engine's. `plannedText` gives the text vocabulary its shape-plus-vocabulary rule closes over.
@@ -533,6 +547,9 @@ const handTyped: { kind: StyleKind; description: string; why: string }[] = [
   { kind: 'text', description: 'body copy for the hero', why: 'starts with a planned group, but `copy`/`for`/`the`/`hero` are outside the plan\'s vocabulary' },
   { kind: 'text', description: 'Heading', why: 'a single capitalised word — neither the shape nor the vocabulary' },
   { kind: 'text', description: 'Display XL Strong', why: 'the engine\'s words in a designer\'s casing — the engine writes them lowercase' },
+  { kind: 'text', description: 'label sm emphasis — use for chips', why: 'the engine\'s words, then a designer\'s own note after the dash — the tail is not the emitter\'s size / face / line-height / use template' },
+  { kind: 'grid', description: '12-column grid for marketing — wide gutters', why: 'opens like the current template and carries none of its px values or closing sentence' },
+  { kind: 'effect', description: 'Elevation for cards', why: 'opens with the current template\'s first word and carries neither the rank nor the mode clause' },
 ];
 const falsePositives = handTyped.filter((c) => isEngineDescription(c.kind, c.description, c.kind === 'text' ? plannedText : emittedStyles(theme)[c.kind].map((r) => r.name)));
 for (const c of handTyped) {

@@ -8,7 +8,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "size.xs control height — 24px (density: compact)",
+      "description": "Control row height — 24px",
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -21,7 +21,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.xs horizontal inset — 8px (density: compact)",
+      "description": "Horizontal padding, label side — 8px",
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -34,7 +34,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.xs horizontal inset on the visual side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
+      "description": "Horizontal padding, icon side — 6px (the icon's box adds space; label side is 8px)",
       "value": 6,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -47,7 +47,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.xs vertical inset — 2px (density: compact)",
+      "description": "Vertical padding — 2px",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -60,7 +60,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.xs label↔visual gap — 4px (density: compact)",
+      "description": "Gap between label and icon — 4px",
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -73,7 +73,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "size.sm control height — 28px (density: compact)",
+      "description": "Control row height — 28px",
       "value": 28,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -86,7 +86,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.sm horizontal inset — 8px (density: compact)",
+      "description": "Horizontal padding, label side — 8px",
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -99,7 +99,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.sm horizontal inset on the visual side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
+      "description": "Horizontal padding, icon side — 6px (the icon's box adds space; label side is 8px)",
       "value": 6,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -112,7 +112,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.sm vertical inset — 4px (density: compact)",
+      "description": "Vertical padding — 4px",
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -125,7 +125,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.sm label↔visual gap — 4px (density: compact)",
+      "description": "Gap between label and icon — 4px",
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -138,7 +138,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "size.md control height — 36px (density: compact)",
+      "description": "Control row height — 36px",
       "value": 36,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -151,7 +151,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height 36, 44) = 44px",
+      "description": "Minimum target size — 44px (WCAG 2.2 SC 2.5.5)",
       "value": 44,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -164,7 +164,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.md horizontal inset — 16px (density: compact)",
+      "description": "Horizontal padding, label side — 16px",
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -177,7 +177,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.md horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+      "description": "Horizontal padding, icon side — 12px (the icon's box adds space; label side is 16px)",
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -190,7 +190,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.md vertical inset — 6px (density: compact)",
+      "description": "Vertical padding — 6px",
       "value": 6,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -203,7 +203,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.md label↔visual gap — 8px (density: compact)",
+      "description": "Gap between label and icon — 8px",
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -216,7 +216,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "size.lg control height — 44px (density: compact)",
+      "description": "Control row height — 44px",
       "value": 44,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -229,7 +229,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.lg horizontal inset — 16px (density: compact)",
+      "description": "Horizontal padding, label side — 16px",
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -242,7 +242,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.lg horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+      "description": "Horizontal padding, icon side — 12px (the icon's box adds space; label side is 16px)",
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -255,7 +255,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.lg vertical inset — 8px (density: compact)",
+      "description": "Vertical padding — 8px",
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -268,7 +268,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.lg label↔visual gap — 8px (density: compact)",
+      "description": "Gap between label and icon — 8px",
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -281,7 +281,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "size.xl control height — 56px (density: compact)",
+      "description": "Control row height — 56px",
       "value": 56,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -294,7 +294,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.xl horizontal inset — 24px (density: compact)",
+      "description": "Horizontal padding, label side — 24px",
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -307,7 +307,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.xl horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
+      "description": "Horizontal padding, icon side — 16px (the icon's box adds space; label side is 24px)",
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -320,7 +320,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.xl vertical inset — 8px (density: compact)",
+      "description": "Vertical padding — 8px",
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -333,7 +333,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.xl label↔visual gap — 12px (density: compact)",
+      "description": "Gap between label and icon — 12px",
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",

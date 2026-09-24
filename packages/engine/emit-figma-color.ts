@@ -9,7 +9,7 @@
  *
  * This module holds:
  *   • the Figma variable types (`FigmaVar` / `FigmaCollectionFile` / `FigmaColor` …),
- *   • the shared pure helpers every axis uses (`figName` / `parseColor` / `desc` / `leaves` /
+ *   • the shared pure helpers every axis uses (`figName` / `parseColor` / `leaves` /
  *     `stripNs`) — defined ONCE here, imported back by the shell,
  *   • the colour scope maps + `buildFigmaColor(theme)` — the palette + color×N-modes builder.
  *
@@ -17,6 +17,8 @@
  */
 import { Theme, CORE_TIER } from './theme';
 import { buildTree, at } from './tree';
+import { contrast } from './color';
+import { figmaColorDescription, figmaPaletteDescription, figmaAlphaDescription, FIGMA_EXTREME } from './figma-description';
 
 export type FigmaColor = { r: number; g: number; b: number; a: number };
 export type FigmaVarValue = FigmaColor | number | string;
@@ -42,49 +44,8 @@ export type FigmaVar = {
 };
 export type FigmaCollectionFile = { $collection: string; $mode: string; variables: FigmaVar[] };
 
-/** Read the DTCG leaf's $description into Figma's `description` field so
- *  designers see the source-of-truth prose in the Variables panel sidebar
- *  (`space.100 — 8px (1× 8px base)` etc.) without polluting the Figma name
- *  (which stays namespace-stripped per §3). */
-export const desc = (leaf: any): string => String(leaf?.$description ?? '');
-
-/**
- * ONE description for a variable whose prose differs by mode (#1623 FG/F-1…F-7).
- *
- * A Figma variable carries a single description shared by all its modes, and this emitter used to write
- * light's into every mode file — so a designer switched to dark or high contrast read the light mode's
- * scrim opacity and contrast minimums beside a different value. The DTCG overlays carry each mode's own
- * sentence; Figma cannot, so it gets the sentence whose claims hold in every mode.
- *
- * The per-mode sentences come from one template per role, so they differ only in their CLAIMS — a ratio
- * (`4.5:1`, `~1.4:1`) or a percentage (`40%`). Each claim that varies keeps light's value and gains a
- * parenthetical naming the other modes' values: `4.5:1 (7:1 in high-contrast modes)`. A template whose
- * modes differ in anything else throws rather than guessing, because a merged sentence would be exactly
- * the silent loss this replaces.
- */
-const CLAIM = /~?\d+(?:\.\d+)?(?::1|%)/g;
-export const modeNeutralDescription = (dotted: string, byMode: Array<[string, string]>): string => {
-  const [, light] = byMode[0];
-  if (byMode.every(([, d]) => d === light)) return light;
-  const skeleton = (d: string) => d.replace(CLAIM, '\u0000');
-  for (const [m, d] of byMode)
-    if (skeleton(d) !== skeleton(light))
-      throw new Error(`emit-figma-color: ${dotted} — the ${m} description differs from light's in more than its ratio / percentage claims, so no single Figma description can hold in every mode:\n  light: ${light}\n  ${m}: ${d}`);
-  const claims = byMode.map(([m, d]) => [m, d.match(CLAIM) ?? []] as const);
-  let i = 0;
-  return light.replace(CLAIM, (base) => {
-    const slot = i++;
-    const others = new Map<string, string[]>();
-    for (const [m, cs] of claims.slice(1)) if (cs[slot] !== base) others.set(cs[slot], [...(others.get(cs[slot]) ?? []), m]);
-    if (!others.size) return base;
-    const where = (ms: string[]) => {
-      const hc = ms.includes('hc-light') && ms.includes('hc-dark');
-      const named = [...ms.filter((m) => !hc || (m !== 'hc-light' && m !== 'hc-dark')), ...(hc ? ['high-contrast modes'] : [])];
-      return named.join(' and ');
-    };
-    return `${base} (${[...others].map(([v, ms]) => `${v} in ${where(ms)}`).join('; ')})`;
-  });
-};
+/* No `desc` helper any more (#1623 sign-off). Figma descriptions are the Figma register's own line, built
+ * from structured data in `figma-description.ts`; nothing in the Figma emitters reads a `$description`. */
 
 /** Ref-tier PRIMITIVE marker. `hiddenFromPublishing: true` is Figma's OFFICIAL
  *  mechanism for "consumers of this file (as a library) shouldn't pick this."
@@ -321,6 +282,87 @@ export const leaves = (
   return out;
 };
 
+/** A palette step's Figma line (`figma-description.ts`): the ramp's name from its ROLE and key, the band
+ *  and its real step range from the ramp itself, and the generated hue from `PaletteBuild.generated`. */
+const paletteDescription = (theme: Theme, [palette, key]: string[], leaf: any): string => {
+  const ext = leaf.$extensions?.prism3 ?? {};
+  if (palette === 'palette') return FIGMA_EXTREME[key] ?? (() => { throw new Error(`emit-figma-color: no Figma line for the palette literal '${key}'`); })();
+  const alpha = /^(black|white)-alpha$/.exec(palette);
+  if (alpha) return figmaAlphaDescription(alpha[1], Number(key));
+  const p = theme.palettes.find((x) => x.palette === palette);
+  if (!p) throw new Error(`emit-figma-color: palette '${palette}' has no PaletteBuild to describe it from`);
+  const step = p.steps.find((s) => s.key === key)!;
+  return figmaPaletteDescription({
+    label: p.role === palette ? p.role : `${p.role} (${palette})`,
+    key, band: step.band, bandKeys: p.steps.filter((s) => s.band === step.band).map((s) => s.key),
+    anchor: !!ext.anchor, generated: p.generated,
+  });
+};
+
+/** How many neutral rungs (50 apart) an inverse fill state sits off its white / black rest fill, read off
+ *  the light-mode aliases: white is rung 0 of the neutral ramp, black rung 1000. */
+const rungsOffRest = (tree: any, root: string, dotted: string): number => {
+  const stepOf = (d: string): string => String(at(tree, d)?.$extensions?.prism3?.aliasOf ?? '').split('.').slice(-2).join('.');
+  const rest = stepOf(dotted.replace(/\.[a-z]+$/, '.rest'));
+  const anchor = rest === 'palette.white' ? 0 : rest === 'palette.black' ? 1000 : NaN;
+  const own = /^neutral\.(\d+)$/.exec(stepOf(dotted));
+  if (Number.isNaN(anchor) || !own) throw new Error(`emit-figma-color: ${dotted} is not a neutral step off a white / black rest fill (rest ${rest}) — the Figma line cannot count its rungs`);
+  return Math.abs(Number(own[1]) - anchor) / 50;
+};
+
+const rgb255 = (c: FigmaColor) => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
+
+/**
+ * A color role's Figma line (`figmaColorDescription`), from structured fields only: each mode's `min`,
+ * each mode's alpha off the resolved value, and the ground named by `against` — a role path already, or
+ * a palette step the page ground aliases in light, which is resolved back to that ground ROLE so the
+ * line names something a designer can find in the variables panel.
+ */
+const colorRoleDescription = (tree: any, root: string, dotted: string, leaf: any, modes: string[]): string => {
+  const ext = leaf.$extensions?.prism3 ?? {};
+  const role = dotted.slice(`${root}.color.`.length);
+  const modeOf = (m: string) => (m === 'light' ? ext : { ...ext, ...(ext.modes?.[m] ?? {}) });
+  const valueIn = (d: string, m: string): FigmaColor | undefined => {
+    const l = at(tree, d);
+    if (!l) return undefined;
+    const v = m === 'light' ? l.$value : l.$extensions?.prism3?.modes?.[m]?.$value ?? l.$value;
+    const target = /^\{(.+)\}$/.exec(String(v));
+    return parseColor(target ? at(tree, target[1])?.$value : v);
+  };
+  const against = String(ext.against ?? '');
+  let ground: string | undefined;
+  if (against && against !== 'self') {
+    if (at(tree, `${root}.color.${against}`)) ground = against;
+    else {
+      const step = `${root}.${CORE_TIER}.palette.${against}`;
+      const grounds = ['background', 'inverse.background'].flatMap((fam) =>
+        Object.keys(at(tree, `${root}.color.${fam}`) ?? {}).filter((k) => !k.startsWith('$')).map((k) => `${fam}.${k}`))
+        .filter((g) => at(tree, `${root}.color.${g}`)?.$extensions?.prism3?.aliasOf === step);
+      if (grounds.length !== 1) throw new Error(`emit-figma-color: ${dotted} is measured against the palette step '${against}', which ${grounds.length ? `${grounds.length} page grounds alias (${grounds.join(', ')})` : 'no page ground aliases'} in light — the Figma line cannot name its ground`);
+      ground = grounds[0];
+    }
+  }
+  const seg = role.split('.');
+  const inverseFill = seg[0] === 'inverse' && seg[1] === 'interactive' && seg[3] === 'fill' && seg[4] !== 'rest';
+  // Engaged fill states the ink measures below its floor on, in any mode — the #1456 exemption, stated.
+  let dropsOn: string[] | undefined;
+  if (seg[seg.length - 1] === 'on-fill' && seg[0] === 'inverse') {
+    const fillBase = dotted.replace(/\.on-fill$/, '.fill');
+    dropsOn = ['hover', 'pressed', 'focused', 'selected'].filter((st) => at(tree, `${fillBase}.${st}`) && modes.some((m) => {
+      const ink = valueIn(dotted, m), fill = valueIn(`${fillBase}.${st}`, m);
+      return ink && fill && contrast(rgb255(ink), rgb255(fill)) < (modeOf(m).min ?? 0);
+    }));
+  }
+  return figmaColorDescription({
+    role,
+    mins: modes.map((m) => modeOf(m).min),
+    alphas: modes.map((m) => [m, Math.round((valueIn(dotted, m)?.a ?? 1) * 100)] as [string, number]),
+    ground,
+    dropsOn,
+    rungs: inverseFill ? rungsOffRest(tree, root, dotted) : undefined,
+  });
+};
+
 export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; color: FigmaCollectionFile[] } => {
   const { tree } = buildTree(theme);
   const root = Object.keys(tree)[0];
@@ -341,7 +383,7 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
       name: figName(dotted),
       resolvedType: 'COLOR',
       scopes: PALETTE_SCOPES,
-      description: desc(leaf),
+      description: paletteDescription(theme, dotted.split('.').slice(-2), leaf),
       value: parseColor(leaf.$value),
       alias: null,
       hiddenFromPublishing: true,
@@ -365,11 +407,9 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
   const emittedModes = [...builtinModes, ...customModes];
   // Computed once per leaf, then written into every mode file: the plan builder keeps the first mode
   // file's description, and every file carrying the same one is what makes that choice harmless.
-  const neutralDesc = new Map(colLeaves.map(([dotted, leaf]) => {
-    const modes = leaf.$extensions?.prism3?.modes ?? {};
-    const byMode = emittedModes.map((m) => [m, m === 'light' ? desc(leaf) : String(modes[m]?.description ?? desc(leaf))] as [string, string]);
-    return [dotted, modeNeutralDescription(dotted, byMode)];
-  }));
+  // The Figma register's OWN line per role, built from the role's structured fields — never from its
+  // `$description`, which stays the full DTCG contract (#1623 sign-off; `figma-description.ts`).
+  const neutralDesc = new Map(colLeaves.map(([dotted, leaf]) => [dotted, colorRoleDescription(tree, root, dotted, leaf, emittedModes)]));
   const color: FigmaCollectionFile[] = emittedModes.map((mode) => ({
     $collection: 'color',
     $mode: mode,

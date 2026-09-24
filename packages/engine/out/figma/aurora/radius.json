@@ -8,7 +8,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "radius none — 0px",
+      "description": "No corner radius — 0px",
       "value": 0,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -21,7 +21,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "radius sm — 4px",
+      "description": "4px corner radius",
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -34,7 +34,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "radius md — 8px",
+      "description": "8px corner radius",
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -47,7 +47,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "radius lg — 12px",
+      "description": "12px corner radius",
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -60,7 +60,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "radius round — 128px (pill)",
+      "description": "128px corner radius (pill)",
       "value": 128,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -73,7 +73,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "radius capsule — 999px (off-grid literal)",
+      "description": "999px corner radius",
       "value": 999,
       "alias": null
     }

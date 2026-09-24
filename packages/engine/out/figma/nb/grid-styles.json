@@ -3,7 +3,7 @@
   "styles": [
     {
       "name": "Grid / sm",
-      "description": "4-column layout grid for the sm breakpoint — 16px gutter, 16px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.",
+      "description": "4-column grid for sm — 16px gutter, 16px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
           "pattern": "COLUMNS",
@@ -23,7 +23,7 @@
     },
     {
       "name": "Grid / md",
-      "description": "8-column layout grid for the md breakpoint — 16px gutter, 24px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.",
+      "description": "8-column grid for md — 16px gutter, 24px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
           "pattern": "COLUMNS",
@@ -43,7 +43,7 @@
     },
     {
       "name": "Grid / lg",
-      "description": "12-column layout grid for the lg breakpoint — 24px gutter, 24px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.",
+      "description": "12-column grid for lg — 24px gutter, 24px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
           "pattern": "COLUMNS",
@@ -63,7 +63,7 @@
     },
     {
       "name": "Grid / xl",
-      "description": "12-column layout grid for the xl breakpoint — 24px gutter, 32px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.",
+      "description": "12-column grid for xl — 24px gutter, 32px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
           "pattern": "COLUMNS",
@@ -83,7 +83,7 @@
     },
     {
       "name": "Grid / 2xl",
-      "description": "12-column layout grid for the 2xl breakpoint — 32px gutter, 48px margin. A static Figma grid style; the layout variable collection stays the responsive source of truth.",
+      "description": "12-column grid for 2xl — 32px gutter, 48px margin. A static copy of the layout variables.",
       "layoutGrids": [
         {
           "pattern": "COLUMNS",

@@ -55,6 +55,7 @@
  * HIGH CONTRAST the neutral surface ladders flatten to the base — HC separates
  * regions by BORDER (the ≥4.5:1 border target), not by near-invisible tints.
  */
+import { LARGE_TEXT_ONLY, BODY_TEXT_FLOOR } from './figma-description';
 import { RGB, contrast, hex, hexToRgb, composite, deltaE2000 } from './color';
 import { Step } from './ramp';
 import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role } from './theme';
@@ -1328,12 +1329,35 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // (standard a11y practice; the resting state carries the contract) — so the fill can step freely and a
     // stepped hover/pressed fill whose ink dips below AA is BY DESIGN. The per-family ink below stays
     // derived to pass at REST and rides the stepped states without a per-state gate. See the on-fill note.
+    // The ink is resolved BEFORE the fill states (it depends only on the rest fill) so each engaged
+    // state's description can state what the ink measures on it — the #1456 exemption said out loud
+    // (owner sign-off, #1623 DT/T-6). It is still `put` after the loop, so the emitted order is unchanged.
+    const inkGround = asGround(`inverse.interactive.${name}.fill.rest`, fillRestAbs.rgb);
+    const inkPalette = name === 'primary' ? (r2p.action ?? r2p.brand) : name === 'destructive' ? r2p.danger : null;
+    const useBrandInk = inkPalette !== null && !(name === 'primary' && theme.strictInteractiveContrast);
+    const ink = useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround) : onColor(inkGround);
+    // What a state's label does, measured. Silent where the ink clears its floor on this fill. Where it does
+    // not: hover / pressed are the #1456 transient states, exempt by the owner's decision, and the strict
+    // setting lifts that exemption for PRIMARY only (it swaps primary's ink, never destructive's). Focused /
+    // selected are not transient, so no exemption is claimed for them — the ratio and the floor are stated.
+    const labelNote = (fill: RGB, st: string): string => {
+      const r = contrast(ink.rgb, fill);
+      if (r >= onMin) return '';
+      const about = `about ${+r.toFixed(1)}:1`;
+      if (st === 'hover' || st === 'pressed')
+        return ` The label on it drops to ${about} in this brief state (exempt by default; ${name === 'primary'
+          ? `the strict interactive contrast setting keeps it at ${onMin}:1 or more`
+          : `the strict interactive contrast setting does not change the ${name} label`}).`;
+      return ` The label on it measures ${about}, below its ${onMin}:1 floor.`;
+    };
     const extremeAnchor = cfg.family === 'light' ? 0 : 1000;   // white ≈ rung 0, black ≈ rung 1000
     for (const st of FILL_STATES) {
       const stKey = st === 'default' ? 'rest' : st;
       const c: Cand = st === 'default' ? fillRestAbs : walk(r2p.neutral, extremeAnchor, stateRungs(st), dir);
-      put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb),
-        `${name} interactive fill on an inverse surface — ${stKey} (${stKey === 'rest' ? 'the crisp white / black default' : 'stepped 2 neutral rungs per state away from the white / black rest fill'})`, 'inverse.background.primary', cfg.nonTextMin);
+      put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb), stKey === 'rest'
+        ? `${name} interactive fill on an inverse surface — rest — the white / black default`
+        : `${name} interactive fill on an inverse surface — ${stKey} — ${stateRungs(st)} neutral rungs off the white / black rest fill.${labelNote(c.rgb, stKey)}`,
+        'inverse.background.primary', cfg.nonTextMin);
     }
     // PRIMARY ONLY (#1244). `destructive` and `neutral` keep the neutral ink until their own decision
     // lands — filed as #1253 and #1254 rather than mirrored here, and they are two different questions.
@@ -1364,19 +1388,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // to the neutral extreme (B4a). Every family's ink resolves ≥AA on white/black across the corpus (measured
     // primary/danger land on a vivid ~step-500 at ~4.5–4.6); a brand whose family ink cannot stay itself AND
     // clear AA on white is a design call, surfaced to the owner — not forced, not allowlisted.
-    const inkGround = asGround(`inverse.interactive.${name}.fill.rest`, fillRestAbs.rgb);
-    const inkPalette = name === 'primary' ? (r2p.action ?? r2p.brand) : name === 'destructive' ? r2p.danger : null;
-    const useBrandInk = inkPalette !== null && !(name === 'primary' && theme.strictInteractiveContrast);
     put(`inverse.interactive.${name}.on-fill`,
-      useBrandInk ? brandOnFill(palOf(inkPalette!), inkGround) : onColor(inkGround),
+      ink,
       // ONE description serves all four modes. A leaf carries a single `$description`; the per-mode entries
       // under `$extensions.prism3.modes.*` carry a value and its rating, and no prose. So the wording has to
       // hold in every mode, and "the most vivid brand step" alone does not: `hc-light` / `hc-dark` take the
       // max-contrast extreme instead (the `hc` branch in `brandOnFill`). Naming both arms is the only phrasing
       // that stays true across the set.
       useBrandInk
-        ? `Ink on the ${name} inverse fill — the ${name === 'destructive' ? 'danger' : 'most vivid brand'} step clearing ${onMin}:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes`
-        : `Ink on the ${name} inverse fill — a neutral high-contrast label on the crisp white / black CTA`,
+        ? `Ink on the ${name} inverse fill — the ${name === 'destructive' ? 'danger' : 'most vivid brand'} step clearing ${onMin}:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes`
+        : `Ink on the ${name} inverse fill — a neutral high-contrast label on the white / black rest fill`,
       `inverse.interactive.${name}.fill.rest`, onMin);
     // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,
     // for the same reason the page border does — the intent "the edge matches its label" is no
@@ -1621,9 +1642,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // `on` names the ground in the prose (#1623 DT/T-5): the inverse rows used to share the page rows'
     // text word for word, so a list of descriptions showed two identical lines for opposite grounds.
     const on = g.page ? '' : ' on an inverse surface';
+    // TEXT gated below the body floor says what it may be used for (owner sign-off, #1623 DT/T-7): 3:1
+    // is the WCAG floor for LARGE text only, so a 3:1 text role without the limit reads as body-safe.
+    // Per mode — a high-contrast mode raises the same role to the body floor, and there the limit is
+    // not true, so its sentence does not carry it. Icons are non-text (SC 1.4.11, 3:1) and carry none.
+    const largeOnly = (pr: Profile, min: number): string =>
+      pr.label === 'text' && min < BODY_TEXT_FLOOR ? `; ${LARGE_TEXT_ONLY}, below the ${BODY_TEXT_FLOOR}:1 body floor` : '';
     T('primary', pickMostExtreme(textCands, g.base), `Primary ${p.label}${on} — strongest neutral`, g.baseName, cfg.primaryMin);
     T('secondary', pickMinPass(textCands, g.floor, p.secondaryMin), `Secondary ${p.label}${on} — ${p.secondaryMin}:1 on ${g.floorLabel}`, g.floorName, p.secondaryMin);
-    T('tertiary', pickMinPass(textCands, g.floor, p.tertiaryMin), `Tertiary ${p.label}${on} — ${p.tertiaryMin}:1 on ${g.floorLabel}`, g.floorName, p.tertiaryMin);
+    T('tertiary', pickMinPass(textCands, g.floor, p.tertiaryMin), `Tertiary ${p.label}${on} — ${p.tertiaryMin}:1 on ${g.floorLabel}${largeOnly(p, p.tertiaryMin)}`, g.floorName, p.tertiaryMin);
     // (disabled ink is the cross-cutting disabled.text / disabled.icon, not a per-family role.)
     // Bold semantic ink. Gated against the WORSE of the two grounds it is actually placed on: the
     // page floor AND its own subtle tint (`foreground.<r>-subtle`), which is where the alert/banner
@@ -1680,7 +1707,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // distinctness note on interactive states above, which needed the mechanism because it HAD
     // collided).
     for (const r of SEMANTICS)
-      T(`${r}-subtle`, rated(chromatic(r2p[r], g.mutedStep, g.base, p.tertiaryMin), g.base), `Muted ${r} ${p.label} — low-emphasis accent, ${p.tertiaryMin}:1 on ${g.baseName}`, g.baseName, p.tertiaryMin);
+      T(`${r}-subtle`, rated(chromatic(r2p[r], g.mutedStep, g.base, p.tertiaryMin), g.base), p.label === 'text'
+        ? `Muted ${r} text — ${p.tertiaryMin}:1 on ${g.baseName}${largeOnly(p, p.tertiaryMin)}`
+        : `Muted ${r} ${p.label} — low-emphasis accent, ${p.tertiaryMin}:1 on ${g.baseName}`, g.baseName, p.tertiaryMin);
     // on-* pairs (ink on a solid fill) — AA on a vivid fill. `on-action` / `on-disabled`
     // are retired: the ink on an interactive fill is interactive.<color>.on-fill, and the
     // ink on a disabled fill is disabled.on-fill (docs/20 §16).

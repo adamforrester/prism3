@@ -5342,11 +5342,12 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(Object.keys(stf).filter((k) => k === 'inter').length === 1 && (shared[sroot] as any).core.font.family.display.$value === (shared[sroot] as any).core.font.family.body.$value,
     'two categories bound to the same face share one typeface primitive');
 
-  // Figma family variable: value = primary, description still leads with the FULL stack.
+  // Figma family variable: value = primary, description names the face then the reassembled fallbacks
+  // (fix #4, in the Figma register since the #1623 sign-off: as many fallbacks as fit, in stack order).
   const figFam = buildFigmaFont(t)[0].variables.filter((v) => v.name.startsWith(`${root}/core/font/family/`));
   const textVar = figFam.find((v) => v.name === `${root}/core/font/family/body`)!;
   ok(textVar.value === 'Inter', 'Figma family variable binds the primary face as value');
-  ok(textVar.description.startsWith('stack: Inter, '), 'Figma family description still leads with the full reassembled stack (fix #4 preserved)');
+  ok(textVar.description.startsWith(`Body font — Inter; falls back to ${fb[0]}, `), `Figma family description names the face, then the reassembled fallback stack in order (fix #4 preserved) — "${textVar.description}"`);
 }
 
 // ---- the rung ladders: on-ladder + ordered (#377) ----
@@ -7827,13 +7828,20 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) badFS.push(name);
     if (fv.value !== ov.value) badFV.push(name);
     if ((fv.alias ? nbFixName(fv.alias.name) : null) !== (ov.alias?.name ?? null)) badFA.push(name);
-    if (name.startsWith(nbVar('core/font/family/')) && !ov.description.startsWith(fv.description)) badFD.push(name);
+    // The fixture's line is `stack: A, B, C`; the Figma register names face A, then B, C… in order, as many
+    // as fit (#1623 sign-off). So the emitted fallbacks must be a PREFIX of the fixture's, face first.
+    if (name.startsWith(nbVar('core/font/family/'))) {
+      const fixture = String(fv.description).replace(/^stack: /, '').split(', ');
+      const m = /^[A-Z][a-z]+ font — ([^;]+); falls back to (.+)$/.exec(ov.description);
+      const listed = m ? m[2].replace(/, …$/, '').split(', ') : [];
+      if (!m || m[1] !== fixture[0] || !listed.length || listed.some((f, i) => f !== fixture[i + 1])) badFD.push(name);
+    }
   }
   ok(badFT.length === 0, 'figma font: resolvedType matches fixture' + (badFT.length ? ` — ${badFT.slice(0, 3).join(',')}` : ''));
   ok(badFS.length === 0, 'figma font: scopes match fixture' + (badFS.length ? ` — ${badFS.slice(0, 3).join(',')}` : ''));
   ok(badFV.length === 0, 'figma font: values match fixture' + (badFV.length ? ` — ${badFV.slice(0, 3).join(',')}` : ''));
   ok(badFA.length === 0, 'figma font: weight-role aliases target the same numeric weight as fixture' + (badFA.length ? ` — ${badFA.slice(0, 3).join(',')}` : ''));
-  ok(badFD.length === 0, 'figma font: family descriptions still lead with the full fallback stack (fix #4 preserved)' + (badFD.length ? ` — ${badFD.slice(0, 3).join(',')}` : ''));
+  ok(badFD.length === 0, 'figma font: family descriptions name the fixture face, then its fallback stack in order (fix #4 preserved)' + (badFD.length ? ` — ${badFD.slice(0, 3).join(',')}` : ''));
 
   // (b) font-fluid.{mobile,desktop} — byte-reproduce (10 vars per mode).
   const fluid = buildFigmaFontFluid(theme);
@@ -9721,11 +9729,11 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   for (const g of allColls) for (const v of g.vars) {
     if (!v.description || v.description.length === 0) emptyDesc.push(`${g.tag}:${v.name}`);
   }
-  ok(emptyDesc.length === 0, `figma descriptions: every variable carries a non-empty description sourced from the DTCG $description (${allColls.reduce((n, g) => n + g.vars.length, 0)} vars total)` + (emptyDesc.length ? ` — ${emptyDesc.slice(0, 3).join(', ')}` : ''));
+  ok(emptyDesc.length === 0, `figma descriptions: every variable carries a non-empty description (${allColls.reduce((n, g) => n + g.vars.length, 0)} vars total)` + (emptyDesc.length ? ` — ${emptyDesc.slice(0, 3).join(', ')}` : ''));
 
-  // Descriptions actually match the DTCG source (spot-check a handful of paths
-  // across axes so a silent decoupling — someone writing custom description
-  // text in the adapter — would be caught).
+  // The Figma register is its OWN line since the #1623 sign-off, built from structured data in
+  // `figma-description.ts` — never the DTCG text. Spot-check a handful of paths across axes against
+  // LITERAL expected lines (typed here, not built), and assert none is the DTCG sentence passed through.
   const { tree } = buildTree(theme);
   const R = Object.keys(tree)[0];
   const spotChecks: Array<[string, any, string]> = [
@@ -9739,25 +9747,32 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ['core/font/size/16', tree[R].core.font.size['16'], font.variables.find((v) => v.name === nbVar('core/font/size/16'))!.description],
     ['core/font/weight/400', tree[R].core.font.weight['400'], font.variables.find((v) => v.name === nbVar('core/font/weight/400'))!.description],
   ];
+  const expectedLine: Record<string, string> = {
+    'core/palette/red/550': 'Brand (red) 550 — the brand color, exact',
+    'color/background/primary': 'Page surface — the base canvas',
+    'space/100': '8px — 1× the 8px base',
+    'radius/md': '4px corner radius',
+    'opacity/50': '50% opacity',
+    'core/font/size/16': '16px (1rem) font size',
+    'core/font/weight/400': 'Font weight 400',
+  };
   const descMismatch: string[] = [];
   for (const [name, leaf, actual] of spotChecks) {
-    // family carries the stack line FIRST, then the description; other tokens are exact.
-    if (name.startsWith('core/font/family/')) continue;
-    if (actual !== String(leaf.$description ?? '')) descMismatch.push(name);
+    if (actual !== expectedLine[name] || actual === String(leaf.$description ?? '')) descMismatch.push(`${name}: "${actual}"`);
   }
-  ok(descMismatch.length === 0, 'figma descriptions: spot-check across axes matches the DTCG $description verbatim' + (descMismatch.length ? ` — ${descMismatch.slice(0, 3).join(', ')}` : ''));
+  ok(descMismatch.length === 0, 'figma descriptions: spot-check across axes reads the Figma register line, not the DTCG $description' + (descMismatch.length ? ` — ${descMismatch.slice(0, 3).join(', ')}` : ''));
 
-  // font/family descriptions: still lead with the stack (fix #4 preserved),
-  // AND the DTCG $description is threaded onto the end.
+  // font/family descriptions: the category and face lead, then the fallback stack (fix #4), and the DTCG
+  // $description is NOT threaded on — that fusion ran 115–134 characters, past the Figma register.
   const familyFusion: string[] = [];
   for (const v of font.variables.filter((v) => v.name.startsWith(nbVar('core/font/family/')))) {
     const role = v.name.split('/').pop()!;
     const leaf = tree[R].core.font.family[role];
-    const stackFirst = /^stack: [^—]+/.test(v.description);
+    const faceFirst = v.description.startsWith(`${role[0].toUpperCase()}${role.slice(1)} font — ${v.value}; falls back to `);
     const carriesDtcg = v.description.includes(String(leaf.$description ?? ''));
-    if (!stackFirst || !carriesDtcg) familyFusion.push(v.name);
+    if (!faceFirst || carriesDtcg) familyFusion.push(`${v.name}: "${v.description}"`);
   }
-  ok(familyFusion.length === 0, 'figma core/font/family: description leads with the stack (fix #4) AND ends with the DTCG $description' + (familyFusion.length ? ` — ${familyFusion.slice(0, 3).join(', ')}` : ''));
+  ok(familyFusion.length === 0, 'figma core/font/family: description leads with the category and face, then the fallbacks (fix #4), and does not carry the DTCG $description' + (familyFusion.length ? ` — ${familyFusion.slice(0, 3).join(', ')}` : ''));
 
   // Drift fence: same brand emits deterministically. Regenerate twice; the
   // sorted-keys JSON MUST be byte-identical. Catches accidental

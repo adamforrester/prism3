@@ -50,7 +50,20 @@
  *   `~N:1`  an APPROXIMATE contrast: within 15% of N.
  *   `N%`    an alpha on a color, a value on a number: equal to N / 100.
  *   Partner — "on white", "on black", "on white & black", or "on <token.path>" right after the
- *           claim; otherwise the leaf's `against`.
+ *           claim — dotted (DTCG) or slashed (a Figma variable name, `background/secondary`);
+ *           otherwise the leaf's `against`.
+ *
+ *   THE LABEL ON A FILL (#1623 DT/T-6). An inverse fill state says what its label measures on it:
+ *     "The label on it drops to about N:1"  — the sibling `on-fill` against THIS fill: within 0.05 of N
+ *                                            (the prose rounds to one decimal, so that is the tolerance).
+ *     "The label on it measures about N:1"  — the same.
+ *     "below its N:1 floor"                 — the same pair measures BELOW N. Checked, not skipped: a
+ *                                            label that cleared its floor under a "below" sentence is
+ *                                            exactly a stale claim.
+ *   A CITED STANDARD is a number that names a rule rather than this token, and it is checked against
+ *   the rule it names — a constant here, never the engine's own table:
+ *     "below the N:1 body floor"            — WCAG 2.2 SC 1.4.3's body-text floor: N must be 4.5.
+ *     "keeps it at N:1 or more"             — the label floor the strict setting holds: N must be 4.5.
  *
  * A claim this file cannot verify FAILS, naming itself. An unverifiable number in shipped prose is a
  * claim to verify or remove, and a gate that skipped it would be calibrated to pass exactly the claim
@@ -87,7 +100,10 @@ const parseColor = (v: unknown): RGBA | undefined => {
 };
 
 // ── the claim grammar ────────────────────────────────────────────────────────────────────────────
-type Claim = { text: string; kind: 'floor' | 'approx' | 'pct'; n: number; partner?: string; perMode: Map<string, Omit<Claim, 'perMode' | 'partner'>> };
+type Claim = { text: string; kind: 'floor' | 'approx' | 'pct' | 'label-about' | 'label-below' | 'cited'; n: number; partner?: string; perMode: Map<string, Omit<Claim, 'perMode' | 'partner'>> };
+/** WCAG 2.2 SC 1.4.3 — the AA contrast floor for body text and for a control's label. A cited-standard
+ *  claim must name exactly this; it is written here, not read from the engine. */
+const WCAG_AA_TEXT = 4.5;
 const TOKEN = /(~|≥)?(\d+(?:\.\d+)?)(:1|%)/g;
 const one = (pre: string | undefined, num: string, unit: string, text: string) =>
   ({ text, kind: unit === '%' ? 'pct' as const : pre === '~' ? 'approx' as const : 'floor' as const, n: +num });
@@ -105,6 +121,22 @@ export const parseClaims = (d: string): Claim[] => {
     if (out.length && out[out.length - 1].perMode.size && m.index < (out[out.length - 1] as any).end) continue;
     const c: Claim & { end: number } = { ...one(m[1], m[2], m[3], m[0]), perMode: new Map(), end: TOKEN.lastIndex };
     const rest = d.slice(TOKEN.lastIndex);
+    const before = d.slice(0, m.index);
+    const sentence = before.slice(before.lastIndexOf('. ') + 1);
+    // The label-on-a-fill and cited-standard shapes (see THE GRAMMAR). Recognized by their own words
+    // on both sides of the number, so an ordinary floor claim can never be read as one.
+    if (m[3] === ':1' && /\bThe label on it (?:drops to|measures) about $/.test(sentence)) {
+      out.push({ ...c, kind: 'label-about' });
+      continue;
+    }
+    if (m[3] === ':1' && /below its $/.test(before) && /^ floor\b/.test(rest) && /\bThe label on it\b/.test(sentence)) {
+      out.push({ ...c, kind: 'label-below' });
+      continue;
+    }
+    if (m[3] === ':1' && ((/below the $/.test(before) && /^ body floor\b/.test(rest)) || (/keeps it at $/.test(before) && /^ or more\b/.test(rest)))) {
+      out.push({ ...c, kind: 'cited' });
+      continue;
+    }
     const par = /^ \(([^()]*)\)/.exec(rest);
     const parts = par?.[1].split('; ').map((p) => /^(~|≥)?(\d+(?:\.\d+)?)(:1|%) in (.+)$/.exec(p));
     let after = rest;
@@ -113,7 +145,7 @@ export const parseClaims = (d: string): Claim[] => {
       c.end = TOKEN.lastIndex + par[0].length;
       after = rest.slice(par[0].length);
     }
-    const on = /^ on (white & black|white|black|[a-z][a-z0-9-]*(?:\.[a-z0-9-]+)+)/.exec(after);
+    const on = /^ on (white & black|white|black|[a-z][a-z0-9-]*(?:[./][a-z0-9-]+)+)/.exec(after);
     if (on) c.partner = on[1];
     out.push(c);
   }
@@ -123,6 +155,8 @@ export const parseClaims = (d: string): Claim[] => {
 // ── one row to check, whatever its source ────────────────────────────────────────────────────────
 type Row = {
   where: string; mode: string; type: string; description: string;
+  /** The token's own path, dotted (DTCG) or slashed (Figma) — names the `on-fill` sibling a label claim measures. */
+  path: string;
   value: () => RGBA | number | undefined;          // the token's own resolved value in this mode
   resolve: (named: string) => RGBA | undefined;    // a token the prose or `against` names, in this mode
   against?: string;
@@ -138,6 +172,20 @@ const checkRow = (r: Row): void => {
     const c = { ...c0, ...(c0.perMode.get(r.mode) ?? {}) };
     checked++;
     const v = r.value();
+    if (c.kind === 'cited') {
+      if (c.n !== WCAG_AA_TEXT) fail(r, c, `cites the AA text floor as ${c.n}:1 — WCAG 2.2 SC 1.4.3 sets it at ${WCAG_AA_TEXT}:1`);
+      continue;
+    }
+    if (c.kind === 'label-about' || c.kind === 'label-below') {
+      const sep = r.path.includes('/') ? '/' : '.';
+      const label = r.path.replace(new RegExp(`\\${sep}fill\\${sep}[a-z]+$`), `${sep}on-fill`);
+      const lc = label !== r.path ? r.resolve(label) : undefined;
+      if (typeof v !== 'object' || !v || !lc) { fail(r, c, `a label claim on a token with no resolvable \`on-fill\` sibling (${label})`); continue; }
+      const got = ratio(v, lc);
+      if (c.kind === 'label-about' && Math.abs(got - c.n) > 0.051) fail(r, c, `the label measures ${got.toFixed(2)}:1 on this fill, not about ${c.n}:1`);
+      if (c.kind === 'label-below' && got >= c.n) fail(r, c, `the label measures ${got.toFixed(2)}:1 on this fill, which is not below ${c.n}:1`);
+      continue;
+    }
     if (c.kind === 'pct') {
       const got = typeof v === 'number' ? v : v?.a;
       if (got === undefined) { fail(r, c, `a percentage on a ${r.type} this gate cannot read a value from`); continue; }
@@ -196,7 +244,7 @@ const checkView = (label: string, mode: string, view: View): void => {
     if (!e.description) continue;
     const parent = path.split('.').slice(0, -1).join('.');
     checkRow({
-      where: `${label} ${path}`, mode, type: e.type, description: e.description, against: e.against,
+      where: `${label} ${path}`, path, mode, type: e.type, description: e.description, against: e.against,
       value: () => {
         const v = deref(path);
         return e.type === 'color' ? parseColor(v) : e.type === 'number' && typeof v === 'number' ? v : e.type === 'dimension' ? px(path) : undefined;
@@ -252,7 +300,7 @@ for (const brand of figmaBrands) {
       const against = mode === 'light' ? leaf?.$extensions?.prism3?.against : leaf?.$extensions?.prism3?.modes?.[mode]?.against ?? leaf?.$extensions?.prism3?.against;
       const parent = name.split('/').slice(0, -1).join('/');
       checkRow({
-        where: `figma/${brand} ${name}`, mode, type: v.resolvedType, description: v.description, against,
+        where: `figma/${brand} ${name}`, path: name, mode, type: v.resolvedType, description: v.description, against,
         // Figma's opacity variables hold PERCENT (an OPACITY-scoped 10 is 10%), where DTCG holds the
         // 0–1 multiplier; the claim is the same, so the unit is normalized here rather than in the grammar.
         value: () => (v.resolvedType === 'COLOR' ? parseColor(v.value)

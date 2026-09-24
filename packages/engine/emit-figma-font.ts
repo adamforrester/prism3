@@ -20,7 +20,11 @@
  */
 import { Theme } from './theme';
 import { buildTree, subNode, deref } from './tree';
-import { desc, nsName, coreName, CORE_COLLECTION } from './emit-figma-color';
+import {
+  figmaFontFamilyDescription, figmaFontSizeDescription, figmaFontWeightDescription, figmaWeightRoleDescription,
+  figmaFontCutDescription, figmaFluidSizeDescription, figmaTextStyleDescription,
+} from './figma-description';
+import { nsName, coreName, CORE_COLLECTION } from './emit-figma-color';
 import type { FigmaResolvedType, FigmaVar, FigmaCollectionFile } from './emit-figma-color';
 
 // Named-instance derivation for fontStyle (fix #5). Numeric weight → the family's
@@ -51,10 +55,6 @@ export const fontStyleName = (mono: boolean, numericWeight: number, italic = fal
   return base === 'Regular' ? 'Italic' : `${base} Italic`;
 };
 
-/** Turn a DTCG font-family stack into the "stack: A, B, C" description Figma sees
- *  in the fixture (fix #4 — the full stack lives in the STRING variable's
- *  description, only the primary face is bound as the value). */
-const stackDescription = (stack: string[]): string => `stack: ${stack.join(', ')}`;
 
 // ── #1485 — the STRING CUT (Figma style name) the Text Style's single weight/style control binds ──
 // A Figma Text Style has ONE weight/style control. Before #1485 the engine bound it via the FLOAT
@@ -187,7 +187,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
         name: ns(`font/family/${familyRole}`),
         resolvedType: 'STRING',
         scopes: ['FONT_FAMILY'],
-        description: [stackDescription(stack), desc(leaf)].filter(Boolean).join(' \u2014 '),
+        description: figmaFontFamilyDescription(familyRole, stack),
         value: stack[0],
         alias: null,
         hiddenFromPublishing: true,
@@ -201,7 +201,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
         name: ns(`font/size/${key}`),
         resolvedType: 'FLOAT',
         scopes: ['FONT_SIZE'],
-        description: desc(leaf),
+        description: figmaFontSizeDescription(Number(key), Number(leaf.$extensions?.prism3?.rem ?? Number(key) / 16)),
         value: Number(key),
         alias: null,
         hiddenFromPublishing: true,
@@ -217,7 +217,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
         name: ns(`font/weight/${key}`),
         resolvedType: 'FLOAT',
         scopes: ['FONT_WEIGHT'],
-        description: desc(leaf),
+        description: figmaFontWeightDescription(Number(key)),
         value: Number(key),
         alias: null,
         hiddenFromPublishing: true,
@@ -235,7 +235,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
         name: ns(`font/weight-role/${roleKey}`),
         resolvedType: 'FLOAT',
         scopes: ['FONT_WEIGHT'],
-        description: desc(leaf),
+        description: figmaWeightRoleDescription(roleKey, numeric),
         value: numeric,
         alias: { type: 'VARIABLE_ALIAS', name: ns(`font/weight/${numeric}`) },
       });
@@ -254,7 +254,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
         name: ns(slot.slug),
         resolvedType: 'STRING',
         scopes: ['FONT_STYLE'],
-        description: `${slot.category} ${slot.weightRole}${slot.italic ? ' italic' : ''} — the Figma style cut this text style binds${slot.facePin ? ' (verbatim face pin)' : ''}`,
+        description: figmaFontCutDescription(slot.category, slot.weightRole, slot.italic),
         value: cutName(isMonoCategory(font, slot.category), numeric, slot.italic, slot.facePin),
         alias: null,
       });
@@ -284,7 +284,7 @@ const collectFluidRows = (typeNode: any, prefix: string, out: FluidRow[] = []): 
           name: `${prefix}${k}`,
           mobile: r.figma.modes.mobile,
           desktop: r.figma.modes.desktop,
-          description: desc(child),
+          description: figmaFluidSizeDescription(`${prefix}${k}`.replace(/\//g, ' '), [['desktop', r.figma.modes.desktop], ['mobile', r.figma.modes.mobile]]),
         });
       }
     } else if (child && typeof child === 'object') {
@@ -460,7 +460,16 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
     const lsEm: number = lsLeaf?.$extensions?.prism3?.em ?? 0;
     const textCase = v.textCase === 'uppercase' ? 'UPPER' : v.textCase === 'lowercase' ? 'LOWER' : 'ORIGINAL';
     const textDecoration = v.textDecoration === 'underline' ? 'UNDERLINE' : 'NONE';
-    const description = `${ext.group}${ext.variant ? ' ' + ext.variant : ''} ${weightRole}${italic ? ' italic' : ''}${ext.link ? ' link' : ''}`;
+    // The style's own words lead (the plugin's prune recognizes an engine text style by them), then the
+    // size, face, leading and use — all read off the composite's structured fields (#1623 FG/F-13).
+    const description = figmaTextStyleDescription({
+      words: `${ext.group}${ext.variant ? ' ' + ext.variant : ''} ${weightRole}${italic ? ' italic' : ''}${ext.link ? ' link' : ''}`,
+      group: ext.group,
+      minPx: ext.responsive?.fluid ? ext.responsive.min?.px : undefined,
+      px: ext.responsive?.fluid ? ext.responsive.max?.px : ext.sizePx,
+      face: String(font.family[familyCategory]?.$extensions?.prism3?.face ?? familyCategory),
+      lineHeight: String(v.lineHeight).replace(/^\{|\}$/g, '').split('.').pop()!,
+    });
 
     return {
       name: compositeToStyleName(path),

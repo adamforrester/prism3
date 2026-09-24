@@ -786,6 +786,16 @@ jobs:
       - name: No lever setting silently deletes a guaranteed path or a component binding (#957)
         run: npx --yes tsx@4 packages/engine/lint-lever-sweep.ts
 
+      # #1623 sign-off — the FIGMA REGISTER. A Figma variable or style has one description, read by a
+      # designer mid-task; the owner chose about 90 characters, with the full detail kept in the DTCG
+      # description and the .ai.json. `figma-description.ts` builds that line from structured data; this
+      # holds the OUTPUT to it: length within a ceiling DERIVED from docs/voice-standard.md's plugin
+      # register (~90 + 10), and no backtick, dotted token path, all-caps emphasis, issue reference or
+      # Prism 2 — over every committed brand plus harbor built in memory (no committed emission, #1119).
+      # Also: no DTCG description names Prism 2 or an issue. Every kind of Figma file is represented.
+      - name: Every Figma description is in the plugin register (#1623)
+        run: npx --yes tsx@4 packages/engine/lint-figma-descriptions.ts
+
       # THE SECOND DIRECTION (#865). Every write the component executor makes is verified by a read-back
       # — set the value, read it, report a miss if the host did not keep it. Nothing verified what it did
       # NOT write, and a Figma node is never silent: a property no def mentioned kept Figma's own default

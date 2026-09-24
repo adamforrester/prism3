@@ -887,6 +887,13 @@ npx tsx packages/engine/lint-lever-sweep.ts         # no lever setting silently 
                                                     # lever table. Engine throws must match REFUSALS by
                                                     # message. Not swept: sliders, structured levers
                                                     # (#1632), combinations — stated in its header.
+npx tsx packages/engine/lint-figma-descriptions.ts  # every Figma variable + style description is in the
+                                                    # plugin register (#1623 sign-off): within a ceiling
+                                                    # DERIVED from docs/voice-standard.md (~90 + 10), and
+                                                    # no backtick, dotted path, all-caps emphasis, issue
+                                                    # ref or Prism 2. Committed brands + harbor built in
+                                                    # memory; every Figma file kind represented. Also: no
+                                                    # DTCG description names Prism 2 or an issue.
 npx tsx packages/engine/lint-advisory-expiry.ts     # a stated advisory window, once it closes, fails
                                                     # the build. The one gate here whose ORACLE IS THE
                                                     # CLOCK: no API, no issue state, no network, and

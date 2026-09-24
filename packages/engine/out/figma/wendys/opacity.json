@@ -8,7 +8,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 0% (0)",
+      "description": "0% opacity",
       "value": 0,
       "alias": null
     },
@@ -18,7 +18,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 5% (0.05)",
+      "description": "5% opacity",
       "value": 5,
       "alias": null
     },
@@ -28,7 +28,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 10% (0.1)",
+      "description": "10% opacity",
       "value": 10,
       "alias": null
     },
@@ -38,7 +38,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 20% (0.2)",
+      "description": "20% opacity",
       "value": 20,
       "alias": null
     },
@@ -48,7 +48,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 30% (0.3)",
+      "description": "30% opacity",
       "value": 30,
       "alias": null
     },
@@ -58,7 +58,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 40% (0.4)",
+      "description": "40% opacity",
       "value": 40,
       "alias": null
     },
@@ -68,7 +68,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 50% (0.5)",
+      "description": "50% opacity",
       "value": 50,
       "alias": null
     },
@@ -78,7 +78,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 60% (0.6)",
+      "description": "60% opacity",
       "value": 60,
       "alias": null
     },
@@ -88,7 +88,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 70% (0.7)",
+      "description": "70% opacity",
       "value": 70,
       "alias": null
     },
@@ -98,7 +98,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 80% (0.8)",
+      "description": "80% opacity",
       "value": 80,
       "alias": null
     },
@@ -108,7 +108,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 90% (0.9)",
+      "description": "90% opacity",
       "value": 90,
       "alias": null
     },
@@ -118,7 +118,7 @@
       "scopes": [
         "OPACITY"
       ],
-      "description": "opacity 100% (1)",
+      "description": "100% opacity",
       "value": 100,
       "alias": null
     }

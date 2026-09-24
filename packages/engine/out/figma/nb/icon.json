@@ -8,7 +8,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "icon.size.xs — 16px artboard (fixed grid; pairs with size.xs)",
+      "description": "16px icon artboard — pairs with size/xs",
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -21,7 +21,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "icon.size.sm — 20px artboard (fixed grid; pairs with size.sm)",
+      "description": "20px icon artboard — pairs with size/sm",
       "value": 20,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -34,7 +34,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "icon.size.md — 24px artboard (fixed grid; pairs with size.md)",
+      "description": "24px icon artboard — pairs with size/md",
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -47,7 +47,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "icon.size.lg — 32px artboard (fixed grid; pairs with size.lg)",
+      "description": "32px icon artboard — pairs with size/lg",
       "value": 32,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -60,7 +60,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "icon.size.xl — 40px artboard (fixed grid; pairs with size.xl)",
+      "description": "40px icon artboard — pairs with size/xl",
       "value": 40,
       "alias": {
         "type": "VARIABLE_ALIAS",

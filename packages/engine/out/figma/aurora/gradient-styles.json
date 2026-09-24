@@ -3,7 +3,7 @@
   "styles": [
     {
       "name": "gradient/brand",
-      "description": "gradient brand — linear 135°, 2 stops, oklch interpolation — brand gradient (opt-in)",
+      "description": "gradient brand — linear 135°, 2 stops, oklch interpolation",
       "paintType": "GRADIENT_LINEAR",
       "interpolation": "oklch",
       "stops": [
@@ -89,7 +89,7 @@
     },
     {
       "name": "gradient/glow",
-      "description": "gradient glow — radial (circle), 2 stops, oklch interpolation — brand gradient (opt-in)",
+      "description": "gradient glow — radial (circle), 2 stops, oklch interpolation",
       "paintType": "GRADIENT_RADIAL",
       "interpolation": "oklch",
       "stops": [

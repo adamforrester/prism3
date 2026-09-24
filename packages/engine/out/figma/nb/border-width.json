@@ -8,7 +8,7 @@
       "scopes": [
         "STROKE_FLOAT"
       ],
-      "description": "border-width none — 0px",
+      "description": "No stroke — 0px",
       "value": 0,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -21,7 +21,7 @@
       "scopes": [
         "STROKE_FLOAT"
       ],
-      "description": "border-width hairline — 1px (default border floor)",
+      "description": "1px stroke",
       "value": 1,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -34,7 +34,7 @@
       "scopes": [
         "STROKE_FLOAT"
       ],
-      "description": "border-width thick — 2px (emphasis / selected)",
+      "description": "2px stroke",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -47,7 +47,7 @@
       "scopes": [
         "STROKE_FLOAT"
       ],
-      "description": "border-width heavy — 4px",
+      "description": "4px stroke",
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
