@@ -131,6 +131,9 @@ export interface CompNode {
    *  and its live twin differ by exactly this. A port that cannot name `id` cannot make that comparison. */
   readonly id?: string;
   name?: string;
+  /** A COMPONENT / COMPONENT_SET's Figma description — the def's `summary` (#1623 sign-off). Read back
+   *  on an existing set so a designer's own description is never overwritten. */
+  description?: string;
   x?: number;
   y?: number;
   opacity?: number;
@@ -524,6 +527,12 @@ export type ComponentApplyOptions = {
    *  COMPONENT_SET (#1012). The plugin reads `def.figmaProperties.emitAsComponents` and passes it here —
    *  it is a write-time BEHAVIOR, not plan data, so it stays off the plan and out of `planStamp`. */
   emitAsComponents?: boolean;
+  /** THE FIGMA DESCRIPTION (#1623 sign-off) — the def's one-line `summary`, which the plugin reads off
+   *  the def and passes here. Written on a set this run creates (or on each component, in
+   *  `emitAsComponents` mode), and on a set the file already had only while that set's description is
+   *  empty: a designer's own description is theirs. A write-time option like `emitAsComponents`, so it
+   *  stays off the plan and out of `planStamp`. */
+  description?: string;
   /** WHERE THE SET IS PLACED (#1554) — the `↳ <family>` section page the page-aware build resolved,
    *  passed in by `main.ts`. Absent means `api.currentPage`, which is #483's original behaviour and what
    *  every shim-driven test still exercises (none of them pass this), so this option moves no existing
@@ -1993,6 +2002,7 @@ const writeComponentSet = async (
     fresh.forEach((c, i) => {
       const newName = `${component}/${emitCoordValue(String(c.name))}`;
       wr(c).name = newName;
+      if (opts.description) wr(c).description = opts.description;
       emitted.push(newName);
       // Placed, not litter: drop it from the partial-write trail so a later throw does not try to park a
       // component that is exactly where it belongs.
@@ -2033,6 +2043,7 @@ const writeComponentSet = async (
     };
   }
 
+  const createdSet = !set;
   if (!set) {
     if (fresh.length === 0) {
       misses.push('set -> nothing to combine (no members built)');
@@ -2046,6 +2057,7 @@ const writeComponentSet = async (
     for (const c of fresh) trail.loose.delete(c);
     trail.loose.add(set);
     wr(set).name = component;
+    if (opts.description) wr(set).description = opts.description;
     // #865 ON THE SET, which is the half a per-node fix cannot reach. `combineAsVariants` returns a
     // container Figma dresses as a variant set — a 5px corner radius, a purple dashed border and an opaque
     // fill, none of which any def mentions. `null` — there is no plan node for a set. #865 originally
@@ -2059,7 +2071,12 @@ const writeComponentSet = async (
     // is the designer's: its fill and its radius are their decisions, and touching them would be this
     // executor reaching outside what it built to normalize someone else's work.
     claimDefaults(wr(set), null, misses, 'created');
-  } else for (const c of fresh) {
+  } else {
+    // AN EXISTING SET gets the description only while it has none — the fill and radius below are the
+    // designer's on this branch, and a description they wrote is too.
+    if (opts.description && !wr(set).description) wr(set).description = opts.description;
+  }
+  if (!createdSet) for (const c of fresh) {
     set.appendChild?.(c);
     // INTO A SET THE FILE ALREADY HAD (#913). Not loose — it is exactly where a designer expects it — so
     // it is counted for the verdict and never moved. Marking these would tear this run's members out of
@@ -2683,9 +2700,10 @@ const writeComponentSet = async (
     if (seen.has(pos)) coincident.push(`layout -> ${c.name} sits on top of ${seen.get(pos)} at ${pos}`);
     else seen.set(pos, String(c.name));
   }
-  // READ BACK the FOOTPRINT. `state` and `appearance` must not move the box: an outline button two
-  // pixels wider than its filled sibling breaks a row of buttons, and both variants are individually
-  // correct so nothing else notices.
+  // READ BACK the FOOTPRINT. A RUNTIME axis must not move the box (#1611 — `state`, `appearance`, a
+  // `selection`): an outline button two pixels wider than its filled sibling breaks a row of buttons, and
+  // both variants are individually correct so nothing else notices. The cohort (`cellOf[i].group`) holds
+  // `size`, slot fill, declared exemptions and every AUTHORING axis, so only runtime siblings compare.
   const sizeByGroup = new Map<string, { box: string; name: string }>();
   const footprint: string[] = [];
   members.forEach((c, i) => {

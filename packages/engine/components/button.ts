@@ -125,13 +125,14 @@ const intentTokens = (family: IntentFamily): Record<string, string> => ({
  * disabled, focus, accessibility — is authored ONCE here and shared verbatim. The three exports at the
  * foot of the file are its outputs, not hand-maintained copies (docs/34 DRY), and `test.ts` pins that.
  */
-const makeButton = (id: string, name: string, description: string, family: IntentFamily): ComponentDef => ({
+const makeButton = (id: string, name: string, summary: string, description: string, family: IntentFamily): ComponentDef => ({
   id,
   name,
   aliases: ['btn', 'cta'],
   category: 'form',
   status: 'draft',
   description,
+  summary,
 
   props: [
     // #1242 — `label`, not `children`. The property NAME is what a designer reads in Figma's
@@ -178,6 +179,10 @@ const makeButton = (id: string, name: string, description: string, family: Inten
     // #1223 — intent is the component now — so the collision is one arity shorter but the conclusion holds.)
     surface: ['default', 'inverse'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // appearance stays RUNTIME, the strict default: a toggle button that fills when selected is the owner's
+  // bold-when-selected shape (#1611), so an outline member must keep its filled sibling's box.
+  axisKinds: { appearance: 'runtime', size: 'authoring', width: 'authoring', surface: 'authoring' },
   // NO `modifiers` AXIS (#845), and its three values were three different things, which is the whole
   // defect: an axis's values are mutually exclusive coordinates along ONE dimension, and a button can
   // carry a leading visual AND a trailing visual simultaneously while `pending` is a coordinate on the
@@ -572,7 +577,7 @@ const makeButton = (id: string, name: string, description: string, family: Inten
   // "which intent" guidance lives in each component's own `description`; what stays here is the appearance
   // hierarchy, labels, states and surface, which apply the same to Button / Destructive / Neutral.
   docs: {
-    usage: 'Use for an immediate action in the current context — submit/save/reset a form, trigger a UI state change (open modal, toggle drawer), or fire async work. Color is the COMPONENT (Button / Destructive Button / Neutral Button — pick by semantics); rank actions within a view by APPEARANCE (filled > outline > text), with exactly one FILLED per view/region as the constraint.',
+    usage: 'Use for an immediate action in the current context — submit/save/reset a form, trigger a UI state change (open modal, toggle drawer), or fire async work. Color is the COMPONENT (Button / Button.Destructive / Button.Neutral — pick by semantics); rank actions within a view by APPEARANCE (filled > outline > text), with exactly one FILLED per view/region as the constraint.',
     do: [
       'Lead with a verb, name the object ("Publish post", not "Submit")',
       'Keep exactly one FILLED button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing',
@@ -591,16 +596,17 @@ const makeButton = (id: string, name: string, description: string, family: Inten
   ai: {
     primaryPurpose: 'Trigger an action in place.',
     whenToUse: 'The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.',
-    avoidWhen: 'The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use a switch. One-of-many selection → use a segmented-control / radio. A toggle with pressed state → use a toggle-button. Icon-only with no visible text → use an icon-button (the accessible name is required there at the type level).',
-    commonPartners: ['icon', 'spinner', 'tooltip', 'button-group', 'menu', 'popover'],
+    avoidWhen: 'The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or a segmented control, not built yet). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level).',
+    commonPartners: ['icon'],
     triggerKeywords: ['button', 'submit', 'cta', 'confirm', 'action', 'primary action', 'save', 'delete'],
     generationPriority: 1,
   },
 
   composition: {
-    composesWith: ['icon', 'spinner', 'tooltip', 'button-group', 'menu', 'popover'],
-    alternativeTo: ['link', 'link-button', 'icon-button', 'toggle-button', 'split-button', 'switch-row', 'chip'],
-    supersedes: ['input[type=button|submit]', 'div[role=button]'],
+    composesWith: ['icon'],
+    alternativeTo: ['icon-button', 'switch-row'],
+    planned: ['spinner', 'tooltip', 'button-group', 'menu', 'popover', 'link', 'link-button', 'toggle-button', 'split-button', 'chip'],
+    replacesPatterns: ['input[type=button|submit]', 'div[role=button]'],
   },
 
   motion: {
@@ -642,20 +648,23 @@ const makeButton = (id: string, name: string, description: string, family: Inten
 export const button: ComponentDef = makeButton(
   'button',
   'Button',
-  'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand (primary) color, the expected look of a button. NOT navigation (use link / link-button, even when it looks like a button), NOT a persistent binary (switch), NOT one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Destructive Button / Neutral Button sibling components.',
+  'Triggers an action in place, in the brand color. For navigation, use a link.',
+  'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand (primary) color, the expected look of a button. NOT navigation (use link / link-button, even when it looks like a button), NOT a persistent binary (Switch.Row), NOT one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.',
   'primary',
 );
 
 export const buttonDestructive: ComponentDef = makeButton(
   'button-destructive',
-  'Destructive Button',
+  'Button.Destructive',
+  'Triggers a destructive action — delete, remove — in the destructive color.',
   'In-flow trigger for a DESTRUCTIVE action — delete, remove, discard, disconnect — in the destructive color, so the consequence reads before the click. Same anatomy as Button; the color is the whole difference. Pair it with an adjacent neutral escape ("Cancel" / "Keep"), and match the verb to the consequence ("Delete", not "Confirm"). For a quiet destructive action, use appearance=text on this component.',
   'destructive',
 );
 
 export const buttonNeutral: ComponentDef = makeButton(
   'button-neutral',
-  'Neutral Button',
+  'Button.Neutral',
+  'Triggers an action with no brand emphasis — toolbars, dense rows.',
   'In-flow trigger for an action that carries NO brand weight — a toolbar control, a dense table row, a low-stakes secondary action — in the neutral color. Reach for it when the control genuinely has no brand emphasis to carry, not merely because it is secondary in rank (rank is the appearance axis: a secondary primary action is the Button at appearance=outline). Same anatomy as Button.',
   'neutral',
 );

@@ -297,6 +297,18 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     "status `error` maps to the `danger` border role — the read-only coordinate, bound so an errored read-only field keeps the danger boundary (read-only is text-field's live edge, submitted and validated)",
   'text-field|error.border.empty':
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
+  // `textarea` took text-field's status axis and its border keys verbatim (#1623 sign-off, C1/TA-4), so it
+  // carries the same `error` → `danger` mapping at the same five coordinates, and for the same reason.
+  'textarea|error.border.rest':
+    "status `error` maps to the `danger` border role — the rest coordinate of textarea's border-only error swap",
+  'textarea|error.border.hover':
+    'status `error` maps to the `danger` border role — the hover coordinate, bound so the error border persists through hover',
+  'textarea|error.border.focus-visible':
+    'status `error` maps to the `danger` border role — the focus-visible coordinate, bound so the error border persists through focus',
+  'textarea|error.border.read-only':
+    'status `error` maps to the `danger` border role — the read-only coordinate, bound so an errored read-only field keeps the danger boundary',
+  'textarea|error.border.empty':
+    'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
 };
 
 /**

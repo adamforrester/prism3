@@ -51,7 +51,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -66,7 +66,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, switchControl, switchRow, select } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -2065,6 +2065,24 @@ for (const b of brands) {
     ok(!new Set(dimensionGrid(4, 128, [...spaceScale(8).map((s) => s.px), ...ICON_SIZES.map((i) => i.px),
       ...controlSizes('comfortable').flatMap((c) => [c.height, c.width])])).has(10),
       '#910 …negative control: 10 is absent from the base-4 ladder, the space extras, the icon ladder AND the two older control fields, so the assertion above is about the `dot` feed and nothing else');
+  }
+
+  // ---- NO DENSITY DROPS A GUARANTEED DIMENSION PRIMITIVE (#1631, owner-decided: unconditional) ----
+  // At comfortable, `core.dimension.3` (an `inset`) and `.18` (a `thumb`) exist only because the
+  // comfortable control px are fed into the grid; spacious's own controls produce neither, so before
+  // the fix `density: 'spacious'` removed both guaranteed paths. Read from the EMITTED tree of three
+  // brands at every density, with the two px authored here rather than read off `controlSizes`.
+  // `lint-lever-sweep.ts` catches the same removal against the whole contract; this arm names the pair.
+  {
+    const brief1631 = (f: string): BrandInput => parseDesignMd(readFileSync(resolve(HERE, './examples', f), 'utf8')).input;
+    const briefs: [string, BrandInput][] = [['minimal', MINIMAL_BRAND], ['harbor', brief1631('harbor.design.md')], ['nb-redesign', brief1631('nb-redesign.design.md')]];
+    for (const [id, input] of briefs)
+      for (const density of ['comfortable', 'compact', 'spacious'] as const) {
+        const paths = pathsOf(brandTheme({ ...input, density }));
+        const missing = ['core.dimension.3', 'core.dimension.18'].filter((p) => !paths.has(p));
+        ok(missing.length === 0, `#1631 ${id} at density '${density}' keeps core.dimension.3 and core.dimension.18 (guaranteed primitives)`
+          + (missing.length ? ` — MISSING: ${missing.join(', ')}` : ''));
+      }
   }
 
   // ---- BRAND VARIANCE: the check that this is not the glyph ladder renamed ----------------------
@@ -9945,12 +9963,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // #1468 rename. Nothing read these fields, so nothing failed.
   //
   // Two arms, each with an oracle the defs do not author:
-  //  (a) every name in `ai.commonPartners`, `composition.composesWith` and `composition.alternativeTo` is a
-  //      registered id OR a member of NOT_YET_BUILT — a list written HERE, by hand, of the concepts the
-  //      catalogue names but has not built. Derived from the defs it would admit whatever they say
-  //      (`docs/34` shape 1). A concept that gets built must leave the list (the second loop), so the list
-  //      cannot quietly outlive what it describes. Free-text entries (a space in them) are descriptions,
-  //      not ids, and are skipped.
+  //  (a) THE ID LISTS HOLD ONLY IDS THAT RESOLVE (#1623 sign-off, C1/X-6). Every entry of
+  //      `ai.commonPartners`, `composition.composesWith`, `alternativeTo`, `supersedes` and `supersededBy`
+  //      is a REGISTERED def id — the oracle is the registry, never the def. The owner's rule replaced an
+  //      allow-list of unbuilt concepts that this arm used to accept: a reader acting on an id must be able
+  //      to look it up, so a component that is not built yet goes in `composition.planned`, and a
+  //      described pattern ("a bare <select> with no label wiring") in `composition.replacesPatterns`.
+  //      `planned` is checked the other way round — each entry is a kebab-case id that does NOT resolve
+  //      (once it ships it moves to a real list, and this fails until it does) and is not also in a real
+  //      list of the same def.
   //  (b) no consumer-facing prose names a RETIRED id in backticks. A retired id is a def's alias that is a
   //      strict prefix of its id (`radio` → `radio-row`) — the shape a `<family>` → `<family>-row` rename
   //      leaves behind. Only backticked whole names are read, so the plain word "radio" in a sentence is
@@ -9958,26 +9979,30 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   //      correct: `checkbox`, `radio` and `switch` are all roles as well as retired ids.
   {
     const ids = new Set(componentDefs.map((d) => d.id));
-    const NOT_YET_BUILT = new Set([
-      'aria-label', 'badge', 'button-group', 'card', 'chip', 'code-editor', 'combobox', 'date-picker', 'emoji',
-      'form', 'illustration', 'inline-alert', 'link', 'link-button', 'logo', 'menu', 'number-field',
-      'password-field', 'popover', 'rich-text-editor', 'scrim', 'search-field', 'segmented-control', 'spinner',
-      'split-button', 'thumbnail', 'toggle-button', 'tooltip',
-    ]);
+    let refsRead = 0;
     for (const def of componentDefs) {
       const lists: [string, readonly string[] | undefined][] = [
         ['ai.commonPartners', def.ai?.commonPartners],
         ['composition.composesWith', def.composition?.composesWith],
         ['composition.alternativeTo', def.composition?.alternativeTo],
+        ['composition.supersedes', def.composition?.supersedes],
+        ['composition.supersededBy', def.composition?.supersededBy],
       ];
+      const real = new Set<string>();
       for (const [field, list] of lists) {
         for (const name of list ?? []) {
-          if (name.includes(' ') || ids.has(name)) continue;
-          ok(NOT_YET_BUILT.has(name), `component-refs: ${def.id} ${field} names '${name}', which is neither a registered def id nor a listed unbuilt concept`);
+          refsRead++;
+          real.add(name);
+          ok(ids.has(name), `component-refs: ${def.id} ${field} names '${name}', which is not a registered def id — an unbuilt component goes in composition.planned, a described pattern in composition.replacesPatterns`);
         }
       }
+      for (const name of def.composition?.planned ?? []) {
+        ok(/^[a-z][a-z0-9-]*$/.test(name), `component-refs: ${def.id} composition.planned '${name}' is not a kebab-case id — planned holds the id an unbuilt component would take`);
+        ok(!ids.has(name), `component-refs: ${def.id} composition.planned '${name}' is a registered def now — move it to the real list it belongs in`);
+        ok(!real.has(name), `component-refs: ${def.id} names '${name}' in both composition.planned and a real list`);
+      }
     }
-    for (const c of NOT_YET_BUILT) ok(!ids.has(c), `component-refs: '${c}' is a registered def now — remove it from NOT_YET_BUILT`);
+    ok(refsRead > 50, `component-refs: the id lists are live (${refsRead} entries read) — a scan over empty lists asserts nothing`);
 
     const retired = new Map<string, string>();
     for (const d of componentDefs) for (const a of d.aliases ?? []) if (d.id.startsWith(`${a}-`) && !ids.has(a)) retired.set(a, d.id);
@@ -10007,6 +10032,55 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         }
       }
     }
+  }
+
+  // (#1623 sign-off) SHIPPED COMPONENT TEXT — names, provenance, and the names prose uses.
+  //
+  // The owner's rules for what a def ships (C1/X-5, C2/X-5, C2/X-4): one naming convention; no Prism 2 in
+  // any shipped field; prose names a sibling by its def name. "Shipped" is every field except the two
+  // maintainer channels, `notes` and `anatomy.codeOnly` — those stay in source and are stripped from the
+  // plugin bundle (`apps/plugin/lint-bundle-prose.ts` checks the bundle side of the same line).
+  //  (a) NAME ↔ ID. A name is PascalCase or `Family.Part`, and reads as its id with the separators taken
+  //      out (`checkbox-group` ↔ `Checkbox.Group`, `button-destructive` ↔ `Button.Destructive`), so a
+  //      reader holding either can derive the other. The oracle is the id, which the def does not choose
+  //      for display. And once a family is dotted, every id under its kebab prefix is dotted too — that is
+  //      what caught `CheckboxGroup` beside `Checkbox.Control`, which (a)'s letters alone would pass.
+  //  (b) NO PRISM 2. `Prism 2` / `Prism2`, any case, in no shipped field: the defs state the behavior.
+  //  (c) SIBLINGS BY NAME. No shipped prose spells a dotted def name without its dot (`CheckboxGroup`) or
+  //      as adjective-first words (`Destructive Button`) — the retired spellings of names this PR fixed.
+  {
+    const shippedStrings = (d: ComponentDef): [string, string][] => {
+      const out: [string, string][] = [];
+      const walk = (path: string, v: unknown): void => {
+        if (typeof v === 'string') out.push([path, v]);
+        else if (Array.isArray(v)) v.forEach((x, i) => walk(`${path}[${i}]`, x));
+        else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) if (k !== 'notes' && k !== 'codeOnly') walk(path ? `${path}.${k}` : k, x);
+      };
+      walk('', d);
+      return out;
+    };
+    const kebab = (pascal: string): string => pascal.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    const families = new Set(componentDefs.filter((d) => d.name.includes('.')).map((d) => d.name.split('.')[0]));
+    const dotted = componentDefs.filter((d) => d.name.includes('.')).map((d) => d.name.split('.') as [string, string]);
+    let fieldsRead = 0;
+    for (const d of componentDefs) {
+      ok(/^[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)?$/.test(d.name), `component-names: ${d.id} is named '${d.name}' — one convention: PascalCase, or Family.Part for a family`);
+      ok(d.name.replace('.', '').toLowerCase() === d.id.replace(/-/g, ''), `component-names: '${d.name}' does not read as its id '${d.id}' — the name is the id in PascalCase / Family.Part`);
+      for (const f of families) {
+        if (d.id.startsWith(`${kebab(f)}-`)) ok(d.name.startsWith(`${f}.`), `component-names: ${d.id} is in the ${f} family (${f}.* names exist) but is named '${d.name}' — name it ${f}.<Part>`);
+      }
+      for (const [path, text] of shippedStrings(d)) {
+        fieldsRead++;
+        const pm = /prism\s*2/i.exec(text);
+        ok(!pm, `component-prose: ${d.id} ${path} names "${pm?.[0]}" — shipped component text states the behavior and does not cite Prism 2`);
+        for (const [fam, part] of dotted) {
+          for (const bad of [`${fam}${part}`, `${part} ${fam}`]) {
+            ok(!new RegExp(`\\b${bad}\\b`).test(text), `component-prose: ${d.id} ${path} says '${bad}' — the def is named ${fam}.${part}`);
+          }
+        }
+      }
+    }
+    ok(fieldsRead > 1000 && families.size >= 4, `component-prose: the scan is live (${fieldsRead} shipped strings, ${families.size} dotted families) — a walk that read nothing would pass every arm above`);
   }
 
   // (#1134) THE BOUNDED INVERSE SET BINDS ONLY COVERED ROLES — the enforceable half of the gap rule, one
@@ -11168,6 +11242,44 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'component: TextField warning is a status-led border-only swap (warning.border.* → border.warning) per non-disabled state (#1517)');
   ok(['rest', 'hover', 'focus-visible', 'read-only', 'empty'].every((s) => textField.tokens[`success.border.${s}`] === 'color.border.success'),
     'component: TextField success is a status-led border-only swap (success.border.* → border.success) per non-disabled state (#1517)');
+
+  // #1623 sign-off (C1/TF-5 + C1/TA-4) — ONE VALIDATION API ACROSS THE FIELD FAMILY. text-field, textarea and
+  // select each express validation through the same two props, spelled the same way, over the same value set,
+  // and each projects that set as its `status` axis value-for-value. The expected contract is a LITERAL here,
+  // never read off any def (docs/34): deriving it from select would let a rename in select carry the others
+  // with it and still pass. Each def is its own assertion, so a drift fails naming the def that moved.
+  {
+    const VALIDATION_VALUES = ['default', 'error', 'warning', 'success'];
+    const fieldFamily: ReadonlyArray<[string, ComponentDef]> = [['select', select], ['text-field', textField], ['textarea', textarea]];
+    for (const [id, def] of fieldFamily) {
+      const v = def.props.find((p) => p.name === 'validation');
+      ok(!!v && JSON.stringify(v.values) === JSON.stringify(VALIDATION_VALUES) && v.default === 'default',
+        `#1623 validation contract: ${id} carries a \`validation\` prop over exactly [${VALIDATION_VALUES.join(', ')}], default \`default\` (got ${v ? JSON.stringify(v.values) : 'no such prop'})`);
+      ok(def.props.some((p) => p.name === 'validationMessage'),
+        `#1623 validation contract: ${id} carries a \`validationMessage\` prop (the family's one name for the validation text)`);
+      ok(!def.props.some((p) => p.name === 'error'),
+        `#1623 validation contract: ${id} carries no \`error\` message prop — validation text is \`validationMessage\` family-wide`);
+      ok(JSON.stringify(def.variants?.status) === JSON.stringify(VALIDATION_VALUES),
+        `#1623 validation contract: ${id}'s Figma \`status\` axis carries the \`validation\` values value-for-value (got ${JSON.stringify(def.variants?.status)})`);
+      ok(!def.states.includes('error' as never),
+        `#1623 validation contract: ${id} carries no \`error\` STATE — validation is the \`status\` axis, not a state`);
+    }
+    // TA-4's model alignment: textarea's placeholder is text-field's `text.secondary`, and its status borders
+    // are text-field's keys and roles (pinned at the rest coordinate of each non-default status).
+    ok(textarea.tokens['label.empty'] === 'color.text.secondary',
+      `#1623 TA-4: textarea's placeholder binds color.text.secondary, as text-field's does (got ${textarea.tokens['label.empty']})`);
+    ok(textarea.tokens['error.border.rest'] === 'color.border.danger' && textarea.tokens['warning.border.rest'] === 'color.border.warning'
+      && textarea.tokens['success.border.rest'] === 'color.border.success' && !('border.error' in textarea.tokens),
+      '#1623 TA-4: textarea\'s status borders are status-led keys (error/warning/success.border.*), not the retired state-led border.error');
+  }
+
+  // #1623 sign-off (C2/K-11 + K-23) — the checkbox and radio rows self-space with their own block padding, so
+  // both groups bind a 0px inter-row gap. A literal expectation per group, so either one drifting fails by name.
+  for (const [id, def] of [['checkbox-group', checkboxGroup], ['radio-group', radioGroup]] as const) {
+    const root = def.anatomy!.parts[def.anatomy!.root] as { gap?: string };
+    ok(root.gap === 'gap' && def.tokens['gap'] === 'space.0',
+      `#1623 K-11/K-23: ${id}'s inter-row gap binds space.0 (container gap '${root.gap}' → ${def.tokens[root.gap ?? '']})`);
+  }
   // FieldMessage: every validation status re-points BOTH ink + icon at the matching semantic role.
   // `${status}.label`, not `${status}.text`, since #784 — the SLOT segment has to be the word the projector
   // dispatches for a text node. The ROLE it points at is still `color.text.<role>`; those are two
@@ -15191,8 +15303,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // only thing that may. #1353's shape axis changes the corner RADIUS and #1427's surface axis only
       // rewrites the colour refs — neither touches width/height — so neither adds a cohort; the count stays 3
       // (this is the box-level check that shape is pure corner geometry and surface is pure re-inking).
-      ok(new Set(ibLayout.cells.map((c) => c.group)).size === 3,
-        `anatomy/icon-button: three footprint cohorts, one per size — state, appearance, shape and surface must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
+      //
+      // TWELVE since #1611, and the three it was are still inside them: `shape` and `surface` are AUTHORING
+      // axes (a designer picks a silhouette and a ground once), so the cohort now HOLDS them rather than
+      // comparing across them — 3 sizes × 2 shapes × 2 surfaces. `state` and `appearance` stay RUNTIME and
+      // stay compared within each, which is the half of this check that guards a live instance.
+      ok(new Set(ibLayout.cells.map((c) => c.group)).size === 12,
+        `anatomy/icon-button: twelve footprint cohorts, one per size × shape × surface (the authoring axes, #1611) — state and appearance, the runtime axes, must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
 
       // ONE property, where Button has four ref parts. Derived from the nodes the plans BUILD, so this is
       // also the assertion that the required icon still materializes a swap: a slot that stopped producing
@@ -16510,7 +16627,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // `minimal` omits `layout.breakpoints`, so the count takes its 5-floor default, and a default is a
   // value like any other. Without `minimal-bp2` the upper breakpoint tiers would read as guaranteed
   // purely because every richer brand ships 5+ floors.
-  ok(live.corpus.length === 7, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, and the minimal input with a two-breakpoint layout (${live.corpus.length} brands)`);
+  // EIGHT since #1632, which added `minimal-weights` — the sparse input WITH narrowed weight sets. It
+  // separates SPARSE from the DEFAULT SETS on the weight axis: without it the default sets' `strong`
+  // composites would read as guaranteed purely because no member declined a weight.
+  ok(live.corpus.length === 8, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, the minimal input with a two-breakpoint layout, and the minimal input with narrowed weight sets (${live.corpus.length} brands)`);
   for (const { id, theme } of corpus()) {
     const paths = pathsOf(theme);
     const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
@@ -17820,7 +17940,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
       return { brand: id.split(' ')[0], px: ext };
     });
-    ok(px.length === 7 && px.every((b) => b.px === 16),
+    ok(px.length === 8 && px.every((b) => b.px === 16),
       `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
   }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),
@@ -18202,9 +18322,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // coordinate, so the two rules agree there whatever the absent case does. Nothing before #795 could
   // produce a sizeless plan at all, so this case had no coverage because it had no existence.
   const ringLayout = planSetLayout(ringSet, 'test');
-  ok(ringLayout.cells.every((c) => c.group === ''),
-    `focus-ring: the engine's cohort key is EMPTY — no size axis and no slot axes, so nothing legitimately changes this def's footprint and all members share one cohort. Not 'size=undefined, leading=false, trailing=false' (got '${ringLayout.cells[0]?.group}')`);
-  ok(planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group === 'size=small, leading icon=true, trailing icon=true',
+  // Since #1611 the key is not EMPTY — `surface` is an AUTHORING axis and is held — but it carries no
+  // `size` segment and no slot segments, which is what this arm is about: 'size=undefined, leading=false'
+  // is the failure, and the surface segment is the one the #1611 hold legitimately adds.
+  ok(ringLayout.cells.map((c) => c.group).join(' | ') === 'surface=default | surface=inverse',
+    `focus-ring: the engine's cohort key carries NO size and NO slot segment — this def has neither — only its held authoring axis (#1611). Not 'size=undefined, leading=false, trailing=false' (got '${ringLayout.cells.map((c) => c.group).join(' | ')}')`);
+  ok(planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group === 'size=small, leading icon=true, trailing icon=true, surface=default',
     `field: a def that DOES declare all three still writes all three — the omission rule must not have emptied the key for the def the cohort was designed for; the slot segments carry the Figma names (#1380) (got '${planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group}')`);
   // The payload side, evaluated rather than grepped. `cellOf` is a string inside the generated JS, so it
   // is extracted and run — a regex over the payload text would assert that the ternary is spelled a
@@ -18250,6 +18373,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const ringPayload = payloadCellOfFor(planSetChunks(ringSet)[0].js, ringLayout);
   ok(ringPayload.extracted,
     `focus-ring: the payload's own cellOf and its FOOTPRINT_VARIES declaration were both extracted before being run — an empty slice would make every comparison below vacuously true (got ${ringPayload.chars} chars, '${ringPayload.decl}')`);
+  // #1611: the chunk ships the HELD list — declared exemptions, then authoring axes — under the same const,
+  // so a chunk that shipped only `footprintVaries` would re-derive a key without `surface` and disagree.
+  ok(ringPayload.decl === 'const FOOTPRINT_VARIES=["surface"];',
+    `focus-ring: the chunk ships the authoring axis the cohort holds (#1611) (got '${ringPayload.decl}')`);
   ok(ringPayload.fn !== null && ringLayout.cells.every((c) => ringPayload.fn!(c.name).group === c.group),
     'focus-ring: the PAYLOAD reaches the byte-identical cohort key from the member name alone — two independent derivations of "absent means omit", which is the only thing keeping them in step');
   ok(ringPayload.fn !== null && ringLayout.cells.every((c) => { const p = ringPayload.fn!(c.name); return p.row === c.row && p.col === c.col; }),
@@ -18271,6 +18398,41 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `field-message: the chunk SHIPS the def's exemption list, so the payload's own derivation has something to append (got '${fmPayload.decl}')`);
   ok(fmPayload.fn !== null && fmLayout.cells.every((c) => fmPayload.fn!(c.name).group === c.group),
     'field-message: ...and reaches the byte-identical key from the member name — the exemption is honored on the chunked path too, where a disagreement would put every member in a cohort of one and silence the footprint read-back rather than redden it');
+
+  // ---- #1611: the cohort compares RUNTIME axes and holds AUTHORING ones ----
+  // The owner-found case: field-label's `weight` is picked once per label, so its bold and regular members
+  // are never one instance's before and after, and NB's Medium setting 1px wider than Regular was reported
+  // as four footprint misses. The expectation is written out by hand from the def's axes as the issue states
+  // them — held: size, emphasis, weight; compared: state — never read back from `planSetLayout`.
+  {
+    // (a) THE READER: absent is runtime (the strict default), the state axis is runtime by definition.
+    const bare = { ...fieldLabel, axisKinds: undefined } as ComponentDef;
+    ok(axisKindOf(bare, 'weight') === 'runtime' && axisKindOf(fieldLabel, 'weight') === 'authoring' && axisKindOf(fieldLabel, 'state') === 'runtime',
+      `#1611 axisKindOf: an unclassified axis reads RUNTIME, field-label's weight reads AUTHORING, the state axis is runtime (got ${axisKindOf(bare, 'weight')}/${axisKindOf(fieldLabel, 'weight')}/${axisKindOf(fieldLabel, 'state')})`);
+    // (b) THE VALIDATOR refuses a classification of an axis the def does not declare, and an unknown kind.
+    const stray = validateComponentDef({ ...fieldLabel, axisKinds: { ...fieldLabel.axisKinds, tone: 'authoring' } } as ComponentDef).errors;
+    const badKind = validateComponentDef({ ...fieldLabel, axisKinds: { ...fieldLabel.axisKinds, weight: 'sometimes' } } as unknown as ComponentDef).errors;
+    ok(stray.some((e) => /^axisKinds\.tone: 'tone' is not an axis in variants/.test(e)) && badKind.some((e) => /^axisKinds\.weight: 'sometimes' is not one of \[runtime, authoring\]/.test(e)),
+      `#1611 the validator refuses a stray axis and an unknown kind BY NAME (got [${[...stray, ...badKind].filter((e) => e.startsWith('axisKinds')).join('; ') || 'NOTHING'}])`);
+    // (c) EVERY SHIPPED DEF CLASSIFIES EVERY AXIS it declares. The default keeps an omission strict, but an
+    // agent reading the def learns nothing from a default — the classification is metadata as well as rule.
+    const unclassified = componentDefs.flatMap((d) => Object.keys(d.variants ?? {}).filter((a) => !(a in (d.axisKinds ?? {}))).map((a) => `${d.id}.${a}`));
+    ok(unclassified.length === 0, `#1611 every shipped def classifies every variants axis as runtime or authoring (unclassified: ${unclassified.join(', ') || 'none'})`);
+    // (d) THE PLAN CARRIES IT, for every projected axis, so a reader of the artifact sees it too.
+    const flPlans = figmaAnatomySet(fieldLabel, {});
+    ok(JSON.stringify(flPlans[0].axisKinds) === JSON.stringify({ size: 'authoring', emphasis: 'authoring', weight: 'authoring', state: 'runtime' }),
+      `#1611 the field-label plan carries each projected axis's kind (got ${JSON.stringify(flPlans[0].axisKinds)})`);
+    // (e) THE COHORTS: one per size × emphasis × weight, each holding exactly the two states.
+    const flLayout = planSetLayout(flPlans, 'test');
+    const expect = ['primary', 'secondary'].flatMap((em) => ['regular', 'bold'].flatMap((w) => ['small', 'medium', 'large'].map((sz) => `size=${sz}, emphasis=${em}, weight=${w}`)));
+    const got = [...new Set(flLayout.cells.map((c) => c.group))];
+    ok(got.length === 12 && expect.every((g) => got.includes(g)) && expect.every((g) => flLayout.cells.filter((c) => c.group === g).length === 2),
+      `#1611 field-label: twelve footprint cohorts, one per size × emphasis × weight, each comparing only rest against disabled — bold and regular are never compared (got ${got.length}: ${got.slice(0, 3).join(' | ')}…)`);
+    // (f) THE PAYLOAD AGREES: the chunk ships the held authoring axes and re-derives the identical key.
+    const flPayload = payloadCellOfFor(planSetChunks(flPlans)[0].js, flLayout);
+    ok(flPayload.extracted && flPayload.decl === 'const FOOTPRINT_VARIES=["emphasis","weight"];' && flLayout.cells.every((c) => flPayload.fn!(c.name).group === c.group),
+      `#1611 field-label: the chunk ships the held authoring axes and reaches the byte-identical cohort key from the member name (got '${flPayload.decl}')`);
+  }
 }
 
 // (24) RENAME MAP (#1013) — the variable map is DERIVED from `DEPRECATIONS`, so this is where the

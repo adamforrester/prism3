@@ -255,6 +255,25 @@ const LADDER_STATED_ONCE: Record<string, string> = {
 };
 
 /**
+ * DEFS WHOSE SIZE AXIS REACHES ONLY ITS NESTED CHILDREN, by `follow` — a size enum and NO `size.*` key of
+ * their own — admitted by name with the reason (#1623 sign-off, C2/K-11 + K-23). The two groups bound a
+ * provisional `size.{size}.gap` rung until the owner set their inter-row gap to 0px: the rows now carry their
+ * own block padding and self-space, so the group's stack gap is one un-sized `space.0` key and its size
+ * axis scales the nested label and rows by `follow` and nothing else. Arm 2's "every enum value is bound"
+ * reads that as a size resolving to nothing, which is wrong for this shape and right for every other.
+ *
+ * The admission is not a skip: it is re-checked STRUCTURALLY, independent of the listing. An admitted def
+ * must bind no `size.*` key (else the admission is stale — arm 2 applies again), must carry at least one
+ * `nest` part that `follow`s `size`, and every def it follows into must admit every value of the group's
+ * enum — so the follow actually lands a rung, and those nested defs are themselves checked by this gate.
+ * Both directions, the same as the lists above.
+ */
+const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
+  'checkbox-group': 'its inter-row gap is 0px (`space.0`, the rows self-space — #1623 sign-off), so the size axis binds nothing of its own and reaches the nested field-label and checkbox rows by `follow`',
+  'radio-group': 'mirrors checkbox-group — a 0px inter-row gap (`space.0`, #1623 sign-off), so the size axis reaches the nested field-label and radio rows by `follow` only',
+};
+
+/**
  * The scope floor. `docs/34`: a gate with a scope asserts each promised surface is REPRESENTED, never
  * merely counts. Every def carrying a size axis today.
  */
@@ -375,6 +394,28 @@ for (const def of componentDefs) {
   if (variants && variants.join(',') !== values.join(','))
     failures.push(`${def.id}: props.size.values is [${values.join(', ')}] but variants.size is [${variants.join(', ')}] — one ladder stated twice, disagreeing. A consumer reads the prop; the projector reads the variants.`);
 
+  // ---- SIZE BY FOLLOW ONLY (#1623 sign-off): the admission, re-checked structurally ------------------
+  if (def.id in SIZE_BY_FOLLOW_ONLY) {
+    if (parsed.length || rungless.length) {
+      failures.push(`${def.id}: admitted in SIZE_BY_FOLLOW_ONLY as binding no size.* key of its own, but it now binds ${parsed.length + rungless.length}. The admission is STALE — remove it in the same PR and let arm 2 check the ladder.`);
+      continue;
+    }
+    type NestPart = { kind?: string; nests?: string; nesting?: { follow?: string[] } };
+    const followers = Object.entries((def.anatomy?.parts ?? {}) as Record<string, NestPart>)
+      .filter(([, p]) => p.kind === 'nest' && !!p.nests && !!p.nesting?.follow?.includes('size'));
+    if (!followers.length)
+      failures.push(`${def.id}: admitted in SIZE_BY_FOLLOW_ONLY, but no nest part follows 'size' — the size axis reaches nothing at all, which is exactly what arm 2 exists to refuse.`);
+    for (const [part, p] of followers) {
+      const child = componentDefs.find((d) => d.id === p.nests);
+      const childValues = child ? enumOf(child).values : [];
+      const missing = values.filter((v) => !childValues.includes(v));
+      if (!child || missing.length)
+        failures.push(`${def.id}: part '${part}' follows 'size' into '${p.nests}', which ${child ? `does not admit size ${missing.map((v) => `'${v}'`).join(', ')}` : 'is not a def'} — the follow lands no rung for that value.`);
+    }
+    notes.push(`${def.id}: [${values.join(', ')}] — size by follow only (${followers.map(([, p]) => p.nests).join(', ')}); admitted: ${SIZE_BY_FOLLOW_ONLY[def.id]}`);
+    continue;
+  }
+
   // ---- ARM 1: every enum value names a real rung, per brand ------------------------------------
   // The enum value is the COMPONENT's vocabulary (`small`), the tier's is the ENGINE's (`sm`), so the
   // path checked is the one the def's own binding points at — read from `tokens`, never rebuilt from
@@ -463,6 +504,10 @@ for (const m of MUST_COVER)
 for (const id of Object.keys(NO_SIZE_AXIS))
   if (!componentDefs.some((d) => d.id === id))
     failures.push(`STALE ADMISSION: NO_SIZE_AXIS names '${id}', which is not a def any more. Remove it — an admission for a def that does not exist is a memory of something no longer true.`);
+
+for (const id of Object.keys(SIZE_BY_FOLLOW_ONLY))
+  if (!componentDefs.some((d) => d.id === id))
+    failures.push(`STALE ADMISSION: SIZE_BY_FOLLOW_ONLY names '${id}', which is not a def any more. Remove it — same reason as above.`);
 
 for (const id of Object.keys(LADDER_STATED_ONCE))
   if (!componentDefs.some((d) => d.id === id))

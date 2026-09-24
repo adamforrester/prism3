@@ -646,6 +646,8 @@ const buildComponents = async (defId?: string): Promise<void> => {
         // and passed as a write-time option — inert for every def that does not set it, the same shape as
         // `SWAP_TARGET`, so no per-def branch here beyond forwarding the flag the projector already carries.
         emitAsComponents: target.figmaProperties?.emitAsComponents,
+        // #1623 sign-off — the def's one-line `summary` becomes the Figma description of what it builds.
+        description: target.summary,
         // Posted straight through, unaggregated: the executor owns the phase/fraction and this is the
         // only place that can see the timing. `chunkMs` is CALIBRATION data (see `CHUNK`) — the shim has
         // no event loop, so chunk size can only be tuned from a live run, and this is how it gets out.

@@ -59,10 +59,11 @@ import { ComponentDef } from '../component-schema';
 
 export const imagePlaceholder: ComponentDef = {
   id: 'image-placeholder',
-  name: 'Image placeholder',
+  name: 'ImagePlaceholder',
   aliases: ['media-frame', 'image-frame', 'photo-placeholder', 'empty-image', 'image-slot'],
   category: 'media',
   status: 'draft',
+  summary: 'Empty media frame locked to 1:1, 4:3 or 16:9. Drop an image fill onto it.',
   description:
     'An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (a native Figma action, not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker, and it clips its content so a mismatched photo cannot overflow the frame.',
 
@@ -80,6 +81,8 @@ export const imagePlaceholder: ComponentDef = {
   variants: {
     ratio: ['1:1', '4:3', '16:9'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { ratio: 'authoring' },
 
   // ONE template answering both primary slots by name: the box's `fill` and the marker's `icon` ink.
   // Constant per slot (no axis), exactly as `field-label`'s `['{slot}']` is — the ratio axis changes the
@@ -222,7 +225,7 @@ export const imagePlaceholder: ComponentDef = {
   composition: {
     composesWith: ['icon'],
     alternativeTo: [],
-    supersedes: [
+    replacesPatterns: [
       'a hand-drawn rectangle with a fixed width and height standing in for an image, which breaks its ratio the moment it is resized',
     ],
     // Nothing supersedes the image placeholder — the veil is a sibling used for a different job (a wash

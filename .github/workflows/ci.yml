@@ -821,6 +821,13 @@ jobs:
       - name: The built main.js carries no Figma-sandbox-rejected token sequence (#1461)
         run: npx --yes tsx@4 apps/plugin/lint-sandbox-reject.ts
 
+      # WHAT THE BUILT PLUGIN SHIPS OF A COMPONENT DEF (#1623 sign-off). A def's `notes` and
+      # `anatomy.codeOnly` are maintainer-only and are stripped on the way into dist/; shipped component
+      # text cites no Prism 2; every def's one-line summary (the Figma description) is present. Reads
+      # both built bundles against the real defs, so it runs after the plugin build.
+      - name: The built plugin ships no maintainer notes and no Prism 2 in component text (#1623)
+        run: npx --yes tsx@4 apps/plugin/lint-bundle-prose.ts
+
       # A stated advisory window, once it closes, fails the build. The step below this one is
       # advisory with a date on it, and that date is written in six places — this workflow twice,
       # verify.ts, test-smoke.mjs twice, and the three contributor documents. On the stated morning

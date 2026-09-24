@@ -125,6 +125,7 @@ export const select: ComponentDef = {
   aliases: ['dropdown', 'combobox', 'picker', 'select-menu', 'listbox'],
   category: 'form',
   status: 'draft',
+  summary: 'Closed control for picking one value from a known set. The menu is the platform\'s.',
   description:
     'A control for choosing ONE value from a known, bounded set — the closed, native-first field: label, a bordered control showing the current value or a placeholder with a trailing chevron, and a helper/validation message below. Composes the shared FieldLabel and FieldMessage. The open menu is the platform\'s (native or a separate listbox), not modeled here. Not free-form text (TextField), not any-number-from-a-set (Checkbox group), not a small always-visible set (Radio / SegmentedControl), not suggestion-backed typing (Combobox).',
 
@@ -135,7 +136,7 @@ export const select: ComponentDef = {
     // controlled selection is wired in code via `onChange` and the option set. LOWERCASE per #1333.
     { name: 'value', type: 'string', required: false, description: 'The displayed text — the selected option\'s label, or the placeholder when nothing is chosen. Controlled: pair with onChange. When it holds the placeholder the ink is the muted placeholder role; a chosen value shows the full-contrast value ink — the same empty-vs-value polarity text-field uses. This is an internal, content-driven distinction, not a variant a designer picks.' },
     { name: 'placeholder', type: 'string', required: false, description: 'The prompt shown before a choice is made ("Select an option"). Muted, and never load-bearing — it is not the label and it vanishes once a value is chosen.' },
-    { name: 'options', type: 'array', required: false, description: 'The bounded set of choices. Past roughly 7-10 options a filtering Combobox scans better; below a handful an always-visible Radio group may read better.' },
+    { name: 'options', type: 'array', required: false, description: 'The bounded set of choices. Past roughly 7-10 options a filtering combobox (not built yet) scans better; below a handful an always-visible Radio.Group may read better.' },
     { name: 'onChange', type: 'function', required: false, description: 'Fires with the newly chosen value (also onBlur / onFocus). A controlled value with no onChange is read-only by accident.' },
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure.' },
     // The UI reads "Validation"; the Figma variant axis is `status` so it drives the nested message's own
@@ -174,6 +175,9 @@ export const select: ComponentDef = {
   variants: {
     status: ['default', 'error', 'warning', 'success'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // `status` changes live as validation runs.
+  axisKinds: { status: 'runtime' },
 
   // THE PAINT GRAMMAR. Status-led-and-state-qualified first (so the `error` border swap WINS over the
   // interactive state progression at every coordinate — see the header's precedence note), then
@@ -516,7 +520,7 @@ export const select: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. Past roughly 7-10 options a filtering Combobox scans better; below a handful an always-visible Radio group may read better.',
+    usage: 'Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. Past roughly 7-10 options a filtering combobox (not built yet) scans better; below a handful an always-visible Radio.Group may read better.',
     do: [
       'Render a visible, associated label (FieldLabel) above the control',
       'Show a muted placeholder as a prompt, never as the label or a real option',
@@ -527,7 +531,7 @@ export const select: ComponentDef = {
       'Use the placeholder as the label, or put a real, selectable option in it',
       'Model the open menu as a state of this control — it is a separate listbox / popover surface',
       'Signal a status with the border color alone — the nested message carries the text + icon',
-      'Reach for a select when the user types to filter (Combobox) or the set is two mutually-exclusive options (Radio)',
+      'Reach for a select when the user types to filter (a combobox, not built yet) or the set is two mutually-exclusive options (Radio.Group)',
     ],
     contentGuidelines: 'Label = noun phrase, sentence case, no trailing colon. Placeholder = a prompt ("Select an option"). Error says what + how to fix, never "Invalid".',
   },
@@ -535,19 +539,20 @@ export const select: ComponentDef = {
   ai: {
     primaryPurpose: 'Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.',
     whenToUse: 'One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.',
-    avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (Combobox — a different ARIA contract), any number may be chosen (Checkbox group), the set is small and worth showing at once (Radio / SegmentedControl), or the choice is a binary that takes effect instantly (Switch).',
-    commonPartners: ['field-label', 'field-message', 'focus-ring', 'icon', 'form', 'menu'],
+    avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), any number may be chosen (Checkbox.Group), the set is small and worth showing at once (Radio.Group, or a segmented control, not built yet), or the choice is a binary that takes effect instantly (Switch.Row).',
+    commonPartners: ['field-label', 'field-message', 'focus-ring', 'icon'],
     triggerKeywords: ['select', 'dropdown', 'picker', 'combobox', 'menu', 'choose', 'option list'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'focus-ring', 'icon', 'form'],
-    alternativeTo: ['text-field', 'combobox', 'radio-row', 'checkbox-group', 'segmented-control', 'menu'],
-    supersedes: ['a bare <select> with no label wiring', 'placeholder-as-label'],
+    composesWith: ['field-label', 'field-message', 'focus-ring', 'icon'],
+    alternativeTo: ['text-field', 'radio-row', 'checkbox-group'],
+    replacesPatterns: ['a bare <select> with no label wiring', 'placeholder-as-label'],
     // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by
     // intent and scale, not replacements.
     supersededBy: [],
+    planned: ['form', 'menu', 'combobox', 'segmented-control'],
   },
 
   notes: {
