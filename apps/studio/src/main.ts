@@ -2693,7 +2693,7 @@ const edgeOf = (roles: RoleMap, prefix: string, state = 'rest'): string =>
  *  the one row this parameter exists for unable to reach its own pressed color: the border row's edge
  *  moves on press and its wash never does. */
 const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string, pressedWash?: string,
-                   o: { ink?: string; hoverEdge?: string; pressedEdge?: string } = {}): HTMLElement => {
+                   o: { ink?: string; icon?: string; hoverEdge?: string; pressedEdge?: string } = {}): HTMLElement => {
   const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
   const ink = o.ink ?? edge;
   const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', wash); b.style.color = ink;
@@ -2703,7 +2703,9 @@ const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string,
   if (hoverWash) b.style.setProperty('--ibtn-hbg', hoverWash);
   if (pressedWash) b.style.setProperty('--ibtn-pbg', pressedWash);
   if (pressedWash || o.pressedEdge) wirePress(b);
-  b.append(document.createTextNode('Outline'), iconEl('arrow', ink));
+  // #1617 — the glyph draws from its OWN role (`interactive.<c>.icon.*`) when the caller passes one, so a
+  // label/icon divergence is visible here rather than masked by painting both with the label ink.
+  b.append(document.createTextNode('Outline'), iconEl('arrow', o.icon ?? ink));
   box.append(b); return box;
 };
 const exIconLabel = (iconColor: string, textColor: string, dark = false): HTMLElement => {
@@ -2973,13 +2975,13 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
     slotRow({ name: nm, slot: 'border.rest', label: 'Border · rest', palette: P,
       desc: borderDesc(nm, false),
       example: (rs) => exOutline(edgeOf(rs, `interactive.${nm}`), 'transparent', false, undefined, undefined, {
-        ink: rs[`interactive.${nm}.text.rest`]?.hex,
+        ink: rs[`interactive.${nm}.text.rest`]?.hex, icon: rs[`interactive.${nm}.icon.rest`]?.hex,
         hoverEdge: rs[`interactive.${nm}.border.hover`]?.hex, pressedEdge: rs[`interactive.${nm}.border.pressed`]?.hex }),
       states: [['Hover', `interactive.${nm}.border.hover`], ['Pressed', `interactive.${nm}.border.pressed`]] }),
     slotRow({ name: nm, slot: 'border.rest', inverse: true, label: 'Border · inverse', palette: P,
       desc: borderDesc(nm, true),
       example: (rs) => exOutline(edgeOf(rs, inv), 'transparent', true, undefined, undefined, {
-        ink: rs[`${inv}.text.rest`]?.hex,
+        ink: rs[`${inv}.text.rest`]?.hex, icon: rs[`${inv}.icon.rest`]?.hex,
         hoverEdge: rs[`${inv}.border.hover`]?.hex, pressedEdge: rs[`${inv}.border.pressed`]?.hex }),
       states: [['Hover', `${inv}.border.hover`], ['Pressed', `${inv}.border.pressed`]] }),
     overlayRow(col),

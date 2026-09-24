@@ -387,6 +387,34 @@ export const GROUND_INPUT: Record<string, string> = {
 };
 
 /**
+ * THE LABEL → GLYPH OVERRIDE TWIN (#1617). `interactive.<c>.icon.<st>` (and its `inverse.` column) is
+ * minted as a VALUE twin of `interactive.<c>.text.<st>` — the same derived candidate (#1471). The
+ * override layer rewrites exactly one role, so an override on the label ink alone used to move the
+ * label and leave the glyph at the derived value: near-black label, grey icon on the owner's NB file.
+ * The requirement is that an outline / text control's icon always matches its label, so an override on
+ * a `text` twin is carried to its `icon` twin — unless the icon carries its own explicit override, which
+ * wins. `border` is deliberately NOT coupled: a border override is an independent authoring choice.
+ *
+ * Only the post-derivation layer needs this. The pre-derivation `ovRgb` / `asGround` path substitutes
+ * overrides only at GROUND reads, and neither twin is a ground (nothing is contrast-measured against a
+ * label or glyph ink), so the twin has nothing to feed there. The expanded icon entry is re-rated
+ * against its own `against` by the same loop as any explicit override, and the final contrast sweep
+ * warns for it exactly as it does for the label.
+ */
+const ICON_TWIN_OF_TEXT = /^((?:inverse\.)?interactive\.[^.]+\.)text\.(rest|hover|pressed)$/;
+export function withIconTwins(ov: ModeOverrides | undefined): ModeOverrides | undefined {
+  if (!ov) return ov;
+  const out: ModeOverrides = { ...ov };
+  for (const [rolePath, ref] of Object.entries(ov)) {
+    const m = ICON_TWIN_OF_TEXT.exec(rolePath);
+    if (!m) continue;
+    const iconPath = `${m[1]}icon.${m[2]}`;
+    if (!(iconPath in ov)) out[iconPath] = ref;         // an explicit icon override wins
+  }
+  return out;
+}
+
+/**
  * THE ENGINE'S DEFINITION OF A GROUND (#985) — every role whose colour some other role's `ratio`
  * depends on. Named and exported so the one definition the override refusal reads has a place to be
  * checked against, rather than living inline where a second reader could quietly diverge from it.
@@ -1988,7 +2016,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // because a ref naming a role absent in this mode is skipped, so the input and what applied are not
   // the same set.
   const overridden = new Set<string>();
-  const ov = theme.overrides?.[mode];
+  const ov = withIconTwins(theme.overrides?.[mode]);
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
       const existing = roles[rolePath];

@@ -2926,6 +2926,14 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.136.0 — #1617: a per-mode override on an outline/text control's LABEL ink carries to its GLYPH ink.
+ * `interactive.<c>.icon.<st>` (and the `inverse.` column) is minted as a value twin of `…text.<st>` (#1471),
+ * but the override layer rewrote exactly one role, so an override on `text.rest` moved the label and left
+ * the icon at the derived value (label near-black, icon grey on the owner's NB file). New `withIconTwins`
+ * expands a `text.<st>` override onto its `icon.<st>` twin unless the icon carries its own explicit
+ * override (explicit wins); the icon is re-rated against its own `against` and swept for warnings like any
+ * override. `border` stays independent. A value-resolution behavior change under overrides → MINOR bump;
+ * no corpus brand overrides these roles, so `out/**` is a stamp-only regen. CONTRACT STANDS — no name moves.
  * 0.135.0 — #1613 (owner decision (a)): `solid-tint` emits the INVERSE twin of the opaque outline/text
  * tint, `inverse.interactive.<c>.subtle-fill.{hover,pressed,selected}`, so a `surface=inverse` button /
  * icon-button hover resolves instead of missing (48 misses on the owner's solid-tint NB file → 0). MIRRORED
@@ -3445,7 +3453,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.135.0';
+export const ENGINE_VERSION = '0.136.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
