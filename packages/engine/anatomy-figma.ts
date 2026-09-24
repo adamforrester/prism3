@@ -1817,10 +1817,10 @@ const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
  *                         than binding transparent is what makes this a non-event on the host: no
  *                         variable is asked for, so there is nothing to miss.
  *
- * NOT HANDLED, and held rather than invented: the engine emits NO inverse twin of `subtle-fill`, so a
- * `surface=inverse` member under `solid-tint` still binds `color.inverse.interactive.<c>.subtle-fill.*`
- * through the projector's surface rewrite, and still misses. What an opaque tint should be on an
- * inverse band is a design question (#1608's PR), not a fallback to pick here.
+ * The INVERSE band needs nothing here: a `surface=inverse` member under `solid-tint` binds
+ * `color.inverse.interactive.<c>.subtle-fill.*` through the projector's surface rewrite, and since #1613
+ * (owner decision (a)) the engine EMITS that twin — `modes.ts` mirrors the page derivation against the
+ * band — so it resolves. Held as a design question on #1608's PR until then, and never back-filled here.
  */
 export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlineInteraction']): ComponentDef => {
   if (method === 'overlay-neutral') return def;

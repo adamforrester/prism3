@@ -9,7 +9,7 @@
 
 ## (2026-09-24) — a label-ink override carries to its icon twin (#1617)
 
-**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/modes.ts` (**NEW** `withIconTwins`), `packages/engine/test.ts` (**IT-01**), `apps/studio/src/main.ts` (outline preview glyph), `packages/engine/version.ts` (ENGINE 0.135.0), stamp-only `out/**` + the `token-contract.json` `engineVersion` field (`--accept`, no surface change; CONTRACT stands at 11.3.0).
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/modes.ts` (**NEW** `withIconTwins`), `packages/engine/test.ts` (**IT-01**), `apps/studio/src/main.ts` (outline preview glyph), `packages/engine/version.ts` (ENGINE 0.136.0), stamp-only `out/**` + the `token-contract.json` `engineVersion` field (`--accept`, no surface change; CONTRACT stands at 11.3.0).
 
 **Diagnosis.** It was not the icon swap and not the border. The projection binds correctly: `leadingVisual → interactive.<c>.icon.rest`, `label → …text.rest`. The engine mints `icon.<st>` as a value twin of `text.<st>` (#1471, the same candidate `c` in `iText`), but the per-mode override layer rewrites exactly ONE role after derivation. The studio exposes `Text · rest` / `Border · rest` override rows and no icon row, so an override on the label moved the label and left the glyph at the DERIVED value. On NB's primary ink the derived value is a grey that happens to match the owner's (independent) grey border override, which is why it looked like the icon followed the border. The studio's outline preview painted the glyph with the TEXT ink, so it could not show the divergence.
 
@@ -20,6 +20,27 @@
 **Gate.** IT-01 in `test.ts` covers four things: a page and an inverse `text.rest` override land on `icon.rest` (EXPECTED is the pinned ramp step's hex, and the ratio is recomputed with `contrast` against the icon's own `against`); an explicit icon override wins in either key order; and a border override leaves the icon derived. Mutations, committed before each one: `withIconTwins` returning its input → 3 IT-01 arms fail by name; dropping the explicit-wins check → both explicit-wins arms fail by name. No corpus brand overrides these roles, so `regen --check` moves only the version stamp.
 
 ---
+## (2026-09-24) — `solid-tint` emits the inverse `subtle-fill` twin; the #1608 hold is gone (#1613)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Owner decision (a) on #1613: "solid tint" means the same thing on both grounds. Files: `packages/engine/modes.ts` (the `solid-tint` branch becomes one `emitTints(prefix, fam, ground, describe)` called per ground), `packages/engine/test.ts` (new #1613 arms; #1608 hold removed), `apps/plugin/test-write-components.ts` (hold removed; inverse members hand-named), `anatomy-figma.ts` (the "NOT HANDLED, and held" note), `version.ts` (ENGINE 0.134.0 → 0.135.0; CONTRACT stands at 11.3.0, `--accept` of the informational stamp only).
+
+── THE DERIVATION — MIRRORED ──────────────────────────────────────────────────────────────────────────
+
+The page loop was lifted into `emitTints` unchanged and called twice: once for the page (`''`, `cfg.family`, `baseRgb`) and once for the band (`'inverse.'`, the OPPOSITE polarity, `invRgb`). The polarity picks the nominal table and the walk direction; the prefix picks the ink (`inverse.interactive.<c>.text.<st>`, selected reuses pressed), the key and the `against`. Pressed/selected ungated by the same #1281 predicate. **The page family is byte-identical:** every subtle-fill role for the 7 corpus brands + near-black + hot-yellow at solid-tint was dumped before/after and `cmp`'d (324 roles, identical). No corpus brand sets `solid-tint` (#1112), so `out/**` moves only its version stamp.
+
+── HELD — WHERE MIRRORING DOES NOT MEET THE CONTRACT (#1614) ────────────────────────────────────────
+
+On **nb-redesign (the owner's brand), light mode**, `inverse.interactive.{primary,neutral}.subtle-fill.hover` lands on `neutral.900` against a `neutral.950` band: ink clears (6.55 / 17.15) but **ΔE00 2.00 < 2.3**. nb-redesign routes `action` to neutral, and the walk only tests the ink, so it never leaves the nominal. Per the brief no color was picked: the two cells are hand-named in the ΔE arm, with a companion line that fails once they stop being invisible. Options (walk also gates ΔE / a different inverse nominal / accept) are on #1614. The page family has the same structural exposure in dark mode (900 vs a 950 page, 2.48–2.51 on four brands — just over the bar).
+
+── A TRAP FOR WHOEVER TOUCHES THE WALK (#1615) ──────────────────────────────────────────────────────
+
+The walk's comment says "toward the page"; the sort walks AWAY from the ground (light: 100, 150, 200…). The brief repeated the comment. I mirrored the CODE, not the comment, since the page must stay byte-identical. Latent: 0 of 666 roles leave the nominal across every brand measured. Filed as #1615.
+
+── THE GATES (docs/34) ────────────────────────────────────────────────────────────────────────────────
+
+**Engine (`test.ts`, #1613 block inside #288), over 5 synthetic solid-tint brands + nb-redesign:** (1) existence, hand-named per primary/neutral/destructive × hover/pressed/selected in every mode; (2) hover ink-on-tint RECOMPUTED from the two hexes and held to the INK role's `min` (not the tint's self-reported ratio/min), plus `against` pinned to `inverse.interactive.<c>.text.hover` by name; (3) ΔE00 ≥ 2.3 vs `inverse.background.primary` (the page ΔE arm is now scoped to page keys — judging a dark tint against a white page would pass trivially). The #1608 cross-brand gate drops `HELD_INVERSE_TINT`: every miss fails, either ground; a new hand-named line pins the inverse outline hover to `color/inverse/interactive/primary/subtle-fill/hover`. **Plugin:** the solid-tint NB-redesign button's 48 inverse hover+pressed members bind `inverse…subtle-fill/{hover,pressed}`, and fill misses are 0 on both grounds.
+
+**Mutations, each from a committed `wip:` head:** M1 (skip the inverse `emitTints` call) → the 3 #1613 engine arms, both `#1608 … @ solid-tint` lines (216 missing), the new inverse-hover line, and both plugin #1613 lines fail by name — the plugin with the owner's shape, `48 — container.fills -> color/inverse/interactive/primary/subtle-fill/hover`. M2a (walk the band tint against the PAGE ink) → the #1613 ink arm fails by name (nb/light 1.55 < 4.5, `against=interactive…`). M2b (no ink walk on the band, page polarity) → the #1613 ink arm and #288's arm fail. **Recorded because it surprised me:** flipping ONLY the polarity is absorbed — the walk goes on until the ink clears, so every gate stays green (the hold's staleness line fires, since the held cells move). The walk earns its keep there.
 
 ## (2026-09-24) — an outline/text hover fill binds the family the brand's `outlineInteraction` emits (#1608)
 

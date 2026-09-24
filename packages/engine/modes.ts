@@ -1521,59 +1521,84 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     //
     // Nominal: one subtle step for hover, one further for pressed/selected — the same "comes forward"
     // progression the fill and ink states use.
-    const NOMINAL: [string, number][] = cfg.family === 'light'
+    // `fam` is the POLARITY OF THE GROUND the tint sits on, not the mode's: the page is `cfg.family`,
+    // the inverse band the opposite (#1613, below). The nominal table and the walk direction both key
+    // off it, which is what lets one derivation serve both grounds.
+    const nominalFor = (fam: 'light' | 'dark'): [string, number][] => fam === 'light'
       ? [['hover', 100], ['pressed', 150], ['selected', 150]]
       : [['hover', 900], ['pressed', 850], ['selected', 850]];
     const tintColumns: [string, string][] = [
       ['primary', r2p.action], ['neutral', r2p.neutral], ['destructive', r2p.danger],
       ...theme.interactivePalettes.map((p) => [p.name, p.palette] as [string, string]),
     ];
-    for (const [color, palette] of tintColumns) {
-      const ramp = ramps.get(palOf(palette));
-      if (!ramp) continue;                                   // a column whose palette the brand doesn't carry
-      for (const [st, nominal] of NOMINAL) {
-        // The ink this tint sits under: `selected` reuses the pressed ink (same emphasis level).
-        const inkRole = roles[`interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`];
-        const inkRgb = inkRole ? hexToRgb(inkRole.hex) : pickMostExtreme(textCands, baseRgb).rgb;
-        // Order the ramp from the nominal step TOWARD THE PAGE, so the first passing candidate is the
-        // most saturated tint that still keeps the label legible — never weaker than it needs to be.
-        const toward = [...ramp].sort((a, b) => {
-          const key = (n: number) => (cfg.family === 'light' ? n - nominal : nominal - n);
-          const ka = key(a.num), kb = key(b.num);
-          // candidates at/inside the nominal first (ascending distance), then the rest
-          return (ka >= 0 ? ka : 1e6 - ka) - (kb >= 0 ? kb : 1e6 - kb);
-        });
-        const chosen = toward.find((s) => contrast(inkRgb, s.rgb) >= cfg.secondaryMin) ?? toward[0];
-        const ratio = contrast(inkRgb, chosen.rgb);
-        put(`interactive.${color}.subtle-fill.${st}`,
-          { path: `${ns}.${palOf(palette)}.${chosen.key}`, rgb: chosen.rgb, ratio },
-          `${color} interactive subtle fill — ${st} (opaque tint of the ${palOf(palette)} ramp; the outline/text control's ${st} background)`,
-          // NOTE the direction: `against` normally names the surface a role sits ON, but this role IS
-          // the surface. The variable being chosen is the tint; the ink is already fixed by `iText`.
-          // So the promise worth publishing is "this tint keeps its own state ink legible", and the
-          // ink is what it is measured against.
-          //
-          // PRESSED / SELECTED ARE CATEGORICALLY UNGATED as of #1281 — the same owner decision the
-          // preview spec's `label on fill` contract records, expressed the same way and gated by the
-          // same predicate. At four rungs from rest the tint can no longer always carry its own ink
-          // (hot-yellow/hc-dark measured 5.77 against the 7 bar HC sets), and a pressed state's job
-          // is distinction from rest rather than legibility in its own right.
-          //
-          // A PREDICATE ON THE STATE, never a list of cells: no brand, mode or column is named here
-          // or anywhere, so a fifth brand's pressed tint needs no entry. `test.ts` runs the rule in
-          // BOTH directions over this family — a floored pressed role fails, and an unfloored rest or
-          // hover role fails — which is what stops "pressed is exempt" from decaying into "floors are
-          // optional".
-          //
-          // `min: 0` DECLARES the exemption — the ratio is still computed, recorded and published, it
-          // simply carries no floor — rather than leaving a contract to fail and be read as a
-          // regression. The tint SELECTION above is untouched: it still prefers the most saturated
-          // step that keeps the ink legible, so where legibility is reachable it is still taken. Only
-          // the promise changes, not the pick.
-          `interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`,
-          (st === 'pressed' || st === 'selected') ? 0 : cfg.secondaryMin);
+    // One ground's tint family. `prefix` is '' for the page and 'inverse.' for the band; the ink, the
+    // key and the `against` all carry it, so a tint is only ever measured against its OWN ground's ink.
+    const emitTints = (prefix: '' | 'inverse.', fam: 'light' | 'dark', groundRgb: RGB, describe: (color: string, pal: string, st: string) => string): void => {
+      for (const [color, palette] of tintColumns) {
+        const ramp = ramps.get(palOf(palette));
+        if (!ramp) continue;                                 // a column whose palette the brand doesn't carry
+        for (const [st, nominal] of nominalFor(fam)) {
+          // The ink this tint sits under: `selected` reuses the pressed ink (same emphasis level).
+          const inkKey = `${prefix}interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`;
+          const inkRole = roles[inkKey];
+          const inkRgb = inkRole ? hexToRgb(inkRole.hex) : pickMostExtreme(textCands, groundRgb).rgb;
+          // Order the ramp from the nominal step TOWARD THE PAGE, so the first passing candidate is the
+          // most saturated tint that still keeps the label legible — never weaker than it needs to be.
+          const toward = [...ramp].sort((a, b) => {
+            const key = (n: number) => (fam === 'light' ? n - nominal : nominal - n);
+            const ka = key(a.num), kb = key(b.num);
+            // candidates at/inside the nominal first (ascending distance), then the rest
+            return (ka >= 0 ? ka : 1e6 - ka) - (kb >= 0 ? kb : 1e6 - kb);
+          });
+          const chosen = toward.find((s) => contrast(inkRgb, s.rgb) >= cfg.secondaryMin) ?? toward[0];
+          const ratio = contrast(inkRgb, chosen.rgb);
+          put(`${prefix}interactive.${color}.subtle-fill.${st}`,
+            { path: `${ns}.${palOf(palette)}.${chosen.key}`, rgb: chosen.rgb, ratio },
+            describe(color, palOf(palette), st),
+            // NOTE the direction: `against` normally names the surface a role sits ON, but this role IS
+            // the surface. The variable being chosen is the tint; the ink is already fixed by `iText`.
+            // So the promise worth publishing is "this tint keeps its own state ink legible", and the
+            // ink is what it is measured against.
+            //
+            // PRESSED / SELECTED ARE CATEGORICALLY UNGATED as of #1281 — the same owner decision the
+            // preview spec's `label on fill` contract records, expressed the same way and gated by the
+            // same predicate. At four rungs from rest the tint can no longer always carry its own ink
+            // (hot-yellow/hc-dark measured 5.77 against the 7 bar HC sets), and a pressed state's job
+            // is distinction from rest rather than legibility in its own right.
+            //
+            // A PREDICATE ON THE STATE, never a list of cells: no brand, mode or column is named here
+            // or anywhere, so a fifth brand's pressed tint needs no entry. `test.ts` runs the rule in
+            // BOTH directions over this family — a floored pressed role fails, and an unfloored rest or
+            // hover role fails — which is what stops "pressed is exempt" from decaying into "floors are
+            // optional".
+            //
+            // `min: 0` DECLARES the exemption — the ratio is still computed, recorded and published, it
+            // simply carries no floor — rather than leaving a contract to fail and be read as a
+            // regression. The tint SELECTION above is untouched: it still prefers the most saturated
+            // step that keeps the ink legible, so where legibility is reachable it is still taken. Only
+            // the promise changes, not the pick.
+            inkKey,
+            (st === 'pressed' || st === 'selected') ? 0 : cfg.secondaryMin);
+        }
       }
-    }
+    };
+    emitTints('', cfg.family, baseRgb, (color, pal, st) =>
+      `${color} interactive subtle fill — ${st} (opaque tint of the ${pal} ramp; the outline/text control's ${st} background)`);
+    // THE INVERSE TWIN (#1613, owner decision (a)): "solid tint" means the same thing on both grounds.
+    // Before this, only the page family above was emitted, so a `surface=inverse` button/icon-button —
+    // which the projector rewrites to `color.inverse.*` — bound `inverse.interactive.<c>.subtle-fill.*`,
+    // a role that did not exist: 48 misses on the owner's solid-tint NB file, rendered as no hover.
+    //
+    // MIRRORED, not invented: the same derivation against the band. The band is the opposite lightness
+    // to the page (the same premise the inverse overlay wash flips on), so it takes the OPPOSITE
+    // polarity's nominals and walk; the ink is the band's own state ink `inverse.interactive.<c>.text.*`
+    // (selected reuses pressed), which is what `opaque` in `outlineFillFamily` warns about — the tint
+    // covers the band, so the band's ink is measured against the tint rather than assumed on it; and
+    // pressed/selected stay categorically ungated by the same #1281 predicate. `test.ts` checks both
+    // halves of the contract on this family against the BAND: ink-on-tint at hover, and ΔE00 vs
+    // `inverse.background.primary` (the #305 invisible-hover shape) on every state.
+    emitTints('inverse.', cfg.family === 'light' ? 'dark' : 'light', invRgb, (color, pal, st) =>
+      `${color} interactive subtle fill on a dark / inverse surface — ${st} (opaque tint of the ${pal} ramp; the outline/text control's ${st} background on the band)`);
   }
 
   // ---- disabled — cross-cutting (docs/20 §7): ONE treatment, not per-colour. A disabled
