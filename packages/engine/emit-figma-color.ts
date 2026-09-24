@@ -48,6 +48,44 @@ export type FigmaCollectionFile = { $collection: string; $mode: string; variable
  *  (which stays namespace-stripped per §3). */
 export const desc = (leaf: any): string => String(leaf?.$description ?? '');
 
+/**
+ * ONE description for a variable whose prose differs by mode (#1623 FG/F-1…F-7).
+ *
+ * A Figma variable carries a single description shared by all its modes, and this emitter used to write
+ * light's into every mode file — so a designer switched to dark or high contrast read the light mode's
+ * scrim opacity and contrast minimums beside a different value. The DTCG overlays carry each mode's own
+ * sentence; Figma cannot, so it gets the sentence whose claims hold in every mode.
+ *
+ * The per-mode sentences come from one template per role, so they differ only in their CLAIMS — a ratio
+ * (`4.5:1`, `~1.4:1`) or a percentage (`40%`). Each claim that varies keeps light's value and gains a
+ * parenthetical naming the other modes' values: `4.5:1 (7:1 in high-contrast modes)`. A template whose
+ * modes differ in anything else throws rather than guessing, because a merged sentence would be exactly
+ * the silent loss this replaces.
+ */
+const CLAIM = /~?\d+(?:\.\d+)?(?::1|%)/g;
+export const modeNeutralDescription = (dotted: string, byMode: Array<[string, string]>): string => {
+  const [, light] = byMode[0];
+  if (byMode.every(([, d]) => d === light)) return light;
+  const skeleton = (d: string) => d.replace(CLAIM, '\u0000');
+  for (const [m, d] of byMode)
+    if (skeleton(d) !== skeleton(light))
+      throw new Error(`emit-figma-color: ${dotted} — the ${m} description differs from light's in more than its ratio / percentage claims, so no single Figma description can hold in every mode:\n  light: ${light}\n  ${m}: ${d}`);
+  const claims = byMode.map(([m, d]) => [m, d.match(CLAIM) ?? []] as const);
+  let i = 0;
+  return light.replace(CLAIM, (base) => {
+    const slot = i++;
+    const others = new Map<string, string[]>();
+    for (const [m, cs] of claims.slice(1)) if (cs[slot] !== base) others.set(cs[slot], [...(others.get(cs[slot]) ?? []), m]);
+    if (!others.size) return base;
+    const where = (ms: string[]) => {
+      const hc = ms.includes('hc-light') && ms.includes('hc-dark');
+      const named = [...ms.filter((m) => !hc || (m !== 'hc-light' && m !== 'hc-dark')), ...(hc ? ['high-contrast modes'] : [])];
+      return named.join(' and ');
+    };
+    return `${base} (${[...others].map(([v, ms]) => `${v} in ${where(ms)}`).join('; ')})`;
+  });
+};
+
 /** Ref-tier PRIMITIVE marker. `hiddenFromPublishing: true` is Figma's OFFICIAL
  *  mechanism for "consumers of this file (as a library) shouldn't pick this."
  *  Applied to palette + dimension + font/family + font/size + font/weight so
@@ -322,6 +360,13 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
   const builtinModes = COLOR_MODES.filter((m) => theme.modes.includes(m));
   const customModes = theme.modes.filter((m) => !(COLOR_MODES as readonly string[]).includes(m));
   const emittedModes = [...builtinModes, ...customModes];
+  // Computed once per leaf, then written into every mode file: the plan builder keeps the first mode
+  // file's description, and every file carrying the same one is what makes that choice harmless.
+  const neutralDesc = new Map(colLeaves.map(([dotted, leaf]) => {
+    const modes = leaf.$extensions?.prism3?.modes ?? {};
+    const byMode = emittedModes.map((m) => [m, m === 'light' ? desc(leaf) : String(modes[m]?.description ?? desc(leaf))] as [string, string]);
+    return [dotted, modeNeutralDescription(dotted, byMode)];
+  }));
   const color: FigmaCollectionFile[] = emittedModes.map((mode) => ({
     $collection: 'color',
     $mode: mode,
@@ -334,7 +379,7 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
         name: figName(dotted),
         resolvedType: 'COLOR' as const,
         scopes: colorScopes(dotted),
-        description: desc(leaf),
+        description: neutralDesc.get(dotted)!,
         value: parseColor(targetLeaf?.$value),
         alias: { type: 'VARIABLE_ALIAS' as const, name: figName(targetDotted) },
       };

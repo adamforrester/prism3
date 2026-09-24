@@ -13,6 +13,7 @@
  */
 import { Theme, CORE_TIER } from './theme';
 import { resolveAllModes } from './modes';
+import { contrast, hexToRgb } from './color';
 
 type AiToken = {
   $description: string;
@@ -82,7 +83,7 @@ const describe = (group: string, variant: string, state: string | undefined): { 
 
   // background — the CANVAS (thin, page-level)
   if (group === 'background') {
-    if (TIER_N[variant]) return { desc: `Page / canvas surface (tier ${TIER_N[variant]})`, when_to_use: variant === 'primary' ? 'The page / base canvas.' : variant === 'secondary' ? 'A slightly tinted page or page band.' : 'A third page-level surface step.', avoid_when: 'Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).', paired_with: ['foreground.primary', 'text.primary', 'border.primary'] };
+    if (TIER_N[variant]) return { desc: `Page / canvas surface (tier ${TIER_N[variant]})`, when_to_use: variant === 'primary' ? 'The page / base canvas.' : variant === 'secondary' ? 'A second page tier — one step off the base in light and dark; identical to background.primary in high-contrast modes.' : 'A third page-level surface step.', avoid_when: 'Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).', paired_with: ['foreground.primary', 'text.primary', 'border.primary'] };
   }
 
   // foreground — SURFACES & FILLS placed on the canvas
@@ -252,7 +253,11 @@ const colorIntent = (seg: string[], node: any): string | undefined => {
   if (!ext.band) return undefined;
   // Usage-framed tails (what the step UNLOCKS) — distinct from the identity the
   // leaf $description states (the measured property / provenance). No paraphrase.
-  const pivot = seg[2] === '500' ? ' — the one mid step that reads as text or icons over both light and dark fills' : '';
+  // Measured, like the leaf's own pivot claim in `tree.ts` (#1623 AI/A-18): a 500 that misses 4.5:1 on
+  // either extreme does not get the tail.
+  const rgb = typeof ext.hex === 'string' ? hexToRgb(ext.hex) : undefined;
+  const isPivot = !!rgb && Math.min(contrast(rgb, { r: 255, g: 255, b: 255 }), contrast(rgb, { r: 0, g: 0, b: 0 })) >= 4.5;
+  const pivot = seg[2] === '500' && isPivot ? ' — the one mid step that reads as text or icons over both light and dark fills' : '';
   return BAND_INTENT[ext.band] + pivot + (ext.anchor ? ' — reach for this when fidelity to the source brand color matters' : '');
 };
 

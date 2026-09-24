@@ -51,7 +51,7 @@
     "background.secondary": {
       "$description": "Page / canvas surface (tier 2).",
       "meaning": "Page / canvas surface",
-      "when_to_use": "A slightly tinted page or page band.",
+      "when_to_use": "A second page tier — one step off the base in light and dark; identical to background.primary in high-contrast modes.",
       "avoid_when": "Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
@@ -105,7 +105,7 @@
     "inverse.background.secondary": {
       "$description": "Page / canvas surface (tier 2), on an inverse surface.",
       "meaning": "Page / canvas surface (inverse ground)",
-      "when_to_use": "A slightly tinted page or page band. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "A second page tier — one step off the base in light and dark; identical to background.primary in high-contrast modes. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `background.secondary`. Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
@@ -6426,7 +6426,7 @@
       ]
     },
     "core.palette.transparent": {
-      "$description": "Transparent — alpha 0, no paint. The default field fill aliases this so its border is the boundary on any ground (#1341)",
+      "$description": "Transparent — alpha 0, no paint. field.fill aliases it, so a field is framed by its border on any ground",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -7838,7 +7838,7 @@
       "consume": "Private primitive — prefer a semantic token."
     },
     "core.palette.danger.100": {
-      "$description": "danger status (engine-carved red — primary is not red) 100 — Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 100 — Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -7850,7 +7850,7 @@
       ]
     },
     "core.palette.danger.150": {
-      "$description": "danger status (engine-carved red — primary is not red) 150 — Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 150 — Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -7864,7 +7864,7 @@
       ]
     },
     "core.palette.danger.200": {
-      "$description": "danger status (engine-carved red — primary is not red) 200 — Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 200 — Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -7880,7 +7880,7 @@
       ]
     },
     "core.palette.danger.250": {
-      "$description": "danger status (engine-carved red — primary is not red) 250 — Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 250 — Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -7894,7 +7894,7 @@
       ]
     },
     "core.palette.danger.300": {
-      "$description": "danger status (engine-carved red — primary is not red) 300 — Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 300 — Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -7914,7 +7914,7 @@
       ]
     },
     "core.palette.danger.350": {
-      "$description": "danger status (engine-carved red — primary is not red) 350 — Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 350 — Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -7931,7 +7931,7 @@
       ]
     },
     "core.palette.danger.400": {
-      "$description": "danger status (engine-carved red — primary is not red) 400 — Mid-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 400 — Mid-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -7947,7 +7947,7 @@
       ]
     },
     "core.palette.danger.450": {
-      "$description": "danger status (engine-carved red — primary is not red) 450 — Mid-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 450 — Mid-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -7961,7 +7961,7 @@
       ]
     },
     "core.palette.danger.500": {
-      "$description": "danger status (engine-carved red — primary is not red) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -7981,7 +7981,7 @@
       ]
     },
     "core.palette.danger.550": {
-      "$description": "danger status (engine-carved red — primary is not red) 550 — Mid-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 550 — Mid-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -7991,7 +7991,7 @@
       ]
     },
     "core.palette.danger.600": {
-      "$description": "danger status (engine-carved red — primary is not red) 600 — Mid-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 600 — Mid-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -8011,7 +8011,7 @@
       ]
     },
     "core.palette.danger.650": {
-      "$description": "danger status (engine-carved red — primary is not red) 650 — Three-Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 650 — Three-Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -8028,7 +8028,7 @@
       ]
     },
     "core.palette.danger.700": {
-      "$description": "danger status (engine-carved red — primary is not red) 700 — Three-Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 700 — Three-Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -8048,7 +8048,7 @@
       ]
     },
     "core.palette.danger.750": {
-      "$description": "danger status (engine-carved red — primary is not red) 750 — Three-Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 750 — Three-Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -8062,7 +8062,7 @@
       ]
     },
     "core.palette.danger.800": {
-      "$description": "danger status (engine-carved red — primary is not red) 800 — Three-Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 800 — Three-Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -8078,7 +8078,7 @@
       ]
     },
     "core.palette.danger.850": {
-      "$description": "danger status (engine-carved red — primary is not red) 850 — Three-Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 850 — Three-Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -8092,7 +8092,7 @@
       ]
     },
     "core.palette.danger.900": {
-      "$description": "danger status (engine-carved red — primary is not red) 900 — Three-Quarter-Tone band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 900 — Three-Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
@@ -8104,19 +8104,19 @@
       ]
     },
     "core.palette.danger.950": {
-      "$description": "danger status (engine-carved red — primary is not red) 950 — Shadow band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 950 — Shadow band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
     },
     "core.palette.danger.025": {
-      "$description": "danger status (engine-carved red — primary is not red) 025 — Highlight band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 025 — Highlight band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
     },
     "core.palette.danger.050": {
-      "$description": "danger status (engine-carved red — primary is not red) 050 — Highlight band",
+      "$description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 050 — Highlight band",
       "meaning": "core primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
@@ -9414,13 +9414,13 @@
       ]
     },
     "motion.easing.linear": {
-      "$description": "easing linear",
+      "$description": "easing linear — constant speed, no easing",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
     },
     "motion.easing.standard": {
-      "$description": "easing standard",
+      "$description": "easing standard — symmetric ease for in-place changes",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
@@ -9430,7 +9430,7 @@
       ]
     },
     "motion.easing.decelerate": {
-      "$description": "easing decelerate",
+      "$description": "easing decelerate — fast start, soft landing; for entrances",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
@@ -9440,7 +9440,7 @@
       ]
     },
     "motion.easing.accelerate": {
-      "$description": "easing accelerate",
+      "$description": "easing accelerate — soft start, fast finish; for exits",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
@@ -9450,7 +9450,7 @@
       ]
     },
     "motion.easing.expressive": {
-      "$description": "easing expressive",
+      "$description": "easing expressive — S-curve for emphasized moments",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
@@ -9604,7 +9604,7 @@
       "consume": "Private primitive — prefer a semantic token."
     },
     "container.narrow": {
-      "$description": "container narrow — 720px reading measure (~65–75ch)",
+      "$description": "container narrow — 720px reading measure",
       "meaning": "container primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
@@ -9628,19 +9628,19 @@
       "consume": "Private primitive — prefer a semantic token."
     },
     "control.size.sm.line-box": {
-      "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "meaning": "control primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
     },
     "control.size.md.line-box": {
-      "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "meaning": "control primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
     },
     "control.size.lg.line-box": {
-      "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
       "meaning": "control primitive",
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."

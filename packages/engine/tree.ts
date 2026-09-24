@@ -94,7 +94,16 @@ type Token = { $type: 'color' | 'dimension' | 'number' | 'strokeStyle' | 'durati
 
 // ---- colour leaves ----
 const primitiveLeaf = (theme: Theme, paletteDesc: string, s: Step, isAnchor: boolean): Token => {
-  const role = isAnchor ? 'brand anchor (exact, pinned)' : s.num === 500 ? 'mid-tone AA pivot (≥4.5:1 on white & black)' : '';
+  // The mid-tone pivot claim is MEASURED, never assumed from the step number (#1623 DT/T-2). A 500 that
+  // clears 4.5:1 on both extremes says so; one that does not states its measured pair instead, because
+  // a brand-supplied or measured-anchor ramp is not carved to the pivot and the claim was false on two.
+  // Truncated, never rounded: a stated ratio is read as a floor, and 4.886 rounded to 4.89 overstates it.
+  const floor2 = (x: number) => Math.floor(x * 100) / 100;
+  const onWhite = contrast(s.rgb, WHITE), onBlack = contrast(s.rgb, BLACK);
+  const pivot = Math.min(onWhite, onBlack) >= 4.5
+    ? 'mid-tone AA pivot (≥4.5:1 on white & black)'
+    : `${floor2(onWhite)}:1 on white, ${floor2(onBlack)}:1 on black`;
+  const role = isAnchor ? 'brand anchor (exact, pinned)' : s.num === 500 ? pivot : '';
   return {
     $type: 'color', $value: colorValue(s.rgb, theme.colorFormat),
     $description: `${paletteDesc} ${s.key} — ${bandName[s.band]} band${role ? ` — ${role}` : ''}`,
@@ -394,9 +403,21 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
     : {};
   return {
     $type: 'typography', $value: value,
-    $description: `${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} — ${isFluid ? `${c.sizeMinPx}→${c.sizePx}px fluid` : `${c.sizePx}px`} ${face}, ${c.lineHeight} line-height, ${c.weightRole} weight${c.italic ? ', italic' : ''}, ${c.tracking} tracking${c.textCase !== 'none' ? `, ${c.textCase}` : ''}${c.link ? ', underlined (link — pair with text.link.* color)' : ''} — consumer-facing type style`,
+    $description: `${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} — ${isFluid ? `${c.sizeMinPx}→${c.sizePx}px fluid` : `${c.sizePx}px`} ${face}, ${c.lineHeight} line-height, ${c.weightRole} weight${c.italic ? ', italic' : ''}, ${c.tracking} tracking${c.textCase !== 'none' ? `, ${c.textCase}` : ''}${c.link ? ', underlined (link — pair with text.link.* color)' : ''}`,
     $extensions: { prism3: { role: 'composite', ...modeVariants, group: c.group, variant: c.variant, weightRole: c.weightRole, sizePx: c.sizePx, ...(c.italic ? { italic: true } : {}), ...(c.link ? { link: true } : {}), ...(c.textCase !== 'none' ? { textCase: c.textCase } : {}), ...(c.facePin ? { facePin: c.facePin } : {}), responsive, figma: { kind: 'text-style', styleType: 'TEXT', binds: ['fontFamily', 'fontSize', 'fontStyle'], baked: ['lineHeight', 'letterSpacing', ...(c.textCase !== 'none' ? ['textCase'] : []), ...(c.link ? ['textDecoration'] : [])], note: 'Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style.' } } },
   };
+};
+
+// What each easing CURVE does, so a description names the mechanism rather than repeating the key
+// (#1623 DT/T-13). Keyed by the curve names `theme.ts` defines; a curve added there without a line here
+// ships its bare name, as every curve but `calm` did before.
+const EASING_NOTE: Record<string, string> = {
+  linear: 'constant speed, no easing',
+  standard: 'symmetric ease for in-place changes',
+  decelerate: 'fast start, soft landing; for entrances',
+  accelerate: 'soft start, fast finish; for exits',
+  expressive: 'S-curve for emphasized moments',
+  calm: 'accessibility: soft onset for long/involuntary motion',
 };
 
 type Stats = {
@@ -418,7 +439,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // ground it sits rather than carrying an off-register surface (#1341/#1342). Built through the same
     // `alphaLeaf` mechanism the ramps use so a sibling can add opaque white/black fill sources the same
     // way (#1384), scoped here to `transparent` only.
-    transparent: alphaLeaf(theme, BLACK, 0, 'Transparent — alpha 0, no paint. The default field fill aliases this so its border is the boundary on any ground (#1341)'),
+    transparent: alphaLeaf(theme, BLACK, 0, 'Transparent — alpha 0, no paint. field.fill aliases it, so a field is framed by its border on any ground'),
   };
   const brandPalette = theme.roleToPalette.brand;
   const brandAnchorStep = theme.roleAnchorStep.brand;
@@ -489,7 +510,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
       // Every other field here is already per-mode; `aliasOf` was the one the base kept to itself, so
       // a consumer reading a mode's value found the LIGHT mode's provenance beside it. Mirrors
       // `aliasLeaf(lr.path, …)` below — same field, same source shape, one tier down.
-      modeOverrides[m] = { $value: `{${rr.path}}`, aliasOf: rr.path, contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}) };
+      // A mode's own DESCRIPTION rides along when it differs from light's (#1623 DT/T-1). `modes.ts` words
+      // each role per mode — the scrim's opacity, the raised high-contrast minimums — and this line used
+      // to keep only light's, so every dark and high-contrast overlay carried light-mode prose beside a
+      // different value. Absent means "same as `$description`", which keeps the unchanged majority lean.
+      modeOverrides[m] = { $value: `{${rr.path}}`, aliasOf: rr.path, contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}), ...(rr.description !== lr.description ? { description: rr.description } : {}) };
     }
     // Elevation is not a colour group — a component composes a foreground tier +
     // a shadow step (see docs/06). No parallel `elevation.*` tree is emitted.
@@ -603,7 +628,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // its ladder, so its gap moves with its padX (#325).
     // #326 — the visual-side inset, additive: `padding-x` keeps its meaning (the label side) so no
     // existing binding moves, and this is opt-in until the anatomy block maps which side is which.
-    const padXVisLeaf = spacePad(z.padXVisual, `size.${z.name} horizontal inset on the VISUAL side — ${z.padXVisual}px (an icon's own box adds apparent space, so it insets less than the ${z.padX}px label side)`);
+    const padXVisLeaf = spacePad(z.padXVisual, `size.${z.name} horizontal inset on the visual side — ${z.padXVisual}px (an icon's own box adds apparent space, so it insets less than the ${z.padX}px label side)`);
     const pxvMods = sizeModes(z.name, 'padding-x-visual', z.padXVisual, (s) => s.padXVisual, spaceModeOverride);
     if (pxvMods) padXVisLeaf.$extensions.prism3.modes = pxvMods;
     const gapLeaf = spacePad(z.gap, `size.${z.name} label↔visual gap — ${z.gap}px (density: ${theme.dims.density})`);
@@ -723,8 +748,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const radiusSmPx = theme.dims.radius.find((r) => r.name === 'sm')?.px ?? 0;
   const controlRadiusLeaf = (px: number, rung: string, edge: number): Token =>
     gridSet.has(px)
-      ? dimAlias(`${root}.${CORE_TIER}.dimension.${px}`, `control.size.${rung} radius — ${px}px corner on the ${edge}px box edge (min of radius.sm ${radiusSmPx}px and the ${edge}÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).`, { px, radiusScale: theme.dims.radiusScaleValue, clampedFrom: radiusSmPx })
-      : dimLeaf(px, `control.size.${rung} radius — ${px}px corner on the ${edge}px box edge (off-grid literal; min of radius.sm ${radiusSmPx}px and the ${edge}÷8 control ratio) (#1015)`);
+      ? dimAlias(`${root}.${CORE_TIER}.dimension.${px}`, `control.size.${rung} radius — ${px}px corner on the ${edge}px box edge (min of radius.sm ${radiusSmPx}px and the ${edge}÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.`, { px, radiusScale: theme.dims.radiusScaleValue, clampedFrom: radiusSmPx })
+      : dimLeaf(px, `control.size.${rung} radius — ${px}px corner on the ${edge}px box edge (off-grid literal; min of radius.sm ${radiusSmPx}px and the ${edge}÷8 control ratio)`);
   // THE MODE SEAM, and both of its inputs move on it — which is why this is not a single baked value the
   // way `line-box` is. `radius.sm` is re-derived by a `modeLevers.radius` mode and ZEROED by wireframe;
   // the box edge is re-derived by a mode at another density. A corner that kept the light value while
@@ -761,20 +786,20 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     bodyLineBox[rung] = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
   }
   for (const c of theme.dims.controls) {
-    const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a SQUARE control's own dimension: a checkbox square or a radio circle (density: ${theme.dims.density}). A square control reads this on both axes. A switch's track is NOT square and reads \`track\`/\`width\` instead (#1425).`);
+    const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a square control's own dimension: a checkbox square or a radio circle (density: ${theme.dims.density}). A square control reads this on both axes. A switch's track is not square and reads \`track\`/\`width\` instead.`);
     const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.track}px \`track\` height, the field-convergent 2:1 track ratio). A square control uses \`height\` on both axes and does not read this.`);
     // The INNER mark, half the box edge (#910). Read by RADIO — its dot. A checkbox does not read it: its
     // mark is a `vector` whose optical inset is already inside the glyph artboard, so it draws full
     // bleed at `height` and a second dimension would inset it twice. A switch's traveling mark is
     // `thumb`, a separate, larger ratio (#1425) — a switch is not a radio scaled down.
-    const dotLeaf = controlLeaf(c.dot, `control.size.${c.name} dot — ${c.dot}px inner mark for a RADIO's dot (half the ${c.height}px box edge, leaving a ${(c.height - c.dot) / 2}px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at \`height\`; a switch's traveling thumb reads \`thumb\` instead.`);
+    const dotLeaf = controlLeaf(c.dot, `control.size.${c.name} dot — ${c.dot}px inner mark for a radio's dot (half the ${c.height}px box edge, leaving a ${(c.height - c.dot) / 2}px gap to the boundary). A control whose mark is a glyph draws it full-bleed at \`height\`; a switch's traveling thumb reads \`thumb\` instead.`);
     // THE SWITCH TRACK HEIGHT (#1425) — the switch's own cross-axis edge, DISTINCT from the square box
     // `height` above. Grounded on Prism 2's `toggle-switch.json` (a 32px track at the default `md`), so a
     // track that holds a traveling thumb is sized as a track rather than borrowed from a checkbox square.
-    const trackLeaf = controlLeaf(c.track, `control.size.${c.name} track — ${c.track}px track HEIGHT for a switch (Prism 2's 32px toggle at the default \`md\`; density: ${theme.dims.density}). The switch's own cross-axis edge, larger than the ${c.height}px square-control \`height\` because a track holds a traveling thumb. A checkbox/radio does not read it.`);
+    const trackLeaf = controlLeaf(c.track, `control.size.${c.name} track — ${c.track}px track height for a switch (density: ${theme.dims.density}). The switch's own cross-axis edge, larger than the ${c.height}px square-control \`height\` because a track holds a traveling thumb. A checkbox/radio does not read it.`);
     // THE SWITCH THUMB (#1425) — the traveling mark, 0.75 × the track (Prism 2's 24-in-32), a SEPARATE
     // ratio from radio's `dot` (0.5). This is the split the #997 inset header flagged as deferred.
-    const thumbLeaf = controlLeaf(c.thumb, `control.size.${c.name} thumb — ${c.thumb}px traveling thumb for a switch (0.75 × the ${c.track}px \`track\`, Prism 2's toggle proportion). Larger than a radio's \`dot\` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.`);
+    const thumbLeaf = controlLeaf(c.thumb, `control.size.${c.name} thumb — ${c.thumb}px traveling thumb for a switch (0.75 × the ${c.track}px \`track\`). Larger than a radio's \`dot\` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.`);
     // The GAP between the thumb and the track's boundary (#997), and the field that stops a switch's
     // thumb sitting FLUSH at both ends of its track. The thumb is a flow child of a fixed-size track
     // positioned by `positionWhen` onto the track's main-axis distribution, so MIN and MAX put its edge
@@ -803,7 +828,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // dimension, and a mode that resized the body ramp would re-derive this from the same product.
     const lineBoxPx = bodyLineBox[c.name];
     const lineBox = lineBoxPx !== undefined
-      ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`body.${c.name}\` label (fontSize × line-height, baked). A selection control sits in a box this tall and centers within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).`)
+      ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`body.${c.name}\` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.`)
       : undefined;
     // #1015 — the corner, clamped to this rung's own edge (see `controlRadiusLeaf` above).
     const radiusPx = controlRadius(c.height, radiusSmPx);
@@ -832,9 +857,9 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // any-background 3:1 guarantee, pair with a ≥9:1-contrasting outer band (W3C C40).
   const focus = {
     ring: {
-      width: bwAlias(2, 'focus ring width — 2px (WCAG 2.4.13 floor; 3px for extra clarity)'),
+      width: bwAlias(2, 'focus ring width — 2px (the WCAG 2.4.13 minimum thickness; raise to 3px for more visibility)'),
       offset: bwAlias(2, 'focus ring offset — 2px (separates ring from the element edge)'),
-      'offset-field': bwAlias(0, 'focus ring offset, form fields — 0px (ring hugs the field; Primer)'),
+      'offset-field': bwAlias(0, 'focus ring offset, form fields — 0px (the ring sits on the field edge, so it does not collide with adjacent fields)'),
       style: strokeStyleLeaf('solid', 'focus ring style — solid (dashed/dotted fail at small sizes)'),
     },
   };
@@ -895,7 +920,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
 
   for (const [k, v] of Object.entries(m.duration)) motion.duration[k] = durSemantic(v as number, `motion duration ${k} — ${v}ms (tempo: ${m.tempo})`, (mm) => mm.duration[k], (mode, mv) => `motion tempo lever override — ${mode} (duration ${k} → ${mv}ms)`);
   for (const [k, v] of Object.entries(m.durationReduced)) motion['duration-reduced'][k] = durSemantic(v as number, `reduce-motion ${k} — ${v}ms${v === 0 ? ' (eliminated — substitute a cross-fade)' : ''}`, (mm) => mm.durationReduced[k], (mode, mv) => `motion tempo lever override — ${mode} (reduce-motion ${k} → ${mv}ms)`);
-  for (const [k, v] of Object.entries(m.easing)) motion.easing[k] = bezierLeaf(v, `easing ${k}${k === 'calm' ? ' — accessibility: soft onset for long/involuntary motion' : ''}`);
+  for (const [k, v] of Object.entries(m.easing)) motion.easing[k] = bezierLeaf(v, `easing ${k}${EASING_NOTE[k] ? ` — ${EASING_NOTE[k]}` : ''}`);
   for (const [k, v] of Object.entries(m.spring)) motion.spring[k] = springLeaf(v, `spring ${k} — damping ${v.damping}, stiffness ${v.stiffness}`);
   // The ROLE tier (#522) — `easing-role.<role> → {motion.easing.<curve>}`. It exists so a mode can
   // re-point an intent at a different curve without redefining the curve, exactly as
@@ -1094,7 +1119,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   }
   const container = {
     max: dimLeaf(ly.containerMax, `container max — ${ly.containerMax}px content cap (fluid below it)`),
-    narrow: dimLeaf(ly.containerNarrow, `container narrow — ${ly.containerNarrow}px reading measure (~65–75ch)`),
+    narrow: dimLeaf(ly.containerNarrow, `container narrow — ${ly.containerNarrow}px reading measure`),
     fluid: { $type: 'dimension', $value: '100%', $description: 'container fluid — full width with margins (the default)', $extensions: { prism3: { generated: true } } },
   };
 

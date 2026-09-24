@@ -49,7 +49,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Transparent — alpha 0, no paint. The default field fill aliases this so its border is the boundary on any ground (#1341)",
+      "description": "Transparent — alpha 0, no paint. field.fill aliases it, so a field is framed by its border on any ground",
       "value": {
         "r": 0,
         "g": 0,
@@ -2348,7 +2348,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 025 — Highlight band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 025 — Highlight band",
       "value": {
         "r": 0.9882352948188782,
         "g": 0.9607843160629272,
@@ -2367,7 +2367,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 050 — Highlight band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 050 — Highlight band",
       "value": {
         "r": 0.9647058844566345,
         "g": 0.9019607901573181,
@@ -2386,7 +2386,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 100 — Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 100 — Quarter-Tone band",
       "value": {
         "r": 0.9490196108818054,
         "g": 0.8352941274642944,
@@ -2405,7 +2405,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 150 — Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 150 — Quarter-Tone band",
       "value": {
         "r": 0.9333333373069763,
         "g": 0.772549033164978,
@@ -2424,7 +2424,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 200 — Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 200 — Quarter-Tone band",
       "value": {
         "r": 0.9254902005195618,
         "g": 0.7058823704719543,
@@ -2443,7 +2443,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 250 — Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 250 — Quarter-Tone band",
       "value": {
         "r": 0.9137254953384399,
         "g": 0.6352941393852234,
@@ -2462,7 +2462,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 300 — Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 300 — Quarter-Tone band",
       "value": {
         "r": 0.9019607901573181,
         "g": 0.5647059082984924,
@@ -2481,7 +2481,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 350 — Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 350 — Quarter-Tone band",
       "value": {
         "r": 0.8901960849761963,
         "g": 0.4901960790157318,
@@ -2500,7 +2500,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 400 — Mid-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 400 — Mid-Tone band",
       "value": {
         "r": 0.8784313797950745,
         "g": 0.4117647111415863,
@@ -2519,7 +2519,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 450 — Mid-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 450 — Mid-Tone band",
       "value": {
         "r": 0.8509804010391235,
         "g": 0.3333333432674408,
@@ -2538,7 +2538,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
       "value": {
         "r": 0.7882353067398071,
         "g": 0.2980392277240753,
@@ -2557,7 +2557,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 550 — Mid-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 550 — Mid-Tone band",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.2549019753932953,
@@ -2576,7 +2576,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 600 — Mid-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 600 — Mid-Tone band",
       "value": {
         "r": 0.6313725709915161,
         "g": 0.21568627655506134,
@@ -2595,7 +2595,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 650 — Three-Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 650 — Three-Quarter-Tone band",
       "value": {
         "r": 0.5568627715110779,
         "g": 0.1764705926179886,
@@ -2614,7 +2614,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 700 — Three-Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 700 — Three-Quarter-Tone band",
       "value": {
         "r": 0.48235294222831726,
         "g": 0.13725490868091583,
@@ -2633,7 +2633,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 750 — Three-Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 750 — Three-Quarter-Tone band",
       "value": {
         "r": 0.4117647111415863,
         "g": 0.09803921729326248,
@@ -2652,7 +2652,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 800 — Three-Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 800 — Three-Quarter-Tone band",
       "value": {
         "r": 0.34117648005485535,
         "g": 0.05882352963089943,
@@ -2671,7 +2671,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 850 — Three-Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 850 — Three-Quarter-Tone band",
       "value": {
         "r": 0.27450981736183167,
         "g": 0.019607843831181526,
@@ -2690,7 +2690,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 900 — Three-Quarter-Tone band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 900 — Three-Quarter-Tone band",
       "value": {
         "r": 0.2078431397676468,
         "g": 0,
@@ -2709,7 +2709,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (engine-carved red — primary is not red) 950 — Shadow band",
+      "description": "danger status, engine-generated red ramp (the brand supplies no danger hue) 950 — Shadow band",
       "value": {
         "r": 0.13725490868091583,
         "g": 0,
