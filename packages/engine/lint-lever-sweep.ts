@@ -127,16 +127,7 @@ const valuesOf = (l: Lever): Value[] =>
 // gate can ship green without hiding it; `by-design` = a removal that IS the lever's purpose and the
 // contract should say so (#957's two cases were settled by DEMOTION, so they never reach this arm).
 type Removal = { lever: string; value: Value; brands: BrandId[]; paths: string[]; disposition: 'defect' | 'by-design'; reason: string };
-const REMOVALS: Removal[] = [
-  {
-    lever: 'density', value: 'spacious', brands: ALL_BRANDS, paths: ['core.dimension.18', 'core.dimension.3'],
-    disposition: 'defect',
-    reason: '#1631. `core.dimension` is a value-keyed grid fed the control sizes (`theme.ts`, the dimension ' +
-      "axis). 3 (an `inset`) and 18 (a `thumb`) come only from comfortable's control sizes, and spacious's " +
-      "don't produce them. No corpus member sets spacious, so both stayed guaranteed. Disposition is the " +
-      "owner's: feed the default px unconditionally, or demote",
-  },
-];
+const REMOVALS: Removal[] = [];
 
 // ── REFUSALS: a setting the engine is RIGHT to reject on a brand, matched by message ─────────────────
 type Refusal = { brand: BrandId; lever: string; value: Value; message: RegExp; reason: string };
