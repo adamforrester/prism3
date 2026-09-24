@@ -1098,6 +1098,16 @@ npx tsx apps/plugin/lint-sandbox-reject.ts
                                           # the plugin build; scoped to main.js (ui.html is a browser iframe
                                           # where import() is valid syntax). Mutation: reintroduce `import (`
                                           # into any shipped $description, rebuild — it fires by name.
+npx tsx apps/plugin/lint-bundle-prose.ts
+                                          # WHAT THE BUILT PLUGIN SHIPS OF A COMPONENT DEF (#1623 sign-off).
+                                          # A def's `notes` and `anatomy.codeOnly` are maintainer-only and
+                                          # `strip-maintainer-prose.mjs` removes them on the way into dist/;
+                                          # this reads both bundles against the REAL defs (the strip is not
+                                          # imported), so a strip that did nothing fails by name. Also: no
+                                          # "Prism 2" inside any component module region, and every def's
+                                          # one-line `summary` (the Figma description) present. Runs after
+                                          # the plugin build. Mutation: drop the plugin from build.mjs's
+                                          # main entry, rebuild — arm A fires once per notes/codeOnly string.
 npm run test      -w @prism3/tokenpress  # the ported suite's 263 assertions, on tsx rather than the
                                           # vitest it arrived with. The runner asserts a PER-FILE census
                                           # against the pre-port vitest baseline, so a test quietly

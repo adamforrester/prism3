@@ -74,12 +74,13 @@ import { ComponentDef } from '../component-schema';
 
 export const radioGroup: ComponentDef = {
   id: 'radio-group',
-  name: 'RadioGroup',
+  name: 'Radio.Group',
   aliases: ['radio-set', 'radios', 'radio-list', 'single-select', 'radio-fieldset', 'radio-button-group'],
   category: 'form',
   status: 'draft',
+  summary: 'Labeled stack of Radio rows. Owns the shared name, one value and validation.',
   description:
-    'A labeled set for choosing EXACTLY ONE from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio rows. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering Combobox scans better. Not any-number selection (CheckboxGroup), not a single independent opt-in (a lone Checkbox row), not an immediate-effect setting list (a list of Switches), not the same choice collapsed (Select) or in a compact skin (Segmented Control).',
+    'A labeled set for choosing EXACTLY ONE from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (a segmented control, not built yet).',
 
   // THE GROUP'S PUBLIC API — the contract the group owns and a single `radio-row` cannot express. The
   // per-row `checked` is DERIVED from the group's SCALAR `value`, never held on a row inside a group. This
@@ -88,13 +89,13 @@ export const radioGroup: ComponentDef = {
   // exclusivity meaning.
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'The group heading, rendered as the nested FieldLabel and the group\'s accessible name (role="radiogroup" + aria-labelledby). Names the decision the set answers ("Shipping method", "How should we contact you?"), letting its rows read the abstracted-up short labels ("Standard", "Express", "Overnight"). MANDATORY for meaning: without it assistive tech announces an orphaned "radio button, 1 of 3" with no indication of what is being chosen.' },
-    { name: 'value', type: 'string', required: false, description: 'The controlled SCALAR selected option value — exactly one, where CheckboxGroup owns an array. The GROUP owns it; each row\'s checked appearance is DERIVED (`checked = (value === row.value)`), never wired on the row. Pair with `onChange`; use `defaultValue` for the uncontrolled form.' },
+    { name: 'value', type: 'string', required: false, description: 'The controlled SCALAR selected option value — exactly one, where Checkbox.Group owns an array. The GROUP owns it; each row\'s checked appearance is DERIVED (`checked = (value === row.value)`), never wired on the row. Pair with `onChange`; use `defaultValue` for the uncontrolled form.' },
     { name: 'defaultValue', type: 'string', required: false, description: 'Uncontrolled initial selection — a single option value. Start EMPTY (unset) to force a deliberate choice; pre-select only where a genuinely safe recommended default exists, and never pre-select a consent-shaped option.' },
     { name: 'onChange', type: '(value: string, event) => void', required: false, description: 'Fires with the NEW scalar value when a different row is selected. The group dispatches it; a row never owns its own onChange inside a group. Keep it CHEAP — selection follows focus by default, so a screen-reader user arrowing through fires it at every step.' },
-    { name: 'required', type: 'boolean', default: true, required: false, description: 'Whether an option must be chosen. Drives the nested FieldLabel\'s required marker (Prism 2\'s group defaults it on) and aria-required on the group. Group-level: an individual row never owns its own required. The required-by-default follows Prism 2\'s spec; an OPTIONAL group must instead carry an explicit "None" option, because a radio cannot be deselected — a stray click is otherwise permanent.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the group — the label\'s type and every row (control circle, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`. Prism 2\'s group is single-size; this def carries the family-universal size axis so the group is not frozen at one size.' },
+    { name: 'required', type: 'boolean', default: true, required: false, description: 'Whether an option must be chosen. On by default. Drives the nested FieldLabel\'s required marker and aria-required on the group. Group-level: an individual row never owns its own required. An optional group must instead carry an explicit "None" option, because a radio cannot be deselected — a stray click is otherwise permanent.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the group — the label\'s type and every row (control circle, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`, so the group scales with the rest of the form.' },
     { name: 'name', type: 'string', required: false, description: 'The shared control name — LOAD-BEARING here, not a submission convenience: it is what enforces browser-level exclusivity across the set. An individual option NEVER sets its own, which would break exclusivity outright.' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the native disabled is the source of truth). Not projected as a Figma state; Prism 2\'s group shows no disabled treatment.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the native disabled is the source of truth). Not projected as a Figma state; the group has no disabled treatment of its own.' },
   ],
 
   // No interactive state of the group's OWN — Prism 2's group is a single configuration. The rows and the
@@ -183,7 +184,7 @@ export const radioGroup: ComponentDef = {
         kind: 'nest',
         nests: 'field-label',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, follow: ['size'] },
-        note: 'The group heading and accessible name, composed rather than re-declared — Prism 2\'s formLabel configuration (secondary, bold, required-on). Its size follows the group; a fix to FieldLabel reaches here without a copy. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.',
+        note: 'The group heading and accessible name, composed rather than re-declared, configured secondary, bold and required-on. Its size follows the group; a fix to FieldLabel reaches here without a copy. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.',
       },
       // THE STACKED ROWS (nest-fixed, FOLLOWING size). Three in-flow instances of `radio-row`, each
       // `follow`ing the group's size (a `large` group nests `large` rows). `nest-fixed`, NOT `nest-exposed`:
@@ -202,21 +203,21 @@ export const radioGroup: ComponentDef = {
         nests: 'radio-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
         crossAxisFill: true,
-        note: 'The first Radio row — always present. Nests the labeled row (which nests the control), following the group\'s size. Fills the group\'s width (Prism 2\'s FILL rows). Its checked state is derived from the group\'s scalar value (`checked = value === row.value`), not wired here.',
+        note: 'The first Radio.Row — always present. Nests the labeled row (which nests the control), following the group\'s size. Fills the group\'s width. Its checked state is derived from the group\'s scalar value (`checked = value === row.value`), not wired here.',
       },
       row2: {
         kind: 'nest',
         nests: 'radio-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
         crossAxisFill: true,
-        note: 'A second Radio row — one of the representative stack (see the header `[HELD]` on Prism 2\'s variable row count). Same nest configuration as the first, including the group-width fill.',
+        note: 'A second Radio.Row — one of the representative stack (the variable row count is not modeled yet). Same nest configuration as the first, including the group-width fill.',
       },
       row3: {
         kind: 'nest',
         nests: 'radio-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
         crossAxisFill: true,
-        note: 'A third Radio row — completing the representative stack. In code the stack is `children: RadioRow[]` of any length; the three fixed nests stand in for that count in the projection. Fills the group\'s width like its siblings.',
+        note: 'A third Radio.Row — completing the representative stack. In code the stack is `children`: any number of Radio.Row; the three fixed nests stand in for that count in the projection. Fills the group\'s width like its siblings.',
       },
     },
     codeOnly: [
@@ -250,19 +251,19 @@ export const radioGroup: ComponentDef = {
       '2.4.13 Focus Appearance / 1.4.11 Non-text Contrast (the control boundary and focus indicator, on each option)',
       '2.5.8 Target Size (each row is its own target — the group does not change that)',
     ],
-    keyboard: 'THE OPPOSITE OF CHECKBOX-GROUP, and the headline. The GROUP is a SINGLE tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option, and selection FOLLOWS FOCUS by default (arrowing moves focus and selects — native <input type="radio"> behavior and the APG default). Implement with ROVING TABINDEX — one radio at tabindex="0" (the checked one, or the first if none), siblings at -1, arrow handling moving focus and calling .focus() — not aria-activedescendant. Making each option its own tab stop is the most common radio accessibility failure. NEVER override Enter (it submits the enclosing form).',
+    keyboard: 'The keyboard model is the opposite of Checkbox.Group\'s. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option, and selection FOLLOWS FOCUS by default (arrowing moves focus and selects — native <input type="radio"> behavior and the APG default). Implement with ROVING TABINDEX — one radio at tabindex="0" (the checked one, or the first if none), siblings at -1, arrow handling moving focus and calling .focus() — not aria-activedescendant. Making each option its own tab stop is the most common radio accessibility failure. NEVER override Enter (it submits the enclosing form).',
     focus: 'Focus lands on ONE option at a time (roving), not on every option in turn. On focus restore into the group (a validation error, a legend click), focus the CHECKED radio rather than blindly the first; if none is checked, the first non-disabled option. The group container is not itself focusable. Keep the :focus-visible ring INSTANT (a fade lags rapid arrow navigation) and circular (the control is full-round).',
     aria: 'Prefer role="radiogroup" on a div plus aria-labelledby over <fieldset>/<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="radiogroup" keeps the layout freedom while preserving the shared-label announcement. THE GROUP LABEL IS MANDATORY FOR MEANING: without it assistive tech announces an orphaned "radio button, 1 of 3". The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual option never owns its own required or error. Native inputs sharing a name give the grouping, the exclusivity and the roving-tabindex keyboard model for free. Do not double-label: the rows carry their short labels, the group carries the decision.',
   },
 
   content: {
     labelPattern: 'The group label NAMES THE DECISION or asks the question ("Shipping method", "How should we contact you?"), abstracting the shared word up so its rows read the short remainder ("Standard", "Express", "Overnight"). Sentence case, no trailing colon — FieldLabel\'s rules. May be visually hidden when an enclosing labeled section already frames it, but must stay programmatically present.',
-    errorPattern: 'GROUP-LEVEL and specific — "Select a shipping method", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The options stay neutral; the group carries the message. The error VISUAL is not settled by Prism 2 and is not invented here.',
-    emptyPattern: 'The group starts EMPTY by default, so no option carries a pre-selected state — this forces a deliberate choice. Pre-select only where a genuinely safe recommended default exists. Empty is a one-way door, because a radio cannot be deselected: an OPTIONAL group must carry an explicit "None" or "N/A" option, or a stray click permanently pollutes the data. If a "None" option would corrupt the data model, the choice belongs in a clearable Select instead.',
+    errorPattern: 'GROUP-LEVEL and specific — "Select a shipping method", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The options stay neutral; the group carries the message. The error visual is not designed yet.',
+    emptyPattern: 'The group starts EMPTY by default, so no option carries a pre-selected state — this forces a deliberate choice. Pre-select only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must carry an explicit "None" or "N/A" option, or a stray click permanently pollutes the data. If a "None" option would corrupt the data model, the choice belongs in a clearable Select instead.',
   },
 
   docs: {
-    usage: 'Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row\'s checked state from the value rather than wiring it on the row. Compose the rows as `children`. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past roughly 7 options a filtering Select or Combobox scans better; for any-number selection use a CheckboxGroup, and for an immediate-effect setting a Switch.',
+    usage: 'Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Give the group a label that names the decision; let it own the shared name, the single scalar value, required and validation, and derive each row\'s checked state from the value rather than wiring it on the row. Compose the rows as `children`. Prefer vertical orientation, which scans better and lets long labels wrap safely. Past about 7 options a Select or a filtering combobox (not built yet) scans better; for any-number selection use Checkbox.Group, and for an immediate-effect setting Switch.Row.',
     do: [
       'Give the group a label that names the decision, so its rows can read the short abstracted-up remainder',
       'Let the GROUP own the shared name, the single scalar value, required and validation — an option never manages its own',
@@ -274,34 +275,32 @@ export const radioGroup: ComponentDef = {
     dont: [
       'Set checked, onChange or name on an individual option — all three belong to the group, and an option setting its own name breaks exclusivity outright',
       'Make each option its own tab stop — the group is one stop with arrow navigation, and getting this wrong is the most common radio accessibility failure',
-      'Model an any-number choice as a radio group — that is a CheckboxGroup',
-      'Reach for a radio group past roughly 7 options or in tight vertical space — that is a Select',
+      'Model an any-number choice as a radio group — that is Checkbox.Group',
+      'Reach for a radio group past about 7 options or in tight vertical space — that is a Select',
       'Override Enter to select — Enter submits the form, and that expectation is universal',
     ],
     contentGuidelines: 'The group label names the decision; the rows carry the short options. Group errors read "Select a shipping method" rather than "Invalid".',
   },
 
   ai: {
-    primaryPurpose: 'Choose exactly one from a bounded set via a labeled stack of Radio rows, with the group owning the shared name, the single scalar value, group-level required and all validation.',
+    primaryPurpose: 'Choose exactly one from a bounded set via a labeled stack of Radio.Row options, with the group owning the shared name, the single scalar value, group-level required and all validation.',
     whenToUse: 'A small bounded single-select committed on save (shipping method, plan tier, a contact preference), where seeing all 2 to about 7 options aids the choice and the group needs one label, one required rule and one validation message.',
-    avoidWhen: 'Any number of options may be chosen (CheckboxGroup — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox row), the change takes effect the instant it is toggled (a Switch, or a Segmented Control), or the set runs past roughly 7 options or vertical space is tight (a Select or filtering Combobox).',
-    commonPartners: ['radio-row', 'radio-control', 'field-label', 'field-message', 'form'],
+    avoidWhen: 'Any number of options may be chosen (Checkbox.Group — exactly-one versus any-number), a single independent opt-in with no siblings (a lone Checkbox.Row), the change takes effect the instant it is toggled (Switch.Row, or a segmented control, not built yet), or the set runs past about 7 options or vertical space is tight (a Select, or a filtering combobox, not built yet).',
+    commonPartners: ['radio-row', 'radio-control', 'field-label', 'field-message'],
     triggerKeywords: ['radio group', 'radio set', 'radios', 'single select', 'exactly one', 'pick one', 'choose one', 'mutually exclusive', 'shipping method', 'plan tier'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['radio-row', 'field-label', 'field-message', 'form'],
-    alternativeTo: ['checkbox-group', 'select', 'combobox', 'segmented-control', 'switch-row'],
-    supersedes: [
+    composesWith: ['radio-row', 'field-label', 'field-message'],
+    alternativeTo: ['checkbox-group', 'select', 'switch-row'],
+    replacesPatterns: [
       'a bare set of <input type="radio"> with no shared label or group wiring',
       'a set of checkboxes misused for a mutually exclusive choice',
       'per-option required / error scattered across the options instead of owned by the group',
     ],
-    supersededBy: [
-      'select when the option count grows past about 5 to 7',
-      'segmented-control when the presentation should be compact and take effect immediately',
-    ],
+    supersededBy: [],
+    planned: ['form', 'combobox', 'segmented-control'],
   },
 
   notes: {

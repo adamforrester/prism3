@@ -9828,12 +9828,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // #1468 rename. Nothing read these fields, so nothing failed.
   //
   // Two arms, each with an oracle the defs do not author:
-  //  (a) every name in `ai.commonPartners`, `composition.composesWith` and `composition.alternativeTo` is a
-  //      registered id OR a member of NOT_YET_BUILT — a list written HERE, by hand, of the concepts the
-  //      catalogue names but has not built. Derived from the defs it would admit whatever they say
-  //      (`docs/34` shape 1). A concept that gets built must leave the list (the second loop), so the list
-  //      cannot quietly outlive what it describes. Free-text entries (a space in them) are descriptions,
-  //      not ids, and are skipped.
+  //  (a) THE ID LISTS HOLD ONLY IDS THAT RESOLVE (#1623 sign-off, C1/X-6). Every entry of
+  //      `ai.commonPartners`, `composition.composesWith`, `alternativeTo`, `supersedes` and `supersededBy`
+  //      is a REGISTERED def id — the oracle is the registry, never the def. The owner's rule replaced an
+  //      allow-list of unbuilt concepts that this arm used to accept: a reader acting on an id must be able
+  //      to look it up, so a component that is not built yet goes in `composition.planned`, and a
+  //      described pattern ("a bare <select> with no label wiring") in `composition.replacesPatterns`.
+  //      `planned` is checked the other way round — each entry is a kebab-case id that does NOT resolve
+  //      (once it ships it moves to a real list, and this fails until it does) and is not also in a real
+  //      list of the same def.
   //  (b) no consumer-facing prose names a RETIRED id in backticks. A retired id is a def's alias that is a
   //      strict prefix of its id (`radio` → `radio-row`) — the shape a `<family>` → `<family>-row` rename
   //      leaves behind. Only backticked whole names are read, so the plain word "radio" in a sentence is
@@ -9841,26 +9844,30 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   //      correct: `checkbox`, `radio` and `switch` are all roles as well as retired ids.
   {
     const ids = new Set(componentDefs.map((d) => d.id));
-    const NOT_YET_BUILT = new Set([
-      'aria-label', 'badge', 'button-group', 'card', 'chip', 'code-editor', 'combobox', 'date-picker', 'emoji',
-      'form', 'illustration', 'inline-alert', 'link', 'link-button', 'logo', 'menu', 'number-field',
-      'password-field', 'popover', 'rich-text-editor', 'scrim', 'search-field', 'segmented-control', 'spinner',
-      'split-button', 'thumbnail', 'toggle-button', 'tooltip',
-    ]);
+    let refsRead = 0;
     for (const def of componentDefs) {
       const lists: [string, readonly string[] | undefined][] = [
         ['ai.commonPartners', def.ai?.commonPartners],
         ['composition.composesWith', def.composition?.composesWith],
         ['composition.alternativeTo', def.composition?.alternativeTo],
+        ['composition.supersedes', def.composition?.supersedes],
+        ['composition.supersededBy', def.composition?.supersededBy],
       ];
+      const real = new Set<string>();
       for (const [field, list] of lists) {
         for (const name of list ?? []) {
-          if (name.includes(' ') || ids.has(name)) continue;
-          ok(NOT_YET_BUILT.has(name), `component-refs: ${def.id} ${field} names '${name}', which is neither a registered def id nor a listed unbuilt concept`);
+          refsRead++;
+          real.add(name);
+          ok(ids.has(name), `component-refs: ${def.id} ${field} names '${name}', which is not a registered def id — an unbuilt component goes in composition.planned, a described pattern in composition.replacesPatterns`);
         }
       }
+      for (const name of def.composition?.planned ?? []) {
+        ok(/^[a-z][a-z0-9-]*$/.test(name), `component-refs: ${def.id} composition.planned '${name}' is not a kebab-case id — planned holds the id an unbuilt component would take`);
+        ok(!ids.has(name), `component-refs: ${def.id} composition.planned '${name}' is a registered def now — move it to the real list it belongs in`);
+        ok(!real.has(name), `component-refs: ${def.id} names '${name}' in both composition.planned and a real list`);
+      }
     }
-    for (const c of NOT_YET_BUILT) ok(!ids.has(c), `component-refs: '${c}' is a registered def now — remove it from NOT_YET_BUILT`);
+    ok(refsRead > 50, `component-refs: the id lists are live (${refsRead} entries read) — a scan over empty lists asserts nothing`);
 
     const retired = new Map<string, string>();
     for (const d of componentDefs) for (const a of d.aliases ?? []) if (d.id.startsWith(`${a}-`) && !ids.has(a)) retired.set(a, d.id);
@@ -9890,6 +9897,55 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         }
       }
     }
+  }
+
+  // (#1623 sign-off) SHIPPED COMPONENT TEXT — names, provenance, and the names prose uses.
+  //
+  // The owner's rules for what a def ships (C1/X-5, C2/X-5, C2/X-4): one naming convention; no Prism 2 in
+  // any shipped field; prose names a sibling by its def name. "Shipped" is every field except the two
+  // maintainer channels, `notes` and `anatomy.codeOnly` — those stay in source and are stripped from the
+  // plugin bundle (`apps/plugin/lint-bundle-prose.ts` checks the bundle side of the same line).
+  //  (a) NAME ↔ ID. A name is PascalCase or `Family.Part`, and reads as its id with the separators taken
+  //      out (`checkbox-group` ↔ `Checkbox.Group`, `button-destructive` ↔ `Button.Destructive`), so a
+  //      reader holding either can derive the other. The oracle is the id, which the def does not choose
+  //      for display. And once a family is dotted, every id under its kebab prefix is dotted too — that is
+  //      what caught `CheckboxGroup` beside `Checkbox.Control`, which (a)'s letters alone would pass.
+  //  (b) NO PRISM 2. `Prism 2` / `Prism2`, any case, in no shipped field: the defs state the behavior.
+  //  (c) SIBLINGS BY NAME. No shipped prose spells a dotted def name without its dot (`CheckboxGroup`) or
+  //      as adjective-first words (`Destructive Button`) — the retired spellings of names this PR fixed.
+  {
+    const shippedStrings = (d: ComponentDef): [string, string][] => {
+      const out: [string, string][] = [];
+      const walk = (path: string, v: unknown): void => {
+        if (typeof v === 'string') out.push([path, v]);
+        else if (Array.isArray(v)) v.forEach((x, i) => walk(`${path}[${i}]`, x));
+        else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) if (k !== 'notes' && k !== 'codeOnly') walk(path ? `${path}.${k}` : k, x);
+      };
+      walk('', d);
+      return out;
+    };
+    const kebab = (pascal: string): string => pascal.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    const families = new Set(componentDefs.filter((d) => d.name.includes('.')).map((d) => d.name.split('.')[0]));
+    const dotted = componentDefs.filter((d) => d.name.includes('.')).map((d) => d.name.split('.') as [string, string]);
+    let fieldsRead = 0;
+    for (const d of componentDefs) {
+      ok(/^[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)?$/.test(d.name), `component-names: ${d.id} is named '${d.name}' — one convention: PascalCase, or Family.Part for a family`);
+      ok(d.name.replace('.', '').toLowerCase() === d.id.replace(/-/g, ''), `component-names: '${d.name}' does not read as its id '${d.id}' — the name is the id in PascalCase / Family.Part`);
+      for (const f of families) {
+        if (d.id.startsWith(`${kebab(f)}-`)) ok(d.name.startsWith(`${f}.`), `component-names: ${d.id} is in the ${f} family (${f}.* names exist) but is named '${d.name}' — name it ${f}.<Part>`);
+      }
+      for (const [path, text] of shippedStrings(d)) {
+        fieldsRead++;
+        const pm = /prism\s*2/i.exec(text);
+        ok(!pm, `component-prose: ${d.id} ${path} names "${pm?.[0]}" — shipped component text states the behavior and does not cite Prism 2`);
+        for (const [fam, part] of dotted) {
+          for (const bad of [`${fam}${part}`, `${part} ${fam}`]) {
+            ok(!new RegExp(`\\b${bad}\\b`).test(text), `component-prose: ${d.id} ${path} says '${bad}' — the def is named ${fam}.${part}`);
+          }
+        }
+      }
+    }
+    ok(fieldsRead > 1000 && families.size >= 4, `component-prose: the scan is live (${fieldsRead} shipped strings, ${families.size} dotted families) — a walk that read nothing would pass every arm above`);
   }
 
   // (#1134) THE BOUNDED INVERSE SET BINDS ONLY COVERED ROLES — the enforceable half of the gap rule, one

@@ -68,14 +68,15 @@ export const icon: ComponentDef = {
   aliases: ['glyph', 'symbol', 'svg-icon'],
   category: 'foundations',
   status: 'draft',
+  summary: 'Glyph from the icon set at 16/20/24/32px. Decorative unless labeled; never interactive.',
   description:
     'A small vector glyph standing in for a concept, drawn on a square base-4/base-8 artboard at a fixed set of sizes. Decorative by default and hidden from assistive tech; a `label` is the sole gateway that makes it meaningful and named. Never the interactive element — an icon-only control is a Button that wraps one.',
 
   props: [
     { name: 'name', type: 'enum: IconName', values: [...ICON_NAMES], required: true, description: 'Which glyph, typed to the set\'s literal vocabulary rather than a free string — an unknown name must fail at compile time, because a missing glyph otherwise fails silently as an invisible gap in production. The vocabulary is `IconName`, generated from the icon set and imported rather than restated, so a glyph cannot enter the set and be forgotten in the API. Compile-time refusal is available to any consumer importing that type; a code projection that widens it back to `string` gives the guarantee up, and that projection is the thing to watch rather than this def. Per-glyph components (`<IconSearch/>`) are the equivalent surface for a tree-shaken delivery.' },
     { name: 'size', type: "enum: 'x-small' | 'small' | 'medium' | 'large'", values: ['x-small', 'small', 'medium', 'large'], default: 'medium', required: false, description: 'Enumerated, snapping to the fixed pixel grid — 16 / 20 / 24 / 32. NOT arbitrary integers: off-grid scaling blurs strokes between hardware pixels and is the first thing an icon system must forbid. The t-shirt words are the vocabulary every other def uses; the rungs they bind are the engine\'s (`icon.size.*`).' },
-    { name: 'tone', type: "enum: 'inherit' | a semantic ink token", values: ['inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info'], default: 'inherit', required: false, description: 'Ink. Defaults to `inherit` (`currentColor`), so the glyph tracks its host control\'s hover/disabled/error cascade with no JS reconciliation. A semantic value pins it instead, insulating (say) an error glyph from a rogue cascade turning it invisible. REJECTS raw hex by construction — an enum has no cell for one — so contrast is enforced centrally rather than per call site.' },
-    { name: 'label', type: 'string', required: false, description: 'THE SOLE ACCESSIBILITY GATEWAY. Present makes the glyph meaningful: `role="img"` + `aria-label`. Absent makes it decorative: `aria-hidden="true"`, which is the DEFAULT and the most common correct answer — a named icon beside its own text double-announces ("Email, Email"). Inside an icon-only control the WRAPPER carries the name and this stays absent; never name both.' },
+    { name: 'tone', type: "enum: 'inherit' | a semantic ink token", values: ['inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info'], default: 'inherit', required: false, description: 'Ink. Defaults to `inherit` (`currentColor`), so the glyph tracks its host control\'s hover/disabled/error cascade with no JS reconciliation. A semantic value pins it instead, insulating an error glyph from an inherited color that would make it invisible. Rejects raw hex by construction — an enum has no cell for one — so contrast is enforced centrally rather than per call site.' },
+    { name: 'label', type: 'string', required: false, description: 'The only route to an accessible name. Present makes the glyph meaningful: `role="img"` + `aria-label`. Absent makes it decorative: `aria-hidden="true"`, which is the DEFAULT and the most common correct answer — a named icon beside its own text double-announces ("Email, Email"). Inside an icon-only control the WRAPPER carries the name and this stays absent; never name both.' },
   ],
 
   // `[]` — and this is a claim rather than an omission (§4). An icon is not interactive, so hover /
@@ -291,7 +292,7 @@ export const icon: ComponentDef = {
     labelPattern:
       'When meaningful: a concise noun or verb naming the concept or the action it fires — "Search", "Delete" — matching what the glyph depicts, not the asset\'s internal name. When decorative: no name at all.',
     metaphorRules:
-      'Rely on globally established metaphors rather than local idioms; keep them minimal and additive, because a complex metaphor turns to mud at 16px; avoid depicting physical hardware, which dates the moment the device does. The floppy-disk save glyph endures precisely because its meaning outlived the object.',
+      'Rely on globally established metaphors rather than local idioms; keep them minimal and additive, because a complex metaphor is illegible at 16px; avoid depicting physical hardware, which dates the moment the device does. The floppy-disk save glyph endures precisely because its meaning outlived the object.',
   },
 
   docs: {
@@ -301,7 +302,7 @@ export const icon: ComponentDef = {
       'Leave `label` off when the icon sits beside its own text — decorative is the default and the most common correct answer',
       'Give a meaningful standalone icon a `label`, which supplies both `role="img"` and the name',
       'Pick a size from the enum so the glyph lands on the pixel grid',
-      'Let `tone` inherit unless a rogue cascade would make the glyph illegible',
+      'Let `tone` inherit unless an inherited color would make the glyph illegible',
     ],
     dont: [
       'Make the icon the interactive element — an icon-only control is a Button, and the name and the hit target (at least 24×24; 44×44 on touch) live on the wrapper',
@@ -317,15 +318,16 @@ export const icon: ComponentDef = {
     whenToUse: 'Beside a label to reinforce meaning, or standalone with a `label` when the glyph itself carries the meaning.',
     avoidWhen:
       'As an interactive element. An icon-only action is a Button (or IconButton) with an accessible name and a hit target of at least 24×24 (44×44 on touch), containing an unnamed glyph — reaching for Icon there puts the affordance on a node with no focus management, no keyboard listeners and no touch target. Also avoid it as an illustration (larger, narrative, its own component), a logo, or a thumbnail; and avoid naming a glyph that sits beside its own text.',
-    commonPartners: ['button', 'icon-button', 'text-field', 'field-message', 'link', 'select', 'menu', 'badge'],
+    commonPartners: ['button', 'icon-button', 'text-field', 'field-message', 'select'],
     triggerKeywords: ['icon', 'glyph', 'symbol', 'svg', 'chevron', 'arrow', 'search icon', 'close icon'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['button', 'icon-button', 'text-field', 'field-message', 'link', 'select', 'menu', 'badge'],
-    alternativeTo: ['illustration', 'logo', 'thumbnail', 'emoji'],
-    supersedes: ['legacy icon fonts', 'ad-hoc inline SVGs outside the set'],
+    composesWith: ['button', 'icon-button', 'text-field', 'field-message', 'select'],
+    alternativeTo: [],
+    replacesPatterns: ['legacy icon fonts', 'ad-hoc inline SVGs outside the set'],
+    planned: ['link', 'menu', 'badge', 'illustration', 'logo', 'thumbnail', 'emoji'],
   },
 
   notes: {

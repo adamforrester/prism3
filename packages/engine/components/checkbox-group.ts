@@ -66,12 +66,13 @@ import { ComponentDef } from '../component-schema';
 
 export const checkboxGroup: ComponentDef = {
   id: 'checkbox-group',
-  name: 'CheckboxGroup',
+  name: 'Checkbox.Group',
   aliases: ['checkbox-set', 'checkboxes', 'checkbox-list', 'multiselect', 'checkbox-fieldset'],
   category: 'form',
   status: 'draft',
+  summary: 'Labeled stack of Checkbox rows. Owns the value array, required and validation.',
   description:
-    'A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox rows. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7-10 options a filtering multi-select Combobox scans better. Not exactly-one selection (RadioGroup), not a single independent opt-in (a lone Checkbox row), not an immediate-effect setting list (a list of Switches).',
+    'A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7-10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).',
 
   // THE GROUP'S PUBLIC API — the contract the brief (§2) puts on the group and a row cannot express. The
   // per-row `checked` is DERIVED from `value`, never held on a row inside a group.
@@ -80,10 +81,10 @@ export const checkboxGroup: ComponentDef = {
     { name: 'value', type: 'string[]', required: false, description: 'The controlled array of checked option values. The GROUP owns it; each row\'s checked appearance is DERIVED (`checked = value.includes(row.value)`), never wired on the row. Pair with `onChange`; use `defaultValue` for the uncontrolled form.' },
     { name: 'defaultValue', type: 'string[]', required: false, description: 'Uncontrolled initial selection. Never pre-check a consent option — a dark pattern, and for marketing consent often unlawful.' },
     { name: 'onChange', type: '(value: string[], event) => void', required: false, description: 'Fires with the NEW value array when any row toggles. The group dispatches it; a row never owns its own onChange inside a group.' },
-    { name: 'required', type: 'boolean', default: true, required: false, description: 'Whether at least one option must be chosen. Drives the nested FieldLabel\'s required marker (Prism 2\'s group defaults it on) and aria-required on the group. Group-level: an individual row never owns its own required. The required-by-default follows Prism 2\'s spec; a form that marks the optional minority instead sets this false.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the group — the label\'s type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`. Prism 2\'s group is single-size (Large label); this def carries the family-universal size axis so the group is not frozen at one size.' },
+    { name: 'required', type: 'boolean', default: true, required: false, description: 'Whether at least one option must be chosen. On by default. Drives the nested FieldLabel\'s required marker and aria-required on the group. Group-level: an individual row never owns its own required. A form that marks the optional minority instead sets this false.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the group — the label\'s type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`, so the group scales with the rest of the form.' },
     { name: 'name', type: 'string', required: false, description: 'A shared control name so the set submits as one field and works uncontrolled in a native form.' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the field\'s native disabled is the source of truth). Not projected as a Figma state; Prism 2\'s group shows no disabled treatment.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the field\'s native disabled is the source of truth). Not projected as a Figma state; the group has no disabled treatment of its own.' },
   ],
 
   // No interactive state of the group's OWN — Prism 2's group is a single configuration. The rows and the
@@ -172,7 +173,7 @@ export const checkboxGroup: ComponentDef = {
         kind: 'nest',
         nests: 'field-label',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, follow: ['size'] },
-        note: 'The group heading and accessible name, composed rather than re-declared — Prism 2\'s formLabel configuration (secondary, bold, required-on). Its size follows the group; a fix to FieldLabel reaches here without a copy.',
+        note: 'The group heading and accessible name, composed rather than re-declared, configured secondary, bold and required-on. Its size follows the group; a fix to FieldLabel reaches here without a copy.',
       },
       // THE STACKED ROWS (nest-fixed, FOLLOWING size). Three in-flow instances of `checkbox-row`, each
       // `follow`ing the group's size (a `large` group nests `large` rows). `nest-fixed`, NOT `nest-exposed`:
@@ -193,21 +194,21 @@ export const checkboxGroup: ComponentDef = {
         nests: 'checkbox-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
         crossAxisFill: true,
-        note: 'The first Checkbox row — always present. Nests the labeled row (which nests the control), following the group\'s size. Fills the group\'s width (Prism 2\'s FILL rows). Its checked state is derived from the group\'s value array, not wired here.',
+        note: 'The first Checkbox.Row — always present. Nests the labeled row (which nests the control), following the group\'s size. Fills the group\'s width. Its checked state is derived from the group\'s value array, not wired here.',
       },
       row2: {
         kind: 'nest',
         nests: 'checkbox-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
         crossAxisFill: true,
-        note: 'A second Checkbox row — one of the representative stack (see the header `[HELD]` on Prism 2\'s variable row count). Same nest configuration as the first, including the group-width fill.',
+        note: 'A second Checkbox.Row — one of the representative stack (the variable row count is not modeled yet). Same nest configuration as the first, including the group-width fill.',
       },
       row3: {
         kind: 'nest',
         nests: 'checkbox-row',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
         crossAxisFill: true,
-        note: 'A third Checkbox row — completing the representative stack. In code the stack is `children: CheckboxRow[]` of any length; the three fixed nests stand in for that count in the projection. Fills the group\'s width like its siblings.',
+        note: 'A third Checkbox.Row — completing the representative stack. In code the stack is `children`: any number of Checkbox.Row; the three fixed nests stand in for that count in the projection. Fills the group\'s width like its siblings.',
       },
     },
     codeOnly: [
@@ -240,18 +241,18 @@ export const checkboxGroup: ComponentDef = {
       '2.5.8 Target Size (each row is its own target — the group does not change that)',
       '3.3.7 Redundant Entry (repeated consents across a form)',
     ],
-    keyboard: 'Each checkbox row is its OWN Tab stop and Space toggles it — the same model as a standalone Checkbox, and the key difference from RadioGroup (one Tab stop, arrows within). The group adds no roving tabindex and no arrow navigation; it is a labeled container, not a single composite widget. NEVER override Enter (it submits the enclosing form).',
+    keyboard: 'Each checkbox row is its OWN Tab stop and Space toggles it — the same model as a standalone Checkbox.Row, and the key difference from Radio.Group (one Tab stop, arrows within). The group adds no roving tabindex and no arrow navigation; it is a labeled container, not a single composite widget. NEVER override Enter (it submits the enclosing form).',
     focus: 'Focus lands on each row\'s control in turn; the group container is not itself focusable. On a validation error, move focus to the first invalid group (its label / first row) and announce the group-level message.',
     aria: 'Prefer role="group" on a div plus aria-labelledby over <fieldset>/<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="group" keeps the layout freedom while preserving the shared-label announcement. The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual row never owns its own required or error. Do not double-label: the rows carry their short labels, the group carries the decision.',
   },
 
   content: {
     labelPattern: 'The group label NAMES THE DECISION or asks the question ("Notification preferences", "Which contact methods?"), abstracting the shared word up so its rows read the short remainder ("Email", "SMS", "Push"). Sentence case, no trailing colon — FieldLabel\'s rules.',
-    errorPattern: 'GROUP-LEVEL and specific — "Select at least one option", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The rows stay neutral; the group carries the message. The error VISUAL is not settled by Prism 2 and is not invented here.',
+    errorPattern: 'GROUP-LEVEL and specific — "Select at least one option", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The rows stay neutral; the group carries the message. The error visual is not designed yet.',
   },
 
   docs: {
-    usage: 'Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row\'s checked state from the value array rather than wiring it on the row. Compose the rows as `children`. Past roughly 7-10 options, a filtering multi-select Combobox scans better; for exactly-one selection use a RadioGroup, and for a single independent opt-in a lone Checkbox row.',
+    usage: 'Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row\'s checked state from the value array rather than wiring it on the row. Compose the rows as `children`. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.',
     do: [
       'Give the group a label that names the decision, so its rows can read the short abstracted-up remainder',
       'Let the GROUP own the value array, required and validation — a row inside a group never manages its own',
@@ -262,30 +263,31 @@ export const checkboxGroup: ComponentDef = {
     dont: [
       'Pre-check a consent option — a dark pattern, and for marketing consent often unlawful',
       'Wire checked, onChange or required on an individual row inside a group — all three belong to the group',
-      'Model an exclusive one-of-many choice as a checkbox group — that is a RadioGroup',
-      'Reach for a checkbox group past roughly 7-10 options — a filtering multi-select Combobox scans better',
+      'Model an exclusive one-of-many choice as a checkbox group — that is Radio.Group',
+      'Reach for a checkbox group past roughly 7-10 options — a filtering multi-select combobox (not built yet) scans better',
       'Override Enter to toggle — Enter submits the form, and that expectation is universal',
     ],
     contentGuidelines: 'The group label names the decision; the rows carry the short options. Group errors read "Select at least one option" rather than "Invalid".',
   },
 
   ai: {
-    primaryPurpose: 'Select any number — zero to many — from a bounded set via a labeled stack of Checkbox rows, with the group owning the value array, group-level required and all validation.',
+    primaryPurpose: 'Select any number — zero to many — from a bounded set via a labeled stack of Checkbox.Row options, with the group owning the value array, group-level required and all validation.',
     whenToUse: 'A small bounded multi-select committed on save (notification preferences, feature opt-ins, a filter set), where seeing all the options aids the choice and the group needs one label, one required rule and one validation message.',
-    avoidWhen: 'Exactly one option may be chosen (RadioGroup — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox row — a consent line, "remember me"), the change takes effect the instant it is toggled (a list of Switches — staged versus immediate), or the set runs past roughly 7-10 options (a filtering multi-select Combobox or Listbox).',
-    commonPartners: ['checkbox-row', 'checkbox-control', 'field-label', 'field-message', 'form'],
+    avoidWhen: 'Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, "remember me"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).',
+    commonPartners: ['checkbox-row', 'checkbox-control', 'field-label', 'field-message'],
     triggerKeywords: ['checkbox group', 'checkbox set', 'checkboxes', 'multiselect', 'select all', 'choose any', 'notification preferences', 'opt in list'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['checkbox-row', 'field-label', 'field-message', 'form'],
-    alternativeTo: ['radio-group', 'select', 'combobox', 'switch-row'],
-    supersedes: [
+    composesWith: ['checkbox-row', 'field-label', 'field-message'],
+    alternativeTo: ['radio-group', 'select', 'switch-row'],
+    replacesPatterns: [
       'a bare set of <input type="checkbox"> with no shared label or group wiring',
       'per-row required / error scattered across the options instead of owned by the group',
     ],
     supersededBy: [],
+    planned: ['form', 'combobox'],
   },
 
   notes: {

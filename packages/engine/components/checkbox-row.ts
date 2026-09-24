@@ -108,8 +108,9 @@ export const checkboxRow: ComponentDef = {
   category: 'form',
   status: 'draft',
   inherits: 'text-field',
+  summary: 'Labeled checkbox for a staged on/off choice. The whole row is the hit target.',
   description:
-    'A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labeled ROW: control and rich-content label, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch), not a mutually-exclusive one-of-many (Radio), not an action with a pressed state (ToggleButton).',
+    'A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labeled ROW: control and rich-content label, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch.Row), not a mutually-exclusive one-of-many (Radio.Group), not an action with a pressed state (a toggle button, not built yet).',
 
   // THE DELTA ONLY (brief §3, §15). The form-field substrate — `description`/helper, `error`, the
   // aria-describedby wiring, `name`, `id`, `required`, `disabled`, `readOnly`, `onFocus`/`onBlur` — is
@@ -118,12 +119,12 @@ export const checkboxRow: ComponentDef = {
   // boolean, not a string), `size` (the gate reads the ladder — see below), and `readOnly`, restated
   // only to carry the caveat that it has no native support on this element.
   props: [
-    { name: 'checked', type: 'boolean', required: false, description: 'The controlled binary. Pair with `onChange`; use `defaultChecked` for the uncontrolled form. Named for the DOM attribute rather than the framework idiom — `checked`, not `isChecked`/`isSelected`. Inside a CheckboxGroup this is derived from the group\'s value array and a consumer should not also wire it here.' },
+    { name: 'checked', type: 'boolean', required: false, description: 'The controlled binary. Pair with `onChange`; use `defaultChecked` for the uncontrolled form. Named for the DOM attribute rather than the framework idiom — `checked`, not `isChecked`/`isSelected`. Inside a Checkbox.Group this is derived from the group\'s value array and a consumer should not also wire it here.' },
     { name: 'defaultChecked', type: 'boolean', default: false, required: false, description: 'Uncontrolled initial value. Never `true` for a consent checkbox — pre-checked consent is a dark pattern and, for marketing consent, often unlawful.' },
     { name: 'indeterminate', type: 'boolean', default: false, required: false, description: 'The mixed visual state — dash glyph, `aria-checked="mixed"`. PRESENTATIONAL: the underlying value is still true/false, and this is for parent/child select-all hierarchy only, never a third state a user can click to. There is no `indeterminate` HTML attribute — it is a DOM PROPERTY (`node.indeterminate = true`), which is the single most common checkbox bug; in React apply it through a synchronous ref callback rather than a JSX prop.' },
-    { name: 'label', type: 'node', required: false, description: 'RICH CONTENT — a node, not a string. The substrate\'s label is a string above the field; this one sits inline-end, doubles as the hit target, and must be able to hold a link, because the single most common real checkbox label is a consent line with one in it ("I agree to the Terms of Service"). A standalone control with no label is `checkbox-control`, which then requires an external `aria-label`/`aria-labelledby`.' },
+    { name: 'label', type: 'node', required: false, description: 'Rich content: a node, not a string. The substrate\'s label is a string above the field; this one sits inline-end, doubles as the hit target, and must be able to hold a link, because the single most common real checkbox label is a consent line with one in it ("I agree to the Terms of Service"). A standalone control with no label is `checkbox-control`, which then requires an external `aria-label`/`aria-labelledby`.' },
     { name: 'onChange', type: '(checked: boolean, event) => void', required: false, description: 'Restated rather than inherited: the substrate\'s change yields a string, this one yields the resulting BOOLEAN alongside the event.' },
-    { name: 'value', type: 'string', required: false, description: 'The string submitted when checked (the platform default is `"on"`), and the element this row contributes to a CheckboxGroup\'s array. The form gotcha worth knowing: an UNCHECKED box submits nothing at all rather than a false value — the missing-key trap.' },
+    { name: 'value', type: 'string', required: false, description: 'The string submitted when checked (the platform default is `"on"`), and the element this row contributes to a Checkbox.Group\'s array. An unchecked box submits nothing at all rather than a false value — the missing-key trap.' },
     { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Restated only for the caveat: `<input type="checkbox">` has NO working `readonly` — only `disabled` — so a genuinely read-only checkbox needs `aria-readonly` plus a prevented toggle, or is better rendered as static text. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the control square, the label\'s type ramp, the box↔label gap and the row\'s minimum height. The square reads `control.size.<rung>.height` on BOTH axes — square by construction rather than by two tokens agreeing — and not `icon.size.*`, which is 16/20/24 in every brand the engine ships and so would hold a control rigid that should move with brand density.' },
   ],
@@ -375,7 +376,7 @@ export const checkboxRow: ComponentDef = {
       '1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)',
       '3.3.7 Redundant Entry (repeated consents)',
     ],
-    keyboard: 'Each checkbox is its OWN Tab stop and Space toggles — the key cross-control difference from Radio, which is one Tab stop for the group with arrows moving within it. NEVER override Enter: Enter submits the enclosing form, and hijacking it breaks universal web behavior.',
+    keyboard: 'Each checkbox is its OWN Tab stop and Space toggles — the key cross-control difference from Radio.Group, which is one Tab stop for the group with arrows moving within it. NEVER override Enter: Enter submits the enclosing form, and hijacking it breaks universal web behavior.',
     focus: ':focus-visible ring on the CONTROL, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row WRAPPER (the icon-button parallel), so clicking the label or the surrounding space toggles, giving at least 24x24 and scaling to 44 (Apple) / 48 (Material) on touch. The label sits inline-end of the control, not above it.',
     aria: 'Prefer the styled native input — `appearance: none` plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a `role="checkbox"` div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, `role="group"` plus `aria-labelledby` is the default over `fieldset`/`legend` — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the GROUP and announce once; an individual row never owns its own required or error. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label.',
   },
@@ -386,7 +387,7 @@ export const checkboxRow: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a single Checkbox for one independent opt-in (a consent line, "Remember me"), and a CheckboxGroup to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Past roughly 7-10 options, scanning and vertical space suffer and a filtering multi-select Combobox is the better control.',
+    usage: 'Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember me"), and a Checkbox.Group to select any number — zero to many — from a bounded set. Use the indeterminate state for a select-all broadcasting partial selection over a table or tree. Compose FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Past roughly 7-10 options, scanning and vertical space suffer and a filtering multi-select combobox (not built yet) is the better control.',
     do: [
       'Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint reaches 24x24 and beyond',
       'Set aria-checked="mixed" explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech',
@@ -400,7 +401,7 @@ export const checkboxRow: ComponentDef = {
       'Pass `indeterminate` as a JSX prop and expect it to work — there is no such HTML attribute; set the DOM property through a ref',
       'Override Enter to toggle — Enter submits the form, and that expectation is universal',
       'Center-align the whole control+label row — on a wrapping label it floats the control to the middle of the paragraph; center the control within a single line-box instead, so it holds the first line',
-      'Reach for a checkbox where the change takes effect instantly — that is a Switch, and the difference is staged versus immediate',
+      'Reach for a checkbox where the change takes effect instantly — that is Switch.Row, and the difference is staged versus immediate',
     ],
     contentGuidelines: 'The label states what becomes true when checked. Group errors read "Select at least one option" rather than "Invalid". Consent labels name the thing agreed to in full.',
   },
@@ -408,16 +409,16 @@ export const checkboxRow: ComponentDef = {
   ai: {
     primaryPurpose: 'Capture an independent binary choice that is staged into a form and submitted, with an associated label that doubles as the hit target and an optional indeterminate state for select-all hierarchy.',
     whenToUse: 'A single opt-in (consent, "remember me", "include X"), or any-number-from-a-set selection where the change applies on save rather than instantly. The indeterminate state when a parent row summarizes a partially-selected set of children.',
-    avoidWhen: 'The change takes effect the instant it is toggled (Switch — the boundary is staged versus immediate, and only Checkbox has indeterminate), the options are mutually exclusive (Radio — any-number versus exactly-one; a two-option exclusive choice is Radio, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (ToggleButton with aria-pressed), or the set runs past roughly 7-10 options (a filtering multi-select Combobox or Listbox).',
-    commonPartners: ['checkbox-control', 'checkbox-group', 'field-label', 'field-message', 'focus-ring', 'button', 'form'],
+    avoidWhen: 'The change takes effect the instant it is toggled (Switch.Row — the boundary is staged versus immediate, and only Checkbox.Row has indeterminate), the options are mutually exclusive (Radio.Group — any-number versus exactly-one; a two-option exclusive choice is Radio.Group, never two checkboxes), the control is really an action with a pressed state in a dense toolbar (a toggle button with aria-pressed, not built yet), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).',
+    commonPartners: ['checkbox-control', 'checkbox-group', 'field-label', 'field-message', 'focus-ring', 'button'],
     triggerKeywords: ['checkbox', 'check box', 'tickbox', 'check', 'choice list', 'multiselect', 'select all', 'consent', 'terms and conditions', 'opt in'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['checkbox-control', 'field-label', 'field-message', 'focus-ring', 'form'],
-    alternativeTo: ['switch-row', 'radio-row', 'toggle-button', 'combobox', 'select'],
-    supersedes: [
+    composesWith: ['checkbox-control', 'field-label', 'field-message', 'focus-ring'],
+    alternativeTo: ['switch-row', 'radio-row', 'select'],
+    replacesPatterns: [
       'a bare <input type="checkbox"> with no label wiring',
       'a role="checkbox" div where a styled native input would do',
     ],
@@ -425,6 +426,7 @@ export const checkboxRow: ComponentDef = {
     // pass here, which typed Switch and Combobox as `superseded-by`: they are sibling alternatives
     // chosen by intent and scale, not replacements. Carried so the corrected reading reaches the engine.
     supersededBy: [],
+    planned: ['form', 'toggle-button', 'combobox'],
   },
 
   notes: {

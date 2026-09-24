@@ -579,6 +579,33 @@ has written yet.
 the cheapest way to silence arm 2A is to widen the enum until it matches the bindings, which converts a
 missing binding into a size a consumer can ask for and get nothing from.
 
+### 5.3 Decided (2026-09-24, #1623): Prism 2 is an input, not an authority — shipped component metadata is written for machine readers and cites no provenance
+
+The owner's sign-off on the #1623 description and metadata audit, in their words: *"Prism2 is an input,
+and we should be improving on whatever is in Prism2. No need to ship provenance at all or reference
+Prism2. Make our metadata for Prism3 the best it can be."* And the standing direction the rest follows
+from: *"whatever we are doing here is in support of machine readability. We want this system to be able
+to be used easily by AI and MCP."*
+
+What that means for a component def:
+
+- **No Prism 2 in shipped text.** Every field a def ships states the behavior itself ("a constant-weight
+  outlined ring that recolors on select"), never "adopts the Prism 2 visual". Provenance may stay in code
+  comments and in the maintainer channels below. Gated in `test.ts` (`component-prose`) over the source
+  and in `apps/plugin/lint-bundle-prose.ts` over the built plugin.
+- **Maintainer channels do not ship.** `notes` and `anatomy.codeOnly` are for maintainers. They stay beside
+  the def in source and are stripped from the plugin bundle (`apps/plugin/strip-maintainer-prose.mjs`;
+  `codeOnly` keeps each entry's leading term, which the admission check reads).
+- **A one-line `summary` per def**, authored rather than cut from `description`, in the plugin register
+  (about 90 characters, at most 100). The plugin writes it as the Figma description of the component set,
+  or of each component for an `emitAsComponents` def.
+- **One naming convention.** A name is PascalCase, or `Family.Part` in a family, and reads as its id with
+  the separators removed (`checkbox-group` ↔ `Checkbox.Group`, `button-destructive` ↔ `Button.Destructive`).
+  Prose names a sibling by its def name.
+- **Id lists hold ids.** `ai.commonPartners` and the `composition` id lists hold only registered def ids.
+  A component that is not built yet goes in `composition.planned`; a described pattern goes in
+  `composition.replacesPatterns`.
+
 ---
 
 ## 6. Next step

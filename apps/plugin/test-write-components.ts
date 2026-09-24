@@ -3249,4 +3249,42 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(pre >= 0 && own > pre, '#1633 main.ts pre-builds the nests before building the def it was asked for');
 }
 
+// =============================================================================================
+// #1623 sign-off — THE DEF'S `summary` IS THE FIGMA DESCRIPTION
+// =============================================================================================
+// The plugin writes one line per built component: the set's description (or each component's, in
+// `emitAsComponents` mode). Each arm is paired with the run that must NOT write, so a writer that ignored
+// the option — or wrote it everywhere — fails by name.
+{
+  const fm = byId('field-message')!;
+  const fmPlans = figmaAnatomySet(fm);
+  const fmVars = fullFor(fmPlans);
+  const setOf = (pg: Page) => pg.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown> | undefined;
+
+  const pgA: Page = { children: [] };
+  await run(fmPlans, { ...fmVars, page: pgA }, { description: fm.summary });
+  ok(setOf(pgA)?.description === fm.summary, `#1623 a fresh set carries the def's summary as its Figma description ("${setOf(pgA)?.description}")`);
+
+  const pgB: Page = { children: [] };
+  await run(fmPlans, { ...fmVars, page: pgB });
+  ok(!setOf(pgB)?.description, '#1623 with no description passed, the set is left without one — the text comes from the option, not from the plan');
+
+  // An EXISTING set: filled while empty, never overwritten once a designer has written one.
+  await run(fmPlans, { ...fmVars, page: pgB }, { description: fm.summary });
+  ok(setOf(pgB)?.description === fm.summary, `#1623 a set the file already had, with no description, gets the summary on the next build ("${setOf(pgB)?.description}")`);
+  setOf(pgB)!.description = 'A designer wrote this.';
+  await run(fmPlans, { ...fmVars, page: pgB }, { description: fm.summary });
+  ok(setOf(pgB)?.description === 'A designer wrote this.', `#1623 a designer's own set description survives a rebuild ("${setOf(pgB)?.description}")`);
+
+  const ic = byId('icon')!;
+  const icPlans = figmaAnatomySet(ic);
+  const pgC: Page = { children: [] };
+  await run(icPlans, { ...fullFor(icPlans), page: pgC }, { emitAsComponents: true, description: ic.summary });
+  const undescribed = pgC.children.filter((c) => (c as Record<string, unknown>).description !== ic.summary);
+  ok(pgC.children.length === icPlans.length && undescribed.length === 0,
+    `#1623 emitAsComponents: every one of the ${icPlans.length} icon components carries the summary (${undescribed.length} without)`);
+
+  ok(/description:\s*target\.summary/.test(mainSrc), "#1623 main.ts passes the def's summary as the build's description");
+}
+
 if (failed) process.exit(1);
