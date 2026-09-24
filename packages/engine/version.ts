@@ -2926,6 +2926,13 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.142.0 — #1623 sign-off, component API alignment (owner-decided). text-field replaces its `error` prop
+ * with select's `validation` + `validationMessage` (same names, same value set; the Figma `status` axis maps
+ * to it). textarea takes text-field's model: `error` leaves `states` for a `status` axis with text-field's
+ * values and status-led border keys, the placeholder binds `color.text.secondary`, and it gains the same
+ * validation props. checkbox-group and radio-group bind a 0px inter-row gap (`space.0`) — the rows self-space
+ * with their own block padding. Component members move (props, a new textarea axis, the group gap binding)
+ * → `schema/component-surface.json` re-accepted, MINOR. CONTRACT STANDS: every bound role already ships.
  * 0.141.0 — The `outlineInteraction` option `solid-tint` is relabeled "Tinted wash" (was "Opaque subtle tint"),
  * owner decision after #1614 made the tint translucent: the old label described the retired opaque palette step.
  * Label only — the option key, its values and every emitted token are unchanged. `schema/lever-manifest.json`
@@ -3503,7 +3510,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.141.0';
+export const ENGINE_VERSION = '0.142.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

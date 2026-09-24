@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, switchControl, switchRow, select } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -11033,6 +11033,44 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'component: TextField warning is a status-led border-only swap (warning.border.* → border.warning) per non-disabled state (#1517)');
   ok(['rest', 'hover', 'focus-visible', 'read-only', 'empty'].every((s) => textField.tokens[`success.border.${s}`] === 'color.border.success'),
     'component: TextField success is a status-led border-only swap (success.border.* → border.success) per non-disabled state (#1517)');
+
+  // #1623 sign-off (C1/TF-5 + C1/TA-4) — ONE VALIDATION API ACROSS THE FIELD FAMILY. text-field, textarea and
+  // select each express validation through the same two props, spelled the same way, over the same value set,
+  // and each projects that set as its `status` axis value-for-value. The expected contract is a LITERAL here,
+  // never read off any def (docs/34): deriving it from select would let a rename in select carry the others
+  // with it and still pass. Each def is its own assertion, so a drift fails naming the def that moved.
+  {
+    const VALIDATION_VALUES = ['default', 'error', 'warning', 'success'];
+    const fieldFamily: ReadonlyArray<[string, ComponentDef]> = [['select', select], ['text-field', textField], ['textarea', textarea]];
+    for (const [id, def] of fieldFamily) {
+      const v = def.props.find((p) => p.name === 'validation');
+      ok(!!v && JSON.stringify(v.values) === JSON.stringify(VALIDATION_VALUES) && v.default === 'default',
+        `#1623 validation contract: ${id} carries a \`validation\` prop over exactly [${VALIDATION_VALUES.join(', ')}], default \`default\` (got ${v ? JSON.stringify(v.values) : 'no such prop'})`);
+      ok(def.props.some((p) => p.name === 'validationMessage'),
+        `#1623 validation contract: ${id} carries a \`validationMessage\` prop (the family's one name for the validation text)`);
+      ok(!def.props.some((p) => p.name === 'error'),
+        `#1623 validation contract: ${id} carries no \`error\` message prop — validation text is \`validationMessage\` family-wide`);
+      ok(JSON.stringify(def.variants?.status) === JSON.stringify(VALIDATION_VALUES),
+        `#1623 validation contract: ${id}'s Figma \`status\` axis carries the \`validation\` values value-for-value (got ${JSON.stringify(def.variants?.status)})`);
+      ok(!def.states.includes('error' as never),
+        `#1623 validation contract: ${id} carries no \`error\` STATE — validation is the \`status\` axis, not a state`);
+    }
+    // TA-4's model alignment: textarea's placeholder is text-field's `text.secondary`, and its status borders
+    // are text-field's keys and roles (pinned at the rest coordinate of each non-default status).
+    ok(textarea.tokens['label.empty'] === 'color.text.secondary',
+      `#1623 TA-4: textarea's placeholder binds color.text.secondary, as text-field's does (got ${textarea.tokens['label.empty']})`);
+    ok(textarea.tokens['error.border.rest'] === 'color.border.danger' && textarea.tokens['warning.border.rest'] === 'color.border.warning'
+      && textarea.tokens['success.border.rest'] === 'color.border.success' && !('border.error' in textarea.tokens),
+      '#1623 TA-4: textarea\'s status borders are status-led keys (error/warning/success.border.*), not the retired state-led border.error');
+  }
+
+  // #1623 sign-off (C2/K-11 + K-23) — the checkbox and radio rows self-space with their own block padding, so
+  // both groups bind a 0px inter-row gap. A literal expectation per group, so either one drifting fails by name.
+  for (const [id, def] of [['checkbox-group', checkboxGroup], ['radio-group', radioGroup]] as const) {
+    const root = def.anatomy!.parts[def.anatomy!.root] as { gap?: string };
+    ok(root.gap === 'gap' && def.tokens['gap'] === 'space.0',
+      `#1623 K-11/K-23: ${id}'s inter-row gap binds space.0 (container gap '${root.gap}' → ${def.tokens[root.gap ?? '']})`);
+  }
   // FieldMessage: every validation status re-points BOTH ink + icon at the matching semantic role.
   // `${status}.label`, not `${status}.text`, since #784 — the SLOT segment has to be the word the projector
   // dispatches for a text node. The ROLE it points at is still `color.text.<role>`; those are two
