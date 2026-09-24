@@ -2066,6 +2066,24 @@ for (const b of brands) {
       '#910 …negative control: 10 is absent from the base-4 ladder, the space extras, the icon ladder AND the two older control fields, so the assertion above is about the `dot` feed and nothing else');
   }
 
+  // ---- NO DENSITY DROPS A GUARANTEED DIMENSION PRIMITIVE (#1631, owner-decided: unconditional) ----
+  // At comfortable, `core.dimension.3` (an `inset`) and `.18` (a `thumb`) exist only because the
+  // comfortable control px are fed into the grid; spacious's own controls produce neither, so before
+  // the fix `density: 'spacious'` removed both guaranteed paths. Read from the EMITTED tree of three
+  // brands at every density, with the two px authored here rather than read off `controlSizes`.
+  // `lint-lever-sweep.ts` catches the same removal against the whole contract; this arm names the pair.
+  {
+    const brief1631 = (f: string): BrandInput => parseDesignMd(readFileSync(resolve(HERE, './examples', f), 'utf8')).input;
+    const briefs: [string, BrandInput][] = [['minimal', MINIMAL_BRAND], ['harbor', brief1631('harbor.design.md')], ['nb-redesign', brief1631('nb-redesign.design.md')]];
+    for (const [id, input] of briefs)
+      for (const density of ['comfortable', 'compact', 'spacious'] as const) {
+        const paths = pathsOf(brandTheme({ ...input, density }));
+        const missing = ['core.dimension.3', 'core.dimension.18'].filter((p) => !paths.has(p));
+        ok(missing.length === 0, `#1631 ${id} at density '${density}' keeps core.dimension.3 and core.dimension.18 (guaranteed primitives)`
+          + (missing.length ? ` — MISSING: ${missing.join(', ')}` : ''));
+      }
+  }
+
   // ---- BRAND VARIANCE: the check that this is not the glyph ladder renamed ----------------------
   // The owner's own trap, encoded: `icon.size.*` is 16/20/24 in ALL FOUR brands, and a control family
   // that came out brand-invariant would be that ladder under a new name whatever its description
