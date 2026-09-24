@@ -3954,6 +3954,19 @@ export const ENGINE_VERSION = '0.142.0';
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
  *
+ * 12.0.0 — #1632 (owner-decided MAJOR): DEMOTE the weight roles a brand declines out of `guaranteed`. A brand
+ * that narrows `typography.weights` ships no styles for the weights it doesn't use, which is the lever's
+ * purpose ("if we are removing anything we are removing unused weights"). No corpus member pulled the lever,
+ * so the default sets' `strong` composites were guaranteed and nb-redesign missed 17 of them at its own
+ * settings: `type.{body,caption}.<size>.strong` + `-strong-link` (10), `type.display.sm.strong`, and
+ * `type.title.{2xl,xl,lg,md,sm,xs}.strong`. Realized the honest way, as for #957 and #1479: a new
+ * `minimal-weights` corpus member (nb-redesign's weight sets on the sparse input) drops the 17 out of the
+ * intersection. They report as DEMOTED, still emitted by every brand that keeps `strong`, no migration, no
+ * DEPRECATIONS entry. A guaranteed removal is MAJOR: 11.3.0 → 12.0.0. Nothing is added to `guaranteed` or
+ * retyped. No component binds a demoted path by name: `field-label` resolves its weight by intent (#1602).
+ * ENGINE STANDS: `out/**` is byte-identical (the corpus member is contract-only and emits no artifact). The
+ * single-role sets (`label`/`eyebrow`/`code`) are the stated residual, #1639. (#1632)
+ *
  * 11.3.0 — #1486 adds FOUR guaranteed names: `color.text.link.pressed`, `color.icon.link.pressed`, and their
  * `color.inverse.{text,icon}.link.pressed` twins — the new engaged link state. Every corpus brand emits links
  * (the link block in `buildContent` is unconditional and runs for both the page and inverse grounds, and for
@@ -3995,7 +4008,7 @@ export const ENGINE_VERSION = '0.142.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '11.3.0';
+export const CONTRACT_VERSION = '12.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
