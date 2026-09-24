@@ -28,6 +28,8 @@
  * same-name, same-value passthrough via `nest-fixed` `follow`). `error` therefore left `states`: it was
  * never an interactive state (it co-occurs with rest/hover/focus, it does not replace them), and folding
  * it into the state axis was the pre-projection shortcut a single unprojected axis could afford.
+ * The CODE prop that drives this axis is `validation` (+ `validationMessage`) — select's names and values
+ * exactly (#1623 sign-off, C1/TF-5); the axis keeps the name `status` so `follow` passes it through.
  *
  * status → border is a status-led, border-ONLY swap, bound PER non-disabled state (rest / hover /
  * focus-visible / read-only / empty) so the status boundary persists while the pointer moves and while the
@@ -64,7 +66,12 @@ export const textField: ComponentDef = {
     { name: 'type', type: "enum: 'text' | 'email' | 'url' | 'tel' | 'search' | 'password'", values: ['text', 'email', 'url', 'tel', 'search', 'password'], default: 'text', required: false, description: 'Attribute-only variants (mobile keyboard + autofill). NOT number — use NumberField. search / password are better served by their thin specializations.' },
     { name: 'placeholder', type: 'string', required: false, description: 'An example only ("name@example.com"); vanishes on input; nothing load-bearing lives here.' },
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format BEFORE failure.' },
-    { name: 'error', type: 'string | node', required: false, description: 'Error message (rendered as FieldMessage, error status). Sets aria-invalid + adds the id to aria-describedby. Say what and how to fix (SC 3.3.3); the message pairs an icon, so it is not color-only. The input itself swaps to a border-only error boundary (the `status` axis, not a state).' },
+    // #1623 sign-off (C1/TF-5) — validation is the `validation` + `validationMessage` pair, select's exact
+    // prop names and value set, so one concept has one name across the field family. The Figma `status`
+    // variant axis maps to `validation` value-for-value (the axis keeps field-message's name so the nested
+    // message follows it). Replaces the old `error` message prop. `test.ts` pins the shared contract.
+    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. Each non-default status swaps the input border to its own boundary (border-only — `error` → danger, `warning` → warning, `success` → success) AND sets the nested message to the matching status; `default` is neutral. `error` also sets aria-invalid. The values align with FieldMessage\'s status axis, so this drives the nested message directly.' },
+    { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong AND how to fix it (SC 3.3.3), never "Invalid".' },
     // #1494 — a node-visibility boolean (the #1412 mechanism), mirroring select's `showMessage`. Hides the
     // composed FieldMessage entirely; default ON (the message is part of the field). Turning it off is for a
     // field with genuinely nothing to say — an error still sets aria-invalid and the message carries the

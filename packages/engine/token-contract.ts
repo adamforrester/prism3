@@ -21,6 +21,7 @@
  *   minimal       — the three required fields and nothing else: the sparsest input the engine accepts
  *   minimal-levers— the sparsest input WITH two suppressing levers pulled (#957, see below)
  *   minimal-bp2   — the sparsest input WITH a two-breakpoint layout, demoting the upper tiers (#1479)
+ *   minimal-weights— the sparsest input WITH narrowed weight sets, demoting the declined roles (#1632)
  *
  * Paths are compared BELOW the configurable root, because the root is itself a lever (`nbds` vs
  * `prism`) — comparing with it included yields an empty intersection, which is how this was nearly
@@ -54,6 +55,17 @@
  * `breakpoint.xs`/`grid.xs.*`, which are brand-dependent because only aurora's 6 floors reach them.
  * Built off `MINIMAL_BRAND` so the ONLY difference is the floor list and the demotion is attributable
  * to the count alone.
+ *
+ * `minimal-weights` is the same move on an OBJECT lever (#1632). `typography.weights` says which weight
+ * roles each type category ships, and narrowing a set is the lever's whole purpose: a brand that doesn't
+ * use a weight doesn't get its styles. The corpus never pulled it, so the default sets' roles were
+ * guaranteed, and nb-redesign (not a corpus member) missed 17 `type.*.strong` / `-strong-link` paths at
+ * its own settings. The member carries nb-redesign's exact weight sets, so the demotion is the case that
+ * was found, and it's built off `MINIMAL_BRAND` so the sets are the only thing that varies. The owner's
+ * rule: "if we are removing anything we are removing unused weights". Those 17 are `brandDependent` now.
+ * Components don't bind a weight role by name where a brand can decline it: `field-label` resolves its
+ * weight by intent (#1601/#1602), and `lint-lever-sweep` arm (b) checks nb-redesign's bindings against
+ * its own emission.
  *
  * WHY THIS IS NOT PART OF `regen.ts`. The baseline must not be able to regenerate itself. `regen`
  * rewrites every generated artifact and `regen --check` proves the committed copies match; run that
@@ -128,6 +140,19 @@ export const MINIMAL_BP2_BRAND: BrandInput = {
   layout: { breakpoints: [0, 768] },
 } as BrandInput;
 
+/**
+ * The same sparse input with NARROWED weight sets (#1632): nb-redesign's `typography.weights`, verbatim.
+ * No category keeps `strong`, so every `type.*.strong` (and `-strong-link`) composite the default sets
+ * ship drops out of the guaranteed intersection and into `brandDependent` — see the header. Built off
+ * `MINIMAL_BRAND` so the weight sets are the only thing that varies and the demotion is attributable
+ * to them alone.
+ */
+export const MINIMAL_WEIGHTS_BRAND: BrandInput = {
+  ...MINIMAL_BRAND,
+  id: 'minimal-weights',
+  typography: { weights: { display: ['subtle'], title: ['subtle'], body: ['default', 'emphasis'], caption: ['default', 'emphasis'] } },
+} as BrandInput;
+
 /** The corpus, in a fixed order so the emitted `corpus` list is deterministic. */
 export const corpus = (): Array<{ id: string; theme: Theme }> => {
   const std = parseStandardDesignMd(readFileSync(resolve(here, 'examples', 'wendys.design.md'), 'utf8'));
@@ -139,6 +164,7 @@ export const corpus = (): Array<{ id: string; theme: Theme }> => {
     { id: 'minimal (required fields only)', theme: brandTheme(MINIMAL_BRAND) },
     { id: 'minimal-levers (outlineInteraction none, displayCeiling sm)', theme: brandTheme(MINIMAL_LEVERS_BRAND) },
     { id: 'minimal-bp2 (two-breakpoint layout, upper tiers demoted)', theme: brandTheme(MINIMAL_BP2_BRAND) },
+    { id: 'minimal-weights (narrowed weight sets, declined roles demoted)', theme: brandTheme(MINIMAL_WEIGHTS_BRAND) },
   ];
 };
 

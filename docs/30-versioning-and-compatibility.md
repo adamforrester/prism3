@@ -185,14 +185,37 @@ unconditional, and the lever stays. A component that binds the wash is materiali
 
 A brand that stops at `display.md` has declined `display.xl`; it is not missing it. The 3
 `type.display.{xl,lg,md}.strong` paths a ceiling below `xl` removes are demoted to `brandDependent`.
-Only `display.sm`, the rung no ceiling can trim, stays guaranteed.
+Only `display.sm`, the rung no ceiling can trim, stays guaranteed. (Its `.strong` weight doesn't: #1632,
+below, demotes it with the other weight roles a brand can decline.)
+
+#### Decided (2026-09-24, #1632): a brand that narrows `typography.weights` drops the styles for the weights it doesn't use, and those paths are brand-dependent
+
+`typography.weights` says which weight roles each type category ships. Narrowing a set is the lever's
+purpose, so a brand that doesn't use a weight gets no styles for it. The owner's rule: "if we are
+removing anything we are removing unused weights." No corpus member pulled this lever, so the default
+sets' `strong` composites stayed guaranteed, and nb-redesign missed 17 of them at its own settings:
+`type.{body,caption}.<size>.strong` and `-strong-link`, `type.display.sm.strong`, and
+`type.title.<size>.strong`. They're `brandDependent` now. The `minimal-weights` corpus member carries
+nb-redesign's weight sets verbatim on the sparse input, so the demotion is exactly the case that was
+found. Landed under `CONTRACT_VERSION` 12.0.0 (MAJOR, a guaranteed removal with no migration).
+
+Components already cope: `field-label` resolves its `bold`/`regular` weight by intent against the roles
+the brand ships (#1601/#1602), and every other def binds `body.*.default`, `caption.md.default` or
+`label.*.emphasis`, which this member keeps. `lint-lever-sweep.ts` arm (b) checks nb-redesign's
+materialized bindings against its own emission under every setting.
+
+The residual is stated, not closed. The `label`, `eyebrow` and `code` defaults (`emphasis`, `emphasis`,
+`default`) are single-role sets, so a brand can only replace them, not narrow them, and the corpus still
+doesn't. Their composites stay guaranteed on the same "nobody pulled the lever" footing, and `button`
+binds `label.*.emphasis` by name. That is a separate decision, filed as #1639.
 
 **The gate that closes the class, not just these two instances**, is `lint-lever-sweep.ts` (#957). It
 sweeps every toggle and enum option, one at a time, over three brands. It fails on any guaranteed path
 a setting removes or retypes unless an allowlist entry, with its reason, names exactly that removal.
 The allowlist is exact in both directions, so a stale entry fails too. It also fails when a component,
 materialized for the setting, binds something the setting doesn't emit. Its header lists what it does
-not sweep: sliders, structured levers (`typography.weights`, #1632) and combinations.
+not sweep: sliders, structured levers and combinations. `typography.weights`, the structured lever
+that removes paths, is covered by the `minimal-weights` corpus member instead (#1632, above).
 
 ## Change classification
 
