@@ -270,6 +270,9 @@ const gated: string[] = [
   // line exists because `lint-schema-classification.ts` demands it: an authored schema file is
   // unclassified until it is named in BOTH prose gates or exempted with a stated reason.
   join(repo, 'packages/engine/schema/component-surface.json'),
+  // The agent-metadata JSON Schema (#1623 sign-off) — authored, kept out of `regen`, and every field in
+  // it carries a `description` an agent reads to learn the sidecar, so it is shipped prose.
+  join(repo, 'packages/engine/schema/ai-metadata.schema.json'),
   // Shipped skills (#492). Prose an agent reads and follows, so it ships in the same sense `out/**`
   // does — and like the token contract above it is named by hand, because skills are not a `regen`
   // artifact and so inherit none of that list's coverage.
