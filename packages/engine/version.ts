@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.144.0 — #1611: the component build's footprint check compares members across RUNTIME axes only and holds
+ * AUTHORING axes fixed. New `ComponentDef.axisKinds` (`runtime | authoring`, absent = runtime) classifies every
+ * def's axes, and every projected `AnatomyPlan` now carries `axisKinds` for its variant axes and state axis —
+ * so every plan stamp moves. The cohort key (`planSetLayout` `group`, and the chunked payload's
+ * `FOOTPRINT_VARIES`) gains each authoring axis: field-label's `weight`/`emphasis` (clearing NB's four
+ * bold-vs-regular misses at `small`), button's and icon-button's `surface`, icon-button's `shape`, focus-ring's
+ * `surface`. `appearance` stays runtime (compared). No member, name or binding moves; the projected surface
+ * moves by the new plan field → ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
  * 0.143.0 — #1623 sign-off, component API alignment (owner-decided). text-field replaces its `error` prop
  * with select's `validation` + `validationMessage` (same names, same value set; the Figma `status` axis maps
  * to it). textarea takes text-field's model: `error` leaves `states` for a `status` axis with text-field's
@@ -3518,7 +3527,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.143.0';
+export const ENGINE_VERSION = '0.144.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

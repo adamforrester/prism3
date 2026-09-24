@@ -178,6 +178,10 @@ const makeButton = (id: string, name: string, description: string, family: Inten
     // #1223 — intent is the component now — so the collision is one arity shorter but the conclusion holds.)
     surface: ['default', 'inverse'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // appearance stays RUNTIME, the strict default: a toggle button that fills when selected is the owner's
+  // bold-when-selected shape (#1611), so an outline member must keep its filled sibling's box.
+  axisKinds: { appearance: 'runtime', size: 'authoring', width: 'authoring', surface: 'authoring' },
   // NO `modifiers` AXIS (#845), and its three values were three different things, which is the whole
   // defect: an axis's values are mutually exclusive coordinates along ONE dimension, and a button can
   // carry a leading visual AND a trailing visual simultaneously while `pending` is a coordinate on the

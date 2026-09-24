@@ -50,7 +50,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -15112,8 +15112,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // only thing that may. #1353's shape axis changes the corner RADIUS and #1427's surface axis only
       // rewrites the colour refs — neither touches width/height — so neither adds a cohort; the count stays 3
       // (this is the box-level check that shape is pure corner geometry and surface is pure re-inking).
-      ok(new Set(ibLayout.cells.map((c) => c.group)).size === 3,
-        `anatomy/icon-button: three footprint cohorts, one per size — state, appearance, shape and surface must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
+      //
+      // TWELVE since #1611, and the three it was are still inside them: `shape` and `surface` are AUTHORING
+      // axes (a designer picks a silhouette and a ground once), so the cohort now HOLDS them rather than
+      // comparing across them — 3 sizes × 2 shapes × 2 surfaces. `state` and `appearance` stay RUNTIME and
+      // stay compared within each, which is the half of this check that guards a live instance.
+      ok(new Set(ibLayout.cells.map((c) => c.group)).size === 12,
+        `anatomy/icon-button: twelve footprint cohorts, one per size × shape × surface (the authoring axes, #1611) — state and appearance, the runtime axes, must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
 
       // ONE property, where Button has four ref parts. Derived from the nodes the plans BUILD, so this is
       // also the assertion that the required icon still materializes a swap: a slot that stopped producing
@@ -18126,9 +18131,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // coordinate, so the two rules agree there whatever the absent case does. Nothing before #795 could
   // produce a sizeless plan at all, so this case had no coverage because it had no existence.
   const ringLayout = planSetLayout(ringSet, 'test');
-  ok(ringLayout.cells.every((c) => c.group === ''),
-    `focus-ring: the engine's cohort key is EMPTY — no size axis and no slot axes, so nothing legitimately changes this def's footprint and all members share one cohort. Not 'size=undefined, leading=false, trailing=false' (got '${ringLayout.cells[0]?.group}')`);
-  ok(planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group === 'size=small, leading icon=true, trailing icon=true',
+  // Since #1611 the key is not EMPTY — `surface` is an AUTHORING axis and is held — but it carries no
+  // `size` segment and no slot segments, which is what this arm is about: 'size=undefined, leading=false'
+  // is the failure, and the surface segment is the one the #1611 hold legitimately adds.
+  ok(ringLayout.cells.map((c) => c.group).join(' | ') === 'surface=default | surface=inverse',
+    `focus-ring: the engine's cohort key carries NO size and NO slot segment — this def has neither — only its held authoring axis (#1611). Not 'size=undefined, leading=false, trailing=false' (got '${ringLayout.cells.map((c) => c.group).join(' | ')}')`);
+  ok(planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group === 'size=small, leading icon=true, trailing icon=true, surface=default',
     `field: a def that DOES declare all three still writes all three — the omission rule must not have emptied the key for the def the cohort was designed for; the slot segments carry the Figma names (#1380) (got '${planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group}')`);
   // The payload side, evaluated rather than grepped. `cellOf` is a string inside the generated JS, so it
   // is extracted and run — a regex over the payload text would assert that the ternary is spelled a
@@ -18174,6 +18182,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const ringPayload = payloadCellOfFor(planSetChunks(ringSet)[0].js, ringLayout);
   ok(ringPayload.extracted,
     `focus-ring: the payload's own cellOf and its FOOTPRINT_VARIES declaration were both extracted before being run — an empty slice would make every comparison below vacuously true (got ${ringPayload.chars} chars, '${ringPayload.decl}')`);
+  // #1611: the chunk ships the HELD list — declared exemptions, then authoring axes — under the same const,
+  // so a chunk that shipped only `footprintVaries` would re-derive a key without `surface` and disagree.
+  ok(ringPayload.decl === 'const FOOTPRINT_VARIES=["surface"];',
+    `focus-ring: the chunk ships the authoring axis the cohort holds (#1611) (got '${ringPayload.decl}')`);
   ok(ringPayload.fn !== null && ringLayout.cells.every((c) => ringPayload.fn!(c.name).group === c.group),
     'focus-ring: the PAYLOAD reaches the byte-identical cohort key from the member name alone — two independent derivations of "absent means omit", which is the only thing keeping them in step');
   ok(ringPayload.fn !== null && ringLayout.cells.every((c) => { const p = ringPayload.fn!(c.name); return p.row === c.row && p.col === c.col; }),
@@ -18195,6 +18207,41 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `field-message: the chunk SHIPS the def's exemption list, so the payload's own derivation has something to append (got '${fmPayload.decl}')`);
   ok(fmPayload.fn !== null && fmLayout.cells.every((c) => fmPayload.fn!(c.name).group === c.group),
     'field-message: ...and reaches the byte-identical key from the member name — the exemption is honored on the chunked path too, where a disagreement would put every member in a cohort of one and silence the footprint read-back rather than redden it');
+
+  // ---- #1611: the cohort compares RUNTIME axes and holds AUTHORING ones ----
+  // The owner-found case: field-label's `weight` is picked once per label, so its bold and regular members
+  // are never one instance's before and after, and NB's Medium setting 1px wider than Regular was reported
+  // as four footprint misses. The expectation is written out by hand from the def's axes as the issue states
+  // them — held: size, emphasis, weight; compared: state — never read back from `planSetLayout`.
+  {
+    // (a) THE READER: absent is runtime (the strict default), the state axis is runtime by definition.
+    const bare = { ...fieldLabel, axisKinds: undefined } as ComponentDef;
+    ok(axisKindOf(bare, 'weight') === 'runtime' && axisKindOf(fieldLabel, 'weight') === 'authoring' && axisKindOf(fieldLabel, 'state') === 'runtime',
+      `#1611 axisKindOf: an unclassified axis reads RUNTIME, field-label's weight reads AUTHORING, the state axis is runtime (got ${axisKindOf(bare, 'weight')}/${axisKindOf(fieldLabel, 'weight')}/${axisKindOf(fieldLabel, 'state')})`);
+    // (b) THE VALIDATOR refuses a classification of an axis the def does not declare, and an unknown kind.
+    const stray = validateComponentDef({ ...fieldLabel, axisKinds: { ...fieldLabel.axisKinds, tone: 'authoring' } } as ComponentDef).errors;
+    const badKind = validateComponentDef({ ...fieldLabel, axisKinds: { ...fieldLabel.axisKinds, weight: 'sometimes' } } as unknown as ComponentDef).errors;
+    ok(stray.some((e) => /^axisKinds\.tone: 'tone' is not an axis in variants/.test(e)) && badKind.some((e) => /^axisKinds\.weight: 'sometimes' is not one of \[runtime, authoring\]/.test(e)),
+      `#1611 the validator refuses a stray axis and an unknown kind BY NAME (got [${[...stray, ...badKind].filter((e) => e.startsWith('axisKinds')).join('; ') || 'NOTHING'}])`);
+    // (c) EVERY SHIPPED DEF CLASSIFIES EVERY AXIS it declares. The default keeps an omission strict, but an
+    // agent reading the def learns nothing from a default — the classification is metadata as well as rule.
+    const unclassified = componentDefs.flatMap((d) => Object.keys(d.variants ?? {}).filter((a) => !(a in (d.axisKinds ?? {}))).map((a) => `${d.id}.${a}`));
+    ok(unclassified.length === 0, `#1611 every shipped def classifies every variants axis as runtime or authoring (unclassified: ${unclassified.join(', ') || 'none'})`);
+    // (d) THE PLAN CARRIES IT, for every projected axis, so a reader of the artifact sees it too.
+    const flPlans = figmaAnatomySet(fieldLabel, {});
+    ok(JSON.stringify(flPlans[0].axisKinds) === JSON.stringify({ size: 'authoring', emphasis: 'authoring', weight: 'authoring', state: 'runtime' }),
+      `#1611 the field-label plan carries each projected axis's kind (got ${JSON.stringify(flPlans[0].axisKinds)})`);
+    // (e) THE COHORTS: one per size × emphasis × weight, each holding exactly the two states.
+    const flLayout = planSetLayout(flPlans, 'test');
+    const expect = ['primary', 'secondary'].flatMap((em) => ['regular', 'bold'].flatMap((w) => ['small', 'medium', 'large'].map((sz) => `size=${sz}, emphasis=${em}, weight=${w}`)));
+    const got = [...new Set(flLayout.cells.map((c) => c.group))];
+    ok(got.length === 12 && expect.every((g) => got.includes(g)) && expect.every((g) => flLayout.cells.filter((c) => c.group === g).length === 2),
+      `#1611 field-label: twelve footprint cohorts, one per size × emphasis × weight, each comparing only rest against disabled — bold and regular are never compared (got ${got.length}: ${got.slice(0, 3).join(' | ')}…)`);
+    // (f) THE PAYLOAD AGREES: the chunk ships the held authoring axes and re-derives the identical key.
+    const flPayload = payloadCellOfFor(planSetChunks(flPlans)[0].js, flLayout);
+    ok(flPayload.extracted && flPayload.decl === 'const FOOTPRINT_VARIES=["emphasis","weight"];' && flLayout.cells.every((c) => flPayload.fn!(c.name).group === c.group),
+      `#1611 field-label: the chunk ships the held authoring axes and reaches the byte-identical cohort key from the member name (got '${flPayload.decl}')`);
+  }
 }
 
 // (24) RENAME MAP (#1013) — the variable map is DERIVED from `DEPRECATIONS`, so this is where the

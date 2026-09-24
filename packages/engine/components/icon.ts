@@ -120,6 +120,10 @@ export const icon: ComponentDef = {
     name: [...ICON_NAMES],
     tone: ['inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // `name` and `tone` stay RUNTIME, the strict default: a host swaps glyphs live (eye / eye-off, a chevron
+  // flipping on expand) and inks them from its own state.
+  axisKinds: { name: 'runtime', tone: 'runtime' },
 
   // THE PAINT GRAMMAR, and this def is why the field exists (#758). The ink axis leads with its own
   // NAME and carries no `{slot}` segment at all — `tone.primary`, not `primary.icon` — because the

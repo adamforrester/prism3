@@ -96,6 +96,8 @@ export const checkboxGroup: ComponentDef = {
   variants: {
     size: ['small', 'medium', 'large'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { size: 'authoring' },
 
   // THE GROUP PAINTS NOTHING OF ITS OWN. The label ink is FieldLabel's, every row's ink is
   // checkbox-row's; the container is a transparent stack. So there are no paint slots and no `paintKeys` —

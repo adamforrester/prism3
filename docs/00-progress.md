@@ -7,6 +7,26 @@
 
 ---
 
+## (2026-09-24) — the footprint check compares runtime axes and holds authoring ones (#1611)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/component-schema.ts` (new `ComponentDef.axisKinds`, `AXIS_KINDS`, `axisKindOf`, validator arm), `packages/engine/anatomy-figma.ts` (`AnatomyPlan.axisKinds`; `heldAxes` feeds both cohort derivations), `axisKinds` added to all 19 def files (classification only, no other def edit), `apps/plugin/component-shim.ts` (opt-in `textAdvance`), `apps/plugin/test-write-components.ts` + `packages/engine/test.ts` (#1611 arms), `version.ts` (ENGINE 0.144.0), `schema/component-surface.json` (`--accept`).
+
+**The report.** Building NB, field-label reported four footprint misses at `size=small`: bold 46px wide against regular 45px, because NB's emphasis weight (Medium) sets wider. The owner answered the open question ("is any weight axis ever toggled live?") with *"Yes there are going to be instances where something goes bold when selected. That's fairly common."* So weight is not exempt as a kind of axis. The footprint has to hold across what a live instance switches between, and need not hold across what a designer picks once.
+
+**The rule.** Each `variants` axis is `runtime` or `authoring`. Absent means runtime, so an unclassified axis stays compared, and the state axis is always runtime. The cohort key holds `size`, slot fill, `footprintVaries` and every authoring axis, and compares the rest. `heldAxes(plan)` is the one list both the engine's `group` and the chunked payload's `FOOTPRINT_VARIES` read, in one order, so the two keys stay byte-identical. The classification is on every plan, so an agent reading a plan knows which props change at runtime.
+
+**Classification calls worth knowing.** `appearance` (button, icon-button) stays RUNTIME. A toggle button that fills when selected is the same shape as the owner's bold-when-selected label, so the stroke-drift guarantee (outline vs filled) is kept, along with its two mutation tests. The orchestrator's brief listed appearance as authoring; this is flagged at the top of the PR. `icon.name` and `icon.tone` are runtime (a host swaps eye/eye-off live). `field-message`, `select` and `text-field` `status` is runtime (validation arrives live); field-message stays exempt through `footprintVaries`. Everything else is authoring: size, emphasis, weight, surface, shape, width, style, offset, ratio, value, intensity. Cohort movement: field-label goes from 6 cohorts to 12, icon-button from 3 to 12 (`shape` × `surface`), and button and focus-ring now hold `surface`.
+
+**The bold-when-selected pattern.** No shipped def has it, so the plugin test builds a fixture: field-label with `weight` classified runtime. The shim's `textAdvance` makes `body/sm/strong` 1px wider (NB's case). (a) Shipped field-label reports 0 footprint misses, and a guard confirms bold and regular really measure differently. (b) The fixture reports exactly the four small bold misses, matched by full message. (c) The fixture with the member's width reserved (a bound fixed width) reports 0 misses.
+
+**Mutations (committed first).** Field-label `weight` set to `runtime`: plugin `✗ #1611 field-label's authoring weight is held fixed…` quotes `footprint -> emphasis=primary, weight=bold, size=small, state=rest measures 38x0 but …weight=regular… measures 36x0`, and four engine #1611 arms fail. `heldAxes` holding every axis: plugin (b) fails with `NOTHING — the runtime axis was not compared`, and the stroke-drift, chunked-drift and cohort-count arms fail.
+
+**Traps.** `footprintVaries` on an authoring axis is now redundant (image-placeholder's `ratio`). It was left in place so the aspect-lock reason stays with the def. The engine test requires every shipped def to classify every axis, so a parallel lane that adds an axis must also classify it. `size`'s kind does not move the cohort: `size` is always held.
+
+
+**Net fix (orchestrator).** The component-API alignment landed first and gave textarea a `status` axis, which this PR's every-axis-classified arm then caught as unclassified. Classified `runtime`, the same as text-field's `status`: validation changes while an instance is live. Textarea projects no Figma set, so the component surface doesn't move.
+---
+
 ## (2026-09-24) — component API alignment: field validation, textarea model, group gap (#1623 sign-off)
 
 **STATUS: in review (DO NOT MERGE — orchestrator nets and merges).** Four owner decisions from the #1623 sign-off, under the standing direction that APIs must be machine-readable: one name per concept across siblings.

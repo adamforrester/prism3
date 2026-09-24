@@ -109,6 +109,8 @@ export const radioGroup: ComponentDef = {
   variants: {
     size: ['small', 'medium', 'large'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { size: 'authoring' },
 
   // THE GROUP PAINTS NOTHING OF ITS OWN — identical to `checkbox-group`. The label ink is FieldLabel's,
   // every row's ink is `radio-row`'s (whose control ink is `radio-control`'s); the container is a
