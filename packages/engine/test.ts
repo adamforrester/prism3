@@ -9503,6 +9503,77 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(vnb.warnings.length === 0 && vau.warnings.length === 0, `component: ${name} binds only semantic roles, no primitive-tier leak${[...vnb.warnings, ...vau.warnings].length ? ' — ' + [...vnb.warnings, ...vau.warnings].join('; ') : ''}`);
   }
 
+  // (#1623) EVERY COMPONENT A DEF NAMES IS ONE THAT EXISTS, UNDER ITS CURRENT ID. The stale-fact class the
+  // #1623 audit found by hand, three ways: `checkbox-group` named `radio-row` as its alternative where the
+  // twin is `radio-group`; `radio-row`'s `ai.avoidWhen` told agents the radio group "is not authored yet"
+  // after it was; and `radio-control` / `switch-control` pointed at `radio` / `switch`, ids retired by the
+  // #1468 rename. Nothing read these fields, so nothing failed.
+  //
+  // Two arms, each with an oracle the defs do not author:
+  //  (a) every name in `ai.commonPartners`, `composition.composesWith` and `composition.alternativeTo` is a
+  //      registered id OR a member of NOT_YET_BUILT — a list written HERE, by hand, of the concepts the
+  //      catalogue names but has not built. Derived from the defs it would admit whatever they say
+  //      (`docs/34` shape 1). A concept that gets built must leave the list (the second loop), so the list
+  //      cannot quietly outlive what it describes. Free-text entries (a space in them) are descriptions,
+  //      not ids, and are skipped.
+  //  (b) no consumer-facing prose names a RETIRED id in backticks. A retired id is a def's alias that is a
+  //      strict prefix of its id (`radio` → `radio-row`) — the shape a `<family>` → `<family>-row` rename
+  //      leaves behind. Only backticked whole names are read, so the plain word "radio" in a sentence is
+  //      not a hit — and neither is an ARIA role ("The role is `radio`"), which spells the same word and is
+  //      correct: `checkbox`, `radio` and `switch` are all roles as well as retired ids.
+  {
+    const ids = new Set(componentDefs.map((d) => d.id));
+    const NOT_YET_BUILT = new Set([
+      'aria-label', 'badge', 'button-group', 'card', 'chip', 'code-editor', 'combobox', 'date-picker', 'emoji',
+      'form', 'illustration', 'inline-alert', 'link', 'link-button', 'logo', 'menu', 'number-field',
+      'password-field', 'popover', 'rich-text-editor', 'scrim', 'search-field', 'segmented-control', 'spinner',
+      'split-button', 'thumbnail', 'toggle-button', 'tooltip',
+    ]);
+    for (const def of componentDefs) {
+      const lists: [string, readonly string[] | undefined][] = [
+        ['ai.commonPartners', def.ai?.commonPartners],
+        ['composition.composesWith', def.composition?.composesWith],
+        ['composition.alternativeTo', def.composition?.alternativeTo],
+      ];
+      for (const [field, list] of lists) {
+        for (const name of list ?? []) {
+          if (name.includes(' ') || ids.has(name)) continue;
+          ok(NOT_YET_BUILT.has(name), `component-refs: ${def.id} ${field} names '${name}', which is neither a registered def id nor a listed unbuilt concept`);
+        }
+      }
+    }
+    for (const c of NOT_YET_BUILT) ok(!ids.has(c), `component-refs: '${c}' is a registered def now — remove it from NOT_YET_BUILT`);
+
+    const retired = new Map<string, string>();
+    for (const d of componentDefs) for (const a of d.aliases ?? []) if (d.id.startsWith(`${a}-`) && !ids.has(a)) retired.set(a, d.id);
+    ok(retired.size >= 3, `component-refs: the retired-id set is live (${retired.size}) — checkbox, radio and switch each left one`);
+    const prose = (d: ComponentDef): [string, string][] => {
+      const out: [string, string][] = [];
+      const walk = (path: string, v: unknown): void => {
+        if (typeof v === 'string') out.push([path, v]);
+        else if (Array.isArray(v)) v.forEach((x, i) => walk(`${path}[${i}]`, x));
+        else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(`${path}.${k}`, x);
+      };
+      walk('description', d.description);
+      for (const p of d.props ?? []) walk(`props.${p.name}`, p.description);
+      walk('accessibility', d.accessibility);
+      walk('content', d.content);
+      walk('docs', d.docs);
+      walk('ai', d.ai);
+      for (const [part, pd] of Object.entries(d.anatomy?.parts ?? {})) walk(`anatomy.parts.${part}.note`, (pd as { note?: string }).note);
+      return out;
+    };
+    for (const def of componentDefs) {
+      for (const [path, text] of prose(def)) {
+        for (const m of text.matchAll(/`([a-z][a-z0-9-]*)`/g)) {
+          if (/\brole(?: is|=)?\s*$/i.test(text.slice(0, m.index))) continue;
+          const now = retired.get(m[1]);
+          ok(now === undefined, `component-refs: ${def.id} ${path} names \`${m[1]}\`, a retired id — the def is \`${now}\``);
+        }
+      }
+    }
+  }
+
   // (#1134) THE BOUNDED INVERSE SET BINDS ONLY COVERED ROLES — the enforceable half of the gap rule, one
   // tier below the token register (a3). A def carrying a `surface` axis with an `inverse` value paints its
   // `color.inverse.*` counterparts through the projector's rewrite (`anatomy-figma.ts`), NOT through keys
