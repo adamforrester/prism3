@@ -102,11 +102,11 @@ export const focusRing: ComponentDef = {
   category: 'foundations',
   status: 'draft',
   description:
-    'The shared keyboard-focus indicator: a stroke drawn OUTSIDE its host\'s bounds, separated from them by an offset so an unbroken sliver of background sits between the control\'s own border and the ring. Authored once and nested by every focusable component rather than re-drawn per host — the ring belongs to no single component, which is why its tokens are top-level families.',
+    'The shared keyboard-focus indicator: a stroke drawn OUTSIDE its host\'s bounds, separated from them by an offset (2px for controls, so an unbroken sliver of background sits between the control\'s own border and the ring; 0 for fields, whose own border supplies the separation). Authored once and nested by every focusable component rather than re-drawn per host — the ring belongs to no single component, which is why its tokens are top-level families.',
 
   props: [
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the ring is drawn against. `default` for a normal surface; `inverse` for a dark or brand-filled one, where the default ring would sit on a similar hue and lose its 3:1 separation. A host that cannot know its ground picks `default`; a host that carries its own `surface` axis passes it through (see Button), so the ring on a dark band is the inverse ring.' },
-    { name: 'offset', type: "enum: 'control' | 'field'", values: ['control', 'field'], default: 'control', required: false, description: 'How far outside the host the ring sits. `control` is the standard ≈2px gap; `field` is 0, because an input\'s own border already supplies the separation and a gap there reads as a double border. Two values because the token tier already emits exactly two (`focus.ring.offset` and `focus.ring.offset-field`) — the per-context parameter docs/32 identified before anything could nest the ring.' },
+    { name: 'offset', type: "enum: 'control' | 'field'", values: ['control', 'field'], default: 'control', required: false, description: 'How far outside the host the ring sits. `control` is the standard ≈2px gap; `field` is 0, because an input\'s own border already supplies the separation and a gap there reads as a double border. Two values because the token tier already emits exactly two (`focus.ring.offset` and `focus.ring.offset-field`).' },
   ],
 
   // `[]`, and this is the same claim `icon` makes for a different reason. A ring is not interactive —
@@ -340,7 +340,7 @@ export const focusRing: ComponentDef = {
     role: 'none — a presentational sibling. The ring has no role of its own; it renders the focus state of the control it surrounds.',
     wcag: [
       '2.4.7 Focus Visible (a visible indicator on every keyboard-focusable control)',
-      '1.4.11 Non-text Contrast (the indicator clears 3:1 against the adjacent surface AND the control edge — the offset is what makes the second half achievable)',
+      '1.4.11 Non-text Contrast (the ring is gated at 3:1 against the page per mode, 4.5:1 in high contrast; against the control edge it depends on the host — the offset is what makes that achievable)',
       '2.4.11 Focus Not Obscured (the ring must not be clipped by an ancestor — hence `clipsContent: false`, and why an offset ring needs its host not to clip)',
       '2.4.13 Focus Appearance (AAA — the indicator\'s area and contrast floor; the offset and width tokens are what a brand tunes to meet it)',
     ],
@@ -355,7 +355,7 @@ export const focusRing: ComponentDef = {
       'Build this, then do not place it. The two halves are separate instructions and both matter: the component has to exist in your file before any host can nest it — every focusable component reaches it by name, so build the ring FIRST and the controls after — and once it is there, nothing places a ring on its own. A focusable component nests it as an absolutely-positioned sibling instead — see Button\'s `focusRing` part — and picks `surface` for the ground it sits on and `offset` for its kind (`control` for a button, `field` for an input). The square you get from a standalone build is nominal and means nothing; a host overwrites it with its own bounds grown by the offset. One ring component serves every host: that is the point, and re-drawing it per component is the failure mode it exists to prevent. In code the ring is an `outline` with an `outline-offset`, not a border or a box-shadow, so it survives forced-colors mode.',
     do: [
       'Nest the shared ring rather than re-authoring a focus treatment per component',
-      'Pick `color: inverse` on a dark or brand-filled surface, where the default ring loses its 3:1 separation',
+      'Pick `surface: inverse` on a dark or brand-filled surface, where the default ring loses its 3:1 separation',
       'Pick `offset: field` for inputs, whose own border already supplies the separation',
       'Keep the ring outside the host\'s bounds and the host un-clipped, so the ring is never cut off (2.4.11)',
     ],

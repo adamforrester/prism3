@@ -46,15 +46,15 @@ export const fieldLabel: ComponentDef = {
     // designer reads (`figmaProperties.texts` keys against `props`), and a field label's text IS a label.
     // LOWERCASE per #1333 — every Figma TEXT property name is lowercase.
     { name: 'label', type: 'string | node', required: true, description: 'The label text — a noun phrase, sentence case, ≤3 words, no trailing colon ("Email address", not "Enter your email address here").' },
-    { name: 'htmlFor', type: 'string', required: true, description: 'The id of the field it names — a native <label for>. Set by the host when composed inside TextField (useId).' },
+    { name: 'htmlFor', type: 'string', required: true, description: 'The id of the field it names — a native <label for>. Set by the host when composed inside a field component (useId).' },
     // #1338 — Prism 2's `Required` boolean (default TRUE), reconciling away the old 3-value
     // `indicator` [none/required/optional] axis. A Figma boolean-VISIBILITY property (#1331/#1412):
     // ON (the default) shows the marker beside the label; OFF hides it. Direct mapping — required=true is
     // the marker's BUILT visibility, so no inverted-boolean mechanism is needed (see `figmaProperties`).
-    { name: 'required', type: 'boolean', default: true, required: false, description: 'Whether the field is required. ON — the default — shows the marker beside the label; turning it off hides it, following Prism 2\'s `Required` model. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only (§7).' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Pairs with the field size. THREE steps as of #872, converging with `text-field` and `textarea`, which have declared small/medium/large since tranche 1 — #872 deferred the third rung to the substrate ("they must agree, and field-label cannot answer alone") and the substrate has since answered. Scales the TYPE (`type.body.{sm,md,lg}` = 14/16/18px), not padding alone.' },
-    { name: 'emphasis', type: "enum: 'primary' | 'secondary'", values: ['primary', 'secondary'], default: 'primary', required: false, description: 'The label\'s ink (#872 — Prism 2 calls this control "color"; renamed from `tone` to `emphasis` in #1334, splitting the overloaded axis name). `secondary` is the de-emphasized label a dense form or a read-only field wants, which #872 named as the sharpest of its three gaps: the ink was hard-bound with no way to express it. Semantic ROLES, never shades — `color.text.{primary,secondary}` — so a brand changing its text palette carries this without the def moving.' },
-    { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads (#1248 — Prism 2\'s third form-label control, and the last of its three to land here). These are INTENTS, not role names (#1602): `regular` resolves the brand\'s default body weight, `bold` the heaviest body weight the brand ships — Inter\'s Bold (700) on a brand that ships it, a brand\'s Medium/500 where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
+    { name: 'required', type: 'boolean', default: true, required: false, description: 'Whether the field is required. ON — the default — shows the marker beside the label; turning it off hides it, following Prism 2\'s `Required` model. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Pairs with the field size — three steps, matching `text-field` and `textarea`. Scales the TYPE (`type.body.{sm,md,lg}` = 14/16/18px), not padding alone.' },
+    { name: 'emphasis', type: "enum: 'primary' | 'secondary'", values: ['primary', 'secondary'], default: 'primary', required: false, description: 'The label\'s ink (Prism 2 calls this control "color"). `secondary` is the de-emphasized label a dense form or a read-only field wants. Semantic ROLES, never shades — `color.text.{primary,secondary}` — so a brand changing its text palette carries this without the def moving.' },
+    { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads (Prism 2\'s third form-label control). These are INTENTS, not role names: `regular` resolves the brand\'s default body weight, `bold` the heaviest body weight the brand ships — Inter\'s Bold (700) on a brand that ships it, a brand\'s Medium/500 where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
     // #1339 — DISABLED IS A STATE, NOT A PROP. The old `disabled` boolean prop duplicated the `disabled`
     // state axis; the owner decision (2026-09-13) collapses that to ONE mechanism. The label dims via the
     // projected `disabled` state (paint at the disabled coordinate → `color.disabled.text`, kept above the
@@ -376,7 +376,7 @@ export const fieldLabel: ComponentDef = {
     wcag: [
       '1.3.1 Info and Relationships (native <label for> ties the name to the control)',
       '3.3.2 Labels or Instructions (every field has a visible, programmatic label)',
-      '1.4.3 Contrast (label ink is text.primary — clears the text floor)',
+      '1.4.3 Contrast (both emphasis inks, text.primary and text.secondary, are gated at 4.5:1; the disabled ink is contrast-exempt and held at 3:1)',
     ],
     aria: 'Prefer a native <label for=id>; use aria-label / aria-labelledby only when a visible label genuinely cannot be shown (a search field with a hidden label — and it still exists in the DOM). The required marker is visual; the field carries required / aria-required so the state is not marker-only.',
   },
@@ -404,12 +404,12 @@ export const fieldLabel: ComponentDef = {
     whenToUse: 'Above every field control — the accessible name for the input.',
     avoidWhen: 'As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.',
     commonPartners: ['text-field', 'number-field', 'select', 'checkbox-row', 'checkbox-group', 'field-message'],
-    triggerKeywords: ['label', 'field label', 'form label', 'required indicator', 'optional field'],
+    triggerKeywords: ['label', 'field label', 'form label', 'required indicator'],
     generationPriority: 3,
   },
 
   composition: {
-    composesWith: ['text-field', 'field-message'],
+    composesWith: ['text-field', 'select', 'checkbox-group', 'radio-group', 'field-message'],
     alternativeTo: ['aria-label'],
   },
 

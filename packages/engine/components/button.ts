@@ -155,7 +155,7 @@ const makeButton = (id: string, name: string, description: string, family: Inten
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. RESERVED for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked.' },
     { name: 'leadingVisual', type: 'slot', required: false, description: 'Icon / avatar / counter / spinner before the label.' },
     { name: 'trailingVisual', type: 'slot', required: false, description: 'Icon / caret / indicator after the label.' },
-    { name: 'href', type: 'string', required: false, description: 'Discouraged — prefer link-button. If present, MUST render <a> (which drops type/disabled semantics).' },
+    { name: 'href', type: 'string', required: false, description: 'Discouraged — prefer link-button. If set, the button renders an <a>, which drops type and disabled semantics.' },
     { name: 'aria-label', type: 'string', required: false, description: 'Accessible name; only needed when there is no visible label. Must be a superset of any visible text (WCAG 2.5.3).' },
   ],
 
@@ -613,7 +613,7 @@ const makeButton = (id: string, name: string, description: string, family: Inten
     contested: [
       'native disabled vs focusable isInactive — the practice defaults to isInactive for relevant-but-blocked, but focusable aria-disabled is not yet the field-wide default (per-engagement decision).',
       'a low-emphasis destructive ("quiet Delete") is expressed as the Destructive Button at appearance=text rather than a fully orthogonal emphasis×tone split — tone is the component (#1223), emphasis is the appearance axis within it.',
-      'outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608: interactive.<color>.subtle-fill / no hover fill). On an inverse band under solid-tint there is no subtle-fill twin yet, so those members still name an unemitted variable (held, #1608).',
+      'outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608: the control\'s own interactive.<color>.fill.rest at a paint opacity (#1614) / no hover fill), on the inverse band too.',
     ],
     evolution: [
       'RESOLVED (was the v1 HIGH finding): interaction states existed only on the solid action/danger roles, so the default (neutral) button was hover-less. The interactive color system (docs/20) gives every color — primary/neutral/destructive — the full fill+states/on-fill/border/text/overlay shape, so the matrix is now uniform and the default button has proper hover/pressed. Disabled is the cross-cutting disabled.* family, no longer scattered per-color.',
