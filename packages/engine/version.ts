@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.135.0 — #1613 (owner decision (a)): `solid-tint` emits the INVERSE twin of the opaque outline/text
+ * tint, `inverse.interactive.<c>.subtle-fill.{hover,pressed,selected}`, so a `surface=inverse` button /
+ * icon-button hover resolves instead of missing (48 misses on the owner's solid-tint NB file → 0). MIRRORED
+ * from the page derivation in `modes.ts` (one `emitTints` per ground): the band's opposite-polarity
+ * nominals and walk, the band's own state ink `inverse.interactive.<c>.text.*`, pressed/selected ungated by
+ * the same #1281 predicate. The page family is byte-identical (every corpus brand × mode at solid-tint,
+ * compared before/after). The #1608 held pattern is removed from both gates. NEW EMITTED ROLES under a
+ * lever → MINOR. No corpus brand sets `solid-tint` (#1112), so `out/**` moves only its stamp; CONTRACT
+ * STANDS at 11.3.0 (the guaranteed surface is read off the corpus).
  * 0.134.0 — #1608: an outline/text control's hover fill binds the family the brand's `outlineInteraction`
  * EMITS. `button` ×3, `icon-button` ×3, `select` and `text-field` bound `interactive.<c>.overlay.*` (the
  * translucent wash) unconditionally, which the engine emits only at `overlay-neutral`; a `solid-tint` /
@@ -3436,7 +3445,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.134.0';
+export const ENGINE_VERSION = '0.135.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
