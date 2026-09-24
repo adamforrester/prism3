@@ -178,7 +178,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
 import { componentDefs } from './components/index';
-import { figmaAnatomySet, planComponentName, planStamp, applyWeightIntent, DEFAULT_WEIGHT_AVAILABILITY } from './anatomy-figma';
+import { figmaAnatomySet, planComponentName, planStamp, applyWeightIntent, applyOutlineInteraction, DEFAULT_WEIGHT_AVAILABILITY } from './anatomy-figma';
 import type { AnatomyPlan, WeightAvailability } from './anatomy-figma';
 import type { ComponentDef } from './component-schema';
 
@@ -267,12 +267,26 @@ const BRAND_SURFACE_CONFIGS: { id: string; avail: WeightAvailability }[] = [
   { id: 'body-single', avail: { ...DEFAULT_WEIGHT_AVAILABILITY, body: ['default'] } },
 ];
 
+// THE SAME SHAPE FOR `outlineInteraction` (#1608). A def binding the page overlay wash projects a
+// different surface when the brand's outline hover is `solid-tint` (the wash rebinds to `subtle-fill`) or
+// `none` (the hover fill drops). The default is the identity, so the plain `<id>` row cannot see either;
+// these rows can. Which defs get them is decided by the transform itself (a def it changes), not by a
+// list, so a new wash binder is covered on arrival — and moves the baseline, which is the point.
+const OUTLINE_SURFACE_CONFIGS = [
+  { id: 'outline-solid-tint', method: 'solid-tint' },
+  { id: 'outline-none', method: 'none' },
+] as const;
+
 const liveDefs = (): Record<string, Surface> => {
   const out: Record<string, Surface> = {};
   for (const def of componentDefs) {
     out[def.id] = surfaceOf(def);
     if (def.weightIntent)
       for (const { id, avail } of BRAND_SURFACE_CONFIGS) out[`${def.id}@${id}`] = surfaceOf(applyWeightIntent(def, avail));
+    for (const { id, method } of OUTLINE_SURFACE_CONFIGS) {
+      const m = applyOutlineInteraction(def, method);
+      if (m !== def) out[`${def.id}@${id}`] = surfaceOf(m);
+    }
   }
   return out;
 };
@@ -308,7 +322,9 @@ const NOTE =
   'no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def ' +
   'with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` ' +
   'rows record the surface under canonical availability scenarios (body-emphasis = NB\'s bold→emphasis, ' +
-  'body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. It ' +
+  'body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise ' +
+  'a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and ' +
+  '`<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. It ' +
   'records no engine version of its own on purpose — a pure value change bumps the engine and moves no ' +
   'component surface. A failure here is a CHANGED projection: read the diff, decide whether the change ' +
   'was intended, bump ENGINE_VERSION, then accept.';

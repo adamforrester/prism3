@@ -29,7 +29,10 @@ import type { ControlShape } from './scale';
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
 // nothing back from here (no cycle); `theme.ts` already bundles into the plugin alongside this file.
 import { WEIGHT_ROLE_ORDER, TYPE_WEIGHTS_DEFAULT } from './theme';
-import type { TypeGroup, WeightRoleName } from './theme';
+import type { TypeGroup, WeightRoleName, Theme } from './theme';
+// `outlineFillRole` (#1608) — the ONE method → family mapping, reused by `applyOutlineInteraction`
+// rather than re-derived. `modes.ts` does not import this file, so there is no cycle.
+import { outlineFillRole } from './modes';
 // The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
 // plugin sandbox, which has no filesystem — see `emit-icons.ts`'s header.
@@ -1778,6 +1781,58 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
     ? { ...def.figmaProperties, variantAxes: (def.figmaProperties.variantAxes ?? []).filter((a) => a !== wi.axis) }
     : def.figmaProperties;
   return { ...def, tokens, variants, anatomy, figmaProperties } as ComponentDef;
+};
+
+// ── OUTLINE INTERACTION (#1608) ─────────────────────────────────────────────────────────────────
+//
+// `outlineInteraction` decides WHICH family carries an outline/text control's hover fill, and the
+// engine EMITS only that family (`modes.ts`, the `overlay-neutral` / `solid-tint` branches): the
+// translucent `interactive.<c>.overlay.*` wash, the opaque `interactive.<c>.subtle-fill.*` tint, or
+// neither. Four defs (button, icon-button, select, text-field) bind the wash by name, which is right
+// for the default and names a variable that does not exist for the other two methods — the owner's
+// NB file, at `solid-tint` or `none`, built `button` with 96 misses on `container.fills`.
+
+/** The page-ground wash ref a def binds: `color.interactive.<color>.overlay.<state>`. Deliberately
+ *  anchored — `color.inverse.interactive.*` is never AUTHORED (the projector's surface rewrite
+ *  supplies it), so a def that authored one would pass through untouched rather than half-rewritten. */
+const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
+
+/**
+ * Materialize a def for a brand's `outlineInteraction` lever (#1608), BEFORE projection — the third
+ * sibling of `applyControlShape` and `applyWeightIntent`, for the same reason: the projector stays a
+ * pure function of its def, and the brand-specificity lives here.
+ *
+ * Keyed on the REF, not the key (the `applyControlShape` rule, #1353): every `tokens` entry whose ref
+ * is a page-ground interactive wash is rewritten, whatever the def called its slot. The target is
+ * `outlineFillRole` — the mapping the style guide and dashboard already consume (#575) — so this does
+ * not carry a third copy of the method → family table:
+ *
+ *   · `overlay-neutral` → IDENTITY. Returns the same object, so every default plan is byte-identical.
+ *   · `solid-tint`      → the ref is repointed to `color.interactive.<color>.subtle-fill.<state>`. The
+ *                         slot precedence (`paintSlots: ['overlay', 'fill', …]`) is unchanged, so the
+ *                         opaque tint lands exactly where the wash did.
+ *   · `none`            → the ENTRY IS DROPPED. `paintOf('overlay')` then resolves nothing and the box
+ *                         falls through to its `fill` slot — none for outline/text (no hover wash, the
+ *                         intended "no hover expression"), the rest fill for a field. Dropping rather
+ *                         than binding transparent is what makes this a non-event on the host: no
+ *                         variable is asked for, so there is nothing to miss.
+ *
+ * NOT HANDLED, and held rather than invented: the engine emits NO inverse twin of `subtle-fill`, so a
+ * `surface=inverse` member under `solid-tint` still binds `color.inverse.interactive.<c>.subtle-fill.*`
+ * through the projector's surface rewrite, and still misses. What an opaque tint should be on an
+ * inverse band is a design question (#1608's PR), not a fallback to pick here.
+ */
+export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlineInteraction']): ComponentDef => {
+  if (method === 'overlay-neutral') return def;
+  if (!Object.values(def.tokens).some((ref) => OUTLINE_OVERLAY_REF.test(ref))) return def;
+  const tokens: Record<string, string> = {};
+  for (const [k, ref] of Object.entries(def.tokens)) {
+    const m = OUTLINE_OVERLAY_REF.exec(ref);
+    if (!m) { tokens[k] = ref; continue; }
+    const role = outlineFillRole(method, m[1], m[2]);
+    if (role) tokens[k] = `color.${role}`;
+  }
+  return { ...def, tokens };
 };
 
 /**

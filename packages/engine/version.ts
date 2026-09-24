@@ -2926,6 +2926,19 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.134.0 — #1608: an outline/text control's hover fill binds the family the brand's `outlineInteraction`
+ * EMITS. `button` ×3, `icon-button` ×3, `select` and `text-field` bound `interactive.<c>.overlay.*` (the
+ * translucent wash) unconditionally, which the engine emits only at `overlay-neutral`; a `solid-tint` /
+ * `none` brand built the button with 96 `container.fills` misses (the owner's NB file). New
+ * `applyOutlineInteraction` — the third materialize-before-projection sibling of `applyControlShape` /
+ * `applyWeightIntent`, reusing `modes.ts`'s `outlineFillRole` — rebinds the wash to
+ * `interactive.<c>.subtle-fill.<state>` at `solid-tint` and drops it at `none`; the plugin's
+ * `materializeForBrand` applies it off the resolved theme. `overlay-neutral` is the identity (same object),
+ * so `out/**` and the plain component-surface rows do NOT move; the MINOR bump is owed by the new
+ * brand-conditional PROJECTION behavior, pinned by `lint-component-surface`'s new `<id>@outline-solid-tint`
+ * / `<id>@outline-none` rows. HELD, not invented: there is no inverse `subtle-fill` twin, so a
+ * `surface=inverse` member at `solid-tint` still misses (a design question on the PR). CONTRACT STANDS
+ * at 11.3.0 — no token NAME moves. A stamp-only regen (`$extensions.generator.version`).
  * 0.133.0 — #1587: OPT-IN PER-RUNG DESKTOP/MOBILE type-size override (owner-decided 2026-09-23, four
  * decisions locked on the issue: override-derived storage, brand-axis only, inline-in-the-size-table UI,
  * Desktop/Mobile naming). `TypographyInput` gains optional `sizeOverrides`, keyed group → rung →
@@ -3423,7 +3436,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.133.0';
+export const ENGINE_VERSION = '0.134.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
