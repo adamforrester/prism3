@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.141.0 — #1631 (owner decision: "we should not remove dimension tokens"): at `density: 'spacious'` the
+ * 0.142.0 — #1631 (owner decision: "we should not remove dimension tokens"): at `density: 'spacious'` the
  * dimension grid is also fed the COMFORTABLE control px. `core.dimension` is value-keyed, and at
  * comfortable 3 (an `inset`) and 18 (a `thumb`) exist only because the control px put them there;
  * spacious's controls produce neither, so spacious removed two guaranteed primitives. Now it keeps them
@@ -2934,7 +2934,10 @@
  * and feeding it would add `core.dimension.30` to aurora, a CONTRACT MINOR (measured). No committed brand
  * sets spacious, so `out/**` moves only its stamp. CONTRACT STANDS at 11.3.0 — the guaranteed surface
  * does not move, it stops being violated (`token-contract --check` level `none`).
- *
+ * 0.141.0 — The `outlineInteraction` option `solid-tint` is relabeled "Tinted wash" (was "Opaque subtle tint"),
+ * owner decision after #1614 made the tint translucent: the old label described the retired opaque palette step.
+ * Label only — the option key, its values and every emitted token are unchanged. `schema/lever-manifest.json`
+ * moves its label → MINOR. CONTRACT STANDS.
  * 0.140.0 — #1614 (owner decision, revised + amended): `solid-tint` is the category's EXISTING fill at an EXISTING
  * opacity step. Each `[inverse.]interactive.<c>.subtle-fill.{hover,pressed,selected}` is now a translucent wash
  * (`ink-on-composite`) of `[inverse.]interactive.<c>.fill.rest` at `opacity.20` hover / `opacity.30` pressed+selected,
@@ -3508,7 +3511,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.141.0';
+export const ENGINE_VERSION = '0.142.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
