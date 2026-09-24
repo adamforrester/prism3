@@ -75,6 +75,8 @@ decision recorded there is correct prose forever and is not this file's subject 
 | Overriding a ground re-derives its dependents' ratios; their values stay, and say so | 2026-08-23 | `docs/20-interactive-color-system.md` §9.7 | #964 |
 | A materialization rename is recorded as a rule; the emission diff forces the rule to exist | 2026-08-25 | `docs/44-materialization-renames.md` §5 | #1032 |
 | The media veil is its own family, `color.veil.*`, and it is appearance-invariant | 2026-08-25 | `docs/20-interactive-color-system.md` §8.1 | #1030 |
+| `outlineInteraction` keeps its `none` and `solid-tint` settings, and `interactive.*.overlay.*` is brand-dependent | 2026-08-27 | `docs/30-versioning-and-compatibility.md` | #957 |
+| `typography.displayCeiling` keeps capping the display ramp, and the rungs above the lowest are brand-dependent | 2026-08-27 | `docs/30-versioning-and-compatibility.md` | #957 |
 | Inverse is name-encoded and bounded — the `inverse` mode comes off the pointer collection | 2026-08-28 | `docs/20-interactive-color-system.md` §9.8 | #1133 |
 | One top-level `inverse.` group — `inverse(X) = inverse.` + X — and `on-` takes a ground, never a role or a rank | 2026-08-28 | `docs/20-interactive-color-system.md` §9.9 | #1140 |
 | ONE `color` collection — the pointer tier is deleted and the values take the short name — and the roles are written in reading order with `inverse` last *(supersedes #1135 and #1136)* | 2026-08-29 | `docs/20-interactive-color-system.md` §9.10 | #1148 + #1150 |
@@ -88,16 +90,16 @@ decision recorded there is correct prose forever and is not this file's subject 
   not yet in heading form, so not yet indexable. Migrating one is a small, welcome PR; the gate does
   not ask for it and does not let it happen invisibly either, since an inline `**Decision:**` is not
   matched by the detector at all.
-- **Two more levers can delete guaranteed paths**, found by the sweep #895 prompted and **not** yet
-  indexed for the same reason #895 was not until it was decided: `outlineInteraction` at
-  `solid-tint`/`none` removes 18 `interactive.*.overlay.*`, and `typography.displayCeiling` below
-  `xl` removes up to 3 `type.display.*.strong`. Both are structurally what #895 was, but neither
-  resolves the same way — removing those paths is each lever's declared purpose, so the honest fix is
-  probably to demote the paths to `brandDependent` rather than delete the lever. That is the owner's
-  call; filed as an issue with the measurement, and indexed here once made.
+- **Levers that can delete guaranteed paths** are no longer an open question. #957's two, `outlineInteraction`
+  and `typography.displayCeiling`, are decided and indexed above: demoted to `brandDependent`, levers kept.
+  The class is gated by `lint-lever-sweep.ts`, which sweeps every toggle and enum option. What that sweep
+  does **not** reach is named in its header, and one instance outside it is filed: `typography.weights`,
+  an object lever, removes guaranteed `type.*.strong` paths (#1632). One instance inside it is a live
+  defect held on the gate's allowlist until the owner picks a disposition: `density: 'spacious'` removes
+  `core.dimension.{3,18}` (#1631).
 
-  (#895 itself is now indexed above — it was held out of the table while the decision was still open,
-  which is the posture this bullet is repeating rather than a new kind of exception.)
+  (#895 and #957 were each held out of the table while their decisions were open, and indexed once made.
+  That is the posture for the two filed above, too.)
 
 ## Maintaining this file
 

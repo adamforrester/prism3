@@ -131,6 +131,20 @@
       "title": "the rungs are named for intensity, not for the floor they clear",
       "doc": "docs/20-interactive-color-system.md",
       "section": "8.2"
+    },
+    {
+      "date": "2026-08-27",
+      "issue": 957,
+      "title": "`outlineInteraction` keeps its `none` and `solid-tint` settings, and `interactive.*.overlay.*` is brand-dependent",
+      "doc": "docs/30-versioning-and-compatibility.md",
+      "section": null
+    },
+    {
+      "date": "2026-08-27",
+      "issue": 957,
+      "title": "`typography.displayCeiling` keeps capping the display ramp, and the rungs above the lowest are brand-dependent",
+      "doc": "docs/30-versioning-and-compatibility.md",
+      "section": null
     }
   ]
 }

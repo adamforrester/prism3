@@ -874,6 +874,19 @@ npx tsx packages/engine/lint-hit-target.ts          # every interactive control 
                                                     # spacious regression) and both exceptions asserted
                                                     # actually below the floor (a lift fails by name).
                                                     # Every def is represented (measured or excluded).
+npx tsx packages/engine/lint-lever-sweep.ts         # no lever setting silently deletes a guaranteed
+                                                    # path or a component binding (#957). Sweeps every
+                                                    # toggle + enum option, ONE AT A TIME, over minimal +
+                                                    # harbor + nb-redesign. (a) a guaranteed path from the
+                                                    # COMMITTED token-contract.json that the base emits
+                                                    # and the setting does not must match REMOVALS
+                                                    # EXACTLY, both directions (a stale entry fails);
+                                                    # (b) every def, materialized for the setting, binds
+                                                    # only what that setting's Figma EMISSION holds (the
+                                                    # #1608 class). Oracles are emitted output, never the
+                                                    # lever table. Engine throws must match REFUSALS by
+                                                    # message. Not swept: sliders, structured levers
+                                                    # (#1632), combinations — stated in its header.
 npx tsx packages/engine/lint-advisory-expiry.ts     # a stated advisory window, once it closes, fails
                                                     # the build. The one gate here whose ORACLE IS THE
                                                     # CLOCK: no API, no issue state, no network, and
