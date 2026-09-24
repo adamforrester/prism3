@@ -198,7 +198,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'score_consumption',
     title: 'Score how an agent used the tokens',
-    description: 'Score generated output against a brand\'s token system — the check that closes the loop after theme_brand. Give it the token refs your output used and, optionally, the foreground/background pairs it put together. Returns: invented-token rate (refs naming tokens that do not exist), primitive-leak rate (refs reaching past the semantic layer into raw palette/dimension/font tiers), and contrast-contract compliance for every pair across every mode. Deterministic — no model judgement involved.',
+    description: 'Score generated output against a brand\'s token system — the check that closes the loop after theme_brand. Give it the token refs your output used and, optionally, the foreground/background pairs it put together. Returns: invented-token rate (refs naming tokens that do not exist), primitive-leak rate (refs reaching past the semantic layer into raw palette/dimension/font tiers), and contrast-contract compliance for every pair across every mode. Deterministic — no model judgment involved.',
     inputSchema: {
       type: 'object',
       properties: {

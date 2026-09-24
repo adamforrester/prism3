@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.137.0 — #1623 batch C: stale facts in component-def prose corrected (retired ids `radio`/`switch`/
+ * `checkbox` → their `-row` defs; `radio-row`'s `ai.avoidWhen` no longer says the radio group is unbuilt;
+ * `focus-ring`'s `docs.do` names the `surface` axis, not the retired `color`; icon-button's small heights
+ * restated from the tokens; wrong `alternativeTo`/`commonPartners`/`composesWith` entries; `'false'`
+ * strings typed as booleans), issue numbers and file paths stripped from consumer-facing def fields, and
+ * the studio Components page's absent-def reason and icon count unit corrected. `lint-us-english` gains an
+ * `-isable` branch and a `judgement` word match. The plugin bundle's def strings move → ENGINE bump; no
+ * emitted token or projected component member moves, so `out/**` is a stamp-only regen. CONTRACT STANDS.
+ *
  * 0.136.0 — #1617: a per-mode override on an outline/text control's LABEL ink carries to its GLYPH ink.
  * `interactive.<c>.icon.<st>` (and the `inverse.` column) is minted as a value twin of `…text.<st>` (#1471),
  * but the override layer rewrote exactly one role, so an override on `text.rest` moved the label and left
@@ -3453,7 +3462,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.136.0';
+export const ENGINE_VERSION = '0.137.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -105,8 +105,8 @@ export const switchControl: ComponentDef = {
   // exposes it to the consumer like every other control-level control.
   props: [
     { name: 'checked', type: 'boolean', required: false, description: 'The on/off appearance. Driven by the host row — a bare Switch.Control is styled by the coordinate, not wired to state here. The flip is immediate by the Row\'s contract; this atom only renders the two positions.' },
-    { name: 'showStateLabel', type: 'boolean', required: false, default: 'false', description: 'The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. OFF by default, since position already carries the state; add only where legibility genuinely demands it. Prism 2\'s own model (its `icon` prop): the glyph is present in the Figma set at every member, and this prop gates it in the code projection. NOT hardcoded "On"/"Off" text, which is rejected outright.' },
-    { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'TWO RUNGS, not three — "switches rarely warrant a large" (brief §15). Scales the track\'s height and length and the thumb\'s diameter. All read `control.size.*`, which moves a rung with brand density; `icon.size.*` would measure the wrong thing. The host row passes its own size through by `follow`.' },
+    { name: 'showStateLabel', type: 'boolean', required: false, default: false, description: 'The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. OFF by default, since position already carries the state; add only where legibility genuinely demands it. Prism 2\'s own model (its `icon` prop): the glyph is present in the Figma set at every member, and this prop gates it in the code projection. NOT hardcoded "On"/"Off" text, which is rejected outright.' },
+    { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'TWO RUNGS, not three — switches rarely warrant a large. Scales the track\'s height and length and the thumb\'s diameter. All read `control.size.*`, which moves a rung with brand density; `icon.size.*` would measure the wrong thing. The host row passes its own size through by `follow`.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'The disabled skin — a contrast-exempt fill/border/thumb treatment. Set on the host, followed here.' },
     { name: 'aria-label', type: 'string', required: false, description: 'Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name, so a nested control must NOT double-label.' },
   ],
@@ -236,7 +236,7 @@ export const switchControl: ComponentDef = {
         padding: { block: 'size.{size}.inset', inlineLabel: 'size.{size}.inset' },
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['thumb', 'focusRing'],
-        note: 'The pill AND the nominal hit-target marker (the real hit target is the whole labeled ROW, which lives on `switch`; `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part and `checkbox-control`\'s `control` carry). Its two dimensions are two decisions: 2:1 is the ratio the field converges on, and it is the tier\'s.',
+        note: 'The pill AND the nominal hit-target marker (the real hit target is the whole labeled ROW, which lives on `switch-row`; `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part and `checkbox-control`\'s `control` carry). Its two dimensions are two decisions: 2:1 is the ratio the field converges on, and it is the tier\'s.',
       },
       // THE THUMB. A filled `box` claiming `indicator` (radio's dot took the slot first; #933's rule is
       // that two boxes cannot divide one slot, and the track owns `fill`). It travels (`positionWhen`),
@@ -325,7 +325,7 @@ export const switchControl: ComponentDef = {
   },
 
   content: {
-    labelPattern: 'None — the atom carries no label. The setting name and its rules live on the Switch row (`switch`).',
+    labelPattern: 'None — the atom carries no label. The setting name and its rules live on the Switch row (`switch-row`).',
     errorPattern: 'None of its own — an outcome-error boundary is a color treatment the host coordinate selects; the message is the Row\'s.',
   },
 
