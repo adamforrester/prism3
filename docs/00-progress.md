@@ -7,6 +7,36 @@
 
 ---
 
+## (2026-09-24) — the plugin's apply pre-flight: no partial writes, no adopting what Prism3 didn't make (#506, safety floor)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Plugin-only; the engine is untouched, so no ENGINE bump. Files: `apps/plugin/src/preflight.ts` (**NEW**: `preflightApply`, `guardApply`, `preflightPlanOf`, `conflictSummary`), `apps/plugin/src/main.ts` (`applyTheme` hands its whole write sequence to `guardApply`), `apps/plugin/src/apply-summary.ts` (`conflictHeadline`), `apps/plugin/test-write-preflight.ts` (**NEW**, wired into the plugin `test` script), `apps/plugin/test-apply-summary.ts` (the new headline's 24-char probe). The onboarding UX that case (c) will eventually need is the owner's call, so the PR body proposes it and this entry doesn't build it.
+
+**Diagnosis.** Every executor is find-by-name → reuse, so two failures shared one cause. A same-named variable of another TYPE throws at `setValueForMode` partway through the passes, after they have already mutated the file. Measured in the shim: 824 writes land before the throw on aurora. And a same-named collection or style someone else made gets adopted silently. The fix is ordering, not a rollback. Figma has no transaction to roll back into, so the only way to write nothing is to decide before the first write.
+
+**What it does.** `guardApply` runs a read-only pre-flight over everything the apply touches and only calls the write callback when that comes back clean. The callback covers `beginMigration` onward, because the rename pre-pass renames collections and so counts as a write. Font preloading stays outside the guard because it only reads. On a conflict nothing is written: the pill reads `✗ N conflicts`, and the detail lists each one as kind, name and what differs. **Provenance reuses the existing records and adds no new marker.** A collection counts as Prism3's if it carries the #1581 `modes:owned` stamp. A style counts as Prism3's if its description matches the #1577 engine signature (`isEngineDescription`). A variable is judged by its collection, plus a `resolvedType` check in every era. The pre-flight resolves each planned collection the way the writer will, simulating the rename pre-pass with the same all-or-nothing rule as `beginMigration` and then matching first-by-name.
+
+**The legacy presumption. It's a deliberate choice worth reviewing.** Judged strictly, every file Prism3 themed before #1581 would have no stamp and would refuse its own re-apply, so the floor would break case (a) to fix case (c). So while a file carries the persisted brand (`prism3/brandInput` on the root) AND no collection in it has a stamp yet, same-named items are presumed Prism3's. That is today's behavior, frozen for files that predate the record, and it's the same presumption `stampOwnedModes`'s seed makes. The first apply that passes stamps everything it writes, which switches the presumption off. A file with neither record, which is the foreign case, is never presumed. Reversing this is one line (`legacy` in `preflightApply`).
+
+**Gate + mutations** (committed before each mutation). `test-write-preflight.ts` drives `guardApply` with the real executors against a file shim. The shim records every write through a Proxy `set` trap plus each mutating method, and its `setValueForMode` throws on a type mismatch the way Figma does. The arms:
+- **zero-writes.** A stamped `color` holds a FLOAT variable where Prism3 writes COLOR. The pre-flight reports it and the shim sees 0 writes. The unguarded control shows the throw landing mid-write.
+- **foreign-adopt.** An unstamped `space` plus a hand-described effect style: both are reported, and the foreign collection is untouched.
+- **idempotent.** For aurora, harbor and NB: a fresh apply, then a re-apply with 0 conflicts and 0 created.
+- **legacy.** A file with no stamps and a root blob passes; the same file without the blob reports conflicts.
+
+Each mutation failed by name:
+- Skip the pre-flight → the zero-writes and foreign-adopt arms fail.
+- Remove the collection provenance check → foreign-adopt (collection) and legacy fail.
+- Remove the style check → foreign-adopt (effect style) fails.
+- Remove the `resolvedType` check → zero-writes fails.
+- Drop the legacy presumption → legacy fails.
+
+**Not covered, stated:**
+- **The `main.ts` wiring itself.** `main.ts` can't be imported (it calls `figma.showUI` at module scope), so the test drives `guardApply` rather than `applyTheme`. The destructure `guarded.result` is what forces the executors' results to come out of the guard.
+- **Variables the rename pass migrates.** They are type-checked under their current names only. A rename moves the engine's own names inside a collection that has already been cleared, and it doesn't change a type.
+- **A host's mode-count cap.** Figma's API can't report the limit before `addMode` hits it.
+
+---
+
 ## (2026-09-24) — a label-ink override carries to its icon twin (#1617)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/modes.ts` (**NEW** `withIconTwins`), `packages/engine/test.ts` (**IT-01**), `apps/studio/src/main.ts` (outline preview glyph), `packages/engine/version.ts` (ENGINE 0.136.0), stamp-only `out/**` + the `token-contract.json` `engineVersion` field (`--accept`, no surface change; CONTRACT stands at 11.3.0).

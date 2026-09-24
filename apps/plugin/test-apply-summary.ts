@@ -32,7 +32,7 @@
  * reports the nodes as present. The facts here are authored fixtures — the executor's own collection of
  * them is gated against real host state in `test-write-components.ts`.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline, staleNote, partialWriteHeadline, partialWriteNote } from './src/apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, partialWriteHeadline, partialWriteNote } from './src/apply-summary';
 import type { PartialWriteFacts } from './src/apply-summary';
 
 let failed = 0;
@@ -74,6 +74,10 @@ const worst = [0, 1, 2, 9, 99, 999, 9999].flatMap((m) => [0, 1, 26, 999].map((s)
 const over = worst.filter((h) => h.length > 24);
 ok(over.length === 0, `every headline fits the 24-char pill budget (longest ${Math.max(...worst.map((h) => h.length))}: "${worst.reduce((a, b) => (b.length > a.length ? b : a))}")`);
 ok(APPLY_FAILED_HEADLINE.length <= 24, `the throw headline fits too (${APPLY_FAILED_HEADLINE.length} chars)`);
+// The pre-flight refusal (#506) — same pill, same range probe, and the plural.
+const cfWorst = [1, 2, 99, 9999, 99999].map(conflictHeadline);
+ok(cfWorst.every((h) => h.length <= 24 && h.trim().length > 0), `every conflict headline fits the 24-char pill budget (longest "${cfWorst[cfWorst.length - 1]}")`);
+ok(conflictHeadline(1) === '✗ 1 conflict' && conflictHeadline(2) === '✗ 2 conflicts', `conflict headline pluralizes (${conflictHeadline(1)} / ${conflictHeadline(2)})`);
 
 // No headline may be empty: the UI falls back to its own text on an absent/blank headline (for older
 // hosts), and a blank one from THIS host would take that path and silently claim a generic verdict.
