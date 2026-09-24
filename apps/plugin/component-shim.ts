@@ -99,6 +99,12 @@ export type ShimOpts = {
   /** Nodes in the file that are NOT plain components (#681). Kept separate from `comps` so every
    *  existing case reads unchanged: `comps` still means "a plain COMPONENT of this name". */
   fileNodes?: FileNode[];
+  /** THE FILE SEES ITS OWN BUILDS (#1633). Off, `root`'s searches answer only `comps`/`fileNodes` — a
+   *  file frozen at the start of the run, which every single-def case wants. On, they ALSO answer what is
+   *  on `page`: a built COMPONENT_SET (under its own name, its members under theirs) and a top-level
+   *  COMPONENT (#1012's `icon/<glyph>`). That is what lets one shim hold a dependency build followed by
+   *  the parent that nests it — the multi-def run the live host performs. Opt-in, so nothing else moves. */
+  liveRoot?: boolean;
   /** Fonts `loadFontAsync` REFUSES — a family/style that is not installed. Figma fails this at the load
    *  call, which is a different failure from a font that exists but has not been loaded this run; both
    *  are modelled, and the executor's `catch` around the load was unreachable until now. */
@@ -932,6 +938,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
             if (types.includes('COMPONENT')) for (const v of fn.variants) found.push(mkRef(v, seq++));
           } else if (types.includes(fn.type)) found.push(mkRef(fn.name, seq++));
         }
+        if (opts.liveRoot) for (const n of page?.children ?? []) {
+          const kids = ((n.children as Node[] | undefined) ?? []).map((c) => ({ name: String(c.name) }));
+          if (n.type === 'COMPONENT_SET') {
+            if (types.includes('COMPONENT_SET')) found.push({ ...mkRef(String(n.name), seq++), children: kids });
+            if (types.includes('COMPONENT')) for (const k of kids) found.push(mkRef(k.name, seq++));
+          } else if (n.type === 'COMPONENT' && types.includes('COMPONENT')) found.push(mkRef(String(n.name), seq++));
+        }
         return found;
       },
       // What a NAME-based search over the whole file sees, which is a different question from a criteria
@@ -946,6 +959,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         [
           ...(opts.comps ?? []).map((c) => ({ name: c, type: 'COMPONENT' })),
           ...(opts.fileNodes ?? []).map((f) => ({ name: f.name, type: f.type })),
+          ...(opts.liveRoot ? (page?.children ?? []).map((n) => ({ name: String(n.name), type: String(n.type) })) : []),
         ].filter(predicate),
       /** Kept as the REACHABILITY probe, distinct from `findAll` above on purpose: the assertions below
        *  state what the file holds, and reading them off the same method the executor now calls would be

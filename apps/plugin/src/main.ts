@@ -50,8 +50,11 @@ import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { materializeForBrand } from './brand-def';
+import { prebuildDependencies, alsoBuiltNote, DependencyBuildError } from './build-deps';
+import type { DepHost } from './build-deps';
 import { button } from '@prism3/engine/components/button';
 import { componentDefs } from '@prism3/engine/components/index';
+import type { ComponentDef } from '@prism3/engine/component-schema';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
 // (the inlined `apps/studio/src` app; declared for the sandbox global in `figma-env.d.ts`). The shared
@@ -610,47 +613,68 @@ const buildComponents = async (defId?: string): Promise<void> => {
     // so the page's `unknown`-typed `appendChild`/`findOne` meet the executor's `CompNode` port without a
     // variance fight (the same reason the port declares `currentPage` structurally). The view is switched to
     // the page too, so a designer lands on the set they just built rather than watching an empty current page.
-    const page = await resolveComponentPage(figma, def.id);
-    let targetPage: CompPageTarget | undefined;
-    if (page) {
-      // #1561 — pass the REAL page node, not a reconstructed `{ appendChild, findOne }` adapter. The set is
-      // combined ONTO this target (`combineAsVariants(fresh, target)`) and the live host reads `target.id`;
-      // an id-less adapter threw "Expected node id to be a string, got undefined" on every variant set (the
-      // #1554 regression). The real `PageNode` carries `id`, `appendChild` and `findOne`, so it satisfies
-      // `CompPageTarget` (which now requires `id`) directly. The view is switched to it too, so a designer
-      // lands on the set they just built rather than watching an empty current page.
-      await figma.setCurrentPageAsync(page as unknown as PageNode);
-      targetPage = page as unknown as CompPageTarget;
-    }
+    // ONE DEF'S BUILD, as a function since #1633: the def asked for AND each missing dependency it nests go
+    // through exactly this, so a dependency lands with the same brand and on the same page it would had the
+    // designer built it by hand. `reports` is the caller's — the dependencies get their own, so the
+    // telemetry printed at the end is the parent's run alone.
+    const planCache = new Map<string, ReturnType<typeof figmaAnatomySet>>();
     // `SWAP_TARGET` PASSED UNCONDITIONALLY, because it is inert where a def has no swap parts — measured,
     // see the header. A per-def branch here would be a branch on a distinction the projector already makes.
-    const plans = figmaAnatomySet(materializeForBrand(def, brandInput), { swapTarget: SWAP_TARGET });
+    // Memoized: the dependency walk projects the parent too, and Button's 648 plans are worth projecting once.
+    const project = (target: ComponentDef) => {
+      let plans = planCache.get(target.id);
+      if (!plans) planCache.set(target.id, plans = figmaAnatomySet(materializeForBrand(target, brandInput), { swapTarget: SWAP_TARGET }));
+      return plans;
+    };
+    const buildOne = async (target: ComponentDef, reports: ComponentProgress[]) => {
+      const page = await resolveComponentPage(figma, target.id);
+      let targetPage: CompPageTarget | undefined;
+      if (page) {
+        // #1561 — pass the REAL page node, not a reconstructed `{ appendChild, findOne }` adapter. The set is
+        // combined ONTO this target (`combineAsVariants(fresh, target)`) and the live host reads `target.id`;
+        // an id-less adapter threw "Expected node id to be a string, got undefined" on every variant set (the
+        // #1554 regression). The real `PageNode` carries `id`, `appendChild` and `findOne`, so it satisfies
+        // `CompPageTarget` (which now requires `id`) directly. The view is switched to it too, so a designer
+        // lands on the set they just built rather than watching an empty current page.
+        await figma.setCurrentPageAsync(page as unknown as PageNode);
+        targetPage = page as unknown as CompPageTarget;
+      }
+      return applyComponentPlan(project(target), figma, {
+        // #1554: the resolved section page, or undefined → `currentPage` (unmapped def / pre-#1554 default).
+        targetPage,
+        // #1012: `icon` materializes as separate `icon/<glyph>` components, not one set. Read off the def
+        // and passed as a write-time option — inert for every def that does not set it, the same shape as
+        // `SWAP_TARGET`, so no per-def branch here beyond forwarding the flag the projector already carries.
+        emitAsComponents: target.figmaProperties?.emitAsComponents,
+        // Posted straight through, unaggregated: the executor owns the phase/fraction and this is the
+        // only place that can see the timing. `chunkMs` is CALIBRATION data (see `CHUNK`) — the shim has
+        // no event loop, so chunk size can only be tuned from a live run, and this is how it gets out.
+        onProgress: (p) => {
+          reports.push(p);
+          // Logged as it happens, not only in the summary. If the build hangs, the last line printed is
+          // which phase and which chunk it hung on — the single most useful fact in a hang report, and one
+          // an end-of-run summary cannot give because a hung run never reaches it.
+          console.log(chunkLine(p));
+          // FIELD BY FIELD, not `...p`, and the reason is that these two consumers want different things.
+          // The console gets the whole reading including `elapsedMs`; the pill shows a fraction and nothing
+          // more. Spreading would put every field the executor ever adds onto the bridge by default — a
+          // widening the message contract in `messages.ts` never agreed to, and one that reads as intentional.
+          postToUi({ type: 'component-progress', phase: p.phase, done: p.done, total: p.total, chunkMs: p.chunkMs });
+        },
+      });
+    };
+    // NESTED COMPONENTS FIRST (#1633) — every def this one nests or swaps to that the file does not hold yet
+    // is built before it, deepest first (`build-deps.ts`). One that is already in the file is left alone:
+    // rebuilding it would orphan its placed instances, so it keeps its STALE reading exactly as before. A
+    // dependency that fails stops here, so the parent is never built against a missing nest.
+    await figma.loadAllPagesAsync();
+    const alsoBuilt = await prebuildDependencies(def, {
+      defs: componentDefs, project, host: figma as unknown as DepHost, build: (d) => buildOne(d, []),
+    });
     // Every reading kept, for the end-of-run summary. 54 objects for a 648 build — the memory is nothing
     // and the alternative is a running aggregate that cannot report a distribution.
     const reports: ComponentProgress[] = [];
-    const r = await applyComponentPlan(plans, figma, {
-      // #1554: the resolved section page, or undefined → `currentPage` (unmapped def / pre-#1554 default).
-      targetPage,
-      // #1012: `icon` materializes as separate `icon/<glyph>` components, not one set. Read off the def
-      // and passed as a write-time option — inert for every def that does not set it, the same shape as
-      // `SWAP_TARGET`, so no per-def branch here beyond forwarding the flag the projector already carries.
-      emitAsComponents: def.figmaProperties?.emitAsComponents,
-      // Posted straight through, unaggregated: the executor owns the phase/fraction and this is the
-      // only place that can see the timing. `chunkMs` is CALIBRATION data (see `CHUNK`) — the shim has
-      // no event loop, so chunk size can only be tuned from a live run, and this is how it gets out.
-      onProgress: (p) => {
-        reports.push(p);
-        // Logged as it happens, not only in the summary. If the build hangs, the last line printed is
-        // which phase and which chunk it hung on — the single most useful fact in a hang report, and one
-        // an end-of-run summary cannot give because a hung run never reaches it.
-        console.log(chunkLine(p));
-        // FIELD BY FIELD, not `...p`, and the reason is that these two consumers want different things.
-        // The console gets the whole reading including `elapsedMs`; the pill shows a fraction and nothing
-        // more. Spreading would put every field the executor ever adds onto the bridge by default — a
-        // widening the message contract in `messages.ts` never agreed to, and one that reads as intentional.
-        postToUi({ type: 'component-progress', phase: p.phase, done: p.done, total: p.total, chunkMs: p.chunkMs });
-      },
-    });
+    const r = await buildOne(def, reports);
     // THE SETTLE PROBE (#684), RUN WITHOUT THE VERDICT WAITING ON IT (#908). It still starts at the exact
     // moment the executor returns — the moment the pill says done and the file was previously frozen for
     // 1m10s — and the console telemetry below still carries its number, so #684's coupling is intact. What
@@ -680,6 +704,7 @@ const buildComponents = async (defId?: string): Promise<void> => {
             `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
             `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
             `${r.refs} refs across ${r.wiredMembers} members${missNote}${stale ? `. ${stale}` : ''}`;
+      // #1633: what was built first, so a designer is not surprised by a set they did not ask for.
       // `ok` is NOT `misses.length === 0`, and the difference is the whole reason `skipped` is a number:
       // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
       // the idempotent case a failure. The headline is derived from the three COUNTS for the same reason
@@ -693,7 +718,7 @@ const buildComponents = async (defId?: string): Promise<void> => {
         type: 'component-result',
         ok: r.set !== null && r.misses.length === r.skipped,
         headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale),
-        summary,
+        summary: summary + alsoBuiltNote(alsoBuilt),
       });
       verdictPosted = true;
     });
@@ -759,7 +784,9 @@ const buildComponents = async (defId?: string): Promise<void> => {
       // The cause LEADS the summary in both cases, unchanged and unwrapped. The executor attaches these
       // facts to the host's own error rather than throwing a wrapper, so nothing about this line's
       // reporting of the failure depends on the marking having worked.
-      const partial = partialWriteOf(e);
+      // #1633: a dependency's failure carries the host's own error as `original`, which is where the
+      // executor attached its partial-write facts; the message is the dependency's, naming both defs.
+      const partial = partialWriteOf(e instanceof DependencyBuildError ? e.original : e);
       postVerdict({
         type: 'component-result', ok: false,
         headline: partial ? partialWriteHeadline(partial) : APPLY_FAILED_HEADLINE,
