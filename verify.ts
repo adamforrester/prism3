@@ -738,6 +738,13 @@ export const GATES: Gate[] = [
     why: 'it scans the dist/main.js the plugin build just wrote, exactly as Figma reads it',
   },
   {
+    id: 'lint-bundle-prose',
+    ciStep: 'The built plugin ships no maintainer notes and no Prism 2 in component text (#1623)',
+    cmd: [...TSX, 'apps/plugin/lint-bundle-prose.ts'],
+    after: ['build-plugin'],
+    why: 'it reads the dist/main.js and dist/ui.html the plugin build just wrote',
+  },
+  {
     // It fired for real on 2026-08-20, naming all 8 live sites that described #775's window — this
     // row's own `ciStep` string among them — and that firing is what produced the flip below. It
     // now guards windows nobody has opened yet.

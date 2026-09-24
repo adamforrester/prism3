@@ -31,13 +31,31 @@ it, add it to `componentDefs`, and re-export it; `typecheck-components` fails by
 tracked def file is missing from the set, or the set names a file git does not track.
 
 **Before the schema, look at the FIELD RESEARCH.** Where a Prism2 spec exists for the component you are
-building — the adjudicated real-world source under `reference/Prism2/component-specs/`
-(`text-field.json`, `select.json`, `search-field.json`, `component-title.json`, and the rest) — ground the
-def's structure, sizing, states and default values in it. It is the practice-resolved shape the engine
-reproduces, so `packages/engine/components/button.ts` is the SCHEMA substrate, not a substitute for the
-component's own field research: check for a matching spec first, and where one exists, cite it in the def's
-header the way `packages/engine/components/select.ts` cites `reference/Prism2/component-specs/select.json`.
-(`component-title.json` is the title component for the page-per-component layout.)
+building — the practice-resolved source under `reference/Prism2/component-specs/`
+(`text-field.json`, `select.json`, `search-field.json`, `component-title.json`, and the rest) — read it as an
+INPUT: ground the def's structure, sizing, states and default values in it, then improve on it where the
+research says it falls short. `packages/engine/components/button.ts` is the SCHEMA substrate, not a
+substitute for the component's own field research: check for a matching spec first, and where one exists,
+cite it in a code comment in the def's header the way `packages/engine/components/select.ts` cites
+`reference/Prism2/component-specs/select.json`. **Never in a shipped field** — see "Shipped metadata"
+below. (`component-title.json` is the title component for the page-per-component layout.)
+
+**Shipped metadata** (`docs/28-component-anatomy-schema.md` §5.3, the owner's #1623 sign-off). Everything
+in a def except `notes` and `anatomy.codeOnly` ships in the plugin, and is read by designers and by
+agents, so it is written for a machine reader:
+
+- `summary` — one line, about 90 characters (at most 100), ending in a period. The plugin writes it as the
+  Figma description. Author it; do not cut it from `description`.
+- `name` — PascalCase, or `Family.Part` inside a family, and it reads as the id with the separators
+  removed (`checkbox-group` is `Checkbox.Group`). Name siblings in prose by their def name.
+- `ai.commonPartners` and the `composition` id lists hold only registered def ids. An unbuilt component
+  goes in the `planned` list under `composition`; a described pattern ("a bare <select> with no label wiring") in
+  `composition.replacesPatterns`.
+- No provenance: state the behavior, never "follows Prism 2". Provenance, history and issue numbers go in
+  code comments or the maintainer channels (`notes`, `codeOnly`), which are stripped from the plugin bundle.
+
+`packages/engine/test.ts` (`component-refs`, `component-names`, `component-prose`) and `apps/plugin/lint-bundle-prose.ts`
+fail by name on each of these.
 
 > **The contract:** every binding resolves against a real generated tree, every factual
 > claim in the def's prose is checked by `lint-skills`/`lint-us-english`/`lint-voice`, and
@@ -269,7 +287,8 @@ classification yet.
 ## Before you finish
 
 1. Where a Prism2 spec exists for this component under `reference/Prism2/component-specs/`, the def's
-   structure, sizing and states are grounded in it (the field research), and the header cites it.
+   structure, sizing and states are grounded in it (the field research), and a header comment cites it —
+   no shipped field does. The def has a `summary`, a name in the convention, and id lists that resolve.
 2. Every binding resolves against a real generated tree (the validator checks this).
 3. The root part is named for its role; `codeOnly` is non-empty and honest about the Figma ceiling.
 4. Every naming choice matches the settled canon in §6 — no reintroduced legacy prop name, and icon

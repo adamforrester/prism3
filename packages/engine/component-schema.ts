@@ -998,6 +998,15 @@ export type ComponentDef = {
   category: string;
   status: 'draft' | 'stable' | 'deprecated';
   description: string;
+  /** THE ONE-LINE SUMMARY — what the component is and the one rule a designer or agent most needs, in
+   *  the plugin register (`docs/voice-standard.md` §4: one line, about 90 characters). The plugin writes
+   *  it as the Figma description of the component set (or of each component, for an `emitAsComponents`
+   *  def), which is the only def prose a designer sees in Figma.
+   *
+   *  AUTHORED, NOT DERIVED from `description` (#1623 sign-off): a truncated paragraph cuts mid-rule, and
+   *  `description` is written for a reader who has the rest of the def beside it. Validated as one line
+   *  of at most `SUMMARY_MAX` characters ending in a period. */
+  summary: string;
 
   // ---- api (§15) ----
   /** The substrate this stands on (the form family stands on `text-field`). The def
@@ -1189,11 +1198,22 @@ export type ComponentDef = {
   };
 
   // ---- composition (§15) ----
+  /** Every id in `composesWith` / `alternativeTo` / `supersedes` / `supersededBy` (and in
+   *  `ai.commonPartners`) is a REGISTERED def id — a reader can act on each one by looking it up.
+   *  `planned` holds the related components that are not built yet (kebab-case, the id they would
+   *  take), so the roadmap stays recorded without an id that resolves to nothing. Both halves are gated
+   *  in `test.ts` against the real registry: a real-list id must resolve, and a `planned` id must NOT
+   *  (once it ships, it moves to the real list). */
   composition?: {
     composesWith?: string[];
     alternativeTo?: string[];
     supersedes?: string[];
     supersededBy?: string[];
+    planned?: string[];
+    /** The hand-rolled or native patterns this component replaces, as prose (`div[role=button]`, "a bare
+     *  <select> with no label wiring"). Kept apart from the id lists above so every entry there is an id
+     *  a reader can resolve, and every entry here is read as a description, never looked up. */
+    replacesPatterns?: string[];
   };
 
   // ---- motion / notes (§15, SCALES) ----
@@ -1236,6 +1256,10 @@ export type ComponentDef = {
  * entries indexing `variants` — and it found the claim by failing to compile. One exported pair rather
  * than a re-derived cast per file, so the argument above cannot be silently disagreed with downstream.
  */
+/** The ceiling on `ComponentDef.summary`. The plugin register is about 90 characters; 100 leaves room
+ *  for a precise sentence without admitting a second one. */
+export const SUMMARY_MAX = 100;
+
 export const statesOf = (def: ComponentDef): readonly string[] => def.states ?? [];
 export const variantsOf = (def: ComponentDef): Record<string, string[] | undefined> => def.variants ?? {};
 
@@ -1261,6 +1285,12 @@ export const validateComponentDef = (
   req(!!def.category, 'category is required');
   req(['draft', 'stable', 'deprecated'].includes(def.status), `status must be draft|stable|deprecated (got '${def.status}')`);
   req(!!def.description, 'description is required');
+  req(typeof def.summary === 'string' && def.summary.length > 0, 'summary is required — the one-line Figma description');
+  if (typeof def.summary === 'string' && def.summary.length > 0) {
+    if (def.summary.length > SUMMARY_MAX) errors.push(`summary is ${def.summary.length} characters — at most ${SUMMARY_MAX} (the plugin register is one line of about 90)`);
+    if (/\n/.test(def.summary)) errors.push('summary must be one line');
+    if (!/\.$/.test(def.summary)) errors.push('summary must end with a period');
+  }
 
   // api
   req(Array.isArray(def.props), 'props must be an array');

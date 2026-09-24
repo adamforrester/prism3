@@ -62,6 +62,7 @@ export const fieldMessage: ComponentDef = {
   aliases: ['helper-text', 'help-text', 'field-error', 'validation-message', 'caption'],
   category: 'form',
   status: 'draft',
+  summary: 'Helper or validation caption below a field; status sets its icon and ink.',
   description:
     'The small icon + caption below a form field. In its default status it is persistent helper guidance (the format shown BEFORE failure); its error / warning / success statuses carry a validation result. A shared field part — the same component under every field control, not re-authored per host. Icon + text together, never color alone.',
 
@@ -217,7 +218,7 @@ export const fieldMessage: ComponentDef = {
         glyph: 'warning-triangle',
         size: 'glyph-size',
         presentWhen: { status: ['error'] },
-        note: 'The error glyph, aria-hidden — the caption carries the meaning. An exclamation in a TRIANGLE, per the Prism2 reference, and the only tone whose enclosure is not a circle: shape is the channel that survives when the ink cannot be told from `warning`\'s. Its ink is `error.icon`, applied as `descendantFills` (never a fill on the artboard — #864), so the icon+text pairing that satisfies SC 1.4.1 is one token decision rather than two.',
+        note: 'The error glyph, aria-hidden — the caption carries the meaning. An exclamation in a triangle, and the only status whose enclosure is not a circle: shape is the channel that survives when the ink cannot be told from `warning`\'s. Its ink is `error.icon`, applied as `descendantFills` (never a fill on the artboard — #864), so the icon+text pairing that satisfies SC 1.4.1 is one token decision rather than two.',
       },
       iconWarning: {
         kind: 'vector',
@@ -353,14 +354,15 @@ export const fieldMessage: ComponentDef = {
     primaryPurpose: 'Carry helper guidance or a validation result below a form field, as icon + caption.',
     whenToUse: 'Under any field control that needs persistent guidance or an error/warning/success message.',
     avoidWhen: 'As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.',
-    commonPartners: ['text-field', 'number-field', 'select', 'checkbox-row', 'field-label', 'icon'],
+    commonPartners: ['text-field', 'select', 'checkbox-row', 'field-label', 'icon'],
     triggerKeywords: ['helper text', 'help text', 'error message', 'validation message', 'field error', 'caption', 'hint'],
     generationPriority: 3,
   },
 
   composition: {
     composesWith: ['text-field', 'select', 'field-label', 'icon'],
-    alternativeTo: ['tooltip', 'inline-alert'],
+    alternativeTo: [],
+    planned: ['number-field', 'tooltip', 'inline-alert'],
   },
 
   notes: {

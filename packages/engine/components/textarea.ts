@@ -63,8 +63,9 @@ export const textarea: ComponentDef = {
   category: 'form',
   status: 'draft',
   inherits: 'text-field',
+  summary: 'Multi-line text field: label, input area, and helper or validation message.',
   description:
-    'A control for free-form text expected to wrap across multiple lines — comments, descriptions, messages, feedback. Shares the form-field substrate with TextField (label, helper/error, the aria-describedby wiring); differs in the sizing model, the prominence of the character counter, and who owns the Enter key. Not single-line (TextField), not formatted or structured (a rich-text editor), not code (a code editor), not a value from a known set (Select/Combobox).',
+    'A control for free-form text expected to wrap across multiple lines — comments, descriptions, messages, feedback. Shares the form-field substrate with TextField (label, helper/error, the aria-describedby wiring); differs in the sizing model, the prominence of the character counter, and who owns the Enter key. Not single-line (TextField), not formatted or structured (a rich-text editor), not code (a code editor), not a value from a known set (Select, or a combobox, not built yet).',
 
   // THE DELTA ONLY (brief §3, §15). Everything the substrate contract already carries — label,
   // value/defaultValue, onChange/onBlur/onFocus, placeholder, helpText, disabled, readOnly,
@@ -225,21 +226,21 @@ export const textarea: ComponentDef = {
   ai: {
     primaryPurpose: 'Capture multi-line free-form text with an associated label, an optional soft character limit, and a stated sizing model.',
     whenToUse: 'Comments, descriptions, messages, feedback, notes, commit-message bodies, a multi-line address — any input that predictably runs past the ~40–60 characters a single-line field shows comfortably, or that legitimately needs user-authored line breaks.',
-    avoidWhen: 'The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a <textarea> holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select/Combobox). Also avoid reaching for it as a general "big box of text" when the content is genuinely structured — that is the rich-text signal.',
-    commonPartners: ['field-label', 'field-message', 'button', 'icon', 'spinner', 'form'],
+    avoidWhen: 'The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a <textarea> holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select, or a combobox, not built yet). Also avoid reaching for it as a general "big box of text" when the content is genuinely structured — that is the rich-text signal.',
+    commonPartners: ['field-label', 'field-message', 'button', 'icon'],
     triggerKeywords: ['textarea', 'text area', 'multiline', 'multi-line input', 'comment box', 'message box', 'description field', 'composer'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'button', 'icon', 'spinner', 'form'],
+    composesWith: ['field-label', 'field-message', 'button', 'icon'],
     // ALTERNATIVE TO text-field, not a superseder — they are siblings a designer picks between by
     // input shape. The brief flags that its external research pass typed this as
     // `supersedes: text-field` and corrects it against the prose; carried here so the corrected
     // reading is the one that reaches the engine.
-    alternativeTo: ['text-field', 'rich-text-editor', 'combobox', 'select', 'code-editor'],
-    supersedes: ['a one-row textarea used as a tall input', 'a contenteditable div used for plain multi-line text'],
-    supersededBy: ['a rich-text editor when the content genuinely needs formatting'],
+    alternativeTo: ['text-field', 'select'],
+    replacesPatterns: ['a one-row textarea used as a tall input', 'a contenteditable div used for plain multi-line text'],
+    planned: ['spinner', 'form', 'rich-text-editor', 'combobox', 'code-editor'],
   },
 
   notes: {

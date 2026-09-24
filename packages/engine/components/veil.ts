@@ -76,6 +76,7 @@ export const veil: ComponentDef = {
   aliases: ['wash', 'photo-wash', 'image-overlay', 'image-scrim', 'media-wash', 'photo-overlay'],
   category: 'media',
   status: 'draft',
+  summary: 'Wash over media so text stays legible. Intensity is a magnitude — verify contrast.',
   description:
     'A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a DARK wash under light text or a LIGHT wash under dark text (the `value` axis), then the intensity for how much the image needs muting. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.',
 
@@ -210,13 +211,14 @@ export const veil: ComponentDef = {
 
   composition: {
     composesWith: ['icon', 'button'],
-    alternativeTo: ['scrim'],
-    supersedes: [
+    alternativeTo: [],
+    replacesPatterns: [
       'a hand-tuned semi-transparent rectangle over an image with an ad-hoc opacity',
     ],
     // Nothing supersedes the veil for a media wash — the modal backdrop (scrim) is a sibling used for a
     // different job (modality), not a replacement.
     supersededBy: [],
+    planned: ['scrim'],
   },
 
   notes: {

@@ -107,13 +107,14 @@ const iconButtonIntentTokens = (family: IntentFamily): Record<string, string> =>
  * disabled, accessibility — is authored ONCE here and shared verbatim. The three exports at the foot of the
  * file are its outputs, not hand-maintained copies (docs/34 DRY), and `test.ts` pins that.
  */
-const makeIconButton = (id: string, name: string, description: string, family: IntentFamily, inheritsFrom: string): ComponentDef => ({
+const makeIconButton = (id: string, name: string, summary: string, description: string, family: IntentFamily, inheritsFrom: string): ComponentDef => ({
   id,
   name,
   aliases: ['icon-btn'],
   category: 'form',
   status: 'draft',
   description,
+  summary,
 
   inherits: inheritsFrom,
 
@@ -122,8 +123,8 @@ const makeIconButton = (id: string, name: string, description: string, family: I
   // Neutral IconButton), not a prop on one component.
   props: [
     { name: 'icon', type: 'slot', required: true, description: 'The single icon. Rendered aria-hidden — the IconButton owns the name.' },
-    { name: 'aria-label', type: 'string', required: true, description: 'REQUIRED accessible name (there is no visible text). A verb naming the action ("Close", "More actions"). Enforced at the TYPE LEVEL — a missing name is a compile error, not merely a runtime warning; that type-level requirement is the entire reason IconButton is a separate component.' },
-    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'ghost'", values: ['filled', 'outline', 'ghost'], default: 'ghost', required: false, description: 'Default ghost — icon-only actions usually sit in toolbars, not as filled CTAs. The tertiary appearance is `ghost` (a borderless, fill-less icon action) because an icon-only control has no text; Button keeps `text`. Emphasis is the appearance axis; the color is the COMPONENT (IconButton / Destructive IconButton / Neutral IconButton).' },
+    { name: 'aria-label', type: 'string', required: true, description: 'Required accessible name (there is no visible text). A verb naming the action ("Close", "More actions"). Enforced at the TYPE LEVEL — a missing name is a compile error, not merely a runtime warning; that type-level requirement is the entire reason IconButton is a separate component.' },
+    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'ghost'", values: ['filled', 'outline', 'ghost'], default: 'ghost', required: false, description: 'Default ghost — icon-only actions usually sit in toolbars, not as filled CTAs. The tertiary appearance is `ghost` (a borderless, fill-less icon action) because an icon-only control has no text; Button keeps `text`. Emphasis is the appearance axis; the color is the COMPONENT (IconButton / IconButton.Destructive / IconButton.Neutral).' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Square control; height drives both dimensions.' },
     { name: 'shape', type: "enum: 'square' | 'circular'", values: ['square', 'circular'], default: 'square', required: false, description: 'The corner silhouette — PURE GEOMETRY. `square` is the button\'s normal rounded rectangle (`radius.md`); `circular` is full-round (`radius.round`), the tap target read as a disc. NO color, state, or token difference between the two — only the corner radius — which is why it is a clean 2-value axis and not a component split (each intent, by contrast, carries a different `interactive.<family>` binding). Both stay square in dimension (height drives width); shape rounds the corners, it does not change the box.' },
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the icon-button sits on, following Button 1:1. `default` for a normal page; `inverse` for a dark or brand-filled band, where the control binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon-button inherits the shared white-inverse model with the ICON as the ink: white fill + a per-family icon-ink derived to clear AA on white. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives.' },
@@ -465,7 +466,7 @@ const makeIconButton = (id: string, name: string, description: string, family: I
   },
 
   docs: {
-    usage: 'Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the COMPONENT (IconButton / Destructive IconButton / Neutral IconButton — pick by semantics); rank actions within a view by APPEARANCE (filled > outline > ghost). Always provide the accessible name; pair with a Tooltip for the visible name on hover/focus.',
+    usage: 'Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the COMPONENT (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by APPEARANCE (filled > outline > ghost). Always provide the accessible name; pair with a tooltip (not built yet) for the visible name on hover/focus.',
     do: [
       'Always give it an accessible name (a verb)',
       'Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead',
@@ -481,15 +482,16 @@ const makeIconButton = (id: string, name: string, description: string, family: I
   ai: {
     primaryPurpose: 'Trigger an action with an icon alone, no visible label.',
     whenToUse: 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).',
-    avoidWhen: 'The action is not obvious from the icon (use a labeled button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name.',
-    commonPartners: ['icon', 'tooltip', 'button-group', 'menu'],
+    avoidWhen: 'The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name.',
+    commonPartners: ['icon'],
     triggerKeywords: ['icon button', 'close button', 'more button', 'toolbar action', 'edit action', 'kebab menu'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['icon', 'tooltip', 'button-group', 'menu', 'popover'],
-    alternativeTo: ['button', 'link'],
+    composesWith: ['icon'],
+    alternativeTo: ['button'],
+    planned: ['tooltip', 'button-group', 'menu', 'popover', 'link'],
   },
 
   notes: {
@@ -510,14 +512,16 @@ const makeIconButton = (id: string, name: string, description: string, family: I
 export const iconButton: ComponentDef = makeIconButton(
   'icon-button',
   'IconButton',
-  'A Button whose entire content is a single icon, with no visible text label, in the brand (primary) color. Use for space-constrained, self-evident actions (close, more, edit) in toolbars, table rows, and headers. Because there is no visible label, an accessible name is mandatory. For a destructive or a weightless icon action, use the Destructive IconButton / Neutral IconButton sibling components.',
+  'Icon-only action in the brand color. Needs an accessible name.',
+  'A Button whose entire content is a single icon, with no visible text label, in the brand (primary) color. Use for space-constrained, self-evident actions (close, more, edit) in toolbars, table rows, and headers. Because there is no visible label, an accessible name is mandatory. For a destructive or a weightless icon action, use the IconButton.Destructive / IconButton.Neutral sibling components.',
   'primary',
   'button',
 );
 
 export const iconButtonDestructive: ComponentDef = makeIconButton(
   'icon-button-destructive',
-  'Destructive IconButton',
+  'IconButton.Destructive',
+  'Icon-only destructive action. Needs an accessible name.',
   'An icon-only trigger for a DESTRUCTIVE action — delete, remove, discard — in the destructive color, so the consequence reads before the click. Same anatomy as IconButton; the color is the whole difference, and the accessible name is still mandatory (a bare trash glyph is not a name). For a quiet destructive icon action, use appearance=ghost on this component.',
   'destructive',
   'button-destructive',
@@ -525,7 +529,8 @@ export const iconButtonDestructive: ComponentDef = makeIconButton(
 
 export const iconButtonNeutral: ComponentDef = makeIconButton(
   'icon-button-neutral',
-  'Neutral IconButton',
+  'IconButton.Neutral',
+  'Icon-only action with no brand emphasis. Needs an accessible name.',
   'An icon-only trigger that carries NO brand weight — a toolbar control, a dense table-row action, a close affordance — in the neutral color, which is where most icon-only actions sit. Reach for it when the control genuinely has no brand emphasis to carry, not merely because it is secondary in rank (rank is the appearance axis). Same anatomy as IconButton; the accessible name is still mandatory.',
   'neutral',
   'button-neutral',

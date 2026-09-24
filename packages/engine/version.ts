@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.145.0 — #1623 sign-off (component metadata): every def gains a one-line `summary`, which the plugin now
+ * writes as the Figma description of each component set (or each component, for `emitAsComponents`); the
+ * `composition` id lists hold only registered ids (unbuilt ones move to `composition.planned`, described
+ * patterns to `composition.replacesPatterns`); seven display names move to the one convention
+ * (`Button.Destructive`, `Button.Neutral`, `IconButton.Destructive`, `IconButton.Neutral`, `ImagePlaceholder`,
+ * `Checkbox.Group`, `Radio.Group`); shipped component prose names no Prism 2; `notes` and `anatomy.codeOnly`
+ * are stripped from the plugin bundle. A plugin behavior change and a def-metadata change → MINOR. The
+ * projected component surface does not move (names, summaries and prose are not plan data), and no token
+ * name moves. CONTRACT STANDS.
  * 0.144.0 — #1611: the component build's footprint check compares members across RUNTIME axes only and holds
  * AUTHORING axes fixed. New `ComponentDef.axisKinds` (`runtime | authoring`, absent = runtime) classifies every
  * def's axes, and every projected `AnatomyPlan` now carries `axisKinds` for its variant axes and state axis —
@@ -3527,7 +3536,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.144.0';
+export const ENGINE_VERSION = '0.145.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

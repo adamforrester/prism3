@@ -84,8 +84,9 @@ export const checkboxControl: ComponentDef = {
   aliases: ['checkbox-box', 'check-control', 'checkbox-atom'],
   category: 'form',
   status: 'draft',
+  summary: 'Checkbox box with check/dash glyph and focus ring. Nested by Checkbox.Row; no label.',
   description:
-    'The atomic checkbox control — the painted square with its check or dash glyph and its focus ring, and nothing else. Nested by the labeled Checkbox row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the three-value selection axis (unchecked / checked / indeterminate) whose mark is a real part gated on the coordinate, the per-rung clamped corner, and the 2px control border.',
+    'The atomic checkbox control — the painted square with its check or dash glyph and its focus ring, and nothing else. Nested by the labeled Checkbox.Row rather than placed on its own: it carries no label, no description and no hit-target padding, so a standalone use needs an external aria-label. Carries the three-value selection axis (unchecked / checked / indeterminate) whose mark is a real part gated on the coordinate, the per-rung clamped corner, and the 2px control border.',
 
   // The atom's surface, not the field's. It has no `label`, no `description`, no form wiring — those
   // are the Row's and the Group's. What it exposes is the visual state a host drives through the nest.
@@ -220,7 +221,7 @@ export const checkboxControl: ComponentDef = {
         size: 'size.{size}.control',
         glyphScale: 0.8,
         presentWhen: { selection: ['checked'] },
-        note: 'The check, inset to 0.8 of the box (#1346, Prism 2\'s 16/20 mark ratio) via a padded artboard rather than a shrunk frame. Its ink is `checked.icon` (`descendantFills`, never a fill on the artboard — #864), and its micro-motion has no expression in this schema (see `codeOnly`).',
+        note: 'The check, inset to 0.8 of the box (#1346) via a padded artboard rather than a shrunk frame. Its ink is `checked.icon` (`descendantFills`, never a fill on the artboard — #864), and its micro-motion has no expression in this schema (see `codeOnly`).',
       },
       // THE DASH. Same geometry and the same `glyphScale: 0.8` inset; only the outline differs, which is
       // the whole of what separates `indeterminate` from `checked` in this def's tokens. Prism 2 sizes
@@ -281,29 +282,29 @@ export const checkboxControl: ComponentDef = {
   },
 
   content: {
-    labelPattern: 'None — the atom carries no label. The consent line and its rules live on the Checkbox row (`checkbox-row`).',
-    errorPattern: 'None of its own — an error boundary is a color treatment the host coordinate selects; the message is the Group\'s (`checkbox-group`).',
+    labelPattern: 'None — the atom carries no label. The consent line and its rules live on Checkbox.Row (`checkbox-row`).',
+    errorPattern: 'None of its own — an error boundary is a color treatment the host coordinate selects; the message is Checkbox.Group\'s (`checkbox-group`).',
   },
 
   docs: {
-    usage: 'Do not place this on its own. It is the box a Checkbox row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring — the ~10% case the labeled Checkbox does not cover.',
+    usage: 'Do not place this on its own. It is the box Checkbox.Row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring — the uncommon case with no labeled row.',
     do: [
-      'Nest this from the Checkbox row rather than redrawing the box per host',
+      'Nest this from Checkbox.Row rather than redrawing the box per host',
       'Let the host row expose `selection` and `state` and `follow` its size, so the nested control tracks the row',
       'Supply an external aria-label only when using the control genuinely alone, with no labeled row to name it',
     ],
     dont: [
       'Place a bare control square as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target',
       'Double-label a nested control — the host row already provides the accessible name',
-      'Reach for this atom when you want the ~90% labeled case — that is the Checkbox row',
+      'Reach for this atom when you want the labeled case — that is Checkbox.Row',
     ],
     contentGuidelines: 'The atom has no copy of its own; all label, description and error text belongs to the row and the group that compose it.',
   },
 
   ai: {
     primaryPurpose: 'Render the atomic checkbox control — the painted square with its check or dash glyph and focus ring — for a host row to nest.',
-    whenToUse: 'Nested by the labeled Checkbox row (the common case), or standalone only for a control with an external label and its own aria wiring.',
-    avoidWhen: 'You want the labeled ~90% case (that is Checkbox), a mutually-exclusive one-of-many (Radio.Control), or an immediate-effect toggle (Switch). Never place a bare control square as the clickable element — the hit target is the labeled row.',
+    whenToUse: 'Nested by the labeled Checkbox.Row (the common case), or standalone only for a control with an external label and its own aria wiring.',
+    avoidWhen: 'You want the labeled case (that is Checkbox.Row), a mutually-exclusive one-of-many (Radio.Control), or an immediate-effect toggle (Switch.Control). Never place a bare control square as the clickable element — the hit target is the labeled row.',
     commonPartners: ['checkbox-row', 'focus-ring', 'checkbox-group'],
     triggerKeywords: ['checkbox control', 'checkbox box', 'check box atom', 'checkbox square'],
     generationPriority: 3,
@@ -312,7 +313,7 @@ export const checkboxControl: ComponentDef = {
   composition: {
     composesWith: ['focus-ring'],
     alternativeTo: ['radio-control', 'switch-control'],
-    supersedes: [
+    replacesPatterns: [
       'the painted control inlined in a checkbox row',
     ],
     supersededBy: [],
