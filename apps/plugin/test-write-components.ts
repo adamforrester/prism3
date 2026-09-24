@@ -74,6 +74,11 @@ import { brandTheme } from '@prism3/engine/theme';
 import { buildTree, pxOf } from '@prism3/engine/tree';
 import { nbTheme } from '@prism3/engine/nb-fixture';
 import { exampleBrands } from '@prism3/engine/emit-brandinput';
+// #1605 — the brand materialization `main.ts` projects through, plus NB's real input and emitted styles.
+import { materializeForBrand } from './src/brand-def';
+import { parseDesignMd } from '@prism3/engine/design-md';
+import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
+import type { BrandInput } from '@prism3/engine/theme';
 import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson } from './src/write-components';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
 import type { ComponentApplyOptions, ComponentProgress, BuildReport } from './src/write-components';
@@ -3011,4 +3016,62 @@ ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET'
   `#1012 MUTATION: the same plans WITHOUT emitAsComponents combine into ONE COMPONENT_SET with no emittedComponents (page ${setPage.children.length}, type ${setPage.children[0]?.type}, emitted ${rSet.emittedComponents === undefined ? 'undefined' : rSet.emittedComponents.length})`);
 
 console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
+// =============================================================================================
+// #1605 — THE PLUGIN RESOLVES WEIGHT INTENT PER BRAND (the runtime half of #1602)
+// =============================================================================================
+// #1602 taught the engine to resolve `field-label`'s weight axis against a brand's shipped body roles
+// (`applyWeightIntent`), and `test.ts` pins that at the projection tier. What it did not reach was the
+// plugin: `main.ts` materialized `controlShape` and nothing else, so an NB file still projected
+// `body/<size>/strong` — a style NB never emits — and every bold member missed its style (#1599's 252).
+//
+// The subject is `materializeForBrand` (`src/brand-def.ts`), the function `main.ts` calls; it is a module
+// precisely so this arm can run it. The HOST holds the brand's EMITTED text styles — named by
+// `buildFigmaTextStyles` off the brand's theme, the emitter's side, not the projection's — and the styles
+// read back off the built text nodes are compared to HAND-NAMED expectations (docs/34: the expected side
+// is not derived from the code under test). Removing the `applyWeightIntent` wrap puts `strong` back in
+// the plans, the host has no such style, and the NB lines below fail by their #1605 names.
+{
+  const nbInput = parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input as BrandInput;
+  const emittedStyles = (input: BrandInput): string[] => buildFigmaTextStyles(brandTheme(input)).styles.map((st) => st.name);
+  const appliedStyles = (page: Page): string[] => {
+    const set = page.children[0];
+    const texts = [set, ...((set.findAll as () => Node[])())].filter((n) => n.type === 'TEXT') as Node[];
+    return texts.map((n) => String(n._textStyleId ?? '').replace(/^S:/, ''));
+  };
+
+  // (a) NB — `body: [default, emphasis]`. Bold resolves to `emphasis`, the heaviest body role NB ships.
+  const nbPlans = figmaAnatomySet(materializeForBrand(fieldLabel, nbInput), { swapTarget: SWAP });
+  const nbPage: Page = { children: [] };
+  const nbRun = await run(nbPlans, { ...fullFor(nbPlans), styles: emittedStyles(nbInput), page: nbPage });
+  const nbApplied = appliedStyles(nbPage);
+  ok(nbApplied.length > 0 && nbApplied.every((st) => st !== ''),
+    `#1605 NB field-label: every built text node carries a text style the NB host holds (${nbApplied.length} text nodes, ${nbApplied.filter((st) => st === '').length} unstyled)`);
+  ok(!nbApplied.some((st) => /^body\/.+\/strong$/.test(st)) && !nbRun.misses.some((m) => /body\/[^/]+\/strong/.test(m)),
+    `#1605 NB field-label applies NO body/*/strong — a style NB never emits (misses: ${nbRun.misses.filter((m) => /\.textStyle ->/.test(m)).slice(0, 3).join('; ') || 'none'})`);
+  const NB_EXPECTED = ['body/lg/default', 'body/lg/emphasis', 'body/md/default', 'body/md/emphasis', 'body/sm/default', 'body/sm/emphasis'];
+  ok(JSON.stringify([...new Set(nbApplied)].sort()) === JSON.stringify(NB_EXPECTED),
+    `#1605 NB field-label applies exactly the body default/emphasis styles, bold → emphasis (${[...new Set(nbApplied)].sort().join(', ')})`);
+  ok(nbRun.variants === 24, `#1605 NB keeps the weight axis — two distinct body roles, 24 members (${nbRun.variants})`);
+
+  // (b) SINGLE BODY WEIGHT — both intents resolve to `default`, so the axis collapses: 12 members, not 24.
+  const aurora = exampleBrands().aurora as BrandInput;
+  const oneWeight = { ...aurora, typography: { ...(aurora.typography ?? {}), weights: { ...(aurora.typography?.weights ?? {}), body: ['default'] } } } as BrandInput;
+  const onePlans = figmaAnatomySet(materializeForBrand(fieldLabel, oneWeight), { swapTarget: SWAP });
+  const onePage: Page = { children: [] };
+  const oneRun = await run(onePlans, { ...fullFor(onePlans), styles: emittedStyles(oneWeight), page: onePage });
+  ok(oneRun.variants === 12 && oneRun.added === 12,
+    `#1605 a single-body-weight brand builds 12 field-label members, not 24 — the weight axis collapses (variants=${oneRun.variants}, added=${oneRun.added})`);
+  ok(nbRun.axes.some((a) => a.startsWith('weight:')) && !oneRun.axes.some((a) => a.startsWith('weight:')) && [...new Set(appliedStyles(onePage))].sort().join(',') === 'body/lg/default,body/md/default,body/sm/default',
+    `#1605 ...with no weight axis on the set (NB keeps one) and only body/*/default applied (axes ${oneRun.axes.join('/')}; ${[...new Set(appliedStyles(onePage))].sort().join(', ')})`);
+
+  // (c) NO BRAND — `null` is the identity on both levers, so a themeless file builds exactly as before.
+  ok(JSON.stringify(figmaAnatomySet(materializeForBrand(fieldLabel, null), { swapTarget: SWAP })) === JSON.stringify(labelPlans),
+    '#1605 no persisted brand: materializeForBrand is the identity — the plans are byte-identical to the raw def\'s');
+
+  // (d) `main.ts` IS WIRED TO IT — source text only, the `(5)` limit above: this sees the call, the arms
+  // above see what the call does.
+  ok(/figmaAnatomySet\(materializeForBrand\(def, brandInput\)/.test(mainSrc) && /brandInput = restoreInput\(figma\.root\)/.test(mainSrc),
+    '#1605 main.ts projects `materializeForBrand(def, brandInput)`, off its one `restoreInput` read');
+}
+
 if (failed) process.exit(1);
