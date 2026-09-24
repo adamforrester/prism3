@@ -54,7 +54,7 @@ export const textField: ComponentDef = {
   category: 'form',
   status: 'draft',
   description:
-    'A single-line control for free-form, non-enumerable text — names, emails, SKUs, short queries. A composed host: label + input + helper/error, with the accessibility wiring (id generation, aria-describedby chain, aria-invalid) handled internally. Not multi-line (Textarea), not a known set (Select/Combobox), not numeric-formatted (NumberField), not suggestion-backed (Combobox).',
+    'A single-line control for free-form, non-enumerable text — names, emails, SKUs, short queries. A composed host: label + input + helper/validation message, with the accessibility wiring (id generation, aria-describedby chain, aria-invalid) handled internally. Not multi-line (Textarea), not a known set (Select/Combobox), not numeric-formatted (NumberField), not suggestion-backed (Combobox).',
 
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'The visible, persistent label (rendered as FieldLabel). Required — a visually-hidden label is the only label-less case, and it still exists in the DOM. Never the placeholder.' },
@@ -63,20 +63,20 @@ export const textField: ComponentDef = {
     { name: 'onChange', type: 'function', required: false, description: 'Change handler (also onBlur / onFocus).' },
     { name: 'type', type: "enum: 'text' | 'email' | 'url' | 'tel' | 'search' | 'password'", values: ['text', 'email', 'url', 'tel', 'search', 'password'], default: 'text', required: false, description: 'Attribute-only variants (mobile keyboard + autofill). NOT number — use NumberField. search / password are better served by their thin specializations.' },
     { name: 'placeholder', type: 'string', required: false, description: 'An example only ("name@example.com"); vanishes on input; nothing load-bearing lives here.' },
-    { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default tone); wired via aria-describedby. Show the format BEFORE failure.' },
-    { name: 'error', type: 'string | node', required: false, description: 'Error message (rendered as FieldMessage, error tone). Sets aria-invalid + adds the id to aria-describedby. Say what and how to fix (SC 3.3.3); the message pairs an icon, so it is not color-only. The input itself swaps to a border-only error boundary (the `status` axis, not a state).' },
+    { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format BEFORE failure.' },
+    { name: 'error', type: 'string | node', required: false, description: 'Error message (rendered as FieldMessage, error status). Sets aria-invalid + adds the id to aria-describedby. Say what and how to fix (SC 3.3.3); the message pairs an icon, so it is not color-only. The input itself swaps to a border-only error boundary (the `status` axis, not a state).' },
     // #1494 — a node-visibility boolean (the #1412 mechanism), mirroring select's `showMessage`. Hides the
     // composed FieldMessage entirely; default ON (the message is part of the field). Turning it off is for a
     // field with genuinely nothing to say — an error still sets aria-invalid and the message carries the
     // reason, so never hides a message the field needs. See `figmaProperties.booleans`.
     { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. ON — the default — renders the helper / validation message below the input; turning it off hides the message entirely (a field with no helper or validation text). Never hides a message the field needs.' },
-    { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required; the label marks the minority (§7).' },
+    { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled — removed from tab order, not submitted, silent to AT, contrast-exempt. Reserve for fields irrelevant in the current state.' },
-    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'DISTINCT from disabled — focusable, selectable/copyable, SUBMITTED, passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component\'s live edge (§4).' },
+    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'DISTINCT from disabled — focusable, selectable/copyable, SUBMITTED, passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component\'s live edge.' },
     { name: 'autoComplete', type: 'string (WHATWG token)', required: false, description: 'Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience.' },
     { name: 'inputMode', type: "enum: 'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url' | 'search'", values: ['text', 'numeric', 'decimal', 'tel', 'email', 'url', 'search'], required: false, description: 'Selects the mobile virtual keyboard.' },
     { name: 'prefix', type: 'slot (adornment)', required: false, description: 'Leading adornment — a decorative/purpose glyph (currency, search), aria-hidden. Signals the field\'s PURPOSE; validation never mutates it.' },
-    { name: 'suffix', type: 'slot (adornment | action)', required: false, description: 'Trailing adornment. May be decorative (aria-hidden) OR a real labeled action (clear / reveal) — a focusable button, not decoration. The decorative-vs-interactive split is load-bearing (§2).' },
+    { name: 'suffix', type: 'slot (adornment | action)', required: false, description: 'Trailing adornment. May be decorative (aria-hidden) OR a real labeled action (clear / reveal) — a focusable button, not decoration. The decorative-vs-interactive split is load-bearing.' },
     // #1494 — the Figma-projected presence + swap of the LEADING glyph (the `prefix` adornment above),
     // mirroring select's `leadingIcon`. A node-visibility boolean (#1331/#1412) whose glyph the file
     // nominates: the leadingVisual node is emitted at every member hidden, and the `leading icon` switch flips
@@ -450,11 +450,11 @@ export const textField: ComponentDef = {
   content: {
     labelPattern: 'Noun phrase, sentence case, ≤3 words, no trailing colon; never the placeholder (see field-label).',
     errorPattern: 'What is wrong AND how to fix it (SC 3.3.3); icon + text, not color-only (see field-message).',
-    emptyPattern: 'The empty state is just the label + optional placeholder — there is no separate empty UI.',
+    emptyPattern: 'The empty state is the label plus an optional placeholder — there is no separate empty UI.',
   },
 
   docs: {
-    usage: 'Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. Compose FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain.',
+    usage: 'Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain.',
     do: [
       'Always render a visible, associated label (FieldLabel) — visually-hidden only for search',
       'Distinguish readOnly (copyable, submitted, full-contrast) from disabled (silent, exempt)',
@@ -471,7 +471,7 @@ export const textField: ComponentDef = {
   },
 
   ai: {
-    primaryPurpose: 'Capture a single line of free-form, non-enumerable text with an associated label and helper/error.',
+    primaryPurpose: 'Capture a single line of free-form, non-enumerable text with an associated label and helper/validation message.',
     whenToUse: 'Names, emails, titles, SKUs, identifiers, short queries — any single-line text the system cannot offer as a fixed set.',
     avoidWhen: 'The value comes from a known set (Select/Radio/Combobox), spans multiple lines (Textarea), is numeric-formatted (NumberField), is boolean (Checkbox/Switch), is a date (Date Picker), or needs suggestions (Combobox — the moment a suggestion list attaches you are in combobox territory with a different ARIA contract).',
     commonPartners: ['field-label', 'field-message', 'icon', 'button', 'spinner', 'form'],

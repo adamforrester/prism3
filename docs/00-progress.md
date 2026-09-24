@@ -34,6 +34,116 @@ Each mutation failed by name:
 - **The `main.ts` wiring itself.** `main.ts` can't be imported (it calls `figma.showUI` at module scope), so the test drives `guardApply` rather than `applyTheme`. The destructure `guarded.result` is what forces the executors' results to come out of the guard.
 - **Variables the rename pass migrates.** They are type-checked under their current names only. A rename moves the engine's own names inside a collection that has already been cleared, and it doesn't change a type.
 - **A host's mode-count cap.** Figma's API can't report the limit before `addMode` hits it.
+## (2026-09-24) — `solid-tint` is the category's existing fill at an existing opacity step (#1614, #1621)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Owner decision on #1614 (the "revised" comment plus its "amendment"). It supersedes PR #1622 (closed unmerged) and resolves #1621. Files: `packages/engine/modes.ts` (**NEW** `settleSolidTint`, `OPACITY_STEPS`, `TINT_NOMINAL`, `ResolvedRole.tint`; the in-mode `solid-tint` branch is deleted), `tree.ts`, `emit-figma-color.ts`, `anatomy-figma.ts` (`applyOutlineInteraction`, plan `paintOpacity`, the paste payload), `component-schema.ts` (`ComponentDef.paintOpacity`), `anatomy-readback.ts`, `apps/plugin/src/{write-components,brand-def}.ts`, the studio copy, `levers.ts`, and the tests. ENGINE 0.137.0; CONTRACT stands at 11.3.0.
+
+**The model.** An outline/text hover is the category's EXISTING fill (`[inverse.]interactive.<c>.fill.rest`) laid over whatever it sits on at an EXISTING opacity step:
+- **Steps:** `opacity.20` for hover, `opacity.30` for pressed/selected.
+- **It is translucent.** The role is now an `ink-on-composite` wash (`against` = its ground, `legibleFor` = its state ink, `alpha` = the step), with `tint: { fill, opacity }` naming both sources. `hex` is the OPAQUE fill, as it is on every wash.
+- **Nothing is minted.** There is no primitive and no opacity token. The tree's `$value` is the resolved translucent color, so a stock consumer gets the right paint (verified with stock Style Dictionary 5.5 on synthetic aurora + nb-redesign trees: canonical, base, and every mode overlay emit `rgba(<fill>, 0.2)` / `0.1`). `$extensions.prism3.tint` carries `{ color: "{<root>.color.…fill.rest}", opacity: "{<root>.opacity.<n>}" }`.
+- **Figma has no subtle-fill variable.** A variable cannot alias another at an alpha, and a raw translucent variable would be a new color that stops following the fill. `applyOutlineInteraction` instead binds the fill variable and writes `ComponentDef.paintOpacity[key] = { page, inverse }`. The projector puts that on the plan as `paintOpacity.fills`, per the member's `surface`. Both executors set it on the paint after `setBoundVariableForPaint` and read it back.
+
+**Why the scale, and the two guards.** Owner: "if we have existing opacity scale values, shouldn't we just leverage those?" So a guard moves along 5/10/20/30/…/100 and never lands between two steps:
+- **Text (hover only):** step DOWN until the label clears its bar on the composite. nb-redesign page primary (4.38 at 20) and nb-redesign/Aurora band primary (3.87/3.80) land on `opacity.10`, matching the owner's measurements.
+- **Visibility:** step UP until ΔE00 ≥ 2.3, capped by the text bar. This is #1621: the subtle neutral is ΔE00 0.4–2.1 at 20 and needs 30 (light) to 50 (dark).
+- **Pressed** sits at least one step above hover, so it still reads as coming forward.
+
+**The decision that isn't in the brief: ONE step per role across every mode.** A Figma paint's opacity cannot bind a variable and cannot vary by mode, but the fill variable it binds does. A per-mode step would make code and Figma disagree in every mode but one. So `settleSolidTint` runs after all modes resolve and picks, per (ground, category, state), the step that satisfies the rule in EVERY mode:
+- The text guard takes the strictest mode.
+- Visibility takes the mode that needs the most. The subtle neutral therefore sits at `opacity.50` on every page mode, including light, where 30 would already show.
+
+**Why #1622 was superseded.** It baked the composite into generated `core.palette.tint.*` primitives. The owner's model is that the tint IS the existing fill at an existing opacity, so there is nothing to mint. It also follows the fill for free: an overridden fill, or the band fill the owner sets per category in the plugin, moves the tint with no re-derivation.
+
+**Traps for whoever re-verifies this:**
+- **A tint role's `hex` is the fill, not the hover.** Every #288/#1613 arm used to judge `tint.hex` directly; they now composite (`mixHex`, written in `test.ts`) first. A check that forgets passes vacuously on a dark fill.
+- **Overrides:** a subtle fill is no longer overridable (there is no color to pin; the studio row reads "fill at N%"). An override on the fill or the ink IS followed, because the pass reads each mode's settled roles.
+- **Scope:** no corpus brand sets `solid-tint` (#1112), so `out/**` moves only its stamp, the `solid-tint` note prose and the lever description. The component-surface `@outline-solid-tint` rows moved and were re-accepted.
+
+**Gates (docs/34), by name:**
+- The #1614 independent re-derivation of every step (378 cells).
+- Four hand-computed composites (nb-redesign page `#e8e8e8`, band `#252525`; Aurora page `#cce5f1`, band `#252526`).
+- The down-step guard with its precondition, and the #1621 up-step with its precondition.
+- Nothing minted in the tree or the Figma collection.
+- Plan opacity nominal and brand-chosen, plus both executor legs and a paste read-back mutation.
+- Plugin 48+48 members read back at 0.1/0.3.
+- The round-trip reads back 440 paint opacities over 8 materialized defs.
+
+**Mutations (each from a `wip:` commit):**
+- Engine alpha forced to 1: the #1614 re-derivation, the tree `$value`, and the `opaque` arms fail.
+- Plan drops `paintOpacity`: the #1614 plan, paste and plugin legs fail, plus the plugin 48-member arms and the round-trip count.
+- Plugin `paint()` drops the opacity: the plugin arms and the round-trip `paintOpacity` divergences fail (96× per def), plus the engine's plugin leg.
+- Down-step disabled: the down-step, hand-computed and re-derivation arms fail.
+- Up-step disabled: the #1621 and visibility arms fail.
+
+---
+## (2026-09-24) — the `.ai.json` sidecar says only what the token data supports (#1623 batch B)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/ai-metadata.ts`, `packages/engine/mcp.ts`, `packages/engine/test.ts` (three new sidecar-gate arms, plus an MCP size guard), `packages/engine/version.ts` (ENGINE 0.139.0), regenerated `out/*.ai.json`, stamp-only `out/*.tokens.json`, and the `token-contract.json` `engineVersion` field (`--accept`, no surface change; CONTRACT stands at 11.3.0). Fixes AI/A-1…A-10, A-13…A-17, A-19, A-21, A-22, B-2, B-3, D-4, M-1. Deliberately untouched: C-1 (`avoid_when_level: MUST`, owner), A-11/A-12 (IN FLUX under #1614), and A-18/A-20/B-1 (batch A, `tree.ts`).
+
+**Diagnosis.** Two root causes account for most of the HIGH findings. (1) `CORE_TIER` moved palette, font and dimension under `core.`, but the primitive dispatch still keyed on `seg[0]`. Every branch went dead: 946 "core primitive" meanings, `intent` on none, fallback `consume` everywhere. The same move stranded the weight-role key and the hand-derived `resolves_to` paths. (2) The prose TYPED surface claims that the engine never measured. The engine gates an ink against its floor (`background.secondary`) only, and the prose widened that to "any surface", "control borders" and "the darkest permissible ground".
+
+**Fix.** The primitive dispatch strips `core.` first. `resolves_to` is the emitted composite's own `$value`, not a re-derivation. Every ink, border and field surface claim is now COMPUTED per mode through one `surfaceClause` ("Clears N:1 in every mode on …; below N:1 on … in at least one mode"), and the ink's `paired_with` is that same list, so the prose and the pairing cannot disagree. Pairings the data refutes are gone. The veil has no pairing (every text role flips in dark mode and the veil does not). An inverse pairing whose twin does not exist is dropped rather than kept on the page name. A non-rest fill is paired with `on-fill` only where the pair measurably holds, and otherwise says which modes fail. `contrast_with.token` names the ROLE on the floor. The inverse decoration now remaps backticked role names in the prose, not just in `paired_with`. Page-only sentences ride in a `page_note` the inverse twin drops. `$description` is the token's own. The note and the `*_fields` lists are derived from what actually ships.
+
+**Tradeoffs and traps.**
+- The sidecar grew ~20% (about 415,000 to 500,000 characters per four-mode brand through MCP). The cause is explicit surface lists in place of "any surface". The MCP descriptions carry the new figure, and a test now holds the figure to ±15% of a measured one (the three sites had drifted apart).
+- The on-* redirect ("use `text.on-*`") is page-only for the same reason as A-7: no inverse on-* ink exists.
+- `on-fill` being ungated against hover/pressed fills is an ENGINE contract gap. It is filed as **#1626**, not fixed here.
+- The gate treats ground↔ground and ink↔ink pairs as "travels with" and does not check them (D-3, the owner's schema call). It counts them, 180 across the four brands.
+
+**Gate.** New block in `test.ts` after the existing sidecar block. It reads the committed `out/<brand>.ai.json` against the committed `out/<brand>.tokens.json` for all four brands, with its own color math.
+- **Arm 1, "sidecar paths":** every key, `paired_with`, `contrast_with`, `mode_overrides`, `resolves_to`, `used_by` and `aliased_by` entry, and every backticked path in the prose, resolves in the tree. Role-shaped names outside backticks fail. On an inverse entry, a page role with an existing twin fails. The A-11 name is exempted by exact shape, and a second assertion fails once the exemption goes stale.
+- **Arm 2, "sidecar pairings":** every `contrast_with` and ink↔ground `paired_with` pair, and every "clears / below" clause (in both directions), is recomputed per mode from resolved hex values.
+- **Arm 3, "sidecar fields":** required primitive fields; no placeholder meaning; an `intent` on every step the TREE bands; the pivot tail only where 4.5:1 holds on white and on black; weight roles present with `used_by`; field lists name only emitted fields.
+- **Scope floors:** 22,132 paths, 2,397 pairings, 876 `contrast_with`, 2,928 clauses, each brand represented.
+- The first run caught a placeholder that I had not listed: `core.font.typeface.*` fell to "Typography primitive" once A-1 made the font branch reachable.
+
+**Mutations** (committed before each one; each restores to HEAD):
+- the old weight-role key → "sidecar paths" (plus "sidecar fields")
+- veil `paired_with` restored → "sidecar pairings" only
+- `surfaceClause` claiming every step → "sidecar pairings"
+- `core.` strip undone → "sidecar fields"
+- inverse prose remap made the identity → "sidecar paths" + "sidecar pairings"
+- MCP description reverted to 537,000/287,000 → the MCP size guard
+## (2026-09-24) — token description prose holds in every mode, and says nothing internal (#1623 batch A)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/{tree,modes,theme,ai-metadata,emit-dtcg-overlay,emit-figma-color,emit-figma-dims}.ts`, **NEW** `packages/engine/lint-description-claims.ts` (wired into `verify.ts`, `ci.yml`, CONTRIBUTING §3, the PR template and CLAUDE.md §4), `packages/engine/test.ts` (overlay membership arms), `apps/plugin/test-prune.ts` (committed-bytes arm), `packages/engine/version.ts` (ENGINE 0.138.0), regenerated `out/**`, and the `token-contract.json` `engineVersion` stamp (`--accept`, no surface change; CONTRACT stands at 11.3.0).
+
+**Fixed** (IDs from #1623): DT/T-1, T-2, T-3, T-4, T-5, T-9, T-10 (except `PAGE`, below), T-12, T-13, T-15, T-16; FG/F-1…F-10, F-15; AI/A-18, A-20, B-1.
+
+**Diagnosis that made the per-mode fix small.** `modes.ts` already wrote a correct sentence for every mode; `tree.ts` kept only light's, and both the overlay projector and the Figma emitter copied it. So the fix is plumbing, not rewording: a mode's `description` rides in `modes.<mode>` when it differs from light's, and the overlay writes it as that leaf's `$description`. Two consequences worth knowing:
+- **A leaf can join an overlay on prose alone.** `border.brand` keeps its step in hc-light while its minimum rises from 3:1 to 4.5:1. Its value holds and its sentence moves, and a consumer merging base + overlay must read the hc-light sentence. The overlay now carries such leaves (hc-light +9 to +16 leaves per brand, hc-dark +11 to +17). `test.ts`'s overlay membership arms were changed to expect exactly that, with an independent count, and one new arm pins a prose-only leaf. `lint-overlay-completeness.ts` restates the same membership rule independently (condition 3 now reads "value differs, or the mode's description differs"). Mutating the projector to drop prose-only leaves makes that gate report 102 MISSING leaves.
+- **Figma cannot carry per-mode prose**, since a variable has one description. The emitter composes one sentence from the per-mode ones. The templates now differ only in their ratio or percentage claims, so each varying claim keeps light's number and names the others: `4.5:1 (7:1 in high-contrast modes)`. A template whose modes differ in anything else **throws** rather than merging silently. That is why the floor is named by role (`background.secondary`) instead of by step (`neutral.050` / `neutral.900`). It holds in HC too: the floor there is the standard-mode step, and an ink that clears it clears the flattened page by more.
+
+**Measured, not stamped.** The step-500 pivot claim is computed. nb `green.500` and wendys `secondary.500` now state their pair ("4.89:1 on white, 4.29:1 on black"), **truncated rather than rounded**. The gate caught the first draft rounding 4.886 up to 4.9, which overstates a floor.
+
+**The gate** (`lint-description-claims.ts`) parses `N:1`, `~N:1` and `N%` from every emitted description: the DTCG canonical tree per mode, base + overlay as a consumer merges them, and every committed Figma row, including the per-mode parentheticals. It recomputes each one from the value with its own WCAG code and never reads `contrast` or `min`. It checks against the ground the prose names, falling back to `against`, which it reads only as a name. A claim it cannot verify fails. Result: 8,704 claims hold across 28 brand×mode views. Mutations, each committed first: (1) restore the unconditional `tree.ts` pivot claim → 24 failures, `nbds.core.palette.green.500 "≥4.5:1" — measures 4.29:1 against black`; (2) Figma emitter back to `desc(leaf)` → 27 failures (`figma/aurora ads/color/scrim/default [dark] "40%" — the value is 60%`); (3) overlay drops the mode's description → 36 failures. All three were restored. The Figma opacity rows hold percent where DTCG holds the multiplier; the gate normalizes that. The mismatch it exposed in the prose ("(0.1)" beside a Figma value of 10) is filed as #1624.
+
+**Prune coupling (checked, nothing to move).** `prune-figma.ts` reads **style** descriptions. This PR changes only variable prose, and `git diff` shows no committed `*-styles.json` moved. `test-prune.ts` gains an arm proving that every one of the 176 committed style descriptions (nb/aurora/wendys) is still recognized. It also reaches wendys, which the in-memory sweep does not build.
+
+**Held on purpose.**
+- The `PAGE` caps in the overlay-wash template (`modes.ts` ~1447) wait for #1614, per the audit's DT/F-2 note, and the `solid-tint` subtle-fill prose is untouched.
+- The inverse overlay template dropped only its "dark / inverse" wording (F-5).
+- T-15's focus-ring-width rewrite overlaps FG/F-17, which the audit classes as owner sign-off. T-15's wording was applied as scoped: it drops the "3px" value claim and does not add the AAA framing F-17 proposes.
+- The container-narrow "ch" figure was dropped rather than restated, because a character count depends on the brand's face and body size, and the engine does not compute it.
+- `.ai.json`'s own generated prose (e.g. `field.fill` "TRANSPARENT") is batch B's.
+## (2026-09-24) — component-def prose: stale facts fixed, a gate for dangling component names (#1623 batch C)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: 19 defs in `packages/engine/components/*.ts`, `apps/studio/src/main.ts` (Components page), `packages/engine/prose-rules.ts` + `lint-us-english.ts` (two new en-GB shapes), `packages/engine/mcp.ts` (one respelling the widened gate found), `packages/engine/test.ts` (**component-refs** arm), `packages/engine/version.ts` (ENGINE 0.137.0), stamp-only `out/**`, `schema/token-contract.json` `engineVersion` (`--accept`, no surface change; CONTRACT stands at 11.3.0) and `schema/component-surface.json` (`--accept`, see below).
+
+**Scope.** Only the TECHNICAL findings in the C1/C2 sections of #1623. Excluded: voice and tone rewrites, the Figma component description (decision #9), and `notes` / `codeOnly` text, which is held until #9 is answered. Three exceptions reach held fields. IB-1 (icon-button's small heights) was named in the brief. The switch-row brand count was named too. The two en-GB words had to be respelled wherever they appear, because the widened gate scans the plugin bundle, and `field-message`'s `judgement` sits in `notes`.
+
+**The audit's gate instruction was inverted.** It said to add `recognisable` and `judgement` to `NOT_EN_GB`. That set is the *subtraction* list: words that look en-GB but are not. Adding the two words there would have kept them uncaught. Instead, `PATTERN`'s `-ise` branch gains `able`, and a new `EN_GB_WORDS` shape matches `judgement` (a `-ment` ending shared with en-US, so the word itself is the only handle). The widened branch catches en-US `advisable`/`inadvisable`, and those two words DO go into `NOT_EN_GB`. The widened gate then found `judgement` in `mcp.ts`'s `score_output` tool description, which is shipped MCP prose, so that is respelled too. Self-check samples cover both directions.
+
+**The gate.** Nothing read `alternativeTo` / `commonPartners` / `composesWith`, so `checkbox-group` could name `radio-row` as its alternative for as long as it liked. The `component-refs` arm in `test.ts` has two halves. (a) Every name in those three lists is a registered id or a member of `NOT_YET_BUILT`, a concept list written by hand in the test. It is not derived from the defs (`docs/34` shape 1), and an entry that becomes a registered def fails until it is removed. (b) No consumer-facing prose, part notes included, names a *retired* id in backticks. A retired id is an alias that is a strict prefix of its def's id (`radio` → `radio-row`), which is the shape the #1468 rename left behind. On its first run, (b) found a third stale id the audit missed: `checkbox-control`'s part note said the row "lives on `checkbox`". It also flagged "The role is `radio`", which is an ARIA role and correct. So the arm skips a backticked name that follows `role`, and `checkbox`/`radio`/`switch` are all roles as well as retired ids.
+
+**Mutations** (committed before each): `checkbox-group` alternativeTo → `radio-grp` fails arm (a) by name. `radio-control` labelPattern → `` `radio` `` fails arm (b) by name. Re-inserting `recognisable` + `judgement` and rebuilding the plugin fails `lint-us-english` with 4 hits across both bundle files. Dropping `EN_GB_WORDS` and the `able` branch fails the gate's self-check naming both samples. All were restored and are green.
+
+**Trap: `anatomy.codeOnly` is in the component-surface hash.** The IB-1 correction lives in `codeOnly[0]`, and `plan.codeOnly` enters the projected plan. So `lint-component-surface` reported all 9 icon-button variants DRIFTED on a prose-only change. To confirm, that one sentence was reverted (with a wip commit taken first): 0 drifted. The sentence was restored, and only then was the baseline accepted. Anyone editing `codeOnly` prose later will see the same drift. It is expected, and `--accept` is correct once the revert-one-sentence check confirms the diff is prose.
+
+**Verified, not copied from the audit.** The heights were read from the emitted tokens: `size.sm.height` is 36/28/36/36 (nb/aurora/harbor/wendys), and `control.size.*.height` is 12–24. The focus-ring floor comes from `color.border.focus`'s `$extensions`: min 3 against `background.primary`, and 4.5 in HC, which the audit did not mention. The field-label inks are text.secondary gated at 4.5 and disabled at 3. The nest graph (`nests:`) confirms the field-label/field-message hosts: field-label also sits in both groups, so `composesWith` lists all four hosts, not only `select`.
+
+**Deliberately not done.** FR-2: a code-API `offset` prop does exist, so "pick `offset: field` for inputs" is true in code. K-10: the "byte-identical across 5 brands × 4 modes" note is itself false now (neutral fill ≠ border in every mode), so correcting only the count would restate a false claim. It needs the held notes pass. X-6/X-7: the roadmap names (`link-button`, `form`, …) are an owner call, so they are listed in `NOT_YET_BUILT` rather than removed. `icon` was dropped from the three Rows' lists, because none of them has an icon part or swap.
 
 ---
 

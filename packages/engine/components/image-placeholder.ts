@@ -179,7 +179,7 @@ export const imagePlaceholder: ComponentDef = {
   },
 
   accessibility: {
-    role: 'img — the frame stands in for an image, so it takes an image role and an accessible name describing what the image is (or will be). The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.',
+    role: 'img once it holds an image, with an accessible name describing what the image is; the empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.',
     wcag: [
       '1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it; the empty-state marker is decorative and is hidden from assistive tech',
       '1.4.11 Non-text Contrast — where the frame edge is a meaningful boundary, verify it against the surface behind it; the neutral fill is a background, not a UI boundary carrying meaning',
@@ -205,7 +205,7 @@ export const imagePlaceholder: ComponentDef = {
       'Hard-code a width AND a height to fake a ratio — the frame holds the ratio and derives the second dimension, so two fixed sizes fight the lock and break on resize',
       'Treat the "no image" marker as the image\'s description — it is a placeholder affordance, replaced when a photograph arrives',
       'Reach for an image placeholder as a decorative wash over a photo — that is the `veil` component (a follow-up may compose the two)',
-      'Expect a play or scrim overlay yet — those are deferred (#1316); this is the core empty-state frame',
+      'Expect a play or scrim overlay yet — those are not built yet; this is the core empty-state frame',
     ],
     contentGuidelines: 'The frame holds no copy. Where its ratio surfaces in a UI, name the proportion ("16:9", "Square"), not a pixel size — the frame holds a ratio, not a fixed dimension.',
   },
@@ -213,14 +213,14 @@ export const imagePlaceholder: ComponentDef = {
   ai: {
     primaryPurpose: 'Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.',
     whenToUse: 'A layout needs a media slot at a known proportion before the image is chosen — a card\'s photo area, a hero, a gallery cell. Pick 1:1, 4:3 or 16:9 from the media it will hold; the frame keeps that ratio as it resizes and clips whatever image is dropped onto it.',
-    avoidWhen: 'The surface is a decorative wash over an existing photo (that is the `veil` component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (deferred, #1316 — this is the core empty-state frame only).',
+    avoidWhen: 'The surface is a decorative wash over an existing photo (that is the `veil` component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).',
     commonPartners: ['icon', 'veil'],
     triggerKeywords: ['image placeholder', 'media frame', 'photo frame', 'aspect ratio', '16:9', '4:3', 'square image', 'empty image', 'image slot', 'no image', 'media slot'],
     generationPriority: 3,
   },
 
   composition: {
-    composesWith: ['icon', 'veil'],
+    composesWith: ['icon'],
     alternativeTo: [],
     supersedes: [
       'a hand-drawn rectangle with a fixed width and height standing in for an image, which breaks its ratio the moment it is resized',

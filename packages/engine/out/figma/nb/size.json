@@ -34,7 +34,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.xs horizontal inset on the VISUAL side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
+      "description": "size.xs horizontal inset on the visual side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
       "value": 6,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -99,7 +99,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.sm horizontal inset on the VISUAL side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+      "description": "size.sm horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -177,7 +177,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.md horizontal inset on the VISUAL side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+      "description": "size.md horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -242,7 +242,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.lg horizontal inset on the VISUAL side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
+      "description": "size.lg horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -307,7 +307,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.xl horizontal inset on the VISUAL side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
+      "description": "size.xl horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
