@@ -81,6 +81,10 @@ export const fieldLabel: ComponentDef = {
     // `figmaProperties.booleans`, and its removal from this block moves in lockstep with its removal
     // from `lint-axis-values.ts`'s register (a stale register entry would fail that gate by name).
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // `weight` is picked once per label, never toggled on a live one — so bold and regular are not compared
+  // (#1611: NB's Medium sets 1px wider than Regular at `small`).
+  axisKinds: { size: 'authoring', emphasis: 'authoring', weight: 'authoring' },
 
   // THE WEIGHT AXIS CARRIES INTENTS, NOT ROLE NAMES (#1602, owner-decided 2026-09-23). `regular`/`bold`
   // are resolved against the roles the BRAND ships for `body` — `regular` → the brand's default body

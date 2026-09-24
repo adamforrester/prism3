@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.142.0 — #1611: the component build's footprint check compares members across RUNTIME axes only and holds
+ * AUTHORING axes fixed. New `ComponentDef.axisKinds` (`runtime | authoring`, absent = runtime) classifies every
+ * def's axes, and every projected `AnatomyPlan` now carries `axisKinds` for its variant axes and state axis —
+ * so every plan stamp moves. The cohort key (`planSetLayout` `group`, and the chunked payload's
+ * `FOOTPRINT_VARIES`) gains each authoring axis: field-label's `weight`/`emphasis` (clearing NB's four
+ * bold-vs-regular misses at `small`), button's and icon-button's `surface`, icon-button's `shape`, focus-ring's
+ * `surface`. `appearance` stays runtime (compared). No member, name or binding moves; the projected surface
+ * moves by the new plan field → ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
  * 0.141.0 — The `outlineInteraction` option `solid-tint` is relabeled "Tinted wash" (was "Opaque subtle tint"),
  * owner decision after #1614 made the tint translucent: the old label described the retired opaque palette step.
  * Label only — the option key, its values and every emitted token are unchanged. `schema/lever-manifest.json`
@@ -3503,7 +3512,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.141.0';
+export const ENGINE_VERSION = '0.142.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

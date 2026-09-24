@@ -117,6 +117,12 @@ export type ShimOpts = {
    *  A style, once applied, still replaces it with the style's own font, so `mixed` survives to the
    *  `characters` write only where no style is resolved. Opt-in, so every other run is single-font. */
   mixedTextFonts?: boolean;
+  /** EXTRA ADVANCE, in px, a TEXT node measures under the named applied text style (#1611). A TEXT node
+   *  otherwise measures `characters.length * 6` whatever its style, so a heavier cut sets exactly as wide
+   *  as a lighter one and a footprint cohort split by weight could never differ — the NB case (Medium
+   *  setting 1px wider than Regular at `small`) was unreproducible here. Keyed by style NAME
+   *  (`body/sm/strong`), read off the node's applied style. Opt-in; unset, every style measures alike. */
+  textAdvance?: Record<string, number>;
   /** DELIBERATE COST, in ms, charged to a named host call — the only way this harness can gate a rule
    *  about WHEN the clock starts. Everything else here is synchronous, so every `chunkMs` is 0 and the
    *  strongest available assertion is `>= 0`, which no clock rule can fail. `setup` burns inside
@@ -539,7 +545,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const bv = node.boundVariables as Record<string, { value?: number }>;
         const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
         if (bv.width) return bv.width.value ?? 0;
-        if (node.type === 'TEXT') return ((node.characters as string) || '').length * 6;
+        if (node.type === 'TEXT')
+          return ((node.characters as string) || '').length * 6 + (opts.textAdvance?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0);
         const pad = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0);
         const hug = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE')
           .reduce((a, c) => a + ((c.width as number) || 0), 0);

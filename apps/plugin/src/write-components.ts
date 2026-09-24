@@ -2683,9 +2683,10 @@ const writeComponentSet = async (
     if (seen.has(pos)) coincident.push(`layout -> ${c.name} sits on top of ${seen.get(pos)} at ${pos}`);
     else seen.set(pos, String(c.name));
   }
-  // READ BACK the FOOTPRINT. `state` and `appearance` must not move the box: an outline button two
-  // pixels wider than its filled sibling breaks a row of buttons, and both variants are individually
-  // correct so nothing else notices.
+  // READ BACK the FOOTPRINT. A RUNTIME axis must not move the box (#1611 — `state`, `appearance`, a
+  // `selection`): an outline button two pixels wider than its filled sibling breaks a row of buttons, and
+  // both variants are individually correct so nothing else notices. The cohort (`cellOf[i].group`) holds
+  // `size`, slot fill, declared exemptions and every AUTHORING axis, so only runtime siblings compare.
   const sizeByGroup = new Map<string, { box: string; name: string }>();
   const footprint: string[] = [];
   members.forEach((c, i) => {

@@ -108,6 +108,9 @@ export const checkboxControl: ComponentDef = {
     size: ['small', 'medium', 'large'],
     selection: ['unchecked', 'checked', 'indeterminate'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // `selection` is the live toggle — a checked box must measure what an unchecked one does.
+  axisKinds: { size: 'authoring', selection: 'runtime' },
 
   // Axis-led, most specific first — the grammar `checkbox` established and `radio`/`switch` inherit.
   // `selection` leads; the bare `{slot}` answers the bindings that do not vary by selection and the ones

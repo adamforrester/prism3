@@ -125,6 +125,9 @@ export const textField: ComponentDef = {
     style: ['outline'], // default; filled/underline are theming, not an API axis (not projected)
     status: ['default', 'error', 'warning', 'success'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // `status` changes live as validation runs.
+  axisKinds: { style: 'authoring', status: 'runtime' },
 
   // INPUT CHROME ONLY — label + message color/type live in field-label / field-message (composed).
   // Border is the one stateful slot: rest/hover from field.*, focus/read-only from generic border roles,

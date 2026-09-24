@@ -102,6 +102,8 @@ export const textarea: ComponentDef = {
     size: ['small', 'medium', 'large'],
     style: ['outline'], // filled / underline are theming, not an API axis (brief §4)
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { size: 'authoring', style: 'authoring' },
 
   // The substrate's grammar, stated rather than inherited: this def's paint varies by state and by
   // nothing else (`size` is geometry, `style` has one value), so the qualified template leads and the

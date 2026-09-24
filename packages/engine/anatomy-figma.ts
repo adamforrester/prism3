@@ -22,8 +22,8 @@
  * runs it without a live file. Verification against what the engine actually emits is a separate,
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
-import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, WEIGHT_INTENTS } from './component-schema';
+import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
+import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -530,6 +530,13 @@ export type AnatomyPlan = {
    *  Always an array, empty for the defs that make no such claim, because the cohort key concatenates it
    *  and an `undefined` there would read as a segment rather than as none. */
   footprintVaries: string[];
+  /** WHEN each projected axis changes (#1611) — every `variantAxes` entry and the state axis, keyed by
+   *  the name the member coordinate spells, read through `axisKindOf` so an unclassified axis arrives as
+   *  `runtime`. On the plan for `gridAxis`'s reason (`planSetLayout` never receives the def), and on it
+   *  for its READERS too: the plan is the artifact an agent or the plugin holds, and "which of these
+   *  coordinates does a live instance switch between" is the question `ComponentDef.axisKinds` answers.
+   *  The footprint cohort holds every `authoring` axis fixed and compares across the `runtime` ones. */
+  axisKinds: Record<string, AxisKind>;
 };
 
 /**
@@ -1569,6 +1576,10 @@ export const figmaAnatomyPlan = (
     derived: { ...(a.derived ?? {}) },
     ...(def.figmaProperties?.gridAxis ? { gridAxis: def.figmaProperties.gridAxis } : {}),
     footprintVaries: [...(def.figmaProperties?.footprintVaries ?? [])],
+    axisKinds: Object.fromEntries(
+      [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? [def.figmaProperties.stateAxis.name] : [])]
+        .map((a) => [a, axisKindOf(def, a)]),
+    ),
   };
 };
 
@@ -3527,6 +3538,10 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
     // ordering both sides can state without shipping a comparator. Read from the PLAN for the same reason
     // `slotAxes` is: this function never receives the def. See `FigmaProperties.footprintVaries` for why
     // the list is declared instead of derived from `presentWhen`.
+    //
+    // THEN EVERY AUTHORING AXIS (#1611), through the same list (`heldAxes`): an axis a designer picks once
+    // is never one instance's before and after, so its members are held apart rather than compared. What
+    // stays compared is what a live instance switches between — the state axis and every runtime axis.
     group: [
       ...(p.size === undefined ? [] : [`size=${p.size}`]),
       // THE SLOT AXIS'S FIGMA NAME (#1309/#1380), matching `planComponentName` and the payload's `cellOf`
@@ -3534,7 +3549,7 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
       // that #1010's gate compares would disagree. Defaults to the code name for a def with no display name.
       ...(p.slotAxes.includes('leading') ? [`${p.slotFigmaNames?.leading ?? 'leading'}=${p.slots.leading}`] : []),
       ...(p.slotAxes.includes('trailing') ? [`${p.slotFigmaNames?.trailing ?? 'trailing'}=${p.slots.trailing}`] : []),
-      ...p.footprintVaries.flatMap((k) => (vals[i][k] === undefined ? [] : [`${k}=${vals[i][k]}`])),
+      ...heldAxes(p).flatMap((k) => (vals[i][k] === undefined ? [] : [`${k}=${vals[i][k]}`])),
     ].join(', '),
   }));
 
@@ -3585,7 +3600,8 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // the one thing that does not fit: 756 entries of name+group is ~121KB shipped into a 45KB payload.
   // The name is already the coordinate (that is why `planComponentName` exists), so the ordering is the
   // only thing a chunk genuinely cannot derive — and that is four short arrays.
-  // `footprintVaries` rides out for the CHUNKED path only — the single-shot payload reads the `group`
+  // `footprintVaries` — the HELD list, declared exemptions then authoring axes (#1611, `heldAxes`) — rides
+  // out for the CHUNKED path only — the single-shot payload reads the `group`
   // this function already computed off each cell, while a chunk re-derives it from the member name and so
   // needs the def's list. Off `plans[0]` for `gridAxis`'s reason: every plan in a set comes from one def.
   //
@@ -3595,8 +3611,28 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // leading-then-trailing order the `group` uses, resolved through `slotFigmaNames`. Empty for a def with
   // no slot axes, so its payload is byte-identical.
   const slotKeys = ['leading', 'trailing'].filter((k) => plans[0].slotAxes.includes(k)).map((k) => plans[0].slotFigmaNames?.[k] ?? k);
-  return { cells, props, refs: [...refs.values()], refOverrides, axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: plans[0].footprintVaries, slotKeys };
+  return { cells, props, refs: [...refs.values()], refOverrides, axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: heldAxes(plans[0]), slotKeys };
 };
+
+/**
+ * The axes the footprint cohort HOLDS beyond `size` and slot fill (#1010, #1611) — the def's declared
+ * `footprintVaries` (a box that legitimately moves along a runtime axis), then every AUTHORING variant
+ * axis not already named, in `variantAxes` order. `size` is excluded because the key writes it first
+ * on its own; the state axis is never here because it is runtime by definition.
+ *
+ * ONE LIST FOR BOTH COHORT DERIVATIONS, and that is why it is a function rather than two inline
+ * filters: `planSetLayout`'s `group` appends it, and the chunked payload's `cellOf` receives the same
+ * list as `FOOTPRINT_VARIES` and `seg()`s it in the same order. The two keys must be byte-identical
+ * (see `group`'s note), so the ordering is decided once, here.
+ *
+ * An authoring axis is held because two members that differ only in a choice made once are never one
+ * instance's before and after — field-label's `weight` (#1611). A runtime axis stays out of this list,
+ * so its members are compared: a toggle that goes bold when selected must reserve the bold width.
+ */
+export const heldAxes = (p: AnatomyPlan): string[] => [
+  ...p.footprintVaries,
+  ...p.gridAxisOrder.filter((a) => p.axisKinds[a] === 'authoring' && !p.footprintVaries.includes(a)),
+];
 
 export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
   const { cells, props, refs, refOverrides, axes, rows, cols } = planSetLayout(plans, 'planSetToPluginJs');

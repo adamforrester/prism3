@@ -82,6 +82,10 @@ export const fieldMessage: ComponentDef = {
   variants: {
     status: ['default', 'error', 'warning', 'success'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // `status` changes live as validation runs; its box is exempt through `footprintVaries` (the glyph), not
+  // through its kind.
+  axisKinds: { status: 'runtime' },
 
   // Tone → (caption ink, status icon). default is a muted neutral; each validation tone lands
   // on its semantic role. text.<role> clears the 4.5:1 body floor and icon.<role> its non-text
