@@ -41,6 +41,12 @@ export const applyHeadline = (misses: number, skippedFonts: number): string => {
  *  of what is known, and it goes in the detail — the pill only says which of the three states this is. */
 export const APPLY_FAILED_HEADLINE = '✗ write failed';
 
+/** The pre-flight refused the apply (#506): the file already holds same-named content Prism3 did not
+ *  create, or a variable of another type, so NOTHING was written. The count is the whole pill; the detail
+ *  lists each conflict (`conflictSummary` in `preflight.ts`). */
+export const conflictHeadline = (conflicts: number): string =>
+  `✗ ${conflicts} conflict${conflicts === 1 ? '' : 's'}`;
+
 /**
  * The component build's verdict (#483) — same 24-char pill, a different question.
  *
