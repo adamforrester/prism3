@@ -47,7 +47,8 @@ import { verifyReadback } from '@prism3/engine/read-back';
 import { persistInput, restoreInput } from './persist-figma';
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
-import { figmaAnatomySet, applyControlShape } from '@prism3/engine/anatomy-figma';
+import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
+import { materializeForBrand } from './brand-def';
 import { button } from '@prism3/engine/components/button';
 import { componentDefs } from '@prism3/engine/components/index';
 
@@ -565,14 +566,14 @@ const buildComponents = async (defId?: string): Promise<void> => {
       });
       return;
     }
-    // `controlShape` (#1163) is a BRAND lever, so it enters here — where the plugin knows the brand — by
-    // materializing the def BEFORE projection, which is what keeps `figmaAnatomySet` itself brand-agnostic
-    // (`anatomy-figma.ts`'s `applyControlShape` header). The value comes from the SAME persisted `BrandInput`
-    // the knobs rehydrate from (`restoreInput`), so a pill-built button matches the brand the file carries.
-    // `rounded` (default, no persisted brand, or a read that throws) is the identity, so this is byte-identical
-    // to the previous line for every non-pill brand.
-    let controlShape: NonNullable<BrandInput['controlShape']> = 'rounded';
-    try { controlShape = restoreInput(figma.root)?.controlShape ?? 'rounded'; } catch { /* untrusted/absent → rounded */ }
+    // `controlShape` (#1163) and weight availability (#1605) are BRAND levers, so they enter here — where the
+    // plugin knows the brand — by materializing the def BEFORE projection, which is what keeps
+    // `figmaAnatomySet` itself brand-agnostic (`materializeForBrand`, `brand-def.ts`). Both come from the SAME
+    // persisted `BrandInput` the knobs rehydrate from (`restoreInput`), read ONCE, so a pill-built button and
+    // an NB-built field-label match the brand the file carries. No persisted brand, or a read that throws, is
+    // `null` — the identity on both levers, so a themeless file builds byte-identically to before.
+    let brandInput: BrandInput | null = null;
+    try { brandInput = restoreInput(figma.root); } catch { /* untrusted/absent → defaults */ }
     // PAGE-AWARE PLACEMENT (#1554) — resolve (creating if absent) the `↳ <family>` section page this def
     // belongs on, and build the set THERE instead of `figma.currentPage`. `resolveComponentPage` returns
     // null for a def the taxonomy does not map, in which case `targetPage` stays undefined and the executor
@@ -594,7 +595,7 @@ const buildComponents = async (defId?: string): Promise<void> => {
     }
     // `SWAP_TARGET` PASSED UNCONDITIONALLY, because it is inert where a def has no swap parts — measured,
     // see the header. A per-def branch here would be a branch on a distinction the projector already makes.
-    const plans = figmaAnatomySet(applyControlShape(def, controlShape), { swapTarget: SWAP_TARGET });
+    const plans = figmaAnatomySet(materializeForBrand(def, brandInput), { swapTarget: SWAP_TARGET });
     // Every reading kept, for the end-of-run summary. 54 objects for a 648 build — the memory is nothing
     // and the alternative is a running aggregate that cannot report a distribution.
     const reports: ComponentProgress[] = [];
