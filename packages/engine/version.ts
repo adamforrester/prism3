@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.137.0 — #1623 batch B: the `.ai.json` sidecar says only what the token data supports. The primitive
+ * tier dispatches below `core.` (946 "core primitive" entries, `intent` on none); type styles' `resolves_to`
+ * is the emitted composite `$value` and weight roles are keyed at `core.font.weight-role.*`;
+ * `contrast_with.token` names the floor's ROLE instead of a bare palette step; every ink's surface claim
+ * and `paired_with` list is computed per mode (no more "on any surface"); pairings that fail in some mode
+ * are dropped (veil, inverse intent fills, non-rest fills); the inverse decoration remaps role names in
+ * prose; the note and `*_fields` lists match what ships. Three new sidecar gate arms in `test.ts` read the
+ * committed `out/*.ai.json` against `out/*.tokens.json`. Emitted `.ai.json` changes → MINOR bump. CONTRACT
+ * STANDS: no token name moves (`token-contract --check`).
+ *
  * 0.136.0 — #1617: a per-mode override on an outline/text control's LABEL ink carries to its GLYPH ink.
  * `interactive.<c>.icon.<st>` (and the `inverse.` column) is minted as a value twin of `…text.<st>` (#1471),
  * but the override layer rewrote exactly one role, so an override on `text.rest` moved the label and left
@@ -3453,7 +3463,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.136.0';
+export const ENGINE_VERSION = '0.137.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
