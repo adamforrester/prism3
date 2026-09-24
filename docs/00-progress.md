@@ -7,6 +7,14 @@
 
 ---
 
+## (2026-09-24) — the outline-hover option is labeled "Tinted wash"
+
+**STATUS: landed by the orchestrator.** Owner decision: the `outlineInteraction` option `solid-tint` reads "Tinted wash" in the studio and plugin (it read "Opaque subtle tint"). Files: `packages/engine/levers.ts` (the one label), regenerated `schema/lever-manifest.json`, the `out/**` stamp, `version.ts` (ENGINE 0.141.0).
+
+**Why now.** #1614 made the tint the category's own fill at an opacity step, so it is translucent. "Opaque" described the palette step it replaced and would tell a designer the opposite of what the swatch does. The option KEY stays `solid-tint`: it is stored in every persisted brand input and file, and renaming it would be a migration for a word nobody sees.
+
+---
+
 ## (2026-09-24) — the lever-sweep gate: no toggle/enum setting silently deletes a guaranteed path or a component binding (#957)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/lint-lever-sweep.ts` (**NEW**), wired into `verify.ts` + `ci.yml` + `CONTRIBUTING.md` §3 + the PR template + `CLAUDE.md` §4; `docs/30` (two `Decided (2026-08-27, #957)` headings); `docs/42` (two rows, and the Known-gaps bullet rewritten); `schema/decisions-index.json` (`--accept`). Gate-only: no emission change, no ENGINE or CONTRACT bump.

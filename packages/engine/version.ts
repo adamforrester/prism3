@@ -2926,6 +2926,10 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.141.0 — The `outlineInteraction` option `solid-tint` is relabeled "Tinted wash" (was "Opaque subtle tint"),
+ * owner decision after #1614 made the tint translucent: the old label described the retired opaque palette step.
+ * Label only — the option key, its values and every emitted token are unchanged. `schema/lever-manifest.json`
+ * moves its label → MINOR. CONTRACT STANDS.
  * 0.140.0 — #1614 (owner decision, revised + amended): `solid-tint` is the category's EXISTING fill at an EXISTING
  * opacity step. Each `[inverse.]interactive.<c>.subtle-fill.{hover,pressed,selected}` is now a translucent wash
  * (`ink-on-composite`) of `[inverse.]interactive.<c>.fill.rest` at `opacity.20` hover / `opacity.30` pressed+selected,
@@ -3499,7 +3503,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.140.0';
+export const ENGINE_VERSION = '0.141.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
