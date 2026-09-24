@@ -7,6 +7,22 @@
 
 ---
 
+## (2026-09-24) — weight-role type styles are brand-dependent (#1632)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Owner decision: a brand that narrows `typography.weights` drops the styles for the weights it doesn't use, and that's correct, so the contract stops promising them ("if we are removing anything we are removing unused weights"). Files: `packages/engine/token-contract.ts` (new `minimal-weights` corpus member), `schema/token-contract.json` (`--accept`), `version.ts` (CONTRACT 11.3.0 → **12.0.0**, MAJOR), `test.ts` (two hardcoded corpus counts, 7 → 8: the contract corpus assertion and #1010's status-glyph sweep), `lint-lever-sweep.ts` (comments only), `docs/30` (a `Decided (2026-09-24, #1632)` heading), `docs/42` (a row, and the Known-gaps bullet), `schema/decisions-index.json` (`--accept`). ENGINE stays at 0.141.0: `out/**` is byte-identical, since the corpus member is contract-only.
+
+**What moved.** Exactly the 17 paths the issue listed demote from `guaranteed` to `brandDependent` (598 → 581): `type.{body,caption}.<size>.strong` and `-strong-link`, `type.display.sm.strong`, `type.title.{2xl,xl,lg,md,sm,xs}.strong`. They report as DEMOTED (still emitted, no migration), so there's no DEPRECATIONS entry. The union grows by the member's own `subtle`/`emphasis` composites, which land in `brandDependent` and move nothing.
+
+**Why this member shape.** It's nb-redesign's weight sets verbatim on `MINIMAL_BRAND`, not a hand-picked narrowing. So the demotion is exactly the case that was found, and the sets are the only thing that varies from `minimal`, the same attributability rule `minimal-levers` and `minimal-bp2` follow. A narrower "drop only `strong`" can't be expressed for display/title: their default set is `[strong]`, so declining it means replacing it.
+
+**Components.** No def binds a demoted path by name. `field-label` resolves `bold`/`regular` by intent (#1602), and every other `type.*` binding is `body.*.default`, `caption.md.default` or `label.*.emphasis`, none of which this member declines. `lint-lever-sweep` arm (b) already checks nb-redesign's materialized bindings against its own emission under every swept setting, and it's green.
+
+**Mutation, by name (committed first).** Deleting the `minimal-weights` line from `corpus()` fails `token-contract.ts --check` with `ADDED type.body.lg.strong` … `ADDED type.title.xs.strong`, all 17 by name, and `test.ts` fails the corpus-count assertion. Restored with `git checkout -- packages/engine/token-contract.ts` against the wip commit.
+
+**Residual, filed as #1639.** `label`, `eyebrow` and `code` ship one-role default sets, so a brand can only replace them (e.g. `label: ['strong']`, which the engine accepts and which drops `type.label.*.emphasis`). The corpus doesn't, so those stay guaranteed on the same "nobody pulled the lever" footing, and `button` binds `label.*.emphasis` by name. Demoting means taking another MAJOR and moving `button` onto a weight intent; the alternative is making those roles non-optional. That's the owner's call.
+
+---
+
 ## (2026-09-24) — the outline-hover option is labeled "Tinted wash"
 
 **STATUS: landed by the orchestrator.** Owner decision: the `outlineInteraction` option `solid-tint` reads "Tinted wash" in the studio and plugin (it read "Opaque subtle tint"). Files: `packages/engine/levers.ts` (the one label), regenerated `schema/lever-manifest.json`, the `out/**` stamp, `version.ts` (ENGINE 0.141.0).

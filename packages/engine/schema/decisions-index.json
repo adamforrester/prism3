@@ -145,6 +145,13 @@
       "title": "`typography.displayCeiling` keeps capping the display ramp, and the rungs above the lowest are brand-dependent",
       "doc": "docs/30-versioning-and-compatibility.md",
       "section": null
+    },
+    {
+      "date": "2026-09-24",
+      "issue": 1632,
+      "title": "a brand that narrows `typography.weights` drops the styles for the weights it doesn't use, and those paths are brand-dependent",
+      "doc": "docs/30-versioning-and-compatibility.md",
+      "section": null
     }
   ]
 }

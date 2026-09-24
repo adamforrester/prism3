@@ -29,7 +29,8 @@
  *   · `harbor`      — an engine-native brief with its own lever choices (compact type scale, relaxed
  *                     tempo). A contract corpus member.
  *   · `nb-redesign` — the owner's NB shape: `body: [default, emphasis]` weights (the #1601 case), a
- *                     strong neutral emphasis. Not a corpus member (see #1632 for why that matters).
+ *                     strong neutral emphasis. Not a corpus member, but its weight sets are: the contract's
+ *                     `minimal-weights` carries them, so its declined `strong` roles are brand-dependent (#1632).
  *
  * ── THE TWO ARMS, AND WHERE EACH SIDE COMES FROM (docs/34) ──────────────────────────────────────────
  *
@@ -69,8 +70,8 @@
  *   · SLIDERS ARE NOT SWEPT. The space is continuous; #957 probed the endpoints and found no removal, but
  *     two endpoints are not a proof.
  *   · OBJECT / LIST / COLOR / PALETTE-REF / TEXT levers are not swept. They have no finite value set.
- *     `typography.weights` IS a path-removing object lever (#1632); `layout.breakpoints` is covered by the
- *     contract's `minimal-bp2` member (#1479). Every lever is classified in `NOT_SWEPT` by control kind,
+ *     `typography.weights` IS a path-removing object lever, covered by the contract's `minimal-weights`
+ *     member (#1632); `layout.breakpoints` is covered by its `minimal-bp2` member (#1479). Every lever is classified in `NOT_SWEPT` by control kind,
  *     so a new kind cannot be skipped silently.
  *   · ONE LEVER AT A TIME. A path removable only by two levers together is not seen.
  *   · Three brands. A removal that only happens on some other brand is not seen.
@@ -112,7 +113,7 @@ const NOT_SWEPT: Record<Exclude<LeverControl, 'toggle' | 'enum'>, string> = {
   slider: 'continuous range. #957 probed min/max and found no removal, but two endpoints are not a proof',
   color: 'an OKLCH/hex value: a continuous space, and it moves values, not names',
   list: 'open-ended structured input. `layout.breakpoints` is covered by the contract corpus (`minimal-bp2`, #1479)',
-  object: 'open-ended structured input. `typography.weights` can remove guaranteed paths (#1632)',
+  object: 'open-ended structured input. `typography.weights` removes paths, and the contract corpus covers it (`minimal-weights`, #1632)',
   'palette-ref': "values depend on the brand's own declared palettes, so there is no brand-independent option set",
   text: 'free text',
 };

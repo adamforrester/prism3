@@ -16375,7 +16375,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // `minimal` omits `layout.breakpoints`, so the count takes its 5-floor default, and a default is a
   // value like any other. Without `minimal-bp2` the upper breakpoint tiers would read as guaranteed
   // purely because every richer brand ships 5+ floors.
-  ok(live.corpus.length === 7, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, and the minimal input with a two-breakpoint layout (${live.corpus.length} brands)`);
+  // EIGHT since #1632, which added `minimal-weights` — the sparse input WITH narrowed weight sets. It
+  // separates SPARSE from the DEFAULT SETS on the weight axis: without it the default sets' `strong`
+  // composites would read as guaranteed purely because no member declined a weight.
+  ok(live.corpus.length === 8, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, the minimal input with a two-breakpoint layout, and the minimal input with narrowed weight sets (${live.corpus.length} brands)`);
   for (const { id, theme } of corpus()) {
     const paths = pathsOf(theme);
     const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
@@ -17685,7 +17688,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
       return { brand: id.split(' ')[0], px: ext };
     });
-    ok(px.length === 7 && px.every((b) => b.px === 16),
+    ok(px.length === 8 && px.every((b) => b.px === 16),
       `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
   }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),
