@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-09-24) — `solid-tint` is the category's existing fill at an existing opacity step (#1614, #1621)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Owner decision on #1614 (the "revised" comment plus its "amendment"). It supersedes PR #1622 (closed unmerged) and resolves #1621. Files: `packages/engine/modes.ts` (**NEW** `settleSolidTint`, `OPACITY_STEPS`, `TINT_NOMINAL`, `ResolvedRole.tint`; the in-mode `solid-tint` branch is deleted), `tree.ts`, `emit-figma-color.ts`, `anatomy-figma.ts` (`applyOutlineInteraction`, plan `paintOpacity`, the paste payload), `component-schema.ts` (`ComponentDef.paintOpacity`), `anatomy-readback.ts`, `apps/plugin/src/{write-components,brand-def}.ts`, the studio copy, `levers.ts`, and the tests. ENGINE 0.137.0; CONTRACT stands at 11.3.0.
+
+**The model.** An outline/text hover is the category's EXISTING fill (`[inverse.]interactive.<c>.fill.rest`) laid over whatever it sits on at an EXISTING opacity step:
+- **Steps:** `opacity.20` for hover, `opacity.30` for pressed/selected.
+- **It is translucent.** The role is now an `ink-on-composite` wash (`against` = its ground, `legibleFor` = its state ink, `alpha` = the step), with `tint: { fill, opacity }` naming both sources. `hex` is the OPAQUE fill, as it is on every wash.
+- **Nothing is minted.** There is no primitive and no opacity token. The tree's `$value` is the resolved translucent color, so a stock consumer gets the right paint (verified with stock Style Dictionary 5.5 on synthetic aurora + nb-redesign trees: canonical, base, and every mode overlay emit `rgba(<fill>, 0.2)` / `0.1`). `$extensions.prism3.tint` carries `{ color: "{<root>.color.…fill.rest}", opacity: "{<root>.opacity.<n>}" }`.
+- **Figma has no subtle-fill variable.** A variable cannot alias another at an alpha, and a raw translucent variable would be a new color that stops following the fill. `applyOutlineInteraction` instead binds the fill variable and writes `ComponentDef.paintOpacity[key] = { page, inverse }`. The projector puts that on the plan as `paintOpacity.fills`, per the member's `surface`. Both executors set it on the paint after `setBoundVariableForPaint` and read it back.
+
+**Why the scale, and the two guards.** Owner: "if we have existing opacity scale values, shouldn't we just leverage those?" So a guard moves along 5/10/20/30/…/100 and never lands between two steps:
+- **Text (hover only):** step DOWN until the label clears its bar on the composite. nb-redesign page primary (4.38 at 20) and nb-redesign/Aurora band primary (3.87/3.80) land on `opacity.10`, matching the owner's measurements.
+- **Visibility:** step UP until ΔE00 ≥ 2.3, capped by the text bar. This is #1621: the subtle neutral is ΔE00 0.4–2.1 at 20 and needs 30 (light) to 50 (dark).
+- **Pressed** sits at least one step above hover, so it still reads as coming forward.
+
+**The decision that isn't in the brief: ONE step per role across every mode.** A Figma paint's opacity cannot bind a variable and cannot vary by mode, but the fill variable it binds does. A per-mode step would make code and Figma disagree in every mode but one. So `settleSolidTint` runs after all modes resolve and picks, per (ground, category, state), the step that satisfies the rule in EVERY mode:
+- The text guard takes the strictest mode.
+- Visibility takes the mode that needs the most. The subtle neutral therefore sits at `opacity.50` on every page mode, including light, where 30 would already show.
+
+**Why #1622 was superseded.** It baked the composite into generated `core.palette.tint.*` primitives. The owner's model is that the tint IS the existing fill at an existing opacity, so there is nothing to mint. It also follows the fill for free: an overridden fill, or the band fill the owner sets per category in the plugin, moves the tint with no re-derivation.
+
+**Traps for whoever re-verifies this:**
+- **A tint role's `hex` is the fill, not the hover.** Every #288/#1613 arm used to judge `tint.hex` directly; they now composite (`mixHex`, written in `test.ts`) first. A check that forgets passes vacuously on a dark fill.
+- **Overrides:** a subtle fill is no longer overridable (there is no color to pin; the studio row reads "fill at N%"). An override on the fill or the ink IS followed, because the pass reads each mode's settled roles.
+- **Scope:** no corpus brand sets `solid-tint` (#1112), so `out/**` moves only its stamp, the `solid-tint` note prose and the lever description. The component-surface `@outline-solid-tint` rows moved and were re-accepted.
+
+**Gates (docs/34), by name:**
+- The #1614 independent re-derivation of every step (378 cells).
+- Four hand-computed composites (nb-redesign page `#e8e8e8`, band `#252525`; Aurora page `#cce5f1`, band `#252526`).
+- The down-step guard with its precondition, and the #1621 up-step with its precondition.
+- Nothing minted in the tree or the Figma collection.
+- Plan opacity nominal and brand-chosen, plus both executor legs and a paste read-back mutation.
+- Plugin 48+48 members read back at 0.1/0.3.
+- The round-trip reads back 440 paint opacities over 8 materialized defs.
+
+**Mutations (each from a `wip:` commit):**
+- Engine alpha forced to 1: the #1614 re-derivation, the tree `$value`, and the `opaque` arms fail.
+- Plan drops `paintOpacity`: the #1614 plan, paste and plugin legs fail, plus the plugin 48-member arms and the round-trip count.
+- Plugin `paint()` drops the opacity: the plugin arms and the round-trip `paintOpacity` divergences fail (96× per def), plus the engine's plugin leg.
+- Down-step disabled: the down-step, hand-computed and re-derivation arms fail.
+- Up-step disabled: the #1621 and visibility arms fail.
+
+---
 ## (2026-09-24) — a label-ink override carries to its icon twin (#1617)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/modes.ts` (**NEW** `withIconTwins`), `packages/engine/test.ts` (**IT-01**), `apps/studio/src/main.ts` (outline preview glyph), `packages/engine/version.ts` (ENGINE 0.136.0), stamp-only `out/**` + the `token-contract.json` `engineVersion` field (`--accept`, no surface change; CONTRACT stands at 11.3.0).

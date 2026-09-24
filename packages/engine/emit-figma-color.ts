@@ -314,7 +314,10 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
   // to walk `color.appearance.*`: `color.*` was a second, pointer tier, and walking the parent pulled
   // both into one collection — 130 alias rows emitted again, in five appearance modes, aliasing
   // themselves. The pointer tier is gone, so the parent IS the value tier and there is nothing to skip.
-  const colLeaves = leaves(tree[root].color, `${root}.color`);
+  // A `solid-tint` subtle fill (#1614) is the fill variable at a PAINT opacity, not a variable of its own:
+  // Figma cannot alias a variable at an alpha, and a raw translucent variable would be a new color that
+  // stops following the fill. The component plan binds the fill with the opacity instead (`applyOutlineInteraction`).
+  const colLeaves = leaves(tree[root].color, `${root}.color`).filter(([, leaf]) => !leaf.$extensions?.prism3?.tint);
   // Iterate only the modes THIS brand ships (respects BrandInput.modes opt-out — Pillar 1a).
   // Canonical order: the built-ins in their fixed COLOR_MODES order first, then any user-added
   // custom modes (C1 — the modes in theme.modes that aren't built-ins) in declaration order. For a

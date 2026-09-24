@@ -1560,93 +1560,218 @@ for (const b of brands) {
     ok(pressedSeen > 0 && flooredSeen > 0,
       `#1281 the subtle-fill floor rule saw BOTH populations — ${pressedSeen} pressed/selected and ${flooredSeen} other-state roles; either at zero makes its half of the rule untested`);
 
-    // And the tint must be VISIBLE against the page, or the hover does nothing — the inert-control
-    // class this repo has now hit three times (#288 itself, #305, pre-#297 leading). ΔE00 2.3 is the
-    // classic just-noticeable bar; measured worst across the example brands was 5.81.
+    // An independent composite (docs/34): straight sRGB source-over written HERE, never the engine's
+    // `composite`, rounded to 8-bit like a renderer. Every visibility and legibility check below judges the
+    // tint on this, from the fill's and ground's hexes and the step — since #1614 the role's own `hex` is the
+    // OPAQUE fill, so judging that hex would judge the category's fill, not its hover.
+    const mixHex = (fg: string, bg: string, a: number): string => {
+      const ch = (h: string, i: number) => parseInt(h.slice(1 + 2 * i, 3 + 2 * i), 16);
+      return '#' + [0, 1, 2].map((i) => Math.round(ch(fg, i) * a + ch(bg, i) * (1 - a)).toString(16).padStart(2, '0')).join('');
+    };
+    // The EXISTING opacity scale, transcribed by hand from the emitted `opacity.*` group (0 is no fill) — not
+    // imported from the engine, so a step the engine invents is a step this list does not have.
+    const SCALE = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+    const nbRedesign = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input);
+    const allBrands: Array<[string, any]> = [...brands, ['nb-redesign', nbRedesign]];
+
+    // And the tint must be VISIBLE against its ground, or the hover does nothing — the inert-control class
+    // this repo has now hit three times (#288 itself, #305, pre-#297 leading). ΔE00 2.3 is the classic
+    // just-noticeable bar. BOTH grounds, composited. No hold: #1614's up-step (#1621) is what makes the
+    // subtle-emphasis neutral clear it, and the #1613 nb-redesign band cells (ΔE00 2.00) are gone.
     const invisible: string[] = [];
-    for (const [id, t] of brands) {
+    let deJudged = 0;
+    for (const [id, t] of allBrands) {
       for (const m of tintRoles(t)) {
-        const page = m.roles['background.primary'];
-        if (!page) continue;
-        for (const [key, r] of Object.entries(m.roles) as [string, any][]) {
-          // The PAGE family only: the inverse twin (#1613) sits on the band and is judged against it below.
-          if (!key.includes('.subtle-fill.') || key.startsWith('inverse.')) continue;
-          const d = deltaE2000(hexToRgb(r.hex), hexToRgb(page.hex));
-          if (d < 2.3) invisible.push(`${id}/${m.mode}/${key} ΔE ${d.toFixed(2)}`);
+        for (const [prefix, groundKey] of [['', 'background.primary'], ['inverse.', 'inverse.background.primary']] as const) {
+          const ground = m.roles[groundKey];
+          for (const c of ['primary', 'neutral', 'destructive']) for (const st of ['hover', 'pressed', 'selected']) {
+            const tint = m.roles[`${prefix}interactive.${c}.subtle-fill.${st}`];
+            const fill = m.roles[`${prefix}interactive.${c}.fill.rest`];
+            if (!tint || !fill || !ground) { invisible.push(`${id}/${m.mode}/${prefix}${c}.${st} missing`); continue; }
+            deJudged++;
+            const d = deltaE2000(hexToRgb(mixHex(fill.hex, ground.hex, tint.tint!.opacity / 100)), hexToRgb(ground.hex));
+            if (d < 2.3) invisible.push(`${id}/${m.mode}/${prefix}interactive.${c}.subtle-fill.${st} ΔE ${d.toFixed(2)} at opacity.${tint.tint!.opacity}`);
+          }
         }
       }
     }
-    ok(invisible.length === 0, '#288 every subtle-fill is perceptibly different from the page (ΔE00 ≥ 2.3)'
+    ok(deJudged > 0 && invisible.length === 0, `#288/#1614 every subtle-fill, composited over its own ground, is perceptibly different from it (ΔE00 ≥ 2.3; ${deJudged} judged, page + band, none held)`
       + (invisible.length ? ` — INVISIBLE: ${invisible.slice(0, 4).join(', ')}` : ''));
 
     // ---- #1613: THE INVERSE TWIN — `solid-tint` means the same thing on the band ----------------------
-    // Owner decision (a): the engine emits `inverse.interactive.<c>.subtle-fill.{hover,pressed,selected}`,
-    // mirrored from the page derivation against the inverse ground. Three arms, each against the BAND:
     //   1. EXISTENCE, hand-named per column × state — a brand whose band has no hover tint is the 48-miss
     //      button the owner built.
-    //   2. HOVER INK-ON-TINT — the tint COVERS the band (`outlineFillFamily`'s `opaque`), so the band's own
-    //      hover ink `inverse.interactive.<c>.text.hover` must clear its floor on the tint. RECOMPUTED from
-    //      the two hexes and held to the INK's `min` (the text role's contract), never the tint's own
-    //      `ratio`/`min` — those are the subject's claims about itself (docs/34). Also pins `against` to
-    //      that ink by name, so a tint gated against the PAGE ink (the #575 shape) fails here.
-    //   3. DISTINGUISHABLE FROM THE BAND — ΔE00 ≥ 2.3 vs `inverse.background.primary` on every state, the
-    //      #305 invisible-hover shape. Not vs the page: a dark tint trivially differs from a white page.
-    // Synthetic solid-tint brands (no corpus brand sets it, #1112), plus nb-redesign — the owner's file.
+    //   2. HOVER INK-ON-TINT — the band's own hover ink `inverse.interactive.<c>.text.hover` clears its
+    //      floor on the tint COMPOSITED over the band (translucent since #1614). Recomputed from hexes and
+    //      held to the INK's `min`, never the tint's own `ratio`/`min` (docs/34). Pins `legibleFor` to that
+    //      ink and `against` to the band by name, so a tint gated against the PAGE (the #575 shape) fails.
+    // Distinguishability from the band is the both-grounds arm above.
     {
-      const invBrands: Array<[string, any]> = [
-        ...brands,
-        ['nb-redesign', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input)],
-      ];
       const COLUMNS = ['primary', 'neutral', 'destructive'];
       const STATES = ['hover', 'pressed', 'selected'];
-      const absent: string[] = [], illegible: string[] = [], invisibleInv: string[] = [];
-      let hoverJudged = 0, deJudged = 0;
-      for (const [id, t] of invBrands) {
+      const absent: string[] = [], illegible: string[] = [];
+      let hoverJudged = 0;
+      for (const [id, t] of allBrands) {
         for (const m of tintRoles(t)) {
           const band = m.roles['inverse.background.primary'];
           for (const c of COLUMNS) for (const st of STATES) {
             const key = `inverse.interactive.${c}.subtle-fill.${st}`;
             const tint = m.roles[key];
             if (!tint) { absent.push(`${id}/${m.mode}/${key}`); continue; }
-            if (band) {
-              deJudged++;
-              const d = deltaE2000(hexToRgb(tint.hex), hexToRgb(band.hex));
-              if (d < 2.3) invisibleInv.push(`${id}/${m.mode}/${key} ΔE ${d.toFixed(2)} vs band`);
-            }
             if (st !== 'hover') continue;
             const ink = m.roles[`inverse.interactive.${c}.text.hover`];
-            if (!ink) { absent.push(`${id}/${m.mode}/inverse.interactive.${c}.text.hover (the ink)`); continue; }
+            const fill = m.roles[`inverse.interactive.${c}.fill.rest`];
+            if (!ink || !fill || !band) { absent.push(`${id}/${m.mode}/inverse.interactive.${c} ink/fill/band`); continue; }
             hoverJudged++;
-            const r = contrast(hexToRgb(ink.hex), hexToRgb(tint.hex));
-            if (r < ink.min - 0.005) illegible.push(`${id}/${m.mode}/${key} ${r.toFixed(2)} < ${ink.min}`);
-            if (tint.against !== `inverse.interactive.${c}.text.hover`) illegible.push(`${id}/${m.mode}/${key} against=${tint.against}`);
+            const r = contrast(hexToRgb(ink.hex), hexToRgb(mixHex(fill.hex, band.hex, tint.tint!.opacity / 100)));
+            if (r < ink.min - 0.02) illegible.push(`${id}/${m.mode}/${key} ${r.toFixed(2)} < ${ink.min}`);
+            if (tint.legibleFor !== `inverse.interactive.${c}.text.hover` || tint.against !== 'inverse.background.primary')
+              illegible.push(`${id}/${m.mode}/${key} legibleFor=${tint.legibleFor} against=${tint.against}`);
           }
         }
       }
       ok(absent.length === 0,
-        `#1613 solid-tint emits inverse.interactive.<c>.subtle-fill.{hover,pressed,selected} for primary/neutral/destructive in every mode (${invBrands.length} brands)`
+        `#1613 solid-tint emits inverse.interactive.<c>.subtle-fill.{hover,pressed,selected} for primary/neutral/destructive in every mode (${allBrands.length} brands)`
         + (absent.length ? ` — ABSENT (${absent.length}): ${absent.slice(0, 4).join(', ')}` : ''));
       ok(hoverJudged > 0 && illegible.length === 0,
-        `#1613 every inverse subtle-fill hover keeps the band's hover ink legible (≥ the ink's secondaryMin, recomputed from hex; ${hoverJudged} judged)`
+        `#1613 every inverse subtle-fill hover keeps the band's hover ink legible on the composite (≥ the ink's min, recomputed from hex; ${hoverJudged} judged)`
         + (illegible.length ? ` — FAILING: ${illegible.slice(0, 4).join(', ')}` : ''));
-      // HELD, NOT INVENTED — the one place mirroring does not satisfy the contract, named cell by cell.
-      // nb-redesign (the owner's brand) routes `action` to its NEUTRAL palette and sets a neutral.950 band
-      // in light mode; the mirrored hover nominal is neutral.900, which clears the ink (6.55 / 17.15) but
-      // sits ΔE00 2.00 from the band. The walk never leaves the nominal (it stops at the first step that
-      // clears the INK), and teaching it to also clear ΔE is a change to the derivation — the owner's
-      // call (#1614), not a color to pick here. Every OTHER cell fails; and each held
-      // cell must STILL be invisible, so a fix upstream turns this line red until the hold is deleted.
-      const HELD_INVISIBLE = [
-        'nb-redesign/light/inverse.interactive.primary.subtle-fill.hover',
-        'nb-redesign/light/inverse.interactive.neutral.subtle-fill.hover',
+    }
+
+    // ---- #1614: THE TINT IS THE EXISTING FILL AT AN EXISTING OPACITY STEP ------------------------------
+    // Owner decision (revised + amended): each subtle fill is `[inverse.]interactive.<c>.fill.rest` at
+    // `opacity.20` (hover) / `opacity.30` (pressed, selected), translucent. The hover steps DOWN the scale
+    // until its label clears its bar on the composite; any state steps UP until the composite is visible;
+    // pressed sits at least one step above hover; ONE step per role across every mode (a Figma paint's
+    // opacity cannot vary by mode). No new color primitive, no new opacity token.
+    //
+    // INDEPENDENT OF THE SUBJECT (docs/34): the expected step is re-derived HERE from the rule as the owner
+    // stated it, over the hand-transcribed SCALE and this file's `mixHex`, reading only the fill, ground and
+    // ink ROLES — never the tint's `ratio`, `min` or description. Hand-computed literals anchor it below.
+    {
+      const INK = (prefix: string, c: string, st: string) => `${prefix}interactive.${c}.text.${st === 'selected' ? 'pressed' : st}`;
+      const expectedSteps = (modes: any[], prefix: string, c: string, groundKey: string): Record<string, number> => {
+        const cells = (st: string) => modes.map((m) => ({ fill: m.roles[`${prefix}interactive.${c}.fill.rest`].hex, ground: m.roles[groundKey].hex, ink: m.roles[INK(prefix, c, st)] }));
+        const legible = (st: string, s: number) => cells(st).every((x) => contrast(hexToRgb(x.ink.hex), hexToRgb(mixHex(x.fill, x.ground, s / 100))) >= x.ink.min - 0.005);
+        const visible = (st: string, s: number) => cells(st).every((x) => deltaE2000(hexToRgb(mixHex(x.fill, x.ground, s / 100)), hexToRgb(x.ground)) >= 2.3);
+        let h = SCALE.indexOf(20);
+        if (!legible('hover', SCALE[h])) { while (h > 0 && !legible('hover', SCALE[h])) h--; }
+        else while (!visible('hover', SCALE[h]) && h + 1 < SCALE.length && legible('hover', SCALE[h + 1])) h++;
+        let p = Math.max(SCALE.indexOf(30), h + 1);
+        while (!visible('pressed', SCALE[p]) && p + 1 < SCALE.length) p++;
+        return { hover: SCALE[h], pressed: SCALE[p], selected: SCALE[p] };
+      };
+      const wrong: string[] = [];
+      let judged = 0;
+      for (const [id, t] of allBrands) {
+        const modes = tintRoles(t);
+        for (const [prefix, groundKey] of [['', 'background.primary'], ['inverse.', 'inverse.background.primary']] as const) {
+          for (const c of ['primary', 'neutral', 'destructive']) {
+            const want = expectedSteps(modes, prefix, c, groundKey);
+            for (const st of ['hover', 'pressed', 'selected']) for (const m of modes) {
+              const tint = m.roles[`${prefix}interactive.${c}.subtle-fill.${st}`];
+              const fill = m.roles[`${prefix}interactive.${c}.fill.rest`];
+              judged++;
+              const where = `${id}/${m.mode}/${prefix}interactive.${c}.subtle-fill.${st}`;
+              if (!tint) { wrong.push(`${where} absent`); continue; }
+              // The EXISTING fill: same primitive, same color — nothing minted.
+              if (tint.path !== fill.path || tint.hex !== fill.hex) wrong.push(`${where} is ${tint.path} ${tint.hex}, not the fill ${fill.path} ${fill.hex}`);
+              if (tint.tint?.fill !== `${prefix}interactive.${c}.fill.rest`) wrong.push(`${where} tint.fill=${tint.tint?.fill}`);
+              // The EXISTING opacity step the rule lands on, carried as the alpha.
+              if (tint.tint?.opacity !== want[st] || Math.abs((tint.alpha ?? 1) - want[st] / 100) > 1e-9) wrong.push(`${where} opacity.${tint.tint?.opacity} (alpha ${tint.alpha}) ≠ opacity.${want[st]}`);
+              if (tint.model !== 'ink-on-composite') wrong.push(`${where} model ${tint.model} — a tint is translucent`);
+            }
+          }
+        }
+      }
+      ok(judged > 0 && wrong.length === 0,
+        `#1614 every subtle fill is its category's existing fill at the opacity step the rule lands on — one step per role across modes (independent re-derivation; ${judged} judged)`
+        + (wrong.length ? ` — WRONG (${wrong.length}): ${wrong.slice(0, 4).join(' | ')}` : ''));
+
+      // HAND-COMPUTED, from the owner's #1614 measurements: the step the guard lands on, and the composite
+      // it paints, on the owner's brand and on Aurora, page and band, light mode. Literals, so no computation
+      // in this file can agree with a wrong engine by construction.
+      const light = (t: any) => tintRoles(t).find((m) => m.mode === 'light')!.roles;
+      const nbr = light(nbRedesign);
+      const aur = light(brands.find(([id]) => id === 'aurora')![1]);
+      const HAND: Array<[string, any, string, string, number, string]> = [
+        // brand, roles, prefix, ground, step, composite
+        ['nb-redesign', nbr, '', 'background.primary', 10, '#e8e8e8'],
+        ['nb-redesign', nbr, 'inverse.', 'inverse.background.primary', 10, '#252525'],
+        ['aurora', aur, '', 'background.primary', 20, '#cce5f1'],
+        ['aurora', aur, 'inverse.', 'inverse.background.primary', 10, '#252526'],
       ];
-      const heldSeen = invisibleInv.filter((x) => HELD_INVISIBLE.some((h) => x.startsWith(`${h} `)));
-      const unheldInv = invisibleInv.filter((x) => !HELD_INVISIBLE.some((h) => x.startsWith(`${h} `)));
-      ok(deJudged > 0 && unheldInv.length === 0,
-        `#1613 every inverse subtle-fill is perceptibly different from the inverse band (ΔE00 ≥ 2.3 vs inverse.background.primary; ${deJudged} judged, ${HELD_INVISIBLE.length} held by name)`
-        + (unheldInv.length ? ` — INVISIBLE: ${unheldInv.slice(0, 4).join(', ')}` : ''));
-      ok(heldSeen.length === HELD_INVISIBLE.length,
-        `#1613 the held nb-redesign/light inverse hover cells are still below ΔE00 2.3 — if this fails they were fixed; delete the hold (${heldSeen.join('; ')})`);
+      for (const [id, R, prefix, groundKey, step, hex] of HAND) {
+        const tint = R[`${prefix}interactive.primary.subtle-fill.hover`];
+        const got = tint ? mixHex(R[`${prefix}interactive.primary.fill.rest`].hex, R[groundKey].hex, tint.tint.opacity / 100) : undefined;
+        ok(tint?.tint?.opacity === step && got === hex,
+          `#1614 hand-computed: ${id}/light/${prefix}interactive.primary.subtle-fill.hover is the fill at opacity.${step}, compositing to ${hex} (got opacity.${tint?.tint?.opacity} → ${got})`);
+      }
+
+      // THE DOWN-STEP GUARD ENGAGES where 20 fails the label, asserted with its PRECONDITION measured here
+      // (if 20 stops failing, the arm is no longer testing the guard) and recorded in the description.
+      for (const [id, R, prefix, groundKey] of [['nb-redesign', nbr, '', 'background.primary'], ['nb-redesign', nbr, 'inverse.', 'inverse.background.primary'], ['aurora', aur, 'inverse.', 'inverse.background.primary']] as const) {
+        const ink = R[`${prefix}interactive.primary.text.hover`];
+        const fillHex = R[`${prefix}interactive.primary.fill.rest`].hex;
+        const at20 = contrast(hexToRgb(ink.hex), hexToRgb(mixHex(fillHex, R[groundKey].hex, 0.2)));
+        const tint = R[`${prefix}interactive.primary.subtle-fill.hover`];
+        ok(at20 < ink.min && tint.tint.opacity < 20 && /stepped down from opacity\.20/.test(tint.description),
+          `#1614 down-step guard: ${id}/light/${prefix}primary hover fails at opacity.20 (${at20.toFixed(2)} < ${ink.min}) and steps down to opacity.${tint.tint.opacity}, saying so in its description`);
+      }
+
+      // THE NEUTRAL UP-STEP (#1621) ENGAGES on a subtle-emphasis neutral and makes it VISIBLE. Precondition
+      // measured here: at opacity.20 the page composite is invisible (ΔE00 < 2.3) in some mode.
+      for (const [id, t] of brands) {
+        if (t.neutralEmphasis === 'strong') continue;
+        const modes = tintRoles(t);
+        const dAt = (m: any, a: number) => deltaE2000(hexToRgb(mixHex(m.roles['interactive.neutral.fill.rest'].hex, m.roles['background.primary'].hex, a)), hexToRgb(m.roles['background.primary'].hex));
+        const minAt20 = Math.min(...modes.map((m) => dAt(m, 0.2)));
+        const step = modes[0].roles['interactive.neutral.subtle-fill.hover'].tint.opacity;
+        const minAtStep = Math.min(...modes.map((m) => dAt(m, step / 100)));
+        ok(minAt20 < 2.3 && step > 20 && minAtStep >= 2.3 && /stepped up from opacity\.20/.test(modes[0].roles['interactive.neutral.subtle-fill.hover'].description),
+          `#1621 up-step: ${id}'s subtle neutral page hover is invisible at opacity.20 (worst ΔE00 ${minAt20.toFixed(2)}) and steps up to opacity.${step} (worst ΔE00 ${minAtStep.toFixed(2)}), saying so`);
+      }
+
+      // NOTHING MINTED, in the EMISSION: the solid-tint tree carries exactly the core palette and the opacity
+      // scale the `none` tree does; every subtle fill's `tint` names the fill ROLE and an `opacity.*` TOKEN that
+      // exist and agree with its `$value`; and the Figma color collection gains no variable.
+      {
+        const auroraT = brands.find(([id]) => id === 'aurora')![1];
+        const tintTree = buildTree({ ...auroraT, outlineInteraction: 'solid-tint' }).tree;
+        const noneTree = buildTree({ ...auroraT, outlineInteraction: 'none' }).tree;
+        const root = auroraT.root;
+        const keysUnder = (n: any, pre = ''): string[] => Object.entries(n).flatMap(([k, v]: [string, any]) => k.startsWith('$') ? [] : v && v.$value !== undefined ? [`${pre}${k}`] : keysUnder(v, `${pre}${k}.`));
+        ok(JSON.stringify(keysUnder(tintTree[root].core)) === JSON.stringify(keysUnder(noneTree[root].core)),
+          '#1614 solid-tint mints no core primitive (core tier identical to outlineInteraction: none)');
+        ok(JSON.stringify(Object.keys(tintTree[root].opacity).map(Number)) === JSON.stringify([0, ...SCALE]),
+          `#1614 solid-tint mints no opacity token (the opacity scale is exactly 0/${SCALE.join('/')}: ${Object.keys(tintTree[root].opacity).join('/')})`);
+        const bad: string[] = [];
+        let refs = 0;
+        for (const prefix of ['', 'inverse.']) for (const c of ['primary', 'neutral', 'destructive']) for (const st of ['hover', 'pressed', 'selected']) {
+          const leaf = at(tintTree[root].color, `${prefix}interactive.${c}.subtle-fill.${st}`);
+          const perMode: Array<[string, any]> = [['light', { $value: leaf?.$value, tint: leaf?.$extensions?.prism3?.tint }], ...Object.entries(leaf?.$extensions?.prism3?.modes ?? {})];
+          for (const [mode, v] of perMode) {
+            refs++;
+            const where = `${mode}/${prefix}${c}.${st}`;
+            if (v.tint?.color !== `{${root}.color.${prefix}interactive.${c}.fill.rest}`) { bad.push(`${where} color ref ${v.tint?.color}`); continue; }
+            const op = /^\{(.+)\}$/.exec(String(v.tint?.opacity));
+            const opLeaf = op ? at(tintTree, op[1]) : undefined;
+            if (!op || !op[1].startsWith(`${root}.opacity.`) || typeof opLeaf?.$value !== 'number') { bad.push(`${where} opacity ref ${v.tint?.opacity} does not resolve to an opacity token`); continue; }
+            // The `$value` is the fill role's value in this mode at that token's alpha.
+            const fillLeaf = at(tintTree[root].color, `${prefix}interactive.${c}.fill.rest`);
+            const fillRef = mode === 'light' ? fillLeaf.$value : fillLeaf.$extensions.prism3.modes[mode].$value;
+            const fillHex = String(at(tintTree, String(fillRef).slice(1, -1)).$value).toLowerCase();
+            const want = `${fillHex}${Math.round(opLeaf.$value * 255).toString(16).padStart(2, '0')}`;
+            if (String(v.$value).toLowerCase() !== want) bad.push(`${where} $value ${v.$value} ≠ fill ${fillHex} at ${opLeaf.$value} (${want})`);
+          }
+        }
+        ok(refs > 0 && bad.length === 0, `#1614 every subtle fill's $value is its fill role at its opacity token, and both references resolve (${refs} mode-values)`
+          + (bad.length ? ` — BAD: ${bad.slice(0, 3).join(', ')}` : ''));
+        const figVars = (t: any) => buildFigmaColor(t).color[0].variables.map((v: { name: string }) => v.name);
+        const tintVars = figVars({ ...auroraT, outlineInteraction: 'solid-tint' });
+        ok(JSON.stringify(tintVars) === JSON.stringify(figVars({ ...auroraT, outlineInteraction: 'none' })) && !tintVars.some((n: string) => n.includes('subtle-fill')),
+          `#1614 solid-tint adds no Figma color variable — the hover is the fill variable at a paint opacity (${tintVars.length} variables either way)`);
+      }
     }
   }
 }
@@ -7002,61 +7127,52 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       ok(spurious.length === 0, `outline method '${method}' emits ONLY that family — ${id}`
         + (spurious.length ? ` — SPURIOUS: ${spurious.slice(0, 4).join('; ')}${spurious.length > 4 ? ` (+${spurious.length - 4})` : ''}` : ''));
       // `opaque` drives a per-state ink switch in the style guide (see 10h-ii), so it is part of the
-      // contract, not a rendering hint: only the tint covers its ground.
-      ok(opaque === (method === 'solid-tint'), `outline method '${method}' reports opacity correctly — ${id}`);
+      // contract, not a rendering hint. Judged against what the method EMITS rather than a method name: a
+      // family is opaque iff its hover role carries no alpha. Since #1614 no family does — the tint is the
+      // fill at an opacity step — so `solid-tint` reports translucent, like the wash.
+      const hoverRole = family ? resolveAllModes({ ...theme, outlineInteraction: method })[0].roles[`interactive.primary.${family}.hover`] : undefined;
+      ok(opaque === (!!hoverRole && (hoverRole.alpha ?? 1) >= 1), `outline method '${method}' reports opacity correctly (emitted alpha ${hoverRole?.alpha}) — ${id}`);
     }
   }
 }
 
-// (10h-ii) #575 — the OPAQUE tint covers its ground, so ink chosen for the ground beneath it is
-// measured against something that is no longer there.
+// (10h-ii) #575 → #1614 — which INK a hovered outline control keeps, per ground.
 //
-// This is the trap that fixing (10h)'s bug walks into. The style guide switches the Outline row's ink
-// to `inverse.interactive.<c>.text.*` on an inverse preview ground, which is right for the translucent wash — it
-// composites, so the band is still the ground. The `solid-tint` fill is a real palette step: from
-// `hover` onward the ground is a page-tuned tint, and the band's ink fails on it in **79 of 80**
-// corpus combinations, worst measured 1.32:1. The engine gates the tint against the control's own
-// PAGE ink for that state, so the page ink is the measured-correct answer there, not a fallback.
-//
-// Asserted here rather than in the web because the web has no test suite (#333) — but the fact being
-// asserted is an ENGINE fact (which ink the tint was gated against), and it is what makes the
-// dashboard's per-state switch correct. Same family as #63/#570/#573: a value measured against one
-// ground and painted on another. Third gate in this repo written to catch that shape.
+// Until #1614 the `solid-tint` fill was an OPAQUE palette step: it covered the band, so the style guide
+// switched a band member's ink back to the PAGE ink from `hover` on (the band ink failed 3:1 on it in 79 of
+// 80 corpus combinations). Since #1614 it is the category's fill at an opacity step — TRANSLUCENT, like the
+// wash — so a hovered control on the band is still on the band and each ground keeps its OWN ink, which the
+// engine gates each ground's tint against. So this now asserts the opposite of what it used to, on both
+// grounds: the page hover ink on the page composite, the band hover ink on the band composite — composited
+// HERE (`mixHex`, not the engine's `composite`) from the fill, the ground and the step — and that no method is
+// `opaque`, which is what retires the style guide's per-state switch for `solid-tint`.
 {
+  const mixHex = (fg: string, bg: string, a: number): string => {
+    const ch = (h: string, i: number) => parseInt(h.slice(1 + 2 * i, 3 + 2 * i), 16);
+    return '#' + [0, 1, 2].map((i) => Math.round(ch(fg, i) * a + ch(bg, i) * (1 - a)).toString(16).padStart(2, '0')).join('');
+  };
+  ok(!outlineFillFamily('solid-tint').opaque,
+    '#1614 solid-tint is translucent (outlineFillFamily.opaque false) — a band member keeps the band ink in every state');
   for (const { id, theme } of corpus()) {
     const t = { ...theme, outlineInteraction: 'solid-tint' as const };
-    const pageBad: string[] = [], bandOk: string[] = [], bandBad: string[] = [];
+    const bad: string[] = [];
+    let judged = 0;
     for (const m of resolveAllModes(t)) {
-      for (const color of ['primary', 'neutral', 'destructive']) {
-        for (const st of ['hover', 'pressed']) {
-          const tint = m.roles[`interactive.${color}.subtle-fill.${st}`];
-          if (!tint) continue;
-          const pageInk = m.roles[`interactive.${color}.text.${st}`];
-          const bandInk = m.roles[`inverse.interactive.${color}.text.${st}`];
-          // The page ink is what the engine gated this tint against — it must hold.
-          if (pageInk) {
-            const r = contrast(hexToRgb(pageInk.hex), hexToRgb(tint.hex));
-            if (r < tint.min) pageBad.push(`${m.mode} ${color}.${st} ${r.toFixed(2)}<${tint.min}`);
-          }
-          // And the band ink must not be ASSUMED usable on it. Counted, not asserted per row: one
-          // combination in the corpus (minimal / dark / primary.hover) does clear 3:1, by coincidence
-          // rather than by contract — the engine never gated it there. A "every row fails" assertion
-          // would have been the more satisfying claim and it is simply false; writing it that way
-          // first is how this got measured properly. What the switch needs is that the band ink
-          // cannot be RELIED on, i.e. that it fails somewhere — asserted after the loop.
-          if (bandInk && contrast(hexToRgb(bandInk.hex), hexToRgb(tint.hex)) >= 3) bandOk.push(`${m.mode} ${color}.${st}`);
-          else if (bandInk) bandBad.push(`${m.mode} ${color}.${st}`);
+      for (const [prefix, groundKey] of [['', 'background.primary'], ['inverse.', 'inverse.background.primary']] as const) {
+        for (const color of ['primary', 'neutral', 'destructive']) {
+          const tint = m.roles[`${prefix}interactive.${color}.subtle-fill.hover`];
+          const fill = m.roles[`${prefix}interactive.${color}.fill.rest`];
+          const ground = m.roles[groundKey];
+          const ink = m.roles[`${prefix}interactive.${color}.text.hover`];
+          if (!tint || !fill || !ground || !ink) { bad.push(`${m.mode} ${prefix}${color} missing a role`); continue; }
+          judged++;
+          const r = contrast(hexToRgb(ink.hex), hexToRgb(mixHex(fill.hex, ground.hex, tint.tint!.opacity / 100)));
+          if (r < ink.min - 0.02) bad.push(`${m.mode} ${prefix}${color}.hover ${r.toFixed(2)}<${ink.min}`);
         }
       }
     }
-    ok(pageBad.length === 0, `solid-tint keeps its own state ink legible — ${id}`
-      + (pageBad.length ? ` — FAIL: ${pageBad.join('; ')}` : ''));
-    // The switch is load-bearing iff the band ink fails on the tint somewhere in this brand. If a
-    // brand ever reaches ZERO failures, the coincidence has become universal for it and this gate
-    // says so — that is a prompt to check whether the engine now gates the tint for both grounds, in
-    // which case the style guide's per-state switch is dead code, not a silent pass.
-    ok(bandBad.length > 0, `inverse ink cannot be relied on over the page-tuned tint (the per-state switch is load-bearing) — ${id}`
-      + (bandBad.length ? ` — ${bandBad.length} of ${bandBad.length + bandOk.length} rows fail 3:1` : ' — NO row fails: revisit the switch'));
+    ok(judged > 0 && bad.length === 0, `solid-tint keeps each ground's own hover ink legible on its composite (${judged} judged) — ${id}`
+      + (bad.length ? ` — FAIL: ${bad.slice(0, 6).join('; ')}` : ''));
   }
 }
 
@@ -10994,24 +11110,28 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
 
     // HAND-NAMED: what each method binds on the member the owner hit — primary outline, hover, default ground.
-    const hoverFill = (method: typeof METHODS[number]): string | undefined => {
-      const p = figmaAnatomySet(applyOutlineInteraction(button, method))
-        .find((q) => /appearance=outline/.test(planComponentName(q)) && /state=hover/.test(planComponentName(q)) && !onInverse(q));
-      return p?.root.paints?.fills;
-    };
+    const member = (method: typeof METHODS[number], inverse: boolean, roles?: any, state = 'hover') =>
+      figmaAnatomySet(applyOutlineInteraction(button, method, roles))
+        .find((q) => /appearance=outline/.test(planComponentName(q)) && new RegExp(`state=${state}`).test(planComponentName(q)) && onInverse(q) === inverse);
+    const hoverFill = (method: typeof METHODS[number]): string | undefined => member(method, false)?.root.paints?.fills;
     ok(hoverFill('overlay-neutral') === 'color/interactive/primary/overlay/hover',
       `#1608 overlay-neutral: button outline hover binds the wash color/interactive/primary/overlay/hover (${hoverFill('overlay-neutral')})`);
-    ok(hoverFill('solid-tint') === 'color/interactive/primary/subtle-fill/hover',
-      `#1608 solid-tint: button outline hover binds the opaque tint color/interactive/primary/subtle-fill/hover (${hoverFill('solid-tint')})`);
-    // #1613 — the same member on the INVERSE band binds the inverse twin, which the brand now emits.
-    const invHoverFill = (method: typeof METHODS[number]): string | undefined => {
-      const p = figmaAnatomySet(applyOutlineInteraction(button, method))
-        .find((q) => /appearance=outline/.test(planComponentName(q)) && /state=hover/.test(planComponentName(q)) && onInverse(q));
-      return p?.root.paints?.fills;
+    // #1614: solid-tint binds the category's EXISTING fill variable at a PAINT OPACITY — the nominal opacity.20
+    // hover / opacity.30 pressed with no brand roles, and the step the engine chose with them.
+    const tintPaint = (inverse: boolean, roles?: any, state = 'hover') => {
+      const r = member('solid-tint', inverse, roles, state)?.root;
+      return `${r?.paints?.fills} @ ${r?.paintOpacity?.fills}`;
     };
-    ok(invHoverFill('solid-tint') === 'color/inverse/interactive/primary/subtle-fill/hover'
-      && emittedColor({ ...nbTheme(), outlineInteraction: 'solid-tint' }).has('color/inverse/interactive/primary/subtle-fill/hover'),
-      `#1613 solid-tint: inverse-band button outline hover binds color/inverse/interactive/primary/subtle-fill/hover, and the brand emits it (${invHoverFill('solid-tint')})`);
+    ok(tintPaint(false) === 'color/interactive/primary/fill/rest @ 0.2' && tintPaint(false, undefined, 'pressed') === 'color/interactive/primary/fill/rest @ 0.3',
+      `#1614 solid-tint: button outline hover/pressed bind the existing fill at the nominal paint opacity 0.2/0.3 (${tintPaint(false)}; ${tintPaint(false, undefined, 'pressed')})`);
+    const nbrRoles = resolveAllModes({ ...brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input), outlineInteraction: 'solid-tint' })[0].roles;
+    ok(tintPaint(false, nbrRoles) === 'color/interactive/primary/fill/rest @ 0.1' && tintPaint(true, nbrRoles) === 'color/inverse/interactive/primary/fill/rest @ 0.1'
+      && tintPaint(true, nbrRoles, 'pressed') === 'color/inverse/interactive/primary/fill/rest @ 0.3',
+      `#1614 solid-tint on nb-redesign: the plan carries the engine's guarded step per ground — page hover ${tintPaint(false, nbrRoles)}, band hover ${tintPaint(true, nbrRoles)}, band pressed ${tintPaint(true, nbrRoles, 'pressed')}`);
+    // #1613 — the same member on the INVERSE band binds the band's fill, which the brand emits.
+    ok(tintPaint(true).startsWith('color/inverse/interactive/primary/fill/rest @')
+      && emittedColor({ ...nbTheme(), outlineInteraction: 'solid-tint' }).has('color/inverse/interactive/primary/fill/rest'),
+      `#1613 solid-tint: inverse-band button outline hover binds color/inverse/interactive/primary/fill/rest, and the brand emits it (${tintPaint(true)})`);
     ok(hoverFill('none') === undefined,
       `#1608 none: button outline hover binds NO container fill — the intended no-hover (${hoverFill('none')})`);
 
@@ -12669,6 +12789,36 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const clean = await runPayload(planToPluginJs(runnable), full);
     ok(clean.misses.length === 0,
       `anatomy: a fully-resolved paste reports NOTHING — misses[] stays empty when every write landed (${JSON.stringify(clean.misses)})`);
+
+    // ---- #1614: THE PAINT OPACITY, EXECUTED on BOTH legs -----------------------------------------------
+    // A `solid-tint` outline hover is the category's fill VARIABLE at a paint opacity. Both executors write it
+    // after `setBoundVariableForPaint` in different code (a string in the payload, `paint()` in the plugin), so
+    // each leg is read back off the host here, against a hand-named step: nb-redesign's page primary hover
+    // steps down to opacity.10. Plus the payload's own read-back must NAME a dropped opacity.
+    {
+      const nbrRoles = resolveAllModes({ ...brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input), outlineInteraction: 'solid-tint' })[0].roles;
+      const tinted = figmaAnatomySet(applyOutlineInteraction(button, 'solid-tint', nbrRoles), { swapTarget: 'FPO-default-icon' })
+        .find((q) => /appearance=outline/.test(planComponentName(q)) && /state=hover/.test(planComponentName(q)) && !/surface=inverse/.test(planComponentName(q)))!;
+      const tVars = { vars: [...planBoundVars(tinted.root), ...planPaintVars(tinted.root)], styles: planTextStyles(tinted.root), comps: ['FPO-default-icon'] };
+      const opacities = (n: Record<string, unknown>): string[] => {
+        const f = (n.fills as { opacity?: number; boundVariables?: { color?: { id?: string } } }[] | undefined)?.[0];
+        const own = f?.opacity !== undefined ? [`${f.boundVariables?.color?.id} @ ${f.opacity}`] : [];
+        return [...own, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(opacities)];
+      };
+      const pastePage: StubPage = { children: [] };
+      const pasted = await runPayload(planToPluginJs(tinted), { ...tVars, page: pastePage });
+      const plugPage: StubPage = { children: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+      const plugged = await applyComponentPlan([tinted], makeFigmaStub({ ...tVars, page: plugPage }) as any);
+      const WANT = JSON.stringify(['V:color/interactive/primary/fill/rest @ 0.1']);
+      ok(pasted.misses.length === 0 && JSON.stringify(pastePage.children.flatMap(opacities)) === WANT,
+        `#1614 paste leg: the solid-tint hover pastes the primary fill variable at paint opacity 0.1 (${JSON.stringify(pastePage.children.flatMap(opacities))}; misses ${JSON.stringify(pasted.misses)})`);
+      ok(plugged.misses.length === 0 && JSON.stringify(plugPage.children.flatMap(opacities)) === WANT,
+        `#1614 plugin leg: applyComponentPlan builds the same paint at the same opacity (${JSON.stringify(plugPage.children.flatMap(opacities))}; misses ${JSON.stringify(plugged.misses)})`);
+      const dropped = await runPayload(planToPluginJs(tinted).replace('p=Object.assign({},p,{opacity:n.paintOpacity.fills});', ''), tVars);
+      ok(dropped.misses.some((m) => /\.fills\.opacity -> DISCARDED \(wanted 0\.1, read back/.test(m)),
+        `#1614 paste leg: an opacity the payload fails to keep IS reported by its read-back (${JSON.stringify(dropped.misses)})`);
+    }
 
     // ---- the ABSOLUTE part, EXECUTED (#536 item 3) -----------------------------------------------
     // The focus ring is the first part kind whose materialization can fail because of what is missing
