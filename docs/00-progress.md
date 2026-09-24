@@ -7,6 +7,21 @@
 
 ---
 
+## (2026-09-24) — Figma gets its own short description; DTCG prose per the #1623 sign-off
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.147.0 (MINOR, emitted prose moves); CONTRACT stands at 11.3.0 (the baseline's `engineVersion` stamp only). Files: `packages/engine/figma-description.ts` (**NEW**, the Figma register), `emit-figma-{color,dims,font,styles}.ts` (every description now comes from it; the `desc` passthrough is deleted), `modes.ts` / `tree.ts` / `theme.ts` (DTCG prose), `lint-description-claims.ts` (grammar follows), `lint-figma-descriptions.ts` (**NEW** gate, wired in `verify.ts`, `ci.yml`, CONTRIBUTING §3, the PR template, CLAUDE.md), `apps/plugin/src/prune-figma.ts` + `test-prune.ts`, `test.ts`.
+
+**The split.** The owner chose about 90 characters for Figma and the full detail in the DTCG description and `.ai.json`. So Figma is not a cut-down DTCG sentence. Each builder takes values (px, each mode's `min`, alpha, the ground role, the face) and composes its own line. Nothing in the Figma emitters reads a `$description` any more, so a DTCG wording change can't move a designer's panel.
+
+**Decisions that were mine (technical), stated so they can be reversed:**
+- A Figma contrast claim states the LOWEST `min` across modes. A floor is a floor, so it holds in every mode. The high-contrast floors live in DTCG and `.ai.json`. This drops batch A's `(7:1 in high-contrast modes)` parentheticals from Figma, which the owner's "full detail stays in DTCG" covers.
+- A ground named by a palette step (`against: "neutral.050"`) is resolved to the page ground ROLE that aliases it in light. The line then names `background/secondary`, which a designer can find. The resolution throws if the match is ambiguous.
+- 3:1 TEXT roles in Figma carry the large-text limit instead of their ground. The approved sentence plus a slash ground ran 107–120 characters. The ground stays in DTCG.
+- The ceiling is target + 10 (100), parsed from `docs/voice-standard.md`. It is never imported from the builder, which composes and never measures.
+
+**Traps.** (1) `modes.ts` now resolves the inverse ink BEFORE the fill-state loop, so each state can state its measured drop. It still `put`s the ink after the loop, so emission order is unchanged. Don't "tidy" the put upward: Figma creation order follows it. (2) The prune recognizer matches the current AND legacy style words. A client file applied before this still holds the old words, and a stranded one is exactly what prune exists for. The legacy regexes are frozen literals, and `test-prune.ts` holds them against frozen strings, not generated ones. (3) The claims gate's new shapes key on their own words ("The label on it drops to about", "below the … body floor"). Rewording those sentences silently turns them back into ordinary floor claims against `against`. Most would still pass, for the wrong reason.
+
+**Open for the owner (in the PR body):** the destructive inverse label (the strict setting doesn't cover it) and focused/selected (not transient, so no exemption is claimed; this is #1626's gap). Also: two small deviations from the approved wording, `on an inverse surface` and resolving role names instead of "the page".
 ## (2026-09-24) — the `.ai.json` sidecar is built for machine readers (#1623 sign-off)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/ai-metadata.ts`, `out/*.ai.json`, `schema/ai-metadata.schema.json` (**NEW**, hand-named in both prose gates), `json-schema-lite.ts` (**NEW**), `lint-voice.ts` (the payload channel), `lint-us-english.ts` + `lint-skills.ts` (scope and vocabulary), `test.ts`, `theme.ts` (one note), `skills/prism3-consume/SKILL.md`, `README.md`, `docs/voice-standard.md` §4, `docs/29` §4.1, `version.ts` (ENGINE 0.142.0; CONTRACT stands).

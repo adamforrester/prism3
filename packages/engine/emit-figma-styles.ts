@@ -15,6 +15,7 @@
  */
 import { Theme } from './theme';
 import { buildTree, at } from './tree';
+import { figmaShadowDescription, figmaGridStyleDescription, figmaGradientDescription } from './figma-description';
 import { figName, parseColor } from './emit-figma-color';
 import type { FigmaColor } from './emit-figma-color';
 
@@ -80,13 +81,18 @@ export const buildFigmaShadow = (theme: Theme): FigmaEffectStylesFile => {
   // Emit ordered: shadow/<step> first (light), then shadow-dark/<step> (dark).
   // Iterating twice on the same key order keeps materialise-side pairing simple.
   const keys = Object.keys(shadowNode);
+  // The Figma line ranks each drop shadow among its siblings (`Elevation 3 of 6`) from the key order the
+  // tree writes them in; `inset` is the one inner shadow and takes no rank.
+  const drops = keys.filter((k) => k !== 'inset');
+  const shadowText = (key: string, mode: string): string =>
+    figmaShadowDescription({ inset: key === 'inset', rank: drops.indexOf(key) + 1, of: drops.length, mode });
   for (const key of keys) {
     const leaf = shadowNode[key];
     const inset = key === 'inset';
     const lightLayers = (leaf.$value as any[]).map((l: any) => shadowLayerToEffect(l, inset));
     styles.push({
       name: `shadow/${key}`,
-      description: String(leaf.$description ?? '') + ' — light mode',
+      description: shadowText(key, 'light'),
       effects: lightLayers,
     });
   }
@@ -101,7 +107,7 @@ export const buildFigmaShadow = (theme: Theme): FigmaEffectStylesFile => {
     const darkLayers = darkLayerData.map((l: any) => shadowLayerToEffect(l, inset));
     styles.push({
       name: `shadow-dark/${key}`,
-      description: String(leaf.$description ?? '') + ' — dark mode (reduced; surface-lift pattern)',
+      description: shadowText(key, 'dark'),
       effects: darkLayers,
     });
   }
@@ -118,7 +124,7 @@ export const buildFigmaShadow = (theme: Theme): FigmaEffectStylesFile => {
       const inset = key === 'inset';
       styles.push({
         name: `shadow-${mode}/${key}`,
-        description: String(leaf.$description ?? '') + ` — ${mode} mode (per-mode softness/tint)`,
+        description: shadowText(key, mode),
         effects: layerData.map((l: any) => shadowLayerToEffect(l, inset)),
       });
     }
@@ -192,7 +198,7 @@ export const buildFigmaGradient = (theme: Theme): FigmaPaintStylesFile => {
 
     const style: FigmaPaintStyle = {
       name: `gradient/${key}`,
-      description: String(leaf.$description ?? ''),
+      description: figmaGradientDescription({ name: key, kind, angle: ext.angle, shape: ext.shape, stops: stops.length, interpolation: ext.interpolation ?? 'srgb' }),
       paintType,
       interpolation: ext.interpolation ?? 'srgb',
       stops,
@@ -253,9 +259,7 @@ const GRID_OVERLAY_COLOR: FigmaColor = { r: 1, g: 0, b: 0, a: 0.1 };
 export const buildFigmaGridStyles = (theme: Theme): FigmaGridStylesFile => {
   const styles: FigmaGridStyle[] = theme.layout.grid.map((g) => ({
     name: `Grid / ${g.bp}`,
-    description:
-      `${g.columns}-column layout grid for the ${g.bp} breakpoint — ${g.gutterPx}px gutter, ${g.marginPx}px margin. ` +
-      `A static Figma grid style; the layout variable collection stays the responsive source of truth.`,
+    description: figmaGridStyleDescription(g.columns, g.bp, g.gutterPx, g.marginPx),
     layoutGrids: [{
       pattern: 'COLUMNS',
       alignment: 'STRETCH',

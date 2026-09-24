@@ -723,6 +723,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-lever-sweep.ts'),
   },
   {
+    id: 'lint-figma-descriptions',
+    ciStep: 'Every Figma description is in the plugin register (#1623)',
+    cmd: engine('lint-figma-descriptions.ts'),
+  },
+  {
     // The FIRST gate outside `packages/engine/`, which is why `gateFilePattern` below now admits
     // `apps/*/lint-*.ts` as well as `.mjs`. It lives in `apps/plugin/` because it imports the plugin's
     // own executor; an engine-side copy would make the engine depend on a surface.

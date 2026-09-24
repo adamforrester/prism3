@@ -96,11 +96,11 @@ import { buildTree } from './tree';
 // module (so they can bundle into the Figma plugin main thread + the browser — #108). This
 // shell re-exports them, so every existing `from './emit-figma'` importer + the CLI below are
 // unchanged; the non-colour axes (font/dims/layout/shadow/gradient) still live here and reuse
-// `figName` / `parseColor` / `desc` / `leaves` / `stripNs` imported back from that module.
+// `figName` / `parseColor` / `leaves` / `stripNs` imported back from that module.
 import type {
   FigmaColor, FigmaVarValue, FigmaResolvedType, FigmaVar, FigmaCollectionFile,
 } from './emit-figma-color';
-import { COLOR_MODES, figName, parseColor, desc, leaves, stripNs, buildFigmaColor } from './emit-figma-color';
+import { COLOR_MODES, figName, parseColor, leaves, stripNs, buildFigmaColor } from './emit-figma-color';
 export type {
   FigmaColor, FigmaVarValue, FigmaResolvedType, FigmaVar, FigmaCollectionFile,
 } from './emit-figma-color';

@@ -1964,7 +1964,7 @@
       ]
     },
     "inverse.interactive.primary.fill.rest": {
-      "$description": "primary interactive fill on an inverse surface — rest (the crisp white / black default)",
+      "$description": "primary interactive fill on an inverse surface — rest — the white / black default",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.rest`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -1987,7 +1987,7 @@
       ]
     },
     "inverse.interactive.primary.fill.hover": {
-      "$description": "primary interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows on pointer hover. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.hover`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -2007,7 +2007,7 @@
       ]
     },
     "inverse.interactive.primary.fill.pressed": {
-      "$description": "primary interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows while pressed. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.pressed`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -2027,7 +2027,7 @@
       ]
     },
     "inverse.interactive.primary.fill.focused": {
-      "$description": "primary interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.focused`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -2047,7 +2047,7 @@
       ]
     },
     "inverse.interactive.primary.fill.selected": {
-      "$description": "primary interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.selected`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
@@ -2067,7 +2067,7 @@
       ]
     },
     "inverse.interactive.primary.on-fill": {
-      "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
+      "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The label / icon placed on a filled primary interactive element. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.on-fill`. Do not use on the page or on outline controls — use `interactive.primary.text.*`.",
@@ -2334,7 +2334,7 @@
       ]
     },
     "inverse.interactive.destructive.fill.rest": {
-      "$description": "destructive interactive fill on an inverse surface — rest (the crisp white / black default)",
+      "$description": "destructive interactive fill on an inverse surface — rest — the white / black default",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.rest`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -2357,7 +2357,7 @@
       ]
     },
     "inverse.interactive.destructive.fill.hover": {
-      "$description": "destructive interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting does not change the destructive label).",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows on pointer hover. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.hover`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -2377,7 +2377,7 @@
       ]
     },
     "inverse.interactive.destructive.fill.pressed": {
-      "$description": "destructive interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting does not change the destructive label).",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows while pressed. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.pressed`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -2397,7 +2397,7 @@
       ]
     },
     "inverse.interactive.destructive.fill.focused": {
-      "$description": "destructive interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.focused`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -2417,7 +2417,7 @@
       ]
     },
     "inverse.interactive.destructive.fill.selected": {
-      "$description": "destructive interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when selected / active. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.selected`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
@@ -2437,7 +2437,7 @@
       ]
     },
     "inverse.interactive.destructive.on-fill": {
-      "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
+      "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The label / icon placed on a filled destructive interactive element. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.on-fill`. Do not use on the page or on outline controls — use `interactive.destructive.text.*`.",
@@ -2706,7 +2706,7 @@
       ]
     },
     "inverse.interactive.neutral.fill.rest": {
-      "$description": "neutral interactive fill on an inverse surface — rest (the crisp white / black default)",
+      "$description": "neutral interactive fill on an inverse surface — rest — the white / black default",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.rest`. Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -2729,7 +2729,7 @@
       ]
     },
     "inverse.interactive.neutral.fill.hover": {
-      "$description": "neutral interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "neutral interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows on pointer hover. The label stays `inverse.interactive.neutral.on-fill`, which is gated against `inverse.interactive.neutral.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.hover`. Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -2749,7 +2749,7 @@
       ]
     },
     "inverse.interactive.neutral.fill.pressed": {
-      "$description": "neutral interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "neutral interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows while pressed. The label stays `inverse.interactive.neutral.on-fill`, which is gated against `inverse.interactive.neutral.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.pressed`. Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -2769,7 +2769,7 @@
       ]
     },
     "inverse.interactive.neutral.fill.focused": {
-      "$description": "neutral interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "neutral interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `inverse.interactive.neutral.on-fill`, which is gated against `inverse.interactive.neutral.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.focused`. Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -2789,7 +2789,7 @@
       ]
     },
     "inverse.interactive.neutral.fill.selected": {
-      "$description": "neutral interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
+      "$description": "neutral interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows when selected / active. The label stays `inverse.interactive.neutral.on-fill`, which is gated against `inverse.interactive.neutral.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.selected`. Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
@@ -2809,7 +2809,7 @@
       ]
     },
     "inverse.interactive.neutral.on-fill": {
-      "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the crisp white / black CTA",
+      "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the white / black rest fill",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The label / icon placed on a filled neutral interactive element. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.on-fill`. Do not use on the page or on outline controls — use `interactive.neutral.text.*`.",
@@ -3789,7 +3789,7 @@
       ]
     },
     "text.tertiary": {
-      "$description": "Tertiary text — 3:1 on background.secondary",
+      "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode — use `text.primary` there.",
       "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.secondary` (4.5:1). Do not use on solid or vivid fills. Use the `text.on-*` ink paired with the fill.",
@@ -3955,7 +3955,7 @@
       ]
     },
     "text.brand-subtle": {
-      "$description": "Muted brand text — low-emphasis accent, 3:1 on background.primary",
+      "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Brand identity (low-emphasis)",
       "when_to_use": "Low-emphasis brand text and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.brand` (4.5:1). For safety-critical brand messaging use the bold `text.brand`.",
@@ -3994,7 +3994,7 @@
       ]
     },
     "text.success-subtle": {
-      "$description": "Muted success text — low-emphasis accent, 3:1 on background.primary",
+      "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Success / positive signaling (low-emphasis)",
       "when_to_use": "Low-emphasis success text and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.success` (4.5:1). For safety-critical success messaging use the bold `text.success`.",
@@ -4033,7 +4033,7 @@
       ]
     },
     "text.warning-subtle": {
-      "$description": "Muted warning text — low-emphasis accent, 3:1 on background.primary",
+      "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Warning / caution signaling (low-emphasis)",
       "when_to_use": "Low-emphasis warning text and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.warning` (4.5:1). For safety-critical warning messaging use the bold `text.warning`.",
@@ -4072,7 +4072,7 @@
       ]
     },
     "text.danger-subtle": {
-      "$description": "Muted danger text — low-emphasis accent, 3:1 on background.primary",
+      "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Destructive / error signaling (low-emphasis)",
       "when_to_use": "Low-emphasis danger text and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.danger` (4.5:1). For safety-critical danger messaging use the bold `text.danger`.",
@@ -4111,7 +4111,7 @@
       ]
     },
     "text.info-subtle": {
-      "$description": "Muted info text — low-emphasis accent, 3:1 on background.primary",
+      "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Informational signaling (low-emphasis)",
       "when_to_use": "Low-emphasis info text and quiet accents. Clears 3:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 3:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `text.info` (4.5:1). For safety-critical info messaging use the bold `text.info`.",
@@ -5115,7 +5115,7 @@
       ]
     },
     "inverse.text.tertiary": {
-      "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary",
+      "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Content hierarchy / reading emphasis (inverse ground)",
       "when_to_use": "Tertiary text. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode — use `inverse.text.primary` there. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.tertiary`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.secondary` (4.5:1). Do not use on solid or vivid fills.",
@@ -5281,7 +5281,7 @@
       ]
     },
     "inverse.text.brand-subtle": {
-      "$description": "Muted brand text — low-emphasis accent, 3:1 on inverse.background.primary",
+      "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Brand identity (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis brand text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.brand-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.brand` (4.5:1). For safety-critical brand messaging use the bold `inverse.text.brand`.",
@@ -5320,7 +5320,7 @@
       ]
     },
     "inverse.text.success-subtle": {
-      "$description": "Muted success text — low-emphasis accent, 3:1 on inverse.background.primary",
+      "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Success / positive signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis success text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.success-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.success` (4.5:1). For safety-critical success messaging use the bold `inverse.text.success`.",
@@ -5359,7 +5359,7 @@
       ]
     },
     "inverse.text.warning-subtle": {
-      "$description": "Muted warning text — low-emphasis accent, 3:1 on inverse.background.primary",
+      "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Warning / caution signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis warning text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.warning-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.warning` (4.5:1). For safety-critical warning messaging use the bold `inverse.text.warning`.",
@@ -5398,7 +5398,7 @@
       ]
     },
     "inverse.text.danger-subtle": {
-      "$description": "Muted danger text — low-emphasis accent, 3:1 on inverse.background.primary",
+      "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Destructive / error signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis danger text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.danger-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.danger` (4.5:1). For safety-critical danger messaging use the bold `inverse.text.danger`.",
@@ -5437,7 +5437,7 @@
       ]
     },
     "inverse.text.info-subtle": {
-      "$description": "Muted info text — low-emphasis accent, 3:1 on inverse.background.primary",
+      "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
       "meaning": "Informational signaling (low-emphasis) (inverse ground)",
       "when_to_use": "Low-emphasis info text and quiet accents. Clears 3:1 in every mode on `inverse.background.primary`, `inverse.background.secondary` and `inverse.foreground.primary`. Below 3:1 on `inverse.background.tertiary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary` in at least one mode. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `text.info-subtle`. Large text (24px and up, or 18.66px bold), icons and non-essential text only — 3:1 is below the 4.5:1 floor for body text; for body-size text use `inverse.text.info` (4.5:1). For safety-critical info messaging use the bold `inverse.text.info`.",
@@ -7518,7 +7518,7 @@
       "resolves_to": "{nbds.core.dimension.4}"
     },
     "focus.ring.width": {
-      "$description": "focus ring width — 2px (the WCAG 2.4.13 minimum thickness; raise to 3px for more visibility)",
+      "$description": "focus ring width — 2px (meets WCAG 2.4.13, AAA focus appearance)",
       "meaning": "Focus-ring geometry — width",
       "when_to_use": "The keyboard-focus ring drawn around a focused element. Its color is `border.focus`.",
       "resolves_to": "{nbds.core.dimension.2}"
@@ -7704,7 +7704,7 @@
       "resolves_to": "{nbds.core.dimension.16}"
     },
     "control.size.sm.width": {
-      "$description": "control.size.sm width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "$description": "control.size.sm width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
       "meaning": "Selection-control geometry, sm step — width",
       "when_to_use": "The width of a checkbox, radio or switch at the sm step.",
       "resolves_to": "{nbds.core.dimension.48}"
@@ -7734,7 +7734,7 @@
       "resolves_to": "{nbds.core.dimension.18}"
     },
     "control.size.sm.radius": {
-      "$description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and the 16÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "$description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and one eighth of the box, 16px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "meaning": "Selection-control geometry, sm step — radius",
       "when_to_use": "The radius of a checkbox, radio or switch at the sm step.",
       "resolves_to": "{nbds.core.dimension.2}"
@@ -7752,7 +7752,7 @@
       "resolves_to": "{nbds.core.dimension.20}"
     },
     "control.size.md.width": {
-      "$description": "control.size.md width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "$description": "control.size.md width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
       "meaning": "Selection-control geometry, md step — width",
       "when_to_use": "The width of a checkbox, radio or switch at the md step.",
       "resolves_to": "{nbds.core.dimension.64}"
@@ -7782,7 +7782,7 @@
       "resolves_to": "{nbds.core.dimension.24}"
     },
     "control.size.md.radius": {
-      "$description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and the 20÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "$description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and one eighth of the box, 20px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "meaning": "Selection-control geometry, md step — radius",
       "when_to_use": "The radius of a checkbox, radio or switch at the md step.",
       "resolves_to": "{nbds.core.dimension.2}"
@@ -7800,7 +7800,7 @@
       "resolves_to": "{nbds.core.dimension.24}"
     },
     "control.size.lg.width": {
-      "$description": "control.size.lg width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "$description": "control.size.lg width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
       "meaning": "Selection-control geometry, lg step — width",
       "when_to_use": "The width of a checkbox, radio or switch at the lg step.",
       "resolves_to": "{nbds.core.dimension.80}"
@@ -7830,7 +7830,7 @@
       "resolves_to": "{nbds.core.dimension.30}"
     },
     "control.size.lg.radius": {
-      "$description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and the 24÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "$description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and one eighth of the box, 24px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "meaning": "Selection-control geometry, lg step — radius",
       "when_to_use": "The radius of a checkbox, radio or switch at the lg step.",
       "resolves_to": "{nbds.core.dimension.2}"
@@ -8122,7 +8122,7 @@
       ]
     },
     "core.palette.red.100": {
-      "$description": "brand (red) 100 — Quarter-Tone band",
+      "$description": "brand (red) 100 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "red ramp — raw step 100",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8141,7 +8141,7 @@
       ]
     },
     "core.palette.red.150": {
-      "$description": "brand (red) 150 — Quarter-Tone band",
+      "$description": "brand (red) 150 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "red ramp — raw step 150",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8168,7 +8168,7 @@
       ]
     },
     "core.palette.red.200": {
-      "$description": "brand (red) 200 — Quarter-Tone band",
+      "$description": "brand (red) 200 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "red ramp — raw step 200",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8189,7 +8189,7 @@
       ]
     },
     "core.palette.red.250": {
-      "$description": "brand (red) 250 — Quarter-Tone band",
+      "$description": "brand (red) 250 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "red ramp — raw step 250",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8222,7 +8222,7 @@
       ]
     },
     "core.palette.red.300": {
-      "$description": "brand (red) 300 — Quarter-Tone band",
+      "$description": "brand (red) 300 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "red ramp — raw step 300",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8254,7 +8254,7 @@
       ]
     },
     "core.palette.red.350": {
-      "$description": "brand (red) 350 — Quarter-Tone band",
+      "$description": "brand (red) 350 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "red ramp — raw step 350",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8300,7 +8300,7 @@
       ]
     },
     "core.palette.red.400": {
-      "$description": "brand (red) 400 — Mid-Tone band",
+      "$description": "brand (red) 400 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "red ramp — raw step 400",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -8315,7 +8315,7 @@
       ]
     },
     "core.palette.red.450": {
-      "$description": "brand (red) 450 — Mid-Tone band",
+      "$description": "brand (red) 450 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "red ramp — raw step 450",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -8356,7 +8356,7 @@
       ]
     },
     "core.palette.red.500": {
-      "$description": "brand (red) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "$description": "brand (red) 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
       "meaning": "red ramp — raw step 500",
       "intent": "Solid fills & UI-element backgrounds — the one mid step that reads as text or icons over both light and dark fills",
       "tier": "primitive",
@@ -8379,7 +8379,7 @@
       ]
     },
     "core.palette.red.550": {
-      "$description": "brand (red) 550 — Mid-Tone band — brand anchor (exact, pinned)",
+      "$description": "brand (red) 550 — Mid-Tone band (mid tones, steps 400–600) — brand anchor (exact, pinned)",
       "meaning": "red ramp — raw step 550",
       "intent": "Solid fills & UI-element backgrounds — reach for this when fidelity to the source brand color matters",
       "tier": "primitive",
@@ -8414,7 +8414,7 @@
       ]
     },
     "core.palette.red.600": {
-      "$description": "brand (red) 600 — Mid-Tone band",
+      "$description": "brand (red) 600 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "red ramp — raw step 600",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -8437,7 +8437,7 @@
       ]
     },
     "core.palette.red.650": {
-      "$description": "brand (red) 650 — Three-Quarter-Tone band",
+      "$description": "brand (red) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "red ramp — raw step 650",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -8483,7 +8483,7 @@
       ]
     },
     "core.palette.red.700": {
-      "$description": "brand (red) 700 — Three-Quarter-Tone band",
+      "$description": "brand (red) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "red ramp — raw step 700",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -8515,7 +8515,7 @@
       ]
     },
     "core.palette.red.750": {
-      "$description": "brand (red) 750 — Three-Quarter-Tone band",
+      "$description": "brand (red) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "red ramp — raw step 750",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -8552,7 +8552,7 @@
       ]
     },
     "core.palette.red.800": {
-      "$description": "brand (red) 800 — Three-Quarter-Tone band",
+      "$description": "brand (red) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "red ramp — raw step 800",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -8573,7 +8573,7 @@
       ]
     },
     "core.palette.red.850": {
-      "$description": "brand (red) 850 — Three-Quarter-Tone band",
+      "$description": "brand (red) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "red ramp — raw step 850",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -8600,7 +8600,7 @@
       ]
     },
     "core.palette.red.900": {
-      "$description": "brand (red) 900 — Three-Quarter-Tone band",
+      "$description": "brand (red) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "red ramp — raw step 900",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -8619,7 +8619,7 @@
       ]
     },
     "core.palette.red.950": {
-      "$description": "brand (red) 950 — Shadow band",
+      "$description": "brand (red) 950 — Shadow band (near-black shade, step 950)",
       "meaning": "red ramp — raw step 950",
       "intent": "Highest-contrast text and strong foreground",
       "tier": "primitive",
@@ -8632,7 +8632,7 @@
       ]
     },
     "core.palette.red.025": {
-      "$description": "brand (red) 025 — Highlight band",
+      "$description": "brand (red) 025 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "red ramp — raw step 025",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
@@ -8643,7 +8643,7 @@
       ]
     },
     "core.palette.red.050": {
-      "$description": "brand (red) 050 — Highlight band",
+      "$description": "brand (red) 050 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "red ramp — raw step 050",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
@@ -8654,7 +8654,7 @@
       ]
     },
     "core.palette.green.100": {
-      "$description": "success (green) 100 — Quarter-Tone band",
+      "$description": "success (green) 100 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "green ramp — raw step 100",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8665,28 +8665,28 @@
       ]
     },
     "core.palette.green.150": {
-      "$description": "success (green) 150 — Quarter-Tone band",
+      "$description": "success (green) 150 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "green ramp — raw step 150",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.green.200": {
-      "$description": "success (green) 200 — Quarter-Tone band",
+      "$description": "success (green) 200 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "green ramp — raw step 200",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.green.250": {
-      "$description": "success (green) 250 — Quarter-Tone band",
+      "$description": "success (green) 250 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "green ramp — raw step 250",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.green.300": {
-      "$description": "success (green) 300 — Quarter-Tone band",
+      "$description": "success (green) 300 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "green ramp — raw step 300",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8700,7 +8700,7 @@
       ]
     },
     "core.palette.green.350": {
-      "$description": "success (green) 350 — Quarter-Tone band",
+      "$description": "success (green) 350 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "green ramp — raw step 350",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8712,7 +8712,7 @@
       ]
     },
     "core.palette.green.400": {
-      "$description": "success (green) 400 — Mid-Tone band",
+      "$description": "success (green) 400 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "green ramp — raw step 400",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -8725,7 +8725,7 @@
       ]
     },
     "core.palette.green.450": {
-      "$description": "success (green) 450 — Mid-Tone band",
+      "$description": "success (green) 450 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "green ramp — raw step 450",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -8740,7 +8740,7 @@
       ]
     },
     "core.palette.green.500": {
-      "$description": "success (green) 500 — Mid-Tone band — 4.89:1 on white, 4.29:1 on black",
+      "$description": "success (green) 500 — Mid-Tone band (mid tones, steps 400–600) — 4.89:1 on white, 4.29:1 on black",
       "meaning": "green ramp — raw step 500",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -8755,7 +8755,7 @@
       ]
     },
     "core.palette.green.550": {
-      "$description": "success (green) 550 — Mid-Tone band",
+      "$description": "success (green) 550 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "green ramp — raw step 550",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -8766,7 +8766,7 @@
       ]
     },
     "core.palette.green.600": {
-      "$description": "success (green) 600 — Mid-Tone band",
+      "$description": "success (green) 600 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "green ramp — raw step 600",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -8780,7 +8780,7 @@
       ]
     },
     "core.palette.green.650": {
-      "$description": "success (green) 650 — Three-Quarter-Tone band",
+      "$description": "success (green) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "green ramp — raw step 650",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -8791,7 +8791,7 @@
       ]
     },
     "core.palette.green.700": {
-      "$description": "success (green) 700 — Three-Quarter-Tone band",
+      "$description": "success (green) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "green ramp — raw step 700",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -8805,28 +8805,28 @@
       ]
     },
     "core.palette.green.750": {
-      "$description": "success (green) 750 — Three-Quarter-Tone band",
+      "$description": "success (green) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "green ramp — raw step 750",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.green.800": {
-      "$description": "success (green) 800 — Three-Quarter-Tone band",
+      "$description": "success (green) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "green ramp — raw step 800",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.green.850": {
-      "$description": "success (green) 850 — Three-Quarter-Tone band",
+      "$description": "success (green) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "green ramp — raw step 850",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.green.900": {
-      "$description": "success (green) 900 — Three-Quarter-Tone band",
+      "$description": "success (green) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "green ramp — raw step 900",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -8837,28 +8837,28 @@
       ]
     },
     "core.palette.green.950": {
-      "$description": "success (green) 950 — Shadow band",
+      "$description": "success (green) 950 — Shadow band (near-black shade, step 950)",
       "meaning": "green ramp — raw step 950",
       "intent": "Highest-contrast text and strong foreground",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.green.025": {
-      "$description": "success (green) 025 — Highlight band",
+      "$description": "success (green) 025 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "green ramp — raw step 025",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.green.050": {
-      "$description": "success (green) 050 — Highlight band",
+      "$description": "success (green) 050 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "green ramp — raw step 050",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.amber.100": {
-      "$description": "warning (amber) 100 — Quarter-Tone band",
+      "$description": "warning (amber) 100 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "amber ramp — raw step 100",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8869,28 +8869,28 @@
       ]
     },
     "core.palette.amber.150": {
-      "$description": "warning (amber) 150 — Quarter-Tone band",
+      "$description": "warning (amber) 150 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "amber ramp — raw step 150",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.amber.200": {
-      "$description": "warning (amber) 200 — Quarter-Tone band",
+      "$description": "warning (amber) 200 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "amber ramp — raw step 200",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.amber.250": {
-      "$description": "warning (amber) 250 — Quarter-Tone band",
+      "$description": "warning (amber) 250 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "amber ramp — raw step 250",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.amber.300": {
-      "$description": "warning (amber) 300 — Quarter-Tone band",
+      "$description": "warning (amber) 300 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "amber ramp — raw step 300",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8904,7 +8904,7 @@
       ]
     },
     "core.palette.amber.350": {
-      "$description": "warning (amber) 350 — Quarter-Tone band",
+      "$description": "warning (amber) 350 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "amber ramp — raw step 350",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -8916,14 +8916,14 @@
       ]
     },
     "core.palette.amber.400": {
-      "$description": "warning (amber) 400 — Mid-Tone band",
+      "$description": "warning (amber) 400 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "amber ramp — raw step 400",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.amber.450": {
-      "$description": "warning (amber) 450 — Mid-Tone band",
+      "$description": "warning (amber) 450 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "amber ramp — raw step 450",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -8938,7 +8938,7 @@
       ]
     },
     "core.palette.amber.500": {
-      "$description": "warning (amber) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "$description": "warning (amber) 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
       "meaning": "amber ramp — raw step 500",
       "intent": "Solid fills & UI-element backgrounds — the one mid step that reads as text or icons over both light and dark fills",
       "tier": "primitive",
@@ -8955,7 +8955,7 @@
       ]
     },
     "core.palette.amber.550": {
-      "$description": "warning (amber) 550 — Mid-Tone band",
+      "$description": "warning (amber) 550 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "amber ramp — raw step 550",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -8966,7 +8966,7 @@
       ]
     },
     "core.palette.amber.600": {
-      "$description": "warning (amber) 600 — Mid-Tone band",
+      "$description": "warning (amber) 600 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "amber ramp — raw step 600",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -8979,7 +8979,7 @@
       ]
     },
     "core.palette.amber.650": {
-      "$description": "warning (amber) 650 — Three-Quarter-Tone band",
+      "$description": "warning (amber) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "amber ramp — raw step 650",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -8991,7 +8991,7 @@
       ]
     },
     "core.palette.amber.700": {
-      "$description": "warning (amber) 700 — Three-Quarter-Tone band",
+      "$description": "warning (amber) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "amber ramp — raw step 700",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9005,28 +9005,28 @@
       ]
     },
     "core.palette.amber.750": {
-      "$description": "warning (amber) 750 — Three-Quarter-Tone band",
+      "$description": "warning (amber) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "amber ramp — raw step 750",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.amber.800": {
-      "$description": "warning (amber) 800 — Three-Quarter-Tone band",
+      "$description": "warning (amber) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "amber ramp — raw step 800",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.amber.850": {
-      "$description": "warning (amber) 850 — Three-Quarter-Tone band",
+      "$description": "warning (amber) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "amber ramp — raw step 850",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.amber.900": {
-      "$description": "warning (amber) 900 — Three-Quarter-Tone band",
+      "$description": "warning (amber) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "amber ramp — raw step 900",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9037,28 +9037,28 @@
       ]
     },
     "core.palette.amber.950": {
-      "$description": "warning (amber) 950 — Shadow band",
+      "$description": "warning (amber) 950 — Shadow band (near-black shade, step 950)",
       "meaning": "amber ramp — raw step 950",
       "intent": "Highest-contrast text and strong foreground",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.amber.025": {
-      "$description": "warning (amber) 025 — Highlight band",
+      "$description": "warning (amber) 025 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "amber ramp — raw step 025",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.amber.050": {
-      "$description": "warning (amber) 050 — Highlight band",
+      "$description": "warning (amber) 050 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "amber ramp — raw step 050",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.neutral.100": {
-      "$description": "neutral 100 — Quarter-Tone band",
+      "$description": "neutral 100 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "neutral ramp — raw step 100",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9078,7 +9078,7 @@
       ]
     },
     "core.palette.neutral.150": {
-      "$description": "neutral 150 — Quarter-Tone band",
+      "$description": "neutral 150 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "neutral ramp — raw step 150",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9090,7 +9090,7 @@
       ]
     },
     "core.palette.neutral.200": {
-      "$description": "neutral 200 — Quarter-Tone band",
+      "$description": "neutral 200 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "neutral ramp — raw step 200",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9108,7 +9108,7 @@
       ]
     },
     "core.palette.neutral.250": {
-      "$description": "neutral 250 — Quarter-Tone band",
+      "$description": "neutral 250 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "neutral ramp — raw step 250",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9123,7 +9123,7 @@
       ]
     },
     "core.palette.neutral.300": {
-      "$description": "neutral 300 — Quarter-Tone band",
+      "$description": "neutral 300 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "neutral ramp — raw step 300",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9136,7 +9136,7 @@
       ]
     },
     "core.palette.neutral.350": {
-      "$description": "neutral 350 — Quarter-Tone band",
+      "$description": "neutral 350 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "neutral ramp — raw step 350",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9153,7 +9153,7 @@
       ]
     },
     "core.palette.neutral.400": {
-      "$description": "neutral 400 — Mid-Tone band",
+      "$description": "neutral 400 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "neutral ramp — raw step 400",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -9165,7 +9165,7 @@
       ]
     },
     "core.palette.neutral.450": {
-      "$description": "neutral 450 — Mid-Tone band",
+      "$description": "neutral 450 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "neutral ramp — raw step 450",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -9193,7 +9193,7 @@
       ]
     },
     "core.palette.neutral.500": {
-      "$description": "neutral 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "$description": "neutral 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
       "meaning": "neutral ramp — raw step 500",
       "intent": "Solid fills & UI-element backgrounds — the one mid step that reads as text or icons over both light and dark fills",
       "tier": "primitive",
@@ -9213,7 +9213,7 @@
       ]
     },
     "core.palette.neutral.550": {
-      "$description": "neutral 550 — Mid-Tone band",
+      "$description": "neutral 550 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "neutral ramp — raw step 550",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -9241,7 +9241,7 @@
       ]
     },
     "core.palette.neutral.600": {
-      "$description": "neutral 600 — Mid-Tone band",
+      "$description": "neutral 600 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "neutral ramp — raw step 600",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -9255,7 +9255,7 @@
       ]
     },
     "core.palette.neutral.650": {
-      "$description": "neutral 650 — Three-Quarter-Tone band",
+      "$description": "neutral 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "neutral ramp — raw step 650",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9271,7 +9271,7 @@
       ]
     },
     "core.palette.neutral.700": {
-      "$description": "neutral 700 — Three-Quarter-Tone band",
+      "$description": "neutral 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "neutral ramp — raw step 700",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9286,7 +9286,7 @@
       ]
     },
     "core.palette.neutral.750": {
-      "$description": "neutral 750 — Three-Quarter-Tone band",
+      "$description": "neutral 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "neutral ramp — raw step 750",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9300,7 +9300,7 @@
       ]
     },
     "core.palette.neutral.800": {
-      "$description": "neutral 800 — Three-Quarter-Tone band",
+      "$description": "neutral 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "neutral ramp — raw step 800",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9320,7 +9320,7 @@
       ]
     },
     "core.palette.neutral.850": {
-      "$description": "neutral 850 — Three-Quarter-Tone band",
+      "$description": "neutral 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "neutral ramp — raw step 850",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9334,7 +9334,7 @@
       ]
     },
     "core.palette.neutral.900": {
-      "$description": "neutral 900 — Three-Quarter-Tone band",
+      "$description": "neutral 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "neutral ramp — raw step 900",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9353,7 +9353,7 @@
       ]
     },
     "core.palette.neutral.950": {
-      "$description": "neutral 950 — Shadow band",
+      "$description": "neutral 950 — Shadow band (near-black shade, step 950)",
       "meaning": "neutral ramp — raw step 950",
       "intent": "Highest-contrast text and strong foreground",
       "tier": "primitive",
@@ -9390,7 +9390,7 @@
       ]
     },
     "core.palette.neutral.025": {
-      "$description": "neutral 025 — Highlight band",
+      "$description": "neutral 025 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "neutral ramp — raw step 025",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
@@ -9434,7 +9434,7 @@
       ]
     },
     "core.palette.neutral.050": {
-      "$description": "neutral 050 — Highlight band",
+      "$description": "neutral 050 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "neutral ramp — raw step 050",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
@@ -9447,7 +9447,7 @@
       ]
     },
     "core.palette.info.100": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 100 — Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 100 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 100",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9458,28 +9458,28 @@
       ]
     },
     "core.palette.info.150": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 150 — Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 150 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 150",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.200": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 200 — Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 200 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 200",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.250": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 250 — Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 250 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 250",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.300": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 300 — Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 300 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 300",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9493,7 +9493,7 @@
       ]
     },
     "core.palette.info.350": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 350 — Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 350 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 350",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9505,14 +9505,14 @@
       ]
     },
     "core.palette.info.400": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 400 — Mid-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 400 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "info ramp — raw step 400",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.450": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 450 — Mid-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 450 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "info ramp — raw step 450",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -9527,7 +9527,7 @@
       ]
     },
     "core.palette.info.500": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
       "meaning": "info ramp — raw step 500",
       "intent": "Solid fills & UI-element backgrounds — the one mid step that reads as text or icons over both light and dark fills",
       "tier": "primitive",
@@ -9544,7 +9544,7 @@
       ]
     },
     "core.palette.info.550": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 550 — Mid-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 550 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "info ramp — raw step 550",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -9555,7 +9555,7 @@
       ]
     },
     "core.palette.info.600": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 600 — Mid-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 600 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "info ramp — raw step 600",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -9568,7 +9568,7 @@
       ]
     },
     "core.palette.info.650": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 650 — Three-Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 650",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9580,7 +9580,7 @@
       ]
     },
     "core.palette.info.700": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 700 — Three-Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 700",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9594,28 +9594,28 @@
       ]
     },
     "core.palette.info.750": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 750 — Three-Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 750",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.800": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 800 — Three-Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 800",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.850": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 850 — Three-Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 850",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.900": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 900 — Three-Quarter-Tone band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 900",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9626,21 +9626,21 @@
       ]
     },
     "core.palette.info.950": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 950 — Shadow band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 950 — Shadow band (near-black shade, step 950)",
       "meaning": "info ramp — raw step 950",
       "intent": "Highest-contrast text and strong foreground",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.025": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 025 — Highlight band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 025 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "info ramp — raw step 025",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.050": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 050 — Highlight band",
+      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 050 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "info ramp — raw step 050",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",

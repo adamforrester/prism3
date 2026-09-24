@@ -8,7 +8,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "display sm strong — 36→48px fluid wendysFresh, snug line-height, strong weight, tight tracking",
+      "description": "display sm strong size — 48px desktop, 36px mobile",
       "value": 48,
       "alias": null
     },
@@ -18,7 +18,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "display md strong — 40→64px fluid wendysFresh, tight line-height, strong weight, tight tracking",
+      "description": "display md strong size — 64px desktop, 40px mobile",
       "value": 64,
       "alias": null
     },
@@ -28,7 +28,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "display lg strong — 40→80px fluid wendysFresh, tight line-height, strong weight, tight tracking",
+      "description": "display lg strong size — 80px desktop, 40px mobile",
       "value": 80,
       "alias": null
     },
@@ -38,7 +38,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "display xl strong — 48→96px fluid wendysFresh, tight line-height, strong weight, tighter tracking",
+      "description": "display xl strong size — 96px desktop, 48px mobile",
       "value": 96,
       "alias": null
     },
@@ -48,7 +48,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "display 2xl strong — 48→128px fluid wendysFresh, tight line-height, strong weight, tighter tracking",
+      "description": "display 2xl strong size — 128px desktop, 48px mobile",
       "value": 128,
       "alias": null
     },
@@ -58,7 +58,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "display 3xl strong — 48→160px fluid wendysFresh, tight line-height, strong weight, tighter tracking",
+      "description": "display 3xl strong size — 160px desktop, 48px mobile",
       "value": 160,
       "alias": null
     },
@@ -68,7 +68,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "title md strong — 20→24px fluid wendysFresh, compact line-height, strong weight, snug tracking",
+      "description": "title md strong size — 24px desktop, 20px mobile",
       "value": 24,
       "alias": null
     },
@@ -78,7 +78,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "title lg strong — 24→28px fluid wendysFresh, snug line-height, strong weight, snug tracking",
+      "description": "title lg strong size — 28px desktop, 24px mobile",
       "value": 28,
       "alias": null
     },
@@ -88,7 +88,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "title xl strong — 28→32px fluid wendysFresh, snug line-height, strong weight, snug tracking",
+      "description": "title xl strong size — 32px desktop, 28px mobile",
       "value": 32,
       "alias": null
     },
@@ -98,7 +98,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "title 2xl strong — 36→40px fluid wendysFresh, snug line-height, strong weight, snug tracking",
+      "description": "title 2xl strong size — 40px desktop, 36px mobile",
       "value": 40,
       "alias": null
     },
@@ -108,7 +108,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "eyebrow lg emphasis — 18→20px fluid wendysFresh, snug line-height, emphasis weight, wider tracking, uppercase",
+      "description": "eyebrow lg emphasis size — 20px desktop, 18px mobile",
       "value": 20,
       "alias": null
     }

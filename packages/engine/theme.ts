@@ -80,7 +80,9 @@ export type Role = 'brand' | 'neutral' | 'success' | 'warning' | 'danger' | 'inf
 export type OKLCH = { l: number; c: number; h: number };
 
 /** A generated primitive palette. */
-export type PaletteBuild = { palette: string; role: Role; steps: Step[]; description: string };
+/** `generated` names the hue of a status ramp the engine generated because the brand supplies none (e.g.
+ *  `'red'`), so a surface can say so from a field rather than by reading `description` (#1623 FG/F-14). */
+export type PaletteBuild = { palette: string; role: Role; steps: Step[]; description: string; generated?: string };
 
 /** Per-mode LEVER overrides for the non-colour axes (Phase D). A customizable mode may override
  *  an input lever the engine RE-DERIVES for that mode — the radius scale, motion tempo, component
@@ -2423,7 +2425,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   } else {
     // Primary is not a saturated red, so carve a dedicated danger red the brand never gave us.
     const d = STATUS_DEFAULTS.danger;
-    palettes.push({ palette: 'danger', role: 'danger', description: 'danger status, engine-generated red ramp (the brand supplies no danger hue)', steps: statusRamp(d.h, d.chroma) });
+    palettes.push({ palette: 'danger', role: 'danger', description: 'danger status, engine-generated red ramp (the brand supplies no danger hue)', generated: 'red', steps: statusRamp(d.h, d.chroma) });
     // Distinguish the two carve reasons (M-05): a red-ish-but-greige primary must NOT be reused
     // for danger (a near-grey can't signal destruction), even though its hue is in the window.
     const hueIsRed = hueDist(input.primary.h, STATUS_DEFAULTS.danger.h) <= 20;
@@ -2815,7 +2817,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const dMin = normalizeDisabledMin(input.disabledStrategy, input.disabledMin);
   notes.push(dStrat === 'full'
     ? `disabled: 'full' — disabled text/icon clears a fixed 4.5:1 (AA text) on the floor. Legibility is guaranteed, so the disabled AFFORDANCE rests on the fill / border / cursor / aria-disabled rather than on dimming — confirm a disabled control still reads as disabled.`
-    : `disabled: 'reduced' (default) — disabled text/icon clears ${dMin}:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.`);
+    : `disabled: 'reduced' (default) — disabled text/icon clears ${dMin}:1 on the floor: visibly dimmed but legible. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.`);
   const oInt = input.outlineInteraction ?? 'overlay-neutral';
   notes.push(oInt === 'overlay-neutral'
     ? `interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.`
@@ -2959,7 +2961,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     palette: spec.palette, role: spec.role, description: spec.name, steps: buildRamp(spec),
   }));
   // NB ships no blue; synthesise an info palette so the semantic layer is complete.
-  palettes.push({ palette: 'info', role: 'info', description: 'info status, engine-generated blue ramp (the brand supplies no info hue)', steps: statusRamp(STATUS_DEFAULTS.info.h, STATUS_DEFAULTS.info.chroma) });
+  palettes.push({ palette: 'info', role: 'info', description: 'info status, engine-generated blue ramp (the brand supplies no info hue)', generated: 'blue', steps: statusRamp(STATUS_DEFAULTS.info.h, STATUS_DEFAULTS.info.chroma) });
   const baseUnit = s.density?.baseUnit ?? 4;
   const baseMd = s.radius?.baseMd ?? 4;
   // Engine taxonomy (not NB's): 8px space rhythm reproducing Prism2's numbered
@@ -2980,8 +2982,8 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     gradient: { gradients: [] },                                     // NB ships no gradients (it had none)
     notes: [
       'NB regression: measured anchors; brand red also serves as danger (NB brand hue is its danger hue).',
-      `dimension axis: ${baseUnit}px grid, 8px space rhythm (Prism2 numbered scale), comfortable density, radius scale 1 (baseMd ${baseMd}px).`,
-      'typography: curated rem size ladder (22 steps, 10–160px) reproducing the Prism2 reference scale; weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900.',
+      `dimension axis: ${baseUnit}px grid, 8px space rhythm (numbered scale), comfortable density, radius scale 1 (baseMd ${baseMd}px).`,
+      'typography: curated rem size ladder (22 steps, 10–160px); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900.',
       'shadow: 6-step ramp + inset, 2-layer, pure-black (NB dialect); mode-aware lift-primary (reduced in dark, NOT NB\'s heavier inverse — the field-correct choice).',
       'layout: 5 breakpoints (engine default) + 12-col grid (4/8/12 ladder) + container max 1920 / narrow 720 (NB caps); gutter/margin alias the spacing scale.',
     ],

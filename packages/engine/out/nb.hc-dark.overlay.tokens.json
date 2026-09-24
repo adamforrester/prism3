@@ -574,7 +574,7 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{nbds.core.palette.red.350}",
-          "$description": "Muted brand text — low-emphasis accent, 4.5:1 on background.primary",
+          "$description": "Muted brand text — 4.5:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -598,7 +598,7 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{nbds.core.palette.green.350}",
-          "$description": "Muted success text — low-emphasis accent, 4.5:1 on background.primary",
+          "$description": "Muted success text — 4.5:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -622,7 +622,7 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{nbds.core.palette.amber.350}",
-          "$description": "Muted warning text — low-emphasis accent, 4.5:1 on background.primary",
+          "$description": "Muted warning text — 4.5:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -646,7 +646,7 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{nbds.core.palette.red.350}",
-          "$description": "Muted danger text — low-emphasis accent, 4.5:1 on background.primary",
+          "$description": "Muted danger text — 4.5:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -670,7 +670,7 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{nbds.core.palette.info.350}",
-          "$description": "Muted info text — low-emphasis accent, 4.5:1 on background.primary",
+          "$description": "Muted info text — 4.5:1 on background.primary",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -3805,7 +3805,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.black}",
-                "$description": "primary interactive fill on an inverse surface — rest (the crisp white / black default)",
+                "$description": "primary interactive fill on an inverse surface — rest — the white / black default",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3829,7 +3829,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.900}",
-                "$description": "primary interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3853,7 +3853,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.800}",
-                "$description": "primary interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3877,7 +3877,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.900}",
-                "$description": "primary interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3901,7 +3901,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.800}",
-                "$description": "primary interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3926,7 +3926,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{nbds.core.palette.white}",
-              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -4255,7 +4255,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.black}",
-                "$description": "destructive interactive fill on an inverse surface — rest (the crisp white / black default)",
+                "$description": "destructive interactive fill on an inverse surface — rest — the white / black default",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4279,7 +4279,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.900}",
-                "$description": "destructive interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4303,7 +4303,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.800}",
-                "$description": "destructive interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4327,7 +4327,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.900}",
-                "$description": "destructive interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4351,7 +4351,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.800}",
-                "$description": "destructive interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4376,7 +4376,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{nbds.core.palette.white}",
-              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -4705,7 +4705,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.black}",
-                "$description": "neutral interactive fill on an inverse surface — rest (the crisp white / black default)",
+                "$description": "neutral interactive fill on an inverse surface — rest — the white / black default",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4729,7 +4729,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.900}",
-                "$description": "neutral interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "neutral interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4753,7 +4753,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.800}",
-                "$description": "neutral interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "neutral interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4777,7 +4777,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.900}",
-                "$description": "neutral interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "neutral interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4801,7 +4801,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{nbds.core.palette.neutral.800}",
-                "$description": "neutral interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "neutral interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4826,7 +4826,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{nbds.core.palette.white}",
-              "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the crisp white / black CTA",
+              "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the white / black rest fill",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -5395,7 +5395,7 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{nbds.core.palette.red.650}",
-            "$description": "Muted brand text — low-emphasis accent, 4.5:1 on inverse.background.primary",
+            "$description": "Muted brand text — 4.5:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5419,7 +5419,7 @@
           "success-subtle": {
             "$type": "color",
             "$value": "{nbds.core.palette.green.650}",
-            "$description": "Muted success text — low-emphasis accent, 4.5:1 on inverse.background.primary",
+            "$description": "Muted success text — 4.5:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5443,7 +5443,7 @@
           "warning-subtle": {
             "$type": "color",
             "$value": "{nbds.core.palette.amber.650}",
-            "$description": "Muted warning text — low-emphasis accent, 4.5:1 on inverse.background.primary",
+            "$description": "Muted warning text — 4.5:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5467,7 +5467,7 @@
           "danger-subtle": {
             "$type": "color",
             "$value": "{nbds.core.palette.red.650}",
-            "$description": "Muted danger text — low-emphasis accent, 4.5:1 on inverse.background.primary",
+            "$description": "Muted danger text — 4.5:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -5491,7 +5491,7 @@
           "info-subtle": {
             "$type": "color",
             "$value": "{nbds.core.palette.info.650}",
-            "$description": "Muted info text — low-emphasis accent, 4.5:1 on inverse.background.primary",
+            "$description": "Muted info text — 4.5:1 on inverse.background.primary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",

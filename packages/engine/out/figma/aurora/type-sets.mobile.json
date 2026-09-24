@@ -8,7 +8,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "display sm strong — 40→56px fluid Clash Display, snug line-height, strong weight, tight tracking",
+      "description": "display sm strong size — 56px desktop, 40px mobile",
       "value": 40,
       "alias": null
     },
@@ -18,7 +18,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "display md strong — 40→72px fluid Clash Display, tight line-height, strong weight, tight tracking",
+      "description": "display md strong size — 72px desktop, 40px mobile",
       "value": 40,
       "alias": null
     },
@@ -28,7 +28,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "display lg strong — 48→96px fluid Clash Display, tight line-height, strong weight, tighter tracking",
+      "description": "display lg strong size — 96px desktop, 48px mobile",
       "value": 48,
       "alias": null
     },
@@ -38,7 +38,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "display xl strong — 48→112px fluid Clash Display, tight line-height, strong weight, tighter tracking",
+      "description": "display xl strong size — 112px desktop, 48px mobile",
       "value": 48,
       "alias": null
     },
@@ -48,7 +48,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "title sm strong — 20→24px fluid Clash Display, compact line-height, strong weight, snug tracking",
+      "description": "title sm strong size — 24px desktop, 20px mobile",
       "value": 20,
       "alias": null
     },
@@ -58,7 +58,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "title md strong — 24→28px fluid Clash Display, snug line-height, strong weight, snug tracking",
+      "description": "title md strong size — 28px desktop, 24px mobile",
       "value": 24,
       "alias": null
     },
@@ -68,7 +68,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "title lg strong — 28→32px fluid Clash Display, snug line-height, strong weight, snug tracking",
+      "description": "title lg strong size — 32px desktop, 28px mobile",
       "value": 28,
       "alias": null
     },
@@ -78,7 +78,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "title xl strong — 32→36px fluid Clash Display, snug line-height, strong weight, snug tracking",
+      "description": "title xl strong size — 36px desktop, 32px mobile",
       "value": 32,
       "alias": null
     },
@@ -88,7 +88,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "title 2xl strong — 40→48px fluid Clash Display, snug line-height, strong weight, snug tracking",
+      "description": "title 2xl strong size — 48px desktop, 40px mobile",
       "value": 40,
       "alias": null
     },
@@ -98,7 +98,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "eyebrow md emphasis — 14→16px fluid Clash Display, snug line-height, emphasis weight, wider tracking, uppercase",
+      "description": "eyebrow md emphasis size — 16px desktop, 14px mobile",
       "value": 14,
       "alias": null
     },
@@ -108,7 +108,7 @@
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "eyebrow lg emphasis — 20→24px fluid Clash Display, snug line-height, emphasis weight, wider tracking, uppercase",
+      "description": "eyebrow lg emphasis size — 24px desktop, 20px mobile",
       "value": 20,
       "alias": null
     }

@@ -21,7 +21,12 @@
  */
 import { Theme } from './theme';
 import { buildTree, at } from './tree';
-import { figName, desc, nsName, coreName, CORE_COLLECTION } from './emit-figma-color';
+import {
+  figmaDimensionDescription, figmaSpaceDescription, figmaRadiusDescription, figmaSizeDescription, figmaIconSizeDescription,
+  figmaControlDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription,
+  figmaBreakpointDescription, figmaContainerDescription, figmaGridVarDescription,
+} from './figma-description';
+import { figName, nsName, coreName, CORE_COLLECTION } from './emit-figma-color';
 import type { FigmaVar, FigmaCollectionFile } from './emit-figma-color';
 
 /** Numeric px from a `12px` or `"{alias}"` value. For alias targets we resolve via
@@ -154,7 +159,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     name: coreDim(`dimension/${key}`),
     resolvedType: 'FLOAT' as const,
     scopes: DIMENSION_SCOPES,
-    description: desc(brand.core.dimension[key]),
+    description: figmaDimensionDescription(pxFromValue(tree, brand.core.dimension[key].$value)),
     value: pxFromValue(tree, brand.core.dimension[key].$value),
     alias: null,
     hiddenFromPublishing: true,
@@ -173,7 +178,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       name: ns(`space/${key}`),
       resolvedType: 'FLOAT' as const,
       scopes: SPACE_SCOPES,
-      description: desc(leaf),
+      description: figmaSpaceDescription(pxFromValue(tree, leaf.$value), Number(leaf.$extensions?.prism3?.mult ?? 0)),
       value: pxFromValue(tree, leaf.$value),
       alias: isAlias ? { type: 'VARIABLE_ALIAS' as const, name: aliasFigName(leaf.$value) } : null,
     };
@@ -206,7 +211,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
         name: ns(`radius/${key}`),
         resolvedType: 'FLOAT' as const,
         scopes: RADIUS_SCOPES,
-        description: desc(leaf),
+        description: figmaRadiusDescription(key, pxFromValue(tree, leaf.$value)),
         value: pxFromValue(tree, source.$value),
         alias: isAlias ? { type: 'VARIABLE_ALIAS' as const, name: aliasFigName(source.$value) } : null,
       };
@@ -232,7 +237,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
         name: ns(`size/${t}/${prop}`),
         resolvedType: 'FLOAT',
         scopes: prop === 'height' || prop === 'min-height' ? SIZE_HEIGHT_SCOPES : SIZE_PADDING_SCOPES,
-        description: desc(leaf),
+        description: figmaSizeDescription(prop, pxFromValue(tree, leaf.$value), brand.size[t]['padding-x'] ? pxFromValue(tree, brand.size[t]['padding-x'].$value) : undefined),
         value: pxFromValue(tree, leaf.$value),
         alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
       });
@@ -249,7 +254,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       name: ns(`icon/size/${key}`),
       resolvedType: 'FLOAT' as const,
       scopes: SIZE_HEIGHT_SCOPES,
-      description: desc(leaf),
+      description: figmaIconSizeDescription(pxFromValue(tree, leaf.$value), key),
       value: pxFromValue(tree, leaf.$value),
       alias: isAlias ? { type: 'VARIABLE_ALIAS' as const, name: aliasFigName(leaf.$value) } : null,
     };
@@ -276,6 +281,9 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     // would render the switch unbound; both are WIDTH_HEIGHT dimensions like `height`/`dot`. This list
     // caught them exactly as it caught `inset`: the exporter gate reported the six new paths as prism3-only
     // on the first run, which is this authored list's stated purpose working as designed.
+    // The rung's own px per field — the Figma line states the arithmetic from these, not from the DTCG prose.
+    const rungPx: Record<string, number> = Object.fromEntries(Object.entries(brand.control.size[rung])
+      .filter(([k]) => !k.startsWith('$')).map(([k, l]: [string, any]) => [k, pxFromValue(tree, l.$value)]));
     for (const field of ['height', 'width', 'dot', 'line-box', 'inset', 'radius', 'track', 'thumb']) {
       const leaf = brand.control.size[rung][field];
       if (!leaf) continue;
@@ -288,7 +296,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
         // fields its scopes name, so an inset scoped WIDTH_HEIGHT would be invisible in the padding
         // control that is its only consumer, and a corner scoped the same way invisible in the radius one.
         scopes: field === 'inset' ? SIZE_PADDING_SCOPES : field === 'radius' ? RADIUS_SCOPES : SIZE_HEIGHT_SCOPES,
-        description: desc(leaf),
+        description: figmaControlDescription(field, rungPx, rung),
         value: pxFromValue(tree, leaf.$value),
         alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
       });
@@ -302,7 +310,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       name: ns(`border-width/${key}`),
       resolvedType: 'FLOAT' as const,
       scopes: BORDER_WIDTH_SCOPES,
-      description: desc(leaf),
+      description: figmaBorderWidthDescription(pxFromValue(tree, leaf.$value)),
       value: pxFromValue(tree, leaf.$value),
       alias: isAlias ? { type: 'VARIABLE_ALIAS' as const, name: aliasFigName(leaf.$value) } : null,
     };
@@ -320,7 +328,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       name: ns(`focus/ring/${key}`),
       resolvedType: 'FLOAT',
       scopes: FOCUS_SCOPES,
-      description: desc(leaf),
+      description: figmaFocusDescription(key, pxFromValue(tree, leaf.$value)),
       value: pxFromValue(tree, leaf.$value),
       alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
     });
@@ -340,7 +348,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     name: ns(`opacity/${key}`),
     resolvedType: 'FLOAT' as const,
     scopes: OPACITY_SCOPES,
-    description: desc(brand.opacity[key]),
+    description: figmaOpacityDescription(Math.round((brand.opacity[key].$value as number) * 100)),
     value: Math.round((brand.opacity[key].$value as number) * 100),
     alias: null,
   }));
@@ -401,7 +409,6 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
   // otherwise silently drops its base `xs` grid, and a ≤3-breakpoint brand would read
   // `gridNode[mode]` undefined and crash. `LAYOUT_MODES` stays the DEFAULT breakpoint-name set
   // (a 4-floor brief auto-names them sm..2xl); the emit follows whatever the brand generated.
-  // (`desc` is now the module-level helper hoisted for the #76 description threading.)
   const modes = Object.keys(gridNode);
 
   // ONE description per grid variable, shared by every breakpoint mode (#1623 FG/F-1). A Figma variable
@@ -417,12 +424,10 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
     }
     return runs.map((r) => `${r.from === r.to ? r.from : `${r.from}–${r.to}`} ${r.v}${unit}`).join(' · ');
   };
-  const isAliasLeaf = (leaf: any): boolean => typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
   const gridDescription = {
-    columns: `Layout grid columns — set per breakpoint mode (${perBreakpoint((m) => gridNode[m].columns.$value as number, '')})`,
+    columns: figmaGridVarDescription('columns', perBreakpoint((m) => gridNode[m].columns.$value as number, '')),
     ...Object.fromEntries((['gutter', 'margin'] as const).map((key) => [key,
-      `Layout grid ${key} — set per breakpoint mode (${perBreakpoint((m) => pxFromValue(tree, gridNode[m][key].$value), 'px')})`
-      + (modes.every((m) => isAliasLeaf(gridNode[m][key])) ? ', aliased to the space scale' : '')])),
+      figmaGridVarDescription(key, perBreakpoint((m) => pxFromValue(tree, gridNode[m][key].$value), 'px'))])),
   } as Record<'columns' | 'gutter' | 'margin', string>;
 
   return modes.map((mode) => {
@@ -436,7 +441,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
         name: ns(`breakpoint/${bpKey}`),
         resolvedType: 'FLOAT',
         scopes: LAYOUT_BREAKPOINT_SCOPES,
-        description: desc(leaf),
+        description: figmaBreakpointDescription(pxFromValue(tree, leaf.$value)),
         value: pxFromValue(tree, leaf.$value),
         alias: null,
       });
@@ -472,7 +477,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
         name: ns(`container/${cKey}`),
         resolvedType: 'FLOAT',
         scopes: LAYOUT_CONTAINER_SCOPES,
-        description: desc(leaf),
+        description: figmaContainerDescription(cKey, pxFromValue(tree, leaf.$value)),
         value: pxFromValue(tree, leaf.$value),
         alias: null,
       });

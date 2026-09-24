@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.147.0 — #1623 sign-off (owner decisions on the description audit). Figma gets its OWN description register:
+ * `figma-description.ts` builds every Figma variable and style description from structured data (px, each
+ * mode's `min`, alpha, the ground role, the face) — never from the DTCG `$description` — at about 90
+ * characters, and the `desc` passthrough is removed. DTCG prose moves too: inverse fill states state the
+ * measured label drop (T-6), 3:1 text roles carry the large-text limit (T-7), palette bands are glossed with
+ * their real step range and research jargon is replaced (T-8), the focus ring width no longer names an
+ * unemitted 3px (F-17). Text, grid, effect and gradient style descriptions move, and the plugin prune
+ * recognizer moves with them (accepting the legacy words). New gate `lint-figma-descriptions.ts`. Emitted
+ * prose moves in every brand's `out/**` → MINOR. CONTRACT STANDS (no token name moves).
  * 0.146.0 — #1623 sign-off: the `.ai.json` sidecar is built for machine readers (schema
  * `prism3-ai-metadata/0.3`, published as `schema/ai-metadata.schema.json` and validated in test.ts by the
  * in-repo `json-schema-lite.ts`). Owner decisions: `.ai.json` is the payload channel, so `avoid_when_level`
@@ -3547,7 +3556,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.146.0';
+export const ENGINE_VERSION = '0.147.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -11,7 +11,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Pure white — Highlight base / default surface",
+      "description": "Pure white — the light extreme",
       "value": {
         "r": 1,
         "g": 1,
@@ -30,7 +30,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Pure black — Shadow base",
+      "description": "Pure black — the dark extreme",
       "value": {
         "r": 0,
         "g": 0,
@@ -49,7 +49,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Transparent — alpha 0, no paint. field.fill aliases it, so a field is framed by its border on any ground",
+      "description": "Transparent — alpha 0, no paint (the default form field fill)",
       "value": {
         "r": 0,
         "g": 0,
@@ -68,7 +68,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 025 — Highlight band",
+      "description": "Brand (primary) 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9960784316062927,
         "g": 0.95686274766922,
@@ -87,7 +87,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 050 — Highlight band",
+      "description": "Brand (primary) 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9607843160629272,
         "g": 0.8901960849761963,
@@ -106,7 +106,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 100 — Quarter-Tone band",
+      "description": "Brand (primary) 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9411764740943909,
         "g": 0.8196078538894653,
@@ -125,7 +125,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 150 — Quarter-Tone band",
+      "description": "Brand (primary) 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9215686321258545,
         "g": 0.7490196228027344,
@@ -144,7 +144,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 200 — Quarter-Tone band",
+      "description": "Brand (primary) 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9058823585510254,
         "g": 0.6745098233222961,
@@ -163,7 +163,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 250 — Quarter-Tone band",
+      "description": "Brand (primary) 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8901960849761963,
         "g": 0.5960784554481506,
@@ -182,7 +182,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 300 — Quarter-Tone band",
+      "description": "Brand (primary) 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8705882430076599,
         "g": 0.5176470875740051,
@@ -201,7 +201,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 350 — Quarter-Tone band",
+      "description": "Brand (primary) 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8509804010391235,
         "g": 0.43529412150382996,
@@ -220,7 +220,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 400 — Mid-Tone band",
+      "description": "Brand (primary) 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.8313725590705872,
         "g": 0.3450980484485626,
@@ -239,7 +239,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 450 — Mid-Tone band",
+      "description": "Brand (primary) 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.239215686917305,
@@ -258,7 +258,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 500 — Mid-Tone band — brand anchor (exact, pinned)",
+      "description": "Brand (primary) 500 — the brand color, exact",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -277,7 +277,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 550 — Mid-Tone band",
+      "description": "Brand (primary) 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.0235294122248888,
@@ -296,7 +296,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 600 — Mid-Tone band",
+      "description": "Brand (primary) 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.6313725709915161,
         "g": 0,
@@ -315,7 +315,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 650 — Three-Quarter-Tone band",
+      "description": "Brand (primary) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.5529412031173706,
         "g": 0,
@@ -334,7 +334,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 700 — Three-Quarter-Tone band",
+      "description": "Brand (primary) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.47843137383461,
         "g": 0,
@@ -353,7 +353,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 750 — Three-Quarter-Tone band",
+      "description": "Brand (primary) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.40392157435417175,
         "g": 0,
@@ -372,7 +372,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 800 — Three-Quarter-Tone band",
+      "description": "Brand (primary) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.3333333432674408,
         "g": 0,
@@ -391,7 +391,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 850 — Three-Quarter-Tone band",
+      "description": "Brand (primary) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.26274511218070984,
         "g": 0,
@@ -410,7 +410,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 900 — Three-Quarter-Tone band",
+      "description": "Brand (primary) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.20000000298023224,
         "g": 0,
@@ -429,7 +429,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand primary 950 — Shadow band",
+      "description": "Brand (primary) 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0.13725490868091583,
         "g": 0,
@@ -448,7 +448,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 025 — Highlight band",
+      "description": "Neutral 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9686274528503418,
         "g": 0.9686274528503418,
@@ -467,7 +467,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 050 — Highlight band",
+      "description": "Neutral 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9137254953384399,
         "g": 0.9137254953384399,
@@ -486,7 +486,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 100 — Quarter-Tone band",
+      "description": "Neutral 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
@@ -505,7 +505,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 150 — Quarter-Tone band",
+      "description": "Neutral 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.8078431487083435,
@@ -524,7 +524,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 200 — Quarter-Tone band",
+      "description": "Neutral 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7529411911964417,
         "g": 0.7568627595901489,
@@ -543,7 +543,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 250 — Quarter-Tone band",
+      "description": "Neutral 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7019608020782471,
         "g": 0.7058823704719543,
@@ -562,7 +562,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 300 — Quarter-Tone band",
+      "description": "Neutral 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.6509804129600525,
         "g": 0.6549019813537598,
@@ -581,7 +581,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 350 — Quarter-Tone band",
+      "description": "Neutral 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.6000000238418579,
         "g": 0.6039215922355652,
@@ -600,7 +600,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 400 — Mid-Tone band",
+      "description": "Neutral 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.5529412031173706,
         "g": 0.5568627715110779,
@@ -619,7 +619,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 450 — Mid-Tone band",
+      "description": "Neutral 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.501960813999176,
         "g": 0.5098039507865906,
@@ -638,7 +638,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "description": "Neutral 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.45490196347236633,
         "g": 0.4588235318660736,
@@ -657,7 +657,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 550 — Mid-Tone band",
+      "description": "Neutral 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.40392157435417175,
         "g": 0.4117647111415863,
@@ -676,7 +676,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 600 — Mid-Tone band",
+      "description": "Neutral 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.3529411852359772,
         "g": 0.3607843220233917,
@@ -695,7 +695,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 650 — Three-Quarter-Tone band",
+      "description": "Neutral 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.30588236451148987,
         "g": 0.3137255012989044,
@@ -714,7 +714,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 700 — Three-Quarter-Tone band",
+      "description": "Neutral 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.25882354378700256,
         "g": 0.26274511218070984,
@@ -733,7 +733,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 750 — Three-Quarter-Tone band",
+      "description": "Neutral 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.21568627655506134,
         "g": 0.21960784494876862,
@@ -752,7 +752,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 800 — Three-Quarter-Tone band",
+      "description": "Neutral 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.1725490242242813,
         "g": 0.1725490242242813,
@@ -771,7 +771,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 850 — Three-Quarter-Tone band",
+      "description": "Neutral 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.12941177189350128,
         "g": 0.13333334028720856,
@@ -790,7 +790,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 900 — Three-Quarter-Tone band",
+      "description": "Neutral 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.09019608050584793,
         "g": 0.09019608050584793,
@@ -809,7 +809,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Neutral 950 — Shadow band",
+      "description": "Neutral 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -828,7 +828,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 025 — Highlight band",
+      "description": "Brand (secondary) 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9529411792755127,
         "g": 0.9686274528503418,
@@ -847,7 +847,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 050 — Highlight band",
+      "description": "Brand (secondary) 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.886274516582489,
         "g": 0.9176470637321472,
@@ -866,7 +866,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 100 — Quarter-Tone band",
+      "description": "Brand (secondary) 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.8627451062202454,
@@ -885,7 +885,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 150 — Quarter-Tone band",
+      "description": "Brand (secondary) 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7333333492279053,
         "g": 0.8117647171020508,
@@ -904,7 +904,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 200 — Quarter-Tone band",
+      "description": "Brand (secondary) 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.6549019813537598,
         "g": 0.7607843279838562,
@@ -923,7 +923,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 250 — Quarter-Tone band",
+      "description": "Brand (secondary) 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.572549045085907,
         "g": 0.7098039388656616,
@@ -942,7 +942,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 300 — Quarter-Tone band",
+      "description": "Brand (secondary) 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.4901960790157318,
         "g": 0.6627451181411743,
@@ -961,7 +961,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 350 — Quarter-Tone band",
+      "description": "Brand (secondary) 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.4000000059604645,
         "g": 0.6117647290229797,
@@ -980,7 +980,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 400 — Mid-Tone band",
+      "description": "Brand (secondary) 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.30980393290519714,
         "g": 0.5647059082984924,
@@ -999,7 +999,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 450 — Mid-Tone band",
+      "description": "Brand (secondary) 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.20000000298023224,
         "g": 0.5137255191802979,
@@ -1018,7 +1018,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 500 — Mid-Tone band — 5.03:1 on white, 4.16:1 on black",
+      "description": "Brand (secondary) 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0,
         "g": 0.46666666865348816,
@@ -1037,7 +1037,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 550 — Mid-Tone band",
+      "description": "Brand (secondary) 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0,
         "g": 0.4156862795352936,
@@ -1056,7 +1056,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 600 — Mid-Tone band",
+      "description": "Brand (secondary) 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0,
         "g": 0.3686274588108063,
@@ -1075,7 +1075,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 650 — Three-Quarter-Tone band",
+      "description": "Brand (secondary) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
         "g": 0.3176470696926117,
@@ -1094,7 +1094,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 700 — Three-Quarter-Tone band",
+      "description": "Brand (secondary) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
         "g": 0.2705882489681244,
@@ -1113,7 +1113,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 750 — Three-Quarter-Tone band",
+      "description": "Brand (secondary) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
         "g": 0.22745098173618317,
@@ -1132,7 +1132,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 800 — Three-Quarter-Tone band",
+      "description": "Brand (secondary) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
         "g": 0.18039216101169586,
@@ -1151,7 +1151,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 850 — Three-Quarter-Tone band",
+      "description": "Brand (secondary) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
         "g": 0.1411764770746231,
@@ -1170,7 +1170,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 900 — Three-Quarter-Tone band",
+      "description": "Brand (secondary) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
         "g": 0.09803921729326248,
@@ -1189,7 +1189,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand secondary 950 — Shadow band",
+      "description": "Brand (secondary) 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0,
         "g": 0.05882352963089943,
@@ -1208,7 +1208,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 025 — Highlight band",
+      "description": "Brand (tertiary) 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9882352948188782,
         "g": 0.9607843160629272,
@@ -1227,7 +1227,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 050 — Highlight band",
+      "description": "Brand (tertiary) 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9490196108818054,
         "g": 0.9019607901573181,
@@ -1246,7 +1246,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 100 — Quarter-Tone band",
+      "description": "Brand (tertiary) 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9176470637321472,
         "g": 0.843137264251709,
@@ -1265,7 +1265,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 150 — Quarter-Tone band",
+      "description": "Brand (tertiary) 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8901960849761963,
         "g": 0.7843137383460999,
@@ -1284,7 +1284,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 200 — Quarter-Tone band",
+      "description": "Brand (tertiary) 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8627451062202454,
         "g": 0.7254902124404907,
@@ -1303,7 +1303,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 250 — Quarter-Tone band",
+      "description": "Brand (tertiary) 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8352941274642944,
         "g": 0.6666666865348816,
@@ -1322,7 +1322,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 300 — Quarter-Tone band",
+      "description": "Brand (tertiary) 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8117647171020508,
         "g": 0.6039215922355652,
@@ -1341,7 +1341,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 350 — Quarter-Tone band",
+      "description": "Brand (tertiary) 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.545098066329956,
@@ -1360,7 +1360,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 400 — Mid-Tone band",
+      "description": "Brand (tertiary) 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.7568627595901489,
         "g": 0.48235294222831726,
@@ -1379,7 +1379,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 450 — Mid-Tone band",
+      "description": "Brand (tertiary) 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.7333333492279053,
         "g": 0.41960784792900085,
@@ -1398,7 +1398,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "description": "Brand (tertiary) 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.7019608020782471,
         "g": 0.35686275362968445,
@@ -1417,7 +1417,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 550 — Mid-Tone band",
+      "description": "Brand (tertiary) 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.6627451181411743,
         "g": 0.2549019753932953,
@@ -1436,7 +1436,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 600 — Mid-Tone band",
+      "description": "Brand (tertiary) 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.615686297416687,
         "g": 0.13333334028720856,
@@ -1455,7 +1455,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 650 — Three-Quarter-Tone band",
+      "description": "Brand (tertiary) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.5411764979362488,
         "g": 0.10588235408067703,
@@ -1474,7 +1474,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 700 — Three-Quarter-Tone band",
+      "description": "Brand (tertiary) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.47058823704719543,
         "g": 0.0784313753247261,
@@ -1493,7 +1493,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 750 — Three-Quarter-Tone band",
+      "description": "Brand (tertiary) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.4000000059604645,
         "g": 0.0470588244497776,
@@ -1512,7 +1512,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 800 — Three-Quarter-Tone band",
+      "description": "Brand (tertiary) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.3294117748737335,
         "g": 0.0235294122248888,
@@ -1531,7 +1531,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 850 — Three-Quarter-Tone band",
+      "description": "Brand (tertiary) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.2666666805744171,
         "g": 0.007843137718737125,
@@ -1550,7 +1550,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 900 — Three-Quarter-Tone band",
+      "description": "Brand (tertiary) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.20000000298023224,
         "g": 0,
@@ -1569,7 +1569,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Brand tertiary 950 — Shadow band",
+      "description": "Brand (tertiary) 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0.13333334028720856,
         "g": 0,
@@ -1588,7 +1588,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 025 — Highlight band",
+      "description": "Success 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.95686274766922,
         "g": 0.9725490212440491,
@@ -1607,7 +1607,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 050 — Highlight band",
+      "description": "Success 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.8470588326454163,
         "g": 0.9450980424880981,
@@ -1626,7 +1626,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 100 — Quarter-Tone band",
+      "description": "Success 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.9254902005195618,
@@ -1645,7 +1645,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 150 — Quarter-Tone band",
+      "description": "Success 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.5764706134796143,
         "g": 0.8980392217636108,
@@ -1664,7 +1664,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 200 — Quarter-Tone band",
+      "description": "Success 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.5333333611488342,
         "g": 0.843137264251709,
@@ -1683,7 +1683,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 250 — Quarter-Tone band",
+      "description": "Success 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.4901960790157318,
         "g": 0.7843137383460999,
@@ -1702,7 +1702,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 300 — Quarter-Tone band",
+      "description": "Success 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.4470588266849518,
         "g": 0.729411780834198,
@@ -1721,7 +1721,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 350 — Quarter-Tone band",
+      "description": "Success 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.40784314274787903,
         "g": 0.6745098233222961,
@@ -1740,7 +1740,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 400 — Mid-Tone band",
+      "description": "Success 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.364705890417099,
         "g": 0.6196078658103943,
@@ -1759,7 +1759,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 450 — Mid-Tone band",
+      "description": "Success 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.32549020648002625,
         "g": 0.5647059082984924,
@@ -1778,7 +1778,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "description": "Success 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.2862745225429535,
         "g": 0.5137255191802979,
@@ -1797,7 +1797,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 550 — Mid-Tone band",
+      "description": "Success 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.24313725531101227,
         "g": 0.4588235318660736,
@@ -1816,7 +1816,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 600 — Mid-Tone band",
+      "description": "Success 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.20392157137393951,
         "g": 0.40392157435417175,
@@ -1835,7 +1835,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 650 — Three-Quarter-Tone band",
+      "description": "Success 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.16470588743686676,
         "g": 0.3529411852359772,
@@ -1854,7 +1854,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 700 — Three-Quarter-Tone band",
+      "description": "Success 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.12941177189350128,
         "g": 0.30588236451148987,
@@ -1873,7 +1873,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 750 — Three-Quarter-Tone band",
+      "description": "Success 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.09019608050584793,
         "g": 0.2549019753932953,
@@ -1892,7 +1892,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 800 — Three-Quarter-Tone band",
+      "description": "Success 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.054901961237192154,
         "g": 0.2078431397676468,
@@ -1911,7 +1911,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 850 — Three-Quarter-Tone band",
+      "description": "Success 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.019607843831181526,
         "g": 0.16078431904315948,
@@ -1930,7 +1930,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 900 — Three-Quarter-Tone band",
+      "description": "Success 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
         "g": 0.11764705926179886,
@@ -1949,7 +1949,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success status 950 — Shadow band",
+      "description": "Success 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0,
         "g": 0.07450980693101883,
@@ -1968,7 +1968,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 025 — Highlight band",
+      "description": "Warning 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9882352948188782,
         "g": 0.9607843160629272,
@@ -1987,7 +1987,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 050 — Highlight band",
+      "description": "Warning 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9647058844566345,
         "g": 0.9019607901573181,
@@ -2006,7 +2006,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 100 — Quarter-Tone band",
+      "description": "Warning 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9529411792755127,
         "g": 0.8352941274642944,
@@ -2025,7 +2025,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 150 — Quarter-Tone band",
+      "description": "Warning 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9490196108818054,
         "g": 0.7686274647712708,
@@ -2044,7 +2044,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 200 — Quarter-Tone band",
+      "description": "Warning 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9450980424880981,
         "g": 0.7019608020782471,
@@ -2063,7 +2063,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 250 — Quarter-Tone band",
+      "description": "Warning 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9411764740943909,
         "g": 0.6274510025978088,
@@ -2082,7 +2082,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 300 — Quarter-Tone band",
+      "description": "Warning 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9372549057006836,
         "g": 0.5490196347236633,
@@ -2101,7 +2101,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 350 — Quarter-Tone band",
+      "description": "Warning 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9098039269447327,
         "g": 0.48235294222831726,
@@ -2120,7 +2120,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 400 — Mid-Tone band",
+      "description": "Warning 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.8470588326454163,
         "g": 0.4431372582912445,
@@ -2139,7 +2139,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 450 — Mid-Tone band",
+      "description": "Warning 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.7803921699523926,
         "g": 0.4000000059604645,
@@ -2158,7 +2158,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "description": "Warning 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.7176470756530762,
         "g": 0.3607843220233917,
@@ -2177,7 +2177,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 550 — Mid-Tone band",
+      "description": "Warning 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.6470588445663452,
         "g": 0.3137255012989044,
@@ -2196,7 +2196,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 600 — Mid-Tone band",
+      "description": "Warning 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.5764706134796143,
         "g": 0.2705882489681244,
@@ -2215,7 +2215,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 650 — Three-Quarter-Tone band",
+      "description": "Warning 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.5098039507865906,
         "g": 0.22745098173618317,
@@ -2234,7 +2234,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 700 — Three-Quarter-Tone band",
+      "description": "Warning 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.4431372582912445,
         "g": 0.18431372940540314,
@@ -2253,7 +2253,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 750 — Three-Quarter-Tone band",
+      "description": "Warning 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.3686274588108063,
         "g": 0.14901961386203766,
@@ -2272,7 +2272,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 800 — Three-Quarter-Tone band",
+      "description": "Warning 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.2980392277240753,
         "g": 0.11764705926179886,
@@ -2291,7 +2291,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 850 — Three-Quarter-Tone band",
+      "description": "Warning 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.23137255012989044,
         "g": 0.08235294371843338,
@@ -2310,7 +2310,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 900 — Three-Quarter-Tone band",
+      "description": "Warning 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.16862745583057404,
         "g": 0.05098039284348488,
@@ -2329,7 +2329,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning status 950 — Shadow band",
+      "description": "Warning 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0.10980392247438431,
         "g": 0.0235294122248888,
@@ -2348,7 +2348,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 025 — Highlight band",
+      "description": "Info 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9529411792755127,
         "g": 0.9686274528503418,
@@ -2367,7 +2367,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 050 — Highlight band",
+      "description": "Info 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.8784313797950745,
         "g": 0.9215686321258545,
@@ -2386,7 +2386,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 100 — Quarter-Tone band",
+      "description": "Info 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7960784435272217,
         "g": 0.8705882430076599,
@@ -2405,7 +2405,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 150 — Quarter-Tone band",
+      "description": "Info 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.8235294222831726,
@@ -2424,7 +2424,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 200 — Quarter-Tone band",
+      "description": "Info 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.615686297416687,
         "g": 0.7764706015586853,
@@ -2443,7 +2443,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 250 — Quarter-Tone band",
+      "description": "Info 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.5176470875740051,
         "g": 0.729411780834198,
@@ -2462,7 +2462,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 300 — Quarter-Tone band",
+      "description": "Info 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.40784314274787903,
         "g": 0.6823529601097107,
@@ -2481,7 +2481,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 350 — Quarter-Tone band",
+      "description": "Info 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.29411765933036804,
         "g": 0.6313725709915161,
@@ -2500,7 +2500,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 400 — Mid-Tone band",
+      "description": "Info 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.25882354378700256,
         "g": 0.5803921818733215,
@@ -2519,7 +2519,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 450 — Mid-Tone band",
+      "description": "Info 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,
@@ -2538,7 +2538,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "description": "Info 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -2557,7 +2557,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 550 — Mid-Tone band",
+      "description": "Info 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.1568627506494522,
         "g": 0.4274509847164154,
@@ -2576,7 +2576,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 600 — Mid-Tone band",
+      "description": "Info 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.12156862765550613,
         "g": 0.3764705955982208,
@@ -2595,7 +2595,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 650 — Three-Quarter-Tone band",
+      "description": "Info 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.08627451211214066,
         "g": 0.32549020648002625,
@@ -2614,7 +2614,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 700 — Three-Quarter-Tone band",
+      "description": "Info 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.27843138575553894,
@@ -2633,7 +2633,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 750 — Three-Quarter-Tone band",
+      "description": "Info 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.0117647061124444,
         "g": 0.22745098173618317,
@@ -2652,7 +2652,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 800 — Three-Quarter-Tone band",
+      "description": "Info 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
         "g": 0.18431372940540314,
@@ -2671,7 +2671,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 850 — Three-Quarter-Tone band",
+      "description": "Info 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
         "g": 0.13725490868091583,
@@ -2690,7 +2690,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 900 — Three-Quarter-Tone band",
+      "description": "Info 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
         "g": 0.09803921729326248,
@@ -2709,7 +2709,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status 950 — Shadow band",
+      "description": "Info 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0,
         "g": 0.054901961237192154,
@@ -2728,7 +2728,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 025 — Highlight band",
+      "description": "Danger 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9921568632125854,
         "g": 0.9607843160629272,
@@ -2747,7 +2747,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 050 — Highlight band",
+      "description": "Danger 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9647058844566345,
         "g": 0.8980392217636108,
@@ -2766,7 +2766,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 100 — Quarter-Tone band",
+      "description": "Danger 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9490196108818054,
         "g": 0.8352941274642944,
@@ -2785,7 +2785,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 150 — Quarter-Tone band",
+      "description": "Danger 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9372549057006836,
         "g": 0.7686274647712708,
@@ -2804,7 +2804,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 200 — Quarter-Tone band",
+      "description": "Danger 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9254902005195618,
         "g": 0.7019608020782471,
@@ -2823,7 +2823,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 250 — Quarter-Tone band",
+      "description": "Danger 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9176470637321472,
         "g": 0.6313725709915161,
@@ -2842,7 +2842,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 300 — Quarter-Tone band",
+      "description": "Danger 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.9058823585510254,
         "g": 0.5607843399047852,
@@ -2861,7 +2861,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 350 — Quarter-Tone band",
+      "description": "Danger 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
         "r": 0.8941176533699036,
         "g": 0.48235294222831726,
@@ -2880,7 +2880,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 400 — Mid-Tone band",
+      "description": "Danger 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.8823529481887817,
         "g": 0.40392157435417175,
@@ -2899,7 +2899,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 450 — Mid-Tone band",
+      "description": "Danger 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.32156863808631897,
@@ -2918,7 +2918,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "description": "Danger 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.7921568751335144,
         "g": 0.2862745225429535,
@@ -2937,7 +2937,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 550 — Mid-Tone band",
+      "description": "Danger 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.7137255072593689,
         "g": 0.24705882370471954,
@@ -2956,7 +2956,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 600 — Mid-Tone band",
+      "description": "Danger 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
         "r": 0.6352941393852234,
         "g": 0.2078431397676468,
@@ -2975,7 +2975,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 650 — Three-Quarter-Tone band",
+      "description": "Danger 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.5607843399047852,
         "g": 0.16862745583057404,
@@ -2994,7 +2994,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 700 — Three-Quarter-Tone band",
+      "description": "Danger 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.48627451062202454,
         "g": 0.12941177189350128,
@@ -3013,7 +3013,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 750 — Three-Quarter-Tone band",
+      "description": "Danger 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.4156862795352936,
         "g": 0.09019608050584793,
@@ -3032,7 +3032,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 800 — Three-Quarter-Tone band",
+      "description": "Danger 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.3450980484485626,
         "g": 0.05098039284348488,
@@ -3051,7 +3051,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 850 — Three-Quarter-Tone band",
+      "description": "Danger 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.27843138575553894,
         "g": 0.0117647061124444,
@@ -3070,7 +3070,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 900 — Three-Quarter-Tone band",
+      "description": "Danger 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.2078431397676468,
         "g": 0,
@@ -3089,7 +3089,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger status (brand-supplied) 950 — Shadow band",
+      "description": "Danger 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0.13725490868091583,
         "g": 0,
@@ -3108,7 +3108,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Black alpha 5% — alpha, composites over any surface",
+      "description": "Black at 5% — composites over any surface",
       "value": {
         "r": 0,
         "g": 0,
@@ -3127,7 +3127,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Black alpha 10% — alpha, composites over any surface",
+      "description": "Black at 10% — composites over any surface",
       "value": {
         "r": 0,
         "g": 0,
@@ -3146,7 +3146,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Black alpha 20% — alpha, composites over any surface",
+      "description": "Black at 20% — composites over any surface",
       "value": {
         "r": 0,
         "g": 0,
@@ -3165,7 +3165,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Black alpha 30% — alpha, composites over any surface",
+      "description": "Black at 30% — composites over any surface",
       "value": {
         "r": 0,
         "g": 0,
@@ -3184,7 +3184,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Black alpha 40% — alpha, composites over any surface",
+      "description": "Black at 40% — composites over any surface",
       "value": {
         "r": 0,
         "g": 0,
@@ -3203,7 +3203,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Black alpha 50% — alpha, composites over any surface",
+      "description": "Black at 50% — composites over any surface",
       "value": {
         "r": 0,
         "g": 0,
@@ -3222,7 +3222,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Black alpha 60% — alpha, composites over any surface",
+      "description": "Black at 60% — composites over any surface",
       "value": {
         "r": 0,
         "g": 0,
@@ -3241,7 +3241,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Black alpha 70% — alpha, composites over any surface",
+      "description": "Black at 70% — composites over any surface",
       "value": {
         "r": 0,
         "g": 0,
@@ -3260,7 +3260,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Black alpha 80% — alpha, composites over any surface",
+      "description": "Black at 80% — composites over any surface",
       "value": {
         "r": 0,
         "g": 0,
@@ -3279,7 +3279,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Black alpha 90% — alpha, composites over any surface",
+      "description": "Black at 90% — composites over any surface",
       "value": {
         "r": 0,
         "g": 0,
@@ -3298,7 +3298,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "White alpha 5% — alpha, composites over any surface",
+      "description": "White at 5% — composites over any surface",
       "value": {
         "r": 1,
         "g": 1,
@@ -3317,7 +3317,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "White alpha 10% — alpha, composites over any surface",
+      "description": "White at 10% — composites over any surface",
       "value": {
         "r": 1,
         "g": 1,
@@ -3336,7 +3336,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "White alpha 20% — alpha, composites over any surface",
+      "description": "White at 20% — composites over any surface",
       "value": {
         "r": 1,
         "g": 1,
@@ -3355,7 +3355,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "White alpha 30% — alpha, composites over any surface",
+      "description": "White at 30% — composites over any surface",
       "value": {
         "r": 1,
         "g": 1,
@@ -3374,7 +3374,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "White alpha 40% — alpha, composites over any surface",
+      "description": "White at 40% — composites over any surface",
       "value": {
         "r": 1,
         "g": 1,
@@ -3393,7 +3393,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "White alpha 50% — alpha, composites over any surface",
+      "description": "White at 50% — composites over any surface",
       "value": {
         "r": 1,
         "g": 1,
@@ -3412,7 +3412,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "White alpha 60% — alpha, composites over any surface",
+      "description": "White at 60% — composites over any surface",
       "value": {
         "r": 1,
         "g": 1,
@@ -3431,7 +3431,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "White alpha 70% — alpha, composites over any surface",
+      "description": "White at 70% — composites over any surface",
       "value": {
         "r": 1,
         "g": 1,
@@ -3450,7 +3450,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "White alpha 80% — alpha, composites over any surface",
+      "description": "White at 80% — composites over any surface",
       "value": {
         "r": 1,
         "g": 1,
@@ -3469,7 +3469,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "White alpha 90% — alpha, composites over any surface",
+      "description": "White at 90% — composites over any surface",
       "value": {
         "r": 1,
         "g": 1,

@@ -12,6 +12,7 @@
  * `emit-figma` adapter read the tree without pulling the file-I/O shell into a
  * sandbox bundle. `emit-dtcg.ts` re-exports `buildTree` for existing importers.
  */
+import { bandPhrase } from './figma-description';
 import { RGB, contrast, hex } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER } from './theme';
@@ -32,10 +33,6 @@ const alphaColorValue = (rgb: RGB, a: number, fmt: 'rgb' | 'hex') =>
 // Shared opacity/alpha step set (percent). Ramps use 5–90; the opacity scale full.
 const ALPHA_STEPS = OPACITY_STEPS;
 
-const bandName: Record<string, string> = {
-  Highlights: 'Highlight', Quarter: 'Quarter-Tone', Mid: 'Mid-Tone',
-  ThreeQuarter: 'Three-Quarter-Tone', Shadows: 'Shadow',
-};
 
 /**
  * ---- THE ORDER THE COLOUR ROLE FAMILIES ARE WRITTEN IN (#1150) ----
@@ -93,7 +90,7 @@ const orderedRoleKeys = (keys: string[]): string[] => {
 type Token = { $type: 'color' | 'dimension' | 'number' | 'strokeStyle' | 'duration' | 'cubicBezier' | 'transition' | 'spring' | 'fontFamily' | 'fontWeight' | 'typography' | 'shadow' | 'gradient'; $value: string | number | number[] | string[] | Record<string, unknown> | Record<string, unknown>[]; $description: string; $extensions: { prism3: Record<string, unknown> } };
 
 // ---- colour leaves ----
-const primitiveLeaf = (theme: Theme, paletteDesc: string, s: Step, isAnchor: boolean): Token => {
+const primitiveLeaf = (theme: Theme, paletteDesc: string, s: Step, isAnchor: boolean, ramp: Step[]): Token => {
   // The mid-tone pivot claim is MEASURED, never assumed from the step number (#1623 DT/T-2). A 500 that
   // clears 4.5:1 on both extremes says so; one that does not states its measured pair instead, because
   // a brand-supplied or measured-anchor ramp is not carved to the pivot and the claim was false on two.
@@ -106,7 +103,9 @@ const primitiveLeaf = (theme: Theme, paletteDesc: string, s: Step, isAnchor: boo
   const role = isAnchor ? 'brand anchor (exact, pinned)' : s.num === 500 ? pivot : '';
   return {
     $type: 'color', $value: colorValue(s.rgb, theme.colorFormat),
-    $description: `${paletteDesc} ${s.key} — ${bandName[s.band]} band${role ? ` — ${role}` : ''}`,
+    // The band is glossed with what it holds and its real step range in THIS ramp (#1623 DT/T-8), so the
+    // name is readable without a key: `Quarter-Tone band (light tints, steps 100–350)`.
+    $description: `${paletteDesc} ${s.key} — ${bandPhrase(s.band, ramp.filter((x) => x.band === s.band).map((x) => x.key))}${role ? ` — ${role}` : ''}`,
     $extensions: { prism3: { generated: true, source: 'oklch', oklch: { l: round(s.oklch.l), c: round(s.oklch.c), h: round(s.oklch.h, 2) }, hex: s.hex, band: s.band, anchor: isAnchor, contrastOnWhite: round(contrast(s.rgb, WHITE), 2) } },
   };
 };
@@ -445,7 +444,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const brandAnchorStep = theme.roleAnchorStep.brand;
   for (const p of theme.palettes) {
     const node: Record<string, Token> = {};
-    for (const s of p.steps) node[s.key] = primitiveLeaf(theme, p.description, s, p.palette === brandPalette && s.num === brandAnchorStep);
+    for (const s of p.steps) node[s.key] = primitiveLeaf(theme, p.description, s, p.palette === brandPalette && s.num === brandAnchorStep, p.steps);
     palette[p.palette] = node;
   }
   // alpha colour ramps — black/white at increasing opacity, for scrims/overlays
@@ -776,8 +775,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const radiusSmPx = theme.dims.radius.find((r) => r.name === 'sm')?.px ?? 0;
   const controlRadiusLeaf = (px: number, rung: string, edge: number): Token =>
     gridSet.has(px)
-      ? dimAlias(`${root}.${CORE_TIER}.dimension.${px}`, `control.size.${rung} radius — ${px}px corner on the ${edge}px box edge (min of radius.sm ${radiusSmPx}px and the ${edge}÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.`, { px, radiusScale: theme.dims.radiusScaleValue, clampedFrom: radiusSmPx })
-      : dimLeaf(px, `control.size.${rung} radius — ${px}px corner on the ${edge}px box edge (off-grid literal; min of radius.sm ${radiusSmPx}px and the ${edge}÷8 control ratio)`);
+      ? dimAlias(`${root}.${CORE_TIER}.dimension.${px}`, `control.size.${rung} radius — ${px}px corner on the ${edge}px box edge (min of radius.sm ${radiusSmPx}px and one eighth of the box, ${edge}px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.`, { px, radiusScale: theme.dims.radiusScaleValue, clampedFrom: radiusSmPx })
+      : dimLeaf(px, `control.size.${rung} radius — ${px}px corner on the ${edge}px box edge (off-grid literal; min of radius.sm ${radiusSmPx}px and one eighth of the box, ${edge}px ÷ 8)`);
   // THE MODE SEAM, and both of its inputs move on it — which is why this is not a single baked value the
   // way `line-box` is. `radius.sm` is re-derived by a `modeLevers.radius` mode and ZEROED by wireframe;
   // the box edge is re-derived by a mode at another density. A corner that kept the light value while
@@ -815,7 +814,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   }
   for (const c of theme.dims.controls) {
     const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a square control's own dimension: a checkbox square or a radio circle (density: ${theme.dims.density}). A square control reads this on both axes. A switch's track is not square and reads \`track\`/\`width\` instead.`);
-    const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.track}px \`track\` height, the field-convergent 2:1 track ratio). A square control uses \`height\` on both axes and does not read this.`);
+    const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.track}px \`track\` height, the common 2:1 track ratio). A square control uses \`height\` on both axes and does not read this.`);
     // The INNER mark, half the box edge (#910). Read by RADIO — its dot. A checkbox does not read it: its
     // mark is a `vector` whose optical inset is already inside the glyph artboard, so it draws full
     // bleed at `height` and a second dimension would inset it twice. A switch's traveling mark is
@@ -885,7 +884,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // any-background 3:1 guarantee, pair with a ≥9:1-contrasting outer band (W3C C40).
   const focus = {
     ring: {
-      width: bwAlias(2, 'focus ring width — 2px (the WCAG 2.4.13 minimum thickness; raise to 3px for more visibility)'),
+      width: bwAlias(2, 'focus ring width — 2px (meets WCAG 2.4.13, AAA focus appearance)'),
       offset: bwAlias(2, 'focus ring offset — 2px (separates ring from the element edge)'),
       'offset-field': bwAlias(0, 'focus ring offset, form fields — 0px (the ring sits on the field edge, so it does not collide with adjacent fields)'),
       style: strokeStyleLeaf('solid', 'focus ring style — solid (dashed/dotted fail at small sizes)'),
@@ -1017,7 +1016,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const w of ty.weightsRef) fweight[String(w)] = fontWeightLeaf(w, `font weight ${w} — numeric reference (the brand's literal axis value)`);
   const weightRole: Record<string, Token> = {};
   for (const r of ty.weightRoles) {
-    const leaf = weightRoleAlias(`${root}.${CORE_TIER}.font.weight.${r.value}`, r.value, `weight role '${r.role}' → ${r.value} — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)`);
+    const leaf = weightRoleAlias(`${root}.${CORE_TIER}.font.weight.${r.value}`, r.value, `weight role '${r.role}' → ${r.value} — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)`);
     const modeOverrides: Record<string, unknown> = {};
     for (const [mode, roles] of Object.entries(weightRolesByMode)) {
       const mr = roles.find((x) => x.role === r.role);

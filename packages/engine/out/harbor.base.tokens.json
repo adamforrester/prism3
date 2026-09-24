@@ -44,7 +44,7 @@
           "100": {
             "$type": "color",
             "$value": "#d3dedd",
-            "$description": "Brand primary 100 — Quarter-Tone band",
+            "$description": "Brand primary 100 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -64,7 +64,7 @@
           "150": {
             "$type": "color",
             "$value": "#c2d1d1",
-            "$description": "Brand primary 150 — Quarter-Tone band",
+            "$description": "Brand primary 150 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -84,7 +84,7 @@
           "200": {
             "$type": "color",
             "$value": "#b1c5c4",
-            "$description": "Brand primary 200 — Quarter-Tone band",
+            "$description": "Brand primary 200 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -104,7 +104,7 @@
           "250": {
             "$type": "color",
             "$value": "#9fb9b8",
-            "$description": "Brand primary 250 — Quarter-Tone band",
+            "$description": "Brand primary 250 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -124,7 +124,7 @@
           "300": {
             "$type": "color",
             "$value": "#8eadac",
-            "$description": "Brand primary 300 — Quarter-Tone band",
+            "$description": "Brand primary 300 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -144,7 +144,7 @@
           "350": {
             "$type": "color",
             "$value": "#7ca1a1",
-            "$description": "Brand primary 350 — Quarter-Tone band",
+            "$description": "Brand primary 350 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -164,7 +164,7 @@
           "400": {
             "$type": "color",
             "$value": "#6a9695",
-            "$description": "Brand primary 400 — Mid-Tone band",
+            "$description": "Brand primary 400 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -184,7 +184,7 @@
           "450": {
             "$type": "color",
             "$value": "#578a8a",
-            "$description": "Brand primary 450 — Mid-Tone band",
+            "$description": "Brand primary 450 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -204,7 +204,7 @@
           "500": {
             "$type": "color",
             "$value": "#437f7f",
-            "$description": "Brand primary 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+            "$description": "Brand primary 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -224,7 +224,7 @@
           "550": {
             "$type": "color",
             "$value": "#297272",
-            "$description": "Brand primary 550 — Mid-Tone band",
+            "$description": "Brand primary 550 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -244,7 +244,7 @@
           "600": {
             "$type": "color",
             "$value": "#006666",
-            "$description": "Brand primary 600 — Mid-Tone band — brand anchor (exact, pinned)",
+            "$description": "Brand primary 600 — Mid-Tone band (mid tones, steps 400–600) — brand anchor (exact, pinned)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -264,7 +264,7 @@
           "650": {
             "$type": "color",
             "$value": "#005858",
-            "$description": "Brand primary 650 — Three-Quarter-Tone band",
+            "$description": "Brand primary 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -284,7 +284,7 @@
           "700": {
             "$type": "color",
             "$value": "#004b4b",
-            "$description": "Brand primary 700 — Three-Quarter-Tone band",
+            "$description": "Brand primary 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -304,7 +304,7 @@
           "750": {
             "$type": "color",
             "$value": "#003f3f",
-            "$description": "Brand primary 750 — Three-Quarter-Tone band",
+            "$description": "Brand primary 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -324,7 +324,7 @@
           "800": {
             "$type": "color",
             "$value": "#003233",
-            "$description": "Brand primary 800 — Three-Quarter-Tone band",
+            "$description": "Brand primary 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -344,7 +344,7 @@
           "850": {
             "$type": "color",
             "$value": "#002727",
-            "$description": "Brand primary 850 — Three-Quarter-Tone band",
+            "$description": "Brand primary 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -364,7 +364,7 @@
           "900": {
             "$type": "color",
             "$value": "#001b1c",
-            "$description": "Brand primary 900 — Three-Quarter-Tone band",
+            "$description": "Brand primary 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -384,7 +384,7 @@
           "950": {
             "$type": "color",
             "$value": "#001111",
-            "$description": "Brand primary 950 — Shadow band",
+            "$description": "Brand primary 950 — Shadow band (near-black shade, step 950)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -404,7 +404,7 @@
           "025": {
             "$type": "color",
             "$value": "#f4f8f7",
-            "$description": "Brand primary 025 — Highlight band",
+            "$description": "Brand primary 025 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -424,7 +424,7 @@
           "050": {
             "$type": "color",
             "$value": "#e4eaea",
-            "$description": "Brand primary 050 — Highlight band",
+            "$description": "Brand primary 050 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -446,7 +446,7 @@
           "100": {
             "$type": "color",
             "$value": "#dcdbdb",
-            "$description": "Neutral 100 — Quarter-Tone band",
+            "$description": "Neutral 100 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -466,7 +466,7 @@
           "150": {
             "$type": "color",
             "$value": "#cfcecd",
-            "$description": "Neutral 150 — Quarter-Tone band",
+            "$description": "Neutral 150 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -486,7 +486,7 @@
           "200": {
             "$type": "color",
             "$value": "#c2c1bf",
-            "$description": "Neutral 200 — Quarter-Tone band",
+            "$description": "Neutral 200 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -506,7 +506,7 @@
           "250": {
             "$type": "color",
             "$value": "#b5b3b2",
-            "$description": "Neutral 250 — Quarter-Tone band",
+            "$description": "Neutral 250 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -526,7 +526,7 @@
           "300": {
             "$type": "color",
             "$value": "#a8a6a5",
-            "$description": "Neutral 300 — Quarter-Tone band",
+            "$description": "Neutral 300 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -546,7 +546,7 @@
           "350": {
             "$type": "color",
             "$value": "#9c9a98",
-            "$description": "Neutral 350 — Quarter-Tone band",
+            "$description": "Neutral 350 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -566,7 +566,7 @@
           "400": {
             "$type": "color",
             "$value": "#908d8b",
-            "$description": "Neutral 400 — Mid-Tone band",
+            "$description": "Neutral 400 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -586,7 +586,7 @@
           "450": {
             "$type": "color",
             "$value": "#83817e",
-            "$description": "Neutral 450 — Mid-Tone band",
+            "$description": "Neutral 450 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -606,7 +606,7 @@
           "500": {
             "$type": "color",
             "$value": "#777572",
-            "$description": "Neutral 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+            "$description": "Neutral 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -626,7 +626,7 @@
           "550": {
             "$type": "color",
             "$value": "#6b6865",
-            "$description": "Neutral 550 — Mid-Tone band",
+            "$description": "Neutral 550 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -646,7 +646,7 @@
           "600": {
             "$type": "color",
             "$value": "#5e5b58",
-            "$description": "Neutral 600 — Mid-Tone band",
+            "$description": "Neutral 600 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -666,7 +666,7 @@
           "650": {
             "$type": "color",
             "$value": "#514f4c",
-            "$description": "Neutral 650 — Three-Quarter-Tone band",
+            "$description": "Neutral 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -686,7 +686,7 @@
           "700": {
             "$type": "color",
             "$value": "#454341",
-            "$description": "Neutral 700 — Three-Quarter-Tone band",
+            "$description": "Neutral 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -706,7 +706,7 @@
           "750": {
             "$type": "color",
             "$value": "#393735",
-            "$description": "Neutral 750 — Three-Quarter-Tone band",
+            "$description": "Neutral 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -726,7 +726,7 @@
           "800": {
             "$type": "color",
             "$value": "#2e2c2b",
-            "$description": "Neutral 800 — Three-Quarter-Tone band",
+            "$description": "Neutral 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -746,7 +746,7 @@
           "850": {
             "$type": "color",
             "$value": "#232120",
-            "$description": "Neutral 850 — Three-Quarter-Tone band",
+            "$description": "Neutral 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -766,7 +766,7 @@
           "900": {
             "$type": "color",
             "$value": "#181716",
-            "$description": "Neutral 900 — Three-Quarter-Tone band",
+            "$description": "Neutral 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -786,7 +786,7 @@
           "950": {
             "$type": "color",
             "$value": "#0e0d0c",
-            "$description": "Neutral 950 — Shadow band",
+            "$description": "Neutral 950 — Shadow band (near-black shade, step 950)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -806,7 +806,7 @@
           "025": {
             "$type": "color",
             "$value": "#f7f7f6",
-            "$description": "Neutral 025 — Highlight band",
+            "$description": "Neutral 025 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -826,7 +826,7 @@
           "050": {
             "$type": "color",
             "$value": "#e9e9e8",
-            "$description": "Neutral 050 — Highlight band",
+            "$description": "Neutral 050 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -848,7 +848,7 @@
           "100": {
             "$type": "color",
             "$value": "#abeeb8",
-            "$description": "success status 100 — Quarter-Tone band",
+            "$description": "success status 100 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -868,7 +868,7 @@
           "150": {
             "$type": "color",
             "$value": "#8de5a0",
-            "$description": "success status 150 — Quarter-Tone band",
+            "$description": "success status 150 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -888,7 +888,7 @@
           "200": {
             "$type": "color",
             "$value": "#82d695",
-            "$description": "success status 200 — Quarter-Tone band",
+            "$description": "success status 200 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -908,7 +908,7 @@
           "250": {
             "$type": "color",
             "$value": "#78c88a",
-            "$description": "success status 250 — Quarter-Tone band",
+            "$description": "success status 250 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -928,7 +928,7 @@
           "300": {
             "$type": "color",
             "$value": "#6dba7e",
-            "$description": "success status 300 — Quarter-Tone band",
+            "$description": "success status 300 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -948,7 +948,7 @@
           "350": {
             "$type": "color",
             "$value": "#62ab73",
-            "$description": "success status 350 — Quarter-Tone band",
+            "$description": "success status 350 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -968,7 +968,7 @@
           "400": {
             "$type": "color",
             "$value": "#589e68",
-            "$description": "success status 400 — Mid-Tone band",
+            "$description": "success status 400 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -988,7 +988,7 @@
           "450": {
             "$type": "color",
             "$value": "#4e905e",
-            "$description": "success status 450 — Mid-Tone band",
+            "$description": "success status 450 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1008,7 +1008,7 @@
           "500": {
             "$type": "color",
             "$value": "#448253",
-            "$description": "success status 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+            "$description": "success status 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1028,7 +1028,7 @@
           "550": {
             "$type": "color",
             "$value": "#3a7548",
-            "$description": "success status 550 — Mid-Tone band",
+            "$description": "success status 550 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1048,7 +1048,7 @@
           "600": {
             "$type": "color",
             "$value": "#30673e",
-            "$description": "success status 600 — Mid-Tone band",
+            "$description": "success status 600 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1068,7 +1068,7 @@
           "650": {
             "$type": "color",
             "$value": "#265a34",
-            "$description": "success status 650 — Three-Quarter-Tone band",
+            "$description": "success status 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1088,7 +1088,7 @@
           "700": {
             "$type": "color",
             "$value": "#1c4e2a",
-            "$description": "success status 700 — Three-Quarter-Tone band",
+            "$description": "success status 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1108,7 +1108,7 @@
           "750": {
             "$type": "color",
             "$value": "#124120",
-            "$description": "success status 750 — Three-Quarter-Tone band",
+            "$description": "success status 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1128,7 +1128,7 @@
           "800": {
             "$type": "color",
             "$value": "#083517",
-            "$description": "success status 800 — Three-Quarter-Tone band",
+            "$description": "success status 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1148,7 +1148,7 @@
           "850": {
             "$type": "color",
             "$value": "#01290e",
-            "$description": "success status 850 — Three-Quarter-Tone band",
+            "$description": "success status 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1168,7 +1168,7 @@
           "900": {
             "$type": "color",
             "$value": "#001e08",
-            "$description": "success status 900 — Three-Quarter-Tone band",
+            "$description": "success status 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1188,7 +1188,7 @@
           "950": {
             "$type": "color",
             "$value": "#001204",
-            "$description": "success status 950 — Shadow band",
+            "$description": "success status 950 — Shadow band (near-black shade, step 950)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1208,7 +1208,7 @@
           "025": {
             "$type": "color",
             "$value": "#f4f8f4",
-            "$description": "success status 025 — Highlight band",
+            "$description": "success status 025 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1228,7 +1228,7 @@
           "050": {
             "$type": "color",
             "$value": "#d5f2da",
-            "$description": "success status 050 — Highlight band",
+            "$description": "success status 050 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1250,7 +1250,7 @@
           "100": {
             "$type": "color",
             "$value": "#f5d6b4",
-            "$description": "warning status 100 — Quarter-Tone band",
+            "$description": "warning status 100 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1270,7 +1270,7 @@
           "150": {
             "$type": "color",
             "$value": "#f5c58e",
-            "$description": "warning status 150 — Quarter-Tone band",
+            "$description": "warning status 150 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1290,7 +1290,7 @@
           "200": {
             "$type": "color",
             "$value": "#f6b35f",
-            "$description": "warning status 200 — Quarter-Tone band",
+            "$description": "warning status 200 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1310,7 +1310,7 @@
           "250": {
             "$type": "color",
             "$value": "#f0a238",
-            "$description": "warning status 250 — Quarter-Tone band",
+            "$description": "warning status 250 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1330,7 +1330,7 @@
           "300": {
             "$type": "color",
             "$value": "#e1962f",
-            "$description": "warning status 300 — Quarter-Tone band",
+            "$description": "warning status 300 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1350,7 +1350,7 @@
           "350": {
             "$type": "color",
             "$value": "#d18b27",
-            "$description": "warning status 350 — Quarter-Tone band",
+            "$description": "warning status 350 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1370,7 +1370,7 @@
           "400": {
             "$type": "color",
             "$value": "#c27f1e",
-            "$description": "warning status 400 — Mid-Tone band",
+            "$description": "warning status 400 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1390,7 +1390,7 @@
           "450": {
             "$type": "color",
             "$value": "#b37414",
-            "$description": "warning status 450 — Mid-Tone band",
+            "$description": "warning status 450 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1410,7 +1410,7 @@
           "500": {
             "$type": "color",
             "$value": "#a46808",
-            "$description": "warning status 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+            "$description": "warning status 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1430,7 +1430,7 @@
           "550": {
             "$type": "color",
             "$value": "#935c00",
-            "$description": "warning status 550 — Mid-Tone band",
+            "$description": "warning status 550 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1450,7 +1450,7 @@
           "600": {
             "$type": "color",
             "$value": "#825100",
-            "$description": "warning status 600 — Mid-Tone band",
+            "$description": "warning status 600 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1470,7 +1470,7 @@
           "650": {
             "$type": "color",
             "$value": "#714600",
-            "$description": "warning status 650 — Three-Quarter-Tone band",
+            "$description": "warning status 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1490,7 +1490,7 @@
           "700": {
             "$type": "color",
             "$value": "#613b00",
-            "$description": "warning status 700 — Three-Quarter-Tone band",
+            "$description": "warning status 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1510,7 +1510,7 @@
           "750": {
             "$type": "color",
             "$value": "#513000",
-            "$description": "warning status 750 — Three-Quarter-Tone band",
+            "$description": "warning status 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1530,7 +1530,7 @@
           "800": {
             "$type": "color",
             "$value": "#412600",
-            "$description": "warning status 800 — Three-Quarter-Tone band",
+            "$description": "warning status 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1550,7 +1550,7 @@
           "850": {
             "$type": "color",
             "$value": "#321c00",
-            "$description": "warning status 850 — Three-Quarter-Tone band",
+            "$description": "warning status 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1570,7 +1570,7 @@
           "900": {
             "$type": "color",
             "$value": "#241300",
-            "$description": "warning status 900 — Three-Quarter-Tone band",
+            "$description": "warning status 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1590,7 +1590,7 @@
           "950": {
             "$type": "color",
             "$value": "#170a00",
-            "$description": "warning status 950 — Shadow band",
+            "$description": "warning status 950 — Shadow band (near-black shade, step 950)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1610,7 +1610,7 @@
           "025": {
             "$type": "color",
             "$value": "#faf6f1",
-            "$description": "warning status 025 — Highlight band",
+            "$description": "warning status 025 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1630,7 +1630,7 @@
           "050": {
             "$type": "color",
             "$value": "#f6e7d6",
-            "$description": "warning status 050 — Highlight band",
+            "$description": "warning status 050 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1652,7 +1652,7 @@
           "100": {
             "$type": "color",
             "$value": "#cbdeef",
-            "$description": "info status 100 — Quarter-Tone band",
+            "$description": "info status 100 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1672,7 +1672,7 @@
           "150": {
             "$type": "color",
             "$value": "#b5d2ec",
-            "$description": "info status 150 — Quarter-Tone band",
+            "$description": "info status 150 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1692,7 +1692,7 @@
           "200": {
             "$type": "color",
             "$value": "#9dc6ea",
-            "$description": "info status 200 — Quarter-Tone band",
+            "$description": "info status 200 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1712,7 +1712,7 @@
           "250": {
             "$type": "color",
             "$value": "#84bae8",
-            "$description": "info status 250 — Quarter-Tone band",
+            "$description": "info status 250 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1732,7 +1732,7 @@
           "300": {
             "$type": "color",
             "$value": "#68aee7",
-            "$description": "info status 300 — Quarter-Tone band",
+            "$description": "info status 300 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1752,7 +1752,7 @@
           "350": {
             "$type": "color",
             "$value": "#4ba1e4",
-            "$description": "info status 350 — Quarter-Tone band",
+            "$description": "info status 350 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1772,7 +1772,7 @@
           "400": {
             "$type": "color",
             "$value": "#4294d3",
-            "$description": "info status 400 — Mid-Tone band",
+            "$description": "info status 400 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1792,7 +1792,7 @@
           "450": {
             "$type": "color",
             "$value": "#3a87c3",
-            "$description": "info status 450 — Mid-Tone band",
+            "$description": "info status 450 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1812,7 +1812,7 @@
           "500": {
             "$type": "color",
             "$value": "#317bb2",
-            "$description": "info status 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+            "$description": "info status 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1832,7 +1832,7 @@
           "550": {
             "$type": "color",
             "$value": "#286da1",
-            "$description": "info status 550 — Mid-Tone band",
+            "$description": "info status 550 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1852,7 +1852,7 @@
           "600": {
             "$type": "color",
             "$value": "#1f6090",
-            "$description": "info status 600 — Mid-Tone band",
+            "$description": "info status 600 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1872,7 +1872,7 @@
           "650": {
             "$type": "color",
             "$value": "#16537f",
-            "$description": "info status 650 — Three-Quarter-Tone band",
+            "$description": "info status 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1892,7 +1892,7 @@
           "700": {
             "$type": "color",
             "$value": "#0d476f",
-            "$description": "info status 700 — Three-Quarter-Tone band",
+            "$description": "info status 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1912,7 +1912,7 @@
           "750": {
             "$type": "color",
             "$value": "#033a5f",
-            "$description": "info status 750 — Three-Quarter-Tone band",
+            "$description": "info status 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1932,7 +1932,7 @@
           "800": {
             "$type": "color",
             "$value": "#002f4e",
-            "$description": "info status 800 — Three-Quarter-Tone band",
+            "$description": "info status 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1952,7 +1952,7 @@
           "850": {
             "$type": "color",
             "$value": "#00233d",
-            "$description": "info status 850 — Three-Quarter-Tone band",
+            "$description": "info status 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1972,7 +1972,7 @@
           "900": {
             "$type": "color",
             "$value": "#00192d",
-            "$description": "info status 900 — Three-Quarter-Tone band",
+            "$description": "info status 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -1992,7 +1992,7 @@
           "950": {
             "$type": "color",
             "$value": "#000e1e",
-            "$description": "info status 950 — Shadow band",
+            "$description": "info status 950 — Shadow band (near-black shade, step 950)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2012,7 +2012,7 @@
           "025": {
             "$type": "color",
             "$value": "#f3f7fb",
-            "$description": "info status 025 — Highlight band",
+            "$description": "info status 025 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2032,7 +2032,7 @@
           "050": {
             "$type": "color",
             "$value": "#e0ebf4",
-            "$description": "info status 050 — Highlight band",
+            "$description": "info status 050 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2054,7 +2054,7 @@
           "100": {
             "$type": "color",
             "$value": "#f3d5d1",
-            "$description": "danger status (brand-supplied) 100 — Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 100 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2074,7 +2074,7 @@
           "150": {
             "$type": "color",
             "$value": "#f0c4be",
-            "$description": "danger status (brand-supplied) 150 — Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 150 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2094,7 +2094,7 @@
           "200": {
             "$type": "color",
             "$value": "#eeb3ab",
-            "$description": "danger status (brand-supplied) 200 — Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 200 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2114,7 +2114,7 @@
           "250": {
             "$type": "color",
             "$value": "#eca198",
-            "$description": "danger status (brand-supplied) 250 — Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 250 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2134,7 +2134,7 @@
           "300": {
             "$type": "color",
             "$value": "#e98e84",
-            "$description": "danger status (brand-supplied) 300 — Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 300 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2154,7 +2154,7 @@
           "350": {
             "$type": "color",
             "$value": "#e77b70",
-            "$description": "danger status (brand-supplied) 350 — Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 350 — Quarter-Tone band (light tints, steps 100–350)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2174,7 +2174,7 @@
           "400": {
             "$type": "color",
             "$value": "#e4655b",
-            "$description": "danger status (brand-supplied) 400 — Mid-Tone band",
+            "$description": "danger status (brand-supplied) 400 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2194,7 +2194,7 @@
           "450": {
             "$type": "color",
             "$value": "#de5048",
-            "$description": "danger status (brand-supplied) 450 — Mid-Tone band",
+            "$description": "danger status (brand-supplied) 450 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2214,7 +2214,7 @@
           "500": {
             "$type": "color",
             "$value": "#cd4840",
-            "$description": "danger status (brand-supplied) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+            "$description": "danger status (brand-supplied) 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2234,7 +2234,7 @@
           "550": {
             "$type": "color",
             "$value": "#b83d36",
-            "$description": "danger status (brand-supplied) 550 — Mid-Tone band",
+            "$description": "danger status (brand-supplied) 550 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2254,7 +2254,7 @@
           "600": {
             "$type": "color",
             "$value": "#a4332d",
-            "$description": "danger status (brand-supplied) 600 — Mid-Tone band",
+            "$description": "danger status (brand-supplied) 600 — Mid-Tone band (mid tones, steps 400–600)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2274,7 +2274,7 @@
           "650": {
             "$type": "color",
             "$value": "#912924",
-            "$description": "danger status (brand-supplied) 650 — Three-Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2294,7 +2294,7 @@
           "700": {
             "$type": "color",
             "$value": "#7e1f1b",
-            "$description": "danger status (brand-supplied) 700 — Three-Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2314,7 +2314,7 @@
           "750": {
             "$type": "color",
             "$value": "#6b1513",
-            "$description": "danger status (brand-supplied) 750 — Three-Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2334,7 +2334,7 @@
           "800": {
             "$type": "color",
             "$value": "#590a0a",
-            "$description": "danger status (brand-supplied) 800 — Three-Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2354,7 +2354,7 @@
           "850": {
             "$type": "color",
             "$value": "#480204",
-            "$description": "danger status (brand-supplied) 850 — Three-Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2374,7 +2374,7 @@
           "900": {
             "$type": "color",
             "$value": "#350001",
-            "$description": "danger status (brand-supplied) 900 — Three-Quarter-Tone band",
+            "$description": "danger status (brand-supplied) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2394,7 +2394,7 @@
           "950": {
             "$type": "color",
             "$value": "#230001",
-            "$description": "danger status (brand-supplied) 950 — Shadow band",
+            "$description": "danger status (brand-supplied) 950 — Shadow band (near-black shade, step 950)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2414,7 +2414,7 @@
           "025": {
             "$type": "color",
             "$value": "#fdf5f3",
-            "$description": "danger status (brand-supplied) 025 — Highlight band",
+            "$description": "danger status (brand-supplied) 025 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -2434,7 +2434,7 @@
           "050": {
             "$type": "color",
             "$value": "#f6e5e3",
-            "$description": "danger status (brand-supplied) 050 — Highlight band",
+            "$description": "danger status (brand-supplied) 050 — Highlight band (near-white tints, steps 025–050)",
             "$extensions": {
               "prism3": {
                 "generated": true,
@@ -3831,7 +3831,7 @@
           "subtle": {
             "$type": "fontWeight",
             "$value": "{hds.core.font.weight.300}",
-            "$description": "weight role 'subtle' → 300 — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)",
+            "$description": "weight role 'subtle' → 300 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -3843,7 +3843,7 @@
           "default": {
             "$type": "fontWeight",
             "$value": "{hds.core.font.weight.400}",
-            "$description": "weight role 'default' → 400 — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)",
+            "$description": "weight role 'default' → 400 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -3855,7 +3855,7 @@
           "emphasis": {
             "$type": "fontWeight",
             "$value": "{hds.core.font.weight.600}",
-            "$description": "weight role 'emphasis' → 600 — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)",
+            "$description": "weight role 'emphasis' → 600 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -3867,7 +3867,7 @@
           "strong": {
             "$type": "fontWeight",
             "$value": "{hds.core.font.weight.700}",
-            "$description": "weight role 'strong' → 700 — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)",
+            "$description": "weight role 'strong' → 700 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -3879,7 +3879,7 @@
           "max": {
             "$type": "fontWeight",
             "$value": "{hds.core.font.weight.900}",
-            "$description": "weight role 'max' → 900 — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)",
+            "$description": "weight role 'max' → 900 — function-named, so it survives a brand swap (the brand maps the numeric; a 2-weight brand collapses roles)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -4706,7 +4706,7 @@
         "tertiary": {
           "$type": "color",
           "$value": "{hds.core.palette.neutral.500}",
-          "$description": "Tertiary text — 3:1 on background.secondary",
+          "$description": "Tertiary text — 3:1 on background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4850,7 +4850,7 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.primary.450}",
-          "$description": "Muted brand text — low-emphasis accent, 3:1 on background.primary",
+          "$description": "Muted brand text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4874,7 +4874,7 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.success.450}",
-          "$description": "Muted success text — low-emphasis accent, 3:1 on background.primary",
+          "$description": "Muted success text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4898,7 +4898,7 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.warning.450}",
-          "$description": "Muted warning text — low-emphasis accent, 3:1 on background.primary",
+          "$description": "Muted warning text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4922,7 +4922,7 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.danger.450}",
-          "$description": "Muted danger text — low-emphasis accent, 3:1 on background.primary",
+          "$description": "Muted danger text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4946,7 +4946,7 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{hds.core.palette.info.450}",
-          "$description": "Muted info text — low-emphasis accent, 3:1 on background.primary",
+          "$description": "Muted info text — 3:1 on background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -8248,7 +8248,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white}",
-                "$description": "primary interactive fill on an inverse surface — rest (the crisp white / black default)",
+                "$description": "primary interactive fill on an inverse surface — rest — the white / black default",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8272,7 +8272,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8296,7 +8296,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8320,7 +8320,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8344,7 +8344,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8369,7 +8369,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{hds.core.palette.primary.500}",
-              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -8698,7 +8698,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white}",
-                "$description": "destructive interactive fill on an inverse surface — rest (the crisp white / black default)",
+                "$description": "destructive interactive fill on an inverse surface — rest — the white / black default",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8722,7 +8722,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting does not change the destructive label).",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8746,7 +8746,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting does not change the destructive label).",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8770,7 +8770,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8794,7 +8794,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -8819,7 +8819,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{hds.core.palette.danger.500}",
-              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9148,7 +9148,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{hds.core.palette.white}",
-                "$description": "neutral interactive fill on an inverse surface — rest (the crisp white / black default)",
+                "$description": "neutral interactive fill on an inverse surface — rest — the white / black default",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9172,7 +9172,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "neutral interactive fill on an inverse surface — hover (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "neutral interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9196,7 +9196,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "neutral interactive fill on an inverse surface — pressed (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "neutral interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9220,7 +9220,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.100}",
-                "$description": "neutral interactive fill on an inverse surface — focused (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "neutral interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9244,7 +9244,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{hds.core.palette.neutral.200}",
-                "$description": "neutral interactive fill on an inverse surface — selected (stepped 2 neutral rungs per state away from the white / black rest fill)",
+                "$description": "neutral interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9269,7 +9269,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{hds.core.palette.neutral.950}",
-              "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the crisp white / black CTA",
+              "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the white / black rest fill",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -9717,7 +9717,7 @@
           "tertiary": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.550}",
-            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary",
+            "$description": "Tertiary text on an inverse surface — 3:1 on inverse.background.secondary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9861,7 +9861,7 @@
           "brand-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.primary.550}",
-            "$description": "Muted brand text — low-emphasis accent, 3:1 on inverse.background.primary",
+            "$description": "Muted brand text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9885,7 +9885,7 @@
           "success-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.success.550}",
-            "$description": "Muted success text — low-emphasis accent, 3:1 on inverse.background.primary",
+            "$description": "Muted success text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9909,7 +9909,7 @@
           "warning-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.warning.550}",
-            "$description": "Muted warning text — low-emphasis accent, 3:1 on inverse.background.primary",
+            "$description": "Muted warning text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9933,7 +9933,7 @@
           "danger-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.danger.550}",
-            "$description": "Muted danger text — low-emphasis accent, 3:1 on inverse.background.primary",
+            "$description": "Muted danger text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9957,7 +9957,7 @@
           "info-subtle": {
             "$type": "color",
             "$value": "{hds.core.palette.info.550}",
-            "$description": "Muted info text — low-emphasis accent, 3:1 on inverse.background.primary",
+            "$description": "Muted info text — 3:1 on inverse.background.primary; large text (≥24px, or ≥18.66px bold) or non-essential text only, below the 4.5:1 body floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14153,7 +14153,7 @@
         "width": {
           "$type": "dimension",
           "$value": "{hds.core.dimension.2}",
-          "$description": "focus ring width — 2px (the WCAG 2.4.13 minimum thickness; raise to 3px for more visibility)",
+          "$description": "focus ring width — 2px (meets WCAG 2.4.13, AAA focus appearance)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14546,7 +14546,7 @@
           "width": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.48}",
-            "$description": "control.size.sm width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+            "$description": "control.size.sm width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14611,7 +14611,7 @@
           "radius": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.2}",
-            "$description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and the 16÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+            "$description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and one eighth of the box, 16px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14651,7 +14651,7 @@
           "width": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.64}",
-            "$description": "control.size.md width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+            "$description": "control.size.md width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14716,7 +14716,7 @@
           "radius": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.2}",
-            "$description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and the 20÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+            "$description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and one eighth of the box, 20px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14756,7 +14756,7 @@
           "width": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.80}",
-            "$description": "control.size.lg width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the field-convergent 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+            "$description": "control.size.lg width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14821,7 +14821,7 @@
           "radius": {
             "$type": "dimension",
             "$value": "{hds.core.dimension.2}",
-            "$description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and the 24÷8 control ratio, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+            "$description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and one eighth of the box, 24px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -14850,7 +14850,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.146.0",
+      "version": "0.147.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -14872,7 +14872,7 @@
         "gradient: none (opt-in axis; brand declared no gradients — the field-common default).",
         "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.",
         "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=Inter, title=Inter, body=Inter, label=Inter, caption=Inter, eyebrow=Inter, code=JetBrains Mono; typeScale 'compact'. 39 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (144px); title tier omits title.2xs). responsive: 10 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
-        "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
+        "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
         "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.",
         "light primary surface is NON-default (neutral.50) — CONFIRM this is the page color; the contrast floor moves with it",
         "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)",

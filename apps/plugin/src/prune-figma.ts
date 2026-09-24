@@ -222,16 +222,30 @@ const styleGroup = (name: string): string => name.split('/')[0] ?? '';
  *
  * The clause separator in every one of these is an EM DASH (U+2014), not a hyphen — `emit-figma-styles.ts`
  * writes it, and `lint-us-english.ts` / the voice standard keep it that way.
+ *
+ * TWO GENERATIONS PER KIND (#1623 sign-off). The engine rewrote its style descriptions into the short Figma
+ * register (`figma-description.ts`), and a client's file still holds styles written in the old words. Each
+ * kind therefore matches its CURRENT template OR its LEGACY one — a stranded style from an earlier apply
+ * is exactly what this arm exists to recognize, and it was written in the words the engine used then. The
+ * legacy patterns are frozen: they describe text the engine no longer writes, so nothing should move them.
  */
 const ENGINE_DESCRIPTION: Record<'grid' | 'effect' | 'paint', RegExp> = {
   /** `emit-figma-styles.ts` `buildFigmaGridStyles`. The trailing sentence is fixed text in the emitter and
    *  names no value at all, which makes this the strongest of the four signatures. */
-  grid: /^\d+-column layout grid for the \S+ breakpoint — \d+(?:\.\d+)?px gutter, \d+(?:\.\d+)?px margin\. A static Figma grid style; the layout variable collection stays the responsive source of truth\.$/,
+  grid: new RegExp([
+    /^\d+-column grid for \S+ — \d+(?:\.\d+)?px gutter, \d+(?:\.\d+)?px margin\. A static copy of the layout variables\.$/.source,
+    // legacy (before the #1623 sign-off)
+    /^\d+-column layout grid for the \S+ breakpoint — \d+(?:\.\d+)?px gutter, \d+(?:\.\d+)?px margin\. A static Figma grid style; the layout variable collection stays the responsive source of truth\.$/.source,
+  ].join('|')),
   /** `buildFigmaShadow`: the leaf's own `shadow <key> — …` prose, plus the mode clause the emitter appends.
    *  The middle clause is a wildcard on purpose — `shadow/inset` carries `inner shadow for wells / pressed
    *  states / inputs` where every other rung carries `elevation N of M, K-layer (…)`, so requiring the
    *  elevation clause would fail to recognize the one style whose shape is different. */
-  effect: /^shadow \S+ — .+ — (?:light mode|dark mode \(reduced; surface-lift pattern\)|\S+ mode \(per-mode softness\/tint\))$/,
+  effect: new RegExp([
+    /^(?:Elevation \d+ of \d+|Inner shadow for wells, pressed states and inputs) — (?:light mode|dark mode \(softer; surfaces lift instead\)|\S+ mode)$/.source,
+    // legacy (before the #1623 sign-off)
+    /^shadow \S+ — .+ — (?:light mode|dark mode \(reduced; surface-lift pattern\)|\S+ mode \(per-mode softness\/tint\))$/.source,
+  ].join('|')),
   /** `buildFigmaGradient`: the leaf's `gradient <key> — <kind>, N stops, <interp> interpolation` prose. The
    *  emitter appends nothing here, so the signature is the leaf template and the tail is left open (the
    *  brand-gradient suffix is `tree.ts`'s, not this emitter's). */
@@ -256,7 +270,13 @@ const ENGINE_DESCRIPTION: Record<'grid' | 'effect' | 'paint', RegExp> = {
  * sentence they have to read rather than work they lose. Text is also the kind that needs this path least:
  * a dropped typography rung keeps its top-level group, so the #1521 group test already catches it, and
  * only a rename of the FIRST segment reaches here at all.
+ *
+ * Since the #1623 sign-off the engine follows those words with a TAIL — `display xl strong — 48→112px
+ * Clash Display, tight line-height, for hero headlines.` The words before the em dash are checked exactly
+ * as before, and the tail must match the emitter's template (`TEXT_TAIL`), so a designer's own words after
+ * a dash (`label sm emphasis — use for chips`) do not pass. The bare words, the legacy shape, still match.
  */
+const TEXT_TAIL = /^ — \d+(?:\.\d+)?(?:→\d+(?:\.\d+)?)?px .+, \S+ line-height, for [^.]+\.$/;
 export const isEngineDescription = (
   kind: StyleKind,
   description: string,
@@ -265,7 +285,9 @@ export const isEngineDescription = (
   const d = description.trim();
   if (d === '') return false;                       // no description is no provenance, never a match
   if (kind !== 'text') return ENGINE_DESCRIPTION[kind].test(d);
-  const words = d.split(' ');
+  const dash = d.indexOf(' — ');
+  if (dash !== -1 && !TEXT_TAIL.test(d.slice(dash))) return false;
+  const words = (dash === -1 ? d : d.slice(0, dash)).split(' ');
   if (words.length < 2) return false;
   const vocabulary = new Set<string>();
   const groups = new Set<string>();
