@@ -125,6 +125,8 @@ export const focusRing: ComponentDef = {
     surface: ['default', 'inverse'],
     offset: ['control', 'field'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { surface: 'authoring', offset: 'authoring' },
 
   // THE RING'S OWN SKIN, and the reason this def exists. Every one of these resolved only inside a
   // Figma file until now: the hand-authored ring docs/32 measured carried hardcoded `#2D65D4` and

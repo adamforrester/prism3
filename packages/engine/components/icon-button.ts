@@ -160,6 +160,10 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // one icon-button-specific axis.
     surface: ['default', 'inverse'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // appearance stays RUNTIME, the strict default: a toggle icon button that fills when selected is the owner's
+  // bold-when-selected shape (#1611).
+  axisKinds: { appearance: 'runtime', size: 'authoring', shape: 'authoring', surface: 'authoring' },
   // NO `modifiers` AXIS (#845). It held `['pending']` — an axis of one, whose single value is already a
   // value on the state axis, so it modeled one coordinate twice and enumerated no alternatives at all.
   // An axis's values are supposed to be mutually exclusive coordinates along one dimension; a one-value

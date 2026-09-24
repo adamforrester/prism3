@@ -130,6 +130,8 @@ export const radioRow: ComponentDef = {
   variants: {
     size: ['small', 'medium', 'large'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { size: 'authoring' },
 
   // ONE KEY GROUP since #1348: the painted circle/dot moved to `radio-control`, so the Row's whole color
   // surface is the label ink (the bare slot). The `{selection}`-led templates went with the disc; keeping

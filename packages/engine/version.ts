@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.143.0 — #1623 sign-off (component metadata): every def gains a one-line `summary`, which the plugin now
+ * 0.145.0 — #1623 sign-off (component metadata): every def gains a one-line `summary`, which the plugin now
  * writes as the Figma description of each component set (or each component, for `emitAsComponents`); the
  * `composition` id lists hold only registered ids (unbuilt ones move to `composition.planned`, described
  * patterns to `composition.replacesPatterns`); seven display names move to the one convention
@@ -2935,6 +2935,22 @@
  * are stripped from the plugin bundle. A plugin behavior change and a def-metadata change → MINOR. The
  * projected component surface does not move (names, summaries and prose are not plan data), and no token
  * name moves. CONTRACT STANDS.
+ * 0.144.0 — #1611: the component build's footprint check compares members across RUNTIME axes only and holds
+ * AUTHORING axes fixed. New `ComponentDef.axisKinds` (`runtime | authoring`, absent = runtime) classifies every
+ * def's axes, and every projected `AnatomyPlan` now carries `axisKinds` for its variant axes and state axis —
+ * so every plan stamp moves. The cohort key (`planSetLayout` `group`, and the chunked payload's
+ * `FOOTPRINT_VARIES`) gains each authoring axis: field-label's `weight`/`emphasis` (clearing NB's four
+ * bold-vs-regular misses at `small`), button's and icon-button's `surface`, icon-button's `shape`, focus-ring's
+ * `surface`. `appearance` stays runtime (compared). No member, name or binding moves; the projected surface
+ * moves by the new plan field → ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
+ * 0.143.0 — #1623 sign-off, component API alignment (owner-decided). text-field replaces its `error` prop
+ * with select's `validation` + `validationMessage` (same names, same value set; the Figma `status` axis maps
+ * to it). textarea takes text-field's model: `error` leaves `states` for a `status` axis with text-field's
+ * values and status-led border keys, the placeholder binds `color.text.secondary`, and it gains the same
+ * validation props. checkbox-group and radio-group bind a 0px inter-row gap (`space.0`) — the rows self-space
+ * with their own block padding. Component members move (props, a new textarea axis, the group gap binding)
+ * → `schema/component-surface.json` re-accepted, MINOR. CONTRACT STANDS: every bound role already ships.
  * 0.142.0 — #1631 (owner decision: "we should not remove dimension tokens"): at `density: 'spacious'` the
  * dimension grid is also fed the COMFORTABLE control px. `core.dimension` is value-keyed, and at
  * comfortable 3 (an `inset`) and 18 (a `thumb`) exist only because the control px put them there;
@@ -3520,7 +3536,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.143.0';
+export const ENGINE_VERSION = '0.145.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -3963,6 +3979,19 @@ export const ENGINE_VERSION = '0.143.0';
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
  *
+ * 12.0.0 — #1632 (owner-decided MAJOR): DEMOTE the weight roles a brand declines out of `guaranteed`. A brand
+ * that narrows `typography.weights` ships no styles for the weights it doesn't use, which is the lever's
+ * purpose ("if we are removing anything we are removing unused weights"). No corpus member pulled the lever,
+ * so the default sets' `strong` composites were guaranteed and nb-redesign missed 17 of them at its own
+ * settings: `type.{body,caption}.<size>.strong` + `-strong-link` (10), `type.display.sm.strong`, and
+ * `type.title.{2xl,xl,lg,md,sm,xs}.strong`. Realized the honest way, as for #957 and #1479: a new
+ * `minimal-weights` corpus member (nb-redesign's weight sets on the sparse input) drops the 17 out of the
+ * intersection. They report as DEMOTED, still emitted by every brand that keeps `strong`, no migration, no
+ * DEPRECATIONS entry. A guaranteed removal is MAJOR: 11.3.0 → 12.0.0. Nothing is added to `guaranteed` or
+ * retyped. No component binds a demoted path by name: `field-label` resolves its weight by intent (#1602).
+ * ENGINE STANDS: `out/**` is byte-identical (the corpus member is contract-only and emits no artifact). The
+ * single-role sets (`label`/`eyebrow`/`code`) are the stated residual, #1639. (#1632)
+ *
  * 11.3.0 — #1486 adds FOUR guaranteed names: `color.text.link.pressed`, `color.icon.link.pressed`, and their
  * `color.inverse.{text,icon}.link.pressed` twins — the new engaged link state. Every corpus brand emits links
  * (the link block in `buildContent` is unconditional and runs for both the page and inverse grounds, and for
@@ -4004,7 +4033,7 @@ export const ENGINE_VERSION = '0.143.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '11.3.0';
+export const CONTRACT_VERSION = '12.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

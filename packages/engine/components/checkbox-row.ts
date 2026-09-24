@@ -149,6 +149,8 @@ export const checkboxRow: ComponentDef = {
   variants: {
     size: ['small', 'medium', 'large'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { size: 'authoring' },
 
   // ONE KEY since #1226 step 2: the painted box moved to `checkbox-control`, so the Row's whole color
   // surface is the label ink (`label`, `disabled.label` — the bare slot). The `{selection}`-led

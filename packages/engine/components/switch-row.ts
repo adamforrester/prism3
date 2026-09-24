@@ -106,6 +106,8 @@ export const switchRow: ComponentDef = {
   variants: {
     size: ['small', 'medium'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { size: 'authoring' },
 
   // ONE KEY GROUP since #1354: the painted track/thumb moved to `switch-control`, so the Row's whole
   // color surface is the label ink (the bare slot). The `{selection}`-led templates went with the

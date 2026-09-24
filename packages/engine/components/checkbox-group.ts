@@ -20,12 +20,10 @@
  *     says the GROUP owns validation and the error message — but gives no Prism 2 visual for it. So the
  *     group carries `required` (settled) and does NOT invent an error treatment; whether it composes a
  *     `field-message` for a group error, and what that looks like, is `[HELD]` (see `notes.unverified`).
- *   · INTER-ROW LAYOUT GAP. Prism 2's group gap is 0 — the rows self-space, because a Prism 2
- *     `checkboxRow` is a FIXED 48px box (12px block padding around a 24px control). Our `checkbox-row`
- *     deliberately HUGS its content (no Figma floor — see `checkbox-row.ts` `codeOnly`), so a 0 group gap
- *     would leave the hugging rows touching. Prism 2's spacing therefore does not map, and the gap is a
- *     genuine `[HELD]` decision. A PROVISIONAL size-keyed stack gap (`size.*.gap`, 8/8/12px on nb) is
- *     bound below — so the group's own `size` axis reaches a binding — but the value is the owner's to confirm.
+ *   · INTER-ROW LAYOUT GAP — RESOLVED (#1623 sign-off, C2/K-11 + K-23). Prism 2's group gap is 0 because
+ *     its rows self-space (12px block padding around the control). Our `checkbox-row` now carries that
+ *     same 12px block padding, so it self-spaces too, and the owner chose a 0 group gap: the stack binds
+ *     `space.0`. The provisional size-keyed `size.*.gap` rung this bullet used to describe is gone.
  *   · SELECT-ALL AFFORDANCE. Prism 2 has none. Reproducing Prism 2 means NOT inventing one, so it is
  *     absent by design (a select-all is a parent checkbox in the `indeterminate` state — expressible from
  *     the existing parts if wanted, but not part of Prism 2's group). `[HELD]` only in the sense of
@@ -99,6 +97,8 @@ export const checkboxGroup: ComponentDef = {
   variants: {
     size: ['small', 'medium', 'large'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { size: 'authoring' },
 
   // THE GROUP PAINTS NOTHING OF ITS OWN. The label ink is FieldLabel's, every row's ink is
   // checkbox-row's; the container is a transparent stack. So there are no paint slots and no `paintKeys` —
@@ -107,16 +107,12 @@ export const checkboxGroup: ComponentDef = {
   // would name a slot that resolves to nothing at every coordinate.
 
   tokens: {
-    // ── THE STACK GAP [HELD], PER SIZE. Prism 2's group gap is 0 (its 48px fixed rows self-space); our rows
-    // HUG, so a 0 gap would leave them touching. The gap is bound to the `size.*.gap` rung so the group's
-    // `size` axis reaches a real binding of its own (the group scales its spacing, not only its nested
-    // children via `follow`) rather than being an axis a consumer can pick that resolves to nothing here.
-    // The VALUE is provisional: `size.*.gap` is 8/8/12px on nb — the control-to-label gap rung reused as
-    // the inter-row gap — and the exact inter-row layout gap (and whether the label-to-first-row gap should
-    // differ from row-to-row) is the owner's to confirm. Do not read the rung as measured from Prism 2.
-    'size.small.gap': 'size.sm.gap',
-    'size.medium.gap': 'size.md.gap',
-    'size.large.gap': 'size.lg.gap',
+    // ── THE INTER-ROW GAP IS ZERO (#1623 sign-off, C2/K-11 + K-23, owner-decided). Each `checkbox-row` now
+    // carries its own 12px block padding and so SELF-SPACES; a stack gap on top would double the rhythm.
+    // So the group binds `space.0` (0px, emitted in every brand tier) as one un-sized key — the spacing
+    // lives on the row, and the group's `size` axis reaches its rows through `follow`, not through a gap.
+    // Replaces the provisional, held `size.*.gap` rung this def carried before the decision.
+    'gap': 'space.0',
     // ── THE GROUP'S BLOCK PADDING — Prism 2's container `padding {top: 8, bottom: 8}` exactly (`space.100`
     // = 8px on nb).
     'pad-y': 'space.100',
@@ -158,7 +154,7 @@ export const checkboxGroup: ComponentDef = {
         kind: 'box',
         role: 'target',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
-        gap: 'size.{size}.gap',
+        gap: 'gap',
         padding: { block: 'pad-y', inlineLabel: 'pad-x' },
         minWidth: 320,
         children: ['label', 'row1', 'row2', 'row3'],
@@ -296,11 +292,11 @@ export const checkboxGroup: ComponentDef = {
       'THE GROUP PAINTS NOTHING and so declares no `paintKeys` — the first projecting def whose whole color surface is its nested children\'s. The alternative (inventing a group fill or border) is exactly the surface Prism 2\'s transparent container does not have; a stack is structure, and its ink lives one level down in `field-label` and `checkbox-row`.',
     ],
     unverified: [
-      'THE INTER-ROW GAP IS PROVISIONAL AND `[HELD]`. Prism 2\'s group gap is 0 because its rows are fixed 48px boxes that self-space; our `checkbox-row` hugs, so a 0 gap leaves them touching and Prism 2\'s spacing does not transfer. The `size.*.gap` rung (8/8/12px on nb) is bound so the group\'s `size` axis reaches a binding and the stack reads legibly, but the value — and whether the label-to-first-row gap should differ from row-to-row — is the owner\'s to set. Do not read the rung as measured from Prism 2; it is a placeholder pending that decision.',
+      'THE INTER-ROW GAP IS RESOLVED (#1623 sign-off). Each `checkbox-row` carries 12px of block padding and so spaces itself, so the group binds a 0px gap (`space.0`) and adds no stack gap on top. The provisional size-keyed gap this entry used to hold is gone; the group\'s `size` axis still scales its label and rows through `follow`.',
       'GROUP-LEVEL ERROR / VALIDATION DISPLAY IS `[HELD]`. The brief puts validation and the error message on the group; Prism 2 settles no visual for it. This def carries `required` (settled) and no error skin (unsettled). Whether the group nests a `field-message` for the group error, and what an errored group looks like (a recolored label? a message below the stack? a per-row neutral hold?), needs the owner. Building one now would invent the very thing the brief left to design.',
       'THE VARIABLE ROW COUNT AND SELECT-ALL ARE `[HELD]`. The three fixed row nests stand in for Prism 2\'s six-rows-with-booleans (a Figma convenience for `children: CheckboxRow[]`). If the projection should carry a designer-toggleable count, the mechanism is the node-visibility boolean on each row nest (the corpus\'s first boolean-toggled `nest` — schema-legal, unbuilt). A select-all parent is likewise expressible (a row at `indeterminate` above the set) and deliberately not added, since Prism 2 has none.',
       'THE NESTING IS UNVERIFIED ON A REAL HOST, the same way `checkbox-row`\'s and the other decompositions\' are: the group nests `checkbox-row` (which nests `checkbox-control` `nest-exposed`), the deepest chain in the corpus, and whether a doubly-nested instance\'s inherited sizing and exposed properties cooperate with the group\'s auto-layout is a real-host question the offline shim cannot answer. `test:roundtrip` builds every projected def and reads it back — the host-truth check #1347 named, and #1503 extends it to assert each row reads back `layoutAlign: STRETCH` — but a three-deep nest is new ground; the symptom to look for is a row instance that does NOT fill the group (the STRETCH dropped on a real host), or an exposed selection that does not surface at the group.',
-      'THE WIDTH/FILL MODEL IS RESOLVED (#1503, owner Option B: follow Prism 2). Prism 2\'s group is a fixed-320 root with rows set to FILL; this def now realizes that with the container floored at `minWidth: 320` and each row `crossAxisFill` (→ `layoutAlign: STRETCH`), the projection capability #1503 added. A `minWidth` floor rather than a fixed width keeps the group responsive (reads at 320, flexes above), the `select` #1345 precedent. `radio-group` mirrors this exactly, so the two groups match by SHARING one resolution (#1475). The `size.{size}.gap` inter-row gap remains the separate `[HELD]` below — filling the width does not settle the vertical spacing.',
+      'THE WIDTH/FILL MODEL IS RESOLVED (#1503, owner Option B: follow Prism 2). Prism 2\'s group is a fixed-320 root with rows set to FILL; this def now realizes that with the container floored at `minWidth: 320` and each row `crossAxisFill` (→ `layoutAlign: STRETCH`), the projection capability #1503 added. A `minWidth` floor rather than a fixed width keeps the group responsive (reads at 320, flexes above), the `select` #1345 precedent. `radio-group` mirrors this exactly, so the two groups match by SHARING one resolution (#1475). The inter-row gap was settled separately (0px, #1623 sign-off, below).',
     ],
   },
 };

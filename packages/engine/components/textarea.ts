@@ -68,10 +68,12 @@ export const textarea: ComponentDef = {
     'A control for free-form text expected to wrap across multiple lines — comments, descriptions, messages, feedback. Shares the form-field substrate with TextField (label, helper/error, the aria-describedby wiring); differs in the sizing model, the prominence of the character counter, and who owns the Enter key. Not single-line (TextField), not formatted or structured (a rich-text editor), not code (a code editor), not a value from a known set (Select, or a combobox, not built yet).',
 
   // THE DELTA ONLY (brief §3, §15). Everything the substrate contract already carries — label,
-  // value/defaultValue, onChange/onBlur/onFocus, placeholder, helpText, error, disabled, readOnly,
+  // value/defaultValue, onChange/onBlur/onFocus, placeholder, helpText, disabled, readOnly,
   // required, autoComplete, id, name, and the bundled-props/composed-slots hybrid with its internal
-  // aria wiring — is `text-field`'s and is not restated. `size` is the one exception and the header
-  // says why.
+  // aria wiring — is `text-field`'s and is not restated. `size` is one exception and the header
+  // says why; `validation` + `validationMessage` are the other, for the same reason: a gate reads them
+  // (`test.ts` pins the field family's shared validation contract — text-field, textarea and select
+  // carry the same two names and the same value set, #1623 sign-off C1/TA-4).
   props: [
     { name: 'rows', type: 'number', default: 3, required: false, description: 'Initial and minimum height, in LINES not pixels — a line count recomputes against the current line-height when the user raises their font size, where a pixel floor does not. Also a content cue: two rows signals brevity, six signals "write more". `cols` is dead on the web; width comes from CSS.' },
     { name: 'resize', type: "enum: 'none' | 'vertical' | 'auto'", values: ['none', 'vertical', 'auto'], default: 'vertical', required: false, description: 'The sizing model in ONE prop, so two props cannot contradict each other. `vertical` (the drag handle) for standalone form fields; `auto` (grow within minRows/maxRows) for composers; `none` where layout stability wins. NEVER horizontal or both — altering the inline dimension shatters grid and flex layouts for no user gain.' },
@@ -81,10 +83,14 @@ export const textarea: ComponentDef = {
     { name: 'showCount', type: 'boolean', default: false, required: false, description: 'The character counter — first-class here, unlike on TextField. Only ever with a real limit: a counter on an unlimited field implies a cap that does not exist.' },
     { name: 'spellCheck', type: 'boolean', required: false, description: 'Native passthrough; worth surfacing because structured input often wants it off.' },
     { name: 'submitOnEnter', type: 'boolean', default: false, required: false, description: 'Composer opt-in: Enter submits, Shift+Enter inserts a newline. NOT the base default — Enter inserting a newline is the platform contract a multi-line field advertises via aria-multiline, and hijacking it silently can lose a screen-reader user a drafted message. Whenever true, pair it with a real visible submit button and a visible "Shift+Enter for a new line" hint (SC 3.3.2).' },
+    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. Each non-default status swaps the field border to its own boundary (border-only — `error` → danger, `warning` → warning, `success` → success) and sets the composed message to the matching status; `default` is neutral. `error` also sets aria-invalid. The same prop, with the same values, as TextField and Select.' },
+    { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong AND how to fix it, with the number when it is a length limit (SC 3.3.3), never "Invalid".' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales type and padding ONLY — height belongs to rows / auto-grow, so the substrate\'s height tiers do not transfer.' },
   ],
 
   // Identical to `text-field`'s set, and stated rather than inherited for the reason in the header.
+  // `error` IS NOT A STATE (#1623 sign-off, C1/TA-4 — text-field's #1494 move, followed here): validation
+  // co-occurs with rest/hover/focus rather than replacing one, so it is the `status` axis below.
   // No `pressed` — brief §4 is explicit that a multi-line field is not pressed the way a mobile
   // single-line field is, and `pressed` is in the closed vocabulary, so its ABSENCE here is a
   // decision rather than an omission.
@@ -94,20 +100,26 @@ export const textarea: ComponentDef = {
   // the same async-in-flight concept `button` and `icon-button` already name `pending`, and #868
   // closed `loading` out of the vocabulary entirely — a rejected name returning through a fourth def
   // would have been the exact shape #868 filed the vocabulary to stop.
-  states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'pending', 'error', 'empty'],
+  states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
 
-  // `size` and `style` only — the two the substrate declares. The brief's §15 also lists `resize`
-  // and `modifiers` as variant axes; neither is declared here and `notes.contested` carries both
+  // `size` and `style`, plus text-field's `status` axis with text-field's exact values (#1623 sign-off,
+  // C1/TA-4) — the validation outcome, driven by the `validation` prop. The brief's §15 also lists
+  // `resize` and `modifiers` as variant axes; neither is declared here and `notes.contested` carries both
   // arguments with their named alternatives.
   variants: {
     size: ['small', 'medium', 'large'],
     style: ['outline'], // filled / underline are theming, not an API axis (brief §4)
+    status: ['default', 'error', 'warning', 'success'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { size: 'authoring', style: 'authoring', status: 'runtime' },
 
-  // The substrate's grammar, stated rather than inherited: this def's paint varies by state and by
-  // nothing else (`size` is geometry, `style` has one value), so the qualified template leads and the
-  // bare slot is the rest value.
-  paintKeys: ['{slot}.{state}', '{slot}'],
+  // The substrate's grammar, stated rather than inherited — text-field's exactly since the `status` axis
+  // arrived (#1623 sign-off): status-led-and-state-qualified first, so a status border wins over the
+  // interactive progression at every coordinate, then slot-and-state, then the bare slot as the rest
+  // value. The status template is 3-segment for the reason text-field's header gives (two 2-placeholder
+  // templates cannot coexist).
+  paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
 
   // INPUT CHROME ONLY, same composition call as the substrate — label and message color/type live in
   // `field-label` / `field-message` and are composed, not re-declared here.
@@ -123,12 +135,31 @@ export const textarea: ComponentDef = {
   tokens: {
     'fill': 'color.field.fill',
     'label': 'color.text.primary',
-    'label.empty': 'color.field.placeholder',
+    // The placeholder binds `text.secondary`, text-field's #1518 binding (#1623 sign-off, C1/TA-4), so
+    // the two fields express empty-vs-value with the same two text roles.
+    'label.empty': 'color.text.secondary',
     'border.rest': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
-    'border.error': 'color.border.danger',
     'border.read-only': 'color.border.secondary',
+    // The status-led border swaps — text-field's keys and roles exactly (#1623 sign-off, C1/TA-4): each
+    // non-default status binds its own border role PER non-disabled state, so the boundary persists
+    // through hover, focus and read-only. `pending` is unbound (as on text-field); `default` binds none.
+    'error.border.rest': 'color.border.danger',
+    'error.border.hover': 'color.border.danger',
+    'error.border.focus-visible': 'color.border.danger',
+    'error.border.read-only': 'color.border.danger',
+    'error.border.empty': 'color.border.danger',
+    'warning.border.rest': 'color.border.warning',
+    'warning.border.hover': 'color.border.warning',
+    'warning.border.focus-visible': 'color.border.warning',
+    'warning.border.read-only': 'color.border.warning',
+    'warning.border.empty': 'color.border.warning',
+    'success.border.rest': 'color.border.success',
+    'success.border.hover': 'color.border.success',
+    'success.border.focus-visible': 'color.border.success',
+    'success.border.read-only': 'color.border.success',
+    'success.border.empty': 'color.border.success',
     // Focus ring — the field offset, as on the substrate. Brief §4 argues a textarea is a LARGE
     // surface and a saturated ring around a 600×400 box is noise, favouring an inset indicator. The
     // engine emits one field-ring offset and no large-surface variant, so this binds what exists and

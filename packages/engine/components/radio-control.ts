@@ -127,6 +127,9 @@ export const radioControl: ComponentDef = {
     size: ['small', 'medium', 'large'],
     selection: ['unchecked', 'checked'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // `selection` is the live toggle.
+  axisKinds: { size: 'authoring', selection: 'runtime' },
 
   // Axis-led, most specific first — checkbox's grammar, which radio and switch inherit. `selection`
   // leads; the bare `{slot}` answers the bindings outside the grammar (`focus-ring`, `disabled.*`,

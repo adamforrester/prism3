@@ -175,6 +175,9 @@ export const select: ComponentDef = {
   variants: {
     status: ['default', 'error', 'warning', 'success'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // `status` changes live as validation runs.
+  axisKinds: { status: 'runtime' },
 
   // THE PAINT GRAMMAR. Status-led-and-state-qualified first (so the `error` border swap WINS over the
   // interactive state progression at every coordinate — see the header's precedence note), then

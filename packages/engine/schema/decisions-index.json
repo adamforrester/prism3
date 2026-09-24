@@ -152,6 +152,13 @@
       "title": "Prism 2 is an input, not an authority — shipped component metadata is written for machine readers and cites no provenance",
       "doc": "docs/28-component-anatomy-schema.md",
       "section": "5.3"
+    },
+    {
+      "date": "2026-09-24",
+      "issue": 1632,
+      "title": "a brand that narrows `typography.weights` drops the styles for the weights it doesn't use, and those paths are brand-dependent",
+      "doc": "docs/30-versioning-and-compatibility.md",
+      "section": null
     }
   ]
 }

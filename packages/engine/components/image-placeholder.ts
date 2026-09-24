@@ -81,6 +81,8 @@ export const imagePlaceholder: ComponentDef = {
   variants: {
     ratio: ['1:1', '4:3', '16:9'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { ratio: 'authoring' },
 
   // ONE template answering both primary slots by name: the box's `fill` and the marker's `icon` ink.
   // Constant per slot (no axis), exactly as `field-label`'s `['{slot}']` is — the ratio axis changes the
