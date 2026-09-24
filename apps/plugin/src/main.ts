@@ -18,7 +18,7 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline, staleNote, partialWriteHeadline, partialWriteNote } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, partialWriteHeadline, partialWriteNote } from './apply-summary';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
@@ -32,6 +32,7 @@ import { rootOf } from '@prism3/engine/figma-names';
 import { applyStylesPlan } from './write-styles';
 import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
+import { guardApply, preflightPlanOf, conflictSummary } from './preflight';
 import { preloadFonts } from './preload-fonts';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode } from './write-components';
@@ -145,54 +146,82 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
       loadFontAsync: figma.loadFontAsync.bind(figma),
       listAvailableFontsAsync: figma.listAvailableFontsAsync.bind(figma),
     });
-    // ONE rename pass across all four variable executors (#1013). Built here rather than inside each
-    // one because the static validation must happen once, before any write, and because a designer
-    // reads a single list of what moved — not four. Since #1035 constructing it also RENAMES THE
-    // COLLECTIONS, in one topologically-ordered, all-or-nothing pre-pass — so it must be awaited here,
-    // before the first executor, and not moved below one of them: while #1013's map held
-    // `color → color.appearance` and `surface → color` it was a CHAIN, and an executor that renamed its
-    // own collection on the way past would apply half of it. #1148 retired both entries, so the shipped
-    // map is no longer a chain — the pre-pass stays here because the atomicity obligation stated at
-    // `beginMigration` is independent of how many entries the map holds, and a future entry can
-    // reintroduce a chain without a change on this line.
-    const mig = await beginMigration(figma.variables);
-    // Colour axis (#108): the `core` palette slice + the one `color` collection, per-mode alias-bound.
-    // The pointer-tier executor that used to run next went with the tier (#1148) — there is no second
-    // collection to alias into, so the cross-call ordering dependency it existed for is gone too.
     // Hoisted rather than inlined into the calls below because the #1152 stranded-collection pass
     // needs the set of collections the plans NAME, and an axis label (`core/dimension`) is not that
-    // name. `plan.name` / `$collection` are the only spellings that match what Figma holds.
+    // name. `plan.name` / `$collection` are the only spellings that match what Figma holds. Built once
+    // and handed to BOTH the pre-flight and the executors, so the names checked are the names written.
     const colorFiles = buildFigmaColor(theme);
+    const colorPlan = buildWritePlan(colorFiles);
     const floatPlan = buildFloatWritePlan(theme);
     const fontPlan = buildFontVarPlan(theme);
-    const r = await applyWritePlan(buildWritePlan(colorFiles), figma.variables, mig);
-    // FLOAT axes (#146): core/dimension, space/radius/size/border-width/focus/opacity + layout.
-    const f = await applyFloatPlan(floatPlan, figma.variables, mig);
-    // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
-    // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
-    const s = await applyStylesPlan(buildStylesPlan(theme), figma);
-    // GRID STYLES (#1480): one reusable Figma Grid Style per breakpoint (`Grid / sm`, …), sourced from
-    // the same layout data as the numeric `layout` collection. STATIC — a grid style cannot mode-switch
-    // off a variable — so N breakpoints = N styles, coexisting with the variables (the responsive source
-    // of truth). The global `figma` structurally satisfies the GridStylesApi port (createGridStyle +
-    // getLocalGridStylesAsync). No binding, so nothing here can miss.
-    const gs = await applyGridStylePlan(buildGridStylePlan(theme), figma);
-    // TYPOGRAPHY (#237): core/font + type-sets variables first (bound targets must exist), then Text
-    // Styles. The Text Style port needs figma's style/font surface + figma.variables' getter.
-    const tv = await applyVarCollectionPlan(fontPlan, figma.variables, mig);
-    const textApi = {
-      getLocalTextStylesAsync: figma.getLocalTextStylesAsync.bind(figma),
-      createTextStyle: figma.createTextStyle.bind(figma),
-      loadFontAsync: figma.loadFontAsync.bind(figma),
-      getLocalVariablesAsync: figma.variables.getLocalVariablesAsync.bind(figma.variables),
-      // #499: the real (family, style) pairs, so the executor can correct the engine's per-weight
-      // style-name guess against what each family actually spells it.
-      listAvailableFontsAsync: figma.listAvailableFontsAsync.bind(figma),
-    };
-    const ts = await applyTextStylePlan(textPlan, textApi);
-    // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
-    // the UI to THIS brand, not the default. Only after a real materialisation (inside the try).
-    persistInput(figma.root, input);
+    const stylesPlan = buildStylesPlan(theme);
+    const gridPlan = buildGridStylePlan(theme);
+    // THE PRE-FLIGHT (#506): read everything the write below will touch, BEFORE the first write, and on
+    // any conflict — a same-named collection or style Prism3 did not create, or a variable of another
+    // type — write NOTHING and report every conflict. The rename pre-pass is inside the guarded write
+    // because it renames collections, so it is a write too. See `preflight.ts`.
+    const guarded = await guardApply(
+      preflightPlanOf({ color: colorPlan, float: floatPlan, font: fontPlan, styles: stylesPlan, grid: gridPlan, text: textPlan }),
+      {
+        getLocalVariableCollectionsAsync: () => figma.variables.getLocalVariableCollectionsAsync(),
+        getLocalVariablesAsync: () => figma.variables.getLocalVariablesAsync(),
+        getLocalEffectStylesAsync: () => figma.getLocalEffectStylesAsync(),
+        getLocalPaintStylesAsync: () => figma.getLocalPaintStylesAsync(),
+        getLocalGridStylesAsync: () => figma.getLocalGridStylesAsync(),
+        getLocalTextStylesAsync: () => figma.getLocalTextStylesAsync(),
+        root: figma.root,
+      },
+      async () => {
+        // ONE rename pass across all four variable executors (#1013). Built here rather than inside each
+        // one because the static validation must happen once, before any write, and because a designer
+        // reads a single list of what moved — not four. Since #1035 constructing it also RENAMES THE
+        // COLLECTIONS, in one topologically-ordered, all-or-nothing pre-pass — so it must be awaited here,
+        // before the first executor, and not moved below one of them: while #1013's map held
+        // `color → color.appearance` and `surface → color` it was a CHAIN, and an executor that renamed its
+        // own collection on the way past would apply half of it. #1148 retired both entries, so the shipped
+        // map is no longer a chain — the pre-pass stays here because the atomicity obligation stated at
+        // `beginMigration` is independent of how many entries the map holds, and a future entry can
+        // reintroduce a chain without a change on this line.
+        const mig = await beginMigration(figma.variables);
+        // Colour axis (#108): the `core` palette slice + the one `color` collection, per-mode alias-bound.
+        // The pointer-tier executor that used to run next went with the tier (#1148) — there is no second
+        // collection to alias into, so the cross-call ordering dependency it existed for is gone too.
+        const r = await applyWritePlan(colorPlan, figma.variables, mig);
+        // FLOAT axes (#146): core/dimension, space/radius/size/border-width/focus/opacity + layout.
+        const f = await applyFloatPlan(floatPlan, figma.variables, mig);
+        // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
+        // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
+        const s = await applyStylesPlan(stylesPlan, figma);
+        // GRID STYLES (#1480): one reusable Figma Grid Style per breakpoint (`Grid / sm`, …), sourced from
+        // the same layout data as the numeric `layout` collection. STATIC — a grid style cannot mode-switch
+        // off a variable — so N breakpoints = N styles, coexisting with the variables (the responsive source
+        // of truth). The global `figma` structurally satisfies the GridStylesApi port (createGridStyle +
+        // getLocalGridStylesAsync). No binding, so nothing here can miss.
+        const gs = await applyGridStylePlan(gridPlan, figma);
+        // TYPOGRAPHY (#237): core/font + type-sets variables first (bound targets must exist), then Text
+        // Styles. The Text Style port needs figma's style/font surface + figma.variables' getter.
+        const tv = await applyVarCollectionPlan(fontPlan, figma.variables, mig);
+        const textApi = {
+          getLocalTextStylesAsync: figma.getLocalTextStylesAsync.bind(figma),
+          createTextStyle: figma.createTextStyle.bind(figma),
+          loadFontAsync: figma.loadFontAsync.bind(figma),
+          getLocalVariablesAsync: figma.variables.getLocalVariablesAsync.bind(figma.variables),
+          // #499: the real (family, style) pairs, so the executor can correct the engine's per-weight
+          // style-name guess against what each family actually spells it.
+          listAvailableFontsAsync: figma.listAvailableFontsAsync.bind(figma),
+        };
+        const ts = await applyTextStylePlan(textPlan, textApi);
+        // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
+        // the UI to THIS brand, not the default. Only after a real materialisation (inside the try).
+        persistInput(figma.root, input);
+        return { mig, r, f, s, gs, tv, ts };
+      },
+    );
+    if (!guarded.ok) {
+      postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflictSummary(guarded.conflicts) });
+      return;
+    }
+    const { mig, r, f, s, gs, tv, ts } = guarded.result;
     const floatCreated = f.collections.reduce((n, c) => n + c.created, 0);
     const fontVarCreated = tv.collections.reduce((n, c) => n + c.created, 0);
     const fontVarTotal = tv.collections.reduce((n, c) => n + c.total, 0);
