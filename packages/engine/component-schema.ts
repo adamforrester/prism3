@@ -845,6 +845,11 @@ export type FigmaProperties = {
    *  `state` and `appearance`, meaning those are COMPARED, and includes `size` and slot fill, meaning
    *  those are exempt. Anything named here joins `size` and slot fill.
    *
+   *  SINCE #1611 THE COHORT ALSO HOLDS EVERY AUTHORING AXIS (`ComponentDef.axisKinds`), so this field is
+   *  needed only for a RUNTIME axis along which the box legitimately moves — field-message's `status`,
+   *  whose glyph arrives with the validation result. On an authoring axis it is redundant but harmless
+   *  (image-placeholder's `ratio`), and stays so the aspect-lock reason keeps living with the def.
+   *
    *  WHY IT HAD TO BECOME DECLARABLE. That key was authored for Button and its two exemptions describe
    *  Button: a bigger size is a bigger box, a filled slot adds an icon. `presentWhen` (#910) then added a
    *  second way for a variant to change what nodes exist, and nothing revisited the key — because the two
@@ -993,6 +998,15 @@ export type ComponentDef = {
   category: string;
   status: 'draft' | 'stable' | 'deprecated';
   description: string;
+  /** THE ONE-LINE SUMMARY — what the component is and the one rule a designer or agent most needs, in
+   *  the plugin register (`docs/voice-standard.md` §4: one line, about 90 characters). The plugin writes
+   *  it as the Figma description of the component set (or of each component, for an `emitAsComponents`
+   *  def), which is the only def prose a designer sees in Figma.
+   *
+   *  AUTHORED, NOT DERIVED from `description` (#1623 sign-off): a truncated paragraph cuts mid-rule, and
+   *  `description` is written for a reader who has the rest of the def beside it. Validated as one line
+   *  of at most `SUMMARY_MAX` characters ending in a period. */
+  summary: string;
 
   // ---- api (§15) ----
   /** The substrate this stands on (the form family stands on `text-field`). The def
@@ -1019,6 +1033,30 @@ export type ComponentDef = {
    *  `Partial<Record<...>>` rather than `Record<...>`, so a def declares only the axes it has: a full
    *  `Record` would require every def to carry all ten keys, which is the opposite of the point. */
   variants: Partial<Record<VariantAxis, string[]>>;
+  /** WHEN each `variants` axis changes (#1611) — `runtime` if a LIVE instance switches between its values
+   *  (a box being checked, a validation status arriving, a toggle going bold when selected), `authoring`
+   *  if a designer or developer picks one value ONCE and it stays (a size, an emphasis, a label's weight).
+   *  `states` needs no entry: an interaction state is runtime by definition, and `axisKindOf` says so.
+   *
+   *  THE FOOTPRINT RULE READS IT. A live instance switching values must not move its box — a label that
+   *  widens by a pixel when it goes bold on selection shifts every sibling after it — so the footprint
+   *  cohort (`planSetLayout`) COMPARES members across runtime axes and HOLDS authoring axes fixed. Two
+   *  members that differ only in an authoring choice never sit side by side as one instance's before and
+   *  after, so a width difference between them is not a layout jump anyone sees (#1611: field-label's
+   *  `weight`, NB's Medium setting 1px wider than Regular at `small`). The owner's direction on the case
+   *  that looks like weight but is not: *"there are going to be instances where something goes bold when
+   *  selected. That's fairly common."* — so weight is not exempt as a kind of axis; an axis is exempt only
+   *  by being authoring, and a runtime axis that changes weight must reserve the bold width.
+   *
+   *  ABSENT MEANS RUNTIME, per axis, so an unclassified axis is compared — a def that forgets this field
+   *  keeps the strict rule rather than silently loosening it. Metadata for agents as much as for the
+   *  check: it says which props an implementation drives from state and which it takes once, so it is
+   *  carried onto every projected plan (`AnatomyPlan.axisKinds`) beside the coordinate it describes.
+   *
+   *  `size` is the one axis whose kind does not move the cohort: a different size is a different box by
+   *  construction, so the cohort holds it unconditionally (as it holds slot fill and `footprintVaries`).
+   *  Classify it honestly anyway — the metadata is read for more than the footprint. */
+  axisKinds?: Partial<Record<VariantAxis, AxisKind>>;
 
   // ---- the token BINDING (docs/14 §2) — the brand/mode-invariant skin ----
   /** slot → token ref. Slots are the component's paintable/measurable surfaces; a
@@ -1160,11 +1198,22 @@ export type ComponentDef = {
   };
 
   // ---- composition (§15) ----
+  /** Every id in `composesWith` / `alternativeTo` / `supersedes` / `supersededBy` (and in
+   *  `ai.commonPartners`) is a REGISTERED def id — a reader can act on each one by looking it up.
+   *  `planned` holds the related components that are not built yet (kebab-case, the id they would
+   *  take), so the roadmap stays recorded without an id that resolves to nothing. Both halves are gated
+   *  in `test.ts` against the real registry: a real-list id must resolve, and a `planned` id must NOT
+   *  (once it ships, it moves to the real list). */
   composition?: {
     composesWith?: string[];
     alternativeTo?: string[];
     supersedes?: string[];
     supersededBy?: string[];
+    planned?: string[];
+    /** The hand-rolled or native patterns this component replaces, as prose (`div[role=button]`, "a bare
+     *  <select> with no label wiring"). Kept apart from the id lists above so every entry there is an id
+     *  a reader can resolve, and every entry here is read as a description, never looked up. */
+    replacesPatterns?: string[];
   };
 
   // ---- motion / notes (§15, SCALES) ----
@@ -1207,6 +1256,10 @@ export type ComponentDef = {
  * entries indexing `variants` — and it found the claim by failing to compile. One exported pair rather
  * than a re-derived cast per file, so the argument above cannot be silently disagreed with downstream.
  */
+/** The ceiling on `ComponentDef.summary`. The plugin register is about 90 characters; 100 leaves room
+ *  for a precise sentence without admitting a second one. */
+export const SUMMARY_MAX = 100;
+
 export const statesOf = (def: ComponentDef): readonly string[] => def.states ?? [];
 export const variantsOf = (def: ComponentDef): Record<string, string[] | undefined> => def.variants ?? {};
 
@@ -1232,6 +1285,12 @@ export const validateComponentDef = (
   req(!!def.category, 'category is required');
   req(['draft', 'stable', 'deprecated'].includes(def.status), `status must be draft|stable|deprecated (got '${def.status}')`);
   req(!!def.description, 'description is required');
+  req(typeof def.summary === 'string' && def.summary.length > 0, 'summary is required — the one-line Figma description');
+  if (typeof def.summary === 'string' && def.summary.length > 0) {
+    if (def.summary.length > SUMMARY_MAX) errors.push(`summary is ${def.summary.length} characters — at most ${SUMMARY_MAX} (the plugin register is one line of about 90)`);
+    if (/\n/.test(def.summary)) errors.push('summary must be one line');
+    if (!/\.$/.test(def.summary)) errors.push('summary must end with a period');
+  }
 
   // api
   req(Array.isArray(def.props), 'props must be an array');
@@ -1275,6 +1334,15 @@ export const validateComponentDef = (
   for (const [a, vs] of Object.entries(variantsOf(def)))
     if (!Array.isArray(vs) || vs.length === 0)
       errors.push(`variants.${a}: an axis must declare at least one value — an empty axis multiplies the projected grid by nothing and is silently dropped by the cartesian fold (#795)`);
+  // `axisKinds` (#1611) classifies the def's OWN axes. A key naming no axis is a stale or misspelled
+  // classification — the axis it meant falls back to runtime, so the error is loud rather than the
+  // loosening quiet. A value outside the two kinds has no meaning the footprint cohort can apply.
+  for (const [a, k] of Object.entries(def.axisKinds ?? {})) {
+    if (!(a in variantsOf(def)))
+      errors.push(`axisKinds.${a}: '${a}' is not an axis in variants [${Object.keys(variantsOf(def)).join(', ')}] — a classification of an axis this def does not declare classifies nothing, and the axis it meant stays runtime`);
+    if (!(AXIS_KINDS as readonly string[]).includes(k as string))
+      errors.push(`axisKinds.${a}: '${String(k)}' is not one of [${AXIS_KINDS.join(', ')}]`);
+  }
 
   // accessibility + docs + ai (the projections must be present — they're not optional)
   req(!!def.accessibility, 'accessibility block is required');
@@ -2275,6 +2343,18 @@ export const VARIANT_AXES = [
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
 export type VariantAxis = (typeof VARIANT_AXES)[number];
+
+/** WHEN an axis changes (#1611) — see `ComponentDef.axisKinds`. */
+export const AXIS_KINDS = ['runtime', 'authoring'] as const;
+export type AxisKind = (typeof AXIS_KINDS)[number];
+
+/** The one reader for an axis's kind (#1611). The def's state axis — `figmaProperties.stateAxis.name`, or
+ *  `state` — is runtime by definition; any other axis reads `axisKinds`, and ABSENT is `runtime`, the
+ *  strict default: an unclassified axis stays compared by the footprint cohort. */
+export const axisKindOf = (def: ComponentDef, axis: string): AxisKind => {
+  if (axis === (def.figmaProperties?.stateAxis?.name ?? 'state')) return 'runtime';
+  return (def.axisKinds as Record<string, AxisKind> | undefined)?.[axis] ?? 'runtime';
+};
 
 /** WEIGHT INTENTS (#1602) — the closed set a `weightIntent` axis's values are drawn from. Unlike other
  *  axis VALUES (open, per `VARIANT_AXES`'s header), these are fixed because the projector resolves each

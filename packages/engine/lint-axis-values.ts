@@ -398,7 +398,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
-    defs: ['field-message', 'select', 'text-field'],
+    defs: ['field-message', 'select', 'text-field', 'textarea'],
     relation: 'sole',
     reason:
       'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '
@@ -406,9 +406,10 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + '— it agrees on `success`/`warning` and spells the failure ink `error` where the ink axis spells it '
       + '`danger` — and that overlap-that-read-as-alignment was #934\'s finding and #756\'s failure mode. '
       + 'The split resolves it: a validation outcome is not an ink role, so it is its own axis. `sole` now, '
-      + 'and shared by three defs BY DESIGN, not by coincidence — `select` (and `text-field` since #1494) each '
+      + 'and shared by four defs BY DESIGN, not by coincidence — `select` (and `text-field` since #1494, '
+      + '`textarea` since the #1623 sign-off) each '
       + 'spell their validation axis `status` so the nested `field-message` follows it by name (`nest-fixed` '
-      + '`follow`), a same-name same-value passthrough, so all three must carry identical values and this one '
+      + '`follow`), a same-name same-value passthrough, so all of them must carry identical values and this one '
       + 'entry records them. '
       + '`error` (not `danger`) mirrors the closed `STATES` vocabulary a validation outcome tracks; the '
       + '`error → danger` ink mapping lives in `lint-paint.ts` as a named provenance exception.',

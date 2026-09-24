@@ -28,6 +28,8 @@
  * same-name, same-value passthrough via `nest-fixed` `follow`). `error` therefore left `states`: it was
  * never an interactive state (it co-occurs with rest/hover/focus, it does not replace them), and folding
  * it into the state axis was the pre-projection shortcut a single unprojected axis could afford.
+ * The CODE prop that drives this axis is `validation` (+ `validationMessage`) — select's names and values
+ * exactly (#1623 sign-off, C1/TF-5); the axis keeps the name `status` so `follow` passes it through.
  *
  * status → border is a status-led, border-ONLY swap, bound PER non-disabled state (rest / hover /
  * focus-visible / read-only / empty) so the status boundary persists while the pointer moves and while the
@@ -53,18 +55,24 @@ export const textField: ComponentDef = {
   aliases: ['text-input', 'input', 'textbox', 'formfield'],
   category: 'form',
   status: 'draft',
+  summary: 'Single-line text field: label, input, and helper or validation message.',
   description:
-    'A single-line control for free-form, non-enumerable text — names, emails, SKUs, short queries. A composed host: label + input + helper/validation message, with the accessibility wiring (id generation, aria-describedby chain, aria-invalid) handled internally. Not multi-line (Textarea), not a known set (Select/Combobox), not numeric-formatted (NumberField), not suggestion-backed (Combobox).',
+    'A single-line control for free-form, non-enumerable text — names, emails, SKUs, short queries. A composed host: label + input + helper/validation message, with the accessibility wiring (id generation, aria-describedby chain, aria-invalid) handled internally. Not multi-line (Textarea), not a known set (Select, or a combobox), not numeric-formatted (a number field), not suggestion-backed (a combobox). The combobox and number field are not built yet.',
 
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'The visible, persistent label (rendered as FieldLabel). Required — a visually-hidden label is the only label-less case, and it still exists in the DOM. Never the placeholder.' },
     { name: 'value', type: 'string', required: false, description: 'Controlled value; pair with onChange. A controlled value with no onChange is read-only by accident.' },
     { name: 'defaultValue', type: 'string', required: false, description: 'Uncontrolled initial value — preferred for form-library ergonomics.' },
     { name: 'onChange', type: 'function', required: false, description: 'Change handler (also onBlur / onFocus).' },
-    { name: 'type', type: "enum: 'text' | 'email' | 'url' | 'tel' | 'search' | 'password'", values: ['text', 'email', 'url', 'tel', 'search', 'password'], default: 'text', required: false, description: 'Attribute-only variants (mobile keyboard + autofill). NOT number — use NumberField. search / password are better served by their thin specializations.' },
+    { name: 'type', type: "enum: 'text' | 'email' | 'url' | 'tel' | 'search' | 'password'", values: ['text', 'email', 'url', 'tel', 'search', 'password'], default: 'text', required: false, description: 'Attribute-only variants (mobile keyboard + autofill). Not number: numeric input needs a number field (not built yet). search / password are better served by their thin specializations.' },
     { name: 'placeholder', type: 'string', required: false, description: 'An example only ("name@example.com"); vanishes on input; nothing load-bearing lives here.' },
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format BEFORE failure.' },
-    { name: 'error', type: 'string | node', required: false, description: 'Error message (rendered as FieldMessage, error status). Sets aria-invalid + adds the id to aria-describedby. Say what and how to fix (SC 3.3.3); the message pairs an icon, so it is not color-only. The input itself swaps to a border-only error boundary (the `status` axis, not a state).' },
+    // #1623 sign-off (C1/TF-5) — validation is the `validation` + `validationMessage` pair, select's exact
+    // prop names and value set, so one concept has one name across the field family. The Figma `status`
+    // variant axis maps to `validation` value-for-value (the axis keeps field-message's name so the nested
+    // message follows it). Replaces the old `error` message prop. `test.ts` pins the shared contract.
+    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. Each non-default status swaps the input border to its own boundary (border-only — `error` → danger, `warning` → warning, `success` → success) AND sets the nested message to the matching status; `default` is neutral. `error` also sets aria-invalid. The values align with FieldMessage\'s status axis, so this drives the nested message directly.' },
+    { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong AND how to fix it (SC 3.3.3), never "Invalid".' },
     // #1494 — a node-visibility boolean (the #1412 mechanism), mirroring select's `showMessage`. Hides the
     // composed FieldMessage entirely; default ON (the message is part of the field). Turning it off is for a
     // field with genuinely nothing to say — an error still sets aria-invalid and the message carries the
@@ -72,7 +80,7 @@ export const textField: ComponentDef = {
     { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. ON — the default — renders the helper / validation message below the input; turning it off hides the message entirely (a field with no helper or validation text). Never hides a message the field needs.' },
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled — removed from tab order, not submitted, silent to AT, contrast-exempt. Reserve for fields irrelevant in the current state.' },
-    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'DISTINCT from disabled — focusable, selectable/copyable, SUBMITTED, passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component\'s live edge.' },
+    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component\'s live edge.' },
     { name: 'autoComplete', type: 'string (WHATWG token)', required: false, description: 'Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience.' },
     { name: 'inputMode', type: "enum: 'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url' | 'search'", values: ['text', 'numeric', 'decimal', 'tel', 'email', 'url', 'search'], required: false, description: 'Selects the mobile virtual keyboard.' },
     { name: 'prefix', type: 'slot (adornment)', required: false, description: 'Leading adornment — a decorative/purpose glyph (currency, search), aria-hidden. Signals the field\'s PURPOSE; validation never mutates it.' },
@@ -125,6 +133,9 @@ export const textField: ComponentDef = {
     style: ['outline'], // default; filled/underline are theming, not an API axis (not projected)
     status: ['default', 'error', 'warning', 'success'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  // `status` changes live as validation runs.
+  axisKinds: { style: 'authoring', status: 'runtime' },
 
   // INPUT CHROME ONLY — label + message color/type live in field-label / field-message (composed).
   // Border is the one stateful slot: rest/hover from field.*, focus/read-only from generic border roles,
@@ -463,7 +474,7 @@ export const textField: ComponentDef = {
     ],
     dont: [
       'Use the placeholder as the label, or put load-bearing text in it',
-      'Use type="number" for numeric input — use NumberField (email/url/tel stay as type here)',
+      'Use type="number" for numeric input — use a number field, not built yet (email/url/tel stay as type here)',
       'Bake a validation engine or timing into the field — render the error you are handed',
       'Signal error with the border color alone — the message carries the text + icon',
     ],
@@ -473,16 +484,17 @@ export const textField: ComponentDef = {
   ai: {
     primaryPurpose: 'Capture a single line of free-form, non-enumerable text with an associated label and helper/validation message.',
     whenToUse: 'Names, emails, titles, SKUs, identifiers, short queries — any single-line text the system cannot offer as a fixed set.',
-    avoidWhen: 'The value comes from a known set (Select/Radio/Combobox), spans multiple lines (Textarea), is numeric-formatted (NumberField), is boolean (Checkbox/Switch), is a date (Date Picker), or needs suggestions (Combobox — the moment a suggestion list attaches you are in combobox territory with a different ARIA contract).',
-    commonPartners: ['field-label', 'field-message', 'icon', 'button', 'spinner', 'form'],
+    avoidWhen: 'The value comes from a known set (Select, Radio.Group, or a combobox), spans multiple lines (Textarea), is numeric-formatted (a number field), is boolean (Checkbox.Row or Switch.Row), is a date (a date picker), or needs suggestions (a combobox — the moment a suggestion list attaches you are in combobox territory with a different ARIA contract).',
+    commonPartners: ['field-label', 'field-message', 'icon', 'button'],
     triggerKeywords: ['text field', 'text input', 'input', 'form field', 'textbox', 'email field', 'search field'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'icon', 'button', 'spinner', 'form', 'tooltip'],
-    alternativeTo: ['textarea', 'select', 'combobox', 'number-field', 'search-field', 'date-picker', 'password-field', 'checkbox-row', 'switch-row'],
-    supersedes: ['bare input without label wiring', 'placeholder-as-label', 'type=number for formatted numeric'],
+    composesWith: ['field-label', 'field-message', 'icon', 'button'],
+    alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row'],
+    replacesPatterns: ['bare input without label wiring', 'placeholder-as-label', 'type=number for formatted numeric'],
+    planned: ['spinner', 'form', 'tooltip', 'combobox', 'number-field', 'search-field', 'date-picker', 'password-field'],
   },
 
   notes: {

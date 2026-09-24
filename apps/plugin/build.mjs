@@ -15,6 +15,7 @@ import { dirname, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { maintainerProsePlugin } from './strip-maintainer-prose.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const out = resolve(root, 'dist');
@@ -199,6 +200,9 @@ const mainOpts = (id) => ({
   // deliberately NOT defined here — this entry never references it, and defining an identifier no code
   // reads would make `assertIdentity` the only thing proving either define does anything.
   define: { PRISM3_BUILD: JSON.stringify(id) },
+  // #1623 sign-off — a component def's `notes` and `codeOnly` prose are maintainer-only and stay out of
+  // `dist/`; see `strip-maintainer-prose.mjs`, and `lint-bundle-prose.ts` for the check.
+  plugins: [maintainerProsePlugin],
   logLevel: 'info',
 });
 
@@ -227,6 +231,8 @@ const buildUiHtml = async (id) => {
     // way to fetch. Dropping it does not silently unstyle the panel — with `write: false` there is
     // no output path, so esbuild refuses the CSS import and this build fails.
     loader: { '.css': 'text' },
+    // #1623 sign-off — same maintainer-prose strip as `mainOpts`: the UI imports the defs too.
+    plugins: [maintainerProsePlugin],
     write: false,
     logLevel: 'silent',
   });

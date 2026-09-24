@@ -33,7 +33,7 @@ A Prism3 tree has layers, and you consume them from the top:
 
 1. **Type composites + weight roles** (`type.*`, `font.weight-role.*`) — the typography you apply.
 2. **Semantic color + geometry roles** (`color.*`, `space.*`, `radius.*`, `size.*`, `border-width.*`, `focus.*`) — **this is your layer.** Everything a component needs has a role here.
-3. **Metadata sidecar** (`<brand>.ai.json`) — per-role `when_to_use` / `avoid_when` / `contrast_with` / `mode_overrides`. Read it when a name isn't self-evident.
+3. **Metadata sidecar** (`<brand>.ai.json`) — one entry per token: `when_to_use` / `avoid_when` / `contrast_with` / `mode_overrides`, plus `sits_on` (the grounds an ink is measured on), `carries` (the inks a ground takes), `tracks` (companion roles — no contrast implied) and `usage_limit` (an ink for large text, icons and non-essential text only). Read it when a name isn't self-evident.
 4. **Primitives** (`palette.*`, `dimension.*`, `font.size/weight.*`) — **private.** The engine marks these `consume: "Private primitive — reference a color.* semantic token that aliases this, not the raw step."` Do not bind to them (see the one exception below).
 
 ## Rules
@@ -71,6 +71,9 @@ that hold across brands:
   `text.secondary` go on surfaces (`background.*` / `foreground.*`), never on a solid vivid fill.
 - **Disabled roles are WCAG-exempt.** `disabled.text`, `disabled.fill`, and `disabled.on-fill` are *not* held to 4.5:1 — disabled controls are exempt (WCAG 1.4.3).
   Treat a disabled label as `ui` (3:1 legibility) at most; do not fail your self-check on it.
+- **Tertiary and subtle inks are for large text.** A role with a `usage_limit` (`text.tertiary`,
+  `text.*-subtle`, and their icon and inverse twins) clears 3:1, not 4.5:1: use it for large text,
+  icons and non-essential text only, and its `body_text_alternative` for body-size text.
 - **Subtle tints aren't solid fills.** `foreground.*-subtle` is a low-emphasis tint surface;
   body text on it still needs a real 4.5:1 check (pair the matching `text.*`, not `text.on-*`).
 
@@ -85,7 +88,7 @@ List every **ink-on-surface color pairing** your component renders, each as
 `{fg, bg, kind}`:
 
 - `kind: "text"` — body copy → needs **4.5:1**
-- `kind: "large-text"` — ≥ 24px or ≥ 19px bold → needs **3:1**
+- `kind: "large-text"` — ≥ 24px or ≥ 18.66px bold → needs **3:1**
 - `kind: "ui"` — borders, icons, focus rings, large graphics → needs **3:1**
 
 Resolve `fg` and `bg` **per mode** and confirm the ratio clears the floor **in every mode**.

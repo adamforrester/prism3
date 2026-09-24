@@ -3249,4 +3249,90 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(pre >= 0 && own > pre, '#1633 main.ts pre-builds the nests before building the def it was asked for');
 }
 
+// =============================================================================================
+// #1623 sign-off — THE DEF'S `summary` IS THE FIGMA DESCRIPTION
+// =============================================================================================
+// The plugin writes one line per built component: the set's description (or each component's, in
+// `emitAsComponents` mode). Each arm is paired with the run that must NOT write, so a writer that ignored
+// the option — or wrote it everywhere — fails by name.
+{
+  const fm = byId('field-message')!;
+  const fmPlans = figmaAnatomySet(fm);
+  const fmVars = fullFor(fmPlans);
+  const setOf = (pg: Page) => pg.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown> | undefined;
+
+  const pgA: Page = { children: [] };
+  await run(fmPlans, { ...fmVars, page: pgA }, { description: fm.summary });
+  ok(setOf(pgA)?.description === fm.summary, `#1623 a fresh set carries the def's summary as its Figma description ("${setOf(pgA)?.description}")`);
+
+  const pgB: Page = { children: [] };
+  await run(fmPlans, { ...fmVars, page: pgB });
+  ok(!setOf(pgB)?.description, '#1623 with no description passed, the set is left without one — the text comes from the option, not from the plan');
+
+  // An EXISTING set: filled while empty, never overwritten once a designer has written one.
+  await run(fmPlans, { ...fmVars, page: pgB }, { description: fm.summary });
+  ok(setOf(pgB)?.description === fm.summary, `#1623 a set the file already had, with no description, gets the summary on the next build ("${setOf(pgB)?.description}")`);
+  setOf(pgB)!.description = 'A designer wrote this.';
+  await run(fmPlans, { ...fmVars, page: pgB }, { description: fm.summary });
+  ok(setOf(pgB)?.description === 'A designer wrote this.', `#1623 a designer's own set description survives a rebuild ("${setOf(pgB)?.description}")`);
+
+  const ic = byId('icon')!;
+  const icPlans = figmaAnatomySet(ic);
+  const pgC: Page = { children: [] };
+  await run(icPlans, { ...fullFor(icPlans), page: pgC }, { emitAsComponents: true, description: ic.summary });
+  const undescribed = pgC.children.filter((c) => (c as Record<string, unknown>).description !== ic.summary);
+  ok(pgC.children.length === icPlans.length && undescribed.length === 0,
+    `#1623 emitAsComponents: every one of the ${icPlans.length} icon components carries the summary (${undescribed.length} without)`);
+
+  ok(/description:\s*target\.summary/.test(mainSrc), "#1623 main.ts passes the def's summary as the build's description");
+}
+
+// ---- #1611: THE FOOTPRINT HOLDS ACROSS RUNTIME AXES, NOT AUTHORING AXES --------------------
+// The owner-found case: NB's emphasis weight (Medium) sets 1px wider than Regular at `small`, and the build
+// reported four footprint misses on field-label's `weight` — an axis a designer picks ONCE per label, so a
+// bold member and a regular one are never one instance's before and after. The owner's answer to "is a
+// weight axis ever toggled live?" was yes ("something goes bold when selected. That's fairly common."), so
+// the rule is not "exempt weight": it is that the cohort compares across RUNTIME axes and holds AUTHORING
+// ones. Three runs of the real executor over the same plans, differing only in how `weight` is classified
+// and whether the bold width is reserved, with the shim's `textAdvance` standing in for NB's wider cut.
+{
+  const BOLD_WIDER = { 'body/sm/strong': 1 };
+  const measure = async (plans: AnatomyPlan[]) => {
+    const page: Page = { children: [] };
+    const r = await run(plans, { ...fullFor(plans), page, textAdvance: BOLD_WIDER });
+    const set = page.children[0] as Node | undefined;
+    const box = new Map(((set?.children as Node[] | undefined) ?? []).map((m) => [String(m.name), `${Math.round(m.width as number)}x${Math.round(m.height as number)}`]));
+    return { r, box, foot: r.misses.filter((m) => m.startsWith('footprint -> ')) };
+  };
+  const BOLD = 'emphasis=primary, weight=bold, size=small, state=rest';
+  const REG = 'emphasis=primary, weight=regular, size=small, state=rest';
+
+  // (a) field-label AS SHIPPED — `weight` is authoring, so the cohort holds it and a wider bold is no miss.
+  const shipped = await measure(labelPlans);
+  // THE GUARD FIRST: the bold member must actually measure wider under this seed, or (a) passes against a
+  // cohort that compares weight too and (b) below has nothing to catch.
+  ok(!!shipped.box.get(BOLD) && !!shipped.box.get(REG) && shipped.box.get(BOLD) !== shipped.box.get(REG),
+    `#1611 the seed is load-bearing: at size=small a bold field-label measures differently from a regular one (${shipped.box.get(BOLD)} vs ${shipped.box.get(REG)})`);
+  ok(shipped.foot.length === 0,
+    `#1611 field-label's authoring \`weight\` is held fixed by the footprint cohort — bold and regular are never compared, so NB's wider Medium reports no miss (${shipped.foot.join('; ') || 'none'})`);
+
+  // (b) THE BOLD-WHEN-SELECTED SHAPE — the same def with `weight` classified runtime, which is what a label
+  // that goes bold on selection is. A runtime change that widens the text is a layout jump, and it is caught.
+  const toggleLabel: ComponentDef = { ...fieldLabel, axisKinds: { ...fieldLabel.axisKinds, weight: 'runtime' } };
+  const togglePlans = figmaAnatomySet(toggleLabel, { swapTarget: SWAP });
+  const jump = await measure(togglePlans);
+  ok(jump.foot.some((m) => m === `footprint -> ${BOLD} measures ${jump.box.get(BOLD)} but ${REG} measures ${jump.box.get(REG)} (same size=small, emphasis=primary)`),
+    `#1611 a RUNTIME weight that widens the text is a footprint miss, by name — bold/rest against regular/rest in one size=small cohort (${jump.foot.join('; ') || 'NOTHING — the runtime axis was not compared'})`);
+  // Four, hand-counted rather than derived: bold × {rest, disabled} × {primary, secondary} at the one size
+  // the seed widens — the issue's own four.
+  ok(jump.foot.length === 4, `#1611 ...and exactly the four small bold members miss (got ${jump.foot.length})`);
+
+  // (c) THE SAME RUNTIME AXIS WITH THE BOLD WIDTH RESERVED — a fixed width on the member box, the pattern a
+  // bold-when-selected label has to use. Nothing about the text changes; the box no longer follows it.
+  const reserved = togglePlans.map((p) => ({ ...p, root: { ...p.root, bound: { ...p.root.bound, width: 'size/label/reserve' } } }));
+  const held = await measure(reserved);
+  ok(held.r.misses.length === 0 && held.box.get(BOLD) === held.box.get(REG),
+    `#1611 with the bold width RESERVED the runtime weight axis holds its footprint — no misses, bold and regular measure alike (${held.box.get(BOLD)} vs ${held.box.get(REG)}; ${held.r.misses.join('; ') || 'none'})`);
+}
+
 if (failed) process.exit(1);

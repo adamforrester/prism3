@@ -85,10 +85,21 @@ const TOOL_NAMES = new Set(toolDefs({}).map((d) => d.name));
 const AI_FIELDS = (() => {
   const ai = buildAiMetadata(probe, tree) as Record<string, unknown>;
   const out = new Set(Object.keys(ai));
-  for (const key of ['color_fields', 'typography_fields', 'primitive_fields', 'gradient_fields']) {
+  for (const key of Object.keys(ai).filter((k) => k.endsWith('_fields'))) {
     const v = ai[key];
     if (Array.isArray(v)) v.forEach((n) => out.add(String(n)));
     else if (v && typeof v === 'object') Object.keys(v).forEach((n) => out.add(n));
+  }
+  // Sub-fields (`contrast_with[].requirement`, `usage_limit.body_text_alternative`) are fields too. Keyed
+  // maps whose keys are data — modes, CSS properties — are not vocabulary, so they are not descended.
+  const sub = (v: unknown): void => {
+    if (Array.isArray(v)) { v.forEach(sub); return; }
+    if (!v || typeof v !== 'object') return;
+    for (const [k, x] of Object.entries(v)) { out.add(k); if (k !== 'mode_overrides' && k !== 'resolves_to') sub(x); }
+  };
+  for (const tier of ['color', 'typography', 'layout', 'motion', 'gradient', 'primitives']) {
+    const t = ai[tier];
+    if (t && typeof t === 'object') for (const e of Object.values(t)) if (e && typeof e === 'object') for (const [k, x] of Object.entries(e)) if (k !== 'mode_overrides' && k !== 'resolves_to') sub(x);
   }
   // Frontmatter keys a skill file declares about itself.
   ['when_to_use', 'disable_model_invocation'].forEach((n) => out.add(n));

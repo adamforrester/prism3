@@ -83,6 +83,8 @@ decision recorded there is correct prose forever and is not this file's subject 
 | The inverse-context axis is `surface` everywhere (projected `surface=default`/`surface=inverse`), its inverse paint is the projector's `color.*` → `color.inverse.*` rewrite, and a host drives a nested component's `surface` by name (`follow`); `focus-ring`'s `color` axis is renamed and `color` leaves `VARIANT_AXES` | 2026-08-29 | `docs/20-interactive-color-system.md` §9.11 | #1134 |
 | The ENGINE surface is everything a consumer can observe — emitted trees AND the projected component surface; `out/` movement is one trigger, not the definition | 2026-09-02 | `docs/30-versioning-and-compatibility.md` | #1252 |
 | the rungs are named for intensity, not for the floor they clear | 2026-09-07 | `docs/20-interactive-color-system.md` §8.2 | #1317 |
+| Prism 2 is an input, not an authority — shipped component metadata is written for machine readers and cites no provenance | 2026-09-24 | `docs/28-component-anatomy-schema.md` §5.3 | #1623 |
+| a brand that narrows `typography.weights` drops the styles for the weights it doesn't use, and those paths are brand-dependent | 2026-09-24 | `docs/30-versioning-and-compatibility.md` | #1632 |
 
 ## Known gaps, named rather than silent
 
@@ -93,13 +95,14 @@ decision recorded there is correct prose forever and is not this file's subject 
 - **Levers that can delete guaranteed paths** are no longer an open question. #957's two, `outlineInteraction`
   and `typography.displayCeiling`, are decided and indexed above: demoted to `brandDependent`, levers kept.
   The class is gated by `lint-lever-sweep.ts`, which sweeps every toggle and enum option. What that sweep
-  does **not** reach is named in its header, and one instance outside it is filed: `typography.weights`,
-  an object lever, removes guaranteed `type.*.strong` paths (#1632). One instance inside it is a live
+  does **not** reach is named in its header. The one instance outside it that was filed, `typography.weights`
+  (#1632), is decided and indexed above; its single-role sets (`label`, `eyebrow`, `code`) are the stated
+  residual, filed as #1639. One instance inside the sweep is a live
   defect held on the gate's allowlist until the owner picks a disposition: `density: 'spacious'` removes
   `core.dimension.{3,18}` (#1631).
 
   (#895 and #957 were each held out of the table while their decisions were open, and indexed once made.
-  That is the posture for the two filed above, too.)
+  That is the posture for the ones filed above, too.)
 
 ## Maintaining this file
 

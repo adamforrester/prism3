@@ -699,7 +699,15 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
       // blocks — for no consumer benefit (a raw primitive is never an alias target). Feeding it keeps the
       // grid's small-primitive floor exactly what it was on `main`; the switch's own clearance is fed by
       // `c.inset` beside it. See version.ts CONTRACT 10.1.0 and docs/00-progress (#1425).
-      ...controls.flatMap((c) => [c.height, c.width, c.dot, c.inset, c.track, c.thumb, (c.height - c.dot) / 2])]),
+      // At SPACIOUS the COMFORTABLE control px join too (#1631, owner-decided: "we should not remove
+      // dimension tokens"). The grid is value-keyed, so a density whose own controls don't produce a px
+      // drops that primitive: spacious lost `core.dimension.3` (a comfortable `inset`) and `.18` (a
+      // comfortable `thumb`), both guaranteed. WHY NOT COMPACT TOO: compact is a contract-corpus density
+      // (aurora), so it cannot remove a guaranteed path by construction, and feeding it would ADD
+      // `core.dimension.30` to aurora, promoting that path to guaranteed (a CONTRACT MINOR, measured).
+      // Spacious is the one density outside the corpus; `lint-lever-sweep.ts` holds it to the contract.
+      ...[...controls, ...(density === 'spacious' ? controlSizes('comfortable') : [])]
+        .flatMap((c) => [c.height, c.width, c.dot, c.inset, c.track, c.thumb, (c.height - c.dot) / 2])]),
     space,
     radius: radiusScale(rScale, baseMd, 128, 999, hairline),
     sizes: componentSizes(density, spaceBase),
@@ -2891,7 +2899,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const midStep = (steps: Step[]) => (steps.find((s) => s.num === 500) ?? steps[Math.floor(steps.length / 2)]).rgb;
   const linkColorDistinct = deltaE2000(midStep(rampSteps(linkPalette)), midStep(rampSteps(roleToPalette.neutral))) >= 7;
   if (!linkColorDistinct)
-    notes.push(`link a11y (WCAG 1.4.1, Use of Color): the link palette '${linkPalette}' is not color-distinct from body text — links MUST be underlined so they are not signaled by color alone. Set an underlined link role via \`typography.links\`. Warned, not forced (#1496).`);
+    notes.push(`link a11y (WCAG 1.4.1, Use of Color): the link palette '${linkPalette}' is not color-distinct from body text — links need an underline so they are not signaled by color alone. Set an underlined link role via \`typography.links\`. Warned, not forced (#1496).`);
 
   const neutralEmphasis = input.neutralEmphasis ?? 'subtle';
   notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-gray, default)'}; inverse surface-context: always generated (#895 removed the lever)`);

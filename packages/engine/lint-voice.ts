@@ -140,8 +140,26 @@
  * heading and a confusing failure in a file nobody wrote. A second crossing found later belongs in
  * this list with the same three commands, or it is not declared — it is remembered.
  *
+ *
+ * ── THE PAYLOAD CHANNEL, AND THE ONE PLACE A `MUST` MAY SHIP (#1623 AI/C-1) ─────────────────────
+ *
+ * voice-standard §4 permits RFC 2119 levels in the payload-agents channel and in no other, and a `MUST`
+ * there only on a check the reading agent can run against a file it already has. The owner classified
+ * `out/<brand>.ai.json` as that channel and moved its `MUST` onto the contrast contract. So this gate
+ * carries a sixth rule, `normative`, and exactly one carve-out from it:
+ *
+ *   - `normative` flags `MUST` / `SHALL` / `SHOULD` (and their `NOT` forms) on EVERY gated surface.
+ *   - `PAYLOAD_CHANNEL` removes from an `.ai.json` the `requirement` of a `contrast_with` entry — and
+ *     only when that sentence is the check its OWN entry defines: this file's pattern, matched against
+ *     the entry's `min` / `token` / `composited_over` (never against the generator's function). A `MUST`
+ *     anywhere else in the file, or a requirement naming a different token or floor, is still a hit.
+ *
+ * The channel is fail-closed and self-checked like the scope: a sidecar that does not parse is `blind`,
+ * and a run in which the carve-out removed nothing fails — a carve-out that matches nothing is either a
+ * dead rule or a renamed field, and both would read as a pass.
+ *
  * Run: `npx tsx packages/engine/lint-voice.ts`  (exit 1 = a gated surface carries banned voice-standard
- * §2 copy)
+ * §2 copy, or an RFC 2119 level outside the payload channel)
  */
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
@@ -185,6 +203,33 @@ const stripLineComments = (txt: string): string =>
 
 type Hit = { file: string; line: number; rule: string; match: string; context: string };
 
+// ---- The `normative` rule (#1623 AI/C-1) — see the header's payload-channel section. Upper case only:
+// the lower-case words are ordinary English, and an RFC 2119 level is the capitalized keyword.
+const NORMATIVE = /\b(?:MUST|SHALL|SHOULD)(?: NOT)?\b/g;
+const normativeHits = (txt: string): RawHit[] => [...txt.matchAll(NORMATIVE)].map((m) => ({ rule: 'normative', match: m[0], index: m.index! }));
+
+// ---- The payload channel's one carve-out. A requirement is exempt only as the sentence its own entry
+// defines; the patterns are this gate's, written independently of `ai-metadata.ts`.
+const REQ_PLAIN = /^MUST clear (\d+(?:\.\d+)?:1) against `([^`]+)` in every mode\.$/;
+const REQ_COMPOSITE = /^MUST keep `([^`]+)` at (\d+(?:\.\d+)?:1) or more on `([^`]+)` composited over `([^`]+)`, in every mode\.$/;
+const isPayloadSidecar = (abs: string) => /\/packages\/engine\/out\/[^/]+\.ai\.json$/.test(abs);
+let channelExempted = 0, channelFiles = 0;
+/** The sidecar text with every valid contract requirement blanked, re-serialized the way the emitter
+ *  writes it (2-space JSON), so line numbers on a remaining hit still point at the committed file. */
+const carvePayload = (raw: string): { text: string; exempted: number } => {
+  const doc = JSON.parse(raw);
+  let exempted = 0;
+  for (const [role, e] of Object.entries<any>(doc.color ?? {})) for (const cw of e?.contrast_with ?? []) {
+    const r = String(cw?.requirement ?? '');
+    const m = cw?.composited_over ? r.match(REQ_COMPOSITE) : r.match(REQ_PLAIN);
+    const own = m && (cw.composited_over
+      ? m[1] === cw.token && m[2] === cw.min && m[3] === role && m[4] === cw.composited_over
+      : m[1] === cw.min && m[2] === cw.token);
+    if (own) { cw.requirement = ''; exempted++; }
+  }
+  return { text: JSON.stringify(doc, null, 2) + '\n', exempted };
+};
+
 // Every way this gate can fail to LOOK, as opposed to look and find nothing — same discipline as
 // lint-us-english.ts's `blind[]`. A non-empty list is fatal below, before any voice result prints.
 const blind: string[] = [];
@@ -204,12 +249,21 @@ const scan = (abs: string): Hit[] => {
   // #804. Block spans go first: a `//` inside a block comment is part of that comment, not a line
   // comment, and blanking the span makes the line-pass a no-op over it either way.
   const txt = abs.endsWith('.js') ? stripLineComments(stripBlockComments(raw)) : raw;
-  return voiceHits(txt).map(({ rule, match, index }) => ({
+  // The normative rule reads the same text, except that a payload sidecar first loses its valid contract
+  // requirements (header: the payload channel). An unparseable sidecar is a surface this gate cannot see.
+  let normText = txt;
+  if (isPayloadSidecar(abs)) {
+    try { const c = carvePayload(raw); normText = c.text; channelExempted += c.exempted; channelFiles++; } catch (e) {
+      blind.push(`${relative(repo, abs)} — payload sidecar did not parse (${(e as Error).message})`);
+      return [];
+    }
+  }
+  return [...voiceHits(txt).map((h) => ({ ...h, src: txt })), ...normativeHits(normText).map((h) => ({ ...h, src: normText }))].map(({ rule, match, index, src }) => ({
     file: relative(repo, abs),
-    line: txt.slice(0, index).split('\n').length,
+    line: src.slice(0, index).split('\n').length,
     rule,
     match,
-    context: txt.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
+    context: src.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
   }));
 };
 
@@ -265,6 +319,9 @@ const gated: string[] = [
   // is instruction a contributor follows after a failure, which is the register this standard is
   // strictest about. Named here exactly as lint-us-english.ts names it.
   join(repo, 'packages/engine/schema/component-surface.json'),
+  // The agent-metadata JSON Schema (#1623 sign-off) — authored, kept out of `regen`, and every field in
+  // it carries a `description` an agent reads to learn the sidecar, so it is shipped prose.
+  join(repo, 'packages/engine/schema/ai-metadata.schema.json'),
   // Shipped skills — prose an agent reads and follows, named by hand for the same reason.
   ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
 ];
@@ -341,6 +398,32 @@ const LINE_SAMPLE = [
   }
 }
 
+// ---- Fifth self-check: the `normative` rule and the payload channel (#1623 AI/C-1). Forward (a MUST
+// outside the channel is caught; so is a MUST inside a sidecar that is not its entry's own check) and
+// converse (the entry's own requirement is not). Drives the same `carvePayload` + `normativeHits` scan does.
+{
+  const cases: { sample: string; want: boolean }[] = [
+    { sample: 'links MUST be underlined so they are not signaled by color alone', want: true },
+    { sample: 'the level SHOULD NOT be read as a promise', want: true },
+    { sample: 'links must be underlined; MUSTARD is a color', want: false },
+  ];
+  for (const { sample, want } of cases) if ((normativeHits(sample).length > 0) !== want) selfFails.push(`normative: "${sample}" should${want ? '' : ' NOT'} be flagged`);
+  const sidecar = (cw: object, extra: object = {}) => JSON.stringify({ color: { 'text.primary': { avoid_when: 'Do not use on fills.', contrast_with: [cw], ...extra } } });
+  const own = { token: 'background.secondary', min: '7:1', requirement: 'MUST clear 7:1 against `background.secondary` in every mode.' };
+  const comp = { token: 'text.primary', min: '4.5:1', composited_over: 'background.primary', requirement: 'MUST keep `text.primary` at 4.5:1 or more on `text.primary` composited over `background.primary`, in every mode.' };
+  const channel: { name: string; raw: string; want: number }[] = [
+    { name: 'its own requirement', raw: sidecar(own), want: 0 },
+    { name: 'its own composite requirement', raw: sidecar(comp), want: 0 },
+    { name: 'a requirement naming another token', raw: sidecar({ ...own, token: 'background.primary' }), want: 1 },
+    { name: 'a requirement stating another floor', raw: sidecar({ ...own, min: '4.5:1' }), want: 1 },
+    { name: 'a MUST on a usage sentence', raw: sidecar(own, { avoid_when: 'MUST not be used on fills.' }), want: 1 },
+  ];
+  for (const { name, raw, want } of channel) {
+    const n = normativeHits(carvePayload(raw).text).length;
+    if (n !== want) selfFails.push(`payload channel: ${name} gave ${n} normative hit(s), expected ${want}`);
+  }
+}
+
 // ---- Second self-check, on SCOPE rather than detection — same forward+converse pair as
 // lint-us-english.ts, and for the same reason: the detection self-check above proves the scanner can
 // still see "simply", not that the file containing it was ever opened.
@@ -392,6 +475,12 @@ if (process.argv.includes('--files')) {
 }
 
 const gatedHits = gated.flatMap(scan);
+// The carve-out is represented, not merely present: every sidecar went through it, and it exempted
+// something. Zero means the field moved or the pattern drifted, and the rule would be passing blind.
+const sidecarCount = gated.filter(isPayloadSidecar).length;
+if (!sidecarCount || channelFiles !== sidecarCount || channelExempted === 0) {
+  blind.push(`the payload channel — ${channelFiles}/${sidecarCount} sidecars carved, ${channelExempted} contract requirements exempted (expected every sidecar and more than 0)`);
+}
 const byFile = new Map<string, Hit[]>();
 for (const h of gatedHits) byFile.set(h.file, [...(byFile.get(h.file) ?? []), h]);
 

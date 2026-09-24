@@ -34,6 +34,7 @@ import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput, readExampleBrand } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
+import { validate as validateJsonSchema } from './json-schema-lite';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
 import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS } from './version';
 import { renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, projectionsOf, PROJECTED_ROOTS, isRefusal, COLLECTION_RENAMES, type RenameMap } from './rename-map';
@@ -50,7 +51,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -65,7 +66,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, switchControl, switchRow, select } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -2064,6 +2065,24 @@ for (const b of brands) {
     ok(!new Set(dimensionGrid(4, 128, [...spaceScale(8).map((s) => s.px), ...ICON_SIZES.map((i) => i.px),
       ...controlSizes('comfortable').flatMap((c) => [c.height, c.width])])).has(10),
       '#910 …negative control: 10 is absent from the base-4 ladder, the space extras, the icon ladder AND the two older control fields, so the assertion above is about the `dot` feed and nothing else');
+  }
+
+  // ---- NO DENSITY DROPS A GUARANTEED DIMENSION PRIMITIVE (#1631, owner-decided: unconditional) ----
+  // At comfortable, `core.dimension.3` (an `inset`) and `.18` (a `thumb`) exist only because the
+  // comfortable control px are fed into the grid; spacious's own controls produce neither, so before
+  // the fix `density: 'spacious'` removed both guaranteed paths. Read from the EMITTED tree of three
+  // brands at every density, with the two px authored here rather than read off `controlSizes`.
+  // `lint-lever-sweep.ts` catches the same removal against the whole contract; this arm names the pair.
+  {
+    const brief1631 = (f: string): BrandInput => parseDesignMd(readFileSync(resolve(HERE, './examples', f), 'utf8')).input;
+    const briefs: [string, BrandInput][] = [['minimal', MINIMAL_BRAND], ['harbor', brief1631('harbor.design.md')], ['nb-redesign', brief1631('nb-redesign.design.md')]];
+    for (const [id, input] of briefs)
+      for (const density of ['comfortable', 'compact', 'spacious'] as const) {
+        const paths = pathsOf(brandTheme({ ...input, density }));
+        const missing = ['core.dimension.3', 'core.dimension.18'].filter((p) => !paths.has(p));
+        ok(missing.length === 0, `#1631 ${id} at density '${density}' keeps core.dimension.3 and core.dimension.18 (guaranteed primitives)`
+          + (missing.length ? ` — MISSING: ${missing.join(', ')}` : ''));
+      }
   }
 
   // ---- BRAND VARIANCE: the check that this is not the glyph ladder renamed ----------------------
@@ -5841,37 +5860,41 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const ai = buildAiMetadata(t, tree) as any;
   ok(Object.values(ai.primitives).some((pr: any) => (pr.aliased_by?.length ?? 0) > 0), 'M-10: the emitted sidecar carries a populated aliased_by reverse index (was ungated)');
 
-  // Sidecar-reference gate: every `paired_with` entry must resolve to a real role key in the SAME
-  // sidecar. This is the gate that was missing — the field.border → field.border.rest rename left
-  // a stale `field.fill` paired_with pointing at the gone `field.border`, and nothing caught it
-  // because the sidecar's cross-references were never validated. Now a rename that orphans a
-  // paired_with ref fails here instead of shipping a broken .ai.json.
+  // Sidecar-reference gate: every relation entry (`sits_on` / `carries` / `tracks`, which replaced
+  // `paired_with` in #1623 AI/D-3) must resolve to a real role key in the SAME sidecar. This is the gate
+  // that was missing — the field.border → field.border.rest rename left a stale `field.fill` pairing
+  // pointing at the gone `field.border`, and nothing caught it because the sidecar's cross-references
+  // were never validated. Now a rename that orphans a relation fails here instead of shipping.
   const roleKeys = new Set(Object.keys(ai.color));
   const dangling: string[] = [];
   for (const [k, r] of Object.entries(ai.color as Record<string, any>))
-    for (const ref of (r.paired_with ?? []))
-      if (!roleKeys.has(ref)) dangling.push(`${k} → ${ref}`);
-  ok(dangling.length === 0, 'sidecar: every .ai.json paired_with resolves to a real role in the sidecar' + (dangling.length ? ` — ${dangling.slice(0, 5).join(', ')}` : ''));
+    for (const f of ['sits_on', 'carries', 'tracks']) for (const ref of (r[f] ?? []))
+      if (!roleKeys.has(ref)) dangling.push(`${k}.${f} → ${ref}`);
+  ok(dangling.length === 0, 'sidecar: every .ai.json sits_on / carries / tracks entry resolves to a real role in the sidecar' + (dangling.length ? ` — ${dangling.slice(0, 5).join(', ')}` : ''));
 
-  // #621 — avoid_when_level (RFC 2119 MUST/SHOULD), DERIVED from whether a real contrast contract
-  // backs the token, never hand-typed. "Every emitted MUST maps to a named gate" (#621's own Verify
-  // section) is exactly this structural check: MUST iff contrast_with is present, over every real
-  // role this brand emits — not a synthetic sample.
+  // #1623 AI/C-1 (owner decision): the RFC 2119 `MUST` lives on the contrast contract ONLY — a
+  // `requirement` built from that entry's own `min` and `token`, which a reader can check against
+  // `tokens.json`. `avoid_when_level` put it on usage sentences no check covered, and is gone. The
+  // sentence is matched by this block's own pattern against the entry's own fields, not by the
+  // generator's function (docs/34 shape 2).
   const colorEntries = Object.entries(ai.color as Record<string, any>);
-  const mustNoGate = colorEntries.filter(([, r]) => r.avoid_when_level === 'MUST' && !(r.contrast_with?.length));
-  const gatedButShould = colorEntries.filter(([, r]) => r.avoid_when_level === 'SHOULD' && r.contrast_with?.length);
-  ok(mustNoGate.length === 0, 'sidecar: every avoid_when_level MUST carries a computed contrast_with contract' + (mustNoGate.length ? ` — ${mustNoGate.map(([k]) => k).slice(0, 5).join(', ')}` : ''));
-  ok(gatedButShould.length === 0, 'sidecar: every role with a computed contrast_with is labelled MUST, not SHOULD' + (gatedButShould.length ? ` — ${gatedButShould.map(([k]) => k).slice(0, 5).join(', ')}` : ''));
+  const levelLeft = colorEntries.filter(([, r]) => 'avoid_when_level' in r || 'paired_with' in r).map(([k]) => k);
+  ok(levelLeft.length === 0, 'sidecar: no entry carries the retired avoid_when_level or paired_with field' + (levelLeft.length ? ` — ${levelLeft.slice(0, 5).join(', ')}` : ''));
+  const badReq = colorEntries.flatMap(([k, r]) => (r.contrast_with ?? []).filter((cw: any) => {
+    const m = String(cw.requirement ?? '').match(cw.composited_over
+      ? /^MUST keep `([^`]+)` at (\d+(?:\.\d+)?:1) or more on `([^`]+)` composited over `([^`]+)`, in every mode\.$/
+      : /^MUST clear (\d+(?:\.\d+)?:1) against `([^`]+)` in every mode\.$/);
+    if (!m) return true;
+    return cw.composited_over ? m[1] !== cw.token || m[2] !== cw.min || m[3] !== k || m[4] !== cw.composited_over : m[1] !== cw.min || m[2] !== cw.token;
+  }).map(() => k));
+  ok(badReq.length === 0, 'sidecar: every contrast_with entry states its requirement as the check its own min and token define' + (badReq.length ? ` — ${badReq.slice(0, 5).join(', ')}` : ''));
   // Concrete values, not just the structural pairing — docs/34 shape 5 ("it resolves" is not "it is
-  // right"). Two real, independently-meaningful tokens picked because their status is verifiable by
-  // inspection, not because they happen to pass: text.primary MUST hold a real AAA text contract
-  // against its surface; border.primary is explicitly a "decorative" border whose own avoid_when
-  // says a contract-bound border is a DIFFERENT token (border.secondary/border.focus) — SHOULD is
-  // the semantically correct answer here, not a gap.
-  ok(ai.color['text.primary']?.avoid_when_level === 'MUST' && ai.color['text.primary']?.contrast_with?.[0]?.min === '7:1',
-    'sidecar: text.primary is MUST with its real 7:1 AAA contract, not asserted in the abstract');
-  ok(ai.color['border.primary']?.avoid_when_level === 'SHOULD' && !ai.color['border.primary']?.contrast_with,
-    'sidecar: border.primary (decorative, no contract of its own) is SHOULD, not a false MUST');
+  // right"). text.primary holds a real AAA text contract against its surface; border.primary is the
+  // decorative border, which carries no contract and so no requirement.
+  ok(ai.color['text.primary']?.contrast_with?.[0]?.min === '7:1' && /^MUST clear 7:1 against `/.test(ai.color['text.primary']?.contrast_with?.[0]?.requirement ?? ''),
+    'sidecar: text.primary states its real 7:1 AAA contract as a MUST requirement, not asserted in the abstract');
+  ok(!ai.color['border.primary']?.contrast_with && !JSON.stringify(ai.color['border.primary'] ?? {}).includes('MUST'),
+    'sidecar: border.primary (decorative, no contract of its own) carries no MUST anywhere');
 }
 // #1623 (batch B) — the sidecar gate, extended from "do its cross-references name a role" to "is what it
 // SAYS true". The audit found every HIGH `.ai.json` defect sitting behind the check above: names that do
@@ -5907,7 +5930,19 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   let a11Seen = 0;
 
   const pathBad: string[] = [], pairBad: string[] = [], primBad: string[] = [];
-  let pairsChecked = 0, cwChecked = 0, clausesChecked = 0, tracking = 0, pathsChecked = 0;
+  let pairsChecked = 0, cwChecked = 0, clausesChecked = 0, tracking = 0, pathsChecked = 0, entriesChecked = 0, skillNamesChecked = 0, capsChecked = 0, limitsChecked = 0;
+  const RELS = ['sits_on', 'carries', 'tracks'];
+  // Real acronyms the guidance may use. A new all-caps word fails until it is either lower-cased or added
+  // here as the term it is.
+  const ACRONYMS = new Set(['UI', 'DOM', 'SC', 'WCAG', 'AA', 'AAA', 'HC']);
+  // The exact names the consume skill hands an agent, read from the SHIPPED skill — the oracle for "every
+  // name the skill tells you to use has an entry". Backticked, dotted, lower-case, at most one wildcard
+  // segment; file names (`.json`) and the private primitives it names only as the wrong choice are out.
+  const consumeSkill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  // A name the skill cites as the WRONG choice ("not `focus.ring.size`") is a counter-example, not a name to use.
+  const consumeNames = [...new Set([...consumeSkill.matchAll(/`([a-z][a-z0-9-]*(?:\.(?:[a-z0-9-]+|\*))+)`/g)]
+    .filter((m) => !/\bnot\s*$/.test(consumeSkill.slice(Math.max(0, m.index! - 6), m.index)))
+    .map((m) => m[1]))].filter((n) => !/\.(json|md)$/.test(n) && !/^(palette|dimension|font\.(size|weight))\./.test(n));
   const perBrand = new Map<string, number>();
   for (const b of BRANDS) {
     const tj = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'));
@@ -5928,7 +5963,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     // ── arm 1: every token path the sidecar names resolves in this brand's emitted tree ──
     for (const [k, e] of Object.entries<any>(ai.color)) {
       pathsChecked++; if (!isRole(k)) pathBad.push(`${b} color key: ${k}`);
-      for (const p of e.paired_with ?? []) { pathsChecked++; if (!isRole(p)) pathBad.push(`${b} ${k}.paired_with: ${p}`); }
+      for (const f of RELS) for (const p of e[f] ?? []) { pathsChecked++; if (!isRole(p)) pathBad.push(`${b} ${k}.${f}: ${p}`); }
+      if (e.usage_limit?.body_text_alternative !== undefined) { pathsChecked++; if (!isRole(e.usage_limit.body_text_alternative)) pathBad.push(`${b} ${k}.usage_limit: ${e.usage_limit.body_text_alternative}`); }
       for (const cw of e.contrast_with ?? []) for (const p of [cw.token, cw.composited_over].filter(Boolean)) { pathsChecked++; if (!isRole(p)) pathBad.push(`${b} ${k}.contrast_with: ${p}`); }
       for (const v of Object.values<string>(e.mode_overrides ?? {})) refMiss(`${k}.mode_overrides`, v);
     }
@@ -5937,10 +5973,35 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       for (const v of typeof e.resolves_to === 'string' ? [e.resolves_to] : Object.values<string>(e.resolves_to ?? {})) if (String(v).startsWith('{')) refMiss(`${k}.resolves_to`, v);
       for (const p of e.used_by ?? []) miss(`${k}.used_by`, p);
     }
-    for (const [k, e] of Object.entries<any>(ai.primitives)) { miss('primitive key', k); for (const p of e.aliased_by ?? []) miss(`${k}.aliased_by`, p); }
+    for (const tier of ['layout', 'motion']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) {
+      miss(`${tier} key`, k);
+      const vals = [e.resolves_to, ...Object.values(e.mode_overrides ?? {})].flatMap((v) => (v && typeof v === 'object' ? Object.values(v) : [v]));
+      for (const v of vals) if (typeof v === 'string' && v.startsWith('{')) refMiss(`${k}.resolves_to`, v);
+    }
+    // AI/D-1: an `aliased_by` name is a sidecar ENTRY, not only a tree path — the audit found it pointing
+    // into the fifth of the tree that had no entry. `entryKeys` is every key the sidecar carries, in the
+    // tree's own spelling (color roles gain back their `color.` segment).
+    const entryKeys = new Set<string>([...Object.keys(ai.color).map((k) => `color.${k}`), ...['typography', 'layout', 'motion', 'gradient', 'primitives'].flatMap((t) => Object.keys(ai[t] ?? {}))]);
+    for (const [k, e] of Object.entries<any>(ai.primitives)) { miss('primitive key', k); for (const p of e.aliased_by ?? []) { miss(`${k}.aliased_by`, p); if (!entryKeys.has(p)) pathBad.push(`${b} ${k}.aliased_by: ${p} has no sidecar entry`); } }
+    // ...and the converse, from the TREE: every leaf the brand emits has an entry. The oracle is the
+    // tree's leaf list, never the sidecar's own key set.
+    for (const l of leaves) { entriesChecked++; if (!entryKeys.has(l)) pathBad.push(`${b} tree leaf without a sidecar entry: ${l}`); }
+    // Every exact token name the consume skill tells an agent to use has an entry (the skill's names are
+    // written below the brand root, and `font.*` sits under `core.` in the tree). Wildcards need one match.
+    for (const n of consumeNames) {
+      skillNamesChecked++;
+      const cands = [n, `${'core'}.${n}`];
+      const hit = n.includes('*') ? [...entryKeys].some((k) => cands.some((c) => globRe(c).test(k) || globRe(`color.${c}`).test(k))) : cands.some((c) => entryKeys.has(c) || entryKeys.has(`color.${c}`));
+      if (!hit) pathBad.push(`${b} consume skill names \`${n}\`, which has no sidecar entry`);
+    }
     for (const [k, e] of Object.entries<any>(ai.gradient ?? {})) { miss('gradient key', k); for (const v of e.resolves_to ?? []) refMiss(`${k}.resolves_to`, v); }
-    for (const tier of ['color', 'typography', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) for (const f of ['meaning', 'intent', 'consume', 'when_to_use', 'avoid_when']) {
+    for (const tier of ['color', 'typography', 'layout', 'motion', 'primitives', 'gradient']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) for (const f of ['meaning', 'intent', 'consume', 'when_to_use', 'avoid_when']) {
       const t: string = e[f]; if (typeof t !== 'string') continue;
+      // AI/C-3: no capitals for emphasis in generated guidance — an agent can read `INVERSE` as an enum or
+      // a keyword. Acronyms that are real terms stay; a path meant as a path is backticked.
+      const shout = (t.replace(/`[^`]*`/g, '').match(/\b[A-Z]{2,}\b/g) ?? []).filter((w) => !ACRONYMS.has(w));
+      capsChecked++;
+      if (shout.length) pathBad.push(`${b} ${tier}.${k}.${f}: capitals for emphasis ${[...new Set(shout)].join(', ')}`);
       for (const m of t.matchAll(/`([^`]+)`/g)) if (PATHISH.test(m[1])) miss(`${tier}.${k}.${f}`, m[1]);
       const outside = t.replace(/`[^`]*`/g, '');
       a11Seen += (outside.match(A11) ?? []).length;
@@ -5976,18 +6037,28 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
         const f = cw.composited_over ? failingModes(cw.token, k, minOf(cw.min), cw.composited_over) : failingModes(k, cw.token, minOf(cw.min));
         if (f.length) pairBad.push(`${b} ${k} contrast_with ${cw.token}${cw.composited_over ? ` over ${cw.composited_over}` : ''} < ${cw.min} in ${f.join(', ')}`);
       }
-      for (const p of e.paired_with ?? []) {
+      // AI/D-3: `sits_on` (ink → ground) and `carries` (ground → ink) are legibility claims, so each
+      // one is measured against the ink's floor in every mode — with no escape hatch: a relation that
+      // states no floor is a failure, not "tracking". `tracks` implies no contrast and is only counted;
+      // the owner split it out precisely because a tracked pair can be 1:1.
+      for (const f of ['sits_on', 'carries']) for (const p of e[f] ?? []) {
         if (!isRole(p)) continue;                                                                   // arm 1 reports it
-        // Ground↔ground and ink↔ink pairings are "travels with", not legibility claims (AI/D-3 — the
-        // schema split is the owner's). Counted, so a regression that turns everything into one is visible.
-        if (isGround(k) === isGround(p)) { tracking++; continue; }
-        const [g, i] = isGround(k) ? [k, p] : [p, k];
+        const [g, i] = f === 'carries' ? [k, p] : [p, k];
+        // The tree's own vocabulary decides which side is the ground — the relation cannot declare it.
+        if (!isGround(g) || isGround(i)) { pairBad.push(`${b} ${k}.${f} ${p}: \`${g}\` is not a ground or \`${i}\` is not an ink`); continue; }
         const gcw = ai.color[g]?.contrast_with?.[0], icw = ai.color[i]?.contrast_with?.[0];
         const floor = gcw?.token === i ? gcw.min : icw?.min;
-        if (!floor) { if (isBorder(i)) { tracking++; continue; } pairBad.push(`${b} ${k} ~ ${p}: an ink pairing that states no floor`); continue; }
+        if (!floor) { pairBad.push(`${b} ${k}.${f} ${p}: a legibility relation that states no floor`); continue; }
         pairsChecked++; perBrand.set(b, (perBrand.get(b) ?? 0) + 1);
-        const f = failingModes(i, g, minOf(floor), gcw?.composited_over ?? icw?.token);
-        if (f.length) pairBad.push(`${b} ${k} ~ ${p} < ${floor} in ${f.join(', ')}`);
+        const fm = failingModes(i, g, minOf(floor), gcw?.composited_over ?? icw?.token);
+        if (fm.length) pairBad.push(`${b} ${k}.${f} ${p} < ${floor} in ${fm.join(', ')}`);
+      }
+      tracking += (e.tracks ?? []).length;
+      // ELSEWHERE-1 (owner decision): an interactive `on-fill` is related to `fill.rest` and nothing else.
+      for (const f of ['sits_on', 'carries']) for (const p of e[f] ?? []) {
+        const pair = [k, p].sort();
+        const m = pair[0].match(/^((?:inverse\.)?interactive\.[a-z]+)\.fill\.([a-z]+)$/);
+        if (m && pair[1] === `${m[1]}.on-fill` && m[2] !== 'rest') pairBad.push(`${b} ${k}.${f} ${p}: on-fill related to a non-rest fill`);
       }
       // The computed surface prose: "[`subject`] clears N:1 in every mode on …" and "Below N:1 on … in at
       // least one mode [— use `alt` there]". Both directions are claims, so both are checked.
@@ -6006,6 +6077,36 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
           }
         }
       }
+    }
+
+    // ── arm 2b: the large-text-only classification (AI/C-2 + ELSEWHERE-2, owner decision) ──
+    // Judged from the TREE's per-mode floors, not from the sidecar's `contrast_with` or `usage_limit`:
+    // a text ink whose floor drops below 4.5:1 in any mode, and every tertiary or subtle ink (text or
+    // icon, page or inverse) that does, is large-text-only and says so structurally AND in prose.
+    const floorsOf = (r: string): number[] => {
+      const x = at(`color.${r}`)?.$extensions?.prism3; if (!x) return [];
+      return [x.min, ...Object.values<any>(x.modes ?? {}).map((m) => m?.min)].filter((n) => typeof n === 'number' && n > 0);
+    };
+    const lowest = (r: string) => { const f = floorsOf(r); return f.length ? Math.min(...f) : 0; };
+    for (const [k, e] of Object.entries<any>(ai.color)) {
+      const page = k.replace(/^inverse\./, '');
+      const low = lowest(k) > 0 && lowest(k) < 4.5;
+      const due = low && (/^text\.(?!on-)/.test(page) || /^icon\.(tertiary|[a-z]+-subtle)$/.test(page));
+      limitsChecked++;
+      if (due && !e.usage_limit) primBad.push(`${b} ${k}: floor ${lowest(k)}:1 below body text, but no usage_limit`);
+      if (!e.usage_limit) continue;
+      const u = e.usage_limit;
+      if (!low) primBad.push(`${b} ${k}: usage_limit on an ink whose floor is ${lowest(k)}:1 in every mode`);
+      if (u.floor !== `${lowest(k)}:1`) primBad.push(`${b} ${k}: usage_limit.floor ${u.floor}, tree says ${lowest(k)}:1`);
+      if (u.body_text_floor !== '4.5:1' || u.large_text?.min_px !== 24 || u.large_text?.bold_min_px !== 18.66) primBad.push(`${b} ${k}: usage_limit thresholds are not WCAG's (4.5:1; 24px, or 18.66px bold)`);
+      if (JSON.stringify(u.use_for) !== JSON.stringify(['large-text', 'icons', 'non-essential-text'])) primBad.push(`${b} ${k}: usage_limit.use_for ${JSON.stringify(u.use_for)}`);
+      if (u.body_text_alternative !== undefined && lowest(u.body_text_alternative) < 4.5) primBad.push(`${b} ${k}: body_text_alternative ${u.body_text_alternative} is itself below 4.5:1 in some mode`);
+      if (!String(e.avoid_when).includes('Large text (24px and up, or 18.66px bold), icons and non-essential text only')) primBad.push(`${b} ${k}: usage_limit not stated in avoid_when`);
+    }
+    // AI/D-2 (owner decision): the modal over a scrim is `foreground.primary`, not an inverse surface.
+    for (const [k, e] of Object.entries<any>(ai.color)) if (k.startsWith('scrim.')) {
+      if (RELS.some((f) => (e[f] ?? []).some((p: string) => p.startsWith('inverse.')))) pairBad.push(`${b} ${k}: relates the scrim to an inverse role`);
+      if (!(e.tracks ?? []).includes('foreground.primary')) pairBad.push(`${b} ${k}: does not name foreground.primary as the modal surface`);
     }
 
     // ── arm 3: every primitive entry carries its required fields (and the typography tier its own) ──
@@ -6030,16 +6131,68 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     for (const r of roles) if (!ai.typography[r]) primBad.push(`${b} ${r}: weight role without an entry`);
     if (!roles.some((r) => ai.typography[r]?.used_by?.length)) primBad.push(`${b}: no weight role carries used_by`);
     // A field list names only fields its tier emits (AI/A-17).
-    for (const [list, tier] of [['color_fields', 'color'], ['typography_fields', 'typography'], ['primitive_fields', 'primitives'], ['gradient_fields', 'gradient']])
+    for (const tier of ['layout', 'motion']) for (const [k, e] of Object.entries<any>(ai[tier] ?? {})) for (const f of ['$description', 'meaning', 'when_to_use', 'resolves_to']) if (e[f] === undefined) primBad.push(`${b} ${tier} ${k}: missing ${f}`);
+    for (const [list, tier] of [['color_fields', 'color'], ['typography_fields', 'typography'], ['layout_fields', 'layout'], ['motion_fields', 'motion'], ['primitive_fields', 'primitives'], ['gradient_fields', 'gradient']])
       for (const f of ai[list] ?? []) if (!Object.values<any>(ai[tier] ?? {}).some((e) => f in e)) primBad.push(`${b} ${list} lists ${f}, which no entry carries`);
   }
   // Represented, not merely counted (docs/34): every brand, and enough of each claim kind to be a real check.
-  ok(pathsChecked > 20_000 && pairsChecked > 2_000 && cwChecked > 800 && clausesChecked > 2_500 && BRANDS.every((b) => perBrand.get(b)! > 500),
-    `sidecar gate scope: ${pathsChecked} paths, ${pairsChecked} pairings (+${tracking} tracking), ${cwChecked} contrast_with, ${clausesChecked} surface clauses across ${BRANDS.length} brands`);
+  ok(pathsChecked > 20_000 && pairsChecked > 2_000 && cwChecked > 800 && clausesChecked > 2_500 && BRANDS.every((b) => perBrand.get(b)! > 500)
+    && entriesChecked > 2_500 && skillNamesChecked >= 4 * 10 && capsChecked > 3_000 && limitsChecked > 800 && tracking > 50,
+    `sidecar gate scope: ${pathsChecked} paths, ${pairsChecked} legibility relations (+${tracking} tracks), ${cwChecked} contrast_with, ${clausesChecked} surface clauses, ${entriesChecked} tree leaves, ${skillNamesChecked} skill names, ${capsChecked} prose fields for capitals, ${limitsChecked} usage-limit checks across ${BRANDS.length} brands`);
   ok(pathBad.length === 0, 'sidecar paths: every token path named in .ai.json resolves in the brand\'s emitted tree' + (pathBad.length ? ` — ${pathBad.length}: ${pathBad.slice(0, 5).join(' | ')}` : ''));
   ok(a11Seen > 0, `sidecar paths: the AI/A-11 exemption (held for #1614) is still live (${a11Seen}) — once it reads 0, delete the exemption`);
-  ok(pairBad.length === 0, 'sidecar pairings: every paired_with / contrast_with pair and surface claim clears its stated floor in every mode' + (pairBad.length ? ` — ${pairBad.length}: ${pairBad.slice(0, 5).join(' | ')}` : ''));
-  ok(primBad.length === 0, 'sidecar fields: every primitive entry carries its required fields' + (primBad.length ? ` — ${primBad.length}: ${primBad.slice(0, 5).join(' | ')}` : ''));
+  ok(pairBad.length === 0, 'sidecar pairings: every sits_on / carries / contrast_with pair and surface claim clears its stated floor in every mode' + (pairBad.length ? ` — ${pairBad.length}: ${pairBad.slice(0, 5).join(' | ')}` : ''));
+  ok(primBad.length === 0, 'sidecar fields: every entry carries its required fields, and every sub-body-text ink its usage_limit' + (primBad.length ? ` — ${primBad.length}: ${primBad.slice(0, 5).join(' | ')}` : ''));
+}
+// #1623 sign-off — the sidecar is validated against a published JSON Schema (`schema/ai-metadata.schema.json`),
+// the machine-readability practice the owner asked for: every field an agent reads is declared, typed and
+// described, and the file says which schema version it follows. The schema is AUTHORED, not derived from
+// the generator, and every object in it closes `additionalProperties`, so a field the generator adds, drops
+// or renames fails here until the schema — and its `$id` version — moves with it. The validator is
+// in-repo (`json-schema-lite.ts`) and throws on any keyword it does not implement, so the schema cannot
+// state a constraint nothing checks.
+{
+  const schema = JSON.parse(readFileSync(resolve(HERE, 'schema/ai-metadata.schema.json'), 'utf8'));
+  const BRANDS = ['aurora', 'harbor', 'nb', 'wendys'];
+  const docs = BRANDS.map((b) => ({ b, ai: JSON.parse(readFileSync(resolve(HERE, `out/${b}.ai.json`), 'utf8')) }));
+  const bad = docs.flatMap(({ b, ai }) => validateJsonSchema(schema, ai).map((e) => `${b} ${e}`));
+  let entries = 0;
+  for (const { ai } of docs) for (const t of ['color', 'typography', 'layout', 'motion', 'gradient', 'primitives']) entries += Object.keys(ai[t] ?? {}).length;
+  ok(bad.length === 0 && entries > 2_500, `sidecar schema: every committed out/*.ai.json validates against schema/ai-metadata.schema.json (${entries} entries across ${BRANDS.length} brands)` + (bad.length ? ` — ${bad.length}: ${bad.slice(0, 5).join(' | ')}` : ''));
+  ok(docs.every(({ ai }) => ai.$schema === schema.$id), `sidecar schema: each sidecar's $schema names the schema's $id (${schema.$id}) — bump both together`);
+  // Every declared field is documented: a property carries a `description`, or points at a definition that does.
+  const undocumented: string[] = [];
+  const walkDoc = (node: any, at: string) => {
+    if (!node || typeof node !== 'object') return;
+    for (const [k, sub] of Object.entries<any>(node.properties ?? {})) {
+      const described = typeof sub.description === 'string' || (sub.$ref && typeof schema.$defs[sub.$ref.split('/').pop()]?.description === 'string');
+      if (!described) undocumented.push(`${at}.${k}`);
+      walkDoc(sub, `${at}.${k}`);
+    }
+    for (const sub of Object.values<any>(node.patternProperties ?? {})) walkDoc(sub, at);
+    if (node.items) walkDoc(node.items, `${at}[]`);
+  };
+  walkDoc(schema, '');
+  for (const [k, d] of Object.entries<any>(schema.$defs)) walkDoc(d, `$defs.${k}`);
+  ok(undocumented.length === 0, 'sidecar schema: every declared field carries a description' + (undocumented.length ? ` — ${undocumented.slice(0, 8).join(', ')}` : ''));
+  // The validator can fail: each mutation of a real sidecar must be rejected, and an unimplemented keyword
+  // must throw rather than pass (docs/34 — a validator that cannot fail reports every document valid).
+  const base = docs[0].ai;
+  const mutants: [string, (d: any) => void][] = [
+    ['an undeclared field on a color entry', (d) => { d.color['text.primary'].paired_with = ['background.primary']; }],
+    ['a missing required field', (d) => { delete d.color['text.primary'].avoid_when; }],
+    ['a malformed ratio', (d) => { d.color['text.primary'].contrast_with[0].min = '7'; }],
+    ['a contract without its requirement', (d) => { delete d.color['text.primary'].contrast_with[0].requirement; }],
+    ['an unknown usage_limit scope', (d) => { d.color['text.primary'].usage_limit = { use_for: ['body-text'], floor: '3:1', body_text_floor: '4.5:1', large_text: { min_px: 24, bold_min_px: 18.66 } }; }],
+    ['a stale schema version', (d) => { d.$schema = 'prism3-ai-metadata/0.2'; }],
+    ['an unkeyed tier', (d) => { d.spacing = {}; }],
+    ['a relation naming a non-path', (d) => { d.color['text.primary'].sits_on = ['Background Primary']; }],
+  ];
+  const survived = mutants.filter(([, m]) => { const d = JSON.parse(JSON.stringify(base)); m(d); return validateJsonSchema(schema, d).length === 0; }).map(([n]) => n);
+  ok(survived.length === 0, 'sidecar schema: the validator rejects every mutated sidecar' + (survived.length ? ` — accepted ${survived.join(', ')}` : ''));
+  let threw = false;
+  try { validateJsonSchema({ type: 'object', maxProperties: 1 }, {}); } catch { threw = true; }
+  ok(threw, 'sidecar schema: the validator throws on a keyword it does not implement, rather than ignoring it');
 }
 // (5) STANDARD dialect — the brand-skills / google-labs design.md path (docs/07 §11):
 // the reader + colour-role classifier + x-prism3 levers, on the real Wendy's file.
@@ -9825,12 +9978,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // #1468 rename. Nothing read these fields, so nothing failed.
   //
   // Two arms, each with an oracle the defs do not author:
-  //  (a) every name in `ai.commonPartners`, `composition.composesWith` and `composition.alternativeTo` is a
-  //      registered id OR a member of NOT_YET_BUILT — a list written HERE, by hand, of the concepts the
-  //      catalogue names but has not built. Derived from the defs it would admit whatever they say
-  //      (`docs/34` shape 1). A concept that gets built must leave the list (the second loop), so the list
-  //      cannot quietly outlive what it describes. Free-text entries (a space in them) are descriptions,
-  //      not ids, and are skipped.
+  //  (a) THE ID LISTS HOLD ONLY IDS THAT RESOLVE (#1623 sign-off, C1/X-6). Every entry of
+  //      `ai.commonPartners`, `composition.composesWith`, `alternativeTo`, `supersedes` and `supersededBy`
+  //      is a REGISTERED def id — the oracle is the registry, never the def. The owner's rule replaced an
+  //      allow-list of unbuilt concepts that this arm used to accept: a reader acting on an id must be able
+  //      to look it up, so a component that is not built yet goes in `composition.planned`, and a
+  //      described pattern ("a bare <select> with no label wiring") in `composition.replacesPatterns`.
+  //      `planned` is checked the other way round — each entry is a kebab-case id that does NOT resolve
+  //      (once it ships it moves to a real list, and this fails until it does) and is not also in a real
+  //      list of the same def.
   //  (b) no consumer-facing prose names a RETIRED id in backticks. A retired id is a def's alias that is a
   //      strict prefix of its id (`radio` → `radio-row`) — the shape a `<family>` → `<family>-row` rename
   //      leaves behind. Only backticked whole names are read, so the plain word "radio" in a sentence is
@@ -9838,26 +9994,30 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   //      correct: `checkbox`, `radio` and `switch` are all roles as well as retired ids.
   {
     const ids = new Set(componentDefs.map((d) => d.id));
-    const NOT_YET_BUILT = new Set([
-      'aria-label', 'badge', 'button-group', 'card', 'chip', 'code-editor', 'combobox', 'date-picker', 'emoji',
-      'form', 'illustration', 'inline-alert', 'link', 'link-button', 'logo', 'menu', 'number-field',
-      'password-field', 'popover', 'rich-text-editor', 'scrim', 'search-field', 'segmented-control', 'spinner',
-      'split-button', 'thumbnail', 'toggle-button', 'tooltip',
-    ]);
+    let refsRead = 0;
     for (const def of componentDefs) {
       const lists: [string, readonly string[] | undefined][] = [
         ['ai.commonPartners', def.ai?.commonPartners],
         ['composition.composesWith', def.composition?.composesWith],
         ['composition.alternativeTo', def.composition?.alternativeTo],
+        ['composition.supersedes', def.composition?.supersedes],
+        ['composition.supersededBy', def.composition?.supersededBy],
       ];
+      const real = new Set<string>();
       for (const [field, list] of lists) {
         for (const name of list ?? []) {
-          if (name.includes(' ') || ids.has(name)) continue;
-          ok(NOT_YET_BUILT.has(name), `component-refs: ${def.id} ${field} names '${name}', which is neither a registered def id nor a listed unbuilt concept`);
+          refsRead++;
+          real.add(name);
+          ok(ids.has(name), `component-refs: ${def.id} ${field} names '${name}', which is not a registered def id — an unbuilt component goes in composition.planned, a described pattern in composition.replacesPatterns`);
         }
       }
+      for (const name of def.composition?.planned ?? []) {
+        ok(/^[a-z][a-z0-9-]*$/.test(name), `component-refs: ${def.id} composition.planned '${name}' is not a kebab-case id — planned holds the id an unbuilt component would take`);
+        ok(!ids.has(name), `component-refs: ${def.id} composition.planned '${name}' is a registered def now — move it to the real list it belongs in`);
+        ok(!real.has(name), `component-refs: ${def.id} names '${name}' in both composition.planned and a real list`);
+      }
     }
-    for (const c of NOT_YET_BUILT) ok(!ids.has(c), `component-refs: '${c}' is a registered def now — remove it from NOT_YET_BUILT`);
+    ok(refsRead > 50, `component-refs: the id lists are live (${refsRead} entries read) — a scan over empty lists asserts nothing`);
 
     const retired = new Map<string, string>();
     for (const d of componentDefs) for (const a of d.aliases ?? []) if (d.id.startsWith(`${a}-`) && !ids.has(a)) retired.set(a, d.id);
@@ -9887,6 +10047,55 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         }
       }
     }
+  }
+
+  // (#1623 sign-off) SHIPPED COMPONENT TEXT — names, provenance, and the names prose uses.
+  //
+  // The owner's rules for what a def ships (C1/X-5, C2/X-5, C2/X-4): one naming convention; no Prism 2 in
+  // any shipped field; prose names a sibling by its def name. "Shipped" is every field except the two
+  // maintainer channels, `notes` and `anatomy.codeOnly` — those stay in source and are stripped from the
+  // plugin bundle (`apps/plugin/lint-bundle-prose.ts` checks the bundle side of the same line).
+  //  (a) NAME ↔ ID. A name is PascalCase or `Family.Part`, and reads as its id with the separators taken
+  //      out (`checkbox-group` ↔ `Checkbox.Group`, `button-destructive` ↔ `Button.Destructive`), so a
+  //      reader holding either can derive the other. The oracle is the id, which the def does not choose
+  //      for display. And once a family is dotted, every id under its kebab prefix is dotted too — that is
+  //      what caught `CheckboxGroup` beside `Checkbox.Control`, which (a)'s letters alone would pass.
+  //  (b) NO PRISM 2. `Prism 2` / `Prism2`, any case, in no shipped field: the defs state the behavior.
+  //  (c) SIBLINGS BY NAME. No shipped prose spells a dotted def name without its dot (`CheckboxGroup`) or
+  //      as adjective-first words (`Destructive Button`) — the retired spellings of names this PR fixed.
+  {
+    const shippedStrings = (d: ComponentDef): [string, string][] => {
+      const out: [string, string][] = [];
+      const walk = (path: string, v: unknown): void => {
+        if (typeof v === 'string') out.push([path, v]);
+        else if (Array.isArray(v)) v.forEach((x, i) => walk(`${path}[${i}]`, x));
+        else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) if (k !== 'notes' && k !== 'codeOnly') walk(path ? `${path}.${k}` : k, x);
+      };
+      walk('', d);
+      return out;
+    };
+    const kebab = (pascal: string): string => pascal.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    const families = new Set(componentDefs.filter((d) => d.name.includes('.')).map((d) => d.name.split('.')[0]));
+    const dotted = componentDefs.filter((d) => d.name.includes('.')).map((d) => d.name.split('.') as [string, string]);
+    let fieldsRead = 0;
+    for (const d of componentDefs) {
+      ok(/^[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)?$/.test(d.name), `component-names: ${d.id} is named '${d.name}' — one convention: PascalCase, or Family.Part for a family`);
+      ok(d.name.replace('.', '').toLowerCase() === d.id.replace(/-/g, ''), `component-names: '${d.name}' does not read as its id '${d.id}' — the name is the id in PascalCase / Family.Part`);
+      for (const f of families) {
+        if (d.id.startsWith(`${kebab(f)}-`)) ok(d.name.startsWith(`${f}.`), `component-names: ${d.id} is in the ${f} family (${f}.* names exist) but is named '${d.name}' — name it ${f}.<Part>`);
+      }
+      for (const [path, text] of shippedStrings(d)) {
+        fieldsRead++;
+        const pm = /prism\s*2/i.exec(text);
+        ok(!pm, `component-prose: ${d.id} ${path} names "${pm?.[0]}" — shipped component text states the behavior and does not cite Prism 2`);
+        for (const [fam, part] of dotted) {
+          for (const bad of [`${fam}${part}`, `${part} ${fam}`]) {
+            ok(!new RegExp(`\\b${bad}\\b`).test(text), `component-prose: ${d.id} ${path} says '${bad}' — the def is named ${fam}.${part}`);
+          }
+        }
+      }
+    }
+    ok(fieldsRead > 1000 && families.size >= 4, `component-prose: the scan is live (${fieldsRead} shipped strings, ${families.size} dotted families) — a walk that read nothing would pass every arm above`);
   }
 
   // (#1134) THE BOUNDED INVERSE SET BINDS ONLY COVERED ROLES — the enforceable half of the gap rule, one
@@ -11048,6 +11257,44 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'component: TextField warning is a status-led border-only swap (warning.border.* → border.warning) per non-disabled state (#1517)');
   ok(['rest', 'hover', 'focus-visible', 'read-only', 'empty'].every((s) => textField.tokens[`success.border.${s}`] === 'color.border.success'),
     'component: TextField success is a status-led border-only swap (success.border.* → border.success) per non-disabled state (#1517)');
+
+  // #1623 sign-off (C1/TF-5 + C1/TA-4) — ONE VALIDATION API ACROSS THE FIELD FAMILY. text-field, textarea and
+  // select each express validation through the same two props, spelled the same way, over the same value set,
+  // and each projects that set as its `status` axis value-for-value. The expected contract is a LITERAL here,
+  // never read off any def (docs/34): deriving it from select would let a rename in select carry the others
+  // with it and still pass. Each def is its own assertion, so a drift fails naming the def that moved.
+  {
+    const VALIDATION_VALUES = ['default', 'error', 'warning', 'success'];
+    const fieldFamily: ReadonlyArray<[string, ComponentDef]> = [['select', select], ['text-field', textField], ['textarea', textarea]];
+    for (const [id, def] of fieldFamily) {
+      const v = def.props.find((p) => p.name === 'validation');
+      ok(!!v && JSON.stringify(v.values) === JSON.stringify(VALIDATION_VALUES) && v.default === 'default',
+        `#1623 validation contract: ${id} carries a \`validation\` prop over exactly [${VALIDATION_VALUES.join(', ')}], default \`default\` (got ${v ? JSON.stringify(v.values) : 'no such prop'})`);
+      ok(def.props.some((p) => p.name === 'validationMessage'),
+        `#1623 validation contract: ${id} carries a \`validationMessage\` prop (the family's one name for the validation text)`);
+      ok(!def.props.some((p) => p.name === 'error'),
+        `#1623 validation contract: ${id} carries no \`error\` message prop — validation text is \`validationMessage\` family-wide`);
+      ok(JSON.stringify(def.variants?.status) === JSON.stringify(VALIDATION_VALUES),
+        `#1623 validation contract: ${id}'s Figma \`status\` axis carries the \`validation\` values value-for-value (got ${JSON.stringify(def.variants?.status)})`);
+      ok(!def.states.includes('error' as never),
+        `#1623 validation contract: ${id} carries no \`error\` STATE — validation is the \`status\` axis, not a state`);
+    }
+    // TA-4's model alignment: textarea's placeholder is text-field's `text.secondary`, and its status borders
+    // are text-field's keys and roles (pinned at the rest coordinate of each non-default status).
+    ok(textarea.tokens['label.empty'] === 'color.text.secondary',
+      `#1623 TA-4: textarea's placeholder binds color.text.secondary, as text-field's does (got ${textarea.tokens['label.empty']})`);
+    ok(textarea.tokens['error.border.rest'] === 'color.border.danger' && textarea.tokens['warning.border.rest'] === 'color.border.warning'
+      && textarea.tokens['success.border.rest'] === 'color.border.success' && !('border.error' in textarea.tokens),
+      '#1623 TA-4: textarea\'s status borders are status-led keys (error/warning/success.border.*), not the retired state-led border.error');
+  }
+
+  // #1623 sign-off (C2/K-11 + K-23) — the checkbox and radio rows self-space with their own block padding, so
+  // both groups bind a 0px inter-row gap. A literal expectation per group, so either one drifting fails by name.
+  for (const [id, def] of [['checkbox-group', checkboxGroup], ['radio-group', radioGroup]] as const) {
+    const root = def.anatomy!.parts[def.anatomy!.root] as { gap?: string };
+    ok(root.gap === 'gap' && def.tokens['gap'] === 'space.0',
+      `#1623 K-11/K-23: ${id}'s inter-row gap binds space.0 (container gap '${root.gap}' → ${def.tokens[root.gap ?? '']})`);
+  }
   // FieldMessage: every validation status re-points BOTH ink + icon at the matching semantic role.
   // `${status}.label`, not `${status}.text`, since #784 — the SLOT segment has to be the word the projector
   // dispatches for a text node. The ROLE it points at is still `color.text.<role>`; those are two
@@ -15071,8 +15318,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // only thing that may. #1353's shape axis changes the corner RADIUS and #1427's surface axis only
       // rewrites the colour refs — neither touches width/height — so neither adds a cohort; the count stays 3
       // (this is the box-level check that shape is pure corner geometry and surface is pure re-inking).
-      ok(new Set(ibLayout.cells.map((c) => c.group)).size === 3,
-        `anatomy/icon-button: three footprint cohorts, one per size — state, appearance, shape and surface must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
+      //
+      // TWELVE since #1611, and the three it was are still inside them: `shape` and `surface` are AUTHORING
+      // axes (a designer picks a silhouette and a ground once), so the cohort now HOLDS them rather than
+      // comparing across them — 3 sizes × 2 shapes × 2 surfaces. `state` and `appearance` stay RUNTIME and
+      // stay compared within each, which is the half of this check that guards a live instance.
+      ok(new Set(ibLayout.cells.map((c) => c.group)).size === 12,
+        `anatomy/icon-button: twelve footprint cohorts, one per size × shape × surface (the authoring axes, #1611) — state and appearance, the runtime axes, must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
 
       // ONE property, where Button has four ref parts. Derived from the nodes the plans BUILD, so this is
       // also the assertion that the required icon still materializes a swap: a slot that stopped producing
@@ -16390,7 +16642,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // `minimal` omits `layout.breakpoints`, so the count takes its 5-floor default, and a default is a
   // value like any other. Without `minimal-bp2` the upper breakpoint tiers would read as guaranteed
   // purely because every richer brand ships 5+ floors.
-  ok(live.corpus.length === 7, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, and the minimal input with a two-breakpoint layout (${live.corpus.length} brands)`);
+  // EIGHT since #1632, which added `minimal-weights` — the sparse input WITH narrowed weight sets. It
+  // separates SPARSE from the DEFAULT SETS on the weight axis: without it the default sets' `strong`
+  // composites would read as guaranteed purely because no member declined a weight.
+  ok(live.corpus.length === 8, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, the minimal input with a two-breakpoint layout, and the minimal input with narrowed weight sets (${live.corpus.length} brands)`);
   for (const { id, theme } of corpus()) {
     const paths = pathsOf(theme);
     const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
@@ -17700,7 +17955,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
       return { brand: id.split(' ')[0], px: ext };
     });
-    ok(px.length === 7 && px.every((b) => b.px === 16),
+    ok(px.length === 8 && px.every((b) => b.px === 16),
       `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
   }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),
@@ -18082,9 +18337,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // coordinate, so the two rules agree there whatever the absent case does. Nothing before #795 could
   // produce a sizeless plan at all, so this case had no coverage because it had no existence.
   const ringLayout = planSetLayout(ringSet, 'test');
-  ok(ringLayout.cells.every((c) => c.group === ''),
-    `focus-ring: the engine's cohort key is EMPTY — no size axis and no slot axes, so nothing legitimately changes this def's footprint and all members share one cohort. Not 'size=undefined, leading=false, trailing=false' (got '${ringLayout.cells[0]?.group}')`);
-  ok(planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group === 'size=small, leading icon=true, trailing icon=true',
+  // Since #1611 the key is not EMPTY — `surface` is an AUTHORING axis and is held — but it carries no
+  // `size` segment and no slot segments, which is what this arm is about: 'size=undefined, leading=false'
+  // is the failure, and the surface segment is the one the #1611 hold legitimately adds.
+  ok(ringLayout.cells.map((c) => c.group).join(' | ') === 'surface=default | surface=inverse',
+    `focus-ring: the engine's cohort key carries NO size and NO slot segment — this def has neither — only its held authoring axis (#1611). Not 'size=undefined, leading=false, trailing=false' (got '${ringLayout.cells.map((c) => c.group).join(' | ')}')`);
+  ok(planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group === 'size=small, leading icon=true, trailing icon=true, surface=default',
     `field: a def that DOES declare all three still writes all three — the omission rule must not have emptied the key for the def the cohort was designed for; the slot segments carry the Figma names (#1380) (got '${planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group}')`);
   // The payload side, evaluated rather than grepped. `cellOf` is a string inside the generated JS, so it
   // is extracted and run — a regex over the payload text would assert that the ternary is spelled a
@@ -18130,6 +18388,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const ringPayload = payloadCellOfFor(planSetChunks(ringSet)[0].js, ringLayout);
   ok(ringPayload.extracted,
     `focus-ring: the payload's own cellOf and its FOOTPRINT_VARIES declaration were both extracted before being run — an empty slice would make every comparison below vacuously true (got ${ringPayload.chars} chars, '${ringPayload.decl}')`);
+  // #1611: the chunk ships the HELD list — declared exemptions, then authoring axes — under the same const,
+  // so a chunk that shipped only `footprintVaries` would re-derive a key without `surface` and disagree.
+  ok(ringPayload.decl === 'const FOOTPRINT_VARIES=["surface"];',
+    `focus-ring: the chunk ships the authoring axis the cohort holds (#1611) (got '${ringPayload.decl}')`);
   ok(ringPayload.fn !== null && ringLayout.cells.every((c) => ringPayload.fn!(c.name).group === c.group),
     'focus-ring: the PAYLOAD reaches the byte-identical cohort key from the member name alone — two independent derivations of "absent means omit", which is the only thing keeping them in step');
   ok(ringPayload.fn !== null && ringLayout.cells.every((c) => { const p = ringPayload.fn!(c.name); return p.row === c.row && p.col === c.col; }),
@@ -18151,6 +18413,41 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `field-message: the chunk SHIPS the def's exemption list, so the payload's own derivation has something to append (got '${fmPayload.decl}')`);
   ok(fmPayload.fn !== null && fmLayout.cells.every((c) => fmPayload.fn!(c.name).group === c.group),
     'field-message: ...and reaches the byte-identical key from the member name — the exemption is honored on the chunked path too, where a disagreement would put every member in a cohort of one and silence the footprint read-back rather than redden it');
+
+  // ---- #1611: the cohort compares RUNTIME axes and holds AUTHORING ones ----
+  // The owner-found case: field-label's `weight` is picked once per label, so its bold and regular members
+  // are never one instance's before and after, and NB's Medium setting 1px wider than Regular was reported
+  // as four footprint misses. The expectation is written out by hand from the def's axes as the issue states
+  // them — held: size, emphasis, weight; compared: state — never read back from `planSetLayout`.
+  {
+    // (a) THE READER: absent is runtime (the strict default), the state axis is runtime by definition.
+    const bare = { ...fieldLabel, axisKinds: undefined } as ComponentDef;
+    ok(axisKindOf(bare, 'weight') === 'runtime' && axisKindOf(fieldLabel, 'weight') === 'authoring' && axisKindOf(fieldLabel, 'state') === 'runtime',
+      `#1611 axisKindOf: an unclassified axis reads RUNTIME, field-label's weight reads AUTHORING, the state axis is runtime (got ${axisKindOf(bare, 'weight')}/${axisKindOf(fieldLabel, 'weight')}/${axisKindOf(fieldLabel, 'state')})`);
+    // (b) THE VALIDATOR refuses a classification of an axis the def does not declare, and an unknown kind.
+    const stray = validateComponentDef({ ...fieldLabel, axisKinds: { ...fieldLabel.axisKinds, tone: 'authoring' } } as ComponentDef).errors;
+    const badKind = validateComponentDef({ ...fieldLabel, axisKinds: { ...fieldLabel.axisKinds, weight: 'sometimes' } } as unknown as ComponentDef).errors;
+    ok(stray.some((e) => /^axisKinds\.tone: 'tone' is not an axis in variants/.test(e)) && badKind.some((e) => /^axisKinds\.weight: 'sometimes' is not one of \[runtime, authoring\]/.test(e)),
+      `#1611 the validator refuses a stray axis and an unknown kind BY NAME (got [${[...stray, ...badKind].filter((e) => e.startsWith('axisKinds')).join('; ') || 'NOTHING'}])`);
+    // (c) EVERY SHIPPED DEF CLASSIFIES EVERY AXIS it declares. The default keeps an omission strict, but an
+    // agent reading the def learns nothing from a default — the classification is metadata as well as rule.
+    const unclassified = componentDefs.flatMap((d) => Object.keys(d.variants ?? {}).filter((a) => !(a in (d.axisKinds ?? {}))).map((a) => `${d.id}.${a}`));
+    ok(unclassified.length === 0, `#1611 every shipped def classifies every variants axis as runtime or authoring (unclassified: ${unclassified.join(', ') || 'none'})`);
+    // (d) THE PLAN CARRIES IT, for every projected axis, so a reader of the artifact sees it too.
+    const flPlans = figmaAnatomySet(fieldLabel, {});
+    ok(JSON.stringify(flPlans[0].axisKinds) === JSON.stringify({ size: 'authoring', emphasis: 'authoring', weight: 'authoring', state: 'runtime' }),
+      `#1611 the field-label plan carries each projected axis's kind (got ${JSON.stringify(flPlans[0].axisKinds)})`);
+    // (e) THE COHORTS: one per size × emphasis × weight, each holding exactly the two states.
+    const flLayout = planSetLayout(flPlans, 'test');
+    const expect = ['primary', 'secondary'].flatMap((em) => ['regular', 'bold'].flatMap((w) => ['small', 'medium', 'large'].map((sz) => `size=${sz}, emphasis=${em}, weight=${w}`)));
+    const got = [...new Set(flLayout.cells.map((c) => c.group))];
+    ok(got.length === 12 && expect.every((g) => got.includes(g)) && expect.every((g) => flLayout.cells.filter((c) => c.group === g).length === 2),
+      `#1611 field-label: twelve footprint cohorts, one per size × emphasis × weight, each comparing only rest against disabled — bold and regular are never compared (got ${got.length}: ${got.slice(0, 3).join(' | ')}…)`);
+    // (f) THE PAYLOAD AGREES: the chunk ships the held authoring axes and re-derives the identical key.
+    const flPayload = payloadCellOfFor(planSetChunks(flPlans)[0].js, flLayout);
+    ok(flPayload.extracted && flPayload.decl === 'const FOOTPRINT_VARIES=["emphasis","weight"];' && flLayout.cells.every((c) => flPayload.fn!(c.name).group === c.group),
+      `#1611 field-label: the chunk ships the held authoring axes and reaches the byte-identical cohort key from the member name (got '${flPayload.decl}')`);
+  }
 }
 
 // (24) RENAME MAP (#1013) — the variable map is DERIVED from `DEPRECATIONS`, so this is where the

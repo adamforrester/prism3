@@ -101,6 +101,7 @@ export const focusRing: ComponentDef = {
   aliases: ['focus-indicator', 'focus-outline'],
   category: 'foundations',
   status: 'draft',
+  summary: 'Keyboard-focus ring nested by focusable components. Build first; don\'t place alone.',
   description:
     'The shared keyboard-focus indicator: a stroke drawn OUTSIDE its host\'s bounds, separated from them by an offset (2px for controls, so an unbroken sliver of background sits between the control\'s own border and the ring; 0 for fields, whose own border supplies the separation). Authored once and nested by every focusable component rather than re-drawn per host — the ring belongs to no single component, which is why its tokens are top-level families.',
 
@@ -124,6 +125,8 @@ export const focusRing: ComponentDef = {
     surface: ['default', 'inverse'],
     offset: ['control', 'field'],
   },
+  // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
+  axisKinds: { surface: 'authoring', offset: 'authoring' },
 
   // THE RING'S OWN SKIN, and the reason this def exists. Every one of these resolved only inside a
   // Figma file until now: the hand-authored ring docs/32 measured carried hardcoded `#2D65D4` and
@@ -352,7 +355,7 @@ export const focusRing: ComponentDef = {
 
   docs: {
     usage:
-      'Build this, then do not place it. The two halves are separate instructions and both matter: the component has to exist in your file before any host can nest it — every focusable component reaches it by name, so build the ring FIRST and the controls after — and once it is there, nothing places a ring on its own. A focusable component nests it as an absolutely-positioned sibling instead — see Button\'s `focusRing` part — and picks `surface` for the ground it sits on and `offset` for its kind (`control` for a button, `field` for an input). The square you get from a standalone build is nominal and means nothing; a host overwrites it with its own bounds grown by the offset. One ring component serves every host: that is the point, and re-drawing it per component is the failure mode it exists to prevent. In code the ring is an `outline` with an `outline-offset`, not a border or a box-shadow, so it survives forced-colors mode.',
+      'Build this component first, then leave it to hosts: every focusable component nests it by name. Don\'t place it in a layout. In code it is an `outline` with `outline-offset`, so it survives forced-colors mode.',
     do: [
       'Nest the shared ring rather than re-authoring a focus treatment per component',
       'Pick `surface: inverse` on a dark or brand-filled surface, where the default ring loses its 3:1 separation',
@@ -373,14 +376,16 @@ export const focusRing: ComponentDef = {
     whenToUse: 'Nested by any component that can receive keyboard focus, as an absolute sibling — the host declares it and picks the surface and offset.',
     avoidWhen:
       'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside `:focus-visible` destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. "Standalone" here means placed in a layout: the component IS built on its own, because a host can only nest one that already exists.',
-    commonPartners: ['button', 'icon-button', 'text-field', 'select', 'checkbox-row', 'link'],
+    commonPartners: ['button', 'icon-button', 'text-field', 'select', 'checkbox-row'],
     triggerKeywords: ['focus ring', 'focus indicator', 'focus outline', 'focus visible', 'keyboard focus'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['button', 'icon-button', 'text-field', 'select', 'checkbox-row', 'link'],
-    alternativeTo: ['a per-component focus border', 'a box-shadow focus glow'],
+    composesWith: ['button', 'icon-button', 'text-field', 'select', 'checkbox-row'],
+    alternativeTo: [],
+    planned: ['link'],
+    replacesPatterns: ['a per-component focus border', 'a box-shadow focus glow'],
   },
 
   notes: {

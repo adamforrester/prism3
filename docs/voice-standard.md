@@ -101,12 +101,13 @@ Primer's Hallucination Guard — *if you cannot verify a token name, annotate it
 is a legitimate `MUST`: the emitted inventory travels in the payload, so the agent can run that
 check itself. A rule that needs our CI cannot be a `MUST` in a repo that does not have it.
 
-**This channel is not gated yet, and that is a dated debt, not a permission.** No payload artifact
-ships today (#668 is unbuilt), so `lint-voice.ts` has no payload prose to scan and carries no
-channel logic. When #668 emits payload prose, **that PR teaches the gate this channel** — a
-carve-out the gate cannot see is not enforceable, which is the argument `lint-us-english.ts` makes
-about `apps/studio/src` comments. Until then no `MUST` ships anywhere, so the rule above binds the
-first payload PR rather than excusing one.
+**What is in this channel, and how it is gated.** The agent-metadata sidecar (`out/<brand>.ai.json`)
+is in this channel (#1623 sign-off). Its one normative sentence is the `requirement` on each
+`contrast_with` entry — "MUST clear 4.5:1 against `background.primary` in every mode." — which the
+reader checks with `tokens.json`. `lint-voice.ts` enforces the channel: `MUST` / `SHALL` / `SHOULD`
+fail on every other gated surface and in every other field, and a `requirement` passes only as the
+check its own entry defines. The next payload artifact (#668) joins the channel in the gate, in the PR
+that emits it.
 
 **Declarative ≠ formal.** Describe the system declaratively; instruct the reader
 imperatively. "The engine places it on the ramp by its lightness" and "Run `npx tsx
