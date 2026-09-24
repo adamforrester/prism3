@@ -32,14 +32,20 @@ import type { WeightAvailability } from '@prism3/engine/anatomy-figma';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { brandTheme, weightAvailability } from '@prism3/engine/theme';
 import type { BrandInput, Theme } from '@prism3/engine/theme';
+import { resolveAllModes } from '@prism3/engine/modes';
+import type { ResolvedRole } from '@prism3/engine/modes';
 
 /** The theme-derived levers, off ONE `brandTheme` call — or the defaults when there is no usable brand. */
-const brandLevers = (input: BrandInput | null): { avail: WeightAvailability; outline: Theme['outlineInteraction'] } => {
+const brandLevers = (input: BrandInput | null): { avail: WeightAvailability; outline: Theme['outlineInteraction']; roles?: Record<string, ResolvedRole> } => {
   const fallback = { avail: DEFAULT_WEIGHT_AVAILABILITY, outline: 'overlay-neutral' as const };
   if (!input) return fallback;
   try {
     const theme = brandTheme(input);
-    return { avail: weightAvailability(theme.typography), outline: theme.outlineInteraction };
+    // `solid-tint` binds the category's fill at the opacity step the ENGINE chose for this brand (#1614) —
+    // the text guard can step a role down, the visibility guard up — so the resolved roles come along. Every
+    // mode carries the same step, so the first mode's roles are enough. Resolved only when the lever needs it.
+    const roles = theme.outlineInteraction === 'solid-tint' ? resolveAllModes(theme)[0]?.roles : undefined;
+    return { avail: weightAvailability(theme.typography), outline: theme.outlineInteraction, roles };
   } catch { return fallback; }
 };
 
@@ -49,6 +55,6 @@ export const brandWeightAvailability = (input: BrandInput | null): WeightAvailab
 /** `def` resolved against the brand: corner shape, then weight intent (#1605's owner-locked order), then
  *  the outline hover family (#1608 — independent of the other two: it touches only `color.*` refs). */
 export const materializeForBrand = (def: ComponentDef, input: BrandInput | null): ComponentDef => {
-  const { avail, outline } = brandLevers(input);
-  return applyOutlineInteraction(applyWeightIntent(applyControlShape(def, input?.controlShape ?? 'rounded'), avail), outline);
+  const { avail, outline, roles } = brandLevers(input);
+  return applyOutlineInteraction(applyWeightIntent(applyControlShape(def, input?.controlShape ?? 'rounded'), avail), outline, roles);
 };

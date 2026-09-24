@@ -174,7 +174,7 @@ guarantee that a supported setting breaks is not a guarantee.
 
 #### Decided (2026-08-27, #957): `outlineInteraction` keeps its `none` and `solid-tint` settings, and `interactive.*.overlay.*` is brand-dependent
 
-`outlineInteraction: 'none'` means "no overlay tokens", and `solid-tint` emits the opaque
+`outlineInteraction: 'none'` means "no overlay tokens", and `solid-tint` emits the
 `subtle-fill` family instead. The two families are mutually exclusive by design. The overlay wash
 (`interactive.<c>.overlay.*` and its `inverse.` twin; 27 paths at the time, across the tiers that then
 existed) is demoted to `brandDependent`. It is not made

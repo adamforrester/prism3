@@ -98,7 +98,10 @@ const isLeaf = (n: unknown): n is Node => !!n && typeof n === 'object' && '$valu
  *
  *   1. its `$type` is a DTCG type (the #642 conformance filter — scoping, imported);
  *   2. its `modes` extension has an entry for M;
- *   3. that entry's value DIFFERS from the leaf's base `$value`.
+ *   3. that entry's value DIFFERS from the leaf's base `$value` — OR the entry carries a
+ *      `description` that differs from the leaf's `$description` (#1623): a mode whose raised minimum
+ *      rewrites the prose must reach the overlay even where the step held, or a consumer merging base +
+ *      overlay reads the base mode's sentence for this one.
  *
  * Condition 3 is the one that makes this a real second opinion: an entry equal to base is emitted by
  * the engine (a mode can re-derive a value and land on the same one) and is correctly absent from the
@@ -128,7 +131,8 @@ const expectedLeaves = (tree: unknown, mode: string): { leaves: Map<string, unkn
       const wrapped = !!entry && typeof entry === 'object' && !Array.isArray(entry) && '$value' in (entry as Node);
       if (!wrapped) unwrapped.push(path);
       const modeValue = wrapped ? (entry as Node).$value : entry;
-      if (JSON.stringify(modeValue) !== JSON.stringify(n.$value)) leaves.set(path, modeValue);
+      const proseMoves = wrapped && typeof (entry as Node).description === 'string' && (entry as Node).description !== n.$description;
+      if (JSON.stringify(modeValue) !== JSON.stringify(n.$value) || proseMoves) leaves.set(path, modeValue);
       return;
     }
     for (const [k, v] of Object.entries(n as Node)) if (!k.startsWith('$')) walk(v, path ? `${path}.${k}` : k);

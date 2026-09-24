@@ -160,6 +160,15 @@ npx tsx packages/engine/lint-ratio-truth.ts          # every reported contrast r
                                                     # counted in its own output — they model `against`
                                                     # in the OPPOSITE direction (the role is the wash,
                                                     # `against` names the ink on top of it)
+npx tsx packages/engine/lint-description-claims.ts   # every `N:1` / `~N:1` / `N%` a description states
+                                                    # holds for its token in the mode it is read in
+                                                    # (#1623) — DTCG canonical, base + overlay, and
+                                                    # the Figma rows, recomputed from the value. The
+                                                    # gate above checks the `$extensions` numbers; this
+                                                    # checks the PROSE, which was a second, unchecked
+                                                    # report of them: a step-500 pivot claim stamped by
+                                                    # step number was false on two ramps, and every
+                                                    # dark / HC overlay carried light-mode sentences
 npx tsx packages/engine/lint-emission-version.ts
                                                     # the emission moved only with
                                                     # ENGINE_VERSION (#1141's miss). Reads GIT,

@@ -68,7 +68,7 @@
       "scopes": [
         "ALL_SCOPES"
       ],
-      "description": "grid xs — 4 columns (design grid / Figma layout-grid; build with CSS Grid)",
+      "description": "Layout grid columns — set per breakpoint mode (xs 4 · sm 8 · md–2xl 12)",
       "value": 4,
       "alias": null
     },
@@ -78,7 +78,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "grid xs gutter — 16px (spacing-scale alias)",
+      "description": "Layout grid gutter — set per breakpoint mode (xs–sm 16px · md–lg 24px · xl–2xl 32px), aliased to the space scale",
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -91,7 +91,7 @@
       "scopes": [
         "GAP"
       ],
-      "description": "grid xs margin — 16px (spacing-scale alias)",
+      "description": "Layout grid margin — set per breakpoint mode (xs 16px · sm–md 24px · lg 32px · xl–2xl 48px), aliased to the space scale",
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -114,7 +114,7 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "container narrow — 720px reading measure (~65–75ch)",
+      "description": "container narrow — 720px reading measure",
       "value": 720,
       "alias": null
     }

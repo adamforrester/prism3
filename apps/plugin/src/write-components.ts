@@ -1557,8 +1557,13 @@ const writeComponentSet = async (
     // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
     let paintedFills = false;
     let paintedStrokes = false;
+    // A PAINT OPACITY (#1614) goes on the paint the variable was bound to: Figma cannot bind a paint's opacity
+    // to a variable, so a `solid-tint` hover is the category's fill variable at the opacity step's number.
+    // Lockstep with the paste executor (`planToPluginJs`).
+    const fillOpacity = n.paintOpacity?.fills;
     if (n.paints?.fills) {
-      const p = paint(n.paints.fills, 'fills');
+      let p = paint(n.paints.fills, 'fills');
+      if (p && fillOpacity !== undefined) p = { ...(p as object), opacity: fillOpacity };
       if (p) { node.fills = [p]; paintedFills = true; }
       // DECLARED BUT UNRESOLVABLE → transparent, NEVER Figma's opaque white default (#1387). The
       // component set is brand-agnostic — it binds `interactive.<family>.overlay.{hover,pressed}` on
@@ -1626,6 +1631,12 @@ const writeComponentSet = async (
     for (const prop of wrote)
       if (!weightHeld(got, prop)) misses.push(`${n.name}.${prop} -> DISCARDED (resolved, set, not retained)`);
     if (paintedFills && !boundPaint(node.fills)) misses.push(`${n.name}.fills -> DISCARDED (paint set, not retained)`);
+    // …and at the OPACITY it was set at (#1614): read back at 1, a `solid-tint` hover is the category's fill
+    // opaque — the color its own label sits in, not a hover.
+    if (paintedFills && fillOpacity !== undefined) {
+      const got0 = (node.fills as { opacity?: number }[] | undefined)?.[0]?.opacity ?? 1;
+      if (Math.abs(got0 - fillOpacity) >= 0.001) misses.push(`${n.name}.fills.opacity -> DISCARDED (wanted ${fillOpacity}, read back ${got0})`);
+    }
     if (paintedStrokes && !boundPaint(node.strokes)) misses.push(`${n.name}.strokes -> DISCARDED (paint set, not retained)`);
 
     // FLOW CHILDREN FIRST, absolute ones after — three passes, because an absolute child is positioned

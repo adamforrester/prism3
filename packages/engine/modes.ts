@@ -169,7 +169,11 @@ export type ModeCfg = {
  */
 export type ContrastModel = 'ink-on-surface' | 'ink-on-composite';
 
-export type ResolvedRole = { path: string; description: string; ratio: number; against: string; min: number; hex: string; alpha?: number } & (
+/** A `solid-tint` subtle fill's provenance (#1614): the EXISTING fill role it is a wash of (`fill`, a role key
+ *  in the same mode) and the EXISTING opacity-scale step it is laid at (`opacity`, a key of the `opacity.*`
+ *  scale — 20 means `opacity.20`). The role's `alpha` is `opacity / 100`; this names where both came from. */
+export type TintSource = { fill: string; opacity: number };
+export type ResolvedRole = { path: string; description: string; ratio: number; against: string; min: number; hex: string; alpha?: number; tint?: TintSource } & (
   | { model: 'ink-on-surface'; legibleFor?: undefined }
   | { model: 'ink-on-composite'; legibleFor: string; alpha: number }
 );
@@ -204,12 +208,12 @@ export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, R
  * (#575). A helper exists so that a FOURTH method cannot be added and miss a site — the exhaustive
  * switch below makes an unhandled value a compile error rather than a silently transparent swatch.
  *
- * `opaque` is the second half, and it is not decoration. The wash is translucent (it composites
- * over whatever ground it is on, which is the point of `overlay-neutral`), but the tint is a real
- * palette step that COVERS its ground. So under `solid-tint` a hovered control on an inverse band
- * is no longer on the band — it is on a page-tuned tint, and ink chosen for the band is measured
- * against the wrong thing. Consumers need to know which case they are in; `family` alone cannot
- * tell them.
+ * `opaque` is the second half, and it is not decoration: a consumer painting an opaque fill must
+ * measure the band's ink against the FILL, not the band. Since #1614 NO method is opaque — the
+ * `solid-tint` subtle fill is the category's existing fill at an opacity-scale step, translucent like
+ * the wash, so a hovered control on an inverse band is still on the band. It was a palette step that
+ * covered its ground until then. The field stays so a future opaque method cannot be added without
+ * every consumer that branches on it being re-read.
  *
  * NO BRAND SETS `solid-tint`, so the `subtle-fill` row below reaches no committed artifact and every
  * EMISSION-SCOPED gate passes without seeing the family — #1112. `test.ts` reaches it synthetically
@@ -223,7 +227,7 @@ export const outlineFillFamily = (
 ): { family: 'overlay' | 'subtle-fill' | null; opaque: boolean } => {
   switch (method) {
     case 'overlay-neutral': return { family: 'overlay', opaque: false };
-    case 'solid-tint':      return { family: 'subtle-fill', opaque: true };
+    case 'solid-tint':      return { family: 'subtle-fill', opaque: false };
     case 'none':            return { family: null, opaque: false };
   }
 };
@@ -815,13 +819,14 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const subtleTint = (r: Role): Cand => pStep(palOf(r2p[r]), tintStep);
   /**
    * A CONTEXT to derive content ink against (#892). The page and the inverse band differ in exactly
-   * these six things and in nothing else, which is the claim `buildContent` makes by taking one of
+   * these seven things and in nothing else, which is the claim `buildContent` makes by taking one of
    * these instead of branching internally: if the inverse set ever needs a seventh, that is a real
    * divergence and belongs in the open rather than inside an `if`.
    */
   type Ground = {
     base: RGB; baseName: string;      // this context's own primary surface
     floor: RGB; floorName: string;    // its worst-case supported surface
+    floorLabel: string;               // the ROLE the prose names for the floor — same in every mode (#1623)
     dir: number;                      // which way a stronger neutral steps here
     tint: (r: Role) => Cand;          // the subtle tint a status ink is ALSO gated against
     mutedStep: number;                // the muted-ink palette step
@@ -862,9 +867,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // The canvas: thin, page-level, tonal in both modes. `inverse.background.*` is the
   // opposite-polarity ladder (a dark band on a light page). In HC every tier == the base.
   putSurf('background.primary', cfg.bg.primary, 'Page surface — the canvas / base');
-  putSurf('background.secondary', cfg.bg.secondary, 'Page surface, second tier — a slightly tinted page / band');
+  putSurf('background.secondary', cfg.bg.secondary, 'Page surface, second tier — a band one step off the base (equal to the base in high-contrast modes)');
   putSurf('background.tertiary', cfg.bg.tertiary, 'Page surface, third tier');
-  putSurf('inverse.background.primary', cfg.bgInverse.primary, 'Inverse page surface — a dark band in light mode');
+  putSurf('inverse.background.primary', cfg.bgInverse.primary, 'Inverse page surface — the opposite-polarity band (dark on a light page, light on a dark page)');
   putSurf('inverse.background.secondary', cfg.bgInverse.secondary, 'Inverse page surface, second tier');
   // The inverse floor as DERIVATION should see it — the override when there is one (#979). Bound
   // once so its five consumers below cannot drift apart on whether they honour it.
@@ -873,7 +878,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // scrim — semi-transparent backdrop behind modals/drawers (alpha; heavier in dark).
   const scrimStep = hc ? (cfg.family === 'light' ? 60 : 70) : (cfg.family === 'light' ? 40 : 60);
   put('scrim.default', { path: `${ns}.black-alpha.${scrimStep}`, rgb: BLACK, ratio: 1 },
-    `Scrim — ${scrimStep}% black backdrop (modals / drawers)`, 'self', 0);
+    `Scrim — black backdrop behind modals and drawers; opacity ${scrimStep}%`, 'self', 0);
   // Record the alpha, exactly as the overlay washes below do. `hex` is the opaque BASE (black); the
   // translucency lives only here, so a role view without it reports the scrim as solid black — which
   // is what every consumer of `resolveAllModes` painted. The DTCG emit was always right (it aliases
@@ -976,7 +981,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   putSurf('foreground.primary', cfg.fg.primary, 'Default surface placed on the page — a card');
   putSurf('foreground.secondary', cfg.fg.secondary, 'A second surface — a panel / nested container');
   putSurf('foreground.tertiary', cfg.fg.tertiary, 'A third surface step');
-  putSurf('inverse.foreground.primary', cfg.fgInverse.primary, 'Inverse / bold surface — a dark fill in light mode');
+  putSurf('inverse.foreground.primary', cfg.fgInverse.primary, 'Inverse / bold surface — the opposite-polarity fill (dark on a light page, light on a dark page)');
   putSurf('inverse.foreground.secondary', cfg.fgInverse.secondary, 'Inverse surface, second tier');
   putSurf('inverse.foreground.tertiary', cfg.fgInverse.tertiary, 'Inverse surface, third tier');
   // bold semantic fills (filled badge / banner / button at rest) — static.
@@ -984,7 +989,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   for (const r of ['brand', 'success', 'warning', 'info'] as const) {
     const f = paletteRole(r, floorRgb, fillFloorMin);
     fills[r] = f;
-    put(`foreground.${r}`, f, `Bold ${r} fill — clears ${fillFloorMin}:1 on the floor (${cfg.floorName})`, cfg.floorName, fillFloorMin);
+    put(`foreground.${r}`, f, `Bold ${r} fill — clears ${fillFloorMin}:1 on background.secondary`, cfg.floorName, fillFloorMin);
   }
   // subtle semantic tint SURFACES (light banner/badge fills) — pair with text.{r}.
   for (const r of SEMANTICS)
@@ -1011,18 +1016,18 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // they cannot be the page fills reused: `paletteRole` picks the step that clears the bar on the
   // ground it is given, and the two grounds are at opposite ends of the ramp.
   for (const r of SEMANTICS)
-    put(`inverse.foreground.${r}`, paletteRole(r, invFloorRgb, fillFloorMin), `Bold ${r} fill on an inverse surface — clears ${fillFloorMin}:1 on the inverse floor`, 'inverse.background.secondary', fillFloorMin);
+    put(`inverse.foreground.${r}`, paletteRole(r, invFloorRgb, fillFloorMin), `Bold ${r} fill on an inverse surface — clears ${fillFloorMin}:1 on inverse.background.secondary`, 'inverse.background.secondary', fillFloorMin);
   const invTintStep = cfg.family === 'light' ? 900 : 100;
   const subtleTintInverse = (r: Role): Cand => pStep(palOf(r2p[r]), invTintStep);
   for (const r of SEMANTICS)
-    putSurf(`inverse.foreground.${r}-subtle`, subtleTintInverse(r), `Subtle ${r} tint surface on an inverse surface — banners, badges and selected rows on a dark hero`);
+    putSurf(`inverse.foreground.${r}-subtle`, subtleTintInverse(r), `Subtle ${r} tint surface on an inverse surface — banners, badges and selected rows on the inverse band`);
   // danger — a bold semantic fill like the others (kept out of the loop above only to
   // preserve its position + set fills.danger for the on-danger ink pairing). Its stateful /
   // interactive expression now lives in `interactive.destructive.*` (docs/20), so the fill
   // itself is static — there is no per-state danger fill.
   const dangerRest = paletteRole('danger', floorRgb, fillFloorMin);
   fills.danger = dangerRest;
-  put('foreground.danger', dangerRest, `Bold danger fill — clears ${fillFloorMin}:1 on the floor (${cfg.floorName})`, cfg.floorName, fillFloorMin);
+  put('foreground.danger', dangerRest, `Bold danger fill — clears ${fillFloorMin}:1 on background.secondary`, cfg.floorName, fillFloorMin);
   // Interactive fill states walk the palette (rest → hover/focused → pressed/selected), by the rung
   // rule below.
   // `fillMin` is the floor the walked step is guarded against (#557) — the SAME floor `put` then
@@ -1088,7 +1093,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       // rest then broke the NB fixture and forced a banned ink; both are handled deliberately here,
       // so the split is degenerate and gone.
       put(`interactive.${name}.fill.${stKey}`, rated(c, floorRgb),
-        `${name} interactive fill — ${stKey}`, cfg.floorName, fillMin);
+        `${name} interactive fill — ${stKey}, clears ${fillMin}:1 on background.secondary`, cfg.floorName, fillMin);
     }
     put(`interactive.${name}.on-fill`, onColor(asGround(`interactive.${name}.fill.rest`, rest.rgb)), `Ink on the ${name} interactive fill`, `interactive.${name}.fill.rest`, onMin);
   };
@@ -1268,13 +1273,13 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       const c: Cand = (st === 'default' || !palette) ? textRest
         : walk(palette, textNum, stateRungs(st), -dir, guardFrom(contrast(textRest.rgb, textGround), textGround, cfg.secondaryMin));
       put(`inverse.interactive.${name}.text.${stKey}`, rated(c, textGround),
-        `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, textAgainst, cfg.secondaryMin);
+        `${name} interactive ink on an inverse surface — ${stKey} (outline / text on the inverse band)`, textAgainst, cfg.secondaryMin);
       // #1471 — the inverse GLYPH ink twin, value-identical to the inverse outline/text ink above (the
       // same candidate `c`). A `surface=inverse` component's glyph resolves here through the projector's
       // `color.* → color.inverse.*` rewrite, so the inverse icon column must exist for the rewrite to land;
       // it mirrors `text` exactly — a name add, no colour change.
       put(`inverse.interactive.${name}.icon.${stKey}`, rated(c, textGround),
-        `${name} interactive icon ink on a dark / inverse surface — ${stKey} (the glyph in an outline / ghost / text control on a dark hero)`, textAgainst, cfg.secondaryMin);
+        `${name} interactive icon ink on an inverse surface — ${stKey} (the glyph in an outline / ghost / text control on the inverse band)`, textAgainst, cfg.secondaryMin);
       invInk[stKey] = c;
     }
     // A light filled CTA on the dark band (a dark fill on the light band in dark mode) — anchored at the
@@ -1328,7 +1333,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       const stKey = st === 'default' ? 'rest' : st;
       const c: Cand = st === 'default' ? fillRestAbs : walk(r2p.neutral, extremeAnchor, stateRungs(st), dir);
       put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb),
-        `${name} interactive fill on a dark / inverse surface — ${stKey} (${stKey === 'rest' ? 'the crisp white / black default' : 'stepped 2 neutral rungs per state away from the extreme'} — #1456)`, 'inverse.background.primary', cfg.nonTextMin);
+        `${name} interactive fill on an inverse surface — ${stKey} (${stKey === 'rest' ? 'the crisp white / black default' : 'stepped 2 neutral rungs per state away from the white / black rest fill'})`, 'inverse.background.primary', cfg.nonTextMin);
     }
     // PRIMARY ONLY (#1244). `destructive` and `neutral` keep the neutral ink until their own decision
     // lands — filed as #1253 and #1254 rather than mirrored here, and they are two different questions.
@@ -1370,7 +1375,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       // max-contrast extreme instead (the `hc` branch in `brandOnFill`). Naming both arms is the only phrasing
       // that stays true across the set.
       useBrandInk
-        ? `Ink on the ${name} inverse fill — the ${name === 'destructive' ? 'danger' : 'most vivid brand'} step clearing ${onMin}:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes (#1384/#1244)`
+        ? `Ink on the ${name} inverse fill — the ${name === 'destructive' ? 'danger' : 'most vivid brand'} step clearing ${onMin}:1 on the crisp white / black fill, or the max-contrast extreme in the high-contrast modes`
         : `Ink on the ${name} inverse fill — a neutral high-contrast label on the crisp white / black CTA`,
       `inverse.interactive.${name}.fill.rest`, onMin);
     // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,
@@ -1397,7 +1402,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // "inverse outline: border matches the white text, or not?" — yes). Its states collapse onto rest
     // because the ink does. Same contrast guarantee as the page ground: `invInk` cleared `secondaryMin`
     // against `invRgb`, stricter than the border's `nonTextMin`.
-    iBorder(name, invInk, textGround, 'inverse.', textAgainst, ' on a dark / inverse surface');
+    iBorder(name, invInk, textGround, 'inverse.', textAgainst, ' on an inverse surface');
   };
   invColumn('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
   // Destructive inverse ink: gate against the worst-case inverse tier — `inverse.background.tertiary`,
@@ -1414,7 +1419,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // alpha ramp (darken in light, lighten in dark). The composited RESULT is contrast-gated
   // (§13): text.primary must stay ≥ AA on the page once the overlay sits on it — a real
   // contract that fails on too-heavy a wash (notably a lightening overlay in dark mode).
-  // `solid-tint` (opaque foreground.<color>-subtle) and `none` opt out — no overlay tokens. `none` is
+  // `solid-tint` (the category's own fill at an opacity step, `settleSolidTint`) and `none` opt out — no overlay tokens. `none` is
   // exercised by the `minimal-levers` corpus member; `solid-tint` is set by NO brand anywhere (#1112),
   // so this branch is the only one a brand with a committed Figma emission takes.
   // This branch deliberately tests the LEVER, not `outlineFillFamily`. Routing it through the helper
@@ -1479,127 +1484,14 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         // the direction confusion is why a dangling reference sat here through a whole rename.
         putWash(`inverse.interactive.${color}.overlay.${st}`,
           { path: `${ns}.${invOverlayPal}.${step}`, rgb: invOverlayBase, ratio },
-          `${color} interactive overlay on a dark / inverse surface — ${st} (${step}% wash, the opposite polarity to the page wash)`,
+          `${color} interactive overlay on an inverse surface — ${st} (${step}% wash, the opposite polarity to the page wash)`,
           'inverse.background.primary', 'inverse.text.primary', cfg.secondaryMin, step / 100);
       }
     }
   }
 
-  // `solid-tint` — the OPAQUE sibling of the overlay wash (#288). NO BRAND SETS IT (#1112), so nothing
-  // below this line reaches a committed artifact and no emission-scoped gate sees the family; the
-  // measurements quoted in this comment were taken by constructing the theme, not by reading `out/`.
-  // Same three states, same consumers,
-  // but a real palette step instead of a translucent neutral: the outline/text control's hover fill is
-  // a tint of ITS OWN column's palette, so a destructive outline hovers red-tinted rather than grey.
-  //
-  // This branch did not exist. The lever value was selectable and emitted NOTHING for any brand, ever
-  // — the doc comment above claimed it used `foreground.<color>-subtle`, but that role is only emitted
-  // for the five fixed SEMANTICS names (brand/success/warning/danger/info), never keyed by an
-  // interactive COLUMN name. Those are different naming spaces: `interactive.primary` follows
-  // `roleToPalette.action`, which for aurora is `accent`, not `brand`. So the dashboard had nothing
-  // correct to read and showed an empty swatch.
-  //
-  // The step choice has two constraints pulling opposite ways, and both are checked rather than
-  // assumed:
-  //   1. it must be DISTINGUISHABLE FROM THE PAGE, or the hover state is invisible and the lever is
-  //      inert — the #305 failure mode, which this repo has now hit three times;
-  //   2. the control's own label must STAY LEGIBLE on it.
-  // Pairing each tint with the ink of the SAME state is what makes both hold at once: `iText` already
-  // walks hover/pressed toward more contrast, so a darker pressed tint meets a stronger pressed ink
-  // and the ratio IMPROVES rather than degrading. Measured across aurora + harbor, light + dark,
-  // primary + destructive: worst ink-on-tint 4.90:1 (AA), worst tint-vs-page ΔE00 5.81 (well clear of
-  // the ~2.3 noticeable bar).
-  //
-  // The nominal step is a starting point, not a guarantee — an extreme brand can put the ink closer to
-  // the tint than the examples do. So the pick WALKS TOWARD THE PAGE (a lighter tint in a light mode)
-  // until the state's ink clears the text minimum, the same "pick a value that satisfies the contract"
-  // shape the rest of this file uses, rather than trusting two example brands to generalise.
-  // Tests the lever directly, for the reason spelled out at the `overlay-neutral` branch above.
-  if (theme.outlineInteraction === 'solid-tint') {
-    // Reachable only from a hand-constructed theme — see #1112 above. A change inside this branch is
-    // invisible to `regen --check`, to `nb-regression`, and to every gate that reads `out/`.
-    //
-    // Nominal: one subtle step for hover, one further for pressed/selected — the same "comes forward"
-    // progression the fill and ink states use.
-    // `fam` is the POLARITY OF THE GROUND the tint sits on, not the mode's: the page is `cfg.family`,
-    // the inverse band the opposite (#1613, below). The nominal table and the walk direction both key
-    // off it, which is what lets one derivation serve both grounds.
-    const nominalFor = (fam: 'light' | 'dark'): [string, number][] => fam === 'light'
-      ? [['hover', 100], ['pressed', 150], ['selected', 150]]
-      : [['hover', 900], ['pressed', 850], ['selected', 850]];
-    const tintColumns: [string, string][] = [
-      ['primary', r2p.action], ['neutral', r2p.neutral], ['destructive', r2p.danger],
-      ...theme.interactivePalettes.map((p) => [p.name, p.palette] as [string, string]),
-    ];
-    // One ground's tint family. `prefix` is '' for the page and 'inverse.' for the band; the ink, the
-    // key and the `against` all carry it, so a tint is only ever measured against its OWN ground's ink.
-    const emitTints = (prefix: '' | 'inverse.', fam: 'light' | 'dark', groundRgb: RGB, describe: (color: string, pal: string, st: string) => string): void => {
-      for (const [color, palette] of tintColumns) {
-        const ramp = ramps.get(palOf(palette));
-        if (!ramp) continue;                                 // a column whose palette the brand doesn't carry
-        for (const [st, nominal] of nominalFor(fam)) {
-          // The ink this tint sits under: `selected` reuses the pressed ink (same emphasis level).
-          const inkKey = `${prefix}interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`;
-          const inkRole = roles[inkKey];
-          const inkRgb = inkRole ? hexToRgb(inkRole.hex) : pickMostExtreme(textCands, groundRgb).rgb;
-          // Order the ramp from the nominal step TOWARD THE PAGE, so the first passing candidate is the
-          // most saturated tint that still keeps the label legible — never weaker than it needs to be.
-          const toward = [...ramp].sort((a, b) => {
-            const key = (n: number) => (fam === 'light' ? n - nominal : nominal - n);
-            const ka = key(a.num), kb = key(b.num);
-            // candidates at/inside the nominal first (ascending distance), then the rest
-            return (ka >= 0 ? ka : 1e6 - ka) - (kb >= 0 ? kb : 1e6 - kb);
-          });
-          const chosen = toward.find((s) => contrast(inkRgb, s.rgb) >= cfg.secondaryMin) ?? toward[0];
-          const ratio = contrast(inkRgb, chosen.rgb);
-          put(`${prefix}interactive.${color}.subtle-fill.${st}`,
-            { path: `${ns}.${palOf(palette)}.${chosen.key}`, rgb: chosen.rgb, ratio },
-            describe(color, palOf(palette), st),
-            // NOTE the direction: `against` normally names the surface a role sits ON, but this role IS
-            // the surface. The variable being chosen is the tint; the ink is already fixed by `iText`.
-            // So the promise worth publishing is "this tint keeps its own state ink legible", and the
-            // ink is what it is measured against.
-            //
-            // PRESSED / SELECTED ARE CATEGORICALLY UNGATED as of #1281 — the same owner decision the
-            // preview spec's `label on fill` contract records, expressed the same way and gated by the
-            // same predicate. At four rungs from rest the tint can no longer always carry its own ink
-            // (hot-yellow/hc-dark measured 5.77 against the 7 bar HC sets), and a pressed state's job
-            // is distinction from rest rather than legibility in its own right.
-            //
-            // A PREDICATE ON THE STATE, never a list of cells: no brand, mode or column is named here
-            // or anywhere, so a fifth brand's pressed tint needs no entry. `test.ts` runs the rule in
-            // BOTH directions over this family — a floored pressed role fails, and an unfloored rest or
-            // hover role fails — which is what stops "pressed is exempt" from decaying into "floors are
-            // optional".
-            //
-            // `min: 0` DECLARES the exemption — the ratio is still computed, recorded and published, it
-            // simply carries no floor — rather than leaving a contract to fail and be read as a
-            // regression. The tint SELECTION above is untouched: it still prefers the most saturated
-            // step that keeps the ink legible, so where legibility is reachable it is still taken. Only
-            // the promise changes, not the pick.
-            inkKey,
-            (st === 'pressed' || st === 'selected') ? 0 : cfg.secondaryMin);
-        }
-      }
-    };
-    emitTints('', cfg.family, baseRgb, (color, pal, st) =>
-      `${color} interactive subtle fill — ${st} (opaque tint of the ${pal} ramp; the outline/text control's ${st} background)`);
-    // THE INVERSE TWIN (#1613, owner decision (a)): "solid tint" means the same thing on both grounds.
-    // Before this, only the page family above was emitted, so a `surface=inverse` button/icon-button —
-    // which the projector rewrites to `color.inverse.*` — bound `inverse.interactive.<c>.subtle-fill.*`,
-    // a role that did not exist: 48 misses on the owner's solid-tint NB file, rendered as no hover.
-    //
-    // MIRRORED, not invented: the same derivation against the band. The band is the opposite lightness
-    // to the page (the same premise the inverse overlay wash flips on), so it takes the OPPOSITE
-    // polarity's nominals and walk; the ink is the band's own state ink `inverse.interactive.<c>.text.*`
-    // (selected reuses pressed), which is what `opaque` in `outlineFillFamily` warns about — the tint
-    // covers the band, so the band's ink is measured against the tint rather than assumed on it; and
-    // pressed/selected stay categorically ungated by the same #1281 predicate. `test.ts` checks both
-    // halves of the contract on this family against the BAND: ink-on-tint at hover, and ΔE00 vs
-    // `inverse.background.primary` (the #305 invisible-hover shape) on every state.
-    emitTints('inverse.', cfg.family === 'light' ? 'dark' : 'light', invRgb, (color, pal, st) =>
-      `${color} interactive subtle fill on a dark / inverse surface — ${st} (opaque tint of the ${pal} ramp; the outline/text control's ${st} background on the band)`);
-  }
+  // `solid-tint` (#288, #1614) is NOT emitted here. Its step is chosen ACROSS the brand's modes, so it
+  // is settled after every mode has resolved — see `settleSolidTint`, called from `resolveAllModes`.
 
   // ---- disabled — cross-cutting (docs/20 §7): ONE treatment, not per-colour. A disabled
   // control looks disabled regardless of intent (fill / on-fill / text / icon /
@@ -1611,8 +1503,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // it comes from — no "sub-AA (WCAG-exempt)" variant remains to describe.
   const dBranch = theme.disabledStrategy === 'full' ? 'full contrast, AA text' : 'reduced contrast, legible';
   { const d = onDisabled(); put('disabled.on-fill', d.r, `Label / icon on a disabled fill — muted but clears ${d.min}:1`, 'disabled.fill', d.min); }
-  { const d = disabledText(); put('disabled.text', d.r, `Disabled text — clears ${disabledTarget}:1 (${dBranch})`, d.against, d.min); }
-  { const d = disabledText(); put('disabled.icon', d.r, `Disabled icon — clears ${disabledTarget}:1 (${dBranch})`, d.against, d.min); }
+  { const d = disabledText(); put('disabled.text', d.r, `Disabled text — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
+  { const d = disabledText(); put('disabled.icon', d.r, `Disabled icon — ${dBranch}; clears ${disabledTarget}:1`, d.against, d.min); }
   put('disabled.border', rated(neutralLow(), baseRgb), 'Disabled control border — muted neutral', 'background.primary', 0);
 
   // The same five for a disabled control on a dark hero / inverse band (#892 step 5).
@@ -1630,8 +1522,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   put('inverse.disabled.on-fill', pickMinPass(textCands, asGround('inverse.disabled.fill', neutralLowInverse().rgb), disabledTarget),
     `Label / icon on a disabled fill on an inverse surface — muted but clears ${disabledTarget}:1`, 'inverse.disabled.fill', disabledTarget);
   { const r = pickMinPass(textCands, invFloorRgb, disabledTarget);
-    put('inverse.disabled.text', r, `Disabled text on an inverse surface — clears ${disabledTarget}:1 (${dBranch})`, 'inverse.background.secondary', disabledTarget);
-    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — clears ${disabledTarget}:1 (${dBranch})`, 'inverse.background.secondary', disabledTarget); }
+    put('inverse.disabled.text', r, `Disabled text on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget);
+    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — ${dBranch}; clears ${disabledTarget}:1`, 'inverse.background.secondary', disabledTarget); }
   put('inverse.disabled.border', rated(neutralLowInverse(), invRgb), 'Disabled control border on an inverse surface — muted neutral', 'inverse.background.primary', 0);
 
   // ---- field — form-element chrome (docs/20 §17). Deliberately MINIMAL + gated: a field
@@ -1651,7 +1543,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // it sits, so it never lands one step out of register against the page it is dropped on (a hard fill
   // is always wrong against SOME ground a white-label engine cannot know). The token is kept for
   // themability — a brand may still point it at a solid surface — only its DEFAULT value moves.
-  putSurf('field.fill', cand(`${ns}.transparent`, BLACK), 'Form field fill — TRANSPARENT by default (no paint): the border is the field boundary, so the fill sits correctly on any ground. Kept themable — point it at a surface step for a filled field. Hover is a translucent wash, not a fill swap (#1342)');
+  putSurf('field.fill', cand(`${ns}.transparent`, BLACK), 'Form field fill — transparent by default (no paint): the border is the field boundary, so the fill sits correctly on any ground. Kept themable — point it at a surface step for a filled field. Hover adds a translucent wash; the fill itself does not change');
   // #1341 — with a TRANSPARENT fill the border IS the field boundary, so it must clear the non-text floor
   // (SC 1.4.11) against the DARKEST PERMISSIBLE GROUND a field sits on, not just the page. That ground is
   // `background.secondary` — the inset tier the fill used to be, and the engine's own worst-case supported
@@ -1667,7 +1559,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // disabled.border — those compose from generic families, so only rest/hover live in field.*.
   const fieldGroundRgb = asGround('background.secondary', cfg.bg.secondary.rgb);
   const fieldRest = pickMinPass(ramp, fieldGroundRgb, cfg.nonTextMin);
-  put('field.border.rest', fieldRest, `Form field resting border — the boundary of a transparent-fill field, so a perceivable ${cfg.nonTextMin}:1 (SC 1.4.11) against the darkest permissible ground (the tinted \`background.secondary\` tier), not the page alone`, 'background.secondary', cfg.nonTextMin);
+  put('field.border.rest', fieldRest, `Form field resting border — the boundary of a transparent-fill field, so a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against the darkest permissible ground (\`background.secondary\`), not the page alone`, 'background.secondary', cfg.nonTextMin);
   // Hover is a STATE DELTA expressed as a step offset from rest, not a second absolute ratio.
   //
   // It used to target `secondaryMin` — a TEXT constant — which is the same category error the bold
@@ -1683,11 +1575,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // a far weaker cue on 1px of chrome than on a filled button, and this would have been a silent
   // regression in the affordance.
   const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
-  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, 2, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible ground (never the sole state carrier — KB §4)`, 'background.secondary', cfg.nonTextMin);
+  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, 2, dir, guardFrom(contrast(fieldRest.rgb, fieldGroundRgb), fieldGroundRgb, cfg.nonTextMin)), fieldGroundRgb), `Form field hover border — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible ground (pair it with a second cue; color alone does not carry the state)`, 'background.secondary', cfg.nonTextMin);
   // The placeholder ink sits on the field, whose transparent fill lets the darkest permissible ground
   // (`background.secondary`) through — so it is gated there, not against the (now paint-less) fill. Same
   // rgb the fill used to be, so the pick is byte-identical; only the recorded ground moves off `field.fill`.
-  put('field.placeholder', pickMinPass(textCands, asGround('background.secondary', cfg.bg.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink — a READABLE hint, ${cfg.secondaryMin}:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)`, 'background.secondary', cfg.secondaryMin);
+  put('field.placeholder', pickMinPass(textCands, asGround('background.secondary', cfg.bg.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink — a readable hint, ${cfg.secondaryMin}:1 on the darkest permissible ground behind the transparent fill (not a sub-AA placeholder)`, 'background.secondary', cfg.secondaryMin);
 
   // The same four, for a field sitting on a dark hero / inverse band (#892). GENERATED against the
   // inverse ground and contrast-verified there — NOT a hand-mirrored twin, which is the technique the
@@ -1707,15 +1599,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // permissible inverse ground (`inverse.background.secondary`). Keeping the page/inverse mirror invariant
   // (#892: "every rule below is its page sibling's rule with the ground swapped") is why the inverse fill
   // moves too — a field is paint-less on the page AND on a dark band, framed by its border on either.
-  putSurf('inverse.field.fill', cand(`${ns}.transparent`, BLACK), 'Form field fill on an inverse surface — TRANSPARENT by default (no paint), the same paint-less field the page takes; the border frames it on the dark band');
+  putSurf('inverse.field.fill', cand(`${ns}.transparent`, BLACK), 'Form field fill on an inverse surface — transparent by default (no paint), the same paint-less field the page takes; the border frames it on the inverse band');
   // `-dir` throughout: on the page a stronger neutral steps toward the ink, and on the inverse band
   // that direction reverses. The same idiom the inverse interactive column already uses.
   const fieldInvGroundRgb = asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb);
   const fieldInvRest = pickMinPass(ramp, fieldInvGroundRgb, cfg.nonTextMin);
-  put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable ${cfg.nonTextMin}:1 (SC 1.4.11) against the darkest permissible inverse ground`, 'inverse.background.secondary', cfg.nonTextMin);
+  put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at ${cfg.nonTextMin}:1 against the darkest permissible inverse ground`, 'inverse.background.secondary', cfg.nonTextMin);
   const fieldInvRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldInvRest.path)!.num;
-  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, 2, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible inverse ground (never the sole state carrier — KB §4)`, 'inverse.background.secondary', cfg.nonTextMin);
-  put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a READABLE hint, ${cfg.secondaryMin}:1 on the darkest permissible inverse ground behind the transparent fill`, 'inverse.background.secondary', cfg.secondaryMin);
+  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, 2, -dir, guardFrom(contrast(fieldInvRest.rgb, fieldInvGroundRgb), fieldInvGroundRgb, cfg.nonTextMin)), fieldInvGroundRgb), `Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)`, 'inverse.background.secondary', cfg.nonTextMin);
+  put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a readable hint, ${cfg.secondaryMin}:1 on the darkest permissible inverse ground behind the transparent fill`, 'inverse.background.secondary', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)
   // Ink. Built from a floor PROFILE so `text` (4.5:1) and `icon` can diverge: with
@@ -1726,9 +1618,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const buildContent = (p: Profile, g: Ground): Spec[] => {
     const out: Spec[] = [];
     const T = (key: string, r: Rated, desc: string, against: string, min: number) => out.push({ key, r, desc, against, min });
-    T('primary', pickMostExtreme(textCands, g.base), `Primary ${p.label} — strongest neutral`, g.baseName, cfg.primaryMin);
-    T('secondary', pickMinPass(textCands, g.floor, p.secondaryMin), `Secondary ${p.label} — ${p.secondaryMin}:1 on the floor`, g.floorName, p.secondaryMin);
-    T('tertiary', pickMinPass(textCands, g.floor, p.tertiaryMin), `Tertiary ${p.label} — ${p.tertiaryMin}:1 on the floor`, g.floorName, p.tertiaryMin);
+    // `on` names the ground in the prose (#1623 DT/T-5): the inverse rows used to share the page rows'
+    // text word for word, so a list of descriptions showed two identical lines for opposite grounds.
+    const on = g.page ? '' : ' on an inverse surface';
+    T('primary', pickMostExtreme(textCands, g.base), `Primary ${p.label}${on} — strongest neutral`, g.baseName, cfg.primaryMin);
+    T('secondary', pickMinPass(textCands, g.floor, p.secondaryMin), `Secondary ${p.label}${on} — ${p.secondaryMin}:1 on ${g.floorLabel}`, g.floorName, p.secondaryMin);
+    T('tertiary', pickMinPass(textCands, g.floor, p.tertiaryMin), `Tertiary ${p.label}${on} — ${p.tertiaryMin}:1 on ${g.floorLabel}`, g.floorName, p.tertiaryMin);
     // (disabled ink is the cross-cutting disabled.text / disabled.icon, not a per-family role.)
     // Bold semantic ink. Gated against the WORSE of the two grounds it is actually placed on: the
     // page floor AND its own subtle tint (`foreground.<r>-subtle`), which is where the alert/banner
@@ -1746,7 +1641,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // light mode only; dark modes already cleared both. The ink also gets MORE legible on the page,
     // so nothing regresses. Contract-safe: this moves values, not names.
     for (const r of SEMANTICS)
-      T(r, semanticInkOn(r, p.semanticMin, g), `${r} ${p.label} — ${p.semanticMin}:1 on the floor (${g.floorName}) and on its own tint`, g.floorName, p.semanticMin);
+      T(r, semanticInkOn(r, p.semanticMin, g), `${r} ${p.label} — ${p.semanticMin}:1 on ${g.floorLabel} and on its own tint`, g.floorName, p.semanticMin);
     // Muted semantic ink (the "quiet" variant) — GATED at the large-text / non-text bar
     // (`tertiaryMin`: 3:1 standard, 4.5:1 in HC), rated against the page it sits on.
     //
@@ -1785,7 +1680,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // distinctness note on interactive states above, which needed the mechanism because it HAD
     // collided).
     for (const r of SEMANTICS)
-      T(`${r}-subtle`, rated(chromatic(r2p[r], g.mutedStep, g.base, p.tertiaryMin), g.base), `Muted ${r} ${p.label} — low-emphasis accent, ${p.tertiaryMin}:1 on ${g.page ? 'the page' : 'the inverse band'}`, g.baseName, p.tertiaryMin);
+      T(`${r}-subtle`, rated(chromatic(r2p[r], g.mutedStep, g.base, p.tertiaryMin), g.base), `Muted ${r} ${p.label} — low-emphasis accent, ${p.tertiaryMin}:1 on ${g.baseName}`, g.baseName, p.tertiaryMin);
     // on-* pairs (ink on a solid fill) — AA on a vivid fill. `on-action` / `on-disabled`
     // are retired: the ink on an interactive fill is interactive.<color>.on-fill, and the
     // ink on a disabled fill is disabled.on-fill (docs/20 §16).
@@ -1799,7 +1694,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // the same argument stated by the taxonomy instead of by an exception.
     if (g.page) {
       for (const r of SEMANTICS)
-        T(`on-${r}`, onColor(asGround(`foreground.${r}`, fills[r]!.rgb)), `${p.label} on a solid ${r} fill`, `foreground.${r}`, onMin);
+        T(`on-${r}`, onColor(asGround(`foreground.${r}`, fills[r]!.rgb)), `${p.label[0].toUpperCase()}${p.label.slice(1)} on a solid ${r} fill — ${onMin}:1`, `foreground.${r}`, onMin);
     }
     // link (interactive text) + states — no disabled.
     //
@@ -1873,7 +1768,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const linkStateCand = (st: typeof LINK_STATES[number]): Cand =>
       st === 'default' || st === 'focused' ? linkBase : engaged(st);
     for (const st of LINK_STATES)
-      T(`link.${st}`, rated(linkStateCand(st), g.floor), `Link ${p.label} — ${st}`, g.floorName, p.semanticMin);
+      T(`link.${st}`, rated(linkStateCand(st), g.floor), `Link ${p.label}${on} — ${st}, ${p.semanticMin}:1 on ${g.floorLabel}`, g.floorName, p.semanticMin);
     return out;
   };
 
@@ -1899,8 +1794,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   //
   // Both passes run for every brand. The second used to be gated by the `inverse` lever; #895 removed
   // it, so the inverse content set is now as unconditional as the page one.
-  const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, dir, tint: subtleTint, mutedStep, page: true };
-  const inverseGround: Ground = { base: invRgb, baseName: 'inverse.background.primary', floor: invFloorRgb, floorName: 'inverse.background.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
+  const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, floorLabel: 'background.secondary', dir, tint: subtleTint, mutedStep, page: true };
+  const inverseGround: Ground = { base: invRgb, baseName: 'inverse.background.primary', floor: invFloorRgb, floorName: 'inverse.background.secondary', floorLabel: 'inverse.background.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
 
   for (const s of buildContent(textProfile, pageGround)) put(`text.${s.key}`, s.r, s.desc, s.against, s.min);
   for (const s of buildContent(iconProfile, pageGround)) put(`icon.${s.key}`, s.r, s.desc, s.against, s.min);
@@ -1941,7 +1836,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the derivation, the distinctness is the contract.
   put('border.tertiary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2 * 2.2), 'Strongest border / divider — the third rung of the neutral edge ladder', 'background.primary', 0);
   for (const r of SEMANTICS)
-    put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin), baseRgb), `${r} border — ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.primary', cfg.nonTextMin);
+    put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin), baseRgb), `${r} border — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1`, 'background.primary', cfg.nonTextMin);
   // The default ring adapts against the page in the STANDARD modes; in HC it keeps `actionRest` (#1336).
   // HC already made the default ring respond — `actionRest` is gated at the escalated HC fill bar
   // (`actionMin` 7:1) and so already resolves a dark ring on the white HC page and a light one on the
@@ -1952,7 +1847,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the page at `actionMin`, leaving the HC ring — already correct, already at max contrast, already
   // NB-faithful — untouched. (The inverse ring below has no such NB-authored HC pick to preserve and
   // was frozen in HC too, so it takes `focusRing` in every mode.)
-  put('border.focus', hc ? rated(actionRest, baseRgb) : focusRing(baseRgb), 'Focus ring color (keyboard focus)', 'background.primary', cfg.nonTextMin);
+  put('border.focus', hc ? rated(actionRest, baseRgb) : focusRing(baseRgb), `Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1 on background.primary`, 'background.primary', cfg.nonTextMin);
 
   // The inverse edge set. Same rules, inverse ground: the neutrals keep their decorative targets, the
   // semantics keep the SC 1.4.11 floor (#892 step 5).
@@ -1969,7 +1864,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   put('inverse.border.secondary', pickClosest(ramp, invRgb, cfg.borderTarget * 2.2), 'Stronger border / divider on an inverse surface', 'inverse.background.primary', 0);
   put('inverse.border.tertiary', pickClosest(ramp, invRgb, cfg.borderTarget * 2.2 * 2.2), 'Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder', 'inverse.background.primary', 0);
   for (const r of SEMANTICS)
-    put(`inverse.border.${r}`, rated(chromatic(r2p[r], 500, invRgb, cfg.nonTextMin), invRgb), `${r} border on an inverse surface — ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'inverse.background.primary', cfg.nonTextMin);
+    put(`inverse.border.${r}`, rated(chromatic(r2p[r], 500, invRgb, cfg.nonTextMin), invRgb), `${r} border on an inverse surface — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1`, 'inverse.background.primary', cfg.nonTextMin);
   // The same ring as `border.focus`, for when it is drawn on an inverse surface. One ring cannot serve
   // both grounds: measured against `inverse.background.primary`, the page-gated ring scored 3.46
   // (light) / 5.24 (dark) but **2.09 (hc-light) / 2.40 (hc-dark)** — it failed SC 1.4.11 worst in
@@ -1997,7 +1892,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // THIS IS THE ONE INVERSE ROLE A COMPONENT DEF BINDS BY NAME (`focus-ring`, via the `surface=inverse`
   // rewrite — docs/20 §9.11), so it is the path a rename has to land cleanly on more than any other.
   put('inverse.border.focus', focusRing(invRgb),
-      'Focus ring color on inverse surfaces (keyboard focus)', 'inverse.background.primary', cfg.nonTextMin);
+      `Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, ${cfg.nonTextMin}:1 on inverse.background.primary`, 'inverse.background.primary', cfg.nonTextMin);
 
   // ---- per-mode colour override layer (Phase A1) ----
   // A brand may repoint a resolved role at an EXISTING primitive step in ANY palette (no raw
@@ -2144,5 +2039,115 @@ export const resolveAllModes = (theme: Theme): ModeResult[] => {
   // Only the modes the brand opted into (light always; dark/HC opt-in — docs/11 Pillar 1; customs
   // appended last). Canonical order preserved (Object.keys order: built-ins first, then customs),
   // so `rp.modes` is stable regardless of input order.
-  return (Object.keys(cfgs) as ModeName[]).filter((m) => theme.modes.includes(m)).map((m) => resolveMode(m, cfgs[m], theme, ramps));
+  const results = (Object.keys(cfgs) as ModeName[]).filter((m) => theme.modes.includes(m)).map((m) => resolveMode(m, cfgs[m], theme, ramps));
+  // Tests the lever directly, for the reason spelled out at the `overlay-neutral` branch in `resolveMode`.
+  if (theme.outlineInteraction === 'solid-tint') settleSolidTint(theme, results);
+  return results;
+};
+
+/**
+ * The opacity scale the `solid-tint` subtle fill steps along (#1614) — the EXISTING `opacity.*` scale
+ * (`tree.ts` emits one `opacity.<n>` token per entry, and reads this list to do it), minus 0, which is no
+ * fill at all. The tint never lands between two entries: the owner's rule is that both inputs are
+ * existing tokens, so a step that clears a bar is always one a consumer can name.
+ */
+export const OPACITY_STEPS = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+/** Where each state starts on that scale (owner, #1614 amendment): hover `opacity.20`, pressed/selected `opacity.30`. */
+export const TINT_NOMINAL: Record<string, number> = { hover: 20, pressed: 30, selected: 30 };
+/** ΔE00 below which a hover reads as no hover at all — the #305 just-noticeable bar the #288 arms assert. */
+const TINT_VISIBLE_DE = 2.3;
+
+/**
+ * `solid-tint` — the TINTED WASH (#288; redefined by #1614, owner decision). NO BRAND SETS IT (#1112), so
+ * nothing here reaches a committed artifact and no emission-scoped gate sees it; `test.ts` constructs it.
+ *
+ * WHAT IT IS. An outline/text control's hover/pressed/selected fill is the category's EXISTING fill color,
+ * laid over whatever it sits on at an EXISTING opacity step:
+ *   page:    `interactive.<c>.fill.rest`          at `opacity.20` hover, `opacity.30` pressed/selected
+ *   inverse: `inverse.interactive.<c>.fill.rest`  (the resolved role — the fill the owner sets per category
+ *            in the plugin, so its hue follows that setting with nothing re-derived here)
+ * Translucent by design, like the overlay wash: one binding works on any ground, so a destructive outline
+ * hovers red-tinted rather than gray. No color primitive and no opacity token is minted — the role is the
+ * pair (fill, step), which is what `tint` records and what both the tree and the Figma plan carry.
+ *
+ * WHAT IT REPLACED, and why twice. Until #1614 the tint was an opaque PALETTE STEP from a nominal table
+ * (100/150 light, 900/850 dark), "an actual fill color that only looks like a tint": on nb-redesign's
+ * light-mode `neutral.950` band the hover was `neutral.900`, ΔE00 2.00. PR #1622 then baked the fill
+ * composite into generated core primitives (`core.palette.tint.*`); the owner superseded that in favor of
+ * this — no new primitives, the existing fill at an existing opacity token.
+ *
+ * ONE STEP PER ROLE, ACROSS EVERY MODE. A Figma paint's opacity cannot bind a variable and cannot vary by
+ * mode, while the fill variable it binds does. So the step is chosen once per (ground, category, state)
+ * against every mode the brand resolves, and every mode — and the tree, and the Figma plan — carries that
+ * one step. A per-mode step would make code and Figma disagree in every mode but the one Figma used.
+ *
+ * THE TWO GUARDS, both along the scale, never to an in-between value:
+ *   · TEXT (hover only): if the hover label fails its bar on the COMPOSITED result in any mode, step DOWN
+ *     (20 → 10 → 5). nb-redesign's page primary and nb-redesign/Aurora's band primary land on `opacity.10`.
+ *     At `opacity.5` it stops; a brand that still fails there is left failing, and the contrast sweep below
+ *     warns — the rule is not to invent a value.
+ *   · VISIBILITY (#1621, "stronger for neutral"): if the composite is not perceptibly different from its
+ *     ground in some mode (ΔE00 < 2.3 — a light-gray `neutralEmphasis: subtle` fill at 20% is), step UP to
+ *     the minimum step visible in every mode, capped by the hover's text bar. Pressed/selected step up the
+ *     same way, and always sit at least one step above hover so pressed still reads as coming forward.
+ * PRESSED/SELECTED ARE UNGATED for text (#1281): `min: 0`, the ratio still computed and published.
+ *
+ * READS THE SETTLED ROLES. Fill, ground and ink are read off each mode's final roles, so an override on the
+ * fill or the ink (the per-mode override layer runs inside `resolveMode`) is what the tint follows and is
+ * measured against. A subtle fill itself has nothing to override: it is not a color, it is a step.
+ */
+const settleSolidTint = (theme: Theme, results: ModeResult[]): void => {
+  const steps = OPACITY_STEPS.filter((s) => s > 0);
+  const hexRgb = (r: ResolvedRole) => hexToRgb(r.hex);
+  const columns = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
+  for (const [prefix, groundKey, groundName] of [['', 'background.primary', 'page'], ['inverse.', 'inverse.background.primary', 'band']] as const) {
+    for (const color of columns) {
+      const fillKey = `${prefix}interactive.${color}.fill.rest`;
+      // Every mode must carry the fill and the ground, or there is no single step to choose.
+      if (!results.every((m) => m.roles[fillKey] && m.roles[groundKey])) continue;
+      const inkKeyOf = (st: string) => `${prefix}interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`;
+      const cells = (st: string) => results.map((m) => {
+        const ink = m.roles[inkKeyOf(st)];
+        return { m, fill: hexRgb(m.roles[fillKey]), ground: hexRgb(m.roles[groundKey]), ink: ink ? hexRgb(ink) : undefined, min: ink?.min ?? 0 };
+      });
+      const legible = (st: string, s: number) => cells(st).every((c) => !c.ink || contrast(c.ink, composite(c.ground, c.fill, s / 100)) >= c.min);
+      const visible = (st: string, s: number) => cells(st).every((c) => deltaE2000(composite(c.ground, c.fill, s / 100), c.ground) >= TINT_VISIBLE_DE);
+
+      // hover: the text guard steps down; failing nothing, the visibility guard steps up under the text cap.
+      let h = steps.indexOf(TINT_NOMINAL.hover);
+      if (!legible('hover', steps[h])) { while (h > 0 && !legible('hover', steps[h])) h--; }
+      else while (!visible('hover', steps[h]) && h + 1 < steps.length && legible('hover', steps[h + 1])) h++;
+      // pressed/selected: ungated for text; at least one step above hover, then up until visible.
+      let p = Math.max(steps.indexOf(TINT_NOMINAL.pressed), h + 1);
+      while (!visible('pressed', steps[p]) && p + 1 < steps.length) p++;
+
+      for (const [st, i] of [['hover', h], ['pressed', p], ['selected', p]] as const) {
+        const step = steps[i];
+        const nominal = TINT_NOMINAL[st];
+        const why = step < nominal ? `, stepped down from opacity.${nominal} to keep the ${st} label legible`
+          : step > nominal ? `, stepped up from opacity.${nominal} so the ${st} is visible on the ${groundName}` : '';
+        const gated = st === 'hover';
+        for (const c of cells(st)) {
+          const fill = c.m.roles[fillKey];
+          const inkKey = inkKeyOf(st);
+          c.m.roles[`${prefix}interactive.${color}.subtle-fill.${st}`] = {
+            path: fill.path,
+            description: `${color} interactive subtle fill${prefix ? ' on a dark / inverse surface' : ''} — ${st} (the ${color} fill at opacity.${step}${why}; translucent, the outline/text control's ${st} background)`,
+            ratio: c.ink ? contrast(c.ink, composite(c.ground, c.fill, step / 100)) : 0,
+            // A WASH (#963): `against` is the ground it composites over, `legibleFor` the ink that must survive
+            // on the result — which is what `min` bounds. `hex` is the OPAQUE fill; `alpha` is the step.
+            against: groundKey, legibleFor: inkKey, model: 'ink-on-composite',
+            min: gated ? c.min : 0,
+            hex: fill.hex, alpha: step / 100,
+            tint: { fill: fillKey, opacity: step },
+          };
+        }
+      }
+    }
+  }
+  // The contrast sweep `resolveMode` ends with, for the roles this pass added.
+  for (const m of results) {
+    const failing = Object.entries(m.roles).filter(([k, r]) => r.tint && r.min > 0 && r.ratio < r.min).map(([role, r]) => ({ role, ratio: r.ratio, min: r.min }));
+    if (failing.length) m.warnings = [...(m.warnings ?? []), ...failing];
+  }
 };

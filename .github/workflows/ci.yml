@@ -403,6 +403,15 @@ jobs:
       - name: Every reported contrast ratio matches the color it was measured against
         run: npx --yes tsx@4 packages/engine/lint-ratio-truth.ts
 
+      # The gate above holds the `$extensions` ratios to the colors; nothing held the PROSE to them
+      # (#1623). A step-500 "≥4.5:1 on white & black" was stamped by step number and was false on two
+      # ramps, and every dark / high-contrast overlay carried light-mode prose (a 40% scrim beside a 60%
+      # one). This parses each `N:1` / `~N:1` / `N%` out of every emitted description — DTCG canonical,
+      # base + overlay as a consumer merges them, and the Figma rows — and recomputes it from the value
+      # in the mode it is read in, never from the engine's own `contrast` field.
+      - name: Every ratio and percentage a description states holds in its mode
+        run: npx --yes tsx@4 packages/engine/lint-description-claims.ts
+
       # `VARIANT_AXES` closed the axis NAME vocabulary after #756 found four spellings of one axis,
       # each individually defensible, caught by a census that ran after all three had shipped. The
       # identical argument applies one level down to axis VALUES, and one level down there was no
