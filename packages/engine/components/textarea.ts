@@ -111,7 +111,7 @@ export const textarea: ComponentDef = {
     status: ['default', 'error', 'warning', 'success'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
-  axisKinds: { size: 'authoring', style: 'authoring' },
+  axisKinds: { size: 'authoring', style: 'authoring', status: 'runtime' },
 
   // The substrate's grammar, stated rather than inherited — text-field's exactly since the `status` axis
   // arrived (#1623 sign-off): status-led-and-state-qualified first, so a status border wins over the

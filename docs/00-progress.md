@@ -23,6 +23,8 @@
 
 **Traps.** `footprintVaries` on an authoring axis is now redundant (image-placeholder's `ratio`). It was left in place so the aspect-lock reason stays with the def. The engine test requires every shipped def to classify every axis, so a parallel lane that adds an axis must also classify it. `size`'s kind does not move the cohort: `size` is always held.
 
+
+**Net fix (orchestrator).** The component-API alignment landed first and gave textarea a `status` axis, which this PR's every-axis-classified arm then caught as unclassified. Classified `runtime`, the same as text-field's `status`: validation changes while an instance is live. Textarea projects no Figma set, so the component surface doesn't move.
 ---
 
 ## (2026-09-24) — component API alignment: field validation, textarea model, group gap (#1623 sign-off)
