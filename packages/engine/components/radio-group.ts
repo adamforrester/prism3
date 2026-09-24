@@ -23,7 +23,7 @@
  * the audit's instruction is explicit: match `checkbox-group` AS IT STANDS TODAY rather than invent a
  * different width/fill model (see the systemic `[HELD]` below). Mirrored verbatim:
  *   · root `container`, VERTICAL, `sizing: { x: 'fill', y: 'hug' }`, `align/justify: start`;
- *   · `gap: 'size.{size}.gap'` — the provisional size-keyed inter-row gap (`[HELD]`, below);
+ *   · `gap: 'gap'` = `space.0` — the rows self-space with their own block padding (#1623 sign-off);
  *   · block padding `pad-y` = `space.100` (Prism 2's 8px), inline padding `pad-x` = `space.0` (its 0px);
  *   · a nested `field-label` configured to Prism 2's group `formLabel` (secondary · bold · required-on),
  *     size-followed; then a stack of size-followed `nest-fixed` rows.
@@ -117,15 +117,12 @@ export const radioGroup: ComponentDef = {
   // fields, not through any paint template.
 
   tokens: {
-    // ── THE STACK GAP [HELD], PER SIZE — mirrored from `checkbox-group` verbatim. Prism 2's group gap is 0
-    // (its fixed rows self-space); our rows HUG, so a 0 gap would leave them touching. The gap is bound to
-    // the `size.*.gap` rung so the group's `size` axis reaches a real binding of its own. The VALUE is
-    // provisional (8/8/12px on nb — the control-to-label gap rung reused as the inter-row gap) and the exact
-    // inter-row layout gap is the owner's to confirm; this def inherits whatever `checkbox-group` settles on
-    // (#1475: the two groups match by SHARING a resolution, not by each guessing). Not measured from Prism 2.
-    'size.small.gap': 'size.sm.gap',
-    'size.medium.gap': 'size.md.gap',
-    'size.large.gap': 'size.lg.gap',
+    // ── THE INTER-ROW GAP IS ZERO (#1623 sign-off, C2/K-11 + K-23, owner-decided). Each `radio-row` now
+    // carries its own 12px block padding and so SELF-SPACES; a stack gap on top would double the rhythm.
+    // So the group binds `space.0` (0px, emitted in every brand tier) as one un-sized key — the spacing
+    // lives on the row, and the group's `size` axis reaches its rows through `follow`, not through a gap.
+    // Replaces the provisional, held `size.*.gap` rung this def carried before the decision.
+    'gap': 'space.0',
     // ── THE GROUP'S BLOCK PADDING — Prism 2's `radio-button-group.json` container `padding {top: 8, bottom:
     // 8}` exactly (`space.100` = 8px on nb), the same 8/8 as `checkbox-group` (the audit found them
     // byte-for-byte identical here).
@@ -168,7 +165,7 @@ export const radioGroup: ComponentDef = {
         kind: 'box',
         role: 'target',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
-        gap: 'size.{size}.gap',
+        gap: 'gap',
         padding: { block: 'pad-y', inlineLabel: 'pad-x' },
         minWidth: 320,
         children: ['label', 'row1', 'row2', 'row3'],
@@ -311,7 +308,7 @@ export const radioGroup: ComponentDef = {
     ],
     unverified: [
       'THE WIDTH/FILL MODEL IS `checkbox-group`\'S RESOLVED ONE, COPIED DELIBERATELY (#1503, #1475, owner Option B). The audit found every column-stacking form group hugged its width with rows that did NOT fill it, where Prism 2 gives a fixed 320px root with rows set to FILL — because the projection could not emit cross-axis child FILL. #1503 added that capability (`crossAxisFill` → `layoutAlign: STRETCH`) plus a `minWidth` width floor, and landed it on `checkbox-group` FIRST; this def mirrors it verbatim (container `minWidth: 320`, rows `crossAxisFill`), so the two match by sharing ONE resolution rather than each guessing — building `radio-group` to a different width model is the one outcome that guarantees they never match. `test:roundtrip` asserts each row reads back `layoutAlign: STRETCH` on the offline host (a real-host confirmation is the standing nesting caveat below).',
-      'THE INTER-ROW GAP IS PROVISIONAL AND `[HELD]`, inherited from `checkbox-group`. Prism 2\'s group gap is 0 because its rows are fixed boxes that self-space; our `radio-row` hugs, so a 0 gap leaves them touching. The `size.*.gap` rung (8/8/12px on nb) is bound so the group\'s `size` axis reaches a binding and the stack reads legibly, but the value is the owner\'s to set — and it is set ONCE, on `checkbox-group`, with `radio-group` following. Do not read the rung as measured from Prism 2.',
+      'THE INTER-ROW GAP IS RESOLVED (#1623 sign-off), shared with `checkbox-group`. Each `radio-row` carries 12px of block padding and so spaces itself, so the group binds a 0px gap (`space.0`) and adds no stack gap on top. The provisional size-keyed gap this entry used to hold is gone; the group\'s `size` axis still scales its label and rows through `follow`.',
       'GROUP-LEVEL ERROR / VALIDATION DISPLAY IS `[HELD]`. The brief puts validation and the error message on the group; Prism 2 settles no visual for it. This def carries `required` (settled) and no error skin (unsettled). Whether the group nests a `field-message` for the group error, and what an errored group looks like, needs the owner — the same open question `checkbox-group` holds.',
       'THE VARIABLE ROW COUNT IS `[HELD]`. The three fixed row nests stand in for Prism 2\'s six-rows-with-booleans (rows 3–6 default off, so 2 visible by default). In code the count is simply `children: RadioRow[]` of any length. If the projection should carry a designer-toggleable count, the mechanism is the node-visibility boolean on each row nest (schema-legal, unbuilt) — the same held mechanism as `checkbox-group`. There is no radio select-all to hold (a select-all is a multi-select affordance and does not apply).',
       'THE NESTING IS UNVERIFIED ON A REAL HOST, the same way `checkbox-group`\'s is: the group nests `radio-row` (which nests `radio-control` `nest-exposed`), the deepest chain in the corpus, and whether a doubly-nested instance\'s inherited sizing and exposed properties cooperate with the group\'s auto-layout is a real-host question the offline shim cannot answer. `test:roundtrip` builds every projected def and reads it back; the symptom to look for is a row instance stretched or an exposed selection that does not surface at the group.',
