@@ -180,7 +180,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'theme_brand',
     title: 'Generate a design-token system',
-    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 537,000 and 287,000 characters respectively (~205,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first.',
+    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 850,000 and 500,000 characters respectively (~340,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -250,7 +250,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'export_theme',
     title: 'Write the token system to disk',
-    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 830,000 characters for a four-mode brand, which no tool result should carry. Writes tokens.json (DTCG), ai-metadata.json, and a figma/ directory of Figma collection files. Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
+    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 850,000 characters for a four-mode brand, which no tool result should carry. Writes tokens.json (DTCG), ai-metadata.json, and a figma/ directory of Figma collection files. Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -307,6 +307,9 @@ export const toolDefs = (brandSchema: unknown) => [
  *
  *      tokens      536,770 chars     aiMetadata  287,283 chars     notes  3,653 chars
  *
+ *  (Measured when `notes` became a default. Re-measured 2026-09-24, #1623: tokens ~850,000 and
+ *  aiMetadata ~500,000 — the tool descriptions carry the current figures, and a test holds them to it.)
+ *
  *  Withholding the two huge payloads is right — no client can spend half a megabyte on one result.
  *  Withholding 3.6KB cost an agent the single most decision-relevant thing the engine produces, and
  *  did it silently: an agent that never passes `include` gets a themed brand with no indication that
@@ -347,7 +350,7 @@ const themePayload = (brand: unknown, include: string[]): ToolResult => {
     if (rr.min > 0) { checks++; if (rr.ratio >= rr.min) pass++; else failures.push(`${m.mode}.${k} ${rr.ratio}<${rr.min}`); }
   }
   // The VERIFICATION payload is the default, because that is what "generate and verify" is worth over
-  // one call — and because the two omitted sections measured ~824,000 characters for a four-mode
+  // one call — and because the two omitted sections measure ~1,350,000 characters for a four-mode
   // brand, which no client can spend on a single tool result.
   const out: Record<string, unknown> = {
     id: theme.id,
@@ -361,7 +364,7 @@ const themePayload = (brand: unknown, include: string[]): ToolResult => {
   if (include.includes('notes')) out.notes = theme.notes;
   // Say what was withheld and how to get it — a silently partial result is worse than a big one.
   if ((out.omitted as string[]).length) {
-    out.hint = `Withheld by default: ${(out.omitted as string[]).join(', ')}. Re-call with include: [...] to add them (tokens ~537KB, aiMetadata ~287KB for a four-mode brand).`;
+    out.hint = `Withheld by default: ${(out.omitted as string[]).join(', ')}. Re-call with include: [...] to add them (tokens ~850KB, aiMetadata ~500KB for a four-mode brand).`;
   }
   return structured(out);
 };
@@ -421,7 +424,7 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     const { tree } = buildTree(theme);
     const files: { path: string; content: string }[] = [];
     if (want.includes('tokens')) files.push({ path: 'tokens.json', content: JSON.stringify(tree, null, 2) + '\n' });
-    if (want.includes('aiMetadata')) files.push({ path: 'ai-metadata.json', content: JSON.stringify(buildAiMetadata(theme, tree), null, 2) + '\n' });
+    if (want.includes('aiMetadata')) files.push({ path: 'ai-metadata.json', content: JSON.stringify(buildAiMetadata(theme, tree, { tokensFile: 'tokens.json' }), null, 2) + '\n' });
     // The Figma collection set comes from the SAME function the committed `out/figma/**` artifacts are
     // written from, so an export and a regen cannot disagree about what a brand emits.
     if (want.includes('figma')) for (const a of figmaArtifacts(theme).artifacts) files.push({ path: `figma/${a.path}`, content: a.content });
@@ -438,7 +441,7 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     } catch (e) { return text({ error: `write failed: ${(e as Error).message}`, written }, true); }
 
     // The MANIFEST is the result — never the content. That is the entire point of this tool: the
-    // payload it produces is ~830,000 characters for a four-mode brand, and returning any of it here
+    // payload it produces is over 1,350,000 characters for a four-mode brand, and returning any of it here
     // would reintroduce the cost the export exists to avoid.
     return structured({
       id: theme.id,

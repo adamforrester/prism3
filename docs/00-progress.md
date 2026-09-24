@@ -7,6 +7,34 @@
 
 ---
 
+## (2026-09-24) — the `.ai.json` sidecar says only what the token data supports (#1623 batch B)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/ai-metadata.ts`, `packages/engine/mcp.ts`, `packages/engine/test.ts` (three new sidecar-gate arms, plus an MCP size guard), `packages/engine/version.ts` (ENGINE 0.139.0), regenerated `out/*.ai.json`, stamp-only `out/*.tokens.json`, and the `token-contract.json` `engineVersion` field (`--accept`, no surface change; CONTRACT stands at 11.3.0). Fixes AI/A-1…A-10, A-13…A-17, A-19, A-21, A-22, B-2, B-3, D-4, M-1. Deliberately untouched: C-1 (`avoid_when_level: MUST`, owner), A-11/A-12 (IN FLUX under #1614), and A-18/A-20/B-1 (batch A, `tree.ts`).
+
+**Diagnosis.** Two root causes account for most of the HIGH findings. (1) `CORE_TIER` moved palette, font and dimension under `core.`, but the primitive dispatch still keyed on `seg[0]`. Every branch went dead: 946 "core primitive" meanings, `intent` on none, fallback `consume` everywhere. The same move stranded the weight-role key and the hand-derived `resolves_to` paths. (2) The prose TYPED surface claims that the engine never measured. The engine gates an ink against its floor (`background.secondary`) only, and the prose widened that to "any surface", "control borders" and "the darkest permissible ground".
+
+**Fix.** The primitive dispatch strips `core.` first. `resolves_to` is the emitted composite's own `$value`, not a re-derivation. Every ink, border and field surface claim is now COMPUTED per mode through one `surfaceClause` ("Clears N:1 in every mode on …; below N:1 on … in at least one mode"), and the ink's `paired_with` is that same list, so the prose and the pairing cannot disagree. Pairings the data refutes are gone. The veil has no pairing (every text role flips in dark mode and the veil does not). An inverse pairing whose twin does not exist is dropped rather than kept on the page name. A non-rest fill is paired with `on-fill` only where the pair measurably holds, and otherwise says which modes fail. `contrast_with.token` names the ROLE on the floor. The inverse decoration now remaps backticked role names in the prose, not just in `paired_with`. Page-only sentences ride in a `page_note` the inverse twin drops. `$description` is the token's own. The note and the `*_fields` lists are derived from what actually ships.
+
+**Tradeoffs and traps.**
+- The sidecar grew ~20% (about 415,000 to 500,000 characters per four-mode brand through MCP). The cause is explicit surface lists in place of "any surface". The MCP descriptions carry the new figure, and a test now holds the figure to ±15% of a measured one (the three sites had drifted apart).
+- The on-* redirect ("use `text.on-*`") is page-only for the same reason as A-7: no inverse on-* ink exists.
+- `on-fill` being ungated against hover/pressed fills is an ENGINE contract gap. It is filed as **#1626**, not fixed here.
+- The gate treats ground↔ground and ink↔ink pairs as "travels with" and does not check them (D-3, the owner's schema call). It counts them, 180 across the four brands.
+
+**Gate.** New block in `test.ts` after the existing sidecar block. It reads the committed `out/<brand>.ai.json` against the committed `out/<brand>.tokens.json` for all four brands, with its own color math.
+- **Arm 1, "sidecar paths":** every key, `paired_with`, `contrast_with`, `mode_overrides`, `resolves_to`, `used_by` and `aliased_by` entry, and every backticked path in the prose, resolves in the tree. Role-shaped names outside backticks fail. On an inverse entry, a page role with an existing twin fails. The A-11 name is exempted by exact shape, and a second assertion fails once the exemption goes stale.
+- **Arm 2, "sidecar pairings":** every `contrast_with` and ink↔ground `paired_with` pair, and every "clears / below" clause (in both directions), is recomputed per mode from resolved hex values.
+- **Arm 3, "sidecar fields":** required primitive fields; no placeholder meaning; an `intent` on every step the TREE bands; the pivot tail only where 4.5:1 holds on white and on black; weight roles present with `used_by`; field lists name only emitted fields.
+- **Scope floors:** 22,132 paths, 2,397 pairings, 876 `contrast_with`, 2,928 clauses, each brand represented.
+- The first run caught a placeholder that I had not listed: `core.font.typeface.*` fell to "Typography primitive" once A-1 made the font branch reachable.
+
+**Mutations** (committed before each one; each restores to HEAD):
+- the old weight-role key → "sidecar paths" (plus "sidecar fields")
+- veil `paired_with` restored → "sidecar pairings" only
+- `surfaceClause` claiming every step → "sidecar pairings"
+- `core.` strip undone → "sidecar fields"
+- inverse prose remap made the identity → "sidecar paths" + "sidecar pairings"
+- MCP description reverted to 537,000/287,000 → the MCP size guard
 ## (2026-09-24) — token description prose holds in every mode, and says nothing internal (#1623 batch A)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/{tree,modes,theme,ai-metadata,emit-dtcg-overlay,emit-figma-color,emit-figma-dims}.ts`, **NEW** `packages/engine/lint-description-claims.ts` (wired into `verify.ts`, `ci.yml`, CONTRIBUTING §3, the PR template and CLAUDE.md §4), `packages/engine/test.ts` (overlay membership arms), `apps/plugin/test-prune.ts` (committed-bytes arm), `packages/engine/version.ts` (ENGINE 0.138.0), regenerated `out/**`, and the `token-contract.json` `engineVersion` stamp (`--accept`, no surface change; CONTRACT stands at 11.3.0).
