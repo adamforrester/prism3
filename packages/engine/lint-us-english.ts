@@ -67,6 +67,14 @@
  *     of WORDS does. When a class ships past this gate, the question is which shape is missing, not
  *     which word.
  *
+ *  7. …AND AN ARM CAN BE NARROWER THAN ITS SIBLING (#991, #1463). The `-ise` arm enumerated its
+ *     inflections and the `-our` arm allowed only `s`, so `brand-coloured` shipped; and six more classes
+ *     (`-ogue`, `-ence` nouns, `-yse`, letter swaps like `artefact`, the reverse single-L `skilful`/
+ *     `fulfil`) sat outside every shape while `catalogue` and `licence` shipped. All now live in
+ *     `prose-rules.ts` (`PATTERN`, `EN_GB_WORDS`, `YSE`, `SINGLE_L`), each sampled both ways below.
+ *     Trap 6's lesson again: ask which SHAPE is missing, and check each arm's suffixes against its
+ *     neighbors'.
+ *
  * OPEN, AND DELIBERATELY NOT DECIDED HERE. CLAUDE.md's US-English section carves comments out of the
  * standard, then narrows the carve-out for `apps/studio/src` — because a bundle cannot tell a comment
  * from a string, so an exemption this gate cannot see is not enforceable — and records as OPEN whether
@@ -305,6 +313,20 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'use recognisable icons', expect: true },    // PATTERN's `-isable` branch
   { sample: 'a judgement call', expect: true },          // EN_GB_WORDS — no suffix to match
   { sample: 'it is advisable to', expect: false },       // en-US `-isable`; NOT_EN_GB must subtract
+  // #991 — the `-our` arm's inflections, which `our` + `s?` could not see. `brand-coloured` shipped.
+  { sample: 'a brand-coloured box', expect: true },      // PATTERN `-oured`
+  { sample: 'my favourite, honourable pick', expect: true }, // `-ourite`, `-ourable`
+  { sample: 'poured into a contoured, devoured tour', expect: false }, // en-US `our`+suffix; NOT_EN_GB subtracts
+  // #1463 — the classes none of the shapes above reach, each sampled in both directions.
+  { sample: 'the component catalogue', expect: true },   // EN_GB_WORDS `-ogue`
+  { sample: 'the component catalog and its dialogue', expect: false }, // en-US; `dialogue` is en-US too
+  { sample: 'under its own licence', expect: true },     // EN_GB_WORDS `-ence` noun
+  { sample: 'a license for the offense', expect: false }, // en-US `-ense`
+  { sample: 'the regression artefact', expect: true },   // EN_GB_WORDS vowel swap
+  { sample: 'we analysed it', expect: true },            // YSE
+  { sample: 'two analyses, analyzed', expect: false },   // en-US noun plural; `-yze`
+  { sample: 'a skilful way to fulfil it', expect: true }, // SINGLE_L — the reverse of DOUBLE_L
+  { sample: 'a skillful way to fulfill the installment', expect: false }, // en-US doubled forms
 ];
 // Drives `enGb` — the same function `scan()` calls — so neutering either regex fails HERE. See the
 // comment on `enGb`; reimplementing the match inline is what let a real `greyscale` ship clean.

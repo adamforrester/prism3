@@ -7,6 +7,22 @@
 
 ---
 
+## (2026-09-25) — `lint-us-english` catches the en-GB spellings it was blind to (#991, #1463)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.149.0 (shipped prose respelled); CONTRACT stands (no token name moves). Files: `packages/engine/prose-rules.ts` (the rule), `lint-us-english.ts` (SELF_CHECK samples + header trap 7), the respelled sources (`components/radio-row.ts`, `emit-icons.ts`, `schema/payload-manifest.json`, `README.md`, `skills/prism3-consume/SKILL.md`, `apps/studio/src/main.ts`, `styles.css`), `version.ts`, regenerated `out/**` + `icon-glyphs.ts`.
+
+**The two holes.** (#991) `PATTERN`'s `-ise` arm listed its inflections and its `-our` arm allowed only `s`, so `coloured`, `honoured`, `favourite` and `honourable` passed. (#1463) Six classes sat outside every shape: `-ogue` (`catalogue`), `-ence` nouns (`licence`, `defence`), `-yse` (`analysed`), letter swaps (`artefact`, `aluminium`, `tyre`, `mould`, …), and the reverse single-L class (`skilful`, `fulfil`, `enrol`, `instalment`), which `DOUBLE_L` cannot see because it looks for the doubled form. The `-our` arm now takes `ed|ing|ings|ful|less|able|ably|ite|ites`. `EN_GB_WORDS` takes the letter swaps, `-ogue` and `-ence`. Two new shapes, `YSE` and `SINGLE_L`, cover the rest. Each is sampled in both directions in SELF_CHECK.
+
+**What it found, respelled:** `catalogue` ×6 (the consume skill, radio-row's shipped `focus` doc, a studio comment that ships in both bundles), `licence` ×4 (payload manifest, the generated `icon-glyphs.ts` header), `honoured` ×2 and `colouring` ×1 (studio source that ships), `artefact` ×1 (engine README). The Remix Icon license is itself titled "License", so no proper-noun exemption was needed. The earlier `coloured` instances #991's comment listed were already gone on main.
+
+**Deliberately not flagged.** `dialogue`, `prologue` and `monologue` are standard en-US, so flagging them would make a house-style call, not apply a spelling rule. None appear in shipped text today. The plural nouns `analyses`/`paralyses` are en-US and sit in `NOT_EN_GB`, which also hides the en-GB verb `analyses`; `analyse`/`analysed`/`analysing` stay visible.
+
+**Mutations, by name.** Subject side: planting each of `brand-coloured`, `catalogue`, `licence`, `artefact`, `analysed`, `skilful` in the gated engine README fails the gate naming the word (exit 1); the same words give 0 hits under `origin/main`'s `enGb`. Rule side: stripping the `-our` inflections, dropping `EN_GB_WORDS`, `YSE` or `SINGLE_L` from `enGb`'s loop, or removing `contoured` or `analyses` from `NOT_EN_GB` each fails SELF_CHECK naming the sample.
+
+**Trap for re-verifiers.** `PATTERN` needs 3+ letters before `our`, so `poured`/`toured`/`scoured` can never match. A first draft listed them in `NOT_EN_GB`. The mutation that removed `poured` stayed green, which showed the entries were dead, so they were dropped. An exemption whose removal changes nothing is not an exemption.
+
+---
+
 ## (2026-09-24) — Strict interactive contrast covers destructive; `isPending` kept everywhere
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.148.0 (MINOR: emission changes when the lever is on, plus one description line); CONTRACT stands at 12.0.0 (no token name moves; the baseline's `engineVersion` stamp only). Files: `packages/engine/modes.ts` (the lever condition + the inverse fill `labelNote`), `theme.ts` / `levers.ts` (lever prose names destructive), `version.ts`, `test.ts` (new GATE B arm), regenerated `out/**` + `modes-report.md`.

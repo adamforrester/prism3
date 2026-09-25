@@ -6,7 +6,7 @@
 // Every glyph is a single path on a 0 0 24 24 artboard, drawn with `fill="currentColor"` so
 // `icon`'s `tone` prop resolves through the cascade rather than being baked in.
 //
-// Provenance and licence: `icons/NOTICE.md` and `icons/LICENSE`. The set is a PLACEHOLDER core,
+// Provenance and license: `icons/NOTICE.md` and `icons/LICENSE`. The set is a PLACEHOLDER core,
 // intended to be swapped for a client's branded set — which is why consumers reference the names
 // below and never the source filenames.
 
