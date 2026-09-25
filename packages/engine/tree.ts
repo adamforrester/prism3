@@ -807,10 +807,20 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   };
   const lhRatio = new Map(theme.typography.lineHeights.map((l) => [l.key, l.value]));
   const bodyLineBox: Record<string, number> = {};
+  // #1220 — EVERY body composite at a rung must AGREE on the line box, and this asserts it rather than
+  // letting the last writer win. It holds by construction today: `theme.ts` emits a rung's composites
+  // (default / -link / strong / strong-link) from one `push(group, variant, px)` call, so they share one
+  // size and one derived line height. The day one diverges, the emitted `line-box` would silently depend on
+  // composite ORDER; failing the build names the two composites instead.
+  const lineBoxFrom: Record<string, string> = {};
   for (const c of theme.typography.composites) {
     if (c.group !== 'body') continue;
     const rung = c.path.split('.')[1]; // 'body.md.default' → 'md'
-    bodyLineBox[rung] = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
+    const px = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
+    if (bodyLineBox[rung] !== undefined && bodyLineBox[rung] !== px)
+      throw new Error(`control.size.${rung}.line-box is ambiguous: ${lineBoxFrom[rung]} gives ${bodyLineBox[rung]}px but ${c.path} gives ${px}px. Every body composite at one rung must share a size and line height (#1220).`);
+    bodyLineBox[rung] = px;
+    lineBoxFrom[rung] ??= c.path;
   }
   for (const c of theme.dims.controls) {
     const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a square control's own dimension: a checkbox square or a radio circle (density: ${theme.dims.density}). A square control reads this on both axes. A switch's track is not square and reads \`track\`/\`width\` instead.`);

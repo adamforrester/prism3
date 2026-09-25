@@ -314,7 +314,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label'],
     relation: 'canonical',
     reason:
-      'The three-rung ladder, and canonical on weight of use — ten of the defs with a size axis, the '
+      'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '
       + 'button and icon-button siblings among them by way of their shared factories (#1223, #1225). '
       + 'Rungs are named rather than numbered so a brand can re-derive the dimensions behind them without '
       + 'the names going stale.',

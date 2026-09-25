@@ -2781,6 +2781,44 @@ const __exposeNow=(member)=>{
   }
   __expose.length=0;
 };
+// #1393 — CLAIM THE DEFAULTS, the paste twin of the plugin executor's \`claimDefaults\` (#865), kept in
+// LOCKSTEP with it: same properties, same values, same carve-outs. \`createFrame()\` hands back an opaque
+// white box and \`combineAsVariants()\` a dressed set, so every property no plan claimed survived as a Figma
+// default; this path had no such pass and left the white on every unclaimed or unresolvable fill. Runs LAST
+// in \`build\`, so a declared value is never clobbered; the PLAN decides "claimed", never the live node.
+// \`n\` is null for the SET, whose border and radius are claimed by PRESERVING the host's framing (#1430).
+// Each write is guarded and reports rather than throws, so a refused default costs a miss, not the member.
+const claimDefaults=(node,n,mode)=>{
+  const t=node.type,isSet=!n,m=n||{},P=m.paints||{},B=m.bound||{},where=n?n.name:'set';
+  // An INSTANCE is claimed by its nomination and a COMPONENT by the frame it was made from.
+  if(t==='INSTANCE'||t==='COMPONENT')return;
+  const set=(k,v)=>{try{node[k]=v;}catch(err){misses.push(where+'.'+k+' -> UNCLAIMED and could not be neutralized ('+err.message+"); it keeps Figma's default — #865");}};
+  const keep=(k,f)=>{const c=node[k];set(k,c===undefined?f:Array.isArray(c)?c.slice():c);};
+  set('visible',m.visible!=null?m.visible:true);
+  if(!m.zeroOpacity)set('opacity',1);
+  if(!m.effectStyle)set('effects',[]);
+  set('blendMode','PASS_THROUGH');set('rotation',0);set('layoutAlign','INHERIT');set('layoutGrow',m.layoutGrow||0);
+  if(mode==='created'){
+    set('constraints',{horizontal:'MIN',vertical:'MIN'});
+    if(isSet){set('fills',[]);keep('strokes',[]);keep('strokeWeight',1);keep('strokeAlign','INSIDE');keep('dashPattern',[]);}
+    else{
+      // A TEXT fill has no neutral value — \`[]\` is invisible text — so an unpainted label is REPORTED.
+      if(!P.fills){if(t==='TEXT')misses.push(where+'.fills -> UNCLAIMED on a TEXT node (reported, not neutralized: [] is invisible text; the def must declare a text paint) — #865');else set('fills',[]);}
+      // The weight is gated on the plan's binding (#1228): a literal write after the bind loop UNBINDS it.
+      if(!P.strokes){set('strokes',[]);if(!('strokeWeight' in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
+      set('dashPattern',[]);
+    }
+  }
+  if(t==='FRAME'||t==='COMPONENT_SET'){
+    for(const k of ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'])if(isSet)keep(k,0);else if(!(k in B))set(k,0);
+    set('clipsContent',!!m.clipsContent);
+    // Parent-side auto-layout properties apply only on an auto-layout frame, and Figma THROWS on
+    // \`strokesIncludedInLayout\` elsewhere — so gated on the PLAN's \`layoutMode\`.
+    if(m.layoutMode){for(const k of ['itemSpacing','paddingLeft','paddingRight','paddingTop','paddingBottom'])if(!(k in B))set(k,0);set('strokesIncludedInLayout',false);}
+  }
+  // The last two DETACH an applied text style on the host (#1567) — \`build\` re-applies it right after.
+  if(t==='TEXT'){if(!m.textAlignVertical)set('textAlignVertical','TOP');set('textAlignHorizontal','LEFT');set('textAutoResize',m.textAutoResize||'WIDTH_AND_HEIGHT');set('textTruncation','DISABLED');set('paragraphSpacing',0);set('leadingTrim','NONE');}
+};
 const build=async(n)=>{
   let node;
   if(n.type==='TEXT'){node=figma.createText();}
@@ -2889,6 +2927,8 @@ const build=async(n)=>{
   if(n.visible===false)node.visible=false;
   // Before ANY dimension binding. See the header note — a locked node keeps only the last of the two.
   node.unlockAspectRatio();
+  // HELD for the re-apply after \`claimDefaults\` (#1393/#1567), which detaches the style it touches.
+  let sty=null;
   if(n.textStyle){
     const st=styleByName.get(n.textStyle);
     if(!st)misses.push(n.name+'.textStyle -> '+n.textStyle);
@@ -2900,6 +2940,7 @@ const build=async(n)=>{
       // would be a guess about a brand's typography.
       try{await figma.loadFontAsync(st.fontName);}catch(err){misses.push(n.name+'.font -> '+st.fontName.family+' '+st.fontName.style+' ('+err.message+')');}
       await node.setTextStyleIdAsync(st.id);
+      sty=st;
     }
   }
   // The PLACEHOLDER, after the style so the copy is set on a node already carrying the right font.
@@ -2916,8 +2957,7 @@ const build=async(n)=>{
   // here anyway so the sequence reads the same as every other text write in this function.
   if(n.textAlignVertical)node.textAlignVertical=n.textAlignVertical;
   // WRAPPING LABEL (#1424): auto-height lets a fixed-width text reflow. Written only when the plan carries
-  // it (a wrapping label), so every other TEXT node keeps Figma's WIDTH_AND_HEIGHT default via the plugin
-  // neutralizer; here the paste path sets it explicitly.
+  // it (a wrapping label); \`claimDefaults\` below writes WIDTH_AND_HEIGHT on every other TEXT node (#1393).
   if(n.textAutoResize)node.textAutoResize=n.textAutoResize;
   if(n.effectStyle){
     const ef=effectByName.get(n.effectStyle);
@@ -2937,7 +2977,7 @@ const build=async(n)=>{
   }
   // WRAPPING LABEL (#1424), child-side: a text that FILLS its row's main axis so it reflows rather than
   // overflowing. Settable on any node (outside an auto-layout parent Figma ignores it), written only when
-  // the plan carries it — the plugin neutralizer writes \`layoutGrow: 0\` on every other node.
+  // the plan carries it — \`claimDefaults\` below writes \`layoutGrow: 0\` on every other node (#1393).
   if(n.layoutGrow)node.layoutGrow=n.layoutGrow;
   // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind
   // loop bind the SINGLE nominal dimension — Figma derives the other axis from the lock. Ordered after
@@ -2968,7 +3008,10 @@ const build=async(n)=>{
   // A PAINT OPACITY (#1614) goes on the paint the variable was bound to — Figma cannot bind a paint's opacity
   // to a variable, so a \`solid-tint\` hover is the fill variable at the opacity step's number. Lockstep with
   // the plugin executor's \`paint()\` in write-components.ts.
-  if(n.paints&&n.paints.fills){let p=paint(n.paints.fills,'fills');if(p&&n.paintOpacity&&n.paintOpacity.fills!=null)p=Object.assign({},p,{opacity:n.paintOpacity.fills});if(p){node.fills=[p];painted.fills=1;}}
+  if(n.paints&&n.paints.fills){let p=paint(n.paints.fills,'fills');if(p&&n.paintOpacity&&n.paintOpacity.fills!=null)p=Object.assign({},p,{opacity:n.paintOpacity.fills});if(p){node.fills=[p];painted.fills=1;}
+  // DECLARED BUT UNRESOLVABLE -> transparent, never Figma's opaque white (#1387, ported #1393). TEXT exempt:
+  // \`[]\` is invisible text. Lockstep with the plugin executor's paints branch.
+  else if(node.type!=='TEXT')node.fills=[];}
   if(n.paints&&n.paints.strokes){
     const p=paint(n.paints.strokes,'strokes');
     // A stroke variable with no strokeWeight paints nothing visible, so the border appearance would
@@ -3143,6 +3186,15 @@ const build=async(n)=>{
     // cell to the row — the one thing the ring must not do to its host's geometry.
     if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the ring would take a cell in the row)');
   }
+  // #1393 — AND IT HAS TO BE LAST: every write above declares something; this declares nothing else was.
+  claimDefaults(node,n,'created');
+  // RE-APPLY THE TEXT STYLE, because \`claimDefaults\`' \`paragraphSpacing\`/\`leadingTrim\` just detached it
+  // (#1567, host-measured). No \`loadFontAsync\`: the style's font was loaded above, in this same run.
+  // One miss either way — a refused re-apply and a silently dropped one leave the same unstyled node.
+  if(sty){let e='';try{await node.setTextStyleIdAsync(sty.id);}catch(err){e=' ('+err.message+')';}if(node.textStyleId!==sty.id)misses.push(n.name+'.textStyle -> '+sty.name+' DISCARDED after the #865 defaults, reads '+(node.textStyleId||'no style')+e);}
+  // The IMPORTED subtree: \`createNodeFromSvg\` bypasses \`createFrame()\`, so its inner nodes are claimed too,
+  // in 'imported' mode (fills, strokes and constraints there are the glyph's own).
+  if(n.type==='GLYPH'&&node.findAll)for(const d of node.findAll(()=>true))claimDefaults(d,n,'imported');
   return node;
 };`;
 
@@ -3220,12 +3272,9 @@ for(const p of PROPS){
  *
  *   • THE BIND DETACHES NO STYLE. What detaches `textStyleId` is writing `paragraphSpacing`, `leadingTrim`,
  *     `fontSize`, `fontName`, `lineHeight`, `letterSpacing` or `textCase` — even to the value the node already
- *     holds. This path writes NONE of them after the style (only `characters`, `textAlignVertical` and
- *     `textAutoResize`, all measured non-detaching), so the style applied in the build loop STANDS and the
- *     re-apply here was repairing nothing. The plugin executor's `claimDefaults` (#865) does write two of the
- *     seven, unguarded, on every TEXT node after the style — which is why that fix lives at ITS source and has
- *     no twin here. The two executors now reach the same observable by different means; the parity gate says so
- *     explicitly rather than implying one shared repair.
+ *     holds — so the re-apply here was repairing nothing. Both executors' `claimDefaults` (#865; the paste
+ *     twin since #1393) write two of the seven, unguarded, on every TEXT node after the style, and each
+ *     re-applies the style at THAT source, in `build`, rather than at this seam.
  *   • A BOUND NODE'S `characters` IS A VIEW ONTO THE PROPERTY, NOT A COPY. Reading it returns that one
  *     `defaultValue`; WRITING it writes THROUGH to the property, so every sibling bound to it immediately reads
  *     the new value. The re-assert was therefore not restoring four captions — it was overwriting one shared
@@ -3669,6 +3718,8 @@ built.forEach((c,i)=>{const {row,col}=PLANS[i];c.x=at(colW,col);c.y=at(rowH,row)
 // caller's first sign of trouble — by then twenty-one loose components are already in the file.
 const set=figma.combineAsVariants(built,figma.currentPage);
 set.name=${JSON.stringify(plans[0].component)};
+// #1393 — THE SET'S DEFAULTS, claimed as the plugin executor claims them (\`n\` null: framing preserved).
+claimDefaults(set,null,'created');
 ${PAYLOAD_DECLARE_PROPS}
 ${PAYLOAD_WIRE_REFS}
 // READ BACK the axes Figma actually derived. A name it cannot parse is dropped silently, so a set can
@@ -3768,6 +3819,8 @@ if(!set){
   // axis, and appending \`size=lg\` extends the other one.
   set=figma.combineAsVariants(fresh,figma.currentPage);
   set.name=SET_NAME;
+  // #1393 — the FRESH set only; a set an earlier chunk made was claimed then.
+  claimDefaults(set,null,'created');
 }else for(const c of fresh)set.appendChild(c);
 let members=set.children.slice();
 // LAY OUT. Cells derived from the names — see the header note.

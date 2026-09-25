@@ -457,19 +457,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         : {}),
       // #1009: `textAlignVertical` is a `TextNode` property. A TEXT node starts at Figma's default
       // `'TOP'` — so a node that reads back `CENTER` proves the executor WROTE it, rather than the shim
-      // having defaulted helpfully — and every other node type THROWS on the write, which is what Figma
-      // does. Without the throw this port would accept the property on a frame, the executor's
-      // try/catch would never fire, and a plan claiming it on the wrong node type would pass the one
-      // test written to catch that. Same argument as `_aspectLocked` above: a shim that cannot refuse
-      // cannot witness a refusal.
-      ...(type === 'TEXT'
-        ? { textAlignVertical: 'TOP' as string }
-        : {
-            get textAlignVertical(): string | undefined { return undefined; },
-            set textAlignVertical(_v: string | undefined) {
-              throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
-            },
-          }),
+      // having defaulted helpfully. Every other node type THROWS on the write, installed with
+      // `defineProperty` after this literal (#1302) — see the note there.
+      ...(type === 'TEXT' ? { textAlignVertical: 'TOP' as string } : {}),
       characters: '',
       opacity: 1,
       // #1330 — EXPOSED NESTED INSTANCE. Figma's `isExposedInstance` surfaces a nested instance's
@@ -483,7 +473,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // AND IT REFUSES OUT OF CONTAINMENT (#1378). Was a plain settable field, which is the reason a write
       // the real host rejects outright shipped green: `isExposedInstance` is writeable only on an instance
       // that is INSIDE a component or component set, and a field that accepts every write cannot witness
-      // that. Same argument as `textAlignVertical` above, and the same sentence — a shim that cannot refuse
+      // that. Same argument as `textAlignVertical` below, and the same sentence — a shim that cannot refuse
       // cannot witness a refusal — except this one was worth 15 lines of comment asserting the precondition
       // while modelling none of it. Figma's own message, verbatim from the failing build.
       //
@@ -690,8 +680,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // because that is the only node type that carries it. The check is auto-layout-POSITIVE (throws unless
     // HORIZONTAL/VERTICAL) so an unset `layoutMode`, which a plain absolute frame like the focus ring
     // leaves undefined rather than `'NONE'`, is refused too — mirroring the code guard's `&& layoutMode`.
-    // Same shape as `textAlignVertical`'s intended throw, but actually reachable: a shim that cannot
-    // refuse cannot witness a refusal (#682/#1009).
+    // Same shape as `textAlignVertical`'s throw below: a shim that cannot refuse cannot witness a
+    // refusal (#682/#1009).
     if (type === 'FRAME') {
       Object.defineProperty(node, 'strokesIncludedInLayout', {
         configurable: true,
@@ -702,6 +692,25 @@ export const makeShim = (opts: ShimOpts = {}) => {
           if (lm !== 'HORIZONTAL' && lm !== 'VERTICAL')
             throw new Error('in set_strokesIncludedInLayout: The strokesIncludedInLayout property is only available on auto-layout frames');
           node._strokesInLayout = v;
+        },
+      });
+    }
+    // #1009 / #1302 — `textAlignVertical` THROWS on every non-TEXT node, as Figma does. Without the throw
+    // this port would accept the property on a frame, the executor's try/catch would never fire, and a
+    // plan claiming it on the wrong node type would pass the one test written to catch that.
+    //
+    // Installed here, NOT in the literal above, and that placement is the fix (#1302). It used to sit in
+    // the literal's `...(type === 'TEXT' ? … : { get …, set … })` spread, and object spread copies a
+    // property by READING it: the getter ran once, a plain writable `undefined` landed on the node, and the
+    // setter was dropped. So the throw this comment described never fired, on either offline model.
+    // `test-write-components.ts` asserts the write throws on a FRAME, so a move back into a spread fails.
+    if (type !== 'TEXT') {
+      Object.defineProperty(node, 'textAlignVertical', {
+        configurable: true,
+        enumerable: true,
+        get() { return undefined; },
+        set(_v: string | undefined) {
+          throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
         },
       });
     }
