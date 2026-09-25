@@ -236,6 +236,26 @@ Their exact per-variant typography is host-verified, not shim-verified — the s
 **Not yet wired:** a UI trigger for `file-setup` (the shared-UI button) is a follow-up — the owner deferred UI
 placement, and the message contract + main-thread handler are complete and ready for it.
 
+## Scope (#111 / #1553 — the same writes with the plugin closed, over the Figma MCP)
+
+An agent can apply a theme and build components through the Figma MCP's `use_figma` tool (plain Plugin
+API JavaScript, at most 50,000 characters per call) without this plugin open. The paste path REUSES the
+executors rather than restating them:
+
+- `src/apply-theme.ts` — Apply Theme's write sequence (fonts, pre-flight, the six executors, persist),
+  lifted out of `main.ts` unchanged so a second driver can run it; `main.ts` keeps the report.
+- `src/theme-ports.ts` — the host → port adapters both drivers bind through.
+- `src/mcp-steps.ts` — the runtime inside each script: one step per executor, the shared-plugin-data
+  probe with its ledger fallback, and the `figma` adapter that lets the engine's component payloads run
+  where `loadAllPagesAsync` is not implemented. Typechecked under `tsconfig.main.json`.
+- `mcp-paste.ts` — the Node generator: slices every plan to a 45,000-character script, bundles the step's
+  executors with esbuild, orders components by `build-deps.ts`, and compares a read-back with the plan.
+- `test-mcp-paste.ts` — the gate: the paste scripts and `runApplyTheme` against one file model, compared
+  projection by projection (variables, values, aliases, scopes, modes, the four style kinds, the #1581
+  stamps, the #131 brand), plus a size check on every script for every example brand.
+
+The CLIs and the runbook are in `tools/figma-mcp/`.
+
 ## Run
 
 ```bash
@@ -243,7 +263,7 @@ npm install          # from the repo root (workspaces) — installs @figma/plugi
 npm run build -w @prism3/plugin      # → apps/plugin/dist/main.js + apps/plugin/dist/ui.html (shared UI inlined)
 npm run watch -w @prism3/plugin      # rebuild on change (watches apps/plugin/src + apps/studio/src)
 npm run typecheck -w @prism3/plugin  # both contexts (main + ui)
-npm test -w @prism3/plugin           # write + read + persist + float + styles + typography executors (in-memory shims)
+npm test -w @prism3/plugin           # write + read + persist + float + styles + typography executors + the MCP paste parity (in-memory shims)
 ```
 
 Then in Figma: **Plugins → Development → Import plugin from manifest…** → pick `apps/plugin/manifest.json`.

@@ -76,7 +76,7 @@ import { nbTheme } from '@prism3/engine/nb-fixture';
 import { exampleBrands } from '@prism3/engine/emit-brandinput';
 // #1605 — the brand materialization `main.ts` projects through, plus NB's real input and emitted styles.
 import { materializeForBrand } from './src/brand-def';
-import { prebuildDependencies, missingDependencies, DependencyBuildError } from './src/build-deps';
+import { prebuildDependencies, missingDependencies, DependencyBuildError, SWAP_TARGET as PLUGIN_SWAP_TARGET } from './src/build-deps';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
 // #1608 — the brand's COLOR emission, the host-side oracle for the outline-hover arm.
@@ -179,7 +179,16 @@ const mainSrc = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
  * The parse being empty is itself asserted (the input pin below), because a regex that stopped matching
  * would drive every arm against `''` and report a file that nominates nothing as a clean resolution.
  */
-const SWAP = (/^const SWAP_TARGET = '([^']+)';$/m.exec(mainSrc)?.[1]) ?? '';
+// Since #111 the constant lives in `build-deps.ts` (importable, so the MCP paste runner projects with the
+// same nomination), and `main.ts` imports it. So the value is IMPORTED from where it is defined, and the
+// two facts that make it "what the plugin does" are PARSED out of `main.ts`: that it imports this constant
+// from `./build-deps`, and that it hands it to the projector. Either one drifting empties `SWAP`, which the
+// input pin below turns into a named failure rather than a suite run against `''`.
+const mainImportsIt = /import \{[^}]*\bSWAP_TARGET\b[^}]*\} from '\.\/build-deps';/.test(mainSrc);
+// CODE lines only: `main.ts`'s header quotes this very call in prose, and a match there would pin nothing.
+const mainCode = mainSrc.split('\n').filter((l) => !/^\s*(\*|\/\/|\/\*)/.test(l)).join('\n');
+const mainProjectsWithIt = /figmaAnatomySet\([^;]*\{ swapTarget: SWAP_TARGET \}\)/.test(mainCode);
+const SWAP = mainImportsIt && mainProjectsWithIt ? PLUGIN_SWAP_TARGET : '';
 
 // ---- the plans: the same 21-variant button grid the engine's set gates run on --------------
 const grid = button.variants!.appearance!.flatMap((ap) => button.states!.map((st) =>
@@ -213,7 +222,7 @@ ok(full().vars!.length > 15, `the plans carry variable bindings to resolve (${fu
 ok(full().styles!.length > 0, `the plans carry text styles to resolve (${full().styles!.length})`);
 // The PARSE first, because everything downstream is driven by it: a `SWAP` of `''` gives plans that
 // nominate nothing, a file that holds nothing, and 0 misses — a green suite over no subject at all.
-ok(SWAP !== '', `#1280 main.ts's own SWAP_TARGET was parsed out of its source, so the plans below nominate what the plugin does (${SWAP || 'NOT FOUND'})`);
+ok(SWAP !== '', `#1280 main.ts projects with build-deps' SWAP_TARGET (import ${mainImportsIt ? 'found' : 'NOT FOUND'}, projector call ${mainProjectsWithIt ? 'found' : 'NOT FOUND'}), so the plans below nominate what the plugin does (${SWAP || 'NOT FOUND'})`);
 ok(full().comps!.includes(SWAP) && full().comps!.includes('focus-ring'),
   `the plans nominate both a swap target and a nested shared component (${full().comps!.join(', ')})`);
 ok(planSetProperties(grid).length > 0, `the plans derive component properties (${planSetProperties(grid).map((p) => `${p.name}:${p.type}`).join(', ')})`);

@@ -545,7 +545,7 @@ export type ComponentApplyOptions = {
 /** The value of a single-axis member coordinate — `name=search` → `search` (#1012). The
  *  `emitAsComponents` mode names each standalone component `<id>/<this>`, and `planComponentName` writes
  *  the coordinate with an `<axis>=` prefix; a coordinate carrying no `=` (defensive) is returned whole. */
-const emitCoordValue = (coord: string): string => {
+export const emitCoordValue = (coord: string): string => {
   const first = coord.split(', ')[0] ?? coord;
   const eq = first.indexOf('=');
   return eq >= 0 ? first.slice(eq + 1) : first;
