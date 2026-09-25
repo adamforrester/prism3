@@ -7559,6 +7559,41 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(judged > 0 && bad.length === 0, `solid-tint keeps each ground's own hover ink legible on its composite (${judged} judged) — ${id}`
       + (bad.length ? ` — FAIL: ${bad.slice(0, 6).join('; ')}` : ''));
   }
+
+  // #1618 — the hover step is picked against the OVERRIDDEN label ink, not the derived one. No corpus
+  // brand overrides `interactive.<c>.text.hover`, so the corpus arm above cannot see which ink the pick
+  // read. Here a synthetic brand pins its light hover ink to a primary step that clears its bar on the bare
+  // page but NOT on the nominal 20% composite — chosen HERE with `mixHex`, from nothing the engine picked.
+  // The derived ink clears the nominal, so a pick made against it stays at 20 and this arm fails by name;
+  // a pick made against the override steps down to the largest step (on the scale authored below) whose
+  // composite the pinned ink survives. BY-NAME MUTATION (the #1618 defect, reintroduced): make
+  // `settleSolidTint`'s `cells` read the ink from `resolveAllModes({ ...theme, overrides: undefined })[mi]`,
+  // the derived ink, instead of the settled `m` → this arm, and only this arm, fails (opacity.20, want .10).
+  {
+    const inp = { id: 'i1618', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+    const DOWN = [20, 10, 5];   // the hover's text-guard walk, nominal first — authored, not imported
+    const lightOf = (ov?: object) => resolveAllModes({ ...brandTheme({ ...inp, ...(ov ? { overrides: { light: ov } } : {}) } as any), outlineInteraction: 'solid-tint' as const })
+      .find((m) => m.mode === 'light')!.roles;
+    const base = lightOf();
+    const pal = brandTheme(inp as any).roleToPalette.action;
+    const steps = (brandTheme(inp as any).palettes.find((p) => p.palette === pal)?.steps ?? []) as Array<{ key: string; rgb: RGB }>;
+    const fillHex = base['interactive.primary.fill.rest'].hex, groundHex = base['background.primary'].hex;
+    const min = base['interactive.primary.text.hover'].min;
+    const survives = (inkHex: string, s: number) => contrast(hexToRgb(inkHex), hexToRgb(mixHex(fillHex, groundHex, s / 100))) >= min;
+    // the pin: legible on the bare page, illegible on the nominal composite, legible on SOME step of the walk
+    const pin = steps.find((s) => contrast(s.rgb, hexToRgb(groundHex)) >= min && !survives(hex(s.rgb), DOWN[0]) && DOWN.some((d) => survives(hex(s.rgb), d)));
+    const derivedStep = base['interactive.primary.subtle-fill.hover'].tint?.opacity;
+    ok(!!pin && derivedStep === DOWN[0] && survives(base['interactive.primary.text.hover'].hex, DOWN[0]),
+      `#1618 precondition: a primary step exists that fails the nominal composite, and the derived ink holds the nominal (pin ${pin?.key}, derived step ${derivedStep})`);
+    if (pin) {
+      const ov = lightOf({ 'interactive.primary.text.hover': { palette: pal, step: pin.key } });
+      const inkHex = ov['interactive.primary.text.hover'].hex;
+      const got = ov['interactive.primary.subtle-fill.hover'].tint?.opacity;
+      const want = DOWN.find((d) => survives(inkHex, d));
+      ok(inkHex.toLowerCase() === hex(pin.rgb).toLowerCase() && got === want,
+        `#1618 solid-tint picks the hover step against the OVERRIDDEN label ink (${inkHex}): opacity.${got}, want opacity.${want} — the derived ink held opacity.${derivedStep}`);
+    }
+  }
 }
 
 // (11) EMIT-FIGMA COLOUR (docs/10) — buildFigmaColor(nbTheme) must reproduce the frozen
@@ -10081,6 +10116,24 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       }
     }
     ok(refsRead > 50, `component-refs: the id lists are live (${refsRead} entries read) — a scan over empty lists asserts nothing`);
+
+    // (a2) #1238 — `composesWith` FOLLOWS `nests`. Every component a def's anatomy nests is one it composes
+    // with. The oracle is `anatomy.parts[*].nests`: derived from the build plan, never from the list under
+    // test. Before this, the button family and text-field nested `focus-ring` while leaving it out of
+    // `composesWith`, and checkbox/radio/switch listed it — a split that followed no property. A def with no
+    // anatomy yet (textarea) has no `nests` to read, so this arm cannot see it; its list is kept by hand
+    // until its anatomy lands. BY-NAME MUTATION: drop 'focus-ring' from `button`'s `composesWith` → this
+    // arm fails, naming button and its two variants.
+    let nestsRead = 0;
+    for (const def of componentDefs) {
+      const cw = new Set(def.composition?.composesWith ?? []);
+      const nested = new Set(Object.values(def.anatomy?.parts ?? {}).map((p) => (p as { nests?: string }).nests).filter((n): n is string => !!n));
+      for (const n of nested) {
+        nestsRead++;
+        ok(cw.has(n), `component-refs: ${def.id} nests '${n}' in its anatomy but its composition.composesWith leaves it out — a nested component is one it composes with (#1238)`);
+      }
+    }
+    ok(nestsRead >= 15, `component-refs: the nests side is live (${nestsRead} nested parts read) — an arm over no nests asserts nothing`);
 
     const retired = new Map<string, string>();
     for (const d of componentDefs) for (const a of d.aliases ?? []) if (d.id.startsWith(`${a}-`) && !ids.has(a)) retired.set(a, d.id);

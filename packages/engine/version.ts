@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.149.0 — #1393: the paste/MCP-console executor (`PAYLOAD_BUILD`) gains a `claimDefaults` pass, the twin of
+ * 0.151.0 — #1393: the paste/MCP-console executor (`PAYLOAD_BUILD`) gains a `claimDefaults` pass, the twin of
  * the plugin executor's #865 neutralizer, kept in lockstep (same properties, values and carve-outs, including
  * the set's #1430 preserved framing). Before it, every frame whose plan declared no fill (outline/text at
  * rest) and every frame whose declared fill could not resolve kept `createFrame()`'s opaque white on a console
@@ -2935,6 +2935,19 @@
  * re-applies it after the pass, as the plugin does. No `out/**` artifact carries the payload, so the emission
  * is stamp-only; the payload a consumer pastes changes behavior → ENGINE bump. CONTRACT STANDS (no token name
  * or projected member moves).
+ * 0.150.0 — #991, #1463: `lint-us-english`'s rule widened to the en-GB classes it was blind to (`-oured`/
+ * `-ourite`/`-ourable`, `-ogue`, `-ence` nouns, `-yse`, `artefact` and the other letter swaps, and the reverse
+ * single-L class), and every spelling it then found in shipped text respelled to en-US: `catalogue` →
+ * `catalog`, `licence` → `license`, `artefact` → `artifact`, `honoured` → `honored`, `colouring` →
+ * `coloring`. Meaning identical, letters moved. `radio-row`'s shipped `focus` doc prose, the generated
+ * `icon-glyphs.ts` header and the `prism3-consume` skill move → ENGINE bump. CONTRACT STANDS (no token
+ * name or component member moves; `token-contract --check` level `none`).
+ * 0.149.0 — #1238: `composition.composesWith` follows `anatomy.parts[*].nests`. The button family (`button`,
+ * `button-destructive`, `button-neutral`, `icon-button` and its two variants) and `text-field` nested the
+ * focus ring while leaving it out of `composesWith`; they now list it, and `textarea` (no anatomy yet, binds
+ * the ring) lists it by hand. A new `test.ts` arm fails any def whose anatomy nests a component its list
+ * leaves out. The def strings ship in the plugin bundle and the `.ai.json` registry → ENGINE bump; no token
+ * or projected component member moves. CONTRACT STANDS.
  *
  * 0.148.0 — owner decision 2026-09-24 ("Setting should cover destructive"): the `strictInteractiveContrast`
  * lever now swaps EVERY brand-ink inverse label to the neutral extreme — destructive's danger ink as well as
@@ -3575,7 +3588,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.149.0';
+export const ENGINE_VERSION = '0.151.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
