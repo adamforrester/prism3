@@ -76,6 +76,25 @@ the **default** projection. Three properties of it are decisions rather than imp
 Like the contract baseline below, it is **never a `regen.ts` artifact** and only an explicit `--accept`
 writes it — for the identical reason, spelled out in that section.
 
+### Host executors: the bump follows where the change lives (#1396)
+
+> **A change to a host executor bumps `ENGINE_VERSION` if and only if it changes engine behavior, which
+> means it touches `packages/engine/`.** An executor change confined to a surface bundle (`apps/plugin/*`,
+> `apps/studio/*`) does not bump: the engine produced the same plan, and the surface consumed it
+> differently.
+
+The worked pair, both executor changes with a byte-identical emitted plan:
+
+| PR | what changed | bumped? |
+|---|---|---|
+| #1394 | only `apps/plugin/*` — the plugin executor, its shim and its test | no (the #1386 / #1390 precedent) |
+| #1395 | `packages/engine/anatomy-figma.ts` — the engine's paste payload | yes, 0.75.0 → 0.76.0 |
+
+No gate makes this call. An executor-only change moves nothing under `out/**` except the
+`$extensions.generator.version` stamp that the bump itself moves, and nothing in the projected component
+surface, so `lint-emission-version.ts` and `lint-component-surface.ts` pass either way. It is a versioning
+judgment, and this is the rule for making it.
+
 ## What "guaranteed" means, and why it needed defining
 
 The emitted token set is input-dependent. A brand declaring three extra brand colors emits three

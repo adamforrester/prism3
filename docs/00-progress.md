@@ -9,7 +9,7 @@
 
 ## (2026-09-25) — `lint-us-english` catches the en-GB spellings it was blind to (#991, #1463)
 
-**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.149.0 (shipped prose respelled); CONTRACT stands (no token name moves). Files: `packages/engine/prose-rules.ts` (the rule), `lint-us-english.ts` (SELF_CHECK samples + header trap 7), the respelled sources (`components/radio-row.ts`, `emit-icons.ts`, `schema/payload-manifest.json`, `README.md`, `skills/prism3-consume/SKILL.md`, `apps/studio/src/main.ts`, `styles.css`), `version.ts`, regenerated `out/**` + `icon-glyphs.ts`.
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.150.0 (shipped prose respelled); CONTRACT stands (no token name moves). Files: `packages/engine/prose-rules.ts` (the rule), `lint-us-english.ts` (SELF_CHECK samples + header trap 7), the respelled sources (`components/radio-row.ts`, `emit-icons.ts`, `schema/payload-manifest.json`, `README.md`, `skills/prism3-consume/SKILL.md`, `apps/studio/src/main.ts`, `styles.css`), `version.ts`, regenerated `out/**` + `icon-glyphs.ts`.
 
 **The two holes.** (#991) `PATTERN`'s `-ise` arm listed its inflections and its `-our` arm allowed only `s`, so `coloured`, `honoured`, `favourite` and `honourable` passed. (#1463) Six classes sat outside every shape: `-ogue` (`catalogue`), `-ence` nouns (`licence`, `defence`), `-yse` (`analysed`), letter swaps (`artefact`, `aluminium`, `tyre`, `mould`, …), and the reverse single-L class (`skilful`, `fulfil`, `enrol`, `instalment`), which `DOUBLE_L` cannot see because it looks for the doubled form. The `-our` arm now takes `ed|ing|ings|ful|less|able|ably|ite|ites`. `EN_GB_WORDS` takes the letter swaps, `-ogue` and `-ence`. Two new shapes, `YSE` and `SINGLE_L`, cover the rest. Each is sampled in both directions in SELF_CHECK.
 
@@ -20,6 +20,21 @@
 **Mutations, by name.** Subject side: planting each of `brand-coloured`, `catalogue`, `licence`, `artefact`, `analysed`, `skilful` in the gated engine README fails the gate naming the word (exit 1); the same words give 0 hits under `origin/main`'s `enGb`. Rule side: stripping the `-our` inflections, dropping `EN_GB_WORDS`, `YSE` or `SINGLE_L` from `enGb`'s loop, or removing `contoured` or `analyses` from `NOT_EN_GB` each fails SELF_CHECK naming the sample.
 
 **Trap for re-verifiers.** `PATTERN` needs 3+ letters before `our`, so `poured`/`toured`/`scoured` can never match. A first draft listed them in `NOT_EN_GB`. The mutation that removed `poured` stayed green, which showed the entries were dead, so they were dropped. An exemption whose removal changes nothing is not an exemption.
+## (2026-09-25) — Stale-issue sweep: five issues closed as already fixed, six fixed here
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.149.0 (MINOR: def strings in the plugin bundle and `.ai.json` move); CONTRACT stands at 12.0.0 (no token name moves).
+
+**Closed as already fixed, with evidence on the issue:** #1624 (Figma opacity rows now read `N% opacity` from `figmaOpacityDescription`, #1645; 0 of 36 rows carry a multiplier), #1615 (the palette-step walk it described is gone; #1614/#1630's `settleSolidTint` steps along the opacity scale and its comment matches), #1095 and #1091 (the `surface` collection and `MIRRORED_COLLECTIONS` were deleted in #1148/#1153, with the unfalsifiable arm), #1405 (`radio-control.ts`'s `notes.unverified` now says the dot paints one value and holds still under press). #1618 was already fixed in code, but no test covered it, so this PR adds one (below).
+
+**Fixed here:**
+- **#1618, a test for a fix that had none.** `settleSolidTint` reads settled roles, so an override on the label ink is what the hover tint is picked against. No corpus brand overrides `text.hover`, so no arm could see which ink the pick read. The new arm pins a synthetic brand's light hover ink to a primary step that clears the bare page but not the 20% composite, and expects the step down to 10. The step is chosen in the test with `mixHex`, independent of the engine.
+- **#1238, `composesWith` follows `nests`.** The owner's lane brief settled the meaning: the list follows `nests`. Seven defs nested `focus-ring` without listing it (the button family, the icon-button family, `text-field`). They now list it, `textarea` lists it by hand (it has no anatomy), and a `test.ts` arm (component-refs a2) fails any def whose anatomy nests a component its list leaves out. The list is not symmetric (32 one-way pairs, e.g. `veil` lists `icon` and `icon` does not list `veil`), so only the forward direction is gated.
+- **#1264:** `write-components.ts`'s "no placeholder" docstring now covers in-flow nests. Behavior is unchanged.
+- **#1258:** the PR template names the three git-history gates rather than calling one "the only" one.
+- **#1396:** `docs/30` states the executor-bump rule (bump if and only if `packages/engine/` changed), with #1394/#1395 as the worked pair.
+- **#975:** `lint-us-english.ts`'s header no longer carries the "OPEN" #849 paragraph or its false "cannot see" premise.
+
+**Trap for re-verifiers.** The first mutation tried for #1618 (read `text.rest` in place of `text.hover`) moved every brand's tint and failed eight arms, including the new arm's *precondition*, so it proved nothing about the new assertion. The honest mutation reintroduces the defect itself: read the ink from `resolveAllModes({ ...theme, overrides: undefined })`. That fails only the new arm, by name. When a fix has already landed, mutate back to the defect, not to something nearby.
 
 ---
 

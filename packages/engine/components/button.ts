@@ -603,7 +603,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   },
 
   composition: {
-    composesWith: ['icon'],
+    composesWith: ['icon', 'focus-ring'],
     alternativeTo: ['icon-button', 'switch-row'],
     planned: ['spinner', 'tooltip', 'button-group', 'menu', 'popover', 'link', 'link-button', 'toggle-button', 'split-button', 'chip'],
     replacesPatterns: ['input[type=button|submit]', 'div[role=button]'],
