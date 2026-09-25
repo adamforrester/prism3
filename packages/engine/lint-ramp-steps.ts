@@ -80,8 +80,13 @@
  * limit: it would fail unpredictably on refactors and teach people to widen its exemptions.
  *
  * The consumption half also carries a proximity heuristic — a 60-line window standing in for "the same
- * enclosing function", which text cannot compute. It is bounded on the safe side: too small a window
- * UNDER-collects, so a ramp falls back to the name anchor rather than a non-ramp being demanded.
+ * enclosing function", which text cannot compute. THE WINDOW is bounded on the safe side: too small a
+ * window UNDER-collects, so a ramp falls back to the name anchor rather than a non-ramp being demanded.
+ * That safety is the window's alone, not the anchor's (#1192). The anchor itself cannot tell a token
+ * path from any other dotted template, so it DOES demand non-ramps — a constant iterated into
+ * `` `panel.${k}` `` comes back UNCLASSIFIED, measured on a fresh constant. The cost is stated where the
+ * anchor is defined (WHAT THE CONSUMPTION ANCHOR DRAGS IN, below): a loud failure and one exempt line,
+ * never a false pass.
  *
  * That a step resolves to the RIGHT px. Arm A proves the name exists in the ladder; the value the
  * studio then reads comes from `rp.dims`, which is a different map with a different scope, and that
@@ -261,9 +266,10 @@ const discoverByName = (src: string): string[] =>
  * `SHADOW_STEPS` uses — followed within the same block by `` `<prefix>.${V}` ``.
  *
  * The 60-line window is a proximity heuristic and is the honest weak point of this half: it stands in
- * for "the same enclosing function", which a text scan cannot compute. It is bounded on the safe side
- * — too small a window UNDER-collects, which means a ramp escapes to the name anchor rather than a
- * non-ramp being wrongly demanded. It never invents a subject.
+ * for "the same enclosing function", which a text scan cannot compute. The WINDOW is bounded on the
+ * safe side — too small a window UNDER-collects, which means a ramp escapes to the name anchor rather
+ * than a non-ramp being wrongly demanded; the window never invents a subject. The prefix match does:
+ * any dotted template counts, so a non-ramp iterated into one is demanded and must be exempted (#1192).
  */
 const discoverByConsumption = (src: string): { name: string; prefix: string }[] => {
   const lines = src.split('\n');

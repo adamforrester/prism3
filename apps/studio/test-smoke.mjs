@@ -173,6 +173,13 @@ const LEGIBILITY_PROBE = (rootSel) => {
       ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
       cls: name(el),
       text: [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(' ').slice(0, 44),
+      // What classifies the node (#779): its size and weight decide WCAG's normal/large bar, and the render
+      // site's own `data-specimen` decides whether it is chrome at all. `inlineInk` is NOT a classifier —
+      // it is the audit of the marker, compared against it below.
+      px: parseFloat(cs.fontSize),
+      weight: Number(cs.fontWeight),
+      specimen: el.closest('[data-specimen]') !== null,
+      inlineInk: (() => { for (let n = el; n; n = n.parentElement) if (n.style?.color) return true; return false; })(),
     });
   }
 
@@ -222,6 +229,34 @@ const LEGIBILITY_PROBE = (rootSel) => {
  * written-in one would.
  */
 const CONTRAST_FLOOR = 2.0;
+
+/**
+ * CHROME IS HELD TO WCAG; SPECIMENS STAY ON THE FLOOR ABOVE (#779, defect 2).
+ *
+ * 2.0 was set from #555's four fixed-ground families at 1.00–1.61:1, and #555's FIFTH passes it: a legal
+ * `--faint` faded through `opacity: .75` on `.mo-playnote`, rendering at 3.12:1. The floor was reasoned and
+ * one case short, and the reason it could go no higher was the specimens — a disabled label previewed at
+ * `disabledMin` is the engine working, and AA over it would fail the suite on that. So the two are split
+ * by the render site's own `data-specimen` marker (`specimen()` in `main.ts`), not by a classifier here:
+ *
+ *  - CHROME — the studio's own text — is held to WCAG 1.4.3: 4.5:1, or 3:1 for large text (≥ 24px, or
+ *    ≥ 18.66px at weight ≥ 700; 18pt / 14pt bold). `.mo-playnote`'s 3.12 fails it.
+ *  - SPECIMENS stay on `CONTRAST_FLOOR`, the "invisible" band. Holding each to the contract it previews
+ *    needs a map from specimen to contract, which is a decision this file does not make on its own.
+ *
+ * AND THE MARKER IS AUDITED, because a specimen someone forgot to mark would be held to AA and fail
+ * loudly — fine — but chrome someone MIS-marked would silently drop to 2.0. So every text node whose ink
+ * comes from an inline style must sit under `[data-specimen]`: inline ink is what every specimen in the
+ * studio paints with and no chrome does, measured over the whole sweep when this landed. The marker is
+ * the classification; inline ink is the second, independent reading that checks it.
+ *
+ * If this bar fails on a page `lint:contrast` passes, that is a FINDING — rendered output diverging from
+ * declared tokens — and it is filed, never tuned back to green.
+ */
+const CHROME_TEXT_MIN = 4.5;
+const CHROME_LARGE_TEXT_MIN = 3;
+const isLargeText = (r) => r.px >= 24 || (r.px >= 18.66 && r.weight >= 700);
+const barOf = (r) => (r.specimen ? CONTRAST_FLOOR : isLargeText(r) ? CHROME_LARGE_TEXT_MIN : CHROME_TEXT_MIN);
 
 /**
  * NON-EMPTY FLOORS — DID THE SWEEP LOOK? (#779, defect 1.)
@@ -347,6 +382,9 @@ console.log(`\nSweep — every page × mode × brand\n${'='.repeat(78)}`);
 let worstRatio = Infinity;
 let worstWhere = '';
 let nodesMeasured = 0;
+let specimensMeasured = 0;
+let worstChrome = Infinity;
+let worstChromeWhere = '';
 let fieldsMeasured = 0;
 let statesVisited = 0;
 
@@ -467,6 +505,17 @@ for (const brand of BRANDS) {
       for (const r of rows) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} "${r.text}"`; }
       ok(under.length === 0, `${where}: every one of ${rows.length} text nodes clears ${CONTRAST_FLOOR}:1${
         under.length ? ` — ${under.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1`).join(' | ')}` : ''}`);
+      // Chrome at its real bar (#779). Reported per node with the bar it missed, so a large-text pass
+      // and a normal-text failure are never read as the same thing.
+      const chrome = rows.filter((r) => !r.specimen);
+      specimensMeasured += rows.length - chrome.length;
+      for (const r of chrome) if (r.ratio < worstChrome) { worstChrome = r.ratio; worstChromeWhere = `${where} — ${r.cls} "${r.text}"`; }
+      const chromeUnder = chrome.filter((r) => r.ratio < barOf(r));
+      ok(chromeUnder.length === 0, `${where}: every one of ${chrome.length} chrome text nodes meets WCAG 1.4.3 (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large)${
+        chromeUnder.length ? ` — ${chromeUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
+      const unmarked = rows.filter((r) => r.inlineInk && !r.specimen);
+      ok(unmarked.length === 0, `${where}: every node inked by an inline style is marked data-specimen at its render site${
+        unmarked.length ? ` — ${unmarked.slice(0, 3).map((u) => `${u.cls} "${u.text}"`).join(' | ')}: wrap it in specimen() where it is painted, or it is held to the chrome bar as if the studio chose that color` : ''}`);
 
       // --- rendered contrast, form controls (#1031) ---------------------------------------------
       // NO PER-STATE FLOOR HERE, deliberately: a derived mode replaces the whole editor with the
@@ -491,12 +540,19 @@ ok(statesVisited >= SWEEP_STATE_FLOOR,
   `the sweep visited ${statesVisited} page × mode × brand states (floor ${SWEEP_STATE_FLOOR} = 2 brands × 2 modes × 8 pages)`);
 ok(nodesMeasured >= SWEEP_NODE_FLOOR,
   `the sweep measured ${nodesMeasured} text nodes in total (floor ${SWEEP_NODE_FLOOR})`);
+// Both classes REPRESENTED, or the split is vacuous: zero specimens means the marker stopped reaching the
+// DOM and every specimen is being judged as chrome (loud) — or the probe stopped reading it; zero chrome
+// means every node was marked and the WCAG bar judged nothing.
+ok(specimensMeasured > 0 && nodesMeasured - specimensMeasured > 0,
+  `the sweep measured both classes — ${specimensMeasured} specimen and ${nodesMeasured - specimensMeasured} chrome text nodes (#779)`);
 ok(fieldsMeasured >= SWEEP_FIELD_FLOOR,
   `the sweep measured ${fieldsMeasured} form controls in total (floor ${SWEEP_FIELD_FLOOR})`);
 
 console.log(`\n  ${statesVisited} page × mode states, ${nodesMeasured} text nodes, ${fieldsMeasured} form controls measured.`);
-console.log(`  Lowest rendered contrast anywhere: ${worstRatio}:1 (floor ${CONTRAST_FLOOR.toFixed(1)}:1)`);
+console.log(`  Lowest rendered contrast anywhere: ${worstRatio}:1 (specimen floor ${CONTRAST_FLOOR.toFixed(1)}:1)`);
 console.log(`    ${worstWhere}`);
+console.log(`  Lowest chrome text: ${worstChrome}:1 (bar ${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large) — ${specimensMeasured} of ${nodesMeasured} nodes are specimens`);
+console.log(`    ${worstChromeWhere}`);
 
 // =============================================================================================
 // 2. The controls — driven, not merely rendered
@@ -1540,7 +1596,8 @@ for (const brand of BRANDS) {
 // already sweeps those. Light is the mode with editors rather than the read-only `.genview` note.
 console.log(`\nThe outline edge (#576)\n${'='.repeat(78)}`);
 
-// 3 families × 2 contexts, and no corpus brand ships an accent column — so this is the whole set, and
+// 3 families × 2 contexts, and no corpus brand ships an accent column — so this is the whole set (asserted
+// against the rendered page after the loop, #1245), and
 // asserting each by name beats a count that a brand with an extra palette would inflate into a pass.
 const EDGE_FAMILIES = ['primary', 'neutral', 'destructive'];
 // Which families' border states WALK. Read from the engine's behavior, restated here on purpose: this is
@@ -1612,6 +1669,22 @@ for (const brand of BRANDS) {
       notes.push(`${fam}${inverse ? '·inv' : ''} ${EDGE_WALKS.has(fam) ? 'walks' : 'holds'}`);
     }
   }
+
+  // THE SET IS CLOSED, asserted rather than assumed (#1245). The loop above visits only the families it
+  // was handed, so a fourth interactive column would render two Border rows this section never reads —
+  // zero coverage and a green run. Enumerate every Border row the PAGE renders, from its token pill, and
+  // require the families found to be exactly EDGE_FAMILIES, each in both contexts. The page and the
+  // authored list are the two sides; deriving the list from the page would compare it with itself.
+  const rendered = await page.evaluate(() => [...document.querySelectorAll('.arow .tpill')]
+    .map((t) => /(?:^|\.)color\.(inverse\.)?interactive\.([a-z0-9-]+)\.border\.rest$/.exec(t.getAttribute('title') ?? t.textContent ?? ''))
+    .filter(Boolean).map((m) => `${m[2]}${m[1] ? ' · inverse' : ''}`));
+  const expectedEdges = EDGE_FAMILIES.flatMap((f) => [f, `${f} · inverse`]);
+  const unvisited = [...new Set(rendered)].filter((k) => !expectedEdges.includes(k));
+  const unrendered = expectedEdges.filter((k) => !rendered.includes(k));
+  ok(unvisited.length === 0 && unrendered.length === 0 && rendered.length === expectedEdges.length,
+    `${brand}: the page renders exactly ${expectedEdges.length} Border rows, one per EDGE_FAMILIES family × {page, inverse} `
+    + `(rendered ${rendered.length}${unvisited.length ? `; NOT VISITED by this section: ${unvisited.join(', ')} — add the family to EDGE_FAMILIES` : ''}`
+    + `${unrendered.length ? `; missing: ${unrendered.join(', ')}` : ''})`);
 
   // The other direction of the CSS change, which none of the assertions above can see: `--ibtn-bw` is set
   // --- THE DIVERGENCE, driven on primary --------------------------------------------------------
@@ -2117,7 +2190,8 @@ const SUMMARY_ROWS = 25;
 const summaryPath = process.env.GITHUB_STEP_SUMMARY;
 if (summaryPath) {
   const stats = `${statesVisited} page × mode × brand states · ${nodesMeasured} text nodes · ${fieldsMeasured} form controls · `
-    + `lowest rendered contrast ${worstRatio}:1 against a ${CONTRAST_FLOOR.toFixed(1)}:1 floor`;
+    + `lowest rendered contrast ${worstRatio}:1 against a ${CONTRAST_FLOOR.toFixed(1)}:1 floor, lowest chrome text ${worstChrome}:1 against WCAG `
+    + `(smoke floors — conformance is \`lint:contrast\`)`;
   const md = failed
     ? [
         `### ❌ Studio smoke suite — ${failed} of ${executed} assertions failed`,

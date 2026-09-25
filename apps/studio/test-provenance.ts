@@ -271,5 +271,24 @@ ok(ALL_ORIGINS.filter((o) => o.kind === 'none').length === 1,
   'exactly one origin is the empty state ("new brand" is a LOADED blank, not the absence of an origin)');
 
 // =============================================================================================
+// 5. A provenance is never mutated in place (#1200)
+// =============================================================================================
+// The plugin's start-screen guard compares `provenance === bootProvenance` BY IDENTITY, which reads as
+// "nothing chosen yet" only while provenance is reassigned and never mutated. `readonly` covers a plain
+// field assignment at compile time; these cover every route around it, at run time.
+{
+  const p = provenanceOf({ kind: 'example', id: 'aurora' }, aurora);
+  const throws = (f: () => void): boolean => { try { f(); return false; } catch { return true; } };
+  ok(Object.isFrozen(p), 'a provenance is frozen — a new origin must be a new object (#1200)');
+  ok(throws(() => Object.assign(p, { origin: { kind: 'none' } })),
+    'Object.assign onto a provenance throws rather than silently keeping its identity (#1200)');
+  ok(throws(() => { (p.origin as { kind: string }).kind = 'none'; }),
+    "the origin inside a provenance cannot be edited in place (#1200)");
+  ok(throws(() => { (p.baseline as unknown as Record<string, unknown>).id = 'edited'; }),
+    'the baseline inside a provenance cannot be edited in place (#1200)');
+  ok(p.origin.kind === 'example' && p.baseline.id === aurora.id, 'and every attempt above left the provenance as it was');
+}
+
+// =============================================================================================
 console.log(`\n${failed === 0 ? '✅ ALL PASS' : `❌ ${failed} FAILED`} — ${executed} assertions executed`);
 process.exit(failed === 0 ? 0 : 1);

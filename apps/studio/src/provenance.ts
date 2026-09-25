@@ -71,11 +71,25 @@ export interface Provenance {
   readonly baseline: BrandInput;
 }
 
-/** Record a load. `input` is cloned, so a later mutation of the caller's object cannot move the baseline. */
-export const provenanceOf = (origin: Origin, input: BrandInput): Provenance => ({
-  origin,
-  baseline: structuredClone(input),
-});
+/** Record a load. `input` is cloned, so a later mutation of the caller's object cannot move the baseline.
+ *
+ *  FROZEN, deep, and that is load-bearing rather than defensive (#1200). The plugin's start-screen guard
+ *  in `main.ts` is `provenance === bootProvenance` — identity, not value — and identity means "nothing
+ *  has been chosen yet" ONLY while every change of origin REASSIGNS `provenance` and nothing mutates one
+ *  in place. `readonly` states that to the type checker, which stops `provenance.origin = …`; it does
+ *  not stop `Object.assign(provenance, …)`, a cast, or an edit reaching into `baseline`, and any of
+ *  those would re-open the late-empty-restore bug with every value still correct. The freeze makes each
+ *  of them throw (ES modules are strict), and `test-provenance.ts` asserts it. */
+export const provenanceOf = (origin: Origin, input: BrandInput): Provenance =>
+  deepFreeze({ origin: structuredClone(origin), baseline: structuredClone(input) });
+
+const deepFreeze = <T>(v: T): T => {
+  if (v !== null && typeof v === 'object' && !Object.isFrozen(v)) {
+    Object.freeze(v);
+    for (const k of Object.keys(v)) deepFreeze((v as Record<string, unknown>)[k]);
+  }
+  return v;
+};
 
 /** The empty state: no origin, and a baseline nothing can be dirty against. */
 export const noOrigin = (input: BrandInput): Provenance => provenanceOf({ kind: 'none' }, input);

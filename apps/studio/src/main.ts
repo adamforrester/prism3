@@ -811,6 +811,11 @@ commit.onHostMessage((m) => {
     // would discard a choice they just made. `loadBrand` assigns a new provenance for every one of
     // those paths, so this identity check is exactly "nothing has been chosen yet".
     //
+    // THE INVARIANT THIS RESTS ON (#1200): provenance is only ever REASSIGNED, never mutated in place.
+    // Mutate it and identity survives while the meaning changes — the value would still be right and
+    // this guard would discard a chosen brand again. It is enforced, not just stated: the fields are
+    // `readonly` and `provenanceOf` deep-freezes what it returns, asserted in `test-provenance.ts`.
+    //
     // The value-based version of this guard was written first and was WRONG: boot's placeholder origin
     // is `example/aurora`, so "origin is example/aurora and nothing is dirty" also reads true straight
     // after a designer clicks the aurora chip. A late empty-restore then threw away the brand they had
@@ -1064,6 +1069,14 @@ const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
 const VIEW_ONLY = 'data-view-only';
 /** Tag `c` as a view-state control and return it, so it can wrap the control at construction. */
 const viewOnly = <T extends HTMLElement>(c: T): T => { c.setAttribute(VIEW_ONLY, ''); return c; };
+/** A SPECIMEN: an element whose ink is the BRAND's, previewed — as against the studio's own chrome (#779).
+ *  The smoke suite holds chrome text to WCAG (4.5:1, 3:1 large) and a specimen to the contract of what it
+ *  previews, and it cannot tell the two apart from class names: prefixes are per-surface, so `sg-lab` is a
+ *  specimen and `sg-rn` beside it is chrome. The render site knows, so the render site says — the same
+ *  reasoning, and the same shape, as `viewOnly` above. Every site that paints ink from a brand token calls
+ *  this; `test-smoke.mjs` fails on inline ink it finds unmarked, so a new specimen cannot land as chrome. */
+const SPECIMEN = 'data-specimen';
+const specimen = <T extends HTMLElement>(e: T): T => { e.setAttribute(SPECIMEN, ''); return e; };
 /** Value editors only — what the three-state badge and `mode-audit.mjs` both mean by "a control".
  *  `button` is excluded because the buttons in these sections play a motion preview or expand a
  *  disclosure; `[data-view-only]` because a playback speed is not a token. */
@@ -1957,8 +1970,8 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     const cw = el('div', 'sg-cw');
     const card = el('div', 'sg-card'); card.style.background = paint(cur, k);
     if (fails(cur, k)) card.append(el('span', 'sg-failmk', '!'));
-    const lab = el('div', 'sg-lab', label); lab.style.color = paint(cur, inkRole); card.append(lab);
-    if (sub) { const sb = el('div', 'sg-sub', sub); sb.style.color = paint(cur, inkRole); card.append(sb); }
+    const lab = el('div', 'sg-lab', label); specimen(lab).style.color = paint(cur, inkRole); card.append(lab);
+    if (sub) { const sb = el('div', 'sg-sub', sub); specimen(sb).style.color = paint(cur, inkRole); card.append(sb); }
     cw.append(card, pills(sgPill(k), ...extra));
     return cw;
   };
@@ -1975,7 +1988,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     card.style.background = paint(cur, 'background.primary');
     const dim = el('div', 'sg-scrimdim'); dim.style.background = paint(cur, k);
     const panel = el('div', 'sg-scrimpanel'); panel.style.background = paint(cur, 'foreground.primary');
-    const lab = el('div', 'sg-lab', 'Modal'); lab.style.color = paint(cur, 'text.primary');
+    const lab = el('div', 'sg-lab', 'Modal'); specimen(lab).style.color = paint(cur, 'text.primary');
     panel.append(lab); dim.append(panel); card.append(dim);
     cw.append(card, pills(sgPill(k)));
     return cw;
@@ -1991,7 +2004,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     const cw = el('div', 'sg-cw');
     const card = el('div', 'sg-card sg-icard');
     if (bgRole) { card.style.background = paint(cur, bgRole); card.style.border = 'none'; }
-    const ico = el('span', 'sg-ico'); ico.style.color = paint(cur, k); ico.innerHTML = SG_ICON; card.append(ico);
+    const ico = el('span', 'sg-ico'); specimen(ico).style.color = paint(cur, k); ico.innerHTML = SG_ICON; card.append(ico);
     cw.append(card, pills(sgPill(k)));
     return cw;
   };
@@ -2128,9 +2141,9 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   const secText = palSection('Text color', 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.');
   const curLabel = MODE_LABEL[cur] ?? cur, oppLabel = MODE_LABEL[opp] ?? opp;
   const lbg = paint(cur, 'background.primary'), dbg = paint(opp, 'background.primary');
-  const tcHead = (txt: string, cls: string, color: string): HTMLElement => { const d = el('div', `sg-tc ${cls} sg-tchd`, txt); d.style.color = color; return d; };
+  const tcHead = (txt: string, cls: string, color: string): HTMLElement => { const d = el('div', `sg-tc ${cls} sg-tchd`, txt); specimen(d).style.color = color; return d; };
   const tcCell = (nm: string, k: string, m: string, cls: string, ul: boolean): HTMLElement => {
-    const d = el('div', `sg-tc ${cls} sg-tcrow`); d.style.color = paint(m, k);
+    const d = el('div', `sg-tc ${cls} sg-tcrow`); specimen(d).style.color = paint(m, k);
     const sp = el('span', 'sg-samp', nm); if (ul) sp.style.textDecoration = 'underline'; d.append(sp);
     if (fails(m, k)) d.append(el('b', 'sg-fx', '!'));
     return d;
@@ -2187,8 +2200,8 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   const secDis = palSection('Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.');
   const disCards: HTMLElement[] = [];
   { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card'); c.style.background = paint(cur, 'disabled.fill'); cw.append(c, pills(sgPill('disabled.fill'))); disCards.push(cw); }
-  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card sg-mid'); c.style.background = paint(cur, 'disabled.fill'); const l = el('div', 'sg-lab', 'Disabled'); l.style.color = paint(cur, 'disabled.on-fill'); c.append(l); cw.append(c, pills(sgPill('disabled.on-fill'))); disCards.push(cw); }
-  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card sg-mid'); c.style.background = 'var(--panel)'; const l = el('div', 'sg-lab', 'Disabled'); l.style.color = paint(cur, 'disabled.text'); c.append(l); cw.append(c, pills(sgPill('disabled.text'))); disCards.push(cw); }
+  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card sg-mid'); c.style.background = paint(cur, 'disabled.fill'); const l = el('div', 'sg-lab', 'Disabled'); specimen(l).style.color = paint(cur, 'disabled.on-fill'); c.append(l); cw.append(c, pills(sgPill('disabled.on-fill'))); disCards.push(cw); }
+  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card sg-mid'); c.style.background = 'var(--panel)'; const l = el('div', 'sg-lab', 'Disabled'); specimen(l).style.color = paint(cur, 'disabled.text'); c.append(l); cw.append(c, pills(sgPill('disabled.text'))); disCards.push(cw); }
   disCards.push(borderCard('disabled.border'), iconCard('disabled.icon'));
   secDis.append(grid(5, disCards));
   host.append(ground(secDis));
@@ -2196,7 +2209,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // Interactive — button sets in rows
   const secInt = palSection('Interactive', 'Each interactive palette in three treatments — filled, outline, inverse — with its rest / hover / pressed set laid out in a row. Each button is tagged with its exact fill token; the treatment label carries the supporting token. Disabled is one shared, stateless set. This style guide covers Primary, Neutral and Destructive only — accent palettes aren’t shown here.');
   const STATES = ['rest', 'hover', 'pressed'];
-  const btn = (bg: string, fg: string, bd: string | null): HTMLElement => { const b = el('button', 'sg-btn', 'Button'); b.style.background = bg; b.style.color = fg; if (bd) b.style.borderColor = bd; return b; };
+  const btn = (bg: string, fg: string, bd: string | null): HTMLElement => { const b = el('button', 'sg-btn', 'Button'); b.style.background = bg; specimen(b).style.color = fg; if (bd) b.style.borderColor = bd; return b; };
   const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string): HTMLElement => { const c = el('div', 'sg-bcol'); c.append(btn(bg, fg, bd), el('span', 'sg-st', st), sgPill(fullkey, subpath)); return c; };
   const footLine = (lbl: string, p: HTMLElement): HTMLElement => { const s = el('span', 'sg-foothint'); s.append(document.createTextNode(lbl + ' '), p); return s; };
   const trow = (label: string, foot: HTMLElement[], cols: HTMLElement[], inv: boolean): HTMLElement => {
@@ -2673,7 +2686,7 @@ const wirePress = (n: HTMLElement): void => {
 const exGround = (dark: boolean): string => iRoles()[dark ? 'inverse.background.primary' : 'background.primary']?.hex ?? (dark ? '#0d0d10' : '#ffffff');
 const exBtn = (bg: string, fg: string, dark = false, label = 'Button', hover?: string, pressed?: string): HTMLElement => {
   const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
-  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', bg); b.style.color = fg;
+  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', bg); specimen(b).style.color = fg;
   if (hover) b.style.setProperty('--ibtn-hbg', hover);
   if (pressed) { b.style.setProperty('--ibtn-pbg', pressed); wirePress(b); }
   b.append(document.createTextNode(label), iconEl('arrow', fg));
@@ -2704,7 +2717,7 @@ const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string,
                    o: { ink?: string; icon?: string; hoverEdge?: string; pressedEdge?: string } = {}): HTMLElement => {
   const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
   const ink = o.ink ?? edge;
-  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', wash); b.style.color = ink;
+  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', wash); specimen(b).style.color = ink;
   b.style.setProperty('--ibtn-bw', '1.5px'); b.style.setProperty('--ibtn-bd', edge);
   if (o.hoverEdge) b.style.setProperty('--ibtn-hbd', o.hoverEdge);
   if (o.pressedEdge) b.style.setProperty('--ibtn-pbd', o.pressedEdge);
@@ -2718,8 +2731,8 @@ const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string,
 };
 const exIconLabel = (iconColor: string, textColor: string, dark = false): HTMLElement => {
   const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
-  const row = el('span', 'inote'); row.style.color = textColor;
-  const ic = el('span', 'inote-ic'); ic.style.color = iconColor; ic.append(iconEl('bell', iconColor));
+  const row = el('span', 'inote'); specimen(row).style.color = textColor;
+  const ic = el('span', 'inote-ic'); specimen(ic).style.color = iconColor; ic.append(iconEl('bell', iconColor));
   row.append(ic, document.createTextNode('Notifications')); box.append(row); return box;
 };
 /** Bare text on the panel — a specimen for a role rated against the PAGE rather than against a fill
@@ -2727,7 +2740,7 @@ const exIconLabel = (iconColor: string, textColor: string, dark = false): HTMLEl
  *  not measured against, which is the mistake the disabled section's own copy used to make in words. */
 const exTextOnPage = (color: string, label: string): HTMLElement => {
   const box = el('div', 'exbox'); box.style.background = exGround(false);
-  const t = el('span', 'inote', label); t.style.color = color;
+  const t = el('span', 'inote', label); specimen(t).style.color = color;
   box.append(t); return box;
 };
 /** The example column: an example box + an optional contrast receipt below it. */
@@ -6530,14 +6543,14 @@ const sfCtlBlock = (label: string, control: HTMLElement): HTMLElement => { const
 // smudge. The specimen's job here is to show the SURFACE and that its ink is legible on it; a swatch for
 // a role edited on another page was borrowing this one's evidence to say something else.
 const sfExSurface = (bg: string, label: string, textHex: string): HTMLElement => {
-  const ex = el('div', 'sf-ex sf-ex-surface'); ex.style.background = bg; ex.style.color = textHex;
+  const ex = el('div', 'sf-ex sf-ex-surface'); ex.style.background = bg; specimen(ex).style.color = textHex;
   ex.append(el('span', undefined, label)); return ex;
 };
 const sfExFill = (bg: string, label: string, fg?: string): HTMLElement => {
-  const ex = el('div', 'sf-ex sf-ex-fill'); ex.style.background = bg; if (fg) ex.style.color = fg; ex.textContent = label; return ex;
+  const ex = specimen(el('div', 'sf-ex sf-ex-fill')); ex.style.background = bg; if (fg) ex.style.color = fg; ex.textContent = label; return ex;
 };
 const sfExText = (inkHex: string, sample: string, surfaceHex: string): HTMLElement => {
-  const ex = el('div', 'sf-ex sf-ex-text'); ex.style.background = surfaceHex; ex.style.color = inkHex; ex.textContent = sample; return ex;
+  const ex = el('div', 'sf-ex sf-ex-text'); ex.style.background = surfaceHex; specimen(ex).style.color = inkHex; ex.textContent = sample; return ex;
 };
 
 // A per-section contrast table (doc 26: contrast in context) built from the resolved roles across every

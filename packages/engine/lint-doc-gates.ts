@@ -122,6 +122,16 @@
  *
  * Dependency-free per repo convention: a hand-rolled parser for `ci.yml`'s flat `- name: ... run: ...`
  * step structure, not a YAML library — see `lint-us-english.ts`/`lint-skills.ts` for the same choice.
+ *
+ * ── THE PRECONDITION: ci.yml PARSES AT ALL (#1213) ───────────────────────────────────────────────────
+ *
+ * That scrape cannot tell a workflow GitHub will run from one it refuses: #1205 shipped an unquoted `: `
+ * in a step name, the scrape matched it, and CI dispatched nothing — local-green, CI-dead, and a MISSING
+ * check rather than a red one. So before anything is scraped, `parseYamlSubset` parses the file strictly
+ * and the gate fails on anything outside the subset it understands. Its tree then checks the scrape:
+ * both must name the same steps in the same order. A missing check-run can have other causes that no
+ * tree property shows — #1222's was an unmergeable PR, for which GitHub computes no merge ref and so
+ * starts no run — so an absent `gates` check still means: read `mergeable_state` before the workflow.
  * The file's structure (one job, one flat `steps:` list, no nesting inside a step beyond `run:`/`with:`)
  * is simple enough that this is low-risk.
  */
@@ -311,6 +321,138 @@ export const parseSteps = (yaml: string): Step[] => {
     steps.push({ name, run });
   }
   return steps;
+};
+
+/**
+ * A STRICT parse of the block-YAML subset `ci.yml` is written in (#1213). `parseSteps` above is a scrape:
+ * it finds `- name:` lines and reads beneath them, and it matched #1205's new step happily while the file
+ * was unparseable — a step name with an unquoted `: ` inside it, which YAML refuses, so GitHub dispatched
+ * 0 jobs and the PR showed NO `gates` check rather than a red one. `verify.ts` runs the gates directly,
+ * never through `ci.yml`, so the whole local suite was green on a tree whose CI was dead.
+ *
+ * Dependency-free per repo convention, so this is not a YAML implementation — it is the SUBSET, and it
+ * refuses everything outside it rather than guessing: block mappings and sequences, `|`/`>` block scalars,
+ * single-line plain / single-quoted / double-quoted scalars, one-line flow sequences of scalars, and
+ * comments. Anchors, tags, multi-line flow, multi-line plain scalars, `? ` keys and tabs are all refused.
+ * Being STRICTER than YAML is the safe direction here: a false refusal is a loud, local failure that asks
+ * for a rewrite; a false acceptance is #1205.
+ *
+ * Returns the tree, or throws `YamlSubsetError` naming the 1-based line. The tree is also what makes the
+ * scrape checkable: the real run compares `parseSteps`' step names against this tree's, two readers of one
+ * file that share no code.
+ */
+export class YamlSubsetError extends Error {}
+type YamlValue = string | null | YamlValue[] | { [k: string]: YamlValue };
+
+export const parseYamlSubset = (text: string): YamlValue => {
+  type Line = { no: number; indent: number; body: string };
+  const raw = text.split('\n');
+  const fail = (no: number, why: string): never => { throw new YamlSubsetError(`ci.yml:${no}: ${why}`); };
+  // Lines that carry structure — blanks and whole-line comments are skipped here, but NOT inside a block
+  // scalar, which reads `raw` directly.
+  const lines: Line[] = [];
+  raw.forEach((l, i) => {
+    if (/^\s*\t/.test(l) || /^ *\t/.test(l)) fail(i + 1, 'a tab in indentation — YAML forbids it');
+    const t = l.trim();
+    if (!t || t.startsWith('#')) return;
+    lines.push({ no: i + 1, indent: l.length - l.trimStart().length, body: l.trimStart().replace(/\s+$/, '') });
+  });
+  let pos = 0;
+  // Block scalars are read from `raw` and advance `pos` past every structural line they swallowed.
+  const blockScalar = (keyLine: Line, parentIndent: number): string => {
+    const out: string[] = [];
+    let i = keyLine.no; // index into raw of the line after the key (raw is 0-based, `no` 1-based)
+    let contentIndent = -1;
+    for (; i < raw.length; i++) {
+      const l = raw[i];
+      if (!l.trim()) { out.push(''); continue; }
+      const ind = l.length - l.trimStart().length;
+      if (ind <= parentIndent) break;
+      if (contentIndent < 0) contentIndent = ind;
+      if (ind < contentIndent) fail(i + 1, `a block scalar line indented less than its first line (${ind} < ${contentIndent})`);
+      out.push(l.slice(contentIndent));
+    }
+    if (contentIndent < 0) fail(keyLine.no, 'a block scalar with no content');
+    while (pos < lines.length && lines[pos].no <= i) pos++;
+    return out.join('\n').replace(/\n+$/, '\n');
+  };
+  const stripComment = (no: number, v: string): string => {
+    // ` #` starts a comment in a plain scalar; `#` without a preceding space is content (`#123`).
+    const m = /(^|\s)#/.exec(v);
+    return (m ? v.slice(0, m.index) : v).trim();
+  };
+  const scalar = (no: number, v0: string): YamlValue => {
+    const v = v0.trim();
+    if (v.startsWith('"')) {
+      const m = /^"((?:[^"\\]|\\.)*)"(.*)$/.exec(v);
+      if (!m) fail(no, 'an unclosed double-quoted scalar (multi-line quoted scalars are outside the subset)');
+      if (stripComment(no, m![2])) fail(no, `text after a closing quote: ${m![2].trim()}`);
+      return m![1].replace(/\\(.)/g, (_, c: string) => ({ n: '\n', t: '\t', '"': '"', '\\': '\\' } as Record<string, string>)[c] ?? `\\${c}`);
+    }
+    if (v.startsWith("'")) {
+      const m = /^'((?:[^']|'')*)'(.*)$/.exec(v);
+      if (!m) fail(no, 'an unclosed single-quoted scalar (multi-line quoted scalars are outside the subset)');
+      if (stripComment(no, m![2])) fail(no, `text after a closing quote: ${m![2].trim()}`);
+      return m![1].replace(/''/g, "'");
+    }
+    const p = stripComment(no, v);
+    if (p.startsWith('[')) {
+      const m = /^\[(.*)\]$/.exec(p);
+      if (!m) fail(no, 'a flow sequence that does not close on its own line');
+      return m![1].trim() ? m![1].split(',').map((x) => {
+        const item = x.trim();
+        if (!item || /[[\]{}]/.test(item)) fail(no, 'a flow sequence item outside the subset (empty, or nested)');
+        return scalar(no, item);
+      }) : [];
+    }
+    if (/^[{&*!%@`|>]/.test(p)) fail(no, `a value starting with '${p[0]}' — a flow mapping, anchor, alias, tag, directive or misplaced block indicator, all outside the subset`);
+    if (/^[-?:](\s|$)/.test(p)) fail(no, `a value starting with '${p[0]} ' — YAML reads that as structure, not text; quote it`);
+    // THE #1205 CASE: a plain scalar may not contain `: ` or end in `:`. YAML reads it as a nested mapping
+    // and refuses ("mapping values are not allowed here"). Quote the value.
+    if (/:(\s|$)/.test(p)) fail(no, `an unquoted ': ' inside a plain value — YAML refuses it (this is exactly how #1205 killed CI); quote the whole value: ${p}`);
+    return p === '' || p === '~' || p === 'null' ? null : p;
+  };
+  const KEY = /^("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[^\s#'"[\]{},&*!|>%@`?-][^:#]*?|-[^\s:#][^:#]*?)\s*:(?:\s+(.*))?$/;
+  const node = (minIndent: number): YamlValue => {
+    if (pos >= lines.length) return null;
+    const first = lines[pos];
+    if (first.indent < minIndent) return null;
+    const ind = first.indent;
+    if (first.body === '-' || first.body.startsWith('- ')) {
+      const seq: YamlValue[] = [];
+      while (pos < lines.length && lines[pos].indent === ind && (lines[pos].body === '-' || lines[pos].body.startsWith('- '))) {
+        const l = lines[pos];
+        const rest = l.body.slice(1).trimStart();
+        if (!rest) { pos++; seq.push(node(ind + 1)); continue; }
+        // `- key: v` opens a mapping whose keys sit at the column after `- `: rewrite this line as that.
+        const col = ind + (l.body.length - rest.length);
+        if (KEY.test(rest)) { lines[pos] = { no: l.no, indent: col, body: rest }; seq.push(node(col)); continue; }
+        pos++;
+        seq.push(scalar(l.no, rest));
+      }
+      return seq;
+    }
+    const map: { [k: string]: YamlValue } = {};
+    while (pos < lines.length && lines[pos].indent === ind) {
+      const l = lines[pos];
+      if (l.body === '-' || l.body.startsWith('- ')) fail(l.no, 'a sequence entry where a mapping key was expected');
+      const m = KEY.exec(l.body);
+      if (!m) fail(l.no, `not a 'key: value' line and not a sequence entry — outside the subset: ${l.body}`);
+      const key = scalar(l.no, m![1].trim()) as string;
+      if (key === null || Object.prototype.hasOwnProperty.call(map, key)) fail(l.no, `duplicate key '${key}' — YAML refuses it`);
+      const v = (m![2] ?? '').trim();
+      pos++;
+      if (/^[|>][-+]?(\s+#.*)?$/.test(v)) map[key] = blockScalar(l, ind);
+      else if (!v || v.startsWith('#')) {
+        const next = lines[pos];
+        map[key] = next && (next.indent > ind || (next.indent === ind && (next.body === '-' || next.body.startsWith('- ')))) ? node(next.indent) : null;
+      } else map[key] = scalar(l.no, v);
+    }
+    return map;
+  };
+  const tree = node(0);
+  if (pos < lines.length) fail(lines[pos].no, `unexpected indentation — this line belongs to no parent the subset can see: ${lines[pos].body}`);
+  return tree;
 };
 
 /** The identifying tokens a step's `run:` text asks the docs to represent — one array per distinct
@@ -572,6 +714,15 @@ if (!orphanGateFiles('        run: npx tsx packages/engine/lint-known.ts', ['pac
   selfFails.push('arm 4 misses a gate file named nowhere in ci.yml — the one case no comparison of lists can reach');
 }
 
+// 5. The strict parse (#1213): the sample above parses, and #1205's break — an unquoted `: ` inside a step
+//    name — is refused BY THE RULE THAT NAMES IT, not by some other rule that happens to trip.
+try { parseYamlSubset(SAMPLE_YAML); } catch (e) { selfFails.push(`the strict YAML parse refuses the valid sample: ${(e as Error).message}`); }
+const refusal = (yaml: string): string => { try { parseYamlSubset(yaml); return ''; } catch (e) { return (e as Error).message; } };
+if (!/unquoted ': ' inside a plain value/.test(refusal(SAMPLE_YAML.replace('- name: Sample unit tests', '- name: Sample unit tests: all of them')))) selfFails.push("the strict YAML parse accepts #1205's break — an unquoted ': ' inside a step name");
+if (!/unexpected indentation/.test(refusal(SAMPLE_YAML.replace('        run: npm ci', '          run: npm ci')))) selfFails.push('the strict YAML parse accepts a line indented under no parent');
+if (!/duplicate key/.test(refusal(SAMPLE_YAML.replace('        run: npm ci', '        run: npm ci\n        run: npm ci')))) selfFails.push('the strict YAML parse accepts a duplicate key');
+if (!/unclosed double-quoted/.test(refusal(SAMPLE_YAML.replace('"Sample gate: has a colon"', '"Sample gate: has a colon')))) selfFails.push('the strict YAML parse accepts an unclosed quote');
+
 if (selfFails.length) {
   console.error("\n❌ the doc/CI gate-sync check's own detection is broken — it cannot see what it claims to:\n");
   for (const f of selfFails) console.error(`    ${f}`);
@@ -593,8 +744,39 @@ if (missingDocs.length) {
   process.exit(1);
 }
 
+// ---- THE PRECONDITION: the workflow parses (#1213) -----------------------------------------------
+// Before any scrape. A workflow GitHub cannot parse runs NO jobs, so every comparison below would be
+// against a file CI never executes.
+let ciTree: YamlValue;
+try { ciTree = parseYamlSubset(readFileSync(CI_PATH, 'utf8')); } catch (e) {
+  console.error(`\n❌ .github/workflows/ci.yml does not parse — GitHub would dispatch NO jobs, so the PR would show no`);
+  console.error(`   \`gates\` check at all rather than a red one, while \`npm run verify\` stays green (#1205, #1213):\n`);
+  console.error(`    ${(e as Error).message}\n`);
+  console.error('   If the file is valid YAML the parser does not understand, it is outside the subset this gate reads');
+  console.error('   (see parseYamlSubset) — rewrite it inside the subset rather than widening the parser to guess.');
+  process.exit(1);
+}
+
 // ---- THE REAL RUN --------------------------------------------------------------------------------
 const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
+
+// The scrape and the parse are two readers of one file that share no code, so they must agree on which
+// steps exist. A scrape that has drifted from the structure (a step it skips, or a `- name:` it finds
+// that is not a step) disagrees here rather than quietly narrowing every arm below.
+{
+  const jobs = (ciTree as { jobs?: Record<string, { steps?: { name?: YamlValue }[] }> }).jobs ?? {};
+  const treeNames = Object.values(jobs).flatMap((j) => (j.steps ?? []).map((st) => st.name).filter((n): n is string => typeof n === 'string'));
+  const scrapeNames = realSteps.map((st) => st.name);
+  if (!treeNames.length || JSON.stringify(treeNames) !== JSON.stringify(scrapeNames)) {
+    const onlyTree = treeNames.filter((n) => !scrapeNames.includes(n));
+    const onlyScrape = scrapeNames.filter((n) => !treeNames.includes(n));
+    console.error(`\n❌ the step scrape and the YAML parse disagree about ci.yml's steps (${scrapeNames.length} scraped, ${treeNames.length} parsed):`);
+    if (onlyTree.length) console.error(`    parsed but not scraped: ${onlyTree.join(' | ')}`);
+    if (onlyScrape.length) console.error(`    scraped but not a step: ${onlyScrape.join(' | ')}`);
+    if (!onlyTree.length && !onlyScrape.length) console.error('    same names, different order');
+    process.exit(1);
+  }
+}
 const realDocs = GATE_REGIONS.map((r) => ({
   label: r.label,
   section: r.section,
