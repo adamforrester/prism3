@@ -244,7 +244,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'error-circle', 'error-circle-filled', 'external-link-filled', 'eye', 'eye-filled', 'eye-off',
       'eye-off-filled', 'FPO-default-icon', 'home', 'image', 'info-circle', 'info-circle-filled', 'link', 'minus', 'minus-filled',
       'more-horizontal-filled', 'more-vertical-filled', 'pause-circle', 'play-circle', 'plus', 'plus-circle', 'plus-circle-filled',
-      'plus-filled', 'search', 'warning-triangle', 'warning-triangle-filled',
+      'plus-filled', 'resize-grip', 'search', 'warning-triangle', 'warning-triangle-filled',
     ],
     defs: ['icon'],
     relation: 'sole',

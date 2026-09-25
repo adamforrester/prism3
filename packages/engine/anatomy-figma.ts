@@ -302,6 +302,15 @@ export type FigmaNodePlan = {
    *  measure and the executor does the arithmetic against the LIVE box, the same division of labor
    *  `absoluteInset` uses for a value Figma will not let us bind. */
   absoluteCenterOn?: string;
+  /** For a `GLYPH` pinned into its parent's bottom-right corner (`PartDef.corner`, textarea's resize grip):
+   *  taken out of the auto-layout flow and placed `inset` in from the corner's two edges, where this is the
+   *  inset's variable NAME. Resolved to a number at paste, never bound — `x`/`y` take no variable, the same
+   *  reason `absoluteInset` is a name. A THIRD placement beside that one and `absoluteCenter`, because the
+   *  geometry is a third shape: the ring is sized from its parent, the spinner is centered, and the grip
+   *  keeps its own artboard and anchors to one corner (`MAX`/`MAX` constraints, so it follows the corner when
+   *  the instance is resized). Carried ONLY on a pinned glyph, so every other plan is byte-identical. In
+   *  `readVarsOwn`, so the emit gate verifies the name like the ring's. */
+  cornerInset?: string;
   /** Rendered at zero opacity — in the flow and in the accessibility tree, but not visible.
    *
    *  The only node property here that exists to preserve GEOMETRY rather than to express a design
@@ -1295,6 +1304,9 @@ export const figmaAnatomyPlan = (
       // fallback now stands down when this binding wrote — unconditional it would UNBIND what Figma just
       // accepted, which is the same last-write-wins silence the aspect-ratio unlock exists for.
       if (p.strokeWidth) bound.strokeWeight = varOf(p.strokeWidth);
+      // TOP-ONLY padding: the space above a part a boolean hides, so the space hides with it (textarea's
+      // message and counter cells). The validator refuses it alongside `padding`, so the two never both write.
+      if (p.paddingTop) bound.paddingTop = varOf(p.paddingTop);
       if (p.padding) {
         bound.paddingTop = varOf(p.padding.block);
         bound.paddingBottom = varOf(p.padding.block);
@@ -1498,6 +1510,9 @@ export const figmaAnatomyPlan = (
       // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
       // width (a `minWidth` floor or `fixed`), or the fill has nothing to resolve against (#989).
       ...(p.kind === 'text' && p.wrap ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
+      // A GROWING BOX (`grow`), `wrap`'s main-axis fill without the reflow: carried ONLY when set, so every
+      // other box's plan is byte-identical. `anatomyErrors` asserts the parent bounds its main axis.
+      ...(p.kind === 'box' && p.grow ? { layoutGrow: 1 } : {}),
       // THE RESERVED LINES (textarea's `rows`), carried ONLY on a `text` part declaring `lines`, as the
       // named prop's DEFAULT — so the Figma box and the code prop read one number. A count, never pixels:
       // the executor multiplies it by the node's own line height at paste. `anatomyErrors` has already
@@ -1533,6 +1548,9 @@ export const figmaAnatomyPlan = (
       // The stroke to compensate for (#801), projected only alongside an inset — on its own it has
       // nothing to correct, and the schema rejects that shape before the projection sees it.
       ...(p.kind === 'absolute' && p.inset && p.strokeInset ? { absoluteStrokeInset: varOf(p.strokeInset) } : {}),
+      // THE CORNER PIN (textarea's resize grip): a glyph lifted out of the flow into its parent's corner.
+      // Only on a pinned vector, so every other plan is byte-identical; the schema requires the inset.
+      ...(p.kind === 'vector' && p.corner && p.inset ? { cornerInset: varOf(p.inset) } : {}),
       // The out-of-flow half of the #612 fix, on the two nodes it concerns: the overlay is centered
       // absolutely, and the part it covers holds its cell at zero opacity. Both are keyed off
       // `overlaidPart`, so when the overlay lands on a real cell (`replaces` present) neither appears
@@ -2052,7 +2070,7 @@ const paintVarsOwn = (n: FigmaNodePlan): string[] =>
  *  and both executors fall back to the offset alone when it misses, which is a legible ring rather than a
  *  broken one, and therefore the kind of failure only a gate notices. */
 const readVarsOwn = (n: FigmaNodePlan): string[] =>
-  [n.absoluteInset, n.absoluteStrokeInset].filter((x): x is string => !!x);
+  [n.absoluteInset, n.absoluteStrokeInset, n.cornerInset].filter((x): x is string => !!x);
 
 /** Every paint variable a plan binds, depth-first. Exported for the gate that asserts a skinned plan
  *  actually carries paints — the check that a coordinate resolved to something. */
@@ -2808,9 +2826,35 @@ const PAYLOAD_MIN_LINES = `    if(c.minLines){
       else{kid.minHeight=h;if(!(Math.abs(kid.minHeight-h)<=0.01))misses.push(c.name+'.minHeight -> DISCARDED');}
     }`;
 const hasMinLines = (n: FigmaNodePlan): boolean => n.minLines !== undefined || n.children.some(hasMinLines);
-/** `PAYLOAD_BUILD` for these roots: the reserved-lines write spliced in where one of them needs it. */
+/**
+ * THE CORNER PIN (textarea's resize grip), spliced after the flow pass ONLY for a payload whose plans carry
+ * `cornerInset` — the reserved-lines slot's budget reason, unchanged: an unconditional addition to
+ * `PAYLOAD_BUILD` pushes Button's probe grid into a second chunk. After the flow pass because the corner is
+ * measured on the parent's FINAL size. The inset is the variable's VALUE (`x`/`y` take no binding), the glyph
+ * keeps its own artboard, and `MAX`/`MAX` keeps it in the corner when the instance is resized. Written through
+ * a variable so the statement is not byte-identical to the ring's lift, which a test mutates by `replace`.
+ * Lockstep with the plugin executor (`write-components.ts`).
+ */
+const CORNER_SLOT = '__CORNER__';
+const PAYLOAD_CORNER = `  for(const c of n.children){
+    if(!c.cornerInset)continue;
+    const kid=boxes.get(c.name),v=byName.get(c.cornerInset);
+    if(!kid)continue;
+    if(!v){misses.push(c.name+'.cornerInset -> '+c.cornerInset);continue;}
+    const at=v.resolveForConsumer(kid).value;
+    if(typeof at!=='number'){misses.push(c.name+'.cornerInset -> '+c.cornerInset+' resolved to '+JSON.stringify(at)+', not a number');continue;}
+    const pin='ABSOLUTE';kid.layoutPositioning=pin;
+    kid.x=node.width-kid.width-at;kid.y=node.height-kid.height-at;
+    kid.constraints={horizontal:'MAX',vertical:'MAX'};
+    if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the glyph would take a cell in the row)');
+  }
+`;
+const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || n.children.some(hasCorner);
+/** `PAYLOAD_BUILD` for these roots: the reserved-lines write and the corner pin spliced in where one of
+ *  them needs it. */
 const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
-  PAYLOAD_BUILD.replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '');
+  PAYLOAD_BUILD.replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '')
+    .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '');
 
 const PAYLOAD_BUILD = `const __expose=[];
 // #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
@@ -3170,7 +3214,7 @@ ${MIN_LINES_SLOT}
     // silently: the button would grow by the spinner's cell exactly as it did before #612.
     if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the spinner would take a cell and the button would grow on pending)');
   }
-  // Applied by the PARENT, because every fact here is about the child's relationship to it:
+${CORNER_SLOT}  // Applied by the PARENT, because every fact here is about the child's relationship to it:
   // \`layoutPositioning\` is only meaningful inside an auto-layout parent, and the parent's size is what
   // the inset is measured from.
   for(const [c,kid] of absolutes){
@@ -4111,7 +4155,7 @@ const PROPS_ALL=${JSON.stringify(last ? props : [])};
 const REFS_ALL=${JSON.stringify(last ? refs : [])};
 const REF_OVERRIDES_ALL=${JSON.stringify(last ? refOverrides : [])};
 ${PAYLOAD_PREAMBLE}
-${payloadBuildFor(slice.map((x) => x.root))}
+${payloadBuildFor((slice.length ? slice : specs).map((x) => x.root))}
 ${PAYLOAD_CHUNK_BODY}
 ${PAYLOAD_DECLARE_PROPS}
 ${PAYLOAD_WIRE_REFS}
@@ -4148,6 +4192,13 @@ ${PAYLOAD_CHUNK_RETURN}
     if (cur.length) groups.push(cur);
     return groups;
   };
+  // THE SHELL CARRIES THE SET'S SPLICES. It is measured from an EMPTY slice, and `payloadBuildFor` splices
+  // the reserved-lines and corner-pin code only where a plan needs it — so an empty slice measured the shell
+  // WITHOUT them and every textarea chunk shipped ~1KB over the budget it was packed to (45,963 characters
+  // against the MCP paste's 45,000 ceiling, `apps/plugin/test-mcp-paste.ts`). So `emit` splices from the
+  // WHOLE set's plans when handed no slice: the worst case, and the same case for every chunk of a set
+  // whose plans all carry the field.
+  //
   // THE SHELL IS NOT A CONSTANT, and this cost four bytes at 121 chunks before it was measured. The
   // header interpolates `CHUNK`, `TOTAL` and `FIRST`, so a payload's own index widens it: measuring the
   // shell as chunk 1-of-1 charges `0`, `1` and `true`, while chunk 108-of-121 spends two more digits on

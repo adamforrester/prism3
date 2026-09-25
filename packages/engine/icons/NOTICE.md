@@ -61,3 +61,7 @@ rather than brand ones: Lucide (ISC), Phosphor (MIT), Heroicons (MIT), Material 
 36 glyphs of Remix Icon's several thousand — well under the *"complete Icon library or substantial
 portions of it"* threshold §5 attaches its licence-inclusion requirement to. The licence is committed
 anyway: it costs nothing, and it removes the judgment call for whoever reads this next.
+
+One glyph is not from Remix Icon: `resize-grip.svg` (the textarea's corner grip, two diagonal bars) was
+drawn for this project, because the source set has no resize-handle glyph. It is covered by this
+repository's own license, not by `LICENSE` beside this file.

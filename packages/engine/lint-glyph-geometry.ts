@@ -127,7 +127,7 @@ import type { ComponentDef } from './component-schema';
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.dash'];
+const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip'];
 
 /**
  * VECTOR PARTS THAT DRAW ONE FIXED GLYPH, keyed `<def>.<part>` → the name they draw and why.
@@ -202,6 +202,13 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     glyph: 'check',
     at: { selection: ['on'] },
     why: "the on mark in the thumb (#1354) — a check, the same shape checkbox's checked box draws. Prism 2's `checkLine`. Present only at `selection=on` (`presentWhen`), so a fixed glyph is the right record: there is no `on` glyph to template on",
+  },
+  'textarea.grip': {
+    glyph: 'resize-grip',
+    // `at: {}` — on every member; the `resize handle` BOOLEAN hides it, which is node visibility, not a
+    // variant gate, so every member still carries the node.
+    at: {},
+    why: "the resize grip pinned into the control's bottom-right corner (owner decision, 2026-09-25) — two diagonal bars whose ink sits in the artboard's bottom-right quadrant, because the artboard is pinned into the corner. One fixed shape on every member: the grip is chrome, so no axis chooses it. Recorded so a later edit that draws a different glyph there fails as a stale record",
   },
   'switch-control.offGlyph': {
     glyph: 'close',

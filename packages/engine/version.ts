@@ -2926,6 +2926,23 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.161.0 — The textarea's resize grip and character counter in Figma (owner decisions (c) and (d),
+ * 2026-09-25). A new `resize-grip` glyph joins the icon set (drawn for this project; the `icon` set grows by
+ * one member). A new `PartDef.corner` pins a `vector` into its parent's bottom-right corner, out of the flow,
+ * `inset` in from both edges; the plan carries the inset's name (`cornerInset`) and both executors lift the
+ * glyph, place it at parent − artboard − inset and constrain it MAX/MAX. Textarea draws the grip at the
+ * smallest icon rung in the muted icon role behind a `resize handle` boolean (ON by default, as code's
+ * `resize` is `vertical`), and a "0 / 200" caption trailing the message in a new message row behind a
+ * `character count` boolean (OFF by default, as `showCount` is). The message and the counter switch
+ * INDEPENDENTLY (the owner's answer 2): each boolean toggles a cell carrying the stack gap above it (a new
+ * top-only `PartDef.paddingTop`), the control and the row sit in a gap-0 column, and the counter's cell grows
+ * across the row (a new box `PartDef.grow`, `layoutGrow: 1`) so the caption trails with the message on or
+ * off. Message only, counter only, both and neither each leave no empty row and no stray gap. The grip moves
+ * no box. field-message, text-field and select project byte-identically. New glyph + three new schema fields
+ * + a new plan field + a def surface move → MINOR;
+ * the component-surface and paint-census baselines accepted. CONTRACT STANDS (every binding is an existing
+ * name).
+ *
  * 0.160.0 — The textarea's reserved-rows floor was reported DISCARDED on all 20 members of a live build
  * (owner's MCP testing file, 2026-09-25, through the agent link) although the host had kept it: `minHeight` is
  * stored at single precision, so 3 × 16px × 165% = 79.19999885559082 read back as 79.19999694824219 and the
@@ -3656,7 +3673,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.160.0';
+export const ENGINE_VERSION = '0.161.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

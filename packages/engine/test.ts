@@ -10992,6 +10992,33 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; removing the row's minWidth fires this, so the floor is load-bearing");
     }
 
+    // ---- `grow` and `paddingTop` (textarea's independent message and counter, 2026-09-25): the plan carries
+    //      each exactly where declared, and each refusal fires BY NAME (docs/34) ----
+    {
+      const taParts = textarea.anatomy!.parts;
+      const withTa = (over: Record<string, unknown>) => ({ ...textarea, anatomy: { ...textarea.anatomy!, parts: { ...taParts, ...over } } }) as ComponentDef;
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((c) => findIn(c, name)).find(Boolean);
+      const root = figmaAnatomySet(textarea, {})[0].root;
+      const cc = findIn(root, 'counterCell');
+      const mc = findIn(root, 'messageCell');
+      ok(cc?.layoutGrow === 1 && findIn(root, 'messageRow')?.layoutGrow === undefined && cc?.bound.paddingTop === 'space/100' && mc?.bound.paddingTop === 'space/100'
+        && cc?.bound.paddingBottom === undefined && mc?.bound.paddingBottom === undefined,
+        `textarea grow/paddingTop: the counter cell grows (layoutGrow ${String(cc?.layoutGrow)}), the row does not, and both cells bind the stack gap ABOVE only (top ${String(cc?.bound.paddingTop)}/${String(mc?.bound.paddingTop)}, bottom ${String(cc?.bound.paddingBottom)}/${String(mc?.bound.paddingBottom)})`);
+      const refuses = (d: ComponentDef, ...res: RegExp[]) => validateComponentDef(d).errors.some((e) => res.every((r) => r.test(e)));
+      ok(refuses(withTa({ counter: { ...taParts.counter, grow: true } }), /declares 'grow'/, /only a 'box'/),
+        "'grow' on a NON-box part is refused BY NAME");
+      ok(refuses(withTa({ messageRow: { ...taParts.messageRow, crossAxisFill: undefined } }), /declares 'grow'/, /does not bound its main axis/),
+        "'grow' under a row that is neither floored, fixed nor stretched across a column is refused BY NAME — the #989 silent no-op; removing the row's crossAxisFill fires it, so the stretch is load-bearing");
+      ok(refuses(withTa({ container: { ...taParts.container, grow: true } }), /anatomy ROOT and declares 'grow'/),
+        "'grow' on the anatomy root is refused BY NAME");
+      ok(refuses(withTa({ counter: { ...taParts.counter, paddingTop: 'root-gap' } }), /declares 'paddingTop'/, /only a 'box'/),
+        "'paddingTop' on a NON-box part is refused BY NAME");
+      ok(refuses(withTa({ messageCell: { ...taParts.messageCell, layout: undefined } }), /declares 'paddingTop'/, /binds no 'layout'/),
+        "'paddingTop' on a box with no layout is refused BY NAME");
+      ok(refuses(withTa({ messageCell: { ...taParts.messageCell, padding: { block: 'pad-y', inlineLabel: 'pad-x' } } }), /both 'padding' and 'paddingTop'/),
+        "'paddingTop' beside 'padding' is refused BY NAME");
+    }
+
     // ---- #1433a: under ERROR the selected inner fill stays on the INTERACTIVE role; only the border/ring
     //      goes to status(danger) ----
     // Owner-decided (#1433): error is signalled on the control's BORDER/RING (and the field-message), and the
@@ -18145,8 +18172,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const c = canonicalShape(ICON_PATHS[n]);
       byShape.set(c, [...(byShape.get(c) ?? []), n].sort());
     }
-    ok(byShape.size === 40,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 40 distinct RENDERED shapes (got ${byShape.size}) — 41 distinct path STRINGS, so string comparison is off by one`);
+    // 41 since the textarea's `resize-grip` joined the set (2026-09-25): a new shape, so both counts move by
+    // one and the three collisions below stay the only ones.
+    ok(byShape.size === 41,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 41 distinct RENDERED shapes (got ${byShape.size}) — 42 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);
