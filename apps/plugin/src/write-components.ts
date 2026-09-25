@@ -443,6 +443,9 @@ export type ComponentApplyResult = {
    *  `setBoundVariable` lands the binding where `findOne` now sees it. Almost always 0 — the divergence
    *  has not reproduced by hand — so a non-zero count is the live signal #1218 verifies against. */
   boundRepaired: number;
+  /** THE REFERENCE BACK-OFF, PASS BY PASS (#1664) — see `REF_BACKOFF_MS`. Empty when nothing was queued,
+   *  which is every clean run. Optional because the paste path has no wire loop of its own to back off. */
+  refsBackoff?: RefBackoffPass[];
   /** Times the SET's own handle was found to have been replaced and was re-resolved off the destination
    *  page (#1574) — the set-level sibling of `refsRepaired`/`boundRepaired`, and the counter that says
    *  whether the property loop and the wire loop ran against the live set or a handle the host had moved
@@ -510,7 +513,7 @@ export type ComponentProgress = {
  *  What the shim still cannot prove is anything about the HOST: it has no event loop, no heartbeat and no
  *  scenegraph reconciliation. Chunk SIZE is therefore calibrated live and cannot be gated here — see
  *  `CHUNK` below. */
-export type YieldFn = () => Promise<void>;
+export type YieldFn = (ms?: number) => Promise<void>;
 
 /** Options the plugin passes and the harness overrides — every field optional, so the executor's
  *  contract with `main.ts` is unchanged for callers that want the defaults. */
@@ -595,7 +598,31 @@ export const CHUNK = 4;
  *  hand control to, so both "yield" identically. What the suite gates is that a yield HAPPENS at every
  *  boundary (counted at `yieldTo`); that it is a macrotask is gated only by the live run, which is why
  *  the 1m10s / Livegraph-1006 measurement in the header is cited rather than a test name. */
-const realYield: YieldFn = () => new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+const realYield: YieldFn = (ms = 0) => new Promise<void>((resolve) => { setTimeout(resolve, ms); });
+
+/**
+ * THE REFERENCE BACK-OFF (#1664) — the waits, in ms, before each retry pass over the references the wire
+ * loop could not place (a throw) or the host accepted and did not keep (a DISCARD on the same node).
+ *
+ * #1568 retried ONCE after a `setTimeout(0)`. Measured live on 2026-09-25 (Button, 432 members, through the
+ * agent link #1660) that is not long enough: a contiguous run of members refused every reference for a
+ * window — members 169–212 on the NB MCP testing file, 44 members wired in 0.8 s, 90 misses; 302–355 on the
+ * owner's file, 110 — the one deferred pass ran ~6 s after the window and repaired 0, and the SAME write on
+ * one of those members succeeded a few MINUTES later. So the refusal is per member and time-limited, and it
+ * lasts longer than one yield and at least as long as ~6 s. No identity moved (`setReresolved: 0`), so this
+ * is not the #1337/#1473/#1516 stale-handle family.
+ *
+ * Four passes after 0.5 s, 2 s, 5 s and 10 s: ~17.5 s worst case, then whatever is still queued is a miss.
+ * BOUNDED on purpose — a permanent refusal (a nested-instance sublayer, a property the host lost) must end as
+ * a miss, not a stall. The loop stops the moment the queue empties, and a clean build never reaches it, so
+ * it costs nothing unless something was refused. Each pass's delay and outcome lands in `refsBackoff`, so
+ * the next live run reports how long the window really is instead of leaving it to be inferred.
+ */
+export const REF_BACKOFF_MS: readonly number[] = [500, 2000, 5000, 10000];
+
+/** One back-off pass, as reported (#1664): the wait before it, how many queued references it retried, and
+ *  how many of those landed AND read back on a fresh re-find. */
+export type RefBackoffPass = { afterMs: number; retried: number; repaired: number };
 
 /**
  * THE MEMBER STAMP (#827) — what a member records about the build that wrote it, so a re-run has
@@ -708,6 +735,8 @@ export type BuildReport = {
   setReresolved: number;
   refsRepaired: number;
   boundRepaired: number;
+  /** #1664 — the reference back-off passes this run needed, in order; absent or empty on a clean run. */
+  refsBackoff?: readonly RefBackoffPass[];
   misses: readonly string[];
 };
 
@@ -2309,7 +2338,10 @@ const writeComponentSet = async (
   let refsRepaired = 0;
   // #1568 — REFERENCES THE WIRE LOOP COULD NOT PLACE, held for one retry AFTER a host yield. See the pass
   // below the wire loop for why a yield is the discriminating variable and identity is not.
-  const deferredRefs: { member: string; part: string; field: string; id: string; prop: string; cause: string }[] = [];
+  // #1664: `discarded` marks the ACCEPTED-BUT-NOT-KEPT shape, queued by the pre-scan below the wire loop, so
+  // a reference that is still discarded after the last pass is reported in the read-back's own words.
+  let deferredRefs: { member: string; part: string; field: string; id: string; prop: string; cause: string; discarded?: boolean }[] = [];
+  const refsBackoff: RefBackoffPass[] = [];
   // #1473 / #1516 — THE SET'S LIVE MEMBER FOR A COORDINATE, RE-READ FRESH FROM `set.children` AT EACH USE.
   // `members` was snapshotted right after combine (for the layout pass); a member handle from that snapshot
   // can end up with a DETACHED subtree while the set's live child for that coordinate is a fresh,
@@ -2438,42 +2470,75 @@ const writeComponentSet = async (
     }
     if ((i + 1) % chunkSize === 0 || i + 1 === toWire.length) await breathe('wire', i + 1, toWire.length);
   }
-  // #1568 — ONE DEFERRED RETRY, AFTER A REAL HOST YIELD, FOR EVERY REFERENCE THE WIRE LOOP COULD NOT PLACE.
+  // #1568 → #1664 — A BOUNDED BACK-OFF, WITH REAL WAITS, FOR EVERY REFERENCE THE WIRE LOOP COULD NOT PLACE.
   //
-  // WHY A YIELD AND NOT ANOTHER RE-FIND. #1337/#1473/#1516 all diagnosed a refused reference as a STALE
+  // WHY TIME AND NOT ANOTHER RE-FIND. #1337/#1473/#1516 all diagnosed a refused reference as a STALE
   // IDENTITY — some handle detached, the live node is a different object — and each fix re-resolves the
   // coordinate and writes to the node it finds. The in-loop recovery above still does exactly that, and it
   // skips itself entirely when the live re-find hands back the SAME object (`live !== node`), because under
   // that diagnosis retrying the same node is pointless.
   //
-  // A live `text-field` build is not that shape. Its 20 members' node ids came back perfectly sequential with
-  // no gap (`4769, 4783 … 5067`; host read 2026-09-22), so no member had been replaced — and yet 5 CONTIGUOUS
-  // members in wire order refused their references ("Could not create a new component property reference", 45
-  // misses) while the 6th, on the same kind of identity, succeeded. That is the host still reconciling the set
-  // and refusing writes WHILE it does: a window that closes by itself once the plugin hands control back. An
-  // identity-keyed recovery cannot see it, and neither can a same-task retry — the variable is TIME, and the
-  // only thing this executor can spend is a yield.
+  // The live refusals are not that shape. A `text-field` build (host read 2026-09-22) had perfectly
+  // sequential node ids — no member replaced — and yet 5 CONTIGUOUS members in wire order refused their
+  // references while the 6th succeeded. #1568 read that as a window that closes once the plugin hands control
+  // back, and retried once after a `setTimeout(0)`. Button (2026-09-25, 432 members) showed the window is
+  // LONGER: 44 contiguous members refusing, the one deferred pass ~6 s later repairing 0, and the same write
+  // on one of them succeeding minutes later. So the variable is time, and the only thing this executor can
+  // spend is a real wait — `yieldTo(ms)`, a `setTimeout`, never a busy loop.
   //
-  // So: yield once, re-resolve each queued coordinate FRESH (`liveMember` + `findOwnPart`, so a settle that
-  // landed meanwhile is also picked up) and write again, regardless of whether the node is the same object.
-  // CAUSE-INDEPENDENT — it does not care why the first write failed — and INERT when it cannot help: the
-  // queue is empty on a clean run, so the yield does not even happen. A single pass, deliberately: one is
-  // what the measured window needs, and a retry loop would turn a genuinely permanent refusal into a stall.
-  if (deferredRefs.length) {
-    await yieldTo();
+  // TWO SHAPES OF THE SAME WINDOW. A refusal is either a THROW ("Could not create a new component property
+  // reference", queued by the wire loop) or an ACCEPTED write that does not read back on the SAME node
+  // (`DISCARDED … reads undefined`). The second used to reach the read-back below, which re-wires only on an
+  // id DIVERGENCE (#866) and otherwise reports it — so it never got a retry at all. The pre-scan here moves
+  // it into the queue. An id divergence is left alone: that is #866's case, and the read-back handles it.
+  //
+  // Each pass re-resolves the coordinate FRESH (`liveMember` + `findOwnPart`, #1428/#1473, so a settle that
+  // landed meanwhile is picked up), writes, and then RE-FINDS and reads back before counting a repair — an
+  // accepted write is not a kept one, which is the whole point of the second shape. BOUNDED by
+  // `REF_BACKOFF_MS`, and it stops the moment the queue empties; a clean build never enters it.
+  //
+  // The pre-scan reads the WRITTEN handle, not a fresh `findOne`: it runs over every wired reference, and a
+  // subtree search per reference during a cold build is the ~46 s #701 removed. It only decides what to
+  // retry; the read-back below still re-finds every reference fresh and is the check (docs/34).
+  const keptRefs: typeof wiredRefs = [];
+  for (const w of wiredRefs) {
+    const [mName, part, field, id, written] = w;
+    const held = (written.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
+    if (held?.[field] !== id) {
+      deferredRefs.push({ member: mName, part, field, id, prop: id, cause: `set ${id}, reads ${held?.[field]}`, discarded: true });
+      continue;
+    }
+    keptRefs.push(w);
+  }
+  wiredRefs.length = 0;
+  wiredRefs.push(...keptRefs);
+  const lost: typeof deferredRefs = [];
+  for (const afterMs of REF_BACKOFF_MS) {
+    if (!deferredRefs.length) break;
+    await yieldTo(afterMs);
+    const still: typeof deferredRefs = [];
+    let repaired = 0;
     for (const d of deferredRefs) {
       const live = findOwnPart(liveMember(d.member) ?? members.find((c) => c.name === d.member), d.part);   // #1428/#1473
-      if (live) {
-        try {
-          wr(live).componentPropertyReferences = Object.assign({}, (live.componentPropertyReferences ?? {}) as object, { [d.field]: d.id });
-          wiredRefs.push([d.member, d.part, d.field, d.id, live]);
-          refsRepaired++;
-          continue;
-        } catch { /* still refused after the yield — report the ORIGINAL cause, as the wire loop would have */ }
-      }
-      misses.push(`ref ${d.member}/${d.part}.${d.field} -> ${d.prop} (${d.cause})`);
+      if (!live) { lost.push(d); continue; }   // nothing to write to — a miss now, as #1568 reported it
+      try {
+        wr(live).componentPropertyReferences = Object.assign({}, (live.componentPropertyReferences ?? {}) as object, { [d.field]: d.id });
+      } catch { still.push(d); continue; }   // still refused — keep the ORIGINAL cause for the report
+      const reNode = findOwnPart(liveMember(d.member) ?? members.find((c) => c.name === d.member), d.part);
+      const reHeld = (reNode?.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
+      if (reNode && reHeld?.[d.field] === d.id) {
+        wiredRefs.push([d.member, d.part, d.field, d.id, reNode]);
+        refsRepaired++;
+        repaired++;
+      } else still.push({ ...d, discarded: true, cause: `set ${d.id}, reads ${reHeld?.[d.field]}` });
     }
+    refsBackoff.push({ afterMs, retried: deferredRefs.length, repaired });
+    deferredRefs = still;
   }
+  for (const d of lost.concat(deferredRefs))
+    misses.push(d.discarded
+      ? `ref ${d.member}/${d.part}.${d.field} -> DISCARDED (${d.cause})`
+      : `ref ${d.member}/${d.part}.${d.field} -> ${d.prop} (${d.cause})`);
 
   // #1567 — HOW MANY DISTINCT CAPTIONS THE PLANS DECLARE AT EACH BOUND PART, and what default each TEXT
   // property was created with. Both feed the collapse report in the read-back loop below; computed here,
@@ -2755,6 +2820,7 @@ const writeComponentSet = async (
     setReresolved,
     refsRepaired,
     boundRepaired,
+    refsBackoff,
     misses: allMisses,
   });
 
@@ -2776,6 +2842,7 @@ const writeComponentSet = async (
     refsSearched,
     refsRepaired,
     boundRepaired,
+    refsBackoff,
     setReresolved,
     boundSearched,
     misses: allMisses,

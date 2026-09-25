@@ -82,7 +82,7 @@ import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
 // #1608 — the brand's COLOR emission, the host-side oracle for the outline-hover arm.
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import type { BrandInput } from '@prism3/engine/theme';
-import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson } from './src/write-components';
+import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson, REF_BACKOFF_MS } from './src/write-components';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
 import type { ComponentApplyOptions, ComponentProgress, BuildReport } from './src/write-components';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -3368,6 +3368,120 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const held = await measure(reserved);
   ok(held.r.misses.length === 0 && held.box.get(BOLD) === held.box.get(REG),
     `#1611 with the bold width RESERVED the runtime weight axis holds its footprint — no misses, bold and regular measure alike (${held.box.get(BOLD)} vs ${held.box.get(REG)}; ${held.r.misses.join('; ') || 'none'})`);
+}
+
+
+// =============================================================================================
+// #1664 — THE REFERENCE RETRY OUTLASTS A HOST REFUSAL WINDOW MEASURED IN SECONDS, AND STAYS BOUNDED
+// =============================================================================================
+// Live Button (2026-09-25): a CONTIGUOUS run of members refused every reference write for a window —
+// 44 members wired in 0.8 s, 90 misses — as a throw or as an accepted write that read back `undefined`.
+// #1568's single retry after a `setTimeout(0)` ran ~6 s later and repaired 0; the same write succeeded
+// minutes after. `refuseRefsWindow` (component-shim.ts) models that window on a clock THIS block owns: the
+// injected `yieldTo(ms)` advances it by exactly the wait the executor asked for, and records every non-zero
+// wait. So "how long did it wait, and how often" is witnessed here, never read off the executor's own
+// `refsBackoff` (docs/34), and a 10 s wait costs the suite nothing.
+//
+// The arms and the mutations each one exists to catch, by name:
+//   (a) a 3 s window, both shapes, heals fully — FAILS if the back-off is cut back to one pass (#1568's
+//       single retry: the 0.5 s pass meets the window still open);
+//   (b) a permanent refusal, both shapes, ends as misses after exactly the declared waits and the build
+//       returns — FAILS on an unbounded loop (the clock guard below throws past 20 waits);
+//   (c) a clean build asks for no wait at all — FAILS if the back-off always waits.
+// The FLOOR is (a)'s own: the window must actually refuse on the first attempt, or (a) proves nothing.
+{
+  const clean = { page: { children: [] } as Page };
+  await run(grid, { ...fullFor(grid), page: clean.page });
+  const cleanSet = clean.page.children[0] as Node | undefined;
+  const memberNames = ((cleanSet?.children ?? []) as Node[]).map((m) => String(m.name));
+  // A contiguous run in wire order, well inside the set — the live shape, not the first or last member.
+  const RUN = memberNames.slice(3, 9);
+  /** Every reference id each member's subtree holds, read off the shim tree — what is IN the file. */
+  const heldRefs = (set: Node | undefined): Map<string, string[]> => {
+    const out = new Map<string, string[]>();
+    for (const m of ((set?.children ?? []) as Node[])) {
+      const ids: string[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural walk over the shim tree
+      const walk = (x: any): void => { for (const [f, id] of Object.entries(x?.componentPropertyReferences ?? {})) ids.push(`${String(x.name)}.${f}=${id as string}`); for (const c of x?.children ?? []) walk(c); };
+      walk(m);
+      out.set(String(m.name), ids.sort());
+    }
+    return out;
+  };
+  const cleanHeld = heldRefs(cleanSet);
+  const runRefs = RUN.reduce((n, m) => n + (cleanHeld.get(m)?.length ?? 0), 0);
+  ok(RUN.length === 6 && runRefs > 0,
+    `#1664 input pin: the refusing run is 6 contiguous members holding ${runRefs} references in a clean build (${RUN.join(' | ')})`);
+
+  const runWindow = async (win?: { ms: number; shape: 'throw' | 'discard' }) => {
+    const clock = { t: 0 };
+    const waits: number[] = [];
+    const page: Page = { children: [] };
+    let threw: string | undefined;
+    let res: Awaited<ReturnType<typeof run>> | undefined;
+    try {
+      res = await run(grid, {
+        ...fullFor(grid), page,
+        ...(win ? { refuseRefsWindow: { members: RUN, ms: win.ms, shape: win.shape, now: () => clock.t } } : {}),
+      }, {
+        yieldTo: (ms = 0) => {
+          if (ms > 0) {
+            waits.push(ms);
+            // THE TERMINATION GUARD: 20 waits is five times the declared schedule. Past it the executor is
+            // not backing off, it is looping — throw so the build stops and the arm below reports it.
+            if (waits.length > 20) throw new Error(`unbounded back-off: ${waits.length} waits`);
+          }
+          clock.t += ms;
+          return Promise.resolve();
+        },
+      });
+    } catch (e) { threw = (e as Error).message; }
+    const set = page.children[0] as Node | undefined;
+    const held = heldRefs(set);
+    const lost: string[] = [];
+    for (const [m, want] of cleanHeld) {
+      const got = new Set(held.get(m) ?? []);
+      for (const r of want) if (!got.has(r)) lost.push(`${m}/${r}`);
+    }
+    let report: Record<string, unknown> = {};
+    try { report = JSON.parse(String((set as any)?.getSharedPluginData?.('prism3', 'build') ?? '{}')) as Record<string, unknown>; } catch { /* reported by the arms */ }
+    return { res, threw, waits, lost, report, refMisses: (res?.misses ?? []).filter((m) => m.startsWith('ref ')) };
+  };
+
+  // ---- (c) a clean build schedules no back-off wait -------------------------------------------
+  const c = await runWindow();
+  ok(!c.threw && c.waits.length === 0 && c.lost.length === 0,
+    `#1664c a clean build asks the host for no back-off wait at all (${c.waits.length} wait(s): ${c.waits.join(', ') || 'none'}; ${c.lost.length} reference(s) lost)`);
+
+  // ---- (a) a window shorter than the back-off heals fully, both shapes ------------------------
+  for (const shape of ['throw', 'discard'] as const) {
+    const a = await runWindow({ ms: 3000, shape });
+    const passes = (a.res?.refsBackoff ?? []);
+    // FLOOR: the window really refused — the first pass found work, so the repairs are the window's.
+    ok(!a.threw && passes.length > 0 && passes[0].retried === runRefs,
+      `#1664a floor (${shape}): the 3 s window refused all ${runRefs} references on the run's first attempt (first pass retried ${passes[0]?.retried ?? 0})`);
+    ok(!a.threw && a.lost.length === 0 && a.refMisses.length === 0,
+      `#1664a a ${shape} refusal window of 3 s heals fully — every reference the clean build holds is held, 0 ref misses (${a.lost.length} lost: ${a.lost.slice(0, 3).join(' | ') || 'none'}; misses: ${a.refMisses.slice(0, 2).join(' | ') || 'none'}${a.threw ? `; THREW ${a.threw}` : ''})`);
+    const repaired = passes.reduce((n, p) => n + p.repaired, 0);
+    ok(repaired === runRefs && a.waits.reduce((x, y) => x + y, 0) >= 3000,
+      `#1664a (${shape}) the repair is reported and the wait that made it is real: ${repaired}/${runRefs} repaired over passes [${passes.map((p) => `${p.afterMs}ms ${p.repaired}/${p.retried}`).join(', ')}], clock waits [${a.waits.join(', ')}]`);
+    const rb = a.report.refsBackoff as { afterMs: number; repaired: number }[] | undefined;
+    ok(Array.isArray(rb) && rb.length === passes.length && rb.reduce((n, p) => n + p.repaired, 0) === runRefs,
+      `#1664a (${shape}) the set's build report carries the window: refsBackoff ${JSON.stringify(rb)}`);
+  }
+
+  // ---- (b) a permanent refusal ends as misses after the bounded passes, both shapes -----------
+  const scheduled = REF_BACKOFF_MS.reduce((x, y) => x + y, 0);
+  ok(REF_BACKOFF_MS.length === 4 && scheduled <= 18000,
+    `#1664b input pin: the back-off is at most 4 passes and ~18 s (${REF_BACKOFF_MS.join(', ')} = ${scheduled}ms)`);
+  for (const shape of ['throw', 'discard'] as const) {
+    const b = await runWindow({ ms: Infinity, shape });
+    const want = shape === 'throw' ? /Could not create a new component property reference/ : /DISCARDED \(set /;
+    ok(!b.threw && b.waits.length <= 4 && b.waits.reduce((x, y) => x + y, 0) <= 18000,
+      `#1664b a permanent ${shape} refusal still TERMINATES within the bound — ${b.waits.length} wait(s) totalling ${b.waits.reduce((x, y) => x + y, 0)}ms${b.threw ? `; THREW ${b.threw}` : ''}`);
+    ok(!b.threw && b.refMisses.length === runRefs && b.refMisses.every((m) => want.test(m) && RUN.some((r) => m.includes(r))) && b.lost.length === runRefs,
+      `#1664b ...and every refused reference ends as a named ${shape} miss on the run's members (${b.refMisses.length}/${runRefs}: ${b.refMisses[0] ?? 'none'})`);
+  }
 }
 
 if (failed) process.exit(1);
