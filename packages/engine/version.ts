@@ -2926,6 +2926,13 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.150.0 — #991, #1463: `lint-us-english`'s rule widened to the en-GB classes it was blind to (`-oured`/
+ * `-ourite`/`-ourable`, `-ogue`, `-ence` nouns, `-yse`, `artefact` and the other letter swaps, and the reverse
+ * single-L class), and every spelling it then found in shipped text respelled to en-US: `catalogue` →
+ * `catalog`, `licence` → `license`, `artefact` → `artifact`, `honoured` → `honored`, `colouring` →
+ * `coloring`. Meaning identical, letters moved. `radio-row`'s shipped `focus` doc prose, the generated
+ * `icon-glyphs.ts` header and the `prism3-consume` skill move → ENGINE bump. CONTRACT STANDS (no token
+ * name or component member moves; `token-contract --check` level `none`).
  * 0.149.0 — #1238: `composition.composesWith` follows `anatomy.parts[*].nests`. The button family (`button`,
  * `button-destructive`, `button-neutral`, `icon-button` and its two variants) and `text-field` nested the
  * focus ring while leaving it out of `composesWith`; they now list it, and `textarea` (no anatomy yet, binds
@@ -3572,7 +3579,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.149.0';
+export const ENGINE_VERSION = '0.150.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

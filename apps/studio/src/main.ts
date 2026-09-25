@@ -2308,7 +2308,7 @@ const PAGE_COPY: Record<PageKey, [string, string]> = {
   preview: ['Preview your system.', 'The style guide, the full contrast-contract table, and every resolved token — through the mode picked above. Switch modes to preview them; this is the one place the whole system renders together.'],
   // #718. The lede states the role rather than the feature, because that is the fact this page exists
   // to convey: the write is how the anatomy schema is proven to materialize, not a component library
-  // the brand ships. Naming the one def and the member count keeps it from reading as a catalogue.
+  // the brand ships. Naming the one def and the member count keeps it from reading as a catalog.
   components: ['Components.', 'Internal — the Button set, written onto the Figma canvas from the component definition. One definition carries the anatomy this needs, so one component builds: 648 variants across intent, appearance, size, state, and the two icon slots. This is how the definition format is proven to materialize, not a component library the brand ships.'],
 };
 
@@ -7632,7 +7632,7 @@ const paintFluidPreview = (into: HTMLElement): void => {
  *  you change the tempo), plus a Replay. A Playback control uniformly divides all four durations for
  *  legibility only: it never changes the `${ms}ms` label (always the real resolved token value) or the
  *  curve shape, and it preserves the ratio between transitions (exit stays 2× faster than default,
- *  etc.) at any speed. `prefers-reduced-motion` is honoured (dot shown at its resting position, no
+ *  etc.) at any speed. `prefers-reduced-motion` is honored (dot shown at its resting position, no
  *  animation), nodding to the engine's derived reduced ramp. Kind-B specimen: reads `theme.motion`. */
 /** The easing curve for one stage, plotted 0→1 in a 100-unit viewBox (SVG). Y is flipped (SVG y grows
  *  down). Percent-based, not px, so the stage scales for free. */
@@ -7662,7 +7662,7 @@ const renderMotionSpecimen = (): HTMLElement => {
   const moByMode = mo.motionByMode?.[currentMode];
   const durOf = (role: string): number => (moByMode?.duration ?? mo.duration)[role] ?? 0;
   const tempoLabel = moByMode?.tempo ?? mo.tempo;
-  const wrap = palSection('Motion', `The semantic transitions at tempo '${tempoLabel}' — each stage traces the resolved duration + easing curve. Playback below is a legibility aid only (the ms label is always the real token value); reduce-motion is honoured (the engine also derives a reduced ramp).`);
+  const wrap = palSection('Motion', `The semantic transitions at tempo '${tempoLabel}' — each stage traces the resolved duration + easing curve. Playback below is a legibility aid only (the ms label is always the real token value); reduce-motion is honored (the engine also derives a reduced ramp).`);
 
   const toolbar = el('div', 'mo-toolbar');
   const slowmoLabel = el('label', 'mo-slowmo');
