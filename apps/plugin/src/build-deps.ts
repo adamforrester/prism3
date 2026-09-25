@@ -134,3 +134,24 @@ export const alsoBuiltNote = (built: readonly BuiltDependency[]): string =>
   built.length
     ? `. Also built: ${built.map((b) => (b.misses > 0 ? `${b.id} (${b.misses} misses)` : b.id)).join(', ')}`
     : '';
+
+/**
+ * The component set's placeholder swap target — a component NAME resolved in the FILE, not a def field.
+ *
+ * Which component fills a slot is a fact about the file rather than about the button (#513, measured
+ * live): the same def builds into a file whose placeholder icon is called anything, so the caller that
+ * knows the file nominates it. Absent from the file, every slot degrades to a placeholder frame and says
+ * so in the misses — a build that reports what it could not find, not one that refuses to run.
+ *
+ * IT NAMES A COMPONENT THIS PLUGIN CAN BUILD (#1280 / #1206). The name carries `icon/` because that is
+ * what #1012's `emitAsComponents` writes: each glyph lands as its own top-level component called
+ * `icon/<glyph>`, so the 40th one is literally `icon/FPO-default-icon`. Both swap consumers key on the
+ * LITERAL node name (`compByName` in `write-components.ts`), so the prefix is not decoration — dropping
+ * it nominates a component no run produces, and every slot degrades to an empty placeholder frame that
+ * has no VECTOR for `descendantFills` to ink. Naming the emitted one instead means a designer who has
+ * built `icon` gets a real, fillable icon instance in the slot and an INSTANCE_SWAP property to change
+ * it with; a designer who has not gets #1280's build-order diagnosis telling them which component to
+ * build first. `test-write-components.ts` checks this name against the names the icon def actually
+ * emits, rather than trusting the two to agree.
+ */
+export const SWAP_TARGET = 'icon/FPO-default-icon';

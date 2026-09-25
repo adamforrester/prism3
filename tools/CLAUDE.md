@@ -214,6 +214,19 @@ followed. The instance case is suppressed and **counted** — 2,705 in aurora �
 note, which is why `Report` carries both `unevaluated` (a blind spot) and `notes` (a judgement with its
 number). A suppression with no number attached to it is indistinguishable from a broken arm.
 
+## `tools/figma-mcp/`
+
+The paste-in test loop (#111, #1553): `plan.ts` writes the numbered `use_figma` scripts that apply a
+theme, build components and read the file back with the plugin closed; `report.ts` turns the returned
+JSON into one pass/fail summary; `README.md` is the runbook, addressed to an agent. **Its gate sibling is
+not in this directory, on purpose:** the thing the gate protects is the claim that the paste path writes
+exactly what the plugin writes, and both the generator (`apps/plugin/mcp-paste.ts`) and the runtime it
+bundles (`apps/plugin/src/mcp-steps.ts`, the plugin's own executors) live in the plugin. So the parity and
+size gate is `apps/plugin/test-mcp-paste.ts`, an arm of the plugin's existing `test` step — the two CLIs
+here are thin shells over functions that gate already executes (`summarize`, `compareReadback`,
+`mergeLedgers`). The runbook's first rule is the one that matters most: the scripts write to whatever
+file they run in, so they run only against a scratch file the owner has named.
+
 ## `tools/claude-md-freshness/`
 
 `mutations.sh` — the mutation battery for `.claude/hooks/session-start-claude-md-freshness.sh`, the
