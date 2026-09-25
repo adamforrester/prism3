@@ -7,6 +7,24 @@
 
 ---
 
+## (2026-09-25) — Stale-issue sweep: five issues closed as already fixed, six fixed here
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.149.0 (MINOR: def strings in the plugin bundle and `.ai.json` move); CONTRACT stands at 12.0.0 (no token name moves).
+
+**Closed as already fixed, with evidence on the issue:** #1624 (Figma opacity rows now read `N% opacity` from `figmaOpacityDescription`, #1645; 0 of 36 rows carry a multiplier), #1615 (the palette-step walk it described is gone; #1614/#1630's `settleSolidTint` steps along the opacity scale and its comment matches), #1095 and #1091 (the `surface` collection and `MIRRORED_COLLECTIONS` were deleted in #1148/#1153, with the unfalsifiable arm), #1405 (`radio-control.ts`'s `notes.unverified` now says the dot paints one value and holds still under press). #1618 was already fixed in code, but no test covered it, so this PR adds one (below).
+
+**Fixed here:**
+- **#1618, a test for a fix that had none.** `settleSolidTint` reads settled roles, so an override on the label ink is what the hover tint is picked against. No corpus brand overrides `text.hover`, so no arm could see which ink the pick read. The new arm pins a synthetic brand's light hover ink to a primary step that clears the bare page but not the 20% composite, and expects the step down to 10. The step is chosen in the test with `mixHex`, independent of the engine.
+- **#1238, `composesWith` follows `nests`.** The owner's lane brief settled the meaning: the list follows `nests`. Seven defs nested `focus-ring` without listing it (the button family, the icon-button family, `text-field`). They now list it, `textarea` lists it by hand (it has no anatomy), and a `test.ts` arm (component-refs a2) fails any def whose anatomy nests a component its list leaves out. The list is not symmetric (32 one-way pairs, e.g. `veil` lists `icon` and `icon` does not list `veil`), so only the forward direction is gated.
+- **#1264:** `write-components.ts`'s "no placeholder" docstring now covers in-flow nests. Behavior is unchanged.
+- **#1258:** the PR template names the three git-history gates rather than calling one "the only" one.
+- **#1396:** `docs/30` states the executor-bump rule (bump if and only if `packages/engine/` changed), with #1394/#1395 as the worked pair.
+- **#975:** `lint-us-english.ts`'s header no longer carries the "OPEN" #849 paragraph or its false "cannot see" premise.
+
+**Trap for re-verifiers.** The first mutation tried for #1618 (read `text.rest` in place of `text.hover`) moved every brand's tint and failed eight arms, including the new arm's *precondition*, so it proved nothing about the new assertion. The honest mutation reintroduces the defect itself: read the ink from `resolveAllModes({ ...theme, overrides: undefined })`. That fails only the new arm, by name. When a fix has already landed, mutate back to the defect, not to something nearby.
+
+---
+
 ## (2026-09-24) — Strict interactive contrast covers destructive; `isPending` kept everywhere
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.148.0 (MINOR: emission changes when the lever is on, plus one description line); CONTRACT stands at 12.0.0 (no token name moves; the baseline's `engineVersion` stamp only). Files: `packages/engine/modes.ts` (the lever condition + the inverse fill `labelNote`), `theme.ts` / `levers.ts` (lever prose names destructive), `version.ts`, `test.ts` (new GATE B arm), regenerated `out/**` + `modes-report.md`.

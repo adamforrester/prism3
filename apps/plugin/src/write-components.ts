@@ -1306,8 +1306,16 @@ const writeComponentSet = async (
   };
 
   /** Build one node and its subtree. Returns `null` for a NESTED_INSTANCE whose shared component is
-   *  absent — no placeholder, deliberately: an unstroked frame in a focus ring's place is invisible and
-   *  reads as a ring that built fine, where a slot's placeholder is a box a designer can still fill.
+   *  absent — no placeholder, deliberately, and every such return records a miss. The same refusal
+   *  serves both nest kinds, for different reasons:
+   *   · OUT OF FLOW (`absolute`, a focus ring): an unstroked frame in the ring's place is invisible and
+   *     reads as a ring that built fine — the #869 shape, and why the refusal exists.
+   *   · IN FLOW (`nest`, a row's control, #1262): the premise inverts — the missing child is a visible
+   *     hole, and the auto-layout closes up around it. A placeholder frame would not be invisible here,
+   *     but it would still be a stand-in shaped like a built control, so the row is left without it and
+   *     the miss list is the report, as for the ring. (Filed as #1264 once the in-flow kind landed; this
+   *     is the rationale for the behavior as built, not a change to it.)
+   *  A slot's placeholder is different in kind: it is a box a designer is meant to fill.
    *
    *  `parts` is the #701 collector: every descendant the wire loop will later need, registered by name
    *  as it is built, so that loop does not have to search the scenegraph for a node this loop is holding.
