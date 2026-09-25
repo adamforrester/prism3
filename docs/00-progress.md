@@ -7,6 +7,18 @@
 
 ---
 
+## (2026-09-25) — the tinted-wash opacity takes a second assignment; 0.153.0's diagnosis was wrong (owner-found)
+
+**STATUS: landed by the orchestrator.** On 0.153.0 the owner's NB button still built with the same 221 `container.fills.opacity -> DISCARDED (wanted 0.2, read back 1)` misses. Files: both executors (`apps/plugin/src/write-components.ts`, `packages/engine/anatomy-figma.ts`), both offline models (`apps/plugin/component-shim.ts`, the `test.ts` paste stub), `version.ts` (ENGINE 0.154.0).
+
+**What was wrong with 0.153.0.** Its probe ran its cases in sequence on ONE rectangle. The "opacity before binding" case ran second, on a node already bound to that variable, and read back 0.2. Re-run in isolation, on FRAME, COMPONENT and RECTANGLE, it reads back 1. The rule the data actually supports: **the first time a paint bound to a color variable lands on a node, the host resets its opacity to 1; a re-assignment, once the binding is there, keeps it** (bind, assign, then assign a copy with the opacity → 0.2; assign the same bound paint twice → 0.2; every single-assignment form → 1). Verified on the owner's file for the exact new sequence: a frame 0.2, a component 0.3, and two variant members that keep 0.2 / 0.3 through `combineAsVariants`.
+
+**Fix.** Both executors assign the bound paint, then re-assign `{ ...node.fills[0], opacity }`. 0.153's opacity-before-bind is reverted (it did nothing). Both offline models encode the measured rule. With 0.153's executors against them, `#1614 paste leg`, `#1614 plugin leg` and the NB-button arm fail by name, reading `@ 1`.
+
+**Lesson for whoever probes the host next.** Run each case on a fresh node. A sequence of cases on one node carries state (here, an existing binding) from one case into the next, and a probe that does that can "confirm" a fix that doesn't work.
+
+---
+
 ## (2026-09-25) — the tinted-wash hover keeps its opacity on the real host (owner-found)
 
 **STATUS: landed by the orchestrator.** On 0.152.0 the owner's NB button built with 221 `container.fills.opacity -> DISCARDED (wanted 0.2, read back 1)` misses: every tinted-wash hover/pressed fill came out at full strength. Files: `apps/plugin/src/write-components.ts` and `packages/engine/anatomy-figma.ts` (both executors' `paint()` take the opacity), `apps/plugin/component-shim.ts` and the `test.ts` paste stub (both model the host rule), `version.ts` (ENGINE 0.153.0).
