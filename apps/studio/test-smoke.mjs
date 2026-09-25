@@ -1250,6 +1250,92 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   console.log(`  B "${said}"`);
 }
 
+// C — the Examples `.cur` marker stays LIVE while the Name field is typed into (#1075). The Name field
+// patches the bar and does not re-render the menu (a re-render takes the caret), so a render-time marker
+// went stale in the open popover and only corrected on the next open.
+//
+// The oracle is a FRESH RENDER of the same menu (close + reopen), not a restated rule for which item
+// should be marked: which key the marker compares is #1073's open question, and this check must hold
+// whichever way that is answered. It fails if the live markers disagree with what a re-render computes
+// (the stale class), and separately if the fix bought liveness with a re-render (the caret class).
+{
+  const [atRisk] = BRANDS;
+  const { ctx, page, drain } = await openBrand(atRisk);
+  const curItems = () => page.$$eval('.brandmenu .bm-item.cur', (bs) => bs.map((b) => b.textContent.trim()));
+  await page.locator('.brandsel').click();
+  await page.waitForSelector('.brandmenu .bm-in');
+  const before = await curItems();
+  ok(before.includes(atRisk), `#1075 the loaded example is marked current on open — got [${before.join(', ')}]`);
+  // Tag the live input: a re-render replaces it, and the tag goes with the old node.
+  await page.$eval('.brandmenu .bm-in', (i) => { i.dataset.smoke = '1075'; });
+  await page.focus('.brandmenu .bm-in');
+  await page.fill('.brandmenu .bm-in', 'renamed-in-smoke');
+  const live = await curItems();
+  ok(await page.evaluate(() => document.activeElement?.getAttribute('data-smoke') === '1075'),
+    '#1075 typing a name keeps the same, focused Name input (no menu re-render)');
+  await page.locator('.brandsel').click();
+  await page.waitForSelector('.brandmenu', { state: 'detached' });
+  await page.locator('.brandsel').click();
+  await page.waitForSelector('.brandmenu .bm-in');
+  const fresh = await curItems();
+  ok(live.join('|') === fresh.join('|'),
+    `#1075 the open menu's example markers match a fresh render after a rename — live [${live.join(', ')}], fresh [${fresh.join(', ')}]`);
+  const errs = drain();
+  ok(errs.length === 0, `brand-menu markers: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+  console.log(`  C before [${before.join(', ')}] live [${live.join(', ')}] fresh [${fresh.join(', ')}]`);
+}
+
+// =============================================================================================
+// 5b. The style guide's Outline hover fill follows the preview ground (#1629)
+//
+// `test-outline-roles.ts` holds the KEY choice; this holds the WIRING — that the rendered Outline row
+// actually paints what that helper picks. On the Inverse ground the row used to paint the PAGE wash, so
+// the hovered button looked exactly as it did on the page: the same `rgba(...)` string on both grounds.
+//
+// Oracle, independent of the studio: the wash polarity comes from `OVERLAY_PAL` (parsed out of
+// `modes.ts` in section 2), and the page and band sit on opposite sides of light/dark by construction,
+// so their washes must have OPPOSITE polarity — one darkens, one lightens. The corpus brands run the
+// default `overlay-neutral`; if one ever does not, the "translucent wash" arm fails naming it rather
+// than the polarity arm passing blind.
+// =============================================================================================
+console.log(`\nStyle guide Outline hover on the inverse ground (#1629)\n${'='.repeat(78)}`);
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoPage(page, 'Preview');
+  await page.waitForSelector('.sg-surfbar select');
+  // The primary palette block's Outline row, hover and pressed cells, read by their visible labels.
+  const readOutline = () => page.evaluate(() => {
+    const block = document.querySelector('.sg-pblock');
+    const row = [...(block?.querySelectorAll('.sg-trow') ?? [])].find((r) => r.querySelector('.sg-tlab')?.firstChild?.textContent?.trim() === 'Outline');
+    const out = {};
+    for (const col of row?.querySelectorAll('.sg-bcol') ?? []) out[col.querySelector('.sg-st')?.textContent?.trim()] = getComputedStyle(col.querySelector('.sg-btn')).backgroundColor;
+    return out;
+  });
+  const onPage = await readOutline();
+  await page.selectOption('.sg-surfbar select', 'inverse.background.primary');
+  await page.waitForFunction(() => document.querySelector('.sg-surfbar select')?.value === 'inverse.background.primary');
+  const onBand = await readOutline();
+  const where = `#1629 / ${brand}`;
+  // Polarity of an `rgba(r, g, b, a)` wash: > 0 lightens, < 0 darkens. Opaque or missing reads null.
+  const polarity = (s) => {
+    const m = /rgba\(([^)]+)\)/.exec(s ?? '');
+    if (!m) return null;
+    const [r, g, b] = m[1].split(',').map(Number);
+    return (r + g + b) / 3 - 127.5;
+  };
+  for (const st of ['hover', 'pressed']) {
+    const p = polarity(onPage[st]), b = polarity(onBand[st]);
+    ok(p !== null && b !== null, `${where}/${st}: both grounds paint a translucent Outline wash — page ${onPage[st]}, band ${onBand[st]}`);
+    ok(p !== null && b !== null && Math.sign(p) === -Math.sign(b) && p !== 0,
+      `${where}/${st}: the band's Outline wash has the opposite polarity to the page's (${OVERLAY_PAL.light} vs ${OVERLAY_PAL.dark}) — page ${onPage[st]}, band ${onBand[st]}`);
+  }
+  const errs = drain();
+  ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+  console.log(`  ${brand}: page hover ${onPage.hover} → band hover ${onBand.hover}`);
+}
+
 // =============================================================================================
 // 6. The inverse band's pill is still readable as a DIFFERENT token from its twin (#1147)
 //
