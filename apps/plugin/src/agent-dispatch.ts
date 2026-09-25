@@ -14,9 +14,10 @@
  * WHAT A HANDLER REPORTS TO. Each handler takes an `ActionSink`. The UI's sink posts to the panel
  * (`postToUi`), exactly as before; the dispatcher's sink CAPTURES instead — the terminal verdict (the same
  * message, headline and summary the panel would render), the `component-progress` readings, and the
- * structured `data` the handler exposes beside its prose. Captured, not forwarded to the panel: a prune
- * preview posted to the panel opens its confirm dialog, and an agent's command must not drive the owner's
- * UI state. The panel's agent-link control shows the last command's headline instead.
+ * structured `data` the handler exposes beside its prose. Each terminal verdict is ALSO forwarded to the
+ * panel (`forward`), so its status pills show an agent's command the way they show a button's (the owner's
+ * call). `main.ts` marks an agent's prune preview pill-only on the way: opened as the confirm dialog, the
+ * owner's Confirm would prune against the panel's own knobs, not the input the agent previewed.
  *
  * `status` is the one command with no UI twin: it reads the link state and the file, and writes nothing.
  * `readback` is the UI's boot read-back (`seedFromFile`, through the table) plus a READ-ONLY census of every
@@ -113,6 +114,10 @@ type Deps = {
   onProgress?(id: string, p: AgentProgress): void;
   /** Each console line as it is printed during a command (the bridge streams these). */
   onLog?(id: string, line: string): void;
+  /** Each terminal verdict as it lands, so the panel's status pills show an agent's command the way they
+   *  show a button's (the owner's call). Progress readings are not forwarded: the panel only counts a build
+   *  it started itself. */
+  forward?(m: MainToUi): void;
 };
 
 /** Per-command routes into the table. The ONLY place a command meets a handler — see the header. */
@@ -197,6 +202,7 @@ export const createDispatcher = (deps: Deps) => {
           deps.onProgress?.(c.id, p);
         } else {
           verdicts.push(m);
+          try { deps.forward?.(m); } catch { /* the panel is a reader; its failure never fails the command */ }
         }
       },
       data(d) { Object.assign(data, d); },

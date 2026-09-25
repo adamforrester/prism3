@@ -891,6 +891,10 @@ const dispatch = createDispatcher({
   // Streamed to the panel, which forwards them to the desktop bridge for the commands it delivered.
   onProgress: (id, progress) => postToUi({ type: 'agent-progress', id, progress }),
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
+  // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
+  // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
+  // which are not necessarily the input the agent previewed.
+  forward: (m) => postToUi(m.type === 'prune-result' && !m.applied ? { ...m, pillOnly: true } : m),
   census: () => componentCensus(figma as unknown as Parameters<typeof componentCensus>[0], ENGINE_VERSION),
   status: async () => {
     let brand: 'present' | 'absent' | 'unreadable' = 'absent';
