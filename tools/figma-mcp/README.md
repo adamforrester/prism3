@@ -2,6 +2,8 @@
 
 A runbook for an agent. It applies a Prism3 theme, builds components, reads the file back and
 reports — through the Figma MCP's `use_figma` tool, with the Prism3 plugin closed (#111, #1553).
+§5 is the other mode: the plugin **open** in the owner's Figma with its agent link on, driven by
+command through the file (`agent-link.ts`).
 
 **It runs only against a file the owner has designated as a scratch file.** Every script writes to
 the file it runs in. If you have not been given a scratch file by name or URL, stop and ask for one.
@@ -20,6 +22,7 @@ against one file model and checks that they leave the same file; it runs in the 
 |---|---|
 | `plan.ts` | Writes the numbered scripts and `manifest.json` for one brand. |
 | `report.ts` | Reads the saved results and prints one pass/fail summary. |
+| `agent-link.ts` | Prints the short `use_figma` scripts that send a command to the running plugin and read its result (§5). |
 | `apps/plugin/mcp-paste.ts` | The generator both CLIs call (slicing, bundling, the plan comparison). |
 | `apps/plugin/src/mcp-steps.ts` | The runtime inside each script. |
 
@@ -115,6 +118,80 @@ The Figma MCP's guidance lists `setPluginData` as unsupported and says nothing a
   run's pre-flight reads the first run's collections as someone else's and refuses.
 
 A ledger is keyed by collection id and is valid only for the file it came from.
+
+## 5. Drive the running plugin instead (the agent link, file mailbox)
+
+Sections 1–4 run the plugin's executors with the plugin **closed**. The agent link is the other way
+round: the **real plugin, open in the owner's Figma**, does the writing, and you trigger it and read
+the output. Every command runs through the same main-thread handler the panel's button reaches, and
+the result carries the verdict the panel would show plus the structured facts behind it.
+
+**Precondition — ask for it, never assume it.** The owner opens the file, runs the Prism3 plugin, and
+switches **Agent link** on (the dashed chip, bottom-left of the panel). The link is off at every
+launch. While it is off the plugin ignores the mailbox entirely, and a command you queued before it was
+switched on is answered `stale` rather than run. The same scratch-file rule as above applies: the
+commands write to that file.
+
+Each step below prints one short script. Pass it to `use_figma` whole, as in §2.
+
+```bash
+npx tsx tools/figma-mcp/agent-link.ts link                              # is anyone listening?
+npx tsx tools/figma-mcp/agent-link.ts send status                       # prints the script; the id goes to stderr
+npx tsx tools/figma-mcp/agent-link.ts send apply-theme --brand aurora
+npx tsx tools/figma-mcp/agent-link.ts send build-components '{"def":"button"}'
+npx tsx tools/figma-mcp/agent-link.ts send file-setup
+npx tsx tools/figma-mcp/agent-link.ts send prune '{"confirm":false}' --brand aurora
+npx tsx tools/figma-mcp/agent-link.ts send readback
+npx tsx tools/figma-mcp/agent-link.ts read <id>                          # the result, or where the command is
+npx tsx tools/figma-mcp/agent-link.ts read <id> --path result.data.apply.misses
+```
+
+The loop:
+
+1. Run the `link` script. `link.on: true` means the plugin is listening; `on: false` or `null` means
+   ask the owner to switch the link on.
+2. Send `status` first and read it back. It confirms the round trip and reports the engine version,
+   the plugin build (#836), the file's themed state and the commands this build answers.
+3. Send one command, then run its `read` script until it returns a result rather than
+   `{ pending: true }`. `queued: true` means the plugin has not taken it yet; `claimed: true` means it
+   is running. The plugin polls about once a second and runs one command at a time, in send order, so
+   send the next command after the previous one has a result.
+4. Check `ok`. On `ok: false`, `error` says why the command was not run (`unknown-command`,
+   `bad-version`, `bad-args`, `stale`, `handler-threw`); otherwise `result.verdict` is the panel's
+   own verdict and `result.data` holds the detail.
+
+What a result holds (`apps/plugin/src/agent-protocol.ts` is the definition):
+
+| Field | What it is |
+|---|---|
+| `v`, `id`, `cmd`, `startedAt`, `finishedAt` | the envelope; `v` is the protocol version |
+| `ok` | the action's own verdict — `false` whenever `error` is set |
+| `engineVersion`, `transport` | which engine ran it, and `mailbox` |
+| `result.verdict` | the message the panel would have shown: `apply-result`, `component-result`, `file-setup-result`, `prune-result` or `seed-info`, headline and summary byte for byte |
+| `result.data` | the facts behind the verdict: misses by axis, orphans, stranded collections, renames (`apply`); the component report, its counters and telemetry (`build`); the prune plan (`prunePlan`); the file-setup pages (`fileSetup`); the contract checks (`readback`) and a census of every component page with each set's own build report (`components`) |
+| `result.logs` | every console line the plugin printed while the command ran |
+| `progress` | `component-progress` readings for a build |
+| `error` | `{ code, message }` for a command that was not run |
+
+A result larger than 90 kB is split across several keys; the `read` script reassembles it. If a result
+is too large to return in one `use_figma` call, read one subtree with `--path`.
+
+Rules:
+
+- **One command in flight at a time.** Send, read until done, then send the next.
+- **`prune` with `confirm: true` deletes.** Send the preview (`confirm: false`) first and report its
+  `result.verdict.summary` to the owner before sending the delete.
+- **No `cleanup` command exists**, because no panel action removes components. Use §4's scripts.
+- **The mailbox keeps the last 20 results.** Read each result before sending 20 more commands.
+
+The keys live under the `prism3agent` namespace of the file's root shared plugin data: `inbox` (yours),
+and `claimed`, `result:<id>`, `results` and `link` (the plugin's). Each key has one writer, so the two
+sides never overwrite each other.
+
+**Not yet verified live:** whether a write made by `use_figma` reaches the owner's open plugin through
+multiplayer, and how fast. The plugin polls rather than waits for a change event so that either route
+works, but if `read` stays at `queued: true` for more than about ten seconds while `link.on` is true,
+report that — it is the first thing this transport needs confirmed.
 
 ## What it does not do
 

@@ -256,6 +256,40 @@ executors rather than restating them:
 
 The CLIs and the runbook are in `tools/figma-mcp/`.
 
+## Scope (the agent link — an agent drives the running plugin by command)
+
+"The plugin does the writing; the agent does the triggering and reading of the output." With the owner's
+**Agent link** switched on (a temporary dashed chip, bottom-left of the panel — its placement and name are
+open owner decisions), an agent sends a command and reads back a structured result. One protocol, two
+transports; this section covers the protocol and transport A.
+
+- ✅ **One protocol** — `src/agent-protocol.ts`, context-neutral like `messages.ts` (compiles under both
+  tsconfigs): the command envelope `{v, id, cmd, args, issuedAt}`, the result envelope
+  `{v, id, cmd, ok, startedAt, finishedAt, engineVersion, transport, result|error, progress?}`, the six
+  commands (`status`, `apply-theme`, `build-components`, `file-setup`, `prune`, `readback`) and the
+  validation both transports share. Unknown command, wrong version and malformed args are failed results,
+  never silence.
+- ✅ **No parallel path** — `main.ts`'s handlers report to an `ActionSink`; the panel passes one that posts
+  exactly what it posted before, and the dispatcher (`src/agent-dispatch.ts`) passes one that captures the
+  verdict plus the structured `data` each handler now exposes. Both callers reach the handlers through ONE
+  `ACTIONS` table, and `test-agent-link.ts` fails by name if either stops doing so.
+- ✅ **Transport A, the file mailbox** — `src/agent-link.ts`: while the link is on, the main thread polls
+  `figma.root`'s `prism3agent` shared plugin data about once a second, claims one command before running
+  it, runs commands in send order, one at a time, writes the result (chunked past 90 kB), keeps the last 20
+  and publishes its own state to the `link` key. Commands queued before the link was switched on are
+  answered `stale`, not run. The agent side is `agent-snippets.ts`, printed by
+  `tools/figma-mcp/agent-link.ts` (runbook: `tools/figma-mcp/README.md` §5).
+- ✅ **Off by default, never persisted**; the panel shows whether it is listening and the last command's
+  headline. Commands are data mapped to handlers by name — nothing in a command is evaluated.
+- ✅ **Tested through the real `main.ts`** — `test-agent-link.ts` installs a host model as the global
+  `figma` and imports `main.ts` itself, then drives the mailbox with the exact scripts the CLI prints.
+- ⏭ **Not verified live:** whether a `use_figma` write reaches an open plugin through multiplayer, and how
+  fast. The mailbox polls so either route works; the first live run confirms it.
+- ⏭ **No `cleanup` command** — no panel action removes components, and the link routes only to those.
+
+The iframe entry is now `src/ui/entry.ts`: it imports `apps/studio/src/main.ts` whole and unchanged (one UI,
+no fork) and mounts the agent-link chip beside it, so the web build carries none of it.
+
 ## Run
 
 ```bash

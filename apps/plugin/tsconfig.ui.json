@@ -11,5 +11,5 @@
     "types": [],
     "lib": ["ES2020", "DOM", "DOM.Iterable"]
   },
-  "include": ["../studio/src/main.ts", "../studio/src/write-adapter.ts", "../studio/src/prism3-host.d.ts", "src/messages.ts"]
+  "include": ["../studio/src/main.ts", "../studio/src/write-adapter.ts", "../studio/src/prism3-host.d.ts", "src/messages.ts", "src/agent-protocol.ts", "src/agent-link-ui.ts", "src/ui/entry.ts"]
 }

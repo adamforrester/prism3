@@ -52,6 +52,10 @@ import type { DepHost } from './build-deps';
 import { button } from '@prism3/engine/components/button';
 import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
+import { createAgentLink } from './agent-link';
+import { createDispatcher, componentCensus } from './agent-dispatch';
+import type { ActionSink, AgentActions } from './agent-dispatch';
+import { AGENT_COMMANDS } from './agent-protocol';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
 // (the inlined `apps/studio/src` app; declared for the sandbox global in `figma-env.d.ts`). The shared
@@ -88,8 +92,17 @@ figma.showUI(__html__, { ...DEFAULT_SIZE, themeColors: true });
  * written by whichever build wrote it, and stamping this build's identity onto it would attribute a
  * previous build's variables to this one — the precise confusion #836 is about, inverted.
  */
-const postVerdict = (m: Extract<MainToUi, { type: 'apply-result' | 'component-result' }>): void =>
-  postToUi({ ...m, summary: appendBuildNote(m.summary, PRISM3_BUILD) });
+const postVerdict = (m: Extract<MainToUi, { type: 'apply-result' | 'component-result' }>, sink: ActionSink): void =>
+  sink.post({ ...m, summary: appendBuildNote(m.summary, PRISM3_BUILD) });
+
+/**
+ * WHERE A HANDLER REPORTS (the agent link). Every action below takes an `ActionSink` and reports to it
+ * rather than to `postToUi` directly. The panel's buttons pass `uiSink`, which posts exactly what they
+ * posted before and drops the structured `data`; the agent link's dispatcher passes a capturing sink, so an
+ * agent's command gets the same verdict — headline, summary, build note — plus the facts behind it. One
+ * handler, two readers, and no second copy of any action (`agent-dispatch.ts`).
+ */
+const uiSink: ActionSink = { post: postToUi, data: () => undefined };
 
 // THE PRIMARY CHANNEL — measured, not assumed, and this ordering is the opposite of how #836 framed it.
 //
@@ -131,7 +144,7 @@ void (async (): Promise<void> => {
  * knobs (a `BrandInput`), not a bundled fixture. Same pure core, same executor: only the source of
  * the theme changed (#110). Idempotent find-by-name; colour axis (`core` + `color`).
  */
-const applyTheme = async (input: BrandInput): Promise<void> => {
+const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> => {
   try {
     // The write sequence — fonts first, pre-flight, then the guarded executor calls — lives in
     // `apply-theme.ts` since #111, so the MCP paste harness can prove parity against this exact path. The
@@ -139,7 +152,8 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     const { plans, pf, guarded } = await runApplyTheme(input, figma);
     const { colorFiles, floatPlan, fontPlan } = plans;
     if (!guarded.ok) {
-      postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflictSummary(guarded.conflicts) });
+      sink.data({ conflicts: guarded.conflicts });
+      postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflictSummary(guarded.conflicts) }, sink);
       return;
     }
     const { mig, r, f, s, gs, tv, ts } = guarded.result;
@@ -252,9 +266,28 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // load-bearing. Only misses and skipped fonts reach the headline; #479's orphan count deliberately
     // does not, because the pill has a 24-char budget and three warning axes will not fit in it. The
     // orphans are still readable — they are in `summary`, which now has somewhere to be shown.
-    postVerdict({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary });
+    // The facts behind `summary`, as objects (the agent link; `uiSink` drops them). Every list the prose
+    // above caps at three is here whole, keyed by the axis that produced it.
+    sink.data({
+      apply: {
+        misses: { color: r.misses, float: f.misses, fontVars: tv.misses, textStyles: ts.misses, styles: s.misses, refused: tv.refused },
+        counts: {
+          palette: { total: r.paletteTotal, created: r.paletteCreated }, color: { total: r.colorTotal, created: r.colorCreated },
+          floatCollections: f.collections.length, floatCreated,
+          effects: { total: s.effects.total, created: s.effects.created },
+          gradients: { total: s.paints.total, created: s.paints.created, stopsBound: s.paints.bound },
+          gridStyles: { total: gs.total, created: gs.created },
+          fontsLoaded: pf.loaded, fontVars: { total: fontVarTotal, created: fontVarCreated },
+          textStyles: { total: ts.total, created: ts.created }, bindings: r.bound + f.bound + tv.bound + ts.bound,
+        },
+        orphans: allOrphans, stranded,
+        renames: { migrated, refused: migRefused, mapRefusals: mig.refusals },
+        textStylesSkipped: ts.skipped, fontsUnavailable: pf.unavailable, resolvedStyles: ts.resolvedStyles,
+      },
+    });
+    postVerdict({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary }, sink);
   } catch (e) {
-    postVerdict({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: `write failed: ${(e as Error).message}` });
+    postVerdict({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: `write failed: ${(e as Error).message}` }, sink);
   }
 };
 
@@ -279,7 +312,7 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
  *
  * Never flips into `applyTheme`'s path and writes nothing but deletes: a prune only removes.
  */
-const prune = async (input: BrandInput, confirm: boolean): Promise<void> => {
+const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Promise<void> => {
   try {
     const theme = brandTheme(input);
     // The plans, exactly as `applyTheme` builds them — the plan is what defines "stale". No write.
@@ -361,8 +394,9 @@ const prune = async (input: BrandInput, confirm: boolean): Promise<void> => {
     };
     const plan = computePrunePlan(snapshot);
 
+    sink.data({ prunePlan: plan });
     if (!confirm) {
-      postToUi({ type: 'prune-result', ok: true, applied: false, count: prunePlanCount(plan), summary: prunePreviewSummary(plan) });
+      sink.post({ type: 'prune-result', ok: true, applied: false, count: prunePlanCount(plan), summary: prunePreviewSummary(plan) });
       return;
     }
 
@@ -376,10 +410,11 @@ const prune = async (input: BrandInput, confirm: boolean): Promise<void> => {
     };
     const res = await applyPrunePlan(plan, pruneApi);
     const removed = res.variables + res.collections + res.modes + res.styles;
-    postToUi({ type: 'prune-result', ok: res.misses.length === 0, applied: true, count: removed, summary: pruneAppliedSummary(res) });
+    sink.data({ pruneApplied: res });
+    sink.post({ type: 'prune-result', ok: res.misses.length === 0, applied: true, count: removed, summary: pruneAppliedSummary(res) });
   } catch (e) {
     // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch.
-    postToUi({ type: 'prune-result', ok: false, applied: confirm, count: 0, summary: `prune failed: ${(e as Error).message}` });
+    sink.post({ type: 'prune-result', ok: false, applied: confirm, count: 0, summary: `prune failed: ${(e as Error).message}` });
   }
 };
 
@@ -454,7 +489,7 @@ const prune = async (input: BrandInput, confirm: boolean): Promise<void> => {
  * before the chunking this function had nothing to report and no moment to report it in. `onProgress`
  * fires at every chunk boundary; the terminal `component-result` still lands exactly once, at the end.
  */
-const buildComponents = async (defId?: string): Promise<void> => {
+const buildComponents = async (defId: string | undefined, sink: ActionSink): Promise<void> => {
   // EXACTLY ONE VERDICT PER BUILD, and this flag exists because #908's reordering is what made a second one
   // possible. The success verdict now posts BEFORE the console telemetry, so a throw in the telemetry tail
   // would reach the catch below and overwrite a correct "built" verdict with "apply failed" — reporting a
@@ -472,10 +507,11 @@ const buildComponents = async (defId?: string): Promise<void> => {
       // the disagreement is diagnosable from the pill alone.
       // "this build knows …" was already the sentence here, and until #836 nothing said WHICH build that
       // was — the disagreement is between two bundles, so naming only one side of it is half a diagnosis.
+      sink.data({ build: { def: defId, known: componentDefs.map((d) => d.id) } });
       postVerdict({
         type: 'component-result', ok: false, headline: '✗ unknown def',
         summary: `no component def with id '${defId}' — this build knows ${componentDefs.map((d) => d.id).join(', ')}`,
-      });
+      }, sink);
       return;
     }
     // REFUSED BY DECLARATION (#869) — the def's own `notStandalone`, quoted verbatim as the summary.
@@ -495,7 +531,7 @@ const buildComponents = async (defId?: string): Promise<void> => {
       postVerdict({
         type: 'component-result', ok: false, headline: '✗ not buildable on its own',
         summary: def.figmaProperties.notStandalone,
-      });
+      }, sink);
       return;
     }
     // `controlShape` (#1163) and weight availability (#1605) are BRAND levers, so they enter here — where the
@@ -561,7 +597,7 @@ const buildComponents = async (defId?: string): Promise<void> => {
           // The console gets the whole reading including `elapsedMs`; the pill shows a fraction and nothing
           // more. Spreading would put every field the executor ever adds onto the bridge by default — a
           // widening the message contract in `messages.ts` never agreed to, and one that reads as intentional.
-          postToUi({ type: 'component-progress', phase: p.phase, done: p.done, total: p.total, chunkMs: p.chunkMs });
+          sink.post({ type: 'component-progress', phase: p.phase, done: p.done, total: p.total, chunkMs: p.chunkMs });
         },
       });
     };
@@ -621,7 +657,7 @@ const buildComponents = async (defId?: string): Promise<void> => {
         ok: r.set !== null && r.misses.length === r.skipped,
         headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale),
         summary: summary + alsoBuiltNote(alsoBuilt),
-      });
+      }, sink);
       verdictPosted = true;
     });
     // BOTH CONSOLE BLOCKS RUN AFTER THE AWAIT, deliberately. They are the only two things left that need
@@ -669,7 +705,11 @@ const buildComponents = async (defId?: string): Promise<void> => {
     if (r.set) console.log(`[prism3 #1579] this build's own report is on the set '${r.set}': getSharedPluginData('prism3', 'build')`);
     // The telemetry block, printed LAST so it is the bottom of the console and can be copied in one
     // selection. It is the deliverable of the calibration run: `CHUNK` is set from these numbers.
-    for (const line of summaryLines(reports, settleMs)) console.log(line);
+    const telemetry = summaryLines(reports, settleMs);
+    for (const line of telemetry) console.log(line);
+    // The report behind the verdict, whole (the agent link; `uiSink` drops it): the miss list uncapped,
+    // the #701 / #866 / #1279 / #1574 counters the console lines above print, and the telemetry block.
+    sink.data({ build: { def: def.id, alsoBuilt, settleMs, telemetry, report: r, progress: reports } });
   } catch (e) {
     // `planSetLayout` throws on a set that could not be assembled coherently — before anything reaches
     // the file. That is a def-tier or scope-tier error, and its message names the cause.
@@ -689,11 +729,12 @@ const buildComponents = async (defId?: string): Promise<void> => {
       // #1633: a dependency's failure carries the host's own error as `original`, which is where the
       // executor attached its partial-write facts; the message is the dependency's, naming both defs.
       const partial = partialWriteOf(e instanceof DependencyBuildError ? e.original : e);
+      sink.data({ build: { def: defId ?? button.id, threw: (e as Error)?.message ?? String(e), partialWrite: partial } });
       postVerdict({
         type: 'component-result', ok: false,
         headline: partial ? partialWriteHeadline(partial) : APPLY_FAILED_HEADLINE,
         summary: `component build failed: ${(e as Error).message}${partial ? partialWriteNote(partial) : ''}`,
-      });
+      }, sink);
     }
   }
 };
@@ -711,12 +752,13 @@ const buildComponents = async (defId?: string): Promise<void> => {
  * Its own action, not part of `apply-theme` or `build-components`, for the #652 reason every canvas write
  * on this bridge is its own action: a distinct designer choice with its own trigger and its own verdict.
  */
-const fileSetup = async (): Promise<void> => {
+const fileSetup = async (sink: ActionSink): Promise<void> => {
   try {
     await figma.loadAllPagesAsync();
     const scaffold = await scaffoldSkeleton(figma, TAXONOMY);
     const page = scaffold.fileComponentsPage;
     let assetNote = '';
+    let assets: { built?: string[]; fontMisses?: string[]; skipped?: boolean } = {};
     if (page) {
       // IDEMPOTENT ASSET BUILD: skip if the page already holds a file component, so a re-run does not stack
       // a second `_Section-header`/`_Headings` beside the first. `findOne` is available on a real PageNode.
@@ -725,8 +767,10 @@ const fileSetup = async (): Promise<void> => {
       );
       if (already) {
         assetNote = ', file components already present (skipped)';
+        assets = { skipped: true };
       } else {
         const res = await buildFileComponents(figma, page as unknown as { appendChild(child: unknown): void });
+        assets = { built: res.built, fontMisses: res.fontMisses };
         assetNote = `, built ${res.built.join(' + ')}` +
           (res.fontMisses.length ? ` (⚠️ ${res.fontMisses.length} font miss: ${res.fontMisses.slice(0, 2).join('; ')})` : '');
       }
@@ -734,9 +778,10 @@ const fileSetup = async (): Promise<void> => {
       assetNote = ', ⚠️ no File Components page — assets not built';
     }
     const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}`;
-    postToUi({ type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: appendBuildNote(summary, PRISM3_BUILD) });
+    sink.data({ fileSetup: { pagesCreated: scaffold.created, fileComponentsPage: page ? true : false, assets } });
+    sink.post({ type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: appendBuildNote(summary, PRISM3_BUILD) });
   } catch (e) {
-    postToUi({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${(e as Error).message}`, PRISM3_BUILD) });
+    sink.post({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${(e as Error).message}`, PRISM3_BUILD) });
   }
 };
 
@@ -745,14 +790,15 @@ const fileSetup = async (): Promise<void> => {
  * contract, and hand the UI a summary. Informational — reports that an existing themed file's
  * contract holds; the actual knob-rehydration is `restoreToUi` (#131), which is independent.
  */
-const seedFromFile = async (): Promise<void> => {
+const seedFromFile = async (sink: ActionSink): Promise<void> => {
   try {
     const snap = await readFigmaVariables(figma.variables);
     if (snap.color.length === 0) {
       // `present: false` — #721's state 3. The UI needs this told apart from a themed file as a FLAG,
       // not by parsing the sentence: it is what stops "no theme here" being reported as knobs that
       // could not be recovered (#722).
-      postToUi({ type: 'seed-info', ok: true, present: false, summary: 'No existing Prism3 theme in this file — start from the knobs.' });
+      sink.data({ readback: { present: false } });
+      sink.post({ type: 'seed-info', ok: true, present: false, summary: 'No existing Prism3 theme in this file — start from the knobs.' });
       return;
     }
     const v = verifyReadback(snap);
@@ -762,11 +808,12 @@ const seedFromFile = async (): Promise<void> => {
       (v.ok ? ' — contract holds ✓' : ` — FAILED: ${failed.join(', ')}`);
     // `present: true` regardless of `ok`: the variables ARE here, and whether the contract verified is
     // a separate fact. Collapsing the two would make a contract failure look like an unthemed file.
-    postToUi({ type: 'seed-info', ok: v.ok, present: true, summary });
+    sink.data({ readback: { present: true, ok: v.ok, failed, checks: v.checks, details: v.details } });
+    sink.post({ type: 'seed-info', ok: v.ok, present: true, summary });
   } catch (e) {
     // The read itself failed, so presence is UNKNOWN — reported false, since the outcome is an error
     // either way and claiming presence we could not establish would be worse than not claiming it.
-    postToUi({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${(e as Error).message}` });
+    sink.post({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${(e as Error).message}` });
   }
 };
 
@@ -822,29 +869,84 @@ const sendFonts = async (): Promise<void> => {
   }
 };
 
+/**
+ * THE ACTION TABLE — the one set of handlers the panel's buttons and the agent link both reach.
+ *
+ * The switch below calls every action THROUGH this table, and the agent link's dispatcher is handed the
+ * same object, so there is no second path to any write: an agent's `apply-theme` and the Apply button end
+ * in one function. `test-agent-link.ts` imports this file under a host model, spies on each entry and
+ * drives both the UI message and the agent command — a route pointed at a copy fails there by name.
+ * Exported for that test only; nothing in the plugin imports it.
+ */
+export const ACTIONS: AgentActions = { applyTheme, buildComponents, fileSetup, prune, seedFromFile };
+
+/**
+ * THE AGENT LINK (off until the owner switches it on in the panel; never persisted). Commands arrive as
+ * data and are routed by name into `ACTIONS` — see `agent-link.ts` for the mailbox and `agent-dispatch.ts`
+ * for the routing. `status` reads the file's themed state the way `restoreToUi` and `seedFromFile` do,
+ * without posting anything.
+ */
+const dispatch = createDispatcher({
+  actions: ACTIONS,
+  census: () => componentCensus(figma as unknown as Parameters<typeof componentCensus>[0], ENGINE_VERSION),
+  status: async () => {
+    let brand: 'present' | 'absent' | 'unreadable' = 'absent';
+    try { brand = restoreInput(figma.root) ? 'present' : 'absent'; } catch { brand = 'unreadable'; }
+    let colorVars: number | null = null;
+    try { colorVars = (await readFigmaVariables(figma.variables)).color.length; } catch { /* unreadable → null */ }
+    return {
+      status: {
+        engineVersion: ENGINE_VERSION,
+        build: PRISM3_BUILD,
+        file: { name: figma.root.name, currentPage: figma.currentPage.name, brandInput: brand, colorVars, themed: (colorVars ?? 0) > 0 },
+        link: agentLink.state(),
+        commands: [...AGENT_COMMANDS],
+      },
+    };
+  },
+});
+export const agentLink = createAgentLink({
+  root: figma.root,
+  dispatch: (raw, transport) => dispatch(raw, transport),
+  engineVersion: ENGINE_VERSION,
+  build: PRISM3_BUILD,
+  schedule: (fn, ms) => setTimeout(fn, ms),
+  cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
+  onState: (state) => postToUi({ type: 'agent-link-state', state }),
+});
+// Closing the plugin ends the session, so the link record says so — an agent reading `link` then knows
+// nobody is listening rather than waiting on a poll that will never come.
+figma.on('close', () => { try { agentLink.setOn(false); } catch { /* closing; nothing to report to */ } });
+
 onUiMessage((msg: UiToMain) => {
   switch (msg.type) {
     case 'ui-ready':
       // UI's listener is attached — run the boot read-back (seed summary) + rehydrate the knobs.
-      void seedFromFile();
+      void ACTIONS.seedFromFile(uiSink);
       restoreToUi();
       void sendFonts();
+      // The link is off on every launch; the panel's control starts from this.
+      postToUi({ type: 'agent-link-state', state: agentLink.state() });
       return;
     case 'apply-theme':
-      void applyTheme(msg.input);
+      void ACTIONS.applyTheme(msg.input, uiSink);
       return;
     case 'build-components':
       // `msg.def` straight through, `undefined` included — the resolution lives in `buildComponents`
       // (absent means Button) rather than being defaulted here, so there is one place that decides it.
-      void buildComponents(msg.def);
+      void ACTIONS.buildComponents(msg.def, uiSink);
       return;
     case 'prune':
       // #1521 — `confirm` decides preview vs delete; both recompute from a fresh read inside `prune`.
-      void prune(msg.input, msg.confirm);
+      void ACTIONS.prune(msg.input, msg.confirm, uiSink);
       return;
     case 'file-setup':
       // #1554 — scaffold the page skeleton + build the two template assets. Its own action.
-      void fileSetup();
+      void ACTIONS.fileSetup(uiSink);
+      return;
+    case 'agent-link':
+      // The owner's switch — the only way the link turns on. See `agent-link.ts`.
+      agentLink.setOn(msg.on);
       return;
     case 'resize-ui': {
       // Resize on every drag message so the window tracks the pointer; persist only on the
