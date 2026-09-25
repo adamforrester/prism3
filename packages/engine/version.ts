@@ -2926,6 +2926,14 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.158.0 — The field-message row reserves its status glyph's height in every status (owner decision, option
+ * (a), 2026-09-25). On a brand whose caption line box is shorter than the 16px glyph (`nb-redesign`: 12px at
+ * 1.25 = 15) the default message row measured 15 and the three status rows 16, so text-field built with 15
+ * footprint misses and select with 12. A new `PartDef.minHeight` (a token-bound auto-layout height floor on
+ * a `box`, projected as a bound `minHeight`) lets `field-message`'s row bind `minHeight: 'glyph-size'`
+ * (`icon.size.xs`); the row still hugs, so it measures max(glyph, caption line box) in every member.
+ * Projected surface moves (the row gains a binding) → MINOR; `schema/component-surface.json` accepted.
+ * CONTRACT STANDS (no token name moves; the floor binds an existing name).
  * 0.157.0 — #1664: component WIRING outlasts the host's per-member reference-refusal window. Live Button
  * builds (2026-09-25, via the agent link) left one contiguous run of members — 44 on one file, 54 on another —
  * whose every component-property reference refused (a throw, or an accepted write that read back undefined);
@@ -3631,7 +3639,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.157.0';
+export const ENGINE_VERSION = '0.158.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

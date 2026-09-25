@@ -416,6 +416,21 @@ export type PartDef = {
    *  auto-layout frame, so a floor on a layout-less box would be silently dropped (or throw on the real
    *  host) — the silent-loss shape the width and sizing rules exist to catch. */
   minWidth?: number;
+  /** For `box` parts: the binding key giving the frame's MINIMUM height — Figma's auto-layout `minHeight`,
+   *  bound to a variable. The token-bound twin of `minWidth`'s literal, and a token rather than a
+   *  literal because the floor it states IS a token's value: `field-message`'s row reserves its status
+   *  glyph's height (`icon.size.xs`) in every status, so the default status — which draws no glyph — is as
+   *  tall as the three that do. A hugging row under a floor measures max(floor, tallest child), which is
+   *  exactly "max(icon size, caption line height)" without the def having to compute a max: the caption's
+   *  line box still wins wherever it is the taller of the two, and the floor wins only where it is not.
+   *
+   *  WHY A FLOOR AND NOT A BOUND `height`. A fixed height would clip a wrapping message to one line; a floor
+   *  keeps the row hugging above it. Code reads it as `min-block-size`.
+   *
+   *  Refused on a non-`box` kind, on a `box` with no `layout` (Figma applies `minHeight` only to an
+   *  auto-layout frame — the `minWidth` rule), and alongside `height`/`size` (a bound height already fixes
+   *  the axis, so a floor under it states the height twice). */
+  minHeight?: string;
   /** For `box` parts: the name of a VARIANT axis whose values are `W:H` ratio strings, from which the
    *  box's aspect-ratio LOCK is derived per member (#1316). image-placeholder declares `aspectRatio:
    *  'ratio'` and a `ratio` axis of `['1:1', '4:3', '16:9']`; the projector parses the member's own
@@ -2850,7 +2865,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
+    [p.gap, p.height, p.minHeight, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
@@ -3357,6 +3372,14 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidth' — only a 'box' becomes an auto-layout frame that can carry a minimum width; every other kind is sized by its content or its artboard`);
     if (p.minWidth !== undefined && p.kind === 'box' && !p.layout)
       e.push(`anatomy part '${n}' declares 'minWidth' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so a floor on a layout-less box would be silently dropped`);
+    // ---- `minHeight`, the BOX kind's token-bound auto-layout height FLOOR ----
+    // `minWidth`'s two rules, plus one: a floor under a bound `height`/`size` states the height twice.
+    if (p.minHeight !== undefined && p.kind !== 'box')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minHeight' — only a 'box' becomes an auto-layout frame that can carry a minimum height; every other kind is sized by its content or its artboard`);
+    if (p.minHeight !== undefined && p.kind === 'box' && !p.layout)
+      e.push(`anatomy part '${n}' declares 'minHeight' but binds no 'layout' — Figma applies a minimum height only to an auto-layout frame, so a floor on a layout-less box would be silently dropped`);
+    if (p.minHeight !== undefined && (p.height !== undefined || p.size !== undefined))
+      e.push(`anatomy part '${n}' declares 'minHeight' alongside a bound '${p.height !== undefined ? 'height' : 'size'}' — a bound height already fixes the axis, so the floor states the height twice`);
     // ---- `aspectRatio`, the BOX kind's proportion LOCK (#1316) ----
     // A ratio-locked box binds ONE nominal dimension and lets Figma's aspect lock derive the other. Every
     // rule here is a way the field would validate and then leave a member unlocked or evicted — the

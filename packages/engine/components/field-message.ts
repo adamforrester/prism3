@@ -161,6 +161,14 @@ export const fieldMessage: ComponentDef = {
         // engines. `start` is the reading that survives wrapping.
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'gap',
+        // THE ROW RESERVES THE GLYPH'S HEIGHT IN EVERY STATUS, the default included (owner decision, option
+        // (a), 2026-09-25). A brand whose caption line box is shorter than the glyph (`nb-redesign`: 12px at
+        // 1.25 = 15, beside a 16px glyph) measured 16 tall in a status member and 15 in the default one, so
+        // every field that nests this message changed height by 1px as validation ran — 15 footprint misses
+        // on text-field, 12 on select. A FLOOR, not a fixed height: the row still hugs, so it measures
+        // max(glyph, caption line box) in every member and a wrapping message still grows. Bound to the
+        // glyph's own key, so the floor is whatever the glyph is in every brand. Code: `min-block-size`.
+        minHeight: 'glyph-size',
         children: ['iconError', 'iconWarning', 'iconSuccess', 'text'],
       },
       // ── THE STATUS GLYPH: THREE VECTOR PARTS, ONE PER VALIDATION TONE (#1010) ─────────────────────

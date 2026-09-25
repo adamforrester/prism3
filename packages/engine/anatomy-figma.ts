@@ -1259,6 +1259,8 @@ export const figmaAnatomyPlan = (
     if (p.kind === 'box') {
       if (p.gap) bound.itemSpacing = varOf(p.gap);
       if (p.height) bound.height = varOf(p.height);
+      // A token-bound height FLOOR: the row still hugs, and measures max(floor, tallest child).
+      if (p.minHeight) bound.minHeight = varOf(p.minHeight);
       // A SQUARE box binds one key to both axes (IconButton's control). The same two-axes-one-variable
       // shape a slot's artboard uses, and legal for the same reason — the executor unlocks the node's
       // aspect ratio before binding, so the second write does not displace the first. Mutually exclusive
