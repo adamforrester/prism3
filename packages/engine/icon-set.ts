@@ -181,6 +181,14 @@ export const ICON_SOURCES: Record<string, string> = {
   // attribute and `icon-glyphs.ts` carries it in `ICON_FILL_RULES`. Not the winding story #917 warns
   // against on the subtract pair: this glyph genuinely relies on even-odd, and the source declares it.
   'FPO-default-icon': 'fpo-default-icon',
+
+  // ── field chrome ──────────────────────────────────────────────────────────────────────────────
+  // The resize grip a textarea draws at its bottom-right corner: two diagonal bars, the long one from
+  // (19,11) to (11,19) and the short one from (19,16) to (16,19), each 2 units wide like the rest of the
+  // set's line weight. Its ink sits in the artboard's bottom-right quadrant ON PURPOSE — the artboard is
+  // pinned into the control's corner, so the air above and to the left of the bars is what keeps them
+  // off the value text. Authored for this project, not taken from Remix Icon (see `icons/NOTICE.md`).
+  'resize-grip': 'resize-grip',
 };
 
 /** Every glyph name this engine defines — the literal vocabulary `icon.name` is typed against. */

@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.160.0 — The textarea's resize grip and character counter in Figma (owner decisions (c) and (d),
+ * 2026-09-25). A new `resize-grip` glyph joins the icon set (drawn for this project; the `icon` set grows by
+ * one member). A new `PartDef.corner` pins a `vector` into its parent's bottom-right corner, out of the flow,
+ * `inset` in from both edges; the plan carries the inset's name (`cornerInset`) and both executors lift the
+ * glyph, place it at parent − artboard − inset and constrain it MAX/MAX. Textarea draws the grip at the
+ * smallest icon rung in the muted icon role behind a `resize handle` boolean (ON by default, as code's
+ * `resize` is `vertical`), and a "0 / 200" caption trailing the message in a new message row behind a
+ * `character count` boolean (OFF by default, as `showCount` is). Neither moves a box. field-message,
+ * text-field and select project byte-identically. New glyph + a new plan field + a def surface move → MINOR;
+ * the component-surface and paint-census baselines accepted. CONTRACT STANDS (every binding is an existing
+ * name).
  * 0.159.0 — Textarea builds in Figma, its projection modeled on text-field: the same column (nested
  * FieldLabel, the bordered control, nested FieldMessage following `status`), the same status-led border, five
  * projected states, focus-ring nesting and footprint — status(4) × state(5) = 20 members, the single `md`
@@ -3648,7 +3659,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.159.0';
+export const ENGINE_VERSION = '0.160.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

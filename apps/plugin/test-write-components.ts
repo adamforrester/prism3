@@ -3471,9 +3471,11 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const ROWS = 3;
   const textarea = componentDefs.find((d) => d.id === 'textarea')!;
   const taPlans = figmaAnatomySet(materializeForBrand(textarea, null), { swapTarget: SWAP });
-  const valueStyles = [...new Set(taPlans.flatMap((p) => planTextStyles(p.root)))];
-  ok(valueStyles.length === 1, `textarea rows: the value text sets in exactly one style (${valueStyles.join(', ')})`);
-  const VALUE = valueStyles[0];
+  // The VALUE text's style — the control's `text` node, found by name, now that the counter adds a caption.
+  const textOf = (n: AnatomyPlan['root']): AnatomyPlan['root'] | undefined => n.name === 'text' ? n : n.children.map(textOf).find(Boolean);
+  const valueStyles = [...new Set(taPlans.map((p) => textOf(p.root)?.textStyle))];
+  ok(valueStyles.length === 1 && !!valueStyles[0], `textarea rows: the value text sets in exactly one style (${valueStyles.join(', ')})`);
+  const VALUE = valueStyles[0]!;
   const PAD_Y = varValue('size/md/padding-y');   // what the shim binds the control's block padding to
   type Metrics = NonNullable<ShimOpts['styleMetrics']>[string];
   const lineOf = (m: Metrics): number => (m.lineHeight.unit === 'PIXELS' ? m.lineHeight.value! : (m.lineHeight.value! / 100) * m.fontSize);
@@ -3520,6 +3522,146 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const bare = await buildTextarea(NB, unreserved);
   ok(bare.heights.length === 1 && Math.abs(bare.heights[0] - (lineOf(NB) + 2 * PAD_Y)) < 1e-6,
     `textarea rows MUTATION: with the text's \`lines\` removed the control is ONE line tall, ${lineOf(NB)} + 2 × ${PAD_Y} (got [${bare.heights.join(', ')}]) — so the arms above measure the reserved rows, not a hug that happens to agree`);
+}
+
+// ---- THE TEXTAREA'S RESIZE GRIP AND CHARACTER COUNTER (owner decisions (c) and (d), 2026-09-25) ------
+// (c) a grip glyph pinned into the control's bottom-right corner behind a `resize handle` boolean, ON by
+// default; (d) a counter caption trailing the message behind a `character count` boolean, OFF by default.
+// Neither may move a box: the grip is out of the flow, and the counter is a caption beside a caption.
+//
+// Driven through the REAL executor, dependency-first into one live file, with the shim's `layoutModel`
+// (a hidden child takes no cell, as on the host). ORACLES AUTHORED HERE (docs/34): the panel names and their
+// defaults are the owner's words, typed here; the grip's artboard and inset are the shim's own variable
+// values for the two tokens the owner's brief names (the smallest icon rung, the control's edge weight); the
+// corner is worked by hand from the control's measured box. Never read off the def or the plan.
+//
+// The mutations each arm exists to catch, by name: the grip left IN the flow (no `layoutPositioning`) fails
+// `textarea grip corner` and `textarea grip footprint`; the counter defaulted ON fails `textarea counter
+// default`.
+{
+  const textarea = componentDefs.find((d) => d.id === 'textarea')!;
+  const GRIP = varValue('icon/size/xs');              // the smallest icon rung, as the shim binds it
+  // The control's edge weight as the FILE resolves it for a consumer (what the executor reads for `x`/`y`).
+  // Set here to a number no other shim value takes (the ring constants are 2), so a placement that read the
+  // wrong variable, or none, lands somewhere else.
+  const INSET = 3;
+  const taPlans = figmaAnatomySet(materializeForBrand(textarea, null), { swapTarget: SWAP });
+  const styles = [...new Set(taPlans.flatMap((p) => planTextStyles(p.root)))];
+  const VALUE = 'body/md/default';
+  const CAPTION = 'caption/md/default';
+  ok(styles.includes(VALUE) && styles.includes(CAPTION),
+    `textarea grip/counter seed: the set sets its value in ${VALUE} and a caption in ${CAPTION} (${styles.join(', ')})`);
+  // Wider than the control's 320 floor at the shim's 6px per character, so the control's width FOLLOWS its
+  // flow content and a glyph in the flow would show in it. At the 11-character placeholder the floor hides it.
+  const LONG = 'x'.repeat(80);
+  const find = (n: Node | undefined, name: string): Node | undefined => {
+    if (!n) return undefined;
+    if (n.name === name) return n;
+    for (const c of (n.children as Node[] | undefined) ?? []) { const f = find(c, name); if (f) return f; }
+    return undefined;
+  };
+  const box = (n: Node | undefined) => (n ? `${Math.round((n.width as number) * 1000) / 1000}x${Math.round((n.height as number) * 1000) / 1000}` : 'absent');
+
+  const buildIt = async (def: ComponentDef, captionBox: number) => {
+    const defs = componentDefs.map((d) => (d.id === 'textarea' ? def : d));
+    const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+    const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
+    const f = fullFor(all);
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, textLineBox: { [VALUE]: 20, [CAPTION]: captionBox }, varOverrides: { 'border-width/hairline': INSET } });
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    await prebuildDependencies(def, { defs, project, host: shim as any, build });
+    const r = await build(def);
+    const set = page.children.find((c) => c.name === 'textarea' && c.type === 'COMPONENT_SET') as Node | undefined;
+    return { r, set, members: ((set?.children as Node[] | undefined) ?? []) };
+  };
+  // The BOOLEAN property a set declares under a panel name, with the key a node's reference must carry.
+  const boolProp = (set: Node | undefined, panel: string) => {
+    const defs = ((set as any)?.componentPropertyDefinitions ?? {}) as Record<string, { type: string; defaultValue: unknown }>;
+    const key = Object.keys(defs).find((k) => k.split('#')[0] === panel);
+    return key ? { key, ...defs[key] } : undefined;
+  };
+
+  const b = await buildIt(textarea, GRIP - 1);
+  ok(b.members.length === 20 && b.r.misses.length === 0,
+    `textarea grip/counter: the set builds 20 members with 0 misses (${b.members.length}; ${b.r.misses[0] ?? 'none'})`);
+
+  // ---- the grip: a `resize handle` boolean, ON by default, on every member ----
+  const handle = boolProp(b.set, 'resize handle');
+  const grips = b.members.map((m) => find(m, 'grip'));
+  ok(handle?.type === 'BOOLEAN' && handle.defaultValue === true
+    && grips.every((g) => g && g.visible !== false && (g.componentPropertyReferences as Record<string, string> | null)?.visible === handle.key),
+    `textarea grip default: a 'resize handle' BOOLEAN defaulting to true drives the grip's visibility, and all 20 members build it shown (${JSON.stringify(handle)}; ${grips.filter((g) => g && g.visible !== false).length} shown)`);
+
+  // ---- the grip sits IN THE CORNER, out of the flow ----
+  const cornerMiss: string[] = [];
+  for (const m of b.members) {
+    const g = find(m, 'grip');
+    const ctl = find(m, 'control');
+    if (!g || !ctl) { cornerMiss.push(`${m.name}: ${g ? '' : 'no grip '}${ctl ? '' : 'no control'}`); continue; }
+    const wantX = (ctl.width as number) - GRIP - INSET;
+    const wantY = (ctl.height as number) - GRIP - INSET;
+    const c = g.constraints as { horizontal?: string; vertical?: string } | null;
+    if (g.layoutPositioning !== 'ABSOLUTE' || c?.horizontal !== 'MAX' || c?.vertical !== 'MAX'
+      || g.width !== GRIP || g.height !== GRIP || Math.abs((g.x as number) - wantX) > 1e-6 || Math.abs((g.y as number) - wantY) > 1e-6)
+      cornerMiss.push(`${m.name}: ${String(g.layoutPositioning)} ${JSON.stringify(c)} ${g.width}x${g.height} at (${g.x}, ${g.y}), want ABSOLUTE MAX/MAX ${GRIP}x${GRIP} at (${wantX}, ${wantY})`);
+  }
+  ok(b.members.length === 20 && cornerMiss.length === 0,
+    `textarea grip corner: on all 20 members the ${GRIP}px grip is ABSOLUTE, constrained MAX/MAX, at (control − ${GRIP} − ${INSET}) on both axes (${cornerMiss.length} off — ${cornerMiss[0] ?? 'none'})`);
+
+  // ---- the grip moves no box: the control and the member measure alike with it on and off ----
+  // With the LONG value the control's width follows its flow content (the floor is checked, so this arm
+  // cannot pass by the 320 floor absorbing a glyph in the flow).
+  const gripFoot: string[] = [];
+  let contentDriven = 0;
+  for (const m of b.members) {
+    const g = find(m, 'grip');
+    const ctl = find(m, 'control');
+    const text = find(ctl, 'text');
+    if (!g || !ctl || !text) { gripFoot.push(`${m.name}: incomplete`); continue; }
+    text.characters = LONG;
+    if ((ctl.width as number) > 320) contentDriven++;
+    const on = [box(ctl), box(m)];
+    g.visible = false;
+    const off = [box(ctl), box(m)];
+    g.visible = true;
+    if (on.join() !== off.join()) gripFoot.push(`${m.name}: control ${on[0]} with the grip, ${off[0]} without; member ${on[1]} vs ${off[1]}`);
+  }
+  ok(b.members.length === 20 && contentDriven === 20,
+    `textarea grip footprint seed: with an ${LONG.length}-character value every control is wider than its 320 floor, so a glyph in the flow would show in its width (${contentDriven}/20)`);
+  ok(b.members.length === 20 && gripFoot.length === 0,
+    `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 20 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
+
+  // ---- the counter: a `character count` boolean, OFF by default, trailing in the message row ----
+  const count = boolProp(b.set, 'character count');
+  const counters = b.members.map((m) => find(m, 'counter'));
+  ok(count?.type === 'BOOLEAN' && count.defaultValue === false
+    && counters.every((c) => c && c.visible === false && (c.componentPropertyReferences as Record<string, string> | null)?.visible === count.key),
+    `textarea counter default: a 'character count' BOOLEAN defaulting to false drives the counter's visibility, and all 20 members build it hidden (${JSON.stringify(count)}; ${counters.filter((c) => c && c.visible === false).length} hidden)`);
+  const rows = b.members.map((m) => find(m, 'messageRow'));
+  ok(rows.every((r, i) => r && r.primaryAxisAlignItems === 'SPACE_BETWEEN' && (r.children as Node[]).at(-1) === counters[i] && (r.children as Node[])[0]?.name === 'message'),
+    `textarea counter row: on all 20 members the counter is the LAST child of the message row, after the message, and the row spreads them to its two ends (SPACE_BETWEEN)`);
+  ok(counters.every((c) => c && c.characters === '0 / 200'),
+    `textarea counter text: the counter reads "0 / 200", the def's counter format (${counters[0]?.characters})`);
+
+  // ---- the counter moves no box, with the caption's line box under the glyph and over it ----
+  for (const captionBox of [GRIP - 1, GRIP + 4]) {
+    const bb = captionBox === GRIP - 1 ? b : await buildIt(textarea, captionBox);
+    const moved: string[] = [];
+    for (const m of bb.members) {
+      const c = find(m, 'counter');
+      if (!c) { moved.push(`${m.name}: no counter`); continue; }
+      // The row's HEIGHT and the member's box. The row's width is its STRETCH across the field on the host,
+      // which this shim does not model (a hugging row widens by the counter here and nowhere else).
+      const off = [String(Math.round((find(m, 'messageRow')?.height as number) * 1000) / 1000), box(m)];
+      c.visible = true;
+      const on = [String(Math.round((find(m, 'messageRow')?.height as number) * 1000) / 1000), box(m)];
+      c.visible = false;
+      if (on.join() !== off.join()) moved.push(`${m.name}: row ${off[0]} → ${on[0]}, member ${off[1]} → ${on[1]}`);
+    }
+    ok(bb.members.length === 20 && bb.r.misses.length === 0 && moved.length === 0,
+      `textarea counter footprint (caption line box ${captionBox}, glyph ${GRIP}): the message row and the member measure alike with the counter on and off, on all 20 members (${moved.length} moved — ${moved[0] ?? 'none'})`);
+  }
 }
 
 // =============================================================================================

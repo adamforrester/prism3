@@ -133,7 +133,8 @@ export type ShimOpts = {
    *  its status members could not be told from one that holds still. On: a `VERTICAL` frame sums its flow
    *  children's heights plus `itemSpacing` between them (and takes the widest child's width), a TEXT node is
    *  as tall as `textLineBox[<its applied style>]`, and an INSTANCE of a member this run built (`liveRoot`)
-   *  measures what its main component measures. The `minHeight` floor is modelled with or without this. */
+   *  measures what its main component measures. A HIDDEN child (`visible: false`) takes no cell and adds no
+   *  gap, as on the host. The `minHeight` floor is modelled with or without this. */
   layoutModel?: boolean;
   /** The LINE BOX, in px, a TEXT node measures under the named applied style when `layoutModel` is on —
    *  the caption's line height, keyed by style NAME as `textAdvance` is. Unlisted styles measure 0. */
@@ -553,6 +554,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         for (const c of ((p.children as Node[]) ?? [])) {
           if (c === node) return at;
           if (c.layoutPositioning === 'ABSOLUTE') continue;   // takes no cell, contributes no offset
+          if (opts.layoutModel && c.visible === false) continue;   // hidden: no cell either (the host's rule)
           at += ((c.width as number) || 0) + gap;
         }
         return at;
@@ -579,7 +581,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         if (node.type === 'TEXT')
           return ((node.characters as string) || '').length * 6 + (opts.textAdvance?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0);
         const pad = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0);
-        const kids = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE');
+        // A HIDDEN child takes no cell either, under `layoutModel` — the host lays out visible children only,
+        // which is what lets a boolean-driven part be measured on and off (textarea's grip and counter).
+        const kids = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE' && !(opts.layoutModel && c.visible === false));
         // A COLUMN's cross axis is its width: the widest child, not the sum (`layoutModel` only).
         const hug = opts.layoutModel && node.layoutMode === 'VERTICAL'
           ? kids.reduce((a, c) => Math.max(a, (c.width as number) || 0), 0)
@@ -602,7 +606,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         if (opts.layoutModel && node.type === 'TEXT')
           return Math.max(litFloor, opts.textLineBox?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0);
         const pad = (bv.paddingTop?.value ?? 0) + (bv.paddingBottom?.value ?? 0);
-        const flow = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE');
+        const flow = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE' && !(opts.layoutModel && c.visible === false));
         // Max, not sum: the row is HORIZONTAL, so the cross axis hugs the tallest child. A COLUMN (under
         // `layoutModel`) stacks its children, so its main axis is their sum plus the gaps between them.
         const content = opts.layoutModel && node.layoutMode === 'VERTICAL'

@@ -738,6 +738,28 @@ export type PartDef = {
    *  stroke and is what every non-ring absolute part will want. `lint-absolute-inset.ts` is what stops
    *  the omission from being silent for a part that does carry one. */
   strokeInset?: string;
+  /** For `vector` parts: PIN the glyph into a corner of its parent, OUT of the auto-layout flow, `inset`
+   *  (a binding key, like `absolute`'s) in from both edges of that corner. The textarea's resize grip is the
+   *  case: a small glyph that sits at the control's bottom-right corner and must not take a cell — in the
+   *  flow it would steal its own width (plus nothing, since the control has no gap) from the value text's
+   *  row, and the text would wrap earlier with the handle drawn than without it.
+   *
+   *  WHY NOT `kind: 'absolute'`. That kind is an INSTANCE of a shared component, SIZED BY its parent grown
+   *  by `inset` (a focus ring), and the schema refuses `size` on it for exactly that reason. A grip is the
+   *  opposite on both counts: it draws its own glyph, and it keeps its own square artboard (`size`). So
+   *  the placement is a field on the `vector` kind rather than a second meaning for `absolute`.
+   *
+   *  ONE CORNER, `bottom-right`, because it is the only one any def needs; a second value is a one-line
+   *  union widening plus its executor arithmetic. PHYSICAL rather than logical (`block-end inline-end`):
+   *  Figma has no writing direction, so a member is drawn left-to-right, and code mirrors the handle to the
+   *  inline-end corner on its own (the browser draws it there).
+   *
+   *  PROJECTED as `FigmaNodePlan.cornerInset` — the inset's variable NAME, resolved to a number at paste,
+   *  for the reason `absoluteInset` gives: `x`/`y` take no variable binding. Both executors lift the node
+   *  (`layoutPositioning: 'ABSOLUTE'`), place it at `parent − artboard − inset` on both axes, and constrain
+   *  it `MAX`/`MAX`, so it stays in the corner when a designer resizes the instance. `lint-absolute-inset.ts`
+   *  holds the inset to the parent's stroke weight in every brand, so the artboard never overlaps the edge. */
+  corner?: 'bottom-right';
   note?: string;
 };
 
@@ -3214,8 +3236,31 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // reads as though the part were offset from its cell, which no projection does. Checked as its own
     // rule rather than folded into the loop above because the layout rule is about what LAYS OUT
     // children and this is about what sits OUTSIDE the flow — two different claims.
-    if (p.kind !== 'absolute' && p.inset !== undefined)
-      e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'inset' — only an 'absolute' part sits outside the flow to be inset from it`);
+    //
+    // ONE EXCEPTION, and it is the other out-of-flow placement: a `vector` pinned into a `corner` is also
+    // outside the flow, and its `inset` is the distance in from that corner's two edges. Refused on a
+    // vector with no `corner`, where it would again read as an offset from a cell.
+    if (p.kind !== 'absolute' && p.inset !== undefined && !(p.kind === 'vector' && p.corner))
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'inset' — only an 'absolute' part, or a 'vector' pinned into a 'corner', sits outside the flow to be inset from it`);
+    // ---- THE CORNER PIN (textarea's resize grip) ----
+    // Four ways to author it so it validates and then projects nothing, or projects into the flow: on a kind
+    // whose branch never reads it; with no `inset`, so the executor has no distance to place it at; on the
+    // ROOT, which has no parent corner; and under a parent that is not an auto-layout box, where Figma
+    // ignores `layoutPositioning` silently and the glyph takes a cell after all.
+    if (p.corner !== undefined) {
+      if (p.kind !== 'vector')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'corner' — only a 'vector' draws its own glyph at its own artboard size and can be pinned into a corner (an 'absolute' part is sized by its parent instead)`);
+      if (!p.inset)
+        e.push(`anatomy part '${n}' declares corner '${p.corner}' but binds no 'inset' — the executor places the glyph 'inset' in from the corner's two edges, so without one it has no distance to write and the part lands on the parent's own border`);
+      if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'corner' — a corner belongs to a parent, and the root has none`);
+      else {
+        const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+        const pp = parent ? parts[parent] : undefined;
+        if (!pp || pp.kind !== 'box' || !pp.layout)
+          e.push(`anatomy part '${n}' declares corner '${p.corner}' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the glyph would take a cell in the flow`);
+      }
+    }
     // `strokeInset` gets the same rule for the same reason: it is a compensation applied to `inset`, so
     // off an absolute part there is nothing for it to compensate and it would project to nothing.
     if (p.kind !== 'absolute' && p.strokeInset !== undefined)
