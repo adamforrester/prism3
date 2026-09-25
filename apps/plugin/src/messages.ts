@@ -23,6 +23,7 @@
  * means Button.
  */
 import type { BrandInput } from '@prism3/engine/theme';
+import type { AgentLinkState } from './agent-protocol';
 
 /** Messages the UI iframe sends TO the main thread. Wrapped in `{ pluginMessage }` on the wire. */
 export type UiToMain =
@@ -81,6 +82,9 @@ export type UiToMain =
    *  orphan set. Carries the live `BrandInput` (like `apply-theme`) because the prune is defined against
    *  the plan that brand emits — what is stale is exactly what the current plan no longer names. */
   | { type: 'prune'; input: BrandInput; confirm: boolean }
+  /** The owner's AGENT LINK switch (`agent-link.ts`). The ONLY way the link turns on: an agent cannot send
+   *  this, because only the panel posts to the main thread. Not persisted — the link is off at every launch. */
+  | { type: 'agent-link'; on: boolean }
   /** Designer is dragging the UI's resize grip (#144). Sent continuously during the drag so the
    *  window tracks the pointer; `commit` is true only on pointer-up, which is when the main thread
    *  persists the size to `clientStorage`. Splitting it this way keeps the drag smooth without
@@ -124,7 +128,10 @@ export type MainToUi =
    *  (preview) or the verdict text (applied). A DISTINCT variant from `apply-result` / `component-result`
    *  for the same reason those two are distinct: one kind per fact — a prune preview must not overwrite a
    *  theme write's verdict, and the prune's own confirm dialog reads `count` to decide whether to open. */
-  | { type: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string }
+  | { type: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string;
+      /** Set on an AGENT's preview (the agent link): show it as a pill, never open the confirm dialog. The
+       *  dialog's Confirm would prune against the panel's own knobs, not the input the agent previewed. */
+      pillOnly?: boolean }
   /** A component build is UNDERWAY (#684) — posted at every chunk boundary, many times per build.
    *
    *  THE ONLY NON-TERMINAL MESSAGE ON THIS BRIDGE, and the reason it had to exist: `build-components`
@@ -200,7 +207,12 @@ export type MainToUi =
    *  column reads this instead. Two parallel arrays rather than an array of objects keeps the wire
    *  payload small (34.5 KB of names already) and keeps the older single-array shape readable.
    *  A receiver must treat `styles` as OPTIONAL: it is absent from any host build older than this. */
-  | { type: 'font-list'; families: string[]; styles?: number[] };
+  | { type: 'font-list'; families: string[]; styles?: number[] }
+  /** The agent link's published state (`agent-protocol.ts` `AgentLinkState`): on/off, which transport is
+   *  listening, and the last command it ran with its headline. Sent on `ui-ready`, on every switch, and
+   *  after every command, so the panel's control always shows what the link is doing. The shared UI body
+   *  never reads it — the agent-link control (`agent-link-ui.ts`) is its only consumer. */
+  | { type: 'agent-link-state'; state: AgentLinkState };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */
 export type OfType<U extends { type: string }, T extends U['type']> = Extract<U, { type: T }>;

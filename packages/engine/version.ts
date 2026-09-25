@@ -2926,6 +2926,12 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.155.0 — The AGENT LINK, transport A (the file mailbox): an agent can drive the running plugin by command
+ * and read back a structured result. The plugin's main-thread handlers now report to an `ActionSink` (the panel
+ * passes one that posts exactly what it posted before), one `ACTIONS` table serves the UI switch and the
+ * agent dispatcher, and while the owner has switched the link on the plugin polls `figma.root`'s
+ * `prism3agent` shared plugin data for commands (`apps/plugin/src/agent-*.ts`). Plugin behavior → MINOR; no
+ * emission or projected surface moves, so `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS.
  * 0.154.0 — Owner-found (2026-09-25), 0.153.0's fix did not hold: the NB button still built with 221
  * `fills.opacity -> DISCARDED (wanted 0.2, read back 1)`. Re-measured on the owner's file through the Figma MCP,
  * on FRAME, COMPONENT and RECTANGLE: the FIRST time a paint bound to a color variable lands on a node, the host
@@ -3612,7 +3618,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.154.0';
+export const ENGINE_VERSION = '0.155.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

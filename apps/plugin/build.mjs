@@ -211,7 +211,9 @@ const mainOpts = (id) => ({
 // bundles, built here with PRISM3_HOST='figma' so its commit path posts to the main thread instead
 // of downloading. One UI, two outputs. The `../studio/src` engine imports are pure (node-free), so the
 // iframe bundle stays self-contained + no-network like the placeholder did.
-const WEB_UI = resolve(root, '../studio/src/main.ts');
+// Since the agent link, the entry is `src/ui/entry.ts`: it imports `studio/src/main.ts` WHOLE and unchanged,
+// then mounts the link's temporary chip beside it — still one UI, and the web build never sees the chip.
+const WEB_UI = resolve(root, 'src/ui/entry.ts');
 const htmlTemplate = await readFile(resolve(root, 'src/ui/index.html'), 'utf8');
 const buildUiHtml = async (id) => {
   const res = await build({
