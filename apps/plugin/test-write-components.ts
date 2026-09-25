@@ -3371,6 +3371,92 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 
+// ---- THE MESSAGE ROW RESERVES THE STATUS GLYPH'S HEIGHT (text-field and select keep one footprint) ----
+// Measured live 2026-09-25 on the owner's `nb-redesign` brand: text-field reported 15 footprint misses and
+// select 12, e.g. "status=error, state=rest measures 320x99 but status=default, state=rest measures 320x98".
+// Cause: the nested field-message draws a glyph beside its caption in the three validation statuses and none
+// in the default, and that brand's caption line box (12px at 1.25 = 15) is shorter than the glyph (16). The
+// owner's fix, option (a): the message row's minimum height is the glyph's size in EVERY status, so it
+// measures max(glyph, caption line box) whether or not a glyph is drawn.
+//
+// Driven through the REAL executor, dependency-first into one live file, with the shim's opt-in
+// `layoutModel` (columns stack, a caption is as tall as its line box, an instance is as tall as its main).
+// ORACLES AUTHORED HERE (docs/34): the glyph's height is read off the shim's own variable model, the caption
+// line box is set one pixel under it, and the expected row height is that max worked by hand — never read
+// off the def. The mutation arm rebuilds with the def's `minHeight` removed and requires the footprint
+// misses the owner saw, by name.
+{
+  const byDef = (id: string) => componentDefs.find((d) => d.id === id)!;
+  const GLYPH = varValue('icon/size/xs');                 // what the shim binds `icon.size.xs` to
+  const fmPlansShipped = figmaAnatomySet(materializeForBrand(fieldMessage, null), { swapTarget: SWAP });
+  const captionStyles = [...new Set(fmPlansShipped.flatMap((p) => planTextStyles(p.root)))];
+  ok(captionStyles.length === 1, `message-row: field-message sets its caption in exactly one text style (${captionStyles.join(', ')})`);
+  const CAPTION = captionStyles[0];
+  const unfloored: ComponentDef = { ...fieldMessage, anatomy: { ...fieldMessage.anatomy!, parts: { ...fieldMessage.anatomy!.parts, message: { ...fieldMessage.anatomy!.parts.message, minHeight: undefined } } } };
+
+  const buildFile = async (host: ComponentDef, lineBox: number, message: ComponentDef = fieldMessage) => {
+    const defs = componentDefs.map((d) => (d.id === 'field-message' ? message : d));
+    const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+    const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
+    const f = fullFor(all);
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, textLineBox: { [CAPTION]: lineBox } });
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    await prebuildDependencies(host, { defs, project, host: shim as any, build });
+    const r = await build(host);
+    const setNamed = (id: string) => page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET') as Node | undefined;
+    const boxes = (id: string) => new Map(((setNamed(id)?.children as Node[] | undefined) ?? []).map((m) => [String(m.name), { w: Math.round(m.width as number), h: Math.round(m.height as number) }]));
+    return { r, boxes, foot: r.misses.filter((m) => m.startsWith('footprint -> ')) };
+  };
+  // Every member compared with its own `status=default` sibling — the rest of its name held fixed. Worked out
+  // here from the member NAMES, not from the executor's cohort key.
+  const statusDrift = (boxes: Map<string, { w: number; h: number }>): string[] => {
+    const out: string[] = [];
+    for (const [name, b] of boxes) {
+      const base = name.replace(/status=\w+/, 'status=default');
+      const d = boxes.get(base);
+      if (name !== base && d && (d.w !== b.w || d.h !== b.h)) out.push(`${name} ${b.w}x${b.h} vs ${base} ${d.w}x${d.h}`);
+    }
+    return out;
+  };
+  const SHORT = GLYPH - 1;   // the nb-redesign shape: a caption line box one pixel under the glyph
+
+  // (0) THE SEED IS LOAD-BEARING: without the floor, a short caption makes the default message row shorter
+  // than a status one — the owner's defect reproduced here, or every arm below passes on nothing.
+  const bare = await buildFile(byDef('text-field'), SHORT, unfloored);
+  const bareFm = bare.boxes('field-message');
+  ok(bareFm.get('status=default')?.h === SHORT && bareFm.get('status=error')?.h === GLYPH,
+    `message-row seed: with no floor, a ${SHORT}px caption row measures ${SHORT} in the default message and ${GLYPH} beside the glyph (default ${bareFm.get('status=default')?.h}, error ${bareFm.get('status=error')?.h})`);
+
+  // The live report's counts, hand-copied: 15 on text-field (3 statuses x 5 states), 12 on select.
+  const LIVE_MISSES: Record<string, number> = { 'text-field': 15, select: 12 };
+  for (const id of ['text-field', 'select']) {
+    const shipped = await buildFile(byDef(id), SHORT);
+    const fm = shipped.boxes('field-message');
+    const heights = [...fm.values()].map((b) => b.h);
+    // (a) THE ROW: max(GLYPH, SHORT) = GLYPH in all four statuses.
+    ok(fm.size === 4 && heights.every((h) => h === GLYPH),
+      `message-row ${id}: every field-message status row measures ${GLYPH} (max of the ${GLYPH}px glyph and the ${SHORT}px caption) — [${[...fm].map(([n, b]) => `${n}:${b.h}`).join(', ')}]`);
+    // (b) THE HOST: every status member of the field has its default sibling's footprint.
+    const host = shipped.boxes(id);
+    const drift = statusDrift(host);
+    ok(host.size > 4 && [...host.values()].every((b) => b.h > GLYPH) && drift.length === 0 && shipped.foot.length === 0,
+      `message-row ${id}: every status member of the field keeps its default sibling's footprint (${host.size} members; ${drift.length} drift${drift.length ? ` — ${drift[0]}` : ''}; ${shipped.foot.length} footprint misses${shipped.foot.length ? ` — ${shipped.foot[0]}` : ''})`);
+
+    // (c) MUTATION, BY NAME: the same build with the floor removed reproduces the owner's misses.
+    const reverted = await buildFile(byDef(id), SHORT, unfloored);
+    ok(reverted.foot.some((m) => /^footprint -> .*status=(error|warning|success).* measures \d+x\d+ but .*status=default.* measures \d+x\d+/.test(m)) && reverted.foot.length === LIVE_MISSES[id] && statusDrift(reverted.boxes(id)).length > 0,
+      `message-row ${id} MUTATION: without the row's minHeight a status member measures 1px taller than its default sibling and the executor reports it by name — the live report's ${LIVE_MISSES[id]} (${reverted.foot.length} footprint misses${reverted.foot.length ? ` — ${reverted.foot[0]}` : ''})`);
+  }
+
+  // (d) A FLOOR, NOT A FIXED HEIGHT: a caption line box TALLER than the glyph wins, in every status.
+  const TALL = GLYPH + 4;
+  const tall = await buildFile(byDef('text-field'), TALL);
+  const tallFm = [...tall.boxes('field-message').values()].map((b) => b.h);
+  ok(tallFm.length === 4 && tallFm.every((h) => h === TALL) && tall.foot.length === 0,
+    `message-row: with a ${TALL}px caption the row hugs the caption in every status, not the ${GLYPH}px floor ([${tallFm.join(', ')}], ${tall.foot.length} footprint misses)`);
+}
+
 // =============================================================================================
 // #1664 — THE REFERENCE RETRY OUTLASTS A HOST REFUSAL WINDOW MEASURED IN SECONDS, AND STAYS BOUNDED
 // =============================================================================================

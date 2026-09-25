@@ -123,6 +123,17 @@ export type ShimOpts = {
    *  setting 1px wider than Regular at `small`) was unreproducible here. Keyed by style NAME
    *  (`body/sm/strong`), read off the node's applied style. Opt-in; unset, every style measures alike. */
   textAdvance?: Record<string, number>;
+  /** DIRECTION-AWARE LAYOUT, opt-in (the message-row footprint fix). Off, every frame hugs as a ROW (widths
+   *  sum, heights max), a TEXT node measures 0 tall, and an INSTANCE measures 0 — enough for every width
+   *  claim this file makes, and blind to a HEIGHT that moves: a field whose nested message grows by 1px in
+   *  its status members could not be told from one that holds still. On: a `VERTICAL` frame sums its flow
+   *  children's heights plus `itemSpacing` between them (and takes the widest child's width), a TEXT node is
+   *  as tall as `textLineBox[<its applied style>]`, and an INSTANCE of a member this run built (`liveRoot`)
+   *  measures what its main component measures. The `minHeight` floor is modelled with or without this. */
+  layoutModel?: boolean;
+  /** The LINE BOX, in px, a TEXT node measures under the named applied style when `layoutModel` is on —
+   *  the caption's line height, keyed by style NAME as `textAdvance` is. Unlisted styles measure 0. */
+  textLineBox?: Record<string, number>;
   /** DELIBERATE COST, in ms, charged to a named host call — the only way this harness can gate a rule
    *  about WHEN the clock starts. Everything else here is synchronous, so every `chunkMs` is 0 and the
    *  strongest available assertion is `>= 0`, which no clock rule can fail. `setup` burns inside
@@ -558,9 +569,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
         if (node.type === 'TEXT')
           return ((node.characters as string) || '').length * 6 + (opts.textAdvance?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0);
         const pad = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0);
-        const hug = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE')
-          .reduce((a, c) => a + ((c.width as number) || 0), 0);
-        return pad + hug + (stroked ? 2 * (node.strokeWeight as number) : 0);
+        const kids = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE');
+        // A COLUMN's cross axis is its width: the widest child, not the sum (`layoutModel` only).
+        const hug = opts.layoutModel && node.layoutMode === 'VERTICAL'
+          ? kids.reduce((a, c) => Math.max(a, (c.width as number) || 0), 0)
+          : kids.reduce((a, c) => a + ((c.width as number) || 0), 0);
+        // THE LITERAL WIDTH FLOOR (`minWidth`, #1343a), under `layoutModel`: a 320 control holds the field's
+        // column at 320 on the host, so a wider-or-narrower nested message does not move the field's width.
+        const floor = opts.layoutModel && typeof node.minWidth === 'number' ? node.minWidth : 0;
+        return Math.max(floor, pad + hug + (stroked ? 2 * (node.strokeWeight as number) : 0));
       },
       // BOTH axes, because a claim about only one is half-unfalsifiable: with `height` a plain 0, a ring
       // resized to `(node.width + off*2, off*2)` — its height ignoring its target entirely — passes the
@@ -569,10 +586,17 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const bv = node.boundVariables as Record<string, { value?: number }>;
         const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
         if (bv.height) return bv.height.value ?? 0;
+        if (opts.layoutModel && node.type === 'TEXT')
+          return opts.textLineBox?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0;
         const pad = (bv.paddingTop?.value ?? 0) + (bv.paddingBottom?.value ?? 0);
         const flow = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE');
-        // Max, not sum: the row is HORIZONTAL, so the cross axis hugs the tallest child.
-        return pad + flow.reduce((a, c) => Math.max(a, (c.height as number) || 0), 0) + (stroked ? 2 * (node.strokeWeight as number) : 0);
+        // Max, not sum: the row is HORIZONTAL, so the cross axis hugs the tallest child. A COLUMN (under
+        // `layoutModel`) stacks its children, so its main axis is their sum plus the gaps between them.
+        const content = opts.layoutModel && node.layoutMode === 'VERTICAL'
+          ? flow.reduce((a, c) => a + ((c.height as number) || 0), 0) + Math.max(0, flow.length - 1) * (bv.itemSpacing?.value ?? 0)
+          : flow.reduce((a, c) => Math.max(a, (c.height as number) || 0), 0);
+        // THE FLOOR: a bound `minHeight` holds a hugging frame at least that tall, as the host does.
+        return Math.max(bv.minHeight?.value ?? 0, pad + content + (stroked ? 2 * (node.strokeWeight as number) : 0));
       },
       // Releases the aspect-ratio lock (#682). Counted as well as applied: the port field is optional and
       // the executor calls it `?.()`, so a port that lost the method would skip the unlock in silence.
@@ -650,9 +674,16 @@ export const makeShim = (opts: ShimOpts = {}) => {
       set layoutPositioning(v: string) { node._absolute = v === 'ABSOLUTE'; },
       // Settable dimensions, because an absolute child is sized rather than bound — replaces BOTH
       // derived getters for any node actually resized, which is only the ring.
+      //
+      // A BOUND DIMENSION STILL WINS OVER AN EARLIER RESIZE (the message-row footprint fix): the SVG importer
+      // resizes its frame to the artboard (24) and the executor then binds the glyph's width/height to its
+      // host size — on the host the glyph renders at the bound 16. A data property here froze it at 24,
+      // which no claim needed until a HEIGHT beside a caption was measured. Resize-then-bind is the only
+      // order the executors use; the ring clears its bindings before it resizes.
       resize(w: number, h: number) {
-        Object.defineProperty(node, 'width', { configurable: true, value: w, writable: true });
-        Object.defineProperty(node, 'height', { configurable: true, value: h, writable: true });
+        const bv = node.boundVariables as Record<string, { value?: number }>;
+        Object.defineProperty(node, 'width', { configurable: true, get: () => (bv.width ? bv.width.value ?? 0 : w), set: (v: number) => { w = v; } });
+        Object.defineProperty(node, 'height', { configurable: true, get: () => (bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; } });
       },
       appendChild(c: Node) { c.parent = node; (node.children as Node[]).push(c); },
       // Walks descendants for real. The executor finds each part by NAME inside every member to wire its
@@ -968,10 +999,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
     root: {
       findAllWithCriteria: (criteria?: { types?: string[] }) => {
         const types = criteria?.types ?? ['COMPONENT'];
-        const mkRef = (name: string, i: number) => ({
+        const mkRef = (name: string, i: number, main?: Node) => ({
           name, id: `73:${37 + i}`,
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
+            // An instance measures what its MAIN measures (`layoutModel`, a member this run built).
+            if (main && opts.layoutModel) {
+              Object.defineProperty(inst, 'width', { configurable: true, get: () => main.width });
+              Object.defineProperty(inst, 'height', { configurable: true, get: () => main.height });
+            }
             // #1428 — model the instance's OWN parts as real children so a member's `findOne` descends
             // into them and can collide (see `nestedInstanceParts`). Each refuses a reference write: it is
             // a sublayer of ANOTHER component. Flagged so `guardRefs` installs the refusing setter below.
@@ -1010,10 +1046,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
           } else if (types.includes(fn.type)) found.push(mkRef(fn.name, seq++));
         }
         if (opts.liveRoot) for (const n of page?.children ?? []) {
-          const kids = ((n.children as Node[] | undefined) ?? []).map((c) => ({ name: String(c.name) }));
+          const live = (n.children as Node[] | undefined) ?? [];
+          const kids = live.map((c) => ({ name: String(c.name) }));
           if (n.type === 'COMPONENT_SET') {
             if (types.includes('COMPONENT_SET')) found.push({ ...mkRef(String(n.name), seq++), children: kids });
-            if (types.includes('COMPONENT')) for (const k of kids) found.push(mkRef(k.name, seq++));
+            if (types.includes('COMPONENT')) live.forEach((c) => found.push(mkRef(String(c.name), seq++, c)));
           } else if (n.type === 'COMPONENT' && types.includes('COMPONENT')) found.push(mkRef(String(n.name), seq++));
         }
         return found;

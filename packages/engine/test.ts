@@ -10799,6 +10799,27 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(validateComponentDef(minWidthNoLayout as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /binds no 'layout'/.test(e)),
       "#1343a a BOX declaring minWidth with NO layout is refused BY NAME — Figma applies a minimum width only to an auto-layout frame, so a layout-less floor is silently dropped");
 
+    // ---- the message-row footprint fix: field-message's row FLOORS its height at the glyph's size ----
+    // EXPECTED is authored here: the row binds its minimum height to the glyph's OWN key, so the floor is the
+    // glyph in every brand. Read off the plan the executor receives. Drop `minHeight` from the def and this
+    // fails by name (the plugin's message-row arms carry the geometry).
+    {
+      const fm = componentDefs.find((d) => d.id === 'field-message')!;
+      const rows = figmaAnatomySet(fm).map((pl) => pl.root.bound.minHeight);
+      ok(rows.length === 4 && rows.every((v) => v === 'icon/size/xs'),
+        `field-message: every status row binds minHeight to icon/size/xs, the glyph's own size (got [${rows.join(', ')}])`);
+      const parts = fm.anatomy!.parts;
+      const withPart = (name: string, patch: Record<string, unknown>) => ({ ...fm, anatomy: { ...fm.anatomy!, parts: { ...parts, [name]: { ...parts[name], ...patch } } } }) as ComponentDef;
+      ok(validateComponentDef(withPart('text', { minHeight: 'glyph-size' })).errors.some((e) => /declares 'minHeight'/.test(e) && /kind 'text'/.test(e) && /only a 'box'/.test(e)),
+        "minHeight on a NON-box part is refused BY NAME — a floor on a leaf validates clean and reaches no node");
+      ok(validateComponentDef(withPart('message', { layout: undefined, minHeight: 'glyph-size' })).errors.some((e) => /declares 'minHeight'/.test(e) && /binds no 'layout'/.test(e)),
+        "minHeight on a BOX with NO layout is refused BY NAME — Figma floors only an auto-layout frame");
+      ok(validateComponentDef(withPart('message', { height: 'glyph-size', minHeight: 'glyph-size' })).errors.some((e) => /declares 'minHeight' alongside a bound 'height'/.test(e)),
+        "minHeight beside a bound height is refused BY NAME — the height would be stated twice");
+      ok(validateComponentDef(withPart('message', { minHeight: 'no-such-key' })).errors.some((e) => /binding key 'no-such-key' is not a slot in tokens/.test(e)),
+        "minHeight's key must be a slot in tokens — it rides the same binding-key check as height");
+    }
+
     // ---- #1340: image-placeholder's marker sizes off a LITERAL glyphPx, not an icon rung ----
     // The empty-state marker was a bound `icon.size.lg` (32px) that read as a stray small icon against the
     // 720px frame (#1340). It is now a def-local literal 180px — Prism 2's centered-glyph proportion for
