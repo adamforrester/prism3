@@ -2998,19 +2998,18 @@ const build=async(n)=>{
   // PAINTS — a fourth API shape. \`setBoundVariableForPaint\` RETURNS a new paint rather than mutating
   // the node, so the result must be assigned back into a fills/strokes ARRAY; forgetting the
   // assignment is a no-op that throws nothing.
-  // \`o\` (opacity) goes on the paint BEFORE binding: the host keeps the opacity a paint was bound at and drops
-  // one set on the returned paint (measured 2026-09-25). Lockstep with the plugin executor's \`paint()\`.
-  const paint=(varName,where,o)=>{
+  const paint=(varName,where)=>{
     const v=byName.get(varName);
     if(!v){misses.push(n.name+'.'+where+' -> '+varName);return null;}
-    return figma.variables.setBoundVariableForPaint(o!=null?{type:'SOLID',color:{r:0,g:0,b:0},opacity:o}:{type:'SOLID',color:{r:0,g:0,b:0}},'color',v);
+    return figma.variables.setBoundVariableForPaint({type:'SOLID',color:{r:0,g:0,b:0}},'color',v);
   };
   // Same reason as \`wrote\` above: only a paint that was actually assigned can have been discarded.
   const painted={};
   // A PAINT OPACITY (#1614) goes on the paint the variable was bound to — Figma cannot bind a paint's opacity
-  // to a variable, so a \`solid-tint\` hover is the fill variable at the opacity step's number. Lockstep with
-  // the plugin executor's \`paint()\` in write-components.ts.
-  if(n.paints&&n.paints.fills){const p=paint(n.paints.fills,'fills',n.paintOpacity&&n.paintOpacity.fills);if(p){node.fills=[p];painted.fills=1;}
+  // to a variable, so a \`solid-tint\` hover is the fill variable at the opacity step's number. It takes a
+  // SECOND assignment: the host resets the opacity of a bound paint the first time it lands on a node
+  // (measured 2026-09-25). Lockstep with the plugin executor in write-components.ts.
+  if(n.paints&&n.paints.fills){const p=paint(n.paints.fills,'fills'),o=n.paintOpacity&&n.paintOpacity.fills;if(p){node.fills=[p];if(o!=null)node.fills=[Object.assign({},node.fills[0],{opacity:o})];painted.fills=1;}
   // DECLARED BUT UNRESOLVABLE -> transparent, never Figma's opaque white (#1387, ported #1393). TEXT exempt:
   // \`[]\` is invisible text. Lockstep with the plugin executor's paints branch.
   else if(node.type!=='TEXT')node.fills=[];}

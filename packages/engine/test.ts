@@ -12872,7 +12872,6 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // Records the binding the way real Figma does — into `boundVariables` — so the read-back sees
       // what it would see live. A node that is NOT bound stays absent from it, which is the state the
       // read-back is meant to report.
-      const bindOpacity = new WeakMap<object, number>();
       const mkNode = (type: string): Record<string, unknown> => {
         const node: Record<string, unknown> = {
           type, name: '', boundVariables: {} as Record<string, unknown>,
@@ -13202,21 +13201,22 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             });
           }
         }
-        // A BOUND PAINT KEEPS THE OPACITY IT WAS BOUND AT — host-measured 2026-09-25, in lockstep with the plugin
-        // shim (`component-shim.ts`, same model): an opacity spread onto the returned paint reads back as the
-        // bind-time value, so an executor that binds first and sets opacity after ships an opaque tint.
+        // A BOUND PAINT'S OPACITY TAKES A SECOND ASSIGNMENT — host-measured 2026-09-25, same model as the plugin
+        // shim (`component-shim.ts`): the first time a paint bound to a color variable lands at an index not
+        // already bound to that variable, the host resets its opacity to 1; a re-assignment keeps it.
         for (const key of ['fills', 'strokes'] as const) {
           let backing = node[key] as unknown[];
           Object.defineProperty(node, key, {
             configurable: true, enumerable: true,
             get() { return backing; },
             set(v: unknown[]) {
-              backing = (v ?? []).map((raw) => {
-                const paint = raw as { boundVariables?: object; opacity?: number };
-                const bv = paint?.boundVariables;
-                if (!bv || !bindOpacity.has(bv)) return paint;
-                const at = bindOpacity.get(bv)!;
-                return (paint.opacity ?? 1) === at ? paint : { ...paint, opacity: at };
+              const prev = backing;
+              backing = (v ?? []).map((raw, i) => {
+                const paint = raw as { boundVariables?: { color?: { id: string } }; opacity?: number };
+                const id = paint?.boundVariables?.color?.id;
+                if (!id) return paint;
+                const was = (prev?.[i] as { boundVariables?: { color?: { id: string } } } | undefined)?.boundVariables?.color?.id;
+                return was === id || (paint.opacity ?? 1) === 1 ? paint : { ...paint, opacity: 1 };
               });
             },
           });
@@ -13227,13 +13227,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         variables: {
           getLocalVariablesAsync: async () => [...names].map(mkVar),
           // Real Figma RETURNS a new paint rather than mutating — modeled, because the caller's
-          // assignment back into the array is the thing under test elsewhere in this block. It also records
-          // the opacity the paint was bound at (see the fills accessor in `mkNode`).
-          setBoundVariableForPaint: (p: object, field: string, v: { id: string }) => {
-            const boundVariables = { [field]: { id: v.id } };
-            bindOpacity.set(boundVariables, (p as { opacity?: number }).opacity ?? 1);
-            return { ...p, boundVariables };
-          },
+          // assignment back into the array is the thing under test elsewhere in this block.
+          setBoundVariableForPaint: (p: object, field: string, v: { id: string }) =>
+            ({ ...p, boundVariables: { [field]: { id: v.id } } }),
         },
         // `fontName` on every style, because the payload loads the STYLE'S font before writing text —
         // `setTextStyleIdAsync` pulls in a family/style pair that need not be what `createText` starts on.
@@ -13637,7 +13633,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         `#1614 paste leg: the solid-tint hover pastes the primary fill variable at paint opacity 0.1 (${JSON.stringify(pastePage.children.flatMap(opacities))}; misses ${JSON.stringify(pasted.misses)})`);
       ok(plugged.misses.length === 0 && JSON.stringify(plugPage.children.flatMap(opacities)) === WANT,
         `#1614 plugin leg: applyComponentPlan builds the same paint at the same opacity (${JSON.stringify(plugPage.children.flatMap(opacities))}; misses ${JSON.stringify(plugged.misses)})`);
-      const dropped = await runPayload(planToPluginJs(tinted).replace("paint(n.paints.fills,'fills',n.paintOpacity&&n.paintOpacity.fills)", "paint(n.paints.fills,'fills')"), tVars);
+      const dropped = await runPayload(planToPluginJs(tinted).replace('if(o!=null)node.fills=[Object.assign({},node.fills[0],{opacity:o})];', ''), tVars);
       ok(dropped.misses.some((m) => /\.fills\.opacity -> DISCARDED \(wanted 0\.1, read back/.test(m)),
         `#1614 paste leg: an opacity the payload fails to keep IS reported by its read-back (${JSON.stringify(dropped.misses)})`);
     }

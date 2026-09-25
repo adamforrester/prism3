@@ -1570,13 +1570,10 @@ const writeComponentSet = async (
     }
 
     // PAINTS — a fourth API shape, and the returned paint must be assigned BACK into the array.
-    // `opacity` goes on the paint BEFORE it is bound: the host keeps the opacity a paint was bound at and
-    // drops one spread onto the returned paint afterwards (measured on the owner's file, 2026-09-25 — the
-    // tinted-wash hover read back at 1 across 221 members). Lockstep with the paste executor's `paint`.
-    const paint = (varName: string, where: string, opacity?: number): unknown => {
+    const paint = (varName: string, where: string): unknown => {
       const v = byName.get(varName);
       if (!v) { misses.push(`${n.name}.${where} -> ${varName}`); return null; }
-      return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0, g: 0, b: 0 }, ...(opacity !== undefined ? { opacity } : {}) }, 'color', v);
+      return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }, 'color', v);
     };
     // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
     let paintedFills = false;
@@ -1586,8 +1583,17 @@ const writeComponentSet = async (
     // Lockstep with the paste executor (`planToPluginJs`).
     const fillOpacity = n.paintOpacity?.fills;
     if (n.paints?.fills) {
-      const p = paint(n.paints.fills, 'fills', fillOpacity);
-      if (p) { node.fills = [p]; paintedFills = true; }
+      const p = paint(n.paints.fills, 'fills');
+      if (p) {
+        node.fills = [p];
+        paintedFills = true;
+        // THE OPACITY TAKES A SECOND ASSIGNMENT (host-measured on the owner's file, 2026-09-25, frames,
+        // components and rectangles alike): the FIRST time a variable-bound paint lands on a node the host
+        // resets its opacity to 1, whether the opacity was on the paint before binding or spread on after;
+        // re-assigning a copy of the now-bound paint with the opacity keeps it. So the bound paint goes on,
+        // then the opacity. Lockstep with the paste executor.
+        if (fillOpacity !== undefined) node.fills = [{ ...((node.fills as object[])[0]), opacity: fillOpacity }];
+      }
       // DECLARED BUT UNRESOLVABLE → transparent, NEVER Figma's opaque white default (#1387). The
       // component set is brand-agnostic — it binds `interactive.<family>.overlay.{hover,pressed}` on
       // outline/text hover/pressed unconditionally — while that wash is EMITTED only under

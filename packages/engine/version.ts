@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.154.0 — Owner-found (2026-09-25), 0.153.0's fix did not hold: the NB button still built with 221
+ * `fills.opacity -> DISCARDED (wanted 0.2, read back 1)`. Re-measured on the owner's file through the Figma MCP,
+ * on FRAME, COMPONENT and RECTANGLE: the FIRST time a paint bound to a color variable lands on a node, the host
+ * resets its opacity to 1, whether the opacity was on the paint before binding (0.153's fix) or spread on after
+ * (0.152). Re-assigning a copy of the now-bound paint with the opacity keeps it, and it survives
+ * `combineAsVariants`. 0.153's probe had run on a rectangle already bound by the previous case, which is why it
+ * read 0.2. Both executors now assign the bound paint, then the opacity; both offline models encode the
+ * measured rule (first bound assignment at an index resets opacity, a re-assignment keeps it), so 0.153's
+ * executors fail the #1614 legs by name. Executor behavior → MINOR. CONTRACT STANDS.
  * 0.153.0 — Owner-found (2026-09-25): the tinted-wash (`solid-tint`) outline hover built OPAQUE on the real host —
  * 221 `container.fills.opacity -> DISCARDED (wanted 0.2, read back 1)` misses on the NB button. Measured on the
  * owner's file through the Figma MCP: a paint bound with `setBoundVariableForPaint` keeps the opacity it was
@@ -3603,7 +3612,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.153.0';
+export const ENGINE_VERSION = '0.154.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
