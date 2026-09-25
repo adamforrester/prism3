@@ -385,6 +385,19 @@ export const FIELDS: Record<string, FieldCheck> = {
       return Math.abs(d - q.inset) < 0.01 ? null : `${d}px from the ${q.edge} edge`;
     },
   },
+  // THE CORNER PIN (textarea's resize grip): out of the flow AND anchored to the corner. Both halves are
+  // plain properties the host echoes, so both are read: a glyph left in the flow reads `AUTO`, and one lifted
+  // without its `MAX`/`MAX` constraints stays where it was pasted when the instance is resized. Its x/y are
+  // geometry against the parent's live size, gated in `apps/plugin/test-write-components.ts`.
+  cornerInset: {
+    show: () => 'ABSOLUTE, constraints MAX/MAX',
+    check: (_p, n) => {
+      const c = n.constraints as { horizontal?: unknown; vertical?: unknown } | undefined;
+      return n.layoutPositioning === 'ABSOLUTE' && c?.horizontal === 'MAX' && c?.vertical === 'MAX'
+        ? null
+        : `${str(n.layoutPositioning)}, constraints ${str(c)}`;
+    },
+  },
   absoluteStrokeInset: { reason: 'a modifier on `absoluteInset`\'s arithmetic, not a property the host holds separately' },
   absoluteCenterOn: { reason: 'names the node to center ON; the resulting coordinates are geometry, which `docs/40` §7 step 6 checks visually' },
 

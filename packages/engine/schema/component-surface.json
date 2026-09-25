@@ -2,8 +2,8 @@
   "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless ENGINE_VERSION has already moved — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection and a sha256 over its sorted `planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and `<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. The button family (#1667) carries `<id>@button-default`, `<id>@button-edges` and `<id>@button-smaller` rows — its derived minimum width, the Locked to edges layout and the One step smaller medium content, against the default-density heights. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, bump ENGINE_VERSION, then accept.",
   "defs": {
     "icon": {
-      "members": 43,
-      "sha256": "7a840bf84edc219b4eb42509d18a57e2979ec654ec60eabca3c3c75ebcb18d04"
+      "members": 44,
+      "sha256": "0c1e85ee37807b6373dd2a3d050eeddcac7963e89ec9fc86fd10ebe635a66cc2"
     },
     "focus-ring": {
       "members": 2,
@@ -147,15 +147,15 @@
     },
     "textarea": {
       "members": 20,
-      "sha256": "e46c4e035376b02d4a458ef94effa92a80f167e505c9aee73724c46fccab0c27"
+      "sha256": "1abc297aa751afeae00745d7ec680f59b9c2d83156dbe15049a52e496ab84dad"
     },
     "textarea@outline-solid-tint": {
       "members": 20,
-      "sha256": "6bc718331bfcd636c7b499d5c1697198c24c7a15fa3a1b72e8d2aaedb228f62a"
+      "sha256": "9adc79199ea3ab76371251d45e3d2bd7a8d73a495ac6e485d44c96e839d01395"
     },
     "textarea@outline-none": {
       "members": 20,
-      "sha256": "187effd1f4385a96d99deca46038424f44b2b22dacb15f3c0d09e4a7661b821d"
+      "sha256": "419ca048990141756289d8cd170a2f09db3058a22c4acedfcbb912fb15af014d"
     },
     "checkbox-control": {
       "members": 54,

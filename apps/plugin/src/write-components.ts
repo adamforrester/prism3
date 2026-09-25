@@ -1818,6 +1818,32 @@ const writeComponentSet = async (
       if (kid.layoutPositioning !== 'ABSOLUTE')
         misses.push(`${c.name}.layoutPositioning -> DISCARDED (set ABSOLUTE, reads ${kid.layoutPositioning}; the spinner would take a cell and the button would grow on pending)`);
     }
+    // THE CORNER PIN (textarea's resize grip) — a glyph lifted out of the flow into this parent's
+    // bottom-right corner, `inset` in from both edges. After the flow pass, because the corner is measured
+    // on the parent's FINAL size. NOT resized: the glyph keeps its own bound artboard, which `resize` would
+    // clear. The inset is the variable's VALUE, since `x`/`y` take no binding (the ring's reason), and
+    // `MAX`/`MAX` keeps it in the corner when a designer resizes the instance. Lockstep with the paste
+    // executor (`planToPluginJs`'s corner slot).
+    for (const c of n.children) {
+      if (!c.cornerInset) continue;
+      const kid = byPart.get(c.name);
+      if (!kid) continue;
+      const v = byName.get(c.cornerInset);
+      if (!v) { misses.push(`${c.name}.cornerInset -> ${c.cornerInset}`); continue; }
+      const at = v.resolveForConsumer(kid).value;
+      if (typeof at !== 'number') {
+        misses.push(`${c.name}.cornerInset -> ${c.cornerInset} resolved to ${JSON.stringify(at)}, not a number`);
+        continue;
+      }
+      kid.layoutPositioning = 'ABSOLUTE';
+      kid.x = (node.width ?? 0) - (kid.width ?? 0) - at;
+      kid.y = (node.height ?? 0) - (kid.height ?? 0) - at;
+      kid.constraints = { horizontal: 'MAX', vertical: 'MAX' };
+      // READ BACK: a pinned glyph that quietly stayed in the flow takes a cell, and the value text's row
+      // loses its width to it — the one thing the pin exists to prevent.
+      if (kid.layoutPositioning !== 'ABSOLUTE')
+        misses.push(`${c.name}.layoutPositioning -> DISCARDED (set ABSOLUTE, reads ${kid.layoutPositioning}; the glyph would take a cell in the row)`);
+    }
     // Applied by the PARENT, because every fact here is about the child's relationship to it:
     // `layoutPositioning` only means anything inside an auto-layout parent, and the parent's size is
     // what the inset is measured from.

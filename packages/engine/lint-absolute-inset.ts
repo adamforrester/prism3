@@ -158,6 +158,11 @@
  *        · A part the def does NOT declare inset must not acquire one in a plan, and a part gated by
  *          `when: '<state>'` must carry its inset at that state and at NO other. A ring projected at
  *          every state grows all 648 members by 4px, silently.
+ *   E. THE CORNER PIN (textarea's resize grip, 2026-09-25) — the other out-of-flow placement, a glyph pinned
+ *      `inset` in from its parent's bottom-right corner. Its quantity is the other way round from the
+ *      ring's: the glyph sits INSIDE its parent, and the parent's border is drawn inside its bounds, so the
+ *      inset must be at least the parent's stroke weight or the artboard lies over the border. Same name
+ *      agreement, per-brand resolution and both-directions representation as A, B and D.
  *
  * ── WHAT IT DOES NOT CLAIM ──────────────────────────────────────────────────────────────────────
  *
@@ -185,7 +190,7 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { componentDefs } from './components/index';
-import { figmaAnatomyPlan, type AnatomyPlan, type FigmaNodePlan } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, type AnatomyPlan, type FigmaNodePlan } from './anatomy-figma';
 import type { ComponentDef } from './component-schema';
 // The positional, brand-invariant read layer (#1097) — a gate must not spell a brand's root either.
 import { tailOf } from './figma-names';
@@ -503,6 +508,75 @@ for (const def of componentDefs) {
       failures.push(`${def.id}: the def declares '${part}' as an absolute part with an inset${when ? ` gated on state '${when}'` : ''}, and NO projected coordinate carried one. Either the projector stopped emitting absoluteInset — in which case every check above passed over an empty set — or '${when}' is not in def.states.`);
   notes.push(`${def.id}: ${declared.length} declared inset part(s) — ${declared.map((d) => `${d.part} (${d.insetKey}${d.strokeKey ? ` + ${d.strokeKey}` : ''}${d.when ? ` @ ${d.when}` : ''})`).join(', ')}`);
 }
+
+// ---- E: THE CORNER PIN (textarea's resize grip) ------------------------------------------------------
+// The other out-of-flow placement: a glyph pinned into its parent's bottom-right corner, `inset` in from both
+// edges (`PartDef.corner`, `FigmaNodePlan.cornerInset`). The quantity a designer checks is whether the
+// artboard sits INSIDE the parent's edge or on top of it — the parent's border is drawn INSIDE its bounds
+// (`strokeAlign: 'INSIDE'`), so an inset smaller than that stroke puts the glyph's artboard over the border.
+// So: inset ≥ the parent's stroke weight, per brand, both read from the committed export. EXPECTED comes from
+// the DEF (the parent part's own `strokeWidth` key → its token), ACTUAL from the PLAN's `cornerInset` name;
+// neither walk reads the other. Every member plan is walked (`figmaAnatomySet`), since a corner-pinned def
+// need not carry a size axis, and both directions of D apply: every declared pin is represented, and no plan
+// node carries a pin its def does not declare.
+const MUST_COVER_CORNER = ['textarea.grip'];
+const cornerCovered = new Set<string>();
+let cornerChecks = 0;
+for (const def of componentDefs) {
+  const parts = def.anatomy?.parts ?? {};
+  const pins = Object.entries(parts).filter(([, p]) => (p as { corner?: string }).corner !== undefined);
+  let plans: AnatomyPlan[];
+  try {
+    plans = figmaAnatomySet(def);
+  } catch {
+    if (pins.length) failures.push(`${def.id}: declares ${pins.length} corner-pinned part(s) and does not PROJECT, so none of them can be checked`);
+    continue;
+  }
+  const reached = new Set<string>();
+  for (const plan of plans) {
+    const at = `${def.id}@${JSON.stringify(plan.coord)}`;
+    for (const { node, parent } of sited(plan.root)) {
+      if (!node.cornerInset) continue;
+      const p = parts[node.name] as { corner?: string; inset?: string } | undefined;
+      if (!p?.corner || !p.inset) {
+        failures.push(`${at}: the plan pins '${node.name}' into a corner ('${node.cornerInset}') and the DEF declares no corner pin for that part`);
+        continue;
+      }
+      reached.add(node.name);
+      cornerCovered.add(`${def.id}.${node.name}`);
+      const ref = def.tokens[p.inset];
+      if (!ref) { failures.push(`${at}: '${node.name}' declares inset key '${p.inset}' and def.tokens binds no such key`); continue; }
+      if (node.cornerInset !== nameOf(ref))
+        failures.push(`${at}: '${node.name}'.cornerInset is '${node.cornerInset}', and the def's own key '${p.inset}' → '${ref}' names '${nameOf(ref)}'`);
+      // The parent's edge weight, from the DEF's parent part — the half the plan cannot supply for itself.
+      const parentPart = parent ? parts[parent.name] : undefined;
+      const strokeKey = parentPart?.strokeWidth;
+      const strokeRef = strokeKey ? def.tokens[strokeKey] : undefined;
+      for (const brand of bs) {
+        const inset = vars.get(brand)!.get(node.cornerInset);
+        if (inset === undefined) {
+          failures.push(`${at}: '${node.name}'.cornerInset → '${node.cornerInset}' is not a FLOAT in brand '${brand}' — at paste the executor reports a miss and leaves the glyph in the flow`);
+          continue;
+        }
+        const stroke = strokeRef ? vars.get(brand)!.get(nameOf(strokeRef)) : 0;
+        if (stroke === undefined) {
+          failures.push(`${at}: '${node.name}' sits in '${parent?.name}', whose stroke '${strokeRef}' is not a FLOAT in brand '${brand}' — the edge the glyph must clear cannot be measured`);
+          continue;
+        }
+        if (!(inset >= stroke))
+          failures.push(`${at}: '${node.name}' is pinned ${inset}px in from the corner of '${parent?.name}', whose border is ${stroke}px drawn INSIDE its bounds (brand '${brand}') — the glyph's artboard overlaps the border by ${stroke - inset}px. Pin it at least the border's weight in.`);
+        cornerChecks++;
+      }
+    }
+  }
+  for (const [name] of pins)
+    if (!reached.has(name))
+      failures.push(`${def.id}: the def pins '${name}' into a corner and NO projected member carries a cornerInset for it — either the projector stopped emitting the pin, and every check above passed over an empty set, or the part never builds.`);
+}
+for (const m of MUST_COVER_CORNER)
+  if (!cornerCovered.has(m))
+    failures.push(`SCOPE NOT REPRESENTED: '${m}' is a known corner-pinned part and this run checked no plan carrying it. If it was legitimately removed, drop it from MUST_COVER_CORNER in this file in the same PR.`);
+notes.push(`corner pins: ${cornerChecks} (member × brand) edge check(s) over ${[...cornerCovered].join(', ') || 'NONE'}`);
 
 for (const m of MUST_COVER)
   if (!covered.has(m))
