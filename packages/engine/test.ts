@@ -17173,6 +17173,28 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   }
 }
 
+// ---- Owner-found (2026-09-25): an OVERRIDDEN inverse rest fill must not abort the Figma emission --------
+// The plugin lets a brand repoint `inverse.interactive.<c>.fill.rest` to its own palette step. The Figma
+// line for the hover/pressed fills used to RE-DERIVE its rung count from the aliases, assuming the rest was
+// white / black; an override made it throw, and the throw aborted the whole Apply Theme ("write failed").
+// The count is the engine's own per-state rule, so it must come out the same whatever the rest points at.
+// Expected values are literals (hover/focused 2, pressed/selected 4), never read off the emitter.
+{
+  const input = { ...MINIMAL_BRAND, overrides: { light: { 'inverse.interactive.primary.fill.rest': { palette: 'neutral', step: '025' } } } } as never;
+  let artifacts: { path: string; content: string }[] = [];
+  let threw = '';
+  try { artifacts = figmaArtifacts(brandTheme(input)).artifacts; } catch (e) { threw = (e as Error).message; }
+  ok(threw === '', `owner-found 2026-09-25: an overridden inverse rest fill does not abort the Figma emission (${threw || 'no throw'})`);
+  const lines = new Map<string, string>();
+  for (const a of artifacts) {
+    let j: any; try { j = JSON.parse(a.content); } catch { continue; }
+    for (const v of j.variables ?? []) if (typeof v.name === 'string' && /interactive\/primary\/fill\/(hover|pressed|focused|selected)$/.test(v.name) && /inverse/.test(v.name)) lines.set(v.name.split('/').pop()!, v.description ?? '');
+  }
+  const want: Record<string, number> = { hover: 2, focused: 2, pressed: 4, selected: 4 };
+  const bad = Object.entries(want).filter(([st, n]) => !(lines.get(st) ?? '').includes(`${n} neutral rungs`)).map(([st, n]) => `${st}: want ${n}, line "${lines.get(st) ?? 'MISSING'}"`);
+  ok(lines.size === 4 && bad.length === 0, `owner-found 2026-09-25: with the rest overridden, each inverse primary fill state still states the engine's rung count (${bad.join('; ') || 'all four'})`);
+}
+
 // ---- figmaArtifacts: the per-mode FILENAME conventions regen cannot see ------------------------
 // `regen --check` proves this extraction is byte-identical, but only over nb/aurora/wendys — and all
 // three take the SINGLE-FILE branch of both conditionals. So the byte proof covers half of each `if`,

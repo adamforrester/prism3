@@ -675,10 +675,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // a different pair — "two derivations of 'the same step' are two things that can drift". This is
   // production code sharing one derivation, NOT a gate sharing one with its subject: `test.ts` must
   // assert the rung delta from the emitted ramp positions and must never import this (`docs/34`).
-  const STATE_RUNGS = 2;
-  /** How many genome rungs past `rest` a given interactive state sits. */
-  const stateRungs = (st: string): number =>
-    st === 'default' ? 0 : (st === 'hover' || st === 'focused') ? STATE_RUNGS : STATE_RUNGS * 2;
+  const stateRungs = interactiveStateRungs;
   // ---- LINK STATE PERCEPTIBILITY (#1486) ---------------------------------------------------------
   //
   // Interactive FILLS step a FIXED number of genome rungs (`STATE_RUNGS` above), because a fill sits
@@ -2054,6 +2051,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     if (r.min > 0 && r.ratio < r.min) warnings.push({ role: rolePath, ratio: r.ratio, min: r.min });
 
   return { mode, surface: baseRgb, roles, ...(warnings.length ? { warnings } : {}) };
+};
+
+/** How many genome rungs past `rest` a given interactive state sits: hover/focused 2, pressed/selected 4.
+ *  Module-level so the Figma description (`emit-figma-color.ts`) states the SAME count the walk used,
+ *  instead of re-deriving it from the aliases a per-mode override can repoint (a brand that overrides an
+ *  inverse fill's rest to its own palette step made that re-derivation throw and abort the apply). */
+export const interactiveStateRungs = (st: string): number => {
+  const STATE_RUNGS = 2;
+  return st === 'default' || st === 'rest' ? 0 : (st === 'hover' || st === 'focused') ? STATE_RUNGS : STATE_RUNGS * 2;
 };
 
 export const resolveAllModes = (theme: Theme): ModeResult[] => {

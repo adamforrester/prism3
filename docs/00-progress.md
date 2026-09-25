@@ -7,6 +7,18 @@
 
 ---
 
+## (2026-09-25) — an overridden inverse rest fill no longer aborts Apply Theme (owner-found)
+
+**STATUS: landed by the orchestrator.** Owner rebuilt the plugin on 0.151.0 and Apply Theme failed: `write failed: emit-figma-color: nbds.color.inverse.interactive.primary.fill.hover is not a neutral step off a white / black rest fill (rest brand-neutral.025) — the Figma line cannot count its rungs`. Files: `packages/engine/modes.ts` (the per-state rung rule moves to a module-level `interactiveStateRungs`, same values), `emit-figma-color.ts` (reads it; `rungsOffRest` deleted), `test.ts` (regression arm), `version.ts` (ENGINE 0.152.0).
+
+**Diagnosis.** #1645 built the inverse fill states' Figma line ("Primary fill on inverse, hover — 2 neutral rungs off the white / black rest") from structured data, but got the rung count by RE-DERIVING it from the light-mode aliases: rest had to be `palette.white` / `palette.black` and the state a `neutral.<n>` step, else throw. The engine's own rest is always white / black, so every committed brand passed. The owner's file overrides `inverse.interactive.primary.fill.rest` per mode to a step of their own palette (`brand-neutral.025`), which the override layer applies after derivation, and the re-derivation threw. A description is never worth aborting a write, and the number was never in doubt: the walk steps a fixed count per state.
+
+**Fix.** The walk's `stateRungs` and the Figma line now read one exported rule. Committed `out/**` is byte-identical apart from the stamp, which proves the re-derivation always agreed with the rule where it could run. The new arm overrides the rest to `neutral.025` on the minimal brand and asserts the emission doesn't throw and that each state states 2 / 2 / 4 / 4 rungs (hand-written literals).
+
+**Trap for whoever re-verifies.** The line still says "off the white / black rest" when an override points the rest elsewhere; the DTCG sentence says the same. The rung count is accurate (it counts from the white / black extreme the walk anchors to), but the rest named is the default, not the override. Rewording it per override is a copy call, left as is.
+
+---
+
 ## (2026-09-25) — Gates that could pass vacuously now fail when their subject goes missing (#1268, #1269, #779, #1245, #1213, #1192, #1276, #1200)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** No ENGINE or CONTRACT bump: nothing emitted moves. Every change is a gate, a test, a comment, or studio markup/test code.
