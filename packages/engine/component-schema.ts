@@ -316,6 +316,13 @@ export type PartDef = {
    *  PARENT's `layout.align`, and no value of this field reaches it — see `checkbox.ts`'s `row`. The two
    *  were filed as one observation and are two properties on two different nodes. */
   verticalAlign?: 'top' | 'center' | 'bottom';
+  /** For `text` parts: where the glyphs sit HORIZONTALLY inside the text node's own box — Figma's
+   *  `textAlignHorizontal` (#1667). Absent means the executors' `LEFT`, so every existing plan is
+   *  byte-identical. It changes a pixel only on a text node whose box is WIDER than its glyphs, which is a
+   *  `wrap` node: a hugging text box IS its glyphs. The button's "Locked to edges" setting is the case —
+   *  the label fills the space between the icons and its text centers in THAT space, not on the whole
+   *  button (New Balance's layout). Refused on any kind but `text`, the `verticalAlign` rule. */
+  textAlign?: 'start' | 'center' | 'end';
   /** For a `text` part: FILL the parent row's main axis and WRAP to multiple lines, rather than hug the
    *  glyphs and OVERFLOW (#1424). A long option/consent label is the case: today it grows the row
    *  horizontally off the edge; Prism 2 wraps it to a second line with the control top-anchored
@@ -435,8 +442,17 @@ export type PartDef = {
    *
    *  Refused on a non-`box` kind, and on a `box` with no `layout`: Figma applies `minWidth` only to an
    *  auto-layout frame, so a floor on a layout-less box would be silently dropped (or throw on the real
-   *  host) — the silent-loss shape the width and sizing rules exist to catch. */
-  minWidth?: number;
+   *  host) — the silent-loss shape the width and sizing rules exist to catch.
+   *
+   *  PER SIZE, as a map keyed by the `size` axis values (#1667): the button's floor is DERIVED per brand as
+   *  `height × multiplier`, rounded up to the 8px grid, so each size has its own number. A def never authors
+   *  that map — `applyButtonLayout` writes it before projection, from the brand's resolved heights, which is
+   *  why the def stays brand-agnostic. The map must name exactly the def's `size` values.
+   *
+   *  THE FLOOR BECOMES THE DEFAULT WIDTH under `sizing.x: 'fixed'` with no bound `width`: the plan carries
+   *  it as `fixedWidth`, so a FIXED frame starts at its floor instead of Figma's arbitrary 100px. That is
+   *  "Locked to edges": a filling label needs a fixed-width parent, and designers resize instances. */
+  minWidth?: number | Record<string, number>;
   /** For `box` parts: the binding key giving the frame's MINIMUM height — Figma's auto-layout `minHeight`,
    *  bound to a variable. The token-bound twin of `minWidth`'s literal, and a token rather than a
    *  literal because the floor it states IS a token's value: `field-message`'s row reserves its status
@@ -3362,6 +3378,10 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // rather than in any gate — the exact class `characters` already carries a note about.
     if (p.kind !== 'text' && p.verticalAlign !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'verticalAlign' — only a 'text' part positions glyphs inside its own box. Figma's 'textAlignVertical' is a TextNode property and writing it to a frame throws at paste time; a row that wants its children aligned says so in its own 'layout.align'`);
+    if (p.kind !== 'text' && p.textAlign !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'textAlign' — only a 'text' part positions glyphs inside its own box. Figma's 'textAlignHorizontal' is a TextNode property and writing it to a frame throws at paste time`);
+    if (p.kind === 'text' && p.textAlign !== undefined && !(['start', 'center', 'end'] as readonly string[]).includes(p.textAlign))
+      e.push(`anatomy part '${n}': textAlign '${p.textAlign}' is not one of [start, center, end]`);
     if (p.kind === 'text' && p.verticalAlign !== undefined && !(['top', 'center', 'bottom'] as readonly string[]).includes(p.verticalAlign))
       e.push(`anatomy part '${n}': verticalAlign '${p.verticalAlign}' is not one of [top, center, bottom] — those are the three values Figma's 'textAlignVertical' has, and a fourth word would project a value the executor writes and Figma discards`);
     // `paintSlot` is the TEXT kind's field (#796) — the only branch that reads it. On any other kind it
@@ -3405,6 +3425,18 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidth' — only a 'box' becomes an auto-layout frame that can carry a minimum width; every other kind is sized by its content or its artboard`);
     if (p.minWidth !== undefined && p.kind === 'box' && !p.layout)
       e.push(`anatomy part '${n}' declares 'minWidth' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so a floor on a layout-less box would be silently dropped`);
+    // The PER-SIZE form (#1667) must name exactly the def's sizes: a size it misses would project no floor at
+    // that size (the silent-loss shape), and a key no size carries names nothing.
+    if (p.minWidth !== undefined && typeof p.minWidth === 'object') {
+      const sizes = def.variants?.size ?? [];
+      const keys = Object.keys(p.minWidth);
+      const missing = sizes.filter((v) => !keys.includes(v));
+      const extra = keys.filter((k) => !sizes.includes(k));
+      if (missing.length || extra.length)
+        e.push(`anatomy part '${n}' declares a per-size 'minWidth' whose keys [${keys.join(', ')}] are not the def's sizes [${sizes.join(', ')}] — a missing size projects no floor there, and an extra key names nothing`);
+    }
+    if (p.minWidth !== undefined && (typeof p.minWidth === 'number' ? [p.minWidth] : Object.values(p.minWidth)).some((w) => !(typeof w === 'number' && w > 0)))
+      e.push(`anatomy part '${n}' declares a 'minWidth' that is not a positive number of px`);
     // ---- `minHeight`, the BOX kind's token-bound auto-layout height FLOOR ----
     // `minWidth`'s two rules, plus one: a floor under a bound `height`/`size` states the height twice.
     if (p.minHeight !== undefined && p.kind !== 'box')

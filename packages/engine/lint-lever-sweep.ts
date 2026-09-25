@@ -47,7 +47,7 @@
  *
  * (b) COMPONENTS. SUBJECT = every def's projection after brand materialization — `applyControlShape`
  *     (off the raw input, as the plugin reads it), then `applyWeightIntent` and `applyOutlineInteraction`
- *     (off the resolved theme). This is the composition `apps/plugin/src/brand-def.ts`'s
+ *     (off the resolved theme), then `applyButtonLayout` (#1667, off the raw input and the theme's heights). This is the composition `apps/plugin/src/brand-def.ts`'s
  *     `materializeForBrand` performs. It is restated here, not imported, because the engine must not
  *     depend on a surface. The plugin's own `test-write-components.ts` pins that function; this gate pins
  *     the three engine materializers under every setting. ORACLE = the Figma EMISSION for that setting
@@ -90,7 +90,7 @@ import { tailOf } from './figma-names';
 import { componentDefs } from './components';
 import type { ComponentDef } from './component-schema';
 import {
-  figmaAnatomySet, applyControlShape, applyWeightIntent, applyOutlineInteraction,
+  figmaAnatomySet, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT,
   planBindingErrors, planComponentName, planBoundVars, planTextStyles, planEffectStyles, type AnatomyPlan,
 } from './anatomy-figma';
 
@@ -167,8 +167,16 @@ const figmaEmitted = (theme: Theme): Emitted => {
 };
 
 // The materialization, in `materializeForBrand`'s order (see the header for why it is restated).
+// The button layout (#1667) is last, off the raw input like `controlShape`, with the brand's own heights.
 const materialize = (def: ComponentDef, input: BrandInput, theme: Theme): ComponentDef =>
-  applyOutlineInteraction(applyWeightIntent(applyControlShape(def, input.controlShape ?? 'rounded'), weightAvailability(theme.typography)), theme.outlineInteraction);
+  applyButtonLayout(
+    applyOutlineInteraction(applyWeightIntent(applyControlShape(def, input.controlShape ?? 'rounded'), weightAvailability(theme.typography)), theme.outlineInteraction),
+    {
+      icons: input.buttonIcons ?? DEFAULT_BUTTON_LAYOUT.icons,
+      content: input.buttonContentSize ?? DEFAULT_BUTTON_LAYOUT.content,
+      minWidthMultiplier: input.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
+    },
+    (ref) => theme.dims.sizes.find((z) => `size.${z.name}.height` === ref)?.height);
 
 // Projection is the expensive step and depends only on the materialized def, so cache by its content.
 const projCache = new Map<string, AnatomyPlan[]>();

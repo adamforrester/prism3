@@ -295,6 +295,21 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `minWidth ${String(p)}`,
     check: (p, n) => (n.minWidth === p ? null : str(n.minWidth)),
   },
+  // ── the floor as a FIXED frame's default width (#1667) ─────────────────────────────────────────
+  // "Locked to edges": the executor resizes a FIXED frame to its floor so the filling label has a width to
+  // fill. The host reports the frame's live `width`, so an executor that dropped the resize reads back
+  // Figma's 100 (or the shim's hug) here.
+  fixedWidth: {
+    show: (p) => `width ${String(p)} (fixed)`,
+    check: (p, n) => (n.width === p ? null : str(n.width)),
+  },
+  // ── horizontal glyph alignment (#1667) ─────────────────────────────────────────────────────────
+  // Carried only on a part that declares `textAlign` (the "Locked to edges" button label). The host echoes
+  // it verbatim, so this compares directly; an executor whose default pass overwrote it with LEFT fails here.
+  textAlignHorizontal: {
+    show: (p) => `textAlignHorizontal ${String(p)}`,
+    check: (p, n) => (n.textAlignHorizontal === p ? null : str(n.textAlignHorizontal)),
+  },
   // ── wrapping label (#1424) ─────────────────────────────────────────────────────────────────────
   // Two child/text-side properties the executor sets so a long label FILLS its row and reflows instead of
   // overflowing. Both are plain properties the host echoes verbatim, so this compares directly. Carried onto

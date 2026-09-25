@@ -225,7 +225,9 @@ export interface CompNode {
   /** TYPED, not `unknown`, unlike its neighbours here: #1009 gives it a plan field, so the executor both
    *  writes it and READS IT BACK, and a read-back cannot compare `unknown` to a string. */
   textAlignVertical?: 'TOP' | 'CENTER' | 'BOTTOM';
-  textAlignHorizontal?: unknown;
+  /** TYPED for the same reason as `textAlignVertical`: #1667 gives it a plan field that is written and
+   *  read back (the "Locked to edges" label, centered in the space beside the icons). */
+  textAlignHorizontal?: 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED';
   textAutoResize?: unknown;
   textTruncation?: unknown;
   paragraphSpacing?: unknown;
@@ -1028,7 +1030,8 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     // unguarded it wrote `'TOP'` over every claim, AFTER the plan-driven write, and the parity gate is
     // what caught it: the paste path had no neutralizer and still read CENTER.
     if (!n?.textAlignVertical) set('textAlignVertical', 'TOP');
-    set('textAlignHorizontal', 'LEFT');
+    // GUARDED like `textAlignVertical` (#1667): a plan that claims a horizontal alignment keeps it.
+    if (!n?.textAlignHorizontal) set('textAlignHorizontal', 'LEFT');
     // DRIVEN BY THE PLAN (#1424), still an unconditional `set` so the #865 claim holds: a wrapping label
     // asks for `'HEIGHT'` (fixed width, auto height); every other TEXT node keeps `'WIDTH_AND_HEIGHT'`.
     set('textAutoResize', n?.textAutoResize ?? 'WIDTH_AND_HEIGHT');
@@ -1567,6 +1570,13 @@ const writeComponentSet = async (
       if (node.textAlignVertical !== undefined && node.textAlignVertical !== n.textAlignVertical)
         misses.push(`${n.name}.textAlignVertical -> DISCARDED (set ${n.textAlignVertical}, reads ${String(node.textAlignVertical)})`);
     }
+    // THE CENTERED FILL LABEL (#1667) — the horizontal twin of the block above, read back the same way.
+    if (n.textAlignHorizontal) {
+      try { node.textAlignHorizontal = n.textAlignHorizontal; }
+      catch (err) { misses.push(`${n.name}.textAlignHorizontal -> ${n.textAlignHorizontal} (${(err as Error).message})`); }
+      if (node.textAlignHorizontal !== undefined && node.textAlignHorizontal !== n.textAlignHorizontal)
+        misses.push(`${n.name}.textAlignHorizontal -> DISCARDED (set ${n.textAlignHorizontal}, reads ${String(node.textAlignHorizontal)})`);
+    }
     if (n.effectStyle) {
       const ef = effectByName.get(n.effectStyle);
       if (!ef) misses.push(`${n.name}.effectStyle -> ${n.effectStyle}`);
@@ -1582,6 +1592,10 @@ const writeComponentSet = async (
       // minimum width only on an auto-layout frame (the schema refuses `minWidth` on a layout-less box).
       // Written only when the plan carries it, so every other frame is untouched.
       if (n.minWidth !== undefined) node.minWidth = n.minWidth;
+      // THE FLOOR AS THE DEFAULT WIDTH (#1667): a FIXED main axis with no bound width starts at its floor
+      // ("Locked to edges" — a filling label needs a fixed-width parent). Resized BEFORE the bind loop,
+      // because a resize after binding clears the bound height. Lockstep with the paste executor.
+      if (n.fixedWidth !== undefined) node.resize?.(n.fixedWidth, typeof node.height === 'number' ? node.height : 0);
     }
 
     // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind

@@ -70,6 +70,22 @@ export type Density = 'comfortable' | 'compact' | 'spacious';
  *  of the softness dial); `hairline` binds `radius.hairline` (the fixed 1px sentinel #1362). A
  *  brand-level choice, not a per-instance variant — see `applyControlShape`. */
 export type ControlShape = 'rounded' | 'pill' | 'boxed' | 'hairline';
+/** The button-family FORM levers (#1667, owner-decided 2026-09-25). Brand-level choices applied to a def
+ *  before projection — see `applyButtonLayout`. `buttonIcons`: `attached` keeps the icons next to the label
+ *  (the default); `edges` pins them to the button's edges, and the label fills the space between them with
+ *  its text centered in THAT space. `buttonContentSize`: `match` binds each size's own label and icon (the
+ *  default); `smaller` gives the MEDIUM size the small size's label and icon, height and padding unchanged. */
+export type ButtonIcons = 'attached' | 'edges';
+export type ButtonContentSize = 'match' | 'smaller';
+/** The default `buttonMinWidthMultiplier`: Adobe Spectrum's `button-minimum-width-multiplier`, where a
+ *  button's `min-inline-size` is `calc(height × multiplier)` (docs/28 §2.2, "derived, not authored"). */
+export const DEFAULT_MIN_WIDTH_MULTIPLIER = 2.25;
+/** A button's derived minimum width (#1667): `height × multiplier`, rounded UP to the 8px spacing grid.
+ *  Up, never to nearest — the floor exists so a short label cannot make a stubby button, and rounding
+ *  down would put it under the ratio it promises. nb's 36/44/56 → 88/104/128 at 2.25. The epsilon keeps a
+ *  product that is already on the grid (36 × 2 = 72) from rounding a whole step up on float noise. */
+export const buttonMinWidth = (height: number, multiplier: number): number =>
+  Math.ceil((height * multiplier) / SPACE_BASE - 1e-9) * SPACE_BASE;
 export type SpaceStep = { key: string; mult: number; px: number };
 export type RadiusStep = { name: string; px: number; pill?: boolean };
 export type SizeStep = { name: string; height: number; padX: number; padY: number; padXVisual: number; gap: number };

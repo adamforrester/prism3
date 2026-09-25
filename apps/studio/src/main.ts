@@ -23,6 +23,7 @@ import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, P
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
+import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES } from '@prism3/engine/scale';
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
 import type { Lever } from '@prism3/engine/levers';
 import { previewSpec } from '@prism3/engine/preview';
@@ -4609,6 +4610,9 @@ const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 's
     // enum select. It sits beside corner softness on purpose: both shape the corner, but orthogonally
     // (softness scales the ramp; pill overrides it with height ÷ 2 for pill-able controls).
     { title: 'Control shape', sub: 'Corner shape for pill-able controls (button, icon-button). Boxed is sharp; hairline is a fixed 1px edge; rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.', controls: csLeverStack(['controlShape'], false), paint: paintControlShapePreview },
+    // The button levers (#1667) are GLOBAL brand levers like controlShape, so `false` again. The labels are
+    // the owner's exact words and live in `levers.ts`; this block only groups them beside their specimen.
+    { title: 'Buttons', sub: 'Button icon placement, minimum width, and the medium label and icon size. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonMinWidthMultiplier'], false), paint: paintButtonLayoutPreview },
     { title: 'Density & size', sub: 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
     // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
     // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
@@ -7323,6 +7327,63 @@ const paintControlShapePreview = (into: HTMLElement): void => {
     bar.style.borderRadius = `${s.radiusPx}px`;
     cell.append(bar, el('div', 'rad-lab mono', `${s.label}${on ? ' · selected' : ''}`), tokenPill(s.ref), el('div', 'rad-cons', s.note));
     list.append(cell);
+  }
+  into.append(list);
+};
+
+/** The button-layout specimen (#1667): per size, a short-label button at its derived minimum width, and two
+ *  WIDENED buttons — leading + trailing icons, and trailing only — so "Locked to edges" is visible: the icons
+ *  sit at the edges and the label centers in the space between them, which puts a trailing-only label
+ *  slightly left of the button's center. The same arithmetic as the Figma build: floor = height ×
+ *  multiplier rounded up to 8 (`buttonMinWidth`), padding split by side (#326), and under "One step
+ *  smaller" the medium size takes small's label size and icon. Geometry only, in the page ink — the
+ *  colors are the Colors page's job. Mode-aware like `paintSizePreview`. */
+const BUTTON_SIZES: { size: string; step: string; icon: string; label: string }[] = [
+  { size: 'Small', step: 'sm', icon: 'xs', label: 'sm' },
+  { size: 'Medium', step: 'md', icon: 'sm', label: 'md' },
+  { size: 'Large', step: 'lg', icon: 'md', label: 'lg' },
+];
+const paintButtonLayoutPreview = (into: HTMLElement): void => {
+  into.innerHTML = '';
+  const edges = (getPath(brandState, 'buttonIcons') ?? 'attached') === 'edges';
+  const smaller = (getPath(brandState, 'buttonContentSize') ?? 'match') === 'smaller';
+  const mult = Number(getPath(brandState, 'buttonMinWidthMultiplier') ?? DEFAULT_MIN_WIDTH_MULTIPLIER);
+  const sizes = theme.dims.sizesByMode?.[currentMode] ?? theme.dims.sizes;
+  const radius = rp.dims['radius.md'] ?? 4;
+  const list = el('div', 'btnl-list');
+  for (const b of BUTTON_SIZES) {
+    const z = sizes.find((x) => x.name === b.step);
+    if (!z) continue;
+    const off = smaller && b.step === 'md';
+    const iconPx = ICON_SIZES.find((i) => i.name === (off ? 'xs' : b.icon))?.px ?? 16;
+    const labelPx = theme.typography.composites.find((c) => c.group === 'label' && c.variant === (off ? 'sm' : b.label))?.sizePx ?? 14;
+    const floor = buttonMinWidth(z.height, mult);
+    const wide = Math.max(floor, 240);
+    const button = (text: string, lead: boolean, trail: boolean, width?: number): HTMLElement => {
+      const btn = el('div', 'btnl-btn');
+      btn.style.height = `${z.height}px`;
+      btn.style.minWidth = `${floor}px`;
+      btn.style.borderRadius = `${radius}px`;
+      btn.style.gap = `${z.gap}px`;
+      btn.style.paddingLeft = `${lead ? z.padXVisual : z.padX}px`;
+      btn.style.paddingRight = `${trail ? z.padXVisual : z.padX}px`;
+      if (width !== undefined) btn.style.width = `${width}px`;
+      const glyph = (): HTMLElement => { const g = el('span', 'btnl-icon'); g.style.width = g.style.height = `${iconPx}px`; return g; };
+      const label = el('span', 'btnl-label' + (edges ? ' btnl-fill' : ''), text);
+      label.style.fontSize = `${labelPx}px`;
+      if (lead) btn.append(glyph());
+      btn.append(label);
+      if (trail) btn.append(glyph());
+      return btn;
+    };
+    const row = el('div', 'btnl-row');
+    row.append(
+      el('div', 'btnl-lab mono', `${b.size} · ${z.height}px high · min ${floor}px${off ? ' · small label & icon' : ''}`),
+      button('OK', false, false),
+      button('Continue', true, true, wide),
+      button('Continue', false, true, wide),
+    );
+    list.append(row);
   }
   into.append(list);
 };

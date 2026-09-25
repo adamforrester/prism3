@@ -24,7 +24,8 @@
  */
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
 import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape } from './scale';
+import type { ControlShape, ButtonIcons, ButtonContentSize } from './scale';
+import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
 // nothing back from here (no cycle); `theme.ts` already bundles into the plugin alongside this file.
@@ -390,6 +391,17 @@ export type FigmaNodePlan = {
    *  `layoutMode` branch, where Figma accepts a minimum width. See `PartDef.minWidth` for why a `select`
    *  gets a min-width and not a bound `width`. */
   minWidth?: number;
+  /** For a `box` whose main axis is FIXED with no bound `width`: the literal px it starts at (#1667). The
+   *  floor above, carried a second time as the frame's default width — "Locked to edges" needs a
+   *  fixed-width parent for its filling label, and a FIXED frame with no width would otherwise keep
+   *  Figma's arbitrary 100px. Both executors `resize` to it BEFORE the bind loop (a resize after binding
+   *  clears the bound height). Carried ONLY on such a box, so every other plan is byte-identical. */
+  fixedWidth?: number;
+  /** For a `TEXT` node: the horizontal alignment of its glyphs inside its own box (#1667), from
+   *  `PartDef.textAlign`. Carried ONLY when the part declares it, so every other TEXT node's plan is
+   *  byte-identical; both executors otherwise write `LEFT`. It is visible only on a `wrap` node, whose box
+   *  is wider than its glyphs — the "Locked to edges" button label, centered in the space beside the icons. */
+  textAlignHorizontal?: 'LEFT' | 'CENTER' | 'RIGHT';
   /** For a `TEXT` node that WRAPS (#1424): `1` when the label should FILL its row's main axis and wrap to
    *  multiple lines rather than hug its content and overflow. Figma's child-side `layoutGrow` (a 0/1 stretch
    *  flag along the parent's PRIMARY axis). Carried ONLY when `1`, so every other node's plan is byte-identical
@@ -750,6 +762,10 @@ const JUSTIFY: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN'> = {
  *  such value and discards the write in silence. */
 const VERTICAL_ALIGN: Record<string, 'TOP' | 'CENTER' | 'BOTTOM'> = {
   top: 'TOP', center: 'CENTER', bottom: 'BOTTOM',
+};
+/** A text part's horizontal word → Figma's (#1667). Its own map for the reason `VERTICAL_ALIGN` gives. */
+const HORIZONTAL_ALIGN: Record<string, 'LEFT' | 'CENTER' | 'RIGHT'> = {
+  start: 'LEFT', center: 'CENTER', end: 'RIGHT',
 };
 // `hug` and `fill` both mean "don't pin a number" on the axis; only `fixed` is FIXED.
 const sizingMode = (m: SizingMode): 'AUTO' | 'FIXED' => (m === 'fixed' ? 'FIXED' : 'AUTO');
@@ -1242,6 +1258,13 @@ export const figmaAnatomyPlan = (
   // swap or text on the same node, and `propertyRef` is singular. The boolean's plan carrier is
   // `visibleProp`/`visible`, computed above in `booleanParts` and emitted on the node below.
 
+  // A per-size floor (#1667) resolves at THIS plan's size; a sizeless plan cannot pick one, so it throws.
+  const minWidthAt = (part: string, w: number | Record<string, number>): number => {
+    if (typeof w === 'number') return w;
+    const px = size === undefined ? undefined : w[size];
+    if (px === undefined) throw new Error(`${def.id}: part '${part}' has a per-size minWidth with no entry for size '${size}'`);
+    return px;
+  };
   const node = (name: string, p: PartDef): FigmaNodePlan => {
     const bound: Record<string, string> = {};
     // THE ASPECT-RATIO LOCK for a box (#1316), as the numeric proportion parsed from THIS member's own
@@ -1491,7 +1514,10 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'box' && p.clipsContent ? { clipsContent: true as const } : {}),
       // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
       // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
-      ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: p.minWidth } : {}),
+      ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: minWidthAt(name, p.minWidth) } : {}),
+      // THE FLOOR AS THE DEFAULT WIDTH (#1667): a FIXED main axis with no bound `width` starts at its floor.
+      ...(p.kind === 'box' && p.minWidth !== undefined && p.layout?.sizing.x === 'fixed' && p.width === undefined
+        ? { fixedWidth: minWidthAt(name, p.minWidth) } : {}),
       // THE WRAPPING LABEL (#1424), carried ONLY on a `text` part that opts in, so every other TEXT node's
       // plan is byte-identical. `layoutGrow: 1` fills the row's main axis (fixing the width) and
       // `textAutoResize: 'HEIGHT'` lets the fixed-width box reflow — the two facts that turn a hugging,
@@ -1553,6 +1579,8 @@ export const figmaAnatomyPlan = (
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
       // here and nowhere else, so this line IS the rule #1009 asked to be located.
       ...(p.kind === 'text' ? { textAlignVertical: VERTICAL_ALIGN[p.verticalAlign ?? 'center'] } : {}),
+      // Only when the part declares it (#1667) — unlike the vertical claim above, which is always present.
+      ...(p.kind === 'text' && p.textAlign !== undefined ? { textAlignHorizontal: HORIZONTAL_ALIGN[p.textAlign] } : {}),
       ...((p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
       ...(paintOpacity ? { paintOpacity } : {}),
@@ -1711,6 +1739,89 @@ export const applyControlShape = (def: ComponentDef, shape: ControlShape): Compo
     Object.entries(def.tokens).map(([k, ref]) => [k, ref === ROUNDED_RADIUS_RUNG ? target : ref]),
   );
   return { ...def, tokens };
+};
+
+// ── BUTTON LAYOUT (#1667) ───────────────────────────────────────────────────────────────────────
+//
+// Three brand choices for the text-bearing button family, owner-decided 2026-09-25 (issue #1667). All
+// three are materialized into the def BEFORE projection, for `applyControlShape`'s reason: the projector
+// stays a pure function of its def and the brand-specificity lives here.
+
+/** The `derived` key a def carries to opt IN to the button levers. Its VALUE is inert prose ("height ×
+ *  minWidthMultiplier — …"); its PRESENCE is the selector, the `pill-radius` shape. `button`,
+ *  `button-destructive` and `button-neutral` carry it (one factory); `icon-button` does not — it is square,
+ *  its glyph is 1:1 with the control and it has no label — so it is outside the set by construction. */
+export const MIN_WIDTH_DERIVATION = 'min-width';
+
+/** True when `def` is in the button family the #1667 levers reach — it declares the `min-width` derivation. */
+export const isButtonFamily = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[MIN_WIDTH_DERIVATION];
+
+/** The three settings, as `materializeForBrand` reads them off a brand. */
+export type ButtonLayout = { icons: ButtonIcons; content: ButtonContentSize; minWidthMultiplier: number };
+export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content: 'match', minWidthMultiplier: DEFAULT_MIN_WIDTH_MULTIPLIER };
+
+/** "One step smaller" (#1667): the ONE size whose content moves, and the size it borrows from. Medium only,
+ *  and deliberately: New Balance's 44px button (our `size.md.height`) carries a 12px label and a 16px icon,
+ *  which is small's content at medium's height. Small is excluded because one step below it would be a 10px
+ *  label; large keeps its own. `keys` are the two content bindings — the label's type and the icon artboard
+ *  (the spinner reads the icon key too, so it shrinks with the icon it stands in for). */
+export const CONTENT_OFFSET = { size: 'medium', from: 'small', keys: ['type', 'icon'] } as const;
+
+/**
+ * Materialize a button-family def for a brand's three button settings (#1667). Identity for any def outside
+ * the family. For a button:
+ *
+ *   1. MINIMUM WIDTH, in BOTH icon placements. The root's floor becomes a per-size map, each entry
+ *      `buttonMinWidth(height, multiplier)` — the size's height in px (via `heightPx`, which the caller
+ *      resolves off the brand) times the multiplier, rounded UP to the 8px grid. It is a literal at the
+ *      projection (docs/28 §4: "resolved to a literal at emit"), because the def is brand-agnostic and
+ *      Figma's frame holds a number; the live `height × multiplier` relationship is code's.
+ *   2. "Locked to edges" (`icons: 'edges'`). The root's main axis becomes FIXED — the projector then starts
+ *      the frame at its floor (`fixedWidth`), since a filling child needs a fixed-width parent — and the
+ *      label FILLS the space between the icons (`wrap`: `layoutGrow` 1) with its text CENTERED in that
+ *      space (`textAlign: 'center'`). So a trailing-icon-only button's label sits slightly left of the
+ *      button's center, which is New Balance's layout and the owner's decision. `attached` leaves both
+ *      the root's hug and the label's hug exactly as authored.
+ *   3. "One step smaller" (`content: 'smaller'`). Medium's label type and icon bind small's
+ *      (`CONTENT_OFFSET`). Height, padding, gap and the other two sizes are untouched, and no token moves —
+ *      this is a button-only rebinding, never a change to the shared type or icon ladders.
+ *
+ * THROWS when a size's height does not resolve: a button with no floor at one size is the silent-loss
+ * shape, and the caller always has the brand's heights in hand.
+ */
+export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, heightPx: (ref: string) => number | undefined): ComponentDef => {
+  if (!isButtonFamily(def)) return def;
+  const a = def.anatomy!;
+  const root = a.parts[a.root];
+  if (!root.layout || !root.height)
+    throw new Error(`${def.id}: the button levers need an auto-layout root that binds a height, and '${a.root}' does not`);
+
+  let tokens = def.tokens;
+  if (layout.content === 'smaller') {
+    tokens = { ...def.tokens };
+    for (const k of CONTENT_OFFSET.keys) {
+      const from = def.tokens[`size.${CONTENT_OFFSET.from}.${k}`];
+      if (!from || !def.tokens[`size.${CONTENT_OFFSET.size}.${k}`])
+        throw new Error(`${def.id}: "One step smaller" moves size.${CONTENT_OFFSET.size}.${k} onto size.${CONTENT_OFFSET.from}.${k}, and the def binds no such pair`);
+      tokens[`size.${CONTENT_OFFSET.size}.${k}`] = from;
+    }
+  }
+
+  const minWidth = Object.fromEntries((def.variants?.size ?? []).map((v) => {
+    const ref = def.tokens[root.height!.replace('{size}', v)];
+    const px = ref === undefined ? undefined : heightPx(ref);
+    if (px === undefined) throw new Error(`${def.id}: size '${v}' height ${ref ?? '(unbound)'} does not resolve, so its minimum width cannot be derived`);
+    return [v, buttonMinWidth(px, layout.minWidthMultiplier)];
+  }));
+
+  const parts: Record<string, PartDef> = { ...a.parts, [a.root]: { ...root, minWidth } };
+  if (layout.icons === 'edges') {
+    parts[a.root] = { ...parts[a.root], layout: { ...root.layout, sizing: { ...root.layout.sizing, x: 'fixed' } } };
+    const label = (root.children ?? []).find((c) => a.parts[c]?.kind === 'text');
+    if (!label) throw new Error(`${def.id}: "Locked to edges" fills the label, and '${a.root}' has no text child`);
+    parts[label] = { ...a.parts[label], wrap: true, textAlign: 'center' };
+  }
+  return { ...def, tokens, anatomy: { ...a, parts } };
 };
 
 // ── WEIGHT INTENT (#1602) ───────────────────────────────────────────────────────────────────────
@@ -2863,7 +2974,7 @@ const claimDefaults=(node,n,mode)=>{
     if(m.layoutMode){for(const k of ['itemSpacing','paddingLeft','paddingRight','paddingTop','paddingBottom'])if(!(k in B))set(k,0);set('strokesIncludedInLayout',false);}
   }
   // The last two DETACH an applied text style on the host (#1567) — \`build\` re-applies it right after.
-  if(t==='TEXT'){if(!m.textAlignVertical)set('textAlignVertical','TOP');set('textAlignHorizontal','LEFT');set('textAutoResize',m.textAutoResize||'WIDTH_AND_HEIGHT');set('textTruncation','DISABLED');set('paragraphSpacing',0);set('leadingTrim','NONE');}
+  if(t==='TEXT'){if(!m.textAlignVertical)set('textAlignVertical','TOP');if(!m.textAlignHorizontal)set('textAlignHorizontal','LEFT');set('textAutoResize',m.textAutoResize||'WIDTH_AND_HEIGHT');set('textTruncation','DISABLED');set('paragraphSpacing',0);set('leadingTrim','NONE');}
 };
 const build=async(n)=>{
   let node;
@@ -3001,25 +3112,28 @@ const build=async(n)=>{
   // AFTER the text style, because a text style does not carry it and could not overwrite it — \`TextStyle\`
   // has no alignment field on either axis (#1009, measured against \`@figma/plugin-typings\`). Ordered
   // here anyway so the sequence reads the same as every other text write in this function.
-  if(n.textAlignVertical)node.textAlignVertical=n.textAlignVertical;
-  // WRAPPING LABEL (#1424): auto-height lets a fixed-width text reflow. Written only when the plan carries
-  // it (a wrapping label); \`claimDefaults\` below writes WIDTH_AND_HEIGHT on every other TEXT node (#1393).
-  if(n.textAutoResize)node.textAutoResize=n.textAutoResize;
+  // THE CENTERED FILL LABEL (#1667) rides with it: \`textAlignHorizontal\` only when the plan carries it
+  // (\`claimDefaults\` writes LEFT otherwise). WRAPPING LABEL (#1424): auto-height lets a fixed-width text
+  // reflow — written only when the plan carries it; \`claimDefaults\` writes WIDTH_AND_HEIGHT on every
+  // other TEXT node (#1393). One loop over the three, in this order, because the chunked paste budget
+  // (\`SET_CHUNK_BYTES\`) is counted in the bytes of this code (#1667).
+  for(const k of['textAlignVertical','textAlignHorizontal','textAutoResize'])if(n[k])node[k]=n[k];
   if(n.effectStyle){
     const ef=effectByName.get(n.effectStyle);
     if(!ef)misses.push(n.name+'.effectStyle -> '+n.effectStyle);
     else await node.setEffectStyleIdAsync(ef.id);
   }
   if(n.layoutMode){
-    node.layoutMode=n.layoutMode;
-    node.primaryAxisAlignItems=n.primaryAxisAlignItems;
-    node.counterAxisAlignItems=n.counterAxisAlignItems;
-    node.primaryAxisSizingMode=n.primaryAxisSizingMode;
-    node.counterAxisSizingMode=n.counterAxisSizingMode;
+    // The five, in this order — one loop for the chunk byte budget (#1667), \`layoutMode\` first.
+    for(const k of['layoutMode','primaryAxisAlignItems','counterAxisAlignItems','primaryAxisSizingMode','counterAxisSizingMode'])node[k]=n[k];
     // THE MIN-WIDTH FLOOR (#1343a, #1345). Inside the \`layoutMode\` branch because Figma accepts a
     // minimum width only on an auto-layout frame (the schema refuses \`minWidth\` on a layout-less box for
-    // the same reason). Written only when the plan carries it, so every other frame is untouched.
-    if(n.minWidth!==undefined)node.minWidth=n.minWidth;
+    // the same reason). Written only when the plan carries it, so every other frame is untouched. A floor
+    // is never 0 (the schema refuses a non-positive one), so truthiness is the presence test.
+    if(n.minWidth)node.minWidth=n.minWidth;
+    // THE FLOOR AS THE DEFAULT WIDTH (#1667): a FIXED main axis with no bound width starts at its floor.
+    // Resized HERE, before the bind loop, because a resize after binding clears the bound height.
+    if(n.fixedWidth)node.resize(n.fixedWidth,node.height);
   }
   // WRAPPING LABEL (#1424), child-side: a text that FILLS its row's main axis so it reflows rather than
   // overflowing. Settable on any node (outside an auto-layout parent Figma ignores it), written only when

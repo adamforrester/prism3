@@ -7,6 +7,40 @@
 
 ---
 
+## (2026-09-25) — button brand settings: icon placement, derived minimum width, medium content size (#1667)
+
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets, verifies live through the agent link, and merges).** Engine + plugin + studio + skills. **ENGINE 0.159.0 → 0.160.0** (the projected component surface moves → MINOR); **CONTRACT STANDS at 12.0.0**. No token is emitted or renamed: the three levers live in brand input and reach only the button defs, before projection. `token-contract --accept` moved only the informational `engineVersion`, level `none`. `schema/component-surface.json` `--accept`ed. `button`, `button-destructive` and `button-neutral` moved their default rows (their edited `codeOnly` prose rides every plan), and each gained `@button-default`, `@button-edges` and `@button-smaller` rows. `icon-button` did not move.
+
+**What changed.** Three owner-decided FORM levers (`levers.ts`, `theme-schema.json`, `theme.ts` validation): `buttonIcons` ("Button icons": Attached to label | Locked to edges, default attached), `buttonMinWidthMultiplier` (slider 1–4, default 2.25, Spectrum's multiplier), and `buttonContentSize` ("Button label & icon": Match button size | One step smaller, default match). `applyButtonLayout` (`anatomy-figma.ts`) materializes them into the def before projection, the `controlShape` path. It selects defs by the `min-width` derivation they already declared, so `icon-button` is outside the set by construction. `materializeForBrand` (plugin + paste) and `lint-lever-sweep`'s restatement apply it last, with the brand's baseline-density heights. With no brand, the themeless fallback uses the default ladder.
+- **Floor**, both placements: per size, height × multiplier rounded UP to 8 (`buttonMinWidth`, `scale.ts`). `PartDef.minWidth` now also takes a per-size map (validated against the def's sizes).
+- **Locked to edges**: the root's main axis goes FIXED and starts at the floor (new plan field `fixedWidth`; both executors `resize` before the bind loop). The label becomes `wrap` (fill) with a new `PartDef.textAlign: 'center'` → plan `textAlignHorizontal`. Both executors' default passes now guard `textAlignHorizontal` the way they already guarded the vertical axis.
+- **One step smaller**: `size.medium.{type,icon}` take `size.small`'s refs (`CONTENT_OFFSET`). Nothing else moves.
+- Studio: a "Buttons" block on Size & radius with the three controls and a geometry specimen (a short-label button at the floor, plus widened leading+trailing and trailing-only buttons). Button def: the #1667 note at `justify`, the `codeOnly` min-width entry, and three `docs.do` lines (the component `.ai.json` channel) describing each mode. `prism3-theme` skill: three lever rows.
+
+**Two byte budgets, both already at their edge on main, and how each was met without raising it.** (1) MCP `tools/list` sat at 59,756 of its 60,000-char cap. The three schema entries are terse, and three EXISTING descriptions lost rationale/history clauses (inverseBase's "why not overrides" story, outlineInteraction's "overlay-tint is scheduled" roadmap note, personality's "read from real briefs" sentence), giving 59,873. The gate's own comment says a new lever fits by compression. (2) #536's probe grid sat at 41,983 of `SET_CHUNK_BYTES`' 42,000. The paste executor's new writes (~160 B) would have split it. Instead the text-alignment/auto-resize writes and the five auto-layout writes became two loops over key lists, same order and same semantics, which brings it to 41,911. **Both budgets remain nearly full; the next addition hits the same walls.**
+
+**Before/after, measured** (Chromium, Inter for aurora/harbor/nb; Inter stands in for nb-redesign's Suisse Int'l and wendys' wendysFresh; labels "Button" / "OK" / "Save" × 4 slot combos × 3 sizes). The default Figma label "Button" with no icons widens at every size in every brand. nb/harbor/wendys: 71→88, 77→104, 106→128; aurora: 51→64, 72→88, 84→104. Short labels with one icon widen too; "Button" with both icons does not. Changed of 36: aurora 19, harbor 24, nb 24, wendys 24, nb-redesign 26.
+
+**Gates (oracles in the test, docs/34).** `test.ts` #1667 block over five brands (nb fixture + four briefs):
+- (1) the floor at every family × size × {2.25, 2.5}, against an oracle that COUNTS up in 8s, plus the owner's literal 88/104/128 and 96/112/144;
+- (2) attached = today's plan plus a root `minWidth`, byte-for-byte;
+- (3) edges: FIXED root at the floor, filling centered label, and the text center from an independent layout model of the plan equal to the midpoint of the space between the icons (from the brand's own padding/gap/icon numbers), at the floor and at 240px;
+- (4) smaller: small/large byte-identical, medium binds small's style and icon, same bound geometry.
+
+A both-executors arm pastes and plugin-builds an edges member on the same stub. `test-roundtrip` round-trips the six edges/smaller materializations (1,296 fixed widths and label alignments read back). `anatomy-readback` gains `fixedWidth` and `textAlignHorizontal` predicates.
+
+**Mutations, each from a committed `wip:` HEAD, restored, each failing by name:**
+- M1: drop the round-up. `#1667 min width` fails (92 arms) and the edges floor arms fail.
+- M2: hard-code 144. `#1667 min width` fails (80 arms).
+- M3: offset every size. `#1667 smaller: …@large is untouched` fails for all three defs.
+- M4: center the label on the whole button (absolute center). `#1667 edges: … the label text centers in the space between the icons` fails on every one-icon case.
+- M5: plugin default pass writes LEFT unguarded. `#1667 plugin leg` fails, and `test-roundtrip` reports 432× `textAlignHorizontal` per def.
+- M6: the paste executor drops the resize. `#1667 paste leg` fails (92 wide).
+
+**Known limit.** The floor is a literal from the baseline density; a mode with its own `modeLevers.density` keeps the baseline floor (recorded in the def's `codeOnly`). No example brand uses a per-mode density today. **Not verified live**: that Figma keeps `textAlignHorizontal: CENTER` + `layoutGrow` on a label inside a resized FIXED component; the orchestrator's live pass covers it.
+
+---
+
 ## (2026-09-25) — the textarea builds in Figma (projection modeled on text field)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets, verifies live through the agent link, and merges).** Engine + plugin. **ENGINE 0.158.0 → 0.159.0** (a new def surface and a new plan field → MINOR); CONTRACT STANDS (every binding is an existing name). Five design choices are held for the owner and built as neutral defaults — they lead the PR body: which axes project, how many rows show, the resize handle, the counter, the default text.

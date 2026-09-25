@@ -52,7 +52,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -10529,6 +10529,153 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
   }
 
+  // #1667 — THE BUTTON LEVERS: a derived minimum width in BOTH icon placements, "Locked to edges", and
+  // "One step smaller" (owner-decided 2026-09-25). Every oracle below is computed HERE from each brand's own
+  // resolved numbers — never from `buttonMinWidth` or `applyButtonLayout`, which are the subject (docs/34):
+  //   · the floor by COUNTING up in 8px steps to the first width not below height × multiplier;
+  //   · the label's text center by an independent layout model of the PLAN (flow order, bound padding, gap,
+  //     icon widths, fill vs hug, text alignment), checked against the midpoint of the space between the
+  //     icons worked out from the brand's `size.*` and icon numbers;
+  //   · the medium offset against the untouched def's own small-size plan.
+  // Five brands: the four example briefs plus the NB fixture. Mutations are recorded in docs/00-progress.md.
+  {
+    const brief = (f: string): BrandInput => parseDesignMd(readFileSync(resolve(HERE, './examples', f), 'utf8')).input;
+    const BL_BRANDS: [string, Theme][] = [
+      ['nb', nbTheme()],
+      ['aurora', brandTheme(brief('aurora.design.md'))],
+      ['harbor', brandTheme(brief('harbor.design.md'))],
+      ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
+      ['nb-redesign', brandTheme(brief('nb-redesign.design.md'))],
+    ];
+    const FAMILY = [button, buttonDestructive, buttonNeutral];
+    const floorOracle = (h: number, m: number): number => { let w = 0; while (w + 1e-9 < h * m) w += 8; return w; };
+    const heightOf = (t: Theme) => (ref: string): number | undefined => t.dims.sizes.find((z) => `size.${z.name}.height` === ref)?.height;
+    const stepOf = (def: ComponentDef, size: string): string => def.tokens[`size.${size}.height`].split('.')[1];
+    const planOf = (def: ComponentDef, size: string, leading = false, trailing = false) =>
+      figmaAnatomyPlan(def, size, { leading, trailing, swapTarget: 'FPO-default-icon', appearance: 'filled', state: 'rest' });
+
+    // THE SET: exactly the three text buttons; icon-button is outside it and every lever is its identity.
+    ok(componentDefs.filter(isButtonFamily).map((d) => d.id).sort().join(',') === 'button,button-destructive,button-neutral',
+      `#1667 button levers: the set is button + button-destructive + button-neutral (${componentDefs.filter(isButtonFamily).map((d) => d.id).join(', ')})`);
+    ok([iconButton, iconButtonDestructive, iconButtonNeutral].every((d) =>
+      applyButtonLayout(d, { icons: 'edges', content: 'smaller', minWidthMultiplier: 4 }, () => 44) === d),
+      '#1667 button levers: icon-button is untouched by every setting — the same object back');
+
+    // (1) THE PER-SIZE FLOOR — every brand × family × size, at the default 2.25 and at 2.5.
+    for (const [bid, t] of BL_BRANDS) for (const def of FAMILY) for (const m of [2.25, 2.5]) {
+      const md = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, minWidthMultiplier: m }, heightOf(t));
+      for (const size of def.variants.size) {
+        const h = t.dims.sizes.find((z) => z.name === stepOf(def, size))!.height;
+        const want = floorOracle(h, m);
+        const got = planOf(md, size).root.minWidth;
+        ok(got === want, `#1667 min width: ${bid} ${def.id}@${size} ×${m} floors at ${want}px — height ${h} × ${m} = ${+(h * m).toFixed(2)}, rounded up to the 8px grid (got ${got})`);
+      }
+    }
+    // The owner's worked numbers, pinned literally: nb 36/44/56 → 88/104/128 at 2.25, 96/112/144 at 2.5.
+    {
+      const nb = BL_BRANDS[0][1];
+      const floors = (m: number) => button.variants.size.map((sz) => planOf(applyButtonLayout(button, { ...DEFAULT_BUTTON_LAYOUT, minWidthMultiplier: m }, heightOf(nb)), sz).root.minWidth).join('/');
+      ok(floors(2.25) === '88/104/128', `#1667 min width: nb at 2.25 is 88/104/128 (got ${floors(2.25)})`);
+      ok(floors(2.5) === '96/112/144', `#1667 min width: nb at 2.5 is 96/112/144 — New Balance's 142 rounded to the grid (got ${floors(2.5)})`);
+    }
+
+    // (2) "Attached to label" IS TODAY'S PLAN plus the floor: every member of every family, with the root's
+    // `minWidth` set aside, is byte-identical to the unmaterialized def's — hug root, hugging label.
+    {
+      const t = BL_BRANDS[0][1];
+      for (const def of FAMILY) {
+        const base = figmaAnatomySet(def);
+        const att = figmaAnatomySet(applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, heightOf(t)));
+        const strip = (p: AnatomyPlan) => { const r = { ...p.root } as Record<string, unknown>; delete r.minWidth; return JSON.stringify({ ...p, root: r }); };
+        const same = base.length === att.length && base.every((p, i) => strip(att[i]) === JSON.stringify(p));
+        ok(same && att.every((p) => p.root.minWidth !== undefined && p.root.fixedWidth === undefined && p.root.primaryAxisSizingMode === 'AUTO'),
+          `#1667 attached: ${def.id} projects today's plan plus a root minWidth on all ${att.length} members — hug root, no fixed width, label unchanged`);
+      }
+    }
+
+    // (3) "Locked to edges": the root is FIXED at its floor, the label FILLS and centers its text, and the
+    // text lands at the midpoint of the space between the icons — at the floor and widened to 240px.
+    // `textCenter` is an independent model of Figma's row: it reads only the plan's flow children, bound
+    // px and the fill/align flags. `oracle` never looks at the plan's layout at all.
+    for (const [bid, t] of BL_BRANDS) {
+      const pxOf = (v: string | undefined): number => {
+        const s = v && /^size\/([^/]+)\/(padding-x-visual|padding-x|gap)$/.exec(v);
+        if (s) { const z = t.dims.sizes.find((q) => q.name === s[1])!; return s[2] === 'gap' ? z.gap : s[2] === 'padding-x' ? z.padX : z.padXVisual; }
+        const i = v && /^icon\/size\/([^/]+)$/.exec(v);
+        if (i) return ICON_SIZES.find((q) => q.name === i[1])!.px;
+        throw new Error(`#1667 layout model: no px for ${v}`);
+      };
+      const TEXT_W = 40;
+      const textCenter = (root: AnatomyPlan['root'], W: number): number => {
+        const kids = root.children.filter((c) => !c.absoluteInset && !c.absoluteCenter);
+        const label = root.children.find((c) => c.type === 'TEXT')!;
+        if (label.absoluteCenter) return W / 2;
+        const padL = pxOf(root.bound.paddingLeft), padR = pxOf(root.bound.paddingRight), gap = pxOf(root.bound.itemSpacing);
+        const fixedW = (c: typeof label): number => (c.type === 'TEXT' ? TEXT_W : pxOf(c.bound.width));
+        const grows = kids.some((c) => c.layoutGrow === 1);
+        const inner = W - padL - padR - gap * (kids.length - 1);
+        const fill = inner - kids.filter((c) => c.layoutGrow !== 1).reduce((a, c) => a + fixedW(c), 0);
+        let x = grows || root.primaryAxisAlignItems !== 'CENTER' ? padL : padL + (inner - kids.reduce((a, c) => a + fixedW(c), 0)) / 2;
+        for (const c of kids) {
+          const w = c.layoutGrow === 1 ? fill : fixedW(c);
+          if (c === label) return label.textAlignHorizontal === 'CENTER' ? x + w / 2 : label.textAlignHorizontal === 'RIGHT' ? x + w - TEXT_W / 2 : x + TEXT_W / 2;
+          x += w + gap;
+        }
+        throw new Error('#1667 layout model: no label in the flow');
+      };
+      for (const def of FAMILY) {
+        const edges = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, heightOf(t));
+        for (const size of def.variants.size) {
+          const z = t.dims.sizes.find((q) => q.name === stepOf(def, size))!;
+          const icon = ICON_SIZES.find((q) => `icon.size.${q.name}` === def.tokens[`size.${size}.icon`])!.px;
+          const floor = floorOracle(z.height, DEFAULT_BUTTON_LAYOUT.minWidthMultiplier);
+          for (const [lead, trail] of [[false, false], [true, false], [false, true], [true, true]] as [boolean, boolean][]) {
+            const root = planOf(edges, size, lead, trail).root;
+            const label = root.children.find((c) => c.type === 'TEXT')!;
+            const tag = `${bid} ${def.id}@${size} leading=${lead} trailing=${trail}`;
+            ok(root.primaryAxisSizingMode === 'FIXED' && root.fixedWidth === floor && root.minWidth === floor
+              && label.layoutGrow === 1 && label.textAutoResize === 'HEIGHT' && label.textAlignHorizontal === 'CENTER',
+              `#1667 edges: ${tag} — root FIXED at its ${floor}px floor, label fills (layoutGrow 1) and centers its text (got ${root.primaryAxisSizingMode} ${root.fixedWidth}/${root.minWidth}, grow ${label.layoutGrow}, align ${label.textAlignHorizontal})`);
+            for (const W of [floor, 240]) {
+              const left = lead ? z.padXVisual + icon + z.gap : z.padX;
+              const right = trail ? z.padXVisual + icon + z.gap : z.padX;
+              const oracle = left + (W - left - right) / 2;
+              const got = textCenter(root, W);
+              ok(Math.abs(got - oracle) < 1e-9, `#1667 edges: ${tag} at ${W}px — the label text centers in the space between the icons at x=${oracle} (got ${got}${lead !== trail ? `; the button center is ${W / 2}` : ''})`);
+            }
+          }
+        }
+      }
+    }
+
+    // (4) "One step smaller": MEDIUM binds small's label style and icon; small and large are untouched; the
+    // height, padding and gap stay medium's. Compared against the def's OWN small-size plan (the oracle) and
+    // against the "Match button size" plan at each size — never against `CONTENT_OFFSET`.
+    {
+      const t = BL_BRANDS[0][1];
+      const grab = (root: AnatomyPlan['root']) => ({
+        label: root.children.find((c) => c.name === 'label')?.textStyle,
+        icon: root.children.find((c) => c.name === 'trailingVisual')?.bound.width,
+      });
+      for (const def of FAMILY) {
+        const match = applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, heightOf(t));
+        const smaller = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, content: 'smaller' }, heightOf(t));
+        for (const size of ['small', 'large']) {
+          const a = figmaAnatomySet(match).filter((p) => p.size === size).map((p) => JSON.stringify(p));
+          const b = figmaAnatomySet(smaller).filter((p) => p.size === size).map((p) => JSON.stringify(p));
+          ok(a.length > 0 && a.join('\n') === b.join('\n'), `#1667 smaller: ${def.id}@${size} is untouched — all ${a.length} members byte-identical to Match button size`);
+        }
+        const med = planOf(smaller, 'medium', false, true).root;
+        const small = grab(planOf(def, 'small', false, true).root);
+        const matchMed = planOf(match, 'medium', false, true).root;
+        ok(JSON.stringify(grab(med)) === JSON.stringify(small) && grab(matchMed).label !== small.label,
+          `#1667 smaller: ${def.id}@medium binds small's label style and icon (${small.label}, ${small.icon}) — got ${JSON.stringify(grab(med))}`);
+        ok(JSON.stringify(med.bound) === JSON.stringify(matchMed.bound) && med.minWidth === matchMed.minWidth,
+          `#1667 smaller: ${def.id}@medium keeps medium's height, padding, gap and floor — only the content moves`);
+      }
+    }
+  }
+
   // #1353 — THE `shape` VARIANT AXIS (square | circular, square default), owner-decided 2026-09-10. Pure
   // GEOMETRY: the two values differ ONLY in the container's corner radius and are token-identical everywhere
   // else, which is what makes it a 2-value AXIS and not a component split. Every pin below is derived
@@ -13660,6 +13807,37 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const dropped = await runPayload(planToPluginJs(tinted).replace('if(o!=null)node.fills=[Object.assign({},node.fills[0],{opacity:o})];', ''), tVars);
       ok(dropped.misses.some((m) => /\.fills\.opacity -> DISCARDED \(wanted 0\.1, read back/.test(m)),
         `#1614 paste leg: an opacity the payload fails to keep IS reported by its read-back (${JSON.stringify(dropped.misses)})`);
+    }
+
+    // #1667 — "Locked to edges", EXECUTED by BOTH executors on the same stub. The plan carries a FIXED root
+    // at its floor (`fixedWidth`) and a filling, centered label; each leg must leave a 104px FIXED frame
+    // (nb's medium floor — 44 × 2.25 = 99, up to 104) and a label that grows and centers. Hand-named
+    // expectations (docs/34), so an executor that drops the resize, or whose default pass writes LEFT over
+    // the plan's CENTER, fails here by name.
+    {
+      const nbSizes = nbTheme().dims.sizes;
+      const edgesDef = applyButtonLayout(button, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, (r) => nbSizes.find((z) => `size.${z.name}.height` === r)?.height);
+      const edgesPlan = figmaAnatomySet(edgesDef, { swapTarget: 'FPO-default-icon' })
+        .find((q) => /appearance=filled/.test(planComponentName(q)) && /state=rest/.test(planComponentName(q)) && !/surface=inverse/.test(planComponentName(q))
+          && q.size === 'medium' && q.slots.trailing && !q.slots.leading)!;
+      const eOpts = { vars: [...planBoundVars(edgesPlan.root), ...planPaintVars(edgesPlan.root)], styles: planTextStyles(edgesPlan.root), comps: ['FPO-default-icon'] };
+      const shape = (root: Record<string, unknown>): string => {
+        const label = (root.children as Record<string, unknown>[]).find((c) => c.name === 'label');
+        if (!label) return `no label under ${String(root.name)} [${(root.children as Record<string, unknown>[]).map((c) => c.name).join(', ')}]`;
+        return JSON.stringify([root.width, root.primaryAxisSizingMode, root.minWidth, label.layoutGrow, label.textAlignHorizontal, label.textAutoResize]);
+      };
+      const WANT = JSON.stringify([104, 'FIXED', 104, 1, 'CENTER', 'HEIGHT']);
+      const pastePage: StubPage = { children: [] };
+      const pasted = await runPayload(planToPluginJs(edgesPlan), { ...eOpts, page: pastePage });
+      const plugPage: StubPage = { children: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+      const plugged = await applyComponentPlan([edgesPlan], makeFigmaStub({ ...eOpts, page: plugPage }) as any);
+      ok(pasted.misses.length === 0 && shape(pastePage.children[0] as Record<string, unknown>) === WANT,
+        `#1667 paste leg: a Locked to edges medium button pastes a 104px FIXED frame and a filling, centered label (${shape(pastePage.children[0] as Record<string, unknown>)}; misses ${JSON.stringify(pasted.misses)})`);
+      // The plugin combines its members into a set; the member is the set's one child.
+      const plugMember = ((plugPage.children[0] as Record<string, unknown>).children as Record<string, unknown>[])[0];
+      ok(plugged.misses.length === 0 && shape(plugMember) === WANT,
+        `#1667 plugin leg: applyComponentPlan builds the same frame and label (${shape(plugMember)}; misses ${JSON.stringify(plugged.misses)})`);
     }
 
     // ---- the ABSOLUTE part, EXECUTED (#536 item 3) -----------------------------------------------
