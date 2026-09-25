@@ -128,7 +128,10 @@ export type MainToUi =
    *  (preview) or the verdict text (applied). A DISTINCT variant from `apply-result` / `component-result`
    *  for the same reason those two are distinct: one kind per fact — a prune preview must not overwrite a
    *  theme write's verdict, and the prune's own confirm dialog reads `count` to decide whether to open. */
-  | { type: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string }
+  | { type: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string;
+      /** Set on an AGENT's preview (the agent link): show it as a pill, never open the confirm dialog. The
+       *  dialog's Confirm would prune against the panel's own knobs, not the input the agent previewed. */
+      pillOnly?: boolean }
   /** A component build is UNDERWAY (#684) — posted at every chunk boundary, many times per build.
    *
    *  THE ONLY NON-TERMINAL MESSAGE ON THIS BRIDGE, and the reason it had to exist: `build-components`

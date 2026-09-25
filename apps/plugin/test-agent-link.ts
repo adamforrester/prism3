@@ -205,7 +205,13 @@ for (const c of CASES) {
   ok(uiReached && calls.includes(c.entry), `routes/${c.cmd}: the UI message and the agent command both reach ACTIONS.${c.entry}`);
   ok(!!uiVerdict && JSON.stringify(r.result?.verdict) === JSON.stringify(uiVerdict),
     `parity/${c.cmd}: result.verdict is exactly the '${c.verdictType}' the panel got${uiVerdict ? ` (${String(uiVerdict.headline ?? uiVerdict.summary).slice(0, 40)})` : ''}`);
-  ok(!posted.some((m) => m.type === c.verdictType), `parity/${c.cmd}: the agent's verdict is captured, not posted to the panel`);
+  // PILLS (the owner's call): the panel shows an agent's verdict as it shows a button's — the same message,
+  // except that a prune PREVIEW goes pill-only, so it can never open the confirm dialog on the owner's screen.
+  const toPanel = posted.filter((m) => m.type === c.verdictType).pop();
+  const isPreview = c.verdictType === 'prune-result' && uiVerdict && !uiVerdict.applied;
+  ok(!!toPanel && JSON.stringify(toPanel) === JSON.stringify(isPreview ? { ...uiVerdict, pillOnly: true } : uiVerdict),
+    `pills/${c.cmd}: the panel gets the agent's verdict${isPreview ? ', marked pill-only' : ''}`);
+  if (isPreview) ok(!('pillOnly' in uiVerdict), 'pills/prune: the panel\'s own preview is not pill-only (its dialog still opens)');
 }
 // The readback also carries the component census; on a file with no component pages every page is absent.
 {

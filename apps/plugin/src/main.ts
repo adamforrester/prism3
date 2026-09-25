@@ -888,6 +888,10 @@ export const ACTIONS: AgentActions = { applyTheme, buildComponents, fileSetup, p
  */
 const dispatch = createDispatcher({
   actions: ACTIONS,
+  // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
+  // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
+  // which are not necessarily the input the agent previewed.
+  forward: (m) => postToUi(m.type === 'prune-result' && !m.applied ? { ...m, pillOnly: true } : m),
   census: () => componentCensus(figma as unknown as Parameters<typeof componentCensus>[0], ENGINE_VERSION),
   status: async () => {
     let brand: 'present' | 'absent' | 'unreadable' = 'absent';

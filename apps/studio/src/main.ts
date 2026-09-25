@@ -915,6 +915,11 @@ commit.onHostMessage((m) => {
     if (m.applied) {
       pruneVerdict = { ok: m.ok, count: m.count, summary: m.summary };
       prunePreview = null;
+    } else if (m.count > 0 && m.pillOnly) {
+      // An agent's preview (the agent link): a pill, never the dialog — its Confirm would prune against this
+      // panel's knobs, not the input the agent previewed. The summary already says what would be removed.
+      prunePreview = null;
+      pruneVerdict = { ok: m.ok, count: m.count, summary: `Agent preview: ${m.summary}` };
     } else if (m.count > 0) {
       prunePreview = { count: m.count, summary: m.summary };
       pruneVerdict = null;

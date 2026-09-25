@@ -159,7 +159,7 @@ export interface HostCommit {
         // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
         // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
         // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
-        | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string }
+        | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean }
         // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
         // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
         // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
@@ -219,7 +219,7 @@ const figmaCommit = (): HostCommit => ({
         | {
             type?: string; ok?: boolean; present?: boolean; headline?: string; summary?: string; input?: unknown; message?: string;
             families?: unknown; styles?: unknown; phase?: unknown; done?: unknown; total?: unknown; chunkMs?: unknown;
-            applied?: unknown; count?: unknown;
+            applied?: unknown; count?: unknown; pillOnly?: unknown;
           }
         | undefined;
       if (!m) return;
@@ -259,7 +259,8 @@ const figmaCommit = (): HostCommit => ({
         // above — a preview with a bad count is dropped rather than opening a confirm dialog on nonsense.
         const count = typeof m.count === 'number' && Number.isFinite(m.count) && m.count >= 0 ? Math.floor(m.count) : null;
         if (count !== null) {
-          cb({ kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? '') });
+          // `pillOnly` (the agent link): a preview the panel did not ask for — shown, never opened as a dialog.
+          cb({ kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? ''), ...(m.pillOnly === true ? { pillOnly: true } : {}) });
         }
       } else if (m.type === 'seed-info') {
         // `present` defaults FALSE when a host omits it (an older plugin build against a newer UI):
