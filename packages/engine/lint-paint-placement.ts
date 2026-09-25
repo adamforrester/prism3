@@ -271,13 +271,13 @@ else {
 // History, as history: five defs had an anatomy and three painted at #933; seven and four at #910.
 const EXPECT_ANATOMY = [
   'icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
-  'icon-button-neutral', 'field-label', 'field-message', 'text-field', 'checkbox-control', 'checkbox-row',
+  'icon-button-neutral', 'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row',
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
   'image-placeholder',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
-  'icon-button-neutral', 'text-field', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'veil',
+  'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'veil',
   'image-placeholder',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {

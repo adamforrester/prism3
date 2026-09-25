@@ -173,6 +173,14 @@ export interface CompNode {
   /** #1343a/#1345 — the auto-layout minimum width. Written only where the plan carries it (`select`'s
    *  control), inside the `layoutMode` branch; Figma accepts it only on an auto-layout frame. */
   minWidth?: unknown;
+  /** The reserved-lines floor (textarea's `rows`): a TEXT node's minimum height, `minLines` × its own line
+   *  height, written by the PARENT after the append and read back. Figma types it `number | null`. */
+  minHeight?: number | null;
+  /** READ, never written: the line height and font size the node's applied style gave it, which the
+   *  reserved-lines floor multiplies. Figma types both with `| figma.mixed`, so the port carries `| symbol`
+   *  (the `fontName` rule above) and the executor checks the shape before using either. */
+  readonly lineHeight?: { unit: string; value?: number } | symbol;
+  readonly fontSize?: number | symbol;
   layoutPositioning?: unknown;
   constraints?: unknown;
   componentPropertyReferences?: unknown;
@@ -1739,6 +1747,26 @@ const writeComponentSet = async (
       // design override, and the `nest` rows / label / message are exactly the children that must STRETCH.
       // Written only when the plan carries it (a `crossAxisFill` part); every other child keeps `INHERIT`.
       if (c.layoutAlign) kid.layoutAlign = c.layoutAlign;
+      // THE RESERVED LINES (textarea's `rows`). Applied by the PARENT after the append, like `layoutAlign`:
+      // a minimum size is a property of an auto-layout CHILD. The plan carries the COUNT; the line height is
+      // the host's, read off the node its style was applied to — `PIXELS` as is, `PERCENT` of the font size.
+      // `AUTO` (or a mixed node) has no number to multiply, so it is reported rather than guessed. Frozen at
+      // paste like the ring inset: `minHeight` takes a number, not a variable. Lockstep with the paste
+      // executor (`planToPluginJs`).
+      if (c.minLines) {
+        const lh = kid.lineHeight;
+        const fs = kid.fontSize;
+        const line = lh && typeof lh === 'object'
+          ? (lh.unit === 'PIXELS' ? lh.value : lh.unit === 'PERCENT' && typeof fs === 'number' && typeof lh.value === 'number' ? (lh.value / 100) * fs : undefined)
+          : undefined;
+        if (typeof line !== 'number' || !(line > 0))
+          misses.push(`${c.name}.minLines -> ${c.minLines} lines, but the line height reads ${JSON.stringify(typeof lh === 'symbol' ? 'mixed' : lh)} at font size ${JSON.stringify(typeof fs === 'symbol' ? 'mixed' : fs)} — no pixel line box to multiply, so the box reserves one line`);
+        else {
+          const want = c.minLines * line;
+          kid.minHeight = want;
+          if (kid.minHeight !== want) misses.push(`${c.name}.minHeight -> DISCARDED (set ${want} for ${c.minLines} lines, reads ${String(kid.minHeight)})`);
+        }
+      }
     }
     // A CENTERED absolute child (#612's pending spinner with no visual cell to take). NOT resized:
     // unlike the ring it keeps its own square size, and its `size` binding is already on it — `resize`
