@@ -1,5 +1,6 @@
 /**
- * THE AGENT LINK, MAIN-THREAD SIDE — the on/off state and TRANSPORT A, the file mailbox.
+ * THE AGENT LINK, MAIN-THREAD SIDE — the on/off state and TRANSPORT A, the file mailbox. (Transport B, the
+ * desktop bridge, is held by the panel — `agent-bridge-relay.ts` — which reports its socket here.)
  *
  * OFF BY DEFAULT, NOT PERSISTED. The link starts off every time the plugin opens and is switched on only
  * by the owner, through the panel's control (`agent-link` message). While it is off the plugin reads and
@@ -107,7 +108,7 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
   const { root } = deps;
   let state: AgentLinkState = {
     v: AGENT_PROTOCOL_VERSION, on: false, since: null, engineVersion: deps.engineVersion, build: deps.build,
-    pollMs: MAILBOX.pollMs, transports: { mailbox: false }, lastCommand: null, inboxError: null,
+    pollMs: MAILBOX.pollMs, transports: { mailbox: false, bridge: false }, lastCommand: null, inboxError: null,
   };
   let timer: unknown = null;
   let busy = false;
@@ -195,14 +196,28 @@ export const createAgentLink = (deps: AgentLinkDeps) => {
   const setOn = (on: boolean): void => {
     if (on === state.on) { deps.onState?.(state); return; }
     if (timer !== null) { deps.cancel(timer); timer = null; }
-    if (!on) { publish({ on: false, since: null, transports: { mailbox: false } }); return; }
-    publish({ on: true, since: now().toISOString(), transports: { mailbox: true } });
+    if (!on) { publish({ on: false, since: null, transports: { mailbox: false, bridge: false } }); return; }
+    publish({ on: true, since: now().toISOString(), transports: { mailbox: true, bridge: state.transports.bridge } });
     retireStale();
     timer = deps.schedule(loop, MAILBOX.pollMs);
   };
 
+  /** The panel reports its bridge socket (transport B). Only meaningful while on; off always reads false. */
+  const setBridge = (connected: boolean): void => {
+    const bridge = state.on && connected;
+    if (bridge === state.transports.bridge) return;
+    publish({ transports: { ...state.transports, bridge } });
+  };
+
+  /** Record a command transport B ran, so the link record and the panel show it like a mailbox one. */
+  const noteCommand = (r: AgentResult): void => {
+    publish({ lastCommand: { id: r.id, cmd: r.cmd, ok: r.ok, finishedAt: r.finishedAt, headline: headlineOf(r) } });
+  };
+
   return {
     setOn,
+    setBridge,
+    noteCommand,
     poll,
     /** The current published state (for `status`). */
     state: (): AgentLinkState => state,

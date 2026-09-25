@@ -7,17 +7,21 @@
  * own UI entry (`ui/entry.ts`) beside the shared studio UI rather than inside it — the studio's body, and
  * the web build, carry none of it.
  *
- * It does three things and owns no state of its own:
+ * It does four things and owns no state of its own:
  *   · the button posts `agent-link` with the opposite of the state the main thread last published — the
  *     main thread is the authority on whether the link is on;
  *   · it renders every `agent-link-state` the main thread posts: off, or on with the transport listening;
- *   · and the last command the link ran, with the headline the panel would have shown for it.
+ *   · the last command the link ran, with the headline the panel would have shown for it;
+ *   · and, while the link is on, the socket to the local desktop bridge (transport B) — the main thread has
+ *     no network, so the iframe holds it and relays envelopes (`agent-bridge-relay.ts`).
  *
  * Compiled under `tsconfig.ui.json` (DOM, no plugin typings); reaches the main thread only by
  * `parent.postMessage`, like `apps/studio/src/write-adapter.ts`.
  */
 import type { UiToMain } from './messages';
 import type { AgentLinkState } from './agent-protocol';
+import { createBridgeRelay } from './agent-bridge-relay';
+import type { WsLike } from './agent-bridge-relay';
 
 const CHIP_ID = 'p3-agent-link';
 
@@ -25,7 +29,8 @@ const CHIP_ID = 'p3-agent-link';
 export const agentLinkStatusText = (s: AgentLinkState | null): string => {
   if (!s || !s.on) return 'Off — agent commands are ignored.';
   const every = `${Math.round(s.pollMs / 100) / 10} s`;
-  const listening = s.transports.mailbox ? `Listening — file mailbox, every ${every}` : 'On — no transport listening';
+  const listening = (s.transports.mailbox ? `Listening — file mailbox, every ${every}` : 'On — no transport listening') +
+    (s.transports.bridge ? ' + desktop bridge' : '');
   const last = s.lastCommand
     ? ` · last: ${s.lastCommand.cmd} ${s.lastCommand.headline} (${s.lastCommand.finishedAt.slice(11, 19)})`
     : ' · no command yet';
@@ -71,13 +76,24 @@ export const mountAgentLink = (): void => {
     status.title = status.textContent;
   };
 
+  // Transport B: while the link is on, hold a socket to the local desktop bridge and relay its commands
+  // to the main thread (`agent-bridge-relay.ts`). Nothing connects while the link is off.
+  const relay = createBridgeRelay({
+    open: (url) => new WebSocket(url) as unknown as WsLike,
+    post,
+    schedule: (fn, ms) => setTimeout(fn, ms),
+    cancel: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
+  });
+
   button.addEventListener('click', () => post({ type: 'agent-link', on: !state?.on }));
   window.addEventListener('message', (e: MessageEvent) => {
     const m = e.data && (e.data as { pluginMessage?: { type?: string; state?: AgentLinkState } }).pluginMessage;
-    if (m && m.type === 'agent-link-state' && m.state && typeof m.state === 'object') {
+    if (!m || typeof m.type !== 'string' || !m.type.startsWith('agent-')) return;
+    if (m.type === 'agent-link-state' && m.state && typeof m.state === 'object') {
       state = m.state;
       render();
     }
+    relay.fromMain(m as Parameters<typeof relay.fromMain>[0]);
   });
 
   chip.append(button, status);
