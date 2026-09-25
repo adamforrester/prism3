@@ -46,6 +46,7 @@ import type { Divergence, HostNode, ReadPorts } from '@prism3/engine/anatomy-rea
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
 import { nbTheme } from '@prism3/engine/nb-fixture';
+import { sizeRefPx } from '@prism3/engine/scale';
 import { tailOf } from '@prism3/engine/figma-names';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim } from './component-shim';
@@ -159,14 +160,14 @@ const inventory: { def: string; divergences: Divergence[]; members: number; plan
 const TINT_ROLES = resolveAllModes({ ...brandTheme(parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input), outlineInteraction: 'solid-tint' })[0].roles;
 const TINTED = PROJECTED.flatMap((d) => { const m = applyOutlineInteraction(d, 'solid-tint', TINT_ROLES); return m === d ? [] : [{ ...m, id: `${d.id}@solid-tint` }]; });
 // …and every def the BUTTON levers materialize (#1667), against nb's heights: the derived floor (`minWidth`,
-// per size), "Locked to edges" (`fixedWidth` + the label's `textAlignHorizontal`/`layoutGrow`) and "One step
-// smaller". No default def carries the edges fields, so without these rows their predicates compare nothing.
-const NB_SIZES = nbTheme().dims.sizes;
-const nbHeight = (ref: string): number | undefined => NB_SIZES.find((z) => `size.${z.name}.height` === ref)?.height;
+// per size), "Locked to edges" (the pinned icons' `pin` — ABSOLUTE, constrained MIN/MAX, at the inset — and
+// the root's reserved `paddingPx`) and "One step smaller". No default def carries the edges fields, so without
+// these rows their predicates compare nothing.
+const nbPx = sizeRefPx(nbTheme().dims.sizes);
 const BUTTON_LAID = PROJECTED.flatMap((d) => ([
   ['edges', { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }],
   ['smaller', { ...DEFAULT_BUTTON_LAYOUT, content: 'smaller' }],
-] as const).flatMap(([tag, layout]) => { const m = applyButtonLayout(d, layout, nbHeight); return m === d ? [] : [{ ...m, id: `${d.id}@${tag}` }]; }));
+] as const).flatMap(([tag, layout]) => { const m = applyButtonLayout(d, layout, nbPx); return m === d ? [] : [{ ...m, id: `${d.id}@${tag}` }]; }));
 for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID]) {
   try {
     const r = await roundTrip(def);
@@ -178,8 +179,8 @@ for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID]) {
 ok(TINTED.length > 0 && (EXERCISED.paintOpacity ?? 0) > 0,
   `#1614 the solid-tint materializations round-trip too — ${TINTED.length} def(s), ${EXERCISED.paintOpacity ?? 0} paint opacities read back off the host`);
 
-ok(BUTTON_LAID.length === 6 && (EXERCISED.fixedWidth ?? 0) > 0 && (EXERCISED.textAlignHorizontal ?? 0) > 0 && (EXERCISED.minWidth ?? 0) > 0,
-  `#1667 the button-lever materializations round-trip too — ${BUTTON_LAID.length} def(s); ${EXERCISED.fixedWidth ?? 0} fixed widths, ${EXERCISED.textAlignHorizontal ?? 0} label alignments, ${EXERCISED.minWidth ?? 0} floors read back off the host`);
+ok(BUTTON_LAID.length === 6 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx ?? 0) > 0 && (EXERCISED.minWidth ?? 0) > 0,
+  `#1667 the button-lever materializations round-trip too — ${BUTTON_LAID.length} def(s); ${EXERCISED.pin ?? 0} pinned icons (ABSOLUTE + edge constraint + inset), ${EXERCISED.paddingPx ?? 0} reserved paddings, ${EXERCISED.minWidth ?? 0} floors read back off the host`);
 
 // ---- THE REPORT --------------------------------------------------------------------------------
 const clean = inventory.filter((i) => !i.divergences.length);

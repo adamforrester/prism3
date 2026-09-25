@@ -316,13 +316,6 @@ export type PartDef = {
    *  PARENT's `layout.align`, and no value of this field reaches it — see `checkbox.ts`'s `row`. The two
    *  were filed as one observation and are two properties on two different nodes. */
   verticalAlign?: 'top' | 'center' | 'bottom';
-  /** For `text` parts: where the glyphs sit HORIZONTALLY inside the text node's own box — Figma's
-   *  `textAlignHorizontal` (#1667). Absent means the executors' `LEFT`, so every existing plan is
-   *  byte-identical. It changes a pixel only on a text node whose box is WIDER than its glyphs, which is a
-   *  `wrap` node: a hugging text box IS its glyphs. The button's "Locked to edges" setting is the case —
-   *  the label fills the space between the icons and its text centers in THAT space, not on the whole
-   *  button (New Balance's layout). Refused on any kind but `text`, the `verticalAlign` rule. */
-  textAlign?: 'start' | 'center' | 'end';
   /** For a `text` part: FILL the parent row's main axis and WRAP to multiple lines, rather than hug the
    *  glyphs and OVERFLOW (#1424). A long option/consent label is the case: today it grows the row
    *  horizontally off the edge; Prism 2 wraps it to a second line with the control top-anchored
@@ -447,12 +440,22 @@ export type PartDef = {
    *  PER SIZE, as a map keyed by the `size` axis values (#1667): the button's floor is DERIVED per brand as
    *  `height × multiplier`, rounded up to the 8px grid, so each size has its own number. A def never authors
    *  that map — `applyButtonLayout` writes it before projection, from the brand's resolved heights, which is
-   *  why the def stays brand-agnostic. The map must name exactly the def's `size` values.
-   *
-   *  THE FLOOR BECOMES THE DEFAULT WIDTH under `sizing.x: 'fixed'` with no bound `width`: the plan carries
-   *  it as `fixedWidth`, so a FIXED frame starts at its floor instead of Figma's arbitrary 100px. That is
-   *  "Locked to edges": a filling label needs a fixed-width parent, and designers resize instances. */
+   *  why the def stays brand-agnostic. The map must name exactly the def's `size` values. */
   minWidth?: number | Record<string, number>;
+  /** For a `slot`: take the node OUT OF FLOW and PIN it to one inline edge of its parent row (#1667, the
+   *  button's "Locked to edges"). Figma: `layoutPositioning: 'ABSOLUTE'`, `x` at `inset` px from that edge,
+   *  vertically centered, and `constraints.horizontal` `MIN` (start) or `MAX` (end), so the node stays on its
+   *  edge however wide the parent grows — a longer label hugging it wider, or a designer's fixed width on an
+   *  instance. An out-of-flow node takes no room, so the parent's padding on that side becomes `reserve` px
+   *  (the edge inset + the node's width + the gap it kept from the label), which is what keeps the label from
+   *  running under it. Both are PER SIZE and literal: `applyButtonLayout` writes them before projection from
+   *  the brand's resolved numbers, the per-size `minWidth` argument (Figma's padding takes one variable, and
+   *  the reserve is a sum of three). Applied only where the slot is FILLED, so an empty side keeps its bound
+   *  padding. An overlay that takes a pinned cell (the pending spinner) takes its pin with it.
+   *
+   *  Refused on any kind but `slot`, under a parent that is not an auto-layout ROW with inline padding, and
+   *  with keys other than the def's sizes or a `reserve` that does not clear `inset`. */
+  pin?: { edge: 'start' | 'end'; inset: Record<string, number>; reserve: Record<string, number> };
   /** For `box` parts: the binding key giving the frame's MINIMUM height — Figma's auto-layout `minHeight`,
    *  bound to a variable. The token-bound twin of `minWidth`'s literal, and a token rather than a
    *  literal because the floor it states IS a token's value: `field-message`'s row reserves its status
@@ -3378,10 +3381,6 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // rather than in any gate — the exact class `characters` already carries a note about.
     if (p.kind !== 'text' && p.verticalAlign !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'verticalAlign' — only a 'text' part positions glyphs inside its own box. Figma's 'textAlignVertical' is a TextNode property and writing it to a frame throws at paste time; a row that wants its children aligned says so in its own 'layout.align'`);
-    if (p.kind !== 'text' && p.textAlign !== undefined)
-      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'textAlign' — only a 'text' part positions glyphs inside its own box. Figma's 'textAlignHorizontal' is a TextNode property and writing it to a frame throws at paste time`);
-    if (p.kind === 'text' && p.textAlign !== undefined && !(['start', 'center', 'end'] as readonly string[]).includes(p.textAlign))
-      e.push(`anatomy part '${n}': textAlign '${p.textAlign}' is not one of [start, center, end]`);
     if (p.kind === 'text' && p.verticalAlign !== undefined && !(['top', 'center', 'bottom'] as readonly string[]).includes(p.verticalAlign))
       e.push(`anatomy part '${n}': verticalAlign '${p.verticalAlign}' is not one of [top, center, bottom] — those are the three values Figma's 'textAlignVertical' has, and a fourth word would project a value the executor writes and Figma discards`);
     // `paintSlot` is the TEXT kind's field (#796) — the only branch that reads it. On any other kind it
@@ -3437,6 +3436,29 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     }
     if (p.minWidth !== undefined && (typeof p.minWidth === 'number' ? [p.minWidth] : Object.values(p.minWidth)).some((w) => !(typeof w === 'number' && w > 0)))
       e.push(`anatomy part '${n}' declares a 'minWidth' that is not a positive number of px`);
+    // ---- `pin`, a SLOT taken out of flow onto one inline edge (#1667) ----
+    // Every refusal is a silent-loss shape: pinned under a parent with no inline padding, the reserve has
+    // nowhere to go and the label runs under the icon; a size with no entry projects no pin there.
+    if (p.pin !== undefined) {
+      if (p.kind !== 'slot')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'pin' — only a 'slot' (an icon cell) is pinned to an edge`);
+      const parent = Object.entries(parts).find(([, q]) => q.children?.includes(n))?.[1];
+      if (!parent || parent.kind !== 'box' || parent.layout?.direction !== 'row' || !parent.padding)
+        e.push(`anatomy part '${n}' declares 'pin', but its parent is not an auto-layout row with inline padding — the reserved padding would have nowhere to go and the label would run under it`);
+      if (p.pin.edge !== 'start' && p.pin.edge !== 'end')
+        e.push(`anatomy part '${n}': pin edge '${String(p.pin.edge)}' is not one of [start, end]`);
+      const sizes = def.variants?.size ?? [];
+      for (const k of ['inset', 'reserve'] as const) {
+        const keys = Object.keys(p.pin[k] ?? {});
+        if (sizes.some((v) => !keys.includes(v)) || keys.some((v) => !sizes.includes(v)))
+          e.push(`anatomy part '${n}' declares a pin '${k}' whose keys [${keys.join(', ')}] are not the def's sizes [${sizes.join(', ')}]`);
+      }
+      for (const v of sizes) {
+        const inset = p.pin.inset?.[v], reserve = p.pin.reserve?.[v];
+        if (!(typeof inset === 'number' && inset >= 0 && typeof reserve === 'number' && reserve > inset))
+          e.push(`anatomy part '${n}' at size '${v}': pin inset ${String(inset)} / reserve ${String(reserve)} — the inset must be a px number and the reserve must clear it (it holds the inset, the icon and the gap)`);
+      }
+    }
     // ---- `minHeight`, the BOX kind's token-bound auto-layout height FLOOR ----
     // `minWidth`'s two rules, plus one: a floor under a bound `height`/`size` states the height twice.
     if (p.minHeight !== undefined && p.kind !== 'box')

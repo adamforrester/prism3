@@ -2934,9 +2934,10 @@
  * executors via `materializeForBrand`. (1) Every button size now carries a minimum width, height ×
  * multiplier rounded UP to the 8px grid (nb 36/44/56 → 88/104/128), in BOTH icon placements — so an
  * "Attached to label" button with a short label is wider than before, the consequence the owner accepted.
- * (2) "Locked to edges" makes the root FIXED at that floor (new plan field `fixedWidth`; both executors
- * `resize` before the bind loop) and the label fills the space between the icons with its text centered
- * there (new `PartDef.textAlign` → plan `textAlignHorizontal`). (3) "One step smaller" gives the MEDIUM size
+ * (2) "Locked to edges" (the owner's construction): the root keeps hugging above that floor, each icon slot
+ * is PINNED out of flow at the visual padding from its edge with a MIN/MAX constraint (new `PartDef.pin` →
+ * plan `pin`), and that side reserves inset + icon + gap as literal padding (new plan `paddingPx`), so the
+ * hugging label centers in the space beside the icons and still widens the button. (3) "One step smaller" gives the MEDIUM size
  * small's label style and icon. `PartDef.minWidth` also takes a per-size map. The projected component
  * surface moves (new `@button-default/@button-edges/@button-smaller` rows, and the button defs' own rows for
  * their edited `codeOnly` prose) → ENGINE bump. NO token is emitted or renamed — `out/**` is a stamp-only

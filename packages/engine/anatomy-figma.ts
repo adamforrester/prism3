@@ -391,17 +391,20 @@ export type FigmaNodePlan = {
    *  `layoutMode` branch, where Figma accepts a minimum width. See `PartDef.minWidth` for why a `select`
    *  gets a min-width and not a bound `width`. */
   minWidth?: number;
-  /** For a `box` whose main axis is FIXED with no bound `width`: the literal px it starts at (#1667). The
-   *  floor above, carried a second time as the frame's default width — "Locked to edges" needs a
-   *  fixed-width parent for its filling label, and a FIXED frame with no width would otherwise keep
-   *  Figma's arbitrary 100px. Both executors `resize` to it BEFORE the bind loop (a resize after binding
-   *  clears the bound height). Carried ONLY on such a box, so every other plan is byte-identical. */
-  fixedWidth?: number;
-  /** For a `TEXT` node: the horizontal alignment of its glyphs inside its own box (#1667), from
-   *  `PartDef.textAlign`. Carried ONLY when the part declares it, so every other TEXT node's plan is
-   *  byte-identical; both executors otherwise write `LEFT`. It is visible only on a `wrap` node, whose box
-   *  is wider than its glyphs — the "Locked to edges" button label, centered in the space beside the icons. */
-  textAlignHorizontal?: 'LEFT' | 'CENTER' | 'RIGHT';
+  /** For a `box`: inline padding written as LITERAL px, replacing that side's binding (#1667). The side a
+   *  PINNED child (below) sits on: the pinned node is out of flow, so the padding reserves its room — edge
+   *  inset + icon + gap, a sum Figma cannot bind to one variable. Keyed by Figma's own property names so the
+   *  executors write it as is. Both write it inside the `layoutMode` branch, BEFORE the children are built
+   *  (the end pin is measured off the parent's width), and their default passes leave these sides alone.
+   *  Carried ONLY on such a box, so every other plan is byte-identical. */
+  paddingPx?: { paddingLeft?: number; paddingRight?: number };
+  /** For a child of an auto-layout row: OUT OF FLOW, pinned to one inline edge (#1667, `PartDef.pin`). The
+   *  PARENT applies it after its flow pass, as it does every absolute child: `layoutPositioning: 'ABSOLUTE'`,
+   *  `x` at `inset` px from the `edge` (`MIN` left, `MAX` right), vertically centered, and
+   *  `constraints: { horizontal: edge, vertical: 'CENTER' }` so the node keeps its edge when the parent grows
+   *  or is widened. Carried ONLY on a filled pinned slot (or the overlay that took one), so every other
+   *  node's plan is byte-identical. */
+  pin?: { edge: 'MIN' | 'MAX'; inset: number };
   /** For a `TEXT` node that WRAPS (#1424): `1` when the label should FILL its row's main axis and wrap to
    *  multiple lines rather than hug its content and overflow. Figma's child-side `layoutGrow` (a 0/1 stretch
    *  flag along the parent's PRIMARY axis). Carried ONLY when `1`, so every other node's plan is byte-identical
@@ -762,10 +765,6 @@ const JUSTIFY: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN'> = {
  *  such value and discards the write in silence. */
 const VERTICAL_ALIGN: Record<string, 'TOP' | 'CENTER' | 'BOTTOM'> = {
   top: 'TOP', center: 'CENTER', bottom: 'BOTTOM',
-};
-/** A text part's horizontal word → Figma's (#1667). Its own map for the reason `VERTICAL_ALIGN` gives. */
-const HORIZONTAL_ALIGN: Record<string, 'LEFT' | 'CENTER' | 'RIGHT'> = {
-  start: 'LEFT', center: 'CENTER', end: 'RIGHT',
 };
 // `hug` and `fill` both mean "don't pin a number" on the axis; only `fixed` is FIXED.
 const sizingMode = (m: SizingMode): 'AUTO' | 'FIXED' => (m === 'fixed' ? 'FIXED' : 'AUTO');
@@ -1265,8 +1264,22 @@ export const figmaAnatomyPlan = (
     if (px === undefined) throw new Error(`${def.id}: part '${part}' has a per-size minWidth with no entry for size '${size}'`);
     return px;
   };
+  // A per-size literal (#1667's pin) resolves at THIS plan's size, the `minWidthAt` rule.
+  const perSize = (part: string, what: string, m: Record<string, number>): number => {
+    const px = size === undefined ? undefined : m[size];
+    if (px === undefined) throw new Error(`${def.id}: part '${part}' has a per-size ${what} with no entry for size '${size}'`);
+    return px;
+  };
+  // The pin a node carries (#1667): its own when it is a pinned part (only ever projected when present),
+  // or the replaced cell's when it is the overlay that took that cell.
+  const pinOf = (name: string): FigmaNodePlan['pin'] => {
+    const from = activeOverlay && name === activeOverlay[0] && replacedByOverlay ? replacedByOverlay : name;
+    const pin = a.parts[from]?.pin;
+    return pin ? { edge: pin.edge === 'start' ? 'MIN' : 'MAX', inset: perSize(from, 'pin inset', pin.inset) } : undefined;
+  };
   const node = (name: string, p: PartDef): FigmaNodePlan => {
     const bound: Record<string, string> = {};
+    const paddingPx: NonNullable<FigmaNodePlan['paddingPx']> = {};
     // THE ASPECT-RATIO LOCK for a box (#1316), as the numeric proportion parsed from THIS member's own
     // `ratio` coordinate. Present only where the def declares `aspectRatio` and the coordinate carries
     // that axis — a structure-only plan supplies no value and stays unlocked, which no member ever
@@ -1328,6 +1341,16 @@ export const figmaAnatomyPlan = (
         const inlineVisual = p.padding.inlineVisual ?? p.padding.inlineLabel;
         bound.paddingLeft = varOf(leadingFilled ? inlineVisual : p.padding.inlineLabel);
         bound.paddingRight = varOf(trailingFilled ? inlineVisual : p.padding.inlineLabel);
+        // A PINNED cell's side (#1667) trades its binding for the literal reserve: the pinned node is out of
+        // flow, so the padding holds its room. Keyed off `pin`, and off the CELL being filled (the caller's
+        // slot or an overlay that took it), the same question the two lines above ask.
+        for (const c of p.children ?? []) {
+          const pin = a.parts[c]?.pin;
+          if (!pin || !slotPresent(c)) continue;
+          const side = pin.edge === 'start' ? 'paddingLeft' : 'paddingRight';
+          delete bound[side];
+          paddingPx[side] = perSize(c, 'pin reserve', pin.reserve);
+        }
       }
     } else if (p.kind === 'absolute') {
       // NOTHING in `bound`, deliberately. An absolute part's geometry is its position and its size, and
@@ -1515,9 +1538,11 @@ export const figmaAnatomyPlan = (
       // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
       // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
       ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: minWidthAt(name, p.minWidth) } : {}),
-      // THE FLOOR AS THE DEFAULT WIDTH (#1667): a FIXED main axis with no bound `width` starts at its floor.
-      ...(p.kind === 'box' && p.minWidth !== undefined && p.layout?.sizing.x === 'fixed' && p.width === undefined
-        ? { fixedWidth: minWidthAt(name, p.minWidth) } : {}),
+      // THE RESERVED SIDES (#1667), computed with the padding above — see `paddingPx`.
+      ...(Object.keys(paddingPx).length ? { paddingPx } : {}),
+      // THE PIN (#1667), on a filled pinned slot, or on the overlay that took a pinned cell — the spinner
+      // stands in for the icon, so it sits where the icon sat, out of flow.
+      ...(pinOf(name) ? { pin: pinOf(name) } : {}),
       // THE WRAPPING LABEL (#1424), carried ONLY on a `text` part that opts in, so every other TEXT node's
       // plan is byte-identical. `layoutGrow: 1` fills the row's main axis (fixing the width) and
       // `textAutoResize: 'HEIGHT'` lets the fixed-width box reflow — the two facts that turn a hugging,
@@ -1579,8 +1604,6 @@ export const figmaAnatomyPlan = (
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
       // here and nowhere else, so this line IS the rule #1009 asked to be located.
       ...(p.kind === 'text' ? { textAlignVertical: VERTICAL_ALIGN[p.verticalAlign ?? 'center'] } : {}),
-      // Only when the part declares it (#1667) — unlike the vertical claim above, which is always present.
-      ...(p.kind === 'text' && p.textAlign !== undefined ? { textAlignHorizontal: HORIZONTAL_ALIGN[p.textAlign] } : {}),
       ...((p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
       ...(paintOpacity ? { paintOpacity } : {}),
@@ -1772,24 +1795,27 @@ export const CONTENT_OFFSET = { size: 'medium', from: 'small', keys: ['type', 'i
  * the family. For a button:
  *
  *   1. MINIMUM WIDTH, in BOTH icon placements. The root's floor becomes a per-size map, each entry
- *      `buttonMinWidth(height, multiplier)` — the size's height in px (via `heightPx`, which the caller
- *      resolves off the brand) times the multiplier, rounded UP to the 8px grid. It is a literal at the
- *      projection (docs/28 §4: "resolved to a literal at emit"), because the def is brand-agnostic and
- *      Figma's frame holds a number; the live `height × multiplier` relationship is code's.
- *   2. "Locked to edges" (`icons: 'edges'`). The root's main axis becomes FIXED — the projector then starts
- *      the frame at its floor (`fixedWidth`), since a filling child needs a fixed-width parent — and the
- *      label FILLS the space between the icons (`wrap`: `layoutGrow` 1) with its text CENTERED in that
- *      space (`textAlign: 'center'`). So a trailing-icon-only button's label sits slightly left of the
- *      button's center, which is New Balance's layout and the owner's decision. `attached` leaves both
- *      the root's hug and the label's hug exactly as authored.
+ *      `buttonMinWidth(height, multiplier)` — the size's height in px (via `px`, which the caller resolves
+ *      off the brand) times the multiplier, rounded UP to the 8px grid. It is a literal at the projection
+ *      (docs/28 §4: "resolved to a literal at emit"), because the def is brand-agnostic and Figma's frame
+ *      holds a number; the live `height × multiplier` relationship is code's.
+ *   2. "Locked to edges" (`icons: 'edges'`, owner's construction, 2026-09-25). The root still HUGS, above
+ *      its floor, so a long label grows the button and a designer can still fix a wider width on an
+ *      instance. Each icon slot is PINNED (`PartDef.pin`): out of flow, `inset` = the size's visual padding
+ *      from its edge, constraints `MIN` (the slot before the label) or `MAX` (after it). The side it sits
+ *      on reserves `inset + icon + gap` as literal padding, so the label never runs under it. The label is
+ *      untouched — HUG text in a `justify: center` row — so it centers in the space BESIDE the icons at
+ *      every width: with only a trailing icon it sits left of the button's center (New Balance's layout).
+ *      `attached` leaves the icons in flow, exactly as authored.
  *   3. "One step smaller" (`content: 'smaller'`). Medium's label type and icon bind small's
  *      (`CONTENT_OFFSET`). Height, padding, gap and the other two sizes are untouched, and no token moves —
- *      this is a button-only rebinding, never a change to the shared type or icon ladders.
+ *      this is a button-only rebinding, never a change to the shared type or icon ladders. With "Locked to
+ *      edges" the reserve reads the icon AFTER this rebinding, so it holds the smaller icon.
  *
- * THROWS when a size's height does not resolve: a button with no floor at one size is the silent-loss
- * shape, and the caller always has the brand's heights in hand.
+ * THROWS when a size's number does not resolve: a button with no floor, or a pinned icon with no reserve,
+ * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
  */
-export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, heightPx: (ref: string) => number | undefined): ComponentDef => {
+export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (ref: string) => number | undefined): ComponentDef => {
   if (!isButtonFamily(def)) return def;
   const a = def.anatomy!;
   const root = a.parts[a.root];
@@ -1807,19 +1833,31 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, heigh
     }
   }
 
-  const minWidth = Object.fromEntries((def.variants?.size ?? []).map((v) => {
-    const ref = def.tokens[root.height!.replace('{size}', v)];
-    const px = ref === undefined ? undefined : heightPx(ref);
-    if (px === undefined) throw new Error(`${def.id}: size '${v}' height ${ref ?? '(unbound)'} does not resolve, so its minimum width cannot be derived`);
-    return [v, buttonMinWidth(px, layout.minWidthMultiplier)];
-  }));
+  const sizes = def.variants?.size ?? [];
+  // A def key (`size.{size}.gap`) at one size → px, through the (possibly rebound) token map.
+  const at = (key: string, v: string, what: string): number => {
+    const ref = tokens[key.replace('{size}', v)];
+    const n = ref === undefined ? undefined : px(ref);
+    if (n === undefined) throw new Error(`${def.id}: size '${v}' ${what} ${ref ?? '(unbound)'} does not resolve`);
+    return n;
+  };
+  const minWidth = Object.fromEntries(sizes.map((v) => [v, buttonMinWidth(at(root.height!, v, 'height'), layout.minWidthMultiplier)]));
 
   const parts: Record<string, PartDef> = { ...a.parts, [a.root]: { ...root, minWidth } };
   if (layout.icons === 'edges') {
-    parts[a.root] = { ...parts[a.root], layout: { ...root.layout, sizing: { ...root.layout.sizing, x: 'fixed' } } };
-    const label = (root.children ?? []).find((c) => a.parts[c]?.kind === 'text');
-    if (!label) throw new Error(`${def.id}: "Locked to edges" fills the label, and '${a.root}' has no text child`);
-    parts[label] = { ...a.parts[label], wrap: true, textAlign: 'center' };
+    const kids = root.children ?? [];
+    const label = kids.findIndex((c) => a.parts[c]?.kind === 'text');
+    if (label < 0) throw new Error(`${def.id}: "Locked to edges" centers the label between the icons, and '${a.root}' has no text child`);
+    const inlineVisual = root.padding?.inlineVisual ?? root.padding?.inlineLabel;
+    if (!inlineVisual || !root.gap) throw new Error(`${def.id}: "Locked to edges" pins the icons at the visual padding and reserves the gap, and '${a.root}' binds no inline padding or gap`);
+    kids.forEach((c, i) => {
+      const p = a.parts[c];
+      if (p?.kind !== 'slot' || i === label) return;
+      if (!p.size) throw new Error(`${def.id}: "Locked to edges" reserves the icon's width, and slot '${c}' binds no size`);
+      const inset = Object.fromEntries(sizes.map((v) => [v, at(inlineVisual, v, 'visual padding')]));
+      const reserve = Object.fromEntries(sizes.map((v) => [v, inset[v] + at(p.size!, v, 'icon') + at(root.gap!, v, 'gap')]));
+      parts[c] = { ...p, pin: { edge: i < label ? 'start' : 'end', inset, reserve } };
+    });
   }
   return { ...def, tokens, anatomy: { ...a, parts } };
 };
@@ -2919,9 +2957,37 @@ const PAYLOAD_MIN_LINES = `    if(c.minLines){
       else{kid.minHeight=h;if(!(Math.abs(kid.minHeight-h)<=0.01))misses.push(c.name+'.minHeight -> DISCARDED');}
     }`;
 const hasMinLines = (n: FigmaNodePlan): boolean => n.minLines !== undefined || n.children.some(hasMinLines);
-/** `PAYLOAD_BUILD` for these roots: the reserved-lines write spliced in where one of them needs it. */
+/**
+ * THE PINNED ICONS (#1667, "Locked to edges"), spliced in after the flow pass ONLY for a payload whose plans
+ * carry a `pin` — the `MIN_LINES_SLOT` budget decision again: unconditional, these lines pushed Button's #536
+ * probe grid into a second chunk. TWO splices, because the width the end pin is measured off must be FINAL:
+ * the reserved sides (`paddingPx`) are written before the children (the `layoutMode` branch); each pinned
+ * child leaves the flow the moment it is appended (`PIN_LIFT_SLOT`, in the child loop), so it never counts
+ * in the hug; and each pin is placed LAST (`PIN_SLOT`, after the ring's pass, whose own lift is the other
+ * thing that moves the width) — `inset` from its edge, vertically centered, constrained to the edge so a
+ * frame that grows with its label (or is widened by a designer) keeps it there — and read back. Measured:
+ * placed before the ring's lift, a focus-visible member's end pin sat 36px off (the round-trip gate). The
+ * lift goes through a variable, like the centering lift, so no statement here is byte-identical to the
+ * ring's `kid.layoutPositioning='ABSOLUTE';` (a test mutates that one by `String.replace`, which takes the
+ * FIRST match). `claimDefaults` leaves the reserved sides alone. Lockstep with the plugin executor.
+ */
+const PIN_LIFT_SLOT = '__PIN_LIFT__';
+const PAYLOAD_PIN_LIFT = `    if(c.pin){const P='ABSOLUTE';kid.layoutPositioning=P;}`;
+const PIN_SLOT = '__PIN__';
+const PAYLOAD_PIN = `  for(const c of n.children){
+    const kid=c.pin&&boxes.get(c.name);if(!kid)continue;
+    const {edge:e,inset:i}=c.pin;
+    kid.x=e==='MIN'?i:node.width-i-kid.width;kid.y=(node.height-kid.height)/2;
+    kid.constraints={horizontal:e,vertical:'CENTER'};
+    if(kid.layoutPositioning!=='ABSOLUTE'||(kid.constraints||{}).horizontal!==e)misses.push(c.name+'.pin -> DISCARDED');
+  }`;
+const hasPin = (n: FigmaNodePlan): boolean => n.pin !== undefined || n.children.some(hasPin);
+/** `PAYLOAD_BUILD` for these roots: the reserved-lines write and the pinned icons spliced in where one of
+ *  them needs it. */
 const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
-  PAYLOAD_BUILD.replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '');
+  PAYLOAD_BUILD.replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '')
+    .replace(PIN_LIFT_SLOT, roots.some(hasPin) ? PAYLOAD_PIN_LIFT : '')
+    .replace(PIN_SLOT, roots.some(hasPin) ? PAYLOAD_PIN : '');
 
 const PAYLOAD_BUILD = `const __expose=[];
 // #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
@@ -2971,10 +3037,10 @@ const claimDefaults=(node,n,mode)=>{
     set('clipsContent',!!m.clipsContent);
     // Parent-side auto-layout properties apply only on an auto-layout frame, and Figma THROWS on
     // \`strokesIncludedInLayout\` elsewhere — so gated on the PLAN's \`layoutMode\`.
-    if(m.layoutMode){for(const k of ['itemSpacing','paddingLeft','paddingRight','paddingTop','paddingBottom'])if(!(k in B))set(k,0);set('strokesIncludedInLayout',false);}
+    if(m.layoutMode){for(const k of ['itemSpacing','paddingLeft','paddingRight','paddingTop','paddingBottom'])if(!(k in B||k in(m.paddingPx||B)))set(k,0);set('strokesIncludedInLayout',false);}
   }
   // The last two DETACH an applied text style on the host (#1567) — \`build\` re-applies it right after.
-  if(t==='TEXT'){if(!m.textAlignVertical)set('textAlignVertical','TOP');if(!m.textAlignHorizontal)set('textAlignHorizontal','LEFT');set('textAutoResize',m.textAutoResize||'WIDTH_AND_HEIGHT');set('textTruncation','DISABLED');set('paragraphSpacing',0);set('leadingTrim','NONE');}
+  if(t==='TEXT'){if(!m.textAlignVertical)set('textAlignVertical','TOP');set('textAlignHorizontal','LEFT');set('textAutoResize',m.textAutoResize||'WIDTH_AND_HEIGHT');set('textTruncation','DISABLED');set('paragraphSpacing',0);set('leadingTrim','NONE');}
 };
 const build=async(n)=>{
   let node;
@@ -3112,12 +3178,10 @@ const build=async(n)=>{
   // AFTER the text style, because a text style does not carry it and could not overwrite it — \`TextStyle\`
   // has no alignment field on either axis (#1009, measured against \`@figma/plugin-typings\`). Ordered
   // here anyway so the sequence reads the same as every other text write in this function.
-  // THE CENTERED FILL LABEL (#1667) rides with it: \`textAlignHorizontal\` only when the plan carries it
-  // (\`claimDefaults\` writes LEFT otherwise). WRAPPING LABEL (#1424): auto-height lets a fixed-width text
-  // reflow — written only when the plan carries it; \`claimDefaults\` writes WIDTH_AND_HEIGHT on every
-  // other TEXT node (#1393). One loop over the three, in this order, because the chunked paste budget
-  // (\`SET_CHUNK_BYTES\`) is counted in the bytes of this code (#1667).
-  for(const k of['textAlignVertical','textAlignHorizontal','textAutoResize'])if(n[k])node[k]=n[k];
+  // WRAPPING LABEL (#1424): auto-height lets a fixed-width text reflow — written only when the plan carries
+  // it; \`claimDefaults\` writes WIDTH_AND_HEIGHT on every other TEXT node (#1393). One loop over the two,
+  // in this order, because the chunked paste budget (\`SET_CHUNK_BYTES\`) is counted in the bytes of this code.
+  for(const k of['textAlignVertical','textAutoResize'])if(n[k])node[k]=n[k];
   if(n.effectStyle){
     const ef=effectByName.get(n.effectStyle);
     if(!ef)misses.push(n.name+'.effectStyle -> '+n.effectStyle);
@@ -3131,9 +3195,8 @@ const build=async(n)=>{
     // the same reason). Written only when the plan carries it, so every other frame is untouched. A floor
     // is never 0 (the schema refuses a non-positive one), so truthiness is the presence test.
     if(n.minWidth)node.minWidth=n.minWidth;
-    // THE FLOOR AS THE DEFAULT WIDTH (#1667): a FIXED main axis with no bound width starts at its floor.
-    // Resized HERE, before the bind loop, because a resize after binding clears the bound height.
-    if(n.fixedWidth)node.resize(n.fixedWidth,node.height);
+    // #1667 reserve beside a pinned icon (\`paddingPx\`), before the children; \`claimDefaults\` keeps it.
+    Object.assign(node,n.paddingPx);
   }
   // WRAPPING LABEL (#1424), child-side: a text that FILLS its row's main axis so it reflows rather than
   // overflowing. Settable on any node (outside an auto-layout parent Figma ignores it), written only when
@@ -3248,6 +3311,7 @@ const build=async(n)=>{
     // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`.
     if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;
 ${MIN_LINES_SLOT}
+${PIN_LIFT_SLOT}
   }
   // A CENTERED absolute child (#612's pending spinner with no visual cell to take). Applied by the
   // parent for the same reason the inset ones are — \`layoutPositioning\` only means anything inside an
@@ -3349,6 +3413,7 @@ ${MIN_LINES_SLOT}
     if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the ring would take a cell in the row)');
   }
   // #1393 — AND IT HAS TO BE LAST: every write above declares something; this declares nothing else was.
+${PIN_SLOT}
   claimDefaults(node,n,'created');
   // RE-APPLY THE TEXT STYLE, because \`claimDefaults\`' \`paragraphSpacing\`/\`leadingTrim\` just detached it
   // (#1567, host-measured). No \`loadFontAsync\`: the style's font was loaded above, in this same run.

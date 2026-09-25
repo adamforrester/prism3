@@ -29,7 +29,7 @@
  */
 import { applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
 import type { WeightAvailability, ButtonLayout } from '@prism3/engine/anatomy-figma';
-import { componentSizes, SPACE_BASE } from '@prism3/engine/scale';
+import { componentSizes, sizeRefPx, SPACE_BASE } from '@prism3/engine/scale';
 import type { SizeStep } from '@prism3/engine/scale';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { brandTheme, weightAvailability } from '@prism3/engine/theme';
@@ -63,12 +63,6 @@ export const brandButtonLayout = (input: BrandInput | null): ButtonLayout => ({
   minWidthMultiplier: input?.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
 });
 
-/** A `size.<step>.height` ref → its px on this brand's (baseline-density) ladder. */
-const heightFrom = (sizes: SizeStep[]) => (ref: string): number | undefined => {
-  const m = /^size\.([^.]+)\.height$/.exec(ref);
-  return m ? sizes.find((z) => z.name === m[1])?.height : undefined;
-};
-
 /** `def` resolved against the brand: corner shape, then weight intent (#1605's owner-locked order), then
  *  the outline hover family (#1608 — independent of the other two: it touches only `color.*` refs), then
  *  the button layout (#1667 — independent too: it touches the button family's geometry and its two
@@ -77,5 +71,5 @@ export const materializeForBrand = (def: ComponentDef, input: BrandInput | null)
   const { avail, outline, roles, sizes } = brandLevers(input);
   return applyButtonLayout(
     applyOutlineInteraction(applyWeightIntent(applyControlShape(def, input?.controlShape ?? 'rounded'), avail), outline, roles),
-    brandButtonLayout(input), heightFrom(sizes));
+    brandButtonLayout(input), sizeRefPx(sizes));
 };

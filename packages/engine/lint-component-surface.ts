@@ -180,7 +180,7 @@ import { ENGINE_VERSION, satisfiesBump } from './version';
 import { componentDefs } from './components/index';
 import { figmaAnatomySet, planComponentName, planStamp, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from './anatomy-figma';
 import type { ButtonLayout } from './anatomy-figma';
-import { componentSizes, SPACE_BASE } from './scale';
+import { componentSizes, sizeRefPx, SPACE_BASE } from './scale';
 import type { AnatomyPlan, WeightAvailability } from './anatomy-figma';
 import type { ComponentDef } from './component-schema';
 
@@ -280,13 +280,13 @@ const OUTLINE_SURFACE_CONFIGS = [
 ] as const;
 
 // AND FOR THE BUTTON LAYOUT (#1667). Its DEFAULT is not the identity — every button gets a per-size minimum
-// width — but the floor needs a brand's heights, which the plain `<id>` row (a def and no theme) does not
+// width — but the floor and the pinned icons need a brand's numbers, which the plain `<id>` row (a def and no theme) does not
 // have. So the button family carries three scenario rows against the ENGINE's default-density ladder (a
 // fixed input, not a brand): the default settings, "Locked to edges", and "One step smaller". A change to
 // the floor's derivation, the edges layout or the medium offset moves one of them. Which defs get them is
 // again decided by the transform (a def it changes), so `icon-button` gets none.
 const DEFAULT_LADDER = componentSizes('comfortable', SPACE_BASE);
-const ladderHeight = (ref: string): number | undefined => DEFAULT_LADDER.find((z) => `size.${z.name}.height` === ref)?.height;
+const ladderPx = sizeRefPx(DEFAULT_LADDER);
 const BUTTON_SURFACE_CONFIGS: { id: string; layout: ButtonLayout }[] = [
   { id: 'button-default', layout: DEFAULT_BUTTON_LAYOUT },
   { id: 'button-edges', layout: { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' } },
@@ -304,7 +304,7 @@ const liveDefs = (): Record<string, Surface> => {
       if (m !== def) out[`${def.id}@${id}`] = surfaceOf(m);
     }
     for (const { id, layout } of BUTTON_SURFACE_CONFIGS) {
-      const m = applyButtonLayout(def, layout, ladderHeight);
+      const m = applyButtonLayout(def, layout, ladderPx);
       if (m !== def) out[`${def.id}@${id}`] = surfaceOf(m);
     }
   }

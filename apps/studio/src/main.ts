@@ -7334,8 +7334,10 @@ const paintControlShapePreview = (into: HTMLElement): void => {
 /** The button-layout specimen (#1667): per size, a short-label button at its derived minimum width, and two
  *  WIDENED buttons — leading + trailing icons, and trailing only — so "Locked to edges" is visible: the icons
  *  sit at the edges and the label centers in the space between them, which puts a trailing-only label
- *  slightly left of the button's center. The same arithmetic as the Figma build: floor = height ×
- *  multiplier rounded up to 8 (`buttonMinWidth`), padding split by side (#326), and under "One step
+ *  slightly left of the button's center. The same construction as the Figma build: floor = height ×
+ *  multiplier rounded up to 8 (`buttonMinWidth`), padding split by side (#326), and under "Locked to edges"
+ *  each icon absolutely positioned at the visual padding with its side padded by that padding + icon + gap,
+ *  so the button still hugs a longer label. Under "One step
  *  smaller" the medium size takes small's label size and icon. Geometry only, in the page ink — the
  *  colors are the Colors page's job. Mode-aware like `paintSizePreview`. */
 const BUTTON_SIZES: { size: string; step: string; icon: string; label: string }[] = [
@@ -7365,15 +7367,21 @@ const paintButtonLayoutPreview = (into: HTMLElement): void => {
       btn.style.minWidth = `${floor}px`;
       btn.style.borderRadius = `${radius}px`;
       btn.style.gap = `${z.gap}px`;
-      btn.style.paddingLeft = `${lead ? z.padXVisual : z.padX}px`;
-      btn.style.paddingRight = `${trail ? z.padXVisual : z.padX}px`;
+      const reserve = z.padXVisual + iconPx + z.gap;
+      btn.style.paddingLeft = `${lead ? (edges ? reserve : z.padXVisual) : z.padX}px`;
+      btn.style.paddingRight = `${trail ? (edges ? reserve : z.padXVisual) : z.padX}px`;
       if (width !== undefined) btn.style.width = `${width}px`;
-      const glyph = (): HTMLElement => { const g = el('span', 'btnl-icon'); g.style.width = g.style.height = `${iconPx}px`; return g; };
-      const label = el('span', 'btnl-label' + (edges ? ' btnl-fill' : ''), text);
+      const glyph = (side: 'left' | 'right'): HTMLElement => {
+        const g = el('span', 'btnl-icon' + (edges ? ' btnl-pinned' : ''));
+        g.style.width = g.style.height = `${iconPx}px`;
+        if (edges) g.style[side] = `${z.padXVisual}px`;
+        return g;
+      };
+      const label = el('span', 'btnl-label', text);
       label.style.fontSize = `${labelPx}px`;
-      if (lead) btn.append(glyph());
+      if (lead) btn.append(glyph('left'));
       btn.append(label);
-      if (trail) btn.append(glyph());
+      if (trail) btn.append(glyph('right'));
       return btn;
     };
     const row = el('div', 'btnl-row');

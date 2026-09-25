@@ -225,9 +225,7 @@ export interface CompNode {
   /** TYPED, not `unknown`, unlike its neighbours here: #1009 gives it a plan field, so the executor both
    *  writes it and READS IT BACK, and a read-back cannot compare `unknown` to a string. */
   textAlignVertical?: 'TOP' | 'CENTER' | 'BOTTOM';
-  /** TYPED for the same reason as `textAlignVertical`: #1667 gives it a plan field that is written and
-   *  read back (the "Locked to edges" label, centered in the space beside the icons). */
-  textAlignHorizontal?: 'LEFT' | 'CENTER' | 'RIGHT' | 'JUSTIFIED';
+  textAlignHorizontal?: unknown;
   textAutoResize?: unknown;
   textTruncation?: unknown;
   paragraphSpacing?: unknown;
@@ -1007,7 +1005,8 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     if (n?.layoutMode) {
       if (!('itemSpacing' in bound)) set('itemSpacing', 0);
       for (const pad of ['paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'] as const)
-        if (!(pad in bound)) set(pad as keyof CompNode, 0);
+        // A side the plan writes as literal px (#1667's reserve beside a pinned icon) is claimed there.
+        if (!(pad in bound) && n.paddingPx?.[pad as 'paddingLeft'] === undefined) set(pad as keyof CompNode, 0);
       // `strokesIncludedInLayout` belongs HERE, not above it: Figma allows it only on an auto-layout frame
       // and THROWS on a `layoutMode: NONE` one. Outside the gate the `set` swallowed that throw into a
       // "#865 UNCLAIMED" miss on every non-auto-layout frame — 40 of them per icon run — and on the real
@@ -1036,8 +1035,7 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     // unguarded it wrote `'TOP'` over every claim, AFTER the plan-driven write, and the parity gate is
     // what caught it: the paste path had no neutralizer and still read CENTER.
     if (!n?.textAlignVertical) set('textAlignVertical', 'TOP');
-    // GUARDED like `textAlignVertical` (#1667): a plan that claims a horizontal alignment keeps it.
-    if (!n?.textAlignHorizontal) set('textAlignHorizontal', 'LEFT');
+    set('textAlignHorizontal', 'LEFT');
     // DRIVEN BY THE PLAN (#1424), still an unconditional `set` so the #865 claim holds: a wrapping label
     // asks for `'HEIGHT'` (fixed width, auto height); every other TEXT node keeps `'WIDTH_AND_HEIGHT'`.
     set('textAutoResize', n?.textAutoResize ?? 'WIDTH_AND_HEIGHT');
@@ -1576,13 +1574,6 @@ const writeComponentSet = async (
       if (node.textAlignVertical !== undefined && node.textAlignVertical !== n.textAlignVertical)
         misses.push(`${n.name}.textAlignVertical -> DISCARDED (set ${n.textAlignVertical}, reads ${String(node.textAlignVertical)})`);
     }
-    // THE CENTERED FILL LABEL (#1667) — the horizontal twin of the block above, read back the same way.
-    if (n.textAlignHorizontal) {
-      try { node.textAlignHorizontal = n.textAlignHorizontal; }
-      catch (err) { misses.push(`${n.name}.textAlignHorizontal -> ${n.textAlignHorizontal} (${(err as Error).message})`); }
-      if (node.textAlignHorizontal !== undefined && node.textAlignHorizontal !== n.textAlignHorizontal)
-        misses.push(`${n.name}.textAlignHorizontal -> DISCARDED (set ${n.textAlignHorizontal}, reads ${String(node.textAlignHorizontal)})`);
-    }
     if (n.effectStyle) {
       const ef = effectByName.get(n.effectStyle);
       if (!ef) misses.push(`${n.name}.effectStyle -> ${n.effectStyle}`);
@@ -1598,10 +1589,9 @@ const writeComponentSet = async (
       // minimum width only on an auto-layout frame (the schema refuses `minWidth` on a layout-less box).
       // Written only when the plan carries it, so every other frame is untouched.
       if (n.minWidth !== undefined) node.minWidth = n.minWidth;
-      // THE FLOOR AS THE DEFAULT WIDTH (#1667): a FIXED main axis with no bound width starts at its floor
-      // ("Locked to edges" — a filling label needs a fixed-width parent). Resized BEFORE the bind loop,
-      // because a resize after binding clears the bound height. Lockstep with the paste executor.
-      if (n.fixedWidth !== undefined) node.resize?.(n.fixedWidth, typeof node.height === 'number' ? node.height : 0);
+      // THE RESERVED SIDES (#1667): literal padding beside a pinned icon (`FigmaNodePlan.paddingPx`), written
+      // before the children so every later pass measures the final width. `claimDefaults` leaves them alone.
+      if (n.paddingPx) Object.assign(node, n.paddingPx);
     }
 
     // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind
@@ -1730,6 +1720,7 @@ const writeComponentSet = async (
     // `node.width` mid-append and make the result depend on the part's ORDER in the def.
     const absolutes: [FigmaNodePlan, Wr][] = [];
     const centered: [FigmaNodePlan, Wr][] = [];
+    const pinned: [FigmaNodePlan, Wr][] = [];
     // This parent's DIRECT children by part name (#848) — the sibling boxes `absoluteCenterOn` measures
     // against. Sibling-scoped on purpose; see the centering loop for why the wider `parts` map is wrong.
     const byPart = new Map<string, Wr>();
@@ -1757,6 +1748,9 @@ const writeComponentSet = async (
       byPart.set(c.name, kid);
       if (c.absoluteInset) absolutes.push([c, kid]);
       if (c.absoluteCenter) centered.push([c, kid]);
+      // A PINNED child (#1667) leaves the flow the moment it is appended, so it never counts in the hug and
+      // the width it is placed against below is final. See the pinned pass.
+      if (c.pin) { kid.layoutPositioning = 'ABSOLUTE'; pinned.push([c, kid]); }
       // Written straight rather than bound: a brand does not get to theme a label under a spinner to
       // half-visible. `visible:false` would yield the cell and collapse the button.
       if (c.zeroOpacity) kid.opacity = 0;
@@ -1898,6 +1892,22 @@ const writeComponentSet = async (
       kid.constraints = { horizontal: 'STRETCH', vertical: 'STRETCH' };
       if (kid.layoutPositioning !== 'ABSOLUTE')
         misses.push(`${c.name}.layoutPositioning -> DISCARDED (set ABSOLUTE, reads ${kid.layoutPositioning}; the ring would take a cell in the row)`);
+    }
+    // A PINNED child (#1667, "Locked to edges"): out of flow, `inset` from its edge, vertically centered, and
+    // constrained to that edge, so a hugging parent that grows with its label — or an instance a designer
+    // widens — keeps the icon there. Read back like the other lifts: an icon that stayed in flow ADDS a cell
+    // on top of the reserve. LAST of the passes, because the width the end pin is measured off must be final:
+    // the reserve (`paddingPx`) was written before the children, the pins left the flow as they were appended,
+    // and the ring's lift above is the other thing that moves the width (measured: placed before it, a
+    // focus-visible member's end pin sat 36px off). Lockstep with the paste executor's `PAYLOAD_PIN`.
+    for (const [c, kid] of pinned) {
+      const { edge, inset } = c.pin!;
+      kid.x = edge === 'MIN' ? inset : (node.width ?? 0) - inset - (kid.width ?? 0);
+      kid.y = ((node.height ?? 0) - (kid.height ?? 0)) / 2;
+      kid.constraints = { horizontal: edge, vertical: 'CENTER' };
+      const held = kid.constraints as { horizontal?: string } | undefined;
+      if (kid.layoutPositioning !== 'ABSOLUTE' || held?.horizontal !== edge)
+        misses.push(`${c.name}.pin -> DISCARDED (reads ${String(kid.layoutPositioning)} / ${JSON.stringify(kid.constraints)}; the icon would not hold the ${edge} edge)`);
     }
     // #865, AND IT HAS TO BE LAST. Every write above declares something; this one declares that nothing
     // else was declared. Placed after the child loop rather than beside `createFrame()` so that a value

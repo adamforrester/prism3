@@ -89,6 +89,7 @@ import { figmaArtifacts } from './emit-figma';
 import { tailOf } from './figma-names';
 import { componentDefs } from './components';
 import type { ComponentDef } from './component-schema';
+import { sizeRefPx } from './scale';
 import {
   figmaAnatomySet, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT,
   planBindingErrors, planComponentName, planBoundVars, planTextStyles, planEffectStyles, type AnatomyPlan,
@@ -167,7 +168,7 @@ const figmaEmitted = (theme: Theme): Emitted => {
 };
 
 // The materialization, in `materializeForBrand`'s order (see the header for why it is restated).
-// The button layout (#1667) is last, off the raw input like `controlShape`, with the brand's own heights.
+// The button layout (#1667) is last, off the raw input like `controlShape`, with the brand's own size ladder.
 const materialize = (def: ComponentDef, input: BrandInput, theme: Theme): ComponentDef =>
   applyButtonLayout(
     applyOutlineInteraction(applyWeightIntent(applyControlShape(def, input.controlShape ?? 'rounded'), weightAvailability(theme.typography)), theme.outlineInteraction),
@@ -176,7 +177,7 @@ const materialize = (def: ComponentDef, input: BrandInput, theme: Theme): Compon
       content: input.buttonContentSize ?? DEFAULT_BUTTON_LAYOUT.content,
       minWidthMultiplier: input.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
     },
-    (ref) => theme.dims.sizes.find((z) => `size.${z.name}.height` === ref)?.height);
+    sizeRefPx(theme.dims.sizes));
 
 // Projection is the expensive step and depends only on the materialized def, so cache by its content.
 const projCache = new Map<string, AnatomyPlan[]>();

@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale, ICON_SIZES, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
+import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -10588,15 +10588,19 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         const att = figmaAnatomySet(applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, heightOf(t)));
         const strip = (p: AnatomyPlan) => { const r = { ...p.root } as Record<string, unknown>; delete r.minWidth; return JSON.stringify({ ...p, root: r }); };
         const same = base.length === att.length && base.every((p, i) => strip(att[i]) === JSON.stringify(p));
-        ok(same && att.every((p) => p.root.minWidth !== undefined && p.root.fixedWidth === undefined && p.root.primaryAxisSizingMode === 'AUTO'),
-          `#1667 attached: ${def.id} projects today's plan plus a root minWidth on all ${att.length} members — hug root, no fixed width, label unchanged`);
+        ok(same && att.every((p) => p.root.minWidth !== undefined && p.root.primaryAxisSizingMode === 'AUTO' && !p.root.paddingPx && p.root.children.every((c) => !c.pin)),
+          `#1667 attached: ${def.id} projects today's plan plus a root minWidth on all ${att.length} members — hug root, icons in flow, label unchanged`);
       }
     }
 
-    // (3) "Locked to edges": the root is FIXED at its floor, the label FILLS and centers its text, and the
-    // text lands at the midpoint of the space between the icons — at the floor and widened to 240px.
-    // `textCenter` is an independent model of Figma's row: it reads only the plan's flow children, bound
-    // px and the fill/align flags. `oracle` never looks at the plan's layout at all.
+    // (3) "Locked to edges" (owner's construction, 2026-09-25): the root HUGS above its floor, each icon is
+    // OUT OF FLOW pinned to its edge (MIN left, MAX right) at the visual padding, the side it sits on reserves
+    // inset + icon + gap as literal padding, and the label is plain HUG text in the `justify: center` row.
+    // `layout` is an independent model of Figma's row over the PLAN: flow children (never a pinned or other
+    // absolute one) hug inside the padding, the frame is max(floor, hug) unless a designer fixes a width, the
+    // single flow child is centered in the space inside the padding, and a pinned child keeps the x it was
+    // placed at on the hugged frame, moved by the width change when its constraint is MAX. `oracle` never
+    // looks at the plan: it works the same positions out of the brand's own `size.*` and icon numbers.
     for (const [bid, t] of BL_BRANDS) {
       const pxOf = (v: string | undefined): number => {
         const s = v && /^size\/([^/]+)\/(padding-x-visual|padding-x|gap)$/.exec(v);
@@ -10605,43 +10609,88 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         if (i) return ICON_SIZES.find((q) => q.name === i[1])!.px;
         throw new Error(`#1667 layout model: no px for ${v}`);
       };
-      const TEXT_W = 40;
-      const textCenter = (root: AnatomyPlan['root'], W: number): number => {
-        const kids = root.children.filter((c) => !c.absoluteInset && !c.absoluteCenter);
-        const label = root.children.find((c) => c.type === 'TEXT')!;
-        if (label.absoluteCenter) return W / 2;
-        const padL = pxOf(root.bound.paddingLeft), padR = pxOf(root.bound.paddingRight), gap = pxOf(root.bound.itemSpacing);
-        const fixedW = (c: typeof label): number => (c.type === 'TEXT' ? TEXT_W : pxOf(c.bound.width));
-        const grows = kids.some((c) => c.layoutGrow === 1);
-        const inner = W - padL - padR - gap * (kids.length - 1);
-        const fill = inner - kids.filter((c) => c.layoutGrow !== 1).reduce((a, c) => a + fixedW(c), 0);
-        let x = grows || root.primaryAxisAlignItems !== 'CENTER' ? padL : padL + (inner - kids.reduce((a, c) => a + fixedW(c), 0)) / 2;
-        for (const c of kids) {
-          const w = c.layoutGrow === 1 ? fill : fixedW(c);
-          if (c === label) return label.textAlignHorizontal === 'CENTER' ? x + w / 2 : label.textAlignHorizontal === 'RIGHT' ? x + w - TEXT_W / 2 : x + TEXT_W / 2;
-          x += w + gap;
+      type Box = { x: number; w: number };
+      const layout = (root: AnatomyPlan['root'], textW: number, fixedW?: number): { W: number; label: Box; icons: Record<string, Box> } => {
+        const side = (k: 'paddingLeft' | 'paddingRight'): number => root.paddingPx?.[k] ?? pxOf(root.bound[k]);
+        const padL = side('paddingLeft'), padR = side('paddingRight'), gap = pxOf(root.bound.itemSpacing);
+        const widthOf = (c: typeof root): number => (c.type === 'TEXT' ? textW : pxOf(c.bound.width));
+        const flow = root.children.filter((c) => !c.absoluteInset && !c.absoluteCenter && !c.pin);
+        const content = flow.reduce((a, c) => a + widthOf(c), 0) + gap * Math.max(0, flow.length - 1);
+        const hugW = Math.max(root.minWidth ?? 0, padL + content + padR);
+        const W = fixedW ?? hugW;
+        let x = root.primaryAxisAlignItems === 'CENTER' ? padL + (W - padL - padR - content) / 2 : padL;
+        const boxes: Record<string, Box> = {};
+        for (const c of flow) { boxes[c.name] = { x, w: widthOf(c) }; x += widthOf(c) + gap; }
+        const icons: Record<string, Box> = {};
+        for (const c of root.children.filter((q) => q.pin)) {
+          const w = widthOf(c);
+          const placed = c.pin!.edge === 'MIN' ? c.pin!.inset : hugW - c.pin!.inset - w;
+          icons[c.name] = { x: c.pin!.edge === 'MAX' ? placed + (W - hugW) : placed, w };
         }
-        throw new Error('#1667 layout model: no label in the flow');
+        const label = root.children.find((c) => c.type === 'TEXT')!;
+        if (!boxes[label.name]) throw new Error('#1667 layout model: the label is not in the flow');
+        return { W, label: boxes[label.name], icons };
       };
       for (const def of FAMILY) {
-        const edges = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, heightOf(t));
+        const edges = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, sizeRefPx(t.dims.sizes));
         for (const size of def.variants.size) {
           const z = t.dims.sizes.find((q) => q.name === stepOf(def, size))!;
           const icon = ICON_SIZES.find((q) => `icon.size.${q.name}` === def.tokens[`size.${size}.icon`])!.px;
           const floor = floorOracle(z.height, DEFAULT_BUTTON_LAYOUT.minWidthMultiplier);
           for (const [lead, trail] of [[false, false], [true, false], [false, true], [true, true]] as [boolean, boolean][]) {
             const root = planOf(edges, size, lead, trail).root;
-            const label = root.children.find((c) => c.type === 'TEXT')!;
             const tag = `${bid} ${def.id}@${size} leading=${lead} trailing=${trail}`;
-            ok(root.primaryAxisSizingMode === 'FIXED' && root.fixedWidth === floor && root.minWidth === floor
-              && label.layoutGrow === 1 && label.textAutoResize === 'HEIGHT' && label.textAlignHorizontal === 'CENTER',
-              `#1667 edges: ${tag} — root FIXED at its ${floor}px floor, label fills (layoutGrow 1) and centers its text (got ${root.primaryAxisSizingMode} ${root.fixedWidth}/${root.minWidth}, grow ${label.layoutGrow}, align ${label.textAlignHorizontal})`);
-            for (const W of [floor, 240]) {
-              const left = lead ? z.padXVisual + icon + z.gap : z.padX;
-              const right = trail ? z.padXVisual + icon + z.gap : z.padX;
-              const oracle = left + (W - left - right) / 2;
-              const got = textCenter(root, W);
-              ok(Math.abs(got - oracle) < 1e-9, `#1667 edges: ${tag} at ${W}px — the label text centers in the space between the icons at x=${oracle} (got ${got}${lead !== trail ? `; the button center is ${W / 2}` : ''})`);
+            const left = lead ? z.padXVisual + icon + z.gap : z.padX;
+            const right = trail ? z.padXVisual + icon + z.gap : z.padX;
+            const label = root.children.find((c) => c.type === 'TEXT')!;
+            const lv = root.children.find((c) => c.name === 'leadingVisual');
+            const tv = root.children.find((c) => c.name === 'trailingVisual');
+            // THE CONSTRUCTION, read off the plan: a hugging root with its floor and no fixed width, a hugging
+            // label, and each present icon pinned — leading MIN, trailing MAX — at the visual padding.
+            ok(root.primaryAxisSizingMode === 'AUTO' && root.minWidth === floor && !('fixedWidth' in root)
+              && label.layoutGrow === undefined && label.textAutoResize === undefined && !('textAlignHorizontal' in label)
+              && (!lead || (lv?.pin?.edge === 'MIN' && lv.pin.inset === z.padXVisual))
+              && (!trail || (tv?.pin?.edge === 'MAX' && tv.pin.inset === z.padXVisual)),
+              `#1667 edges: ${tag} — root HUGs above its ${floor}px floor, the label hugs, and each icon is pinned at ${z.padXVisual}px (leading MIN, trailing MAX) (got ${root.primaryAxisSizingMode} floor ${root.minWidth}, label grow ${label.layoutGrow}, pins ${JSON.stringify([lv?.pin, tv?.pin])})`);
+            // THE RESERVED PADDING, against the oracle: inset + icon + gap on an icon side, the label padding on the other.
+            const padL = root.paddingPx?.paddingLeft ?? pxOf(root.bound.paddingLeft);
+            const padR = root.paddingPx?.paddingRight ?? pxOf(root.bound.paddingRight);
+            ok(padL === left && padR === right,
+              `#1667 edges: ${tag} — the padding reserves the icon: ${left}/${right}px (got ${padL}/${padR})`);
+            // The label center the oracle expects at width W: the midpoint of the space inside the padding.
+            const center = (W: number): number => left + (W - left - right) / 2;
+            const atEdges = (m: ReturnType<typeof layout>): boolean =>
+              (!lead || m.icons.leadingVisual?.x === z.padXVisual) && (!trail || m.W - m.icons.trailingVisual?.x - icon === z.padXVisual);
+            // M4's intent, kept: at the floor, the label centers in the space BESIDE the icons, not on the button.
+            // Two labels that fit the floor: half the room inside the reserves, and all of it.
+            for (const textW of [(floor - left - right) / 2, floor - left - right].filter((w) => w > 0)) {
+              const m = layout(root, textW);
+              const got = m.label.x + textW / 2;
+              ok(m.W === floor && Math.abs(got - center(floor)) < 1e-9 && atEdges(m),
+                `#1667 edges: ${tag} at its ${floor}px floor — the label text centers in the space beside the icons at x=${center(floor)} (got ${got} on a ${m.W}px button${lead !== trail ? `; the button center is ${floor / 2}` : ''})`);
+            }
+            // (a) A LONG LABEL widens the button past its floor, and the icons stay at the edges.
+            {
+              const textW = floor + 120;
+              const m = layout(root, textW);
+              ok(m.W === left + textW + right && m.W > floor && atEdges(m) && Math.abs(m.label.x + textW / 2 - center(m.W)) < 1e-9,
+                `#1667 edges (a): ${tag} — a ${textW}px label widens the button to ${left + textW + right}px, past its ${floor}px floor, with the icons still ${z.padXVisual}px from the edges (got ${m.W}px, icons ${JSON.stringify(m.icons)})`);
+            }
+            // (b) AN INSTANCE WIDENED TO 240px keeps the icons at the edges and the label centered in the space left.
+            {
+              const m = layout(root, 40, 240);
+              ok(atEdges(m) && Math.abs(m.label.x + 20 - center(240)) < 1e-9,
+                `#1667 edges (b): ${tag} widened to 240px — icons ${z.padXVisual}px from each edge, label centered at x=${center(240)} (got icons ${JSON.stringify(m.icons)}, label center ${m.label.x + 20})`);
+            }
+            // (c) NO OVERLAP AT THE FLOOR: the widest label that still fits the floor keeps the gap from each icon.
+            {
+              const textW = floor - left - right;
+              const m = layout(root, textW);
+              const lx = m.icons.leadingVisual, tx = m.icons.trailingVisual;
+              const clearL = lx ? m.label.x - (lx.x + lx.w) : Infinity;
+              const clearR = tx ? tx.x - (m.label.x + m.label.w) : Infinity;
+              ok(m.W === floor && clearL >= z.gap && clearR >= z.gap,
+                `#1667 edges (c): ${tag} — a ${textW}px label at the ${floor}px floor keeps ≥ ${z.gap}px from each icon (got ${clearL} / ${clearR})`);
             }
           }
         }
@@ -13124,7 +13173,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             const weight = (bv.strokeWeight?.value ?? bv.strokeTopWeight?.value ?? (node.strokeWeight as number)) || 0;   // #1332: the weight binds per-side
             if (bv.width) return bv.width.value ?? 0;
             if (node.type === 'TEXT') return ((node.characters as string) || '').length * 6;
-            const pad = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0);
+            // A LITERAL side (#1667's reserve beside a pinned icon) counts where the side is not bound, as on the host.
+            const lit = (k: string): number => (typeof node[k] === 'number' ? node[k] as number : 0);
+            const pad = (bv.paddingLeft?.value ?? lit('paddingLeft')) + (bv.paddingRight?.value ?? lit('paddingRight'));
             const hug = ((node.children as Record<string, unknown>[]) ?? [])
               .filter((c) => c.layoutPositioning !== 'ABSOLUTE')
               .reduce((a, c) => a + ((c.width as number) || 0), 0);
@@ -13250,7 +13301,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             if (node._absolute || !p || !p.layoutMode) return node._x as number;
             const bv = p.boundVariables as Record<string, { value?: number }>;
             const gap = bv.itemSpacing?.value ?? 0;
-            let at = bv.paddingLeft?.value ?? 0;
+            let at = bv.paddingLeft?.value ?? (typeof p.paddingLeft === 'number' ? p.paddingLeft : 0);
             for (const c of ((p.children as Record<string, unknown>[]) ?? [])) {
               if (c === node) return at;
               if (c.layoutPositioning === 'ABSOLUTE') continue;   // takes no cell, contributes no offset
@@ -13825,35 +13876,38 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         `#1614 paste leg: an opacity the payload fails to keep IS reported by its read-back (${JSON.stringify(dropped.misses)})`);
     }
 
-    // #1667 — "Locked to edges", EXECUTED by BOTH executors on the same stub. The plan carries a FIXED root
-    // at its floor (`fixedWidth`) and a filling, centered label; each leg must leave a 104px FIXED frame
-    // (nb's medium floor — 44 × 2.25 = 99, up to 104) and a label that grows and centers. Hand-named
-    // expectations (docs/34), so an executor that drops the resize, or whose default pass writes LEFT over
-    // the plan's CENTER, fails here by name.
+    // #1667 — "Locked to edges", EXECUTED by BOTH executors on the same stub. A medium trailing-only member:
+    // the root keeps its bound left padding and writes the right one as the literal reserve, and the trailing
+    // icon comes out of flow, constrained MAX/CENTER, at the visual padding from the right edge of the frame
+    // it was built in. Expectations are worked out here from nb's own numbers (docs/34), so an executor that
+    // drops the constraint, the lift or the reserve fails here by name.
     {
       const nbSizes = nbTheme().dims.sizes;
-      const edgesDef = applyButtonLayout(button, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, (r) => nbSizes.find((z) => `size.${z.name}.height` === r)?.height);
+      const md = nbSizes.find((z) => z.name === 'md')!;
+      const iconPx = ICON_SIZES.find((q) => `icon.size.${q.name}` === button.tokens['size.medium.icon'])!.px;
+      const edgesDef = applyButtonLayout(button, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, sizeRefPx(nbSizes));
       const edgesPlan = figmaAnatomySet(edgesDef, { swapTarget: 'FPO-default-icon' })
         .find((q) => /appearance=filled/.test(planComponentName(q)) && /state=rest/.test(planComponentName(q)) && !/surface=inverse/.test(planComponentName(q))
           && q.size === 'medium' && q.slots.trailing && !q.slots.leading)!;
       const eOpts = { vars: [...planBoundVars(edgesPlan.root), ...planPaintVars(edgesPlan.root)], styles: planTextStyles(edgesPlan.root), comps: ['FPO-default-icon'] };
       const shape = (root: Record<string, unknown>): string => {
-        const label = (root.children as Record<string, unknown>[]).find((c) => c.name === 'label');
-        if (!label) return `no label under ${String(root.name)} [${(root.children as Record<string, unknown>[]).map((c) => c.name).join(', ')}]`;
-        return JSON.stringify([root.width, root.primaryAxisSizingMode, root.minWidth, label.layoutGrow, label.textAlignHorizontal, label.textAutoResize]);
+        const icon = (root.children as Record<string, unknown>[]).find((c) => c.name === 'trailingVisual');
+        if (!icon) return `no trailing icon under ${String(root.name)} [${(root.children as Record<string, unknown>[]).map((c) => c.name).join(', ')}]`;
+        const c = icon.constraints as { horizontal?: string; vertical?: string } | null;
+        return JSON.stringify([root.paddingRight, icon.layoutPositioning, c?.horizontal ?? null, c?.vertical ?? null, (root.width as number) - (icon.x as number) - (icon.width as number)]);
       };
-      const WANT = JSON.stringify([104, 'FIXED', 104, 1, 'CENTER', 'HEIGHT']);
+      const WANT = JSON.stringify([md.padXVisual + iconPx + md.gap, 'ABSOLUTE', 'MAX', 'CENTER', md.padXVisual]);
       const pastePage: StubPage = { children: [] };
       const pasted = await runPayload(planToPluginJs(edgesPlan), { ...eOpts, page: pastePage });
       const plugPage: StubPage = { children: [] };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
       const plugged = await applyComponentPlan([edgesPlan], makeFigmaStub({ ...eOpts, page: plugPage }) as any);
       ok(pasted.misses.length === 0 && shape(pastePage.children[0] as Record<string, unknown>) === WANT,
-        `#1667 paste leg: a Locked to edges medium button pastes a 104px FIXED frame and a filling, centered label (${shape(pastePage.children[0] as Record<string, unknown>)}; misses ${JSON.stringify(pasted.misses)})`);
+        `#1667 paste leg: a Locked to edges medium button pastes the reserve and a trailing icon pinned MAX at the visual padding — want ${WANT} (got ${shape(pastePage.children[0] as Record<string, unknown>)}; misses ${JSON.stringify(pasted.misses)})`);
       // The plugin combines its members into a set; the member is the set's one child.
       const plugMember = ((plugPage.children[0] as Record<string, unknown>).children as Record<string, unknown>[])[0];
       ok(plugged.misses.length === 0 && shape(plugMember) === WANT,
-        `#1667 plugin leg: applyComponentPlan builds the same frame and label (${shape(plugMember)}; misses ${JSON.stringify(plugged.misses)})`);
+        `#1667 plugin leg: applyComponentPlan builds the same reserve and pinned icon — want ${WANT} (got ${shape(plugMember)}; misses ${JSON.stringify(plugged.misses)})`);
     }
 
     // ---- the ABSOLUTE part, EXECUTED (#536 item 3) -----------------------------------------------

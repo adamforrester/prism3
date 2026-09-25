@@ -295,20 +295,17 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `minWidth ${String(p)}`,
     check: (p, n) => (n.minWidth === p ? null : str(n.minWidth)),
   },
-  // ── the floor as a FIXED frame's default width (#1667) ─────────────────────────────────────────
-  // "Locked to edges": the executor resizes a FIXED frame to its floor so the filling label has a width to
-  // fill. The host reports the frame's live `width`, so an executor that dropped the resize reads back
-  // Figma's 100 (or the shim's hug) here.
-  fixedWidth: {
-    show: (p) => `width ${String(p)} (fixed)`,
-    check: (p, n) => (n.width === p ? null : str(n.width)),
-  },
-  // ── horizontal glyph alignment (#1667) ─────────────────────────────────────────────────────────
-  // Carried only on a part that declares `textAlign` (the "Locked to edges" button label). The host echoes
-  // it verbatim, so this compares directly; an executor whose default pass overwrote it with LEFT fails here.
-  textAlignHorizontal: {
-    show: (p) => `textAlignHorizontal ${String(p)}`,
-    check: (p, n) => (n.textAlignHorizontal === p ? null : str(n.textAlignHorizontal)),
+  // ── the reserved sides (#1667) ─────────────────────────────────────────────────────────────────
+  // "Locked to edges": the side a pinned icon sits on holds a LITERAL padding (inset + icon + gap). The host
+  // echoes a plain number, so this compares directly; an executor whose default pass zeroed the side (or
+  // that never wrote it) reads 0 here, and a side still bound reads the bound value, not the reserve.
+  paddingPx: {
+    show: (p) => JSON.stringify(p),
+    check: (p, n) => {
+      const want = p as Record<string, number>;
+      const off = Object.keys(want).filter((k) => n[k] !== want[k]);
+      return off.length ? off.map((k) => `${k} ${str(n[k])}`).join(', ') : null;
+    },
   },
   // ── wrapping label (#1424) ─────────────────────────────────────────────────────────────────────
   // Two child/text-side properties the executor sets so a long label FILLS its row and reflows instead of
@@ -372,6 +369,21 @@ export const FIELDS: Record<string, FieldCheck> = {
   absoluteCenter: {
     show: () => 'ABSOLUTE',
     check: (_p, n) => (n.layoutPositioning === 'ABSOLUTE' ? null : str(n.layoutPositioning)),
+  },
+  // A PINNED icon (#1667): out of flow, constrained to its edge, and `inset` px from it. The edge distance is
+  // read off the live parent, so an end pin placed before the parent settled (or measured off the wrong
+  // side) reads back as a wrong distance, not as agreement.
+  pin: {
+    show: (p) => { const q = p as { edge: string; inset: number }; return `ABSOLUTE, constraints ${q.edge}, ${q.inset}px from that edge`; },
+    check: (p, n) => {
+      const q = p as { edge: string; inset: number };
+      const c = n.constraints as { horizontal?: unknown } | null | undefined;
+      if (n.layoutPositioning !== 'ABSOLUTE' || c?.horizontal !== q.edge) return `${str(n.layoutPositioning)}, constraints ${str(c?.horizontal)}`;
+      const pw = (n.parent as { width?: unknown } | null | undefined)?.width;
+      if (typeof pw !== 'number' || typeof n.x !== 'number' || typeof n.width !== 'number') return `no parent width / x / width to measure the edge distance on`;
+      const d = q.edge === 'MIN' ? n.x : pw - n.x - n.width;
+      return Math.abs(d - q.inset) < 0.01 ? null : `${d}px from the ${q.edge} edge`;
+    },
   },
   absoluteStrokeInset: { reason: 'a modifier on `absoluteInset`\'s arithmetic, not a property the host holds separately' },
   absoluteCenterOn: { reason: 'names the node to center ON; the resulting coordinates are geometry, which `docs/40` §7 step 6 checks visually' },
