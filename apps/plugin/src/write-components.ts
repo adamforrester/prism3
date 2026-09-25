@@ -610,6 +610,12 @@ export const CHUNK = 4;
  *  the 1m10s / Livegraph-1006 measurement in the header is cited rather than a test name. */
 const realYield: YieldFn = (ms = 0) => new Promise<void>((resolve) => { setTimeout(resolve, ms); });
 
+/** How far a read-back `minHeight` may sit from the value written and still count as kept: a hundredth of a
+ *  pixel. The host stores it at single precision, which moves an ~80px value by ~2e-6; a genuinely dropped or
+ *  wrong floor misses by whole lines. The same 0.01 is inlined in the paste payload
+ *  (`anatomy-figma.ts` `PAYLOAD_MIN_LINES`) and the read-back (`anatomy-readback.ts` `minLines`). */
+export const MIN_HEIGHT_TOLERANCE = 0.01;
+
 /**
  * THE REFERENCE BACK-OFF (#1664) — the waits, in ms, before each retry pass over the references the wire
  * loop could not place (a throw) or the host accepted and did not keep (a DISCARD on the same node).
@@ -1778,7 +1784,9 @@ const writeComponentSet = async (
         else {
           const want = c.minLines * line;
           kid.minHeight = want;
-          if (kid.minHeight !== want) misses.push(`${c.name}.minHeight -> DISCARDED (set ${want} for ${c.minLines} lines, reads ${String(kid.minHeight)})`);
+          // Compared within MIN_HEIGHT_TOLERANCE, not exactly: the host stores `minHeight` at single precision
+          // (79.19999885559082 reads back 79.19999694824219), so `!==` reported every kept floor as discarded.
+          if (!(typeof kid.minHeight === 'number' && Math.abs(kid.minHeight - want) <= MIN_HEIGHT_TOLERANCE)) misses.push(`${c.name}.minHeight -> DISCARDED (set ${want} for ${c.minLines} lines, reads ${String(kid.minHeight)})`);
         }
       }
     }

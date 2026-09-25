@@ -12933,7 +12933,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } } };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -13107,6 +13107,11 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           // what the gate needs is a label WIDER than the spinner, so the centering offset is non-zero
           // and a corner-pin is distinguishable from a center. See the `height`/border-box notes below —
           // same finding, arrived at from three different directions now.
+          // `minHeight` IS STORED AT SINGLE PRECISION, as the host does (live 2026-09-25: 79.19999885559082 reads
+          // back 79.19999694824219). The paste payload's read-back must tolerate it — see PAYLOAD_MIN_LINES.
+          _minH: undefined as unknown,
+          get minHeight() { return node._minH; },
+          set minHeight(v: unknown) { node._minH = typeof v === 'number' ? Math.fround(v) : v; },
           get width() {
             const bv = node.boundVariables as Record<string, { value?: number }>;
             const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
@@ -13214,7 +13219,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           },
           // …and the style's SIZE and LINE HEIGHT, as the host resolves them (the reserved-lines floor reads
           // both). The plugin shim's `DEFAULT_STYLE_METRICS`, restated: a plausible host value, not an oracle.
-          setTextStyleIdAsync: async (id: string) => { node.textStyleId = id; node.fontSize = 16; node.lineHeight = { unit: 'PERCENT', value: 150 }; },
+          setTextStyleIdAsync: async (id: string) => { node.textStyleId = id; node.fontSize = opts.textMetrics?.fontSize ?? 16; node.lineHeight = opts.textMetrics?.lineHeight ?? { unit: 'PERCENT', value: 150 }; },
           // #1007 — STORED UNDER FIGMA'S OWN NAME, `effectStyleId`, as the plugin shim does. This was
           // `async () => {}`: the write was accepted and kept nowhere, so deleting the payload's effect-style
           // apply was invisible here. A stub that discards a write it accepted is the permissive model the
@@ -13749,6 +13754,17 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const clean = await runPayload(planToPluginJs(runnable), full);
     ok(clean.misses.length === 0,
       `anatomy: a fully-resolved paste reports NOTHING — misses[] stays empty when every write landed (${JSON.stringify(clean.misses)})`);
+
+    // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------
+    // The stub stores `minHeight` via `Math.fround`, as the host does. At the live metrics (16px at 165%, 3 rows
+    // = 79.2, read back 79.19999694824219) an exact compare in PAYLOAD_MIN_LINES reports a kept floor DISCARDED.
+    {
+      const ta = figmaAnatomySet(textarea)[0];
+      const taOpts: StubOpts = { vars: [...planBoundVars(ta.root), ...planPaintVars(ta.root)], styles: planTextStyles(ta.root), comps: ['FPO-default-icon'], textMetrics: { fontSize: 16, lineHeight: { unit: 'PERCENT', value: 165 } } };
+      const taRun = await runPayload(planToPluginJs(ta), taOpts);
+      ok(!taRun.misses.some((m) => /minHeight/.test(m)),
+        `anatomy/textarea paste: at 16px × 165% (79.2px, stored single-precision) the reserved-rows floor reads back as KEPT (${JSON.stringify(taRun.misses.filter((m) => /minHeight|minLines/.test(m)))})`);
+    }
 
     // ---- #1302: the stub's `textAlignVertical` refusal is LIVE ------------------------------------------
     // The accessor used to sit in `mkNode`'s object spread, which reads the getter once and drops the setter,

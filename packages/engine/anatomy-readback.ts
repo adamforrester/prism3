@@ -338,7 +338,7 @@ export const FIELDS: Record<string, FieldCheck> = {
       const line = lh?.unit === 'PIXELS' ? lh.value : lh?.unit === 'PERCENT' && typeof fs === 'number' && typeof lh.value === 'number' ? (lh.value / 100) * fs : undefined;
       if (typeof line !== 'number') return `NO PIXEL LINE HEIGHT (lineHeight ${str(lh)}, fontSize ${str(fs)})`;
       const want = (p as number) * line;
-      return typeof n.minHeight === 'number' && Math.abs(n.minHeight - want) < 1e-6 ? null : `minHeight ${str(n.minHeight)} (want ${want})`;
+      return typeof n.minHeight === 'number' && Math.abs(n.minHeight - want) <= 0.01 ? null : `minHeight ${str(n.minHeight)} (want ${want})`;
     },
   },
 

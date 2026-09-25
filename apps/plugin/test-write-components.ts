@@ -3507,11 +3507,15 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['NB body/md/default', NB],
     ['18px at 140%', { fontSize: 18, lineHeight: { unit: 'PERCENT', value: 140 } }],
     ['a 30px PIXELS line', { fontSize: 20, lineHeight: { unit: 'PIXELS', value: 30 } }],
+    // The live case (2026-09-25, owner's MCP testing file): 3 × 16px × 165% = 79.2, which the host stores at
+    // single precision and reads back as 79.19999694824219. An exact read-back compare reported all 20 as
+    // DISCARDED; the arm requires 0 misses on the value the host actually holds (the shim models the rounding).
+    ['the live case: 16px at 165%', { fontSize: 16, lineHeight: { unit: 'PERCENT', value: 165 } }],
   ];
   for (const [label, m] of CASES) {
     const want = ROWS * lineOf(m) + 2 * PAD_Y;
     const b = await buildTextarea(m);
-    ok(b.controls.length === 20 && b.controls.every(Boolean) && b.heights.length === 1 && Math.abs(b.heights[0] - want) < 1e-6 && b.foot.length === 0 && b.r.misses.length === 0,
+    ok(b.controls.length === 20 && b.controls.every(Boolean) && b.heights.length === 1 && Math.abs(b.heights[0] - want) <= 0.01 && b.foot.length === 0 && b.r.misses.length === 0,
       `textarea rows (${label}): every one of the 20 controls measures ${ROWS} × ${lineOf(m)} + 2 × ${PAD_Y} = ${want} (got [${b.heights.join(', ')}] over ${b.controls.length} member(s); ${b.foot.length} footprint misses; ${b.r.misses.length} misses${b.r.misses.length ? ` — ${b.r.misses[0]}` : ''})`);
   }
 

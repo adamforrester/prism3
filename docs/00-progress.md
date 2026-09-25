@@ -41,6 +41,29 @@ A both-executors arm pastes and plugin-builds an edges member on the same stub. 
 
 ---
 
+## (2026-09-25) — the textarea's rows floor was kept by the host but reported DISCARDED (single precision)
+
+**STATUS: merged by the orchestrator.** Plugin + engine paste payload + read-back. **ENGINE 0.159.0 → 0.160.0**; CONTRACT STANDS.
+
+**What the owner saw.** The first live textarea build (their MCP testing file, via the build menu, agent link on) reported `⚠️ 20 misses (text.minHeight -> DISCARDED (set 79.19999885559082 for 3 lines, reads 79.19999694824219)`. The floor WAS kept. Figma stores `minHeight` at single precision: `Math.fround(79.19999885559082) === 79.19999694824219`. The executor compared with `!==`, so every kept floor read as dropped. #1666's one unverified point is now answered: the host keeps `minHeight` on a TEXT auto-layout child.
+
+**The fix.** One tolerance, `MIN_HEIGHT_TOLERANCE = 0.01` px, in all three places that compare it:
+- the plugin executor;
+- the inlined paste payload;
+- `anatomy-readback.ts`, which had allowed only `1e-6`, still under the ~2e-6 the rounding moves an 80px value.
+
+A genuinely dropped or wrong floor misses by whole lines, so the tolerance hides nothing real.
+
+**Why no test caught it.** The plugin shim stored `minHeight` as a double, and #1666's metric cases gave a float32-exact 72 for NB (24 × 3). The shim now stores `minHeight` through `Math.fround`, as the host does. The textarea rows gate gains the live case, 16px at 165%.
+
+**By-name mutation** (committed HEAD, restored): reverting the executor to `!==` fails:
+- `✗ textarea rows (18px at 140%) … 20 misses — text.minHeight -> DISCARDED`
+- `✗ textarea rows (the live case: 16px at 165%) …`
+
+**The paste path is gated too** (an independent review caught that it wasn't). The engine paste stub now stores `minHeight` through `Math.fround` and takes `textMetrics`. A new arm runs textarea's payload at the live 16px × 165%. Reverting `PAYLOAD_MIN_LINES` to `!==` fails `❌ anatomy/textarea paste: at 16px × 165% (79.2px, stored single-precision) the reserved-rows floor reads back as KEPT (["text.minHeight -> DISCARDED"])`.
+
+---
+
 ## (2026-09-25) — the textarea builds in Figma (projection modeled on text field)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets, verifies live through the agent link, and merges).** Engine + plugin. **ENGINE 0.158.0 → 0.159.0** (a new def surface and a new plan field → MINOR); CONTRACT STANDS (every binding is an existing name). Five design choices are held for the owner and built as neutral defaults — they lead the PR body: which axes project, how many rows show, the resize handle, the counter, the default text.

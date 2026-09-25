@@ -786,6 +786,19 @@ export const makeShim = (opts: ShimOpts = {}) => {
         },
       });
     }
+    // `minHeight` IS STORED AT SINGLE PRECISION (host-measured 2026-09-25, textarea on the owner's MCP testing
+    // file through the agent link): the executor wrote 79.19999885559082 (3 × 16px × 165%) and the host read back
+    // 79.19999694824219 — `Math.fround` of it. An exact read-back compare therefore reported a kept floor as
+    // DISCARDED on all 20 members. Modelled here so the offline suite sees the host's number, not its own.
+    {
+      let minH: unknown = (node as Record<string, unknown>).minHeight;
+      Object.defineProperty(node, 'minHeight', {
+        configurable: true,
+        enumerable: true,
+        get() { return minH; },
+        set(v: unknown) { minH = typeof v === 'number' ? Math.fround(v) : v; },
+      });
+    }
     // A BOUND PAINT'S OPACITY TAKES A SECOND ASSIGNMENT (host-measured 2026-09-25 on the owner's NB file via
     // the Figma MCP, on FRAME, COMPONENT and RECTANGLE alike): the FIRST time a paint bound to a color variable
     // lands at an index where the node does not already hold a paint bound to that same variable, the host
