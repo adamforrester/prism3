@@ -19,6 +19,9 @@
  * knew what was being asserted about it would be a different kind of object.
  */
 
+/** The opacity each bound paint was bound at, keyed by its `boundVariables` object (see the fills accessor). */
+const BIND_OPACITY = new WeakMap<object, number>();
+
 export type Node = Record<string, unknown>;
 /** A PAGE that outlives one run, because idempotency's whole premise is that run 2 finds what run 1
  *  left in the file. A shim that forgot between runs could not exercise it at all. */
@@ -714,6 +717,29 @@ export const makeShim = (opts: ShimOpts = {}) => {
         },
       });
     }
+    // A BOUND PAINT KEEPS THE OPACITY IT WAS BOUND AT (host-measured 2026-09-25 on the owner's NB file via the
+    // Figma MCP). `setBoundVariableForPaint({…, opacity: 0.2}, 'color', v)` then `node.fills = [p]` reads back
+    // 0.2; binding first and spreading `opacity: 0.2` onto the returned paint reads back 1 — the tinted-wash
+    // hover shipped opaque that way (221 `fills.opacity` misses). Modeled with the bind-time opacity recorded
+    // against the paint's `boundVariables` object, which a spread carries by reference: a bound paint whose
+    // opacity differs from what it was bound at is normalized to the bind-time value, as the host does.
+    for (const key of ['fills', 'strokes'] as const) {
+      let backing = (node as Record<string, unknown>)[key] as unknown[];
+      Object.defineProperty(node, key, {
+        configurable: true,
+        enumerable: true,
+        get() { return backing; },
+        set(v: unknown[]) {
+          backing = (v ?? []).map((raw) => {
+            const paint = raw as { boundVariables?: object; opacity?: number };
+            const bv = paint?.boundVariables;
+            if (!bv || !BIND_OPACITY.has(bv)) return paint;
+            const at = BIND_OPACITY.get(bv)!;
+            return (paint.opacity ?? 1) === at ? paint : { ...paint, opacity: at };
+          });
+        },
+      });
+    }
     // PER-CORNER RADIUS (#1388) — mirrors the engine `test.ts` shim so the parity gate compares two
     // executors against one Figma model. A corner BOUND via `setBoundVariable` reads its resolved value
     // (the host, where `radius/md` binds all four); an unbound corner reads whatever was written, default
@@ -880,7 +906,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
       getLocalVariablesAsync: async () => [...names].map(mkVar),
       // Real Figma RETURNS a new paint rather than mutating — modelled, because the executor's
       // assignment back into the array is exactly what a forgotten `node.fills = [p]` would skip.
-      setBoundVariableForPaint: (p: object, field: string, v: { id: string }) => ({ ...p, boundVariables: { [field]: { id: v.id } } }),
+      setBoundVariableForPaint: (p: object, field: string, v: { id: string }) => {
+        const boundVariables = { [field]: { id: v.id } };
+        BIND_OPACITY.set(boundVariables, (p as { opacity?: number }).opacity ?? 1);
+        return { ...p, boundVariables };
+      },
     },
     // `fontName` on every style, because the executor loads the STYLE'S font before writing text.
     getLocalTextStylesAsync: async () => textStyles,

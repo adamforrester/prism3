@@ -7,6 +7,18 @@
 
 ---
 
+## (2026-09-25) — the tinted-wash hover keeps its opacity on the real host (owner-found)
+
+**STATUS: landed by the orchestrator.** On 0.152.0 the owner's NB button built with 221 `container.fills.opacity -> DISCARDED (wanted 0.2, read back 1)` misses: every tinted-wash hover/pressed fill came out at full strength. Files: `apps/plugin/src/write-components.ts` and `packages/engine/anatomy-figma.ts` (both executors' `paint()` take the opacity), `apps/plugin/component-shim.ts` and the `test.ts` paste stub (both model the host rule), `version.ts` (ENGINE 0.153.0).
+
+**Measured, not guessed.** A probe on the owner's file through the Figma MCP (one temp rectangle, deleted) showed: bind, then spread `opacity: 0.2` onto the returned paint → reads back **1**; put `opacity: 0.2` on the paint, then bind → reads back **0.2**; set an opacity on a fill, clone it, bind the clone → **1**. The host keeps the opacity a paint was bound at. Both executors bound first and set opacity after, and both offline models kept whatever was assigned, so the #1614 legs passed offline and failed live.
+
+**Fix.** `paint(var, where, opacity)` puts the opacity on the paint before `setBoundVariableForPaint`, in both executors (the paste one kept compact; it is near its byte budget). Both offline models record the bind-time opacity against the paint's `boundVariables` object (a spread carries it by reference) and normalize a bound paint back to it on assignment. With the old executors and the new models, the existing `#1614 paste leg` / `plugin leg` / NB-button assertions fail by name, reading `@ 1`; with the fix they pass.
+
+**Same probe, #1646 answered.** A color variable CAN alias another with its own opacity from a plugin: `{ color: VARIABLE_ALIAS, opacity: 30 }` writes, a different opacity per mode writes, the opacity itself can alias a number variable, and the alias can cross collections to the real fill. The `COMPOSE_COLOR` expression shape is rejected. So a per-mode tinted wash (a hover variable aliasing the fill at each mode's own opacity step) is buildable; whether to switch is the owner's call, recorded on #1646.
+
+---
+
 ## (2026-09-25) — an overridden inverse rest fill no longer aborts Apply Theme (owner-found)
 
 **STATUS: landed by the orchestrator.** Owner rebuilt the plugin on 0.151.0 and Apply Theme failed: `write failed: emit-figma-color: nbds.color.inverse.interactive.primary.fill.hover is not a neutral step off a white / black rest fill (rest brand-neutral.025) — the Figma line cannot count its rungs`. Files: `packages/engine/modes.ts` (the per-state rung rule moves to a module-level `interactiveStateRungs`, same values), `emit-figma-color.ts` (reads it; `rungsOffRest` deleted), `test.ts` (regression arm), `version.ts` (ENGINE 0.152.0).

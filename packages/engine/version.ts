@@ -2926,6 +2926,13 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.153.0 — Owner-found (2026-09-25): the tinted-wash (`solid-tint`) outline hover built OPAQUE on the real host —
+ * 221 `container.fills.opacity -> DISCARDED (wanted 0.2, read back 1)` misses on the NB button. Measured on the
+ * owner's file through the Figma MCP: a paint bound with `setBoundVariableForPaint` keeps the opacity it was
+ * bound AT, and drops an opacity spread onto the returned paint afterwards — which is what both executors did.
+ * Both now pass the opacity into the paint BEFORE binding (`paint(var, where, opacity)`), in lockstep. The two
+ * offline models (`component-shim.ts`, the `test.ts` paste stub) now model that host rule, so the existing
+ * #1614 legs fail on the old executors instead of passing. Executor behavior → MINOR. CONTRACT STANDS.
  * 0.152.0 — Owner-found (2026-09-25): Apply Theme aborted with "write failed: emit-figma-color: …inverse.
  * interactive.primary.fill.hover is not a neutral step off a white / black rest fill (rest brand-neutral.025)".
  * The #1645 Figma line for the inverse fill states RE-DERIVED its rung count from the light-mode aliases and
@@ -3596,7 +3603,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.152.0';
+export const ENGINE_VERSION = '0.153.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
