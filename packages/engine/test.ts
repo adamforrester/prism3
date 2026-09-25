@@ -76,6 +76,112 @@ import { fileURLToPath } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
 
+import { Session as InspectorSession } from 'node:inspector/promises';
+
+// ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
+//
+// The population floor at the end of this file (`MIN_ASSERTIONS`) catches a COLLAPSE and nothing smaller:
+// it sat at 1800 while the suite ran 104,698, so a whole section could stop running — a loop over an empty
+// array, an early `return` in a helper every arm in a block calls — and the run still printed `0 failed`.
+// A per-section numeral would drift the same way the floor did (#1111 is that drift in prose). So this arm
+// carries no numeral at all: every `ok(` CALL SITE in this file must have EXECUTED at least once.
+//
+// HOW, and why it is two independent sides (docs/34). EXPECTED is a text scan of this file's own source:
+// every `ok(` on a line that is not a comment. ACTUAL is V8's block coverage of the same file, read through
+// `node:inspector` — which never touches `ok()`, `pass` or `fails`, so neutering the harness cannot make it
+// agree. The two meet through the inline source map `tsx` attaches, decoded here (the transpiled script is
+// whitespace-minified to a few dozen lines, so its offsets are not this file's). Stack capture inside `ok()`
+// was tried first and measured: ~0.9ms a call, because V8 resolves a source position by scanning the
+// position table of the 20,000-line top-level function — 37s became 134s. Coverage costs ~13s.
+//
+// WHY THE FILE IMPORTS ITSELF. Block coverage instruments only code compiled AFTER it starts, and this
+// module's body was compiled before its first statement ran — measured: the top-level function then
+// reports one range, count 1, and every site reads as executed (docs/34 shape 4, a probe that cannot see a
+// zero). So this outer instance starts coverage and imports `test.ts?cov`, a fresh instance compiled under
+// it; engine modules are cached and shared. The outer instance then exits, so the suite runs ONCE.
+//
+// A SITE THAT RUNS ONLY ON FAILURE is written `ok(false, …)` inside the branch that detects the failure
+// (the catch blocks of every-example-compiles are the pattern), and those are exempt. They are also this
+// arm's NEGATIVE CONTROL: on a green run at least one of them must read as unexecuted, or the probe cannot
+// see a zero and the arm would pass over anything.
+//
+// WHAT THIS DOES NOT SEE: a loop that still runs, but over fewer items (a corpus that resolves short but
+// not empty) executes every site in it. That is a question about a population, and the arms that own one
+// assert it by name (e.g. every-example-compiles' `briefs.length`).
+if (!import.meta.url.endsWith('?cov')) {
+  const session = new InspectorSession();
+  session.connect();
+  await session.post('Profiler.enable');
+  await session.post('Profiler.startPreciseCoverage', { callCount: false, detailed: true });
+  await import(`${import.meta.url}?cov`);
+  const { result } = await session.post('Profiler.takePreciseCoverage') as { result: { scriptId: string; url: string; functions: { ranges: { startOffset: number; endOffset: number; count: number }[] }[] }[] };
+  const covered = result.find((r) => r.url === `${import.meta.url}?cov`);
+  const siteFails: string[] = [];
+  let sites = 0; let controls = 0; let controlZeros = 0;
+  if (!covered) siteFails.push(`no coverage was reported for ${import.meta.url}?cov — the probe measured nothing`);
+  else {
+    await session.post('Debugger.enable');
+    const { scriptSource } = await session.post('Debugger.getScriptSource', { scriptId: covered.scriptId }) as { scriptSource: string };
+    const mapMatch = /\/\/# sourceMappingURL=data:application\/json;base64,([A-Za-z0-9+/=]+)\s*$/.exec(scriptSource);
+    if (!mapMatch) siteFails.push('the transpiled script carries no inline source map — cannot relate coverage offsets to this file');
+    else {
+      // Source-map v3 VLQ, decoded by hand (the engine takes no dependencies). Only the first mapping for an
+      // original position is kept — the call's own segment precedes anything inside its arguments.
+      const map = JSON.parse(Buffer.from(mapMatch[1], 'base64').toString('utf8')) as { mappings: string };
+      const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+      const lineStarts = [0];
+      for (let i = 0; i < scriptSource.length; i++) if (scriptSource[i] === '\n') lineStarts.push(i + 1);
+      const genOffsetOf = new Map<string, number>();
+      let oLine = 0; let oCol = 0;
+      map.mappings.split(';').forEach((line, gLine) => {
+        let gCol = 0;
+        for (const seg of line.split(',')) {
+          if (!seg) continue;
+          const f: number[] = []; let v = 0; let shift = 0;
+          for (const ch of seg) {
+            const x = B64.indexOf(ch); v += (x & 31) << shift;
+            if (x & 32) shift += 5; else { f.push(v & 1 ? -(v >> 1) : v >> 1); v = 0; shift = 0; }
+          }
+          gCol += f[0];
+          if (f.length >= 4) {
+            oLine += f[2]; oCol += f[3];
+            const k = `${oLine}:${oCol}`;
+            if (!genOffsetOf.has(k)) genOffsetOf.set(k, lineStarts[gLine] + gCol);
+          }
+        }
+      });
+      const ranges = covered.functions.flatMap((fn) => fn.ranges);
+      // The innermost range containing an offset carries its count — V8 nests block ranges in functions.
+      const countAt = (off: number): number => {
+        let best = Infinity; let count = -1;
+        for (const r of ranges) if (r.startOffset <= off && off < r.endOffset && r.endOffset - r.startOffset < best) { best = r.endOffset - r.startOffset; count = r.count; }
+        return count;
+      };
+      const unexecuted: string[] = [];
+      readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').forEach((text, i) => {
+        const t = text.trim();
+        if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*') || /\bconst ok = /.test(text)) return;
+        for (const m of text.matchAll(/(?<![\w.$])ok\(/g)) {
+          const control = /^\(\s*false\s*,/.test(text.slice(m.index! + 2)); // a failure-only site
+          const off = genOffsetOf.get(`${i}:${m.index}`);
+          if (off === undefined) { siteFails.push(`test.ts:${i + 1} — the scan found an \`ok\` call the transpiled script does not have (inside a string or a trailing comment?); reword it so the scan and the code agree: ${t.slice(0, 100)}`); continue; }
+          const n = countAt(off);
+          if (control) { controls++; if (n === 0) controlZeros++; continue; }
+          sites++;
+          if (n === 0) unexecuted.push(`test.ts:${i + 1}  ${t.slice(0, 110)}`);
+        }
+      });
+      if (unexecuted.length) siteFails.push(`${unexecuted.length} assertion site(s) never ran — a section went quiet and its arms passed by not asking. If a site can only fire on failure, make its first argument the literal \`false\`, inside the branch that detects it:\n      ${unexecuted.slice(0, 25).join('\n      ')}${unexecuted.length > 25 ? `\n      … and ${unexecuted.length - 25} more` : ''}`);
+      if (!sites) siteFails.push('the scan found no `ok` call sites at all — the scan is broken, not the suite');
+      if (controls && !controlZeros) siteFails.push(`none of the ${controls} failure-only sites (first argument the literal \`false\`) reads as unexecuted — on a green run that means the coverage probe cannot see a zero, and every site above "ran" by construction`);
+    }
+  }
+  session.disconnect();
+  if (siteFails.length) { siteFails.forEach((f) => console.log(`  ❌ assertion sites (#1268): ${f}`)); process.exitCode = 1; }
+  else console.log(`  ✓ assertion sites (#1268): all ${sites} ran (${controls} failure-only sites exempt, ${controlZeros} of them confirmed unexecuted)`);
+  process.exit(process.exitCode ?? 0);
+}
+
 // #1097 — every emitted Figma variable name begins with the BRAND'S OWN ROOT, so an arm that looks a
 // variable up by name needs the root rather than a spelled prefix. Taken from the theme, which is where
 // the root is configured, and never from `out/figma/**`, which is the side under test. Spelling `nbds/`
@@ -16049,6 +16155,18 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // slot the mutation leaves EXACTLY this arm red.
       ibBroke('a non-box binding `strokeWidth` fails — only a box projects a bound strokeWeight', /is kind 'text' but binds 'strokeWidth'/, patched(switchRow, 'label', { strokeWidth: 'size.{size}.text' }));
 
+      // The SIBLING kind-field refusals (#1276, split from #1275). Each is a field read by exactly one
+      // projector branch; bound on any other kind it resolves, validates, and reaches no node. #1276 listed
+      // six with no arm; mutating each rule found `inset` and `verticalAlign` already caught by name (the
+      // "anatomy gate: `inset` on a non-absolute part" and #1009 arms), so these are the other four, whose
+      // deletion left test.ts green. Each patch reuses a value the corpus already
+      // binds on the RIGHT kind (the ring's `ring-offset` / `ring-width`, a checkbox's `check`), so the only
+      // thing wrong with the case is the kind — the arm names one error, not either of two.
+      ibBroke('a non-absolute binding `strokeInset` fails — there is no inset to compensate (#1276)', /is kind 'box' but binds 'strokeInset'/, patched(iconButton, 'container', { strokeInset: 'ring-width' }));
+      ibBroke('a non-text declaring `paintSlot` fails — only a text part chooses its ink slot (#1276)', /is kind 'box' but declares 'paintSlot'/, patched(iconButton, 'container', { paintSlot: 'indicator' }));
+      ibBroke('a non-box declaring `paintSlots` fails — only a box chooses its paint slots (#1276)', /is kind 'text' but declares 'paintSlots'/, patched(button, 'label', { paintSlots: ['fill'] }));
+      ibBroke('a non-vector naming a `glyph` fails — only a vector carries geometry (#1276)', /is kind 'slot' but names a 'glyph'/, patched(iconButton, 'icon', { glyph: 'check' }));
+
       // The VECTOR-SIZE split (#910). The old rule refused `size` on any vector, with the reason "its
       // rendered size comes from the host that instances it" — true of a def's ROOT glyph, where a host
       // swaps the whole component into a slot and binds `size.{size}.icon` there, and true of nobody for a
@@ -21082,6 +21200,10 @@ console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 // a floor nobody reads is worse than none, because it looks like protection. What this catches is the
 // collapse: a broken harness, a dropped import, an `ok()` that stopped counting. Raise it when it
 // genuinely blocks; do not track the real count with it.
+//
+// A SECTION going quiet is NOT this floor's to catch, and it never could (#1268: 1800 against a live
+// 104,698). That is the assertion-site arm at the top of this file, which needs no numeral. The two are
+// complementary: that arm reads V8 coverage and cannot see `ok()` stop counting; this one can.
 const MIN_ASSERTIONS = 1800;
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);

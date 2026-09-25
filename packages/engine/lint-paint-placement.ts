@@ -261,12 +261,39 @@ else {
 // ── ARM E: representation ─────────────────────────────────────────────────────────────────────────────
 // A scope must assert each promised surface was reached, never count files. A green run over zero parts,
 // or over a corpus in which no box paints at all, is the failure this arm exists to make impossible.
+//
+// A closed, authored set of NAMES, not a floor (#1269). The floors this replaced (7 / 4) were pinned at the
+// corpus of #910 and then stopped tracking it — by #1269 they sat under a live 11 / 8, so four defs could
+// leave either set with the arm green, and the failure messages told a maintainer the corpus "has seven",
+// inviting a restore to seven. A named set cannot drift quietly in either direction: a def that leaves it
+// fails by name, and a def that joins it fails by name until it is listed. The lists are authored here on
+// purpose — deriving them from `componentDefs` would compare the corpus with itself (docs/34 shape 1).
+// History, as history: five defs had an anatomy and three painted at #933; seven and four at #910.
+const EXPECT_ANATOMY = [
+  'icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
+  'icon-button-neutral', 'field-label', 'field-message', 'text-field', 'checkbox-control', 'checkbox-row',
+  'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
+  'image-placeholder',
+];
+const EXPECT_PAINTERS = [
+  'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
+  'icon-button-neutral', 'text-field', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'veil',
+  'image-placeholder',
+];
+const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
+  for (const id of expected.filter((x) => !live.includes(x))) {
+    fails.push(`E: '${id}' is listed in ${what} but was not found there — a shrinking scope is not a passing gate. If '${id}' left on purpose, remove it from the list in this file.`);
+  }
+  for (const id of live.filter((x) => !expected.includes(x))) {
+    fails.push(`E: '${id}' is in ${what} but not listed — ${remedy}`);
+  }
+};
 const withAnatomy = componentDefs.filter((d) => d.anatomy).map((d) => d.id);
-if (withAnatomy.length < 7) fails.push(`E: only ${withAnatomy.length} defs with an anatomy were projected — the corpus had five when this arm was written at #933 and has seven as of #910; a shrinking scope is not a passing gate`);
+closedSet('the defs with an anatomy (EXPECT_ANATOMY)', EXPECT_ANATOMY, withAnatomy, 'add it to EXPECT_ANATOMY so it stays covered if it ever drops out.');
 if (!checkedParts) fails.push('E: no anatomy parts were checked at all');
 if (!paintedPlacements) fails.push('E: not one node in the whole corpus came back painted — arm A objects only to paint that is PRESENT, so it cannot see this');
 const painters = componentDefs.filter((d) => Object.values(d.anatomy?.parts ?? {}).some((p) => (p.paintSlots ?? []).length)).map((d) => d.id);
-if (painters.length < 4) fails.push(`E: only ${painters.length} defs declare paintSlots on any box (${painters.join(', ') || 'none'}) — arms A/B have almost nothing to check. Three when #933 shipped, four as of #910: checkbox is the first def whose painted box is NOT its target, so it is the one that makes arm B's metamorphic claim bite on a real def rather than on the fixture.`);
+closedSet('the defs declaring paintSlots on a box (EXPECT_PAINTERS)', EXPECT_PAINTERS, painters, 'add it to EXPECT_PAINTERS. Arms A/B check only what they are handed, so a def that stops declaring paintSlots makes them quieter without making them fail; this list is what notices.');
 
 console.log('paint placement (#933) — which NODE carries the colour\n');
 notes.forEach((n) => console.log(n));
