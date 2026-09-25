@@ -376,7 +376,7 @@ const NON_FAMILY_AXES: Record<string, string> = {
   selection:
     "the tier emits no `color.checked.*` / `color.unchecked.*` and must not: a checked control is not a different colour FAMILY, it is the same interactive family in a different ROLE — `color.interactive.primary.*` for a filled control against `color.field.*` for an empty field. So arm 1's premise (an axis value's paint comes from that value's family) has nothing to be true of here. Admitted by #910 for `checkbox`, and inherited by every selection control after it.",
   appearance:
-    "the tier emits no `color.filled.*` / `color.outline.*` / `color.text.*` and must not: filled, outline and text are not three colour FAMILIES, they are three RENDER STRATEGIES over the ONE interactive family — filled paints it as `.fill`/`.on-fill`, outline as `.border`/`.text`/`.overlay`, text as `.overlay`/`.text`. The appearance is expressed by WHICH slot a key binds, never by an appearance segment in the token, so arm 1's premise (an axis value's paint comes from that value's family) has nothing to be true of here. Newly VISIBLE to arm 1 only since #1223: while `intent` was an axis the paint keys led with `{intent}` and appearance sat in the non-lead position the rule never reads; #1223 made intent the component identity, so `{appearance}` now leads and the same non-family shape as `selection` is exposed. The slot-crossing hole this names is the #916 question, shared with `selection`.",
+    "filled, outline and text are render strategies, not color families: all three paint from the ONE interactive family — filled paints it as `.fill`/`.on-fill`, outline as `.border`/`.text`/`.overlay`, text as `.overlay`/`.text`. The appearance is expressed by WHICH slot a key binds, never by an appearance segment in the token, so arm 1's premise (an axis value's paint comes from that value's family) has nothing to be true of here. Newly VISIBLE to arm 1 only since #1223: while `intent` was an axis the paint keys led with `{intent}` and appearance sat in the non-lead position the rule never reads; #1223 made intent the component identity, so `{appearance}` now leads and the same non-family shape as `selection` is exposed. The slot-crossing hole this names is the #916 question, shared with `selection`. CONTINGENT, NOT STRUCTURAL, and this is the difference from `selection` (#1227): `color.checked.*` cannot exist, but `color.text.*` is a live top-level family (`color.text.primary`, bound by ~7 defs), so the value `text` DOES name a family — just not the one appearance=text paints from. What keeps that from being swallowed is the family tripwire in `provenanceFailures`, not this reason.",
 };
 
 type Tally = { members: number; assignments: number; sha256: string };
@@ -469,13 +469,22 @@ const gridCensus = (def: ComponentDef): Tally => {
 const censusable = (): ComponentDef[] => componentDefs.filter((d) => !!d.anatomy);
 
 /**
- * Arm 1. For every paint key whose LEADING segment is a declared axis value, the ref must contain
- * that value as a path segment.
+ * Arm 1. For every paint key whose LEADING segment is a declared axis value, the ref must carry that
+ * value as its FAMILY segment — `color.<category>.<family>.…`, index `FAMILY_SEGMENT`.
  *
  * Segment-wise rather than substring, because a substring test is satisfied by an unrelated
  * coincidence — `color.interactive.primary-subtle.fill` contains `primary` without being that
  * intent's family. The #563 finding, in its smallest form.
+ *
+ * POSITIONAL rather than anywhere in the ref (#1227), for the same reason one level up. An anywhere
+ * match conflated the `text` SLOT with the `text` appearance VALUE: `text.label` →
+ * `color.interactive.primary.text.rest` scored as satisfied because the ref has a `.text.` segment,
+ * which is the slot, not a family. Measured when this changed: every one of the 42 bindings the rule
+ * genuinely satisfies carries its lead at index 2, and the only matches anywhere else were those 9
+ * slot collisions. They now count under the `appearance` exemption, so its printed number is every
+ * appearance-led binding (123) rather than the ones that did not happen to spell a slot the same.
  */
+const FAMILY_SEGMENT = 2;
 const provenanceFailures = (): { failures: { key: string; detail: string }[]; exempted: Map<string, number> } => {
   const out: { key: string; detail: string }[] = [];
   const satisfied = new Set<string>();
@@ -491,11 +500,25 @@ const provenanceFailures = (): { failures: { key: string; detail: string }[]; ex
       const axis = Object.entries(def.variants ?? {}).find(([, vs]) => vs.includes(lead))?.[0];
       if (!axis) continue; // not axis-value-led — arm 1 says nothing about it
       const id = `${def.id}|${key}`;
-      if (ref.split('.').includes(lead)) { satisfied.add(id); continue; }
+      const segs = ref.split('.');
+      if (segs[FAMILY_SEGMENT] === lead) { satisfied.add(id); continue; }
       // The AXIS-level exemption is consulted after `satisfied`, deliberately: a key that does carry
       // its axis value is covered by the rule normally even on an exempt axis, so the exemption can
       // never take credit for a binding the rule already reached.
-      if (axis in NON_FAMILY_AXES) { exercised.set(axis, (exercised.get(axis) ?? 0) + 1); continue; }
+      if (axis in NON_FAMILY_AXES) {
+        // THE FAMILY TRIPWIRE (#1227). An exemption says an axis's values name no family, so there is no
+        // family to check against. That can be CONTINGENTLY true: `appearance=text` paints from the
+        // interactive family today, but `color.text.*` is a live family, and a binding that reached into it
+        // (`text.label` → `color.text.primary`) is the case where the value and the family are the same
+        // word. The exemption cannot vouch for it either way, so it is failed by name rather than counted
+        // as exempt — the reader decides whether it is the appearance or the family, and says so here.
+        if (segs[1] === lead) {
+          out.push({ key: id, detail: `${axis}='${lead}' binds '${ref}', a token in the \`color.${lead}\` family — the ${axis} exemption rests on its values naming no family, so it cannot vouch for this binding (#1227)` });
+          continue;
+        }
+        exercised.set(axis, (exercised.get(axis) ?? 0) + 1);
+        continue;
+      }
       if (id in PROVENANCE_EXCEPTIONS) continue;
       out.push({ key: id, detail: `${axis}='${lead}' is absent from '${ref}' — a ${lead} coordinate would paint another ${axis}'s colour` });
     }

@@ -812,6 +812,10 @@ const findOwnPart = (member: CompNode | undefined, name: string): CompNode | und
 // recorded in one place, which is what makes #1009's `textAlignVertical: 'TOP'` a named hole that can be
 // argued with rather than a silence nobody can find.
 //
+// ITS PASTE TWIN is `claimDefaults` in `PAYLOAD_BUILD` (`packages/engine/anatomy-figma.ts`, #1393), kept in
+// LOCKSTEP: same properties, same values, same carve-outs. A change here is a change there, and `test.ts`'s
+// #1393 gate reads the paste side's fills off the stub the parity gate shares.
+//
 // DO NOT ROUTE THE GATE THROUGH THIS TABLE. `apps/plugin/lint-unclaimed-defaults.ts` authors its own
 // list of visually-significant properties, from the Figma typings, and that duplication IS the gate
 // (docs/34): a gate importing this table would assert `table === table` and pass on any hole the table
