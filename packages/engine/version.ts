@@ -2926,6 +2926,14 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.157.0 — #1662: component WIRING outlasts the host's per-member reference-refusal window. Live Button
+ * builds (2026-09-25, via the agent link) left one contiguous run of members — 44 on one file, 54 on another —
+ * whose every component-property reference refused (a throw, or an accepted write that read back undefined);
+ * #1568's single deferred retry after a `setTimeout(0)` repaired none, and the same write succeeded minutes
+ * later. The plugin (`apps/plugin/src/write-components.ts`) now retries the queued references in a BOUNDED
+ * back-off — real waits of 0.5 s, 2 s, 5 s, 10 s, at most 4 passes, none on a clean build — brings the
+ * accepted-but-not-kept shape into the same queue, and records each pass (`refsBackoff`) in the result, the
+ * set's `build` report and the console. Plugin behavior → MINOR; stamp-only regen. CONTRACT STANDS.
  * 0.156.0 — The AGENT LINK, transport B (the local desktop bridge): while the owner has the link on, the
  * plugin's UI iframe holds a WebSocket to `tools/figma-bridge/server.ts` on `ws://localhost:17331` (the one
  * `devAllowedDomains` origin the manifest adds) and relays its commands to the same main-thread dispatcher
@@ -3623,7 +3631,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.156.0';
+export const ENGINE_VERSION = '0.157.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -280,6 +280,22 @@ export type ShimOpts = {
    */
   refuseRefsUntilYield?: string[];
   /**
+   * A HOST REFUSAL WINDOW MEASURED IN TIME, NOT IN MACROTASKS (#1662) — the shape `refuseRefsUntilYield`
+   * was too short to model. Live Button (2026-09-25): a contiguous run of 44 members refused every reference
+   * write in a 0.8 s span, #1568's one retry after a `setTimeout(0)` ~6 s later still met the refusal, and
+   * the same write succeeded minutes later.
+   *
+   * The window OPENS at the first reference write on any named member and CLOSES `ms` later on the `now`
+   * clock (`Infinity` = never: a permanent refusal). While it is open, every write on a named member either
+   * THROWS Figma's own refusal (`shape: 'throw'`) or is ACCEPTED AND NOT KEPT (`shape: 'discard'` — the
+   * setter returns, the node reads back `undefined`: the live "DISCARDED (set label#…, reads undefined)").
+   *
+   * `now` is the TEST's clock, advanced by the test's own `yieldTo(ms)` — never the executor's counters —
+   * so "how long did the executor actually wait" is witnessed outside the executor (docs/34), and a 10 s
+   * back-off costs the suite nothing. Opt-in; unset, no member is in a window.
+   */
+  refuseRefsWindow?: { members: string[]; ms: number; shape: 'throw' | 'discard'; now: () => number };
+  /**
    * #1574 — THE SET'S OWN HANDLE GOES STALE PART-WAY THROUGH PROPERTY CREATION. After this many
    * successful `addComponentProperty` calls, the object `combineAsVariants` handed back stops naming the
    * live set: a TWIN set is installed in the page at the same coordinate (same name, same `children`
@@ -378,6 +394,10 @@ export const makeShim = (opts: ShimOpts = {}) => {
    *  FIRST refusal, so a same-task retry throws again and only a pass that has yielded to the host gets
    *  through. Empty unless `refuseRefsUntilYield` is set. */
   const refusingRefs = new Set(opts.refuseRefsUntilYield ?? []);
+  /** #1662 — the members in the time window, and when it opened (on the caller's clock; unset until the
+   *  first write on one of them). */
+  const windowMembers = new Set(opts.refuseRefsWindow?.members ?? []);
+  let windowOpenedAt: number | undefined;
   const unavailable = new Set((opts.unavailableFonts ?? []).map(fontKey));
   const textStyles = (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: opts.styleFont ?? STYLE_FONT }));
   const fontOfStyle = (id: string): FontName | undefined => textStyles.find((s) => s.id === id)?.fontName;
@@ -854,6 +874,17 @@ export const makeShim = (opts: ShimOpts = {}) => {
           if (owner !== undefined && refusingRefs.has(owner)) {
             setTimeout(() => refusingRefs.delete(owner), 0);
             throw new Error('in set_componentPropertyReferences: Could not create a new component property reference');
+          }
+          // #1662 — THE TIME WINDOW. Opens at the first write on a window member; refuses (throw) or drops
+          // (discard) every write on those members until `ms` has passed on the caller's clock.
+          const win = opts.refuseRefsWindow;
+          if (win && owner !== undefined && windowMembers.has(owner)) {
+            const t = win.now();
+            if (windowOpenedAt === undefined) windowOpenedAt = t;
+            if (t - windowOpenedAt < win.ms) {
+              if (win.shape === 'throw') throw new Error('in set_componentPropertyReferences: Could not create a new component property reference');
+              return;   // accepted, not kept — `held` is untouched, so the node reads back what it held before
+            }
           }
           // #1516 — a deferred wire-phase settle may fire here (and throw) BEFORE any validation.
           onRefWrite?.(n);
