@@ -46,13 +46,28 @@
  *
  * ── WHY `size` IS IN `props` AT ALL, WHEN THE BRIEF INHERITS IT ─────────────────────────────────
  *
- * Because `lint-rung-names.ts` reads a def's size ladder from `props.size.values` AND from
- * `variants.size` and fails when the two disagree — and an omitted prop reads as `[]`. A def that
- * binds `size.*` keys must state the enum in both places or the gate reports one ladder stated
- * twice, disagreeing. So `size` is re-declared here, and that is the gate working rather than the
- * delta rule bending: the ladder is a thing the machinery reads, which by the rule above is
- * authored locally. Its description carries the Textarea-specific narrowing (type and padding, not
- * height) instead of restating the parent's.
+ * Because `lint-rung-names.ts` reads a def's size ladder from `props.size.values` and compares it with
+ * the `size.*` bindings — and an omitted prop reads as `[]`. So `size` is re-declared here, and that is
+ * the gate working rather than the delta rule bending: the ladder is a thing the machinery reads, which
+ * by the rule above is authored locally. Its description carries the Textarea-specific narrowing (type
+ * and padding, not height) instead of restating the parent's.
+ *
+ * ── THE FIGMA PROJECTION, MODELED ON `text-field` (its #1494 shape) ─────────────────────────────
+ *
+ * The same column — nested FieldLabel, the bordered control, nested FieldMessage following `status` —
+ * the same status-led border, the same five projected states, the same focus-ring nesting and the same
+ * footprint (status and state are runtime axes, so every member of a status × state set measures alike).
+ * `size` left `variants` for text-field's reason: `figmaAnatomySet` refuses a declared-but-unprojected
+ * size (#795), and Figma renders the one `md` rung, so the ladder lives in `props.size` + the
+ * `size.{small,medium,large}.*` tokens (`lint-rung-names`' `LADDER_STATED_ONCE` names this def).
+ *
+ * THE ONE STRUCTURAL DIFFERENCE IS THE HEIGHT. text-field's control is FIXED at `size.md.min-height`;
+ * this control binds no height at all and HUGS — its padding plus a value text that reserves `rows`
+ * lines (`lines: 'rows'` on the text part). The count is the `rows` prop's own default and the line
+ * height is the applied type style's, multiplied at paste, so the Figma box is rows × line height +
+ * padding in every brand without a pixel written here — the header's "no `size.*.height`" rule, kept.
+ * Which axes project, how many rows show, and whether a resize handle or a counter is drawn are open
+ * design questions; see `anatomy.codeOnly` for what was left out of Figma and why.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -73,8 +88,12 @@ export const textarea: ComponentDef = {
   // aria wiring — is `text-field`'s and is not restated. `size` is one exception and the header
   // says why; `validation` + `validationMessage` are the other, for the same reason: a gate reads them
   // (`test.ts` pins the field family's shared validation contract — text-field, textarea and select
-  // carry the same two names and the same value set, #1623 sign-off C1/TA-4).
+  // carry the same two names and the same value set, #1623 sign-off C1/TA-4). `value` and `showMessage`
+  // are the third exception, and the reason is the same one: the Figma projection keys its text property
+  // and its message switch by code prop, and `figmaPropertyErrors` validates each key against `props`.
   props: [
+    { name: 'value', type: 'string', required: false, description: 'Controlled value; pair with onChange. The same prop as TextField\'s, restated here because the Figma text property is keyed by it.' },
+    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. ON, the default, renders the helper or validation message below the field; turning it off hides the message entirely. The same prop as TextField\'s. Never hides a message the field needs.' },
     { name: 'rows', type: 'number', default: 3, required: false, description: 'Initial and minimum height, in LINES not pixels — a line count recomputes against the current line-height when the user raises their font size, where a pixel floor does not. Also a content cue: two rows signals brevity, six signals "write more". `cols` is dead on the web; width comes from CSS.' },
     { name: 'resize', type: "enum: 'none' | 'vertical' | 'auto'", values: ['none', 'vertical', 'auto'], default: 'vertical', required: false, description: 'The sizing model in ONE prop, so two props cannot contradict each other. `vertical` (the drag handle) for standalone form fields; `auto` (grow within minRows/maxRows) for composers; `none` where layout stability wins. NEVER horizontal or both — altering the inline dimension shatters grid and flex layouts for no user gain.' },
     { name: 'minRows', type: 'number', required: false, description: 'Auto-grow floor, in lines. Only meaningful with resize="auto".' },
@@ -102,17 +121,17 @@ export const textarea: ComponentDef = {
   // would have been the exact shape #868 filed the vocabulary to stop.
   states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
 
-  // `size` and `style`, plus text-field's `status` axis with text-field's exact values (#1623 sign-off,
-  // C1/TA-4) — the validation outcome, driven by the `validation` prop. The brief's §15 also lists
-  // `resize` and `modifiers` as variant axes; neither is declared here and `notes.contested` carries both
-  // arguments with their named alternatives.
+  // `style`, plus text-field's `status` axis with text-field's exact values (#1623 sign-off, C1/TA-4) —
+  // the validation outcome, driven by the `validation` prop. `size` is NOT a variants axis, for text-field's
+  // reason (the header): Figma projects the single `md` rung, and a declared size must project one. The
+  // brief's §15 also lists `resize` and `modifiers` as variant axes; neither is declared here and
+  // `notes.contested` carries both arguments with their named alternatives.
   variants: {
-    size: ['small', 'medium', 'large'],
     style: ['outline'], // filled / underline are theming, not an API axis (brief §4)
     status: ['default', 'error', 'warning', 'success'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
-  axisKinds: { size: 'authoring', style: 'authoring', status: 'runtime' },
+  axisKinds: { style: 'authoring', status: 'runtime' },
 
   // The substrate's grammar, stated rather than inherited — text-field's exactly since the `status` axis
   // arrived (#1623 sign-off): status-led-and-state-qualified first, so a status border wins over the
@@ -130,15 +149,22 @@ export const textarea: ComponentDef = {
   //  2. NO container/input split for the error stroke. Brief §4 wants the error boundary on the
   //     CONTAINER rather than the input, so a Windows scrollbar docks inside the error ring rather
   //     than breaking it — that is a real requirement and it is an ANATOMY concern, not a token one:
-  //     the same `color.border.danger` paints either node, and nothing here can say which. It lands
-  //     when the anatomy block does; recorded in `notes.unverified` so it is not lost in between.
+  //     the same `color.border.danger` paints either node. The anatomy below puts the stroke on the
+  //     `control` box that wraps the text, which is the container reading; `notes.unverified` keeps
+  //     the code-side half.
   tokens: {
     'fill': 'color.field.fill',
+    // The hover WASH, text-field's (#1341/#1342): the transparent field fill takes a translucent overlay
+    // on hover (precedence overlay > fill, the control's `paintSlots`) while the border strengthens.
+    'overlay.hover': 'color.interactive.neutral.overlay.hover',
     'label': 'color.text.primary',
     // The placeholder binds `text.secondary`, text-field's #1518 binding (#1623 sign-off, C1/TA-4), so
     // the two fields express empty-vs-value with the same two text roles.
     'label.empty': 'color.text.secondary',
-    'border.rest': 'color.field.border.rest',
+    // The BARE `border` is the rest value, text-field's spelling: the disabled branch applies
+    // `disabled.border` only where the slot resolves at rest through a slot-only key, so a rest border
+    // spelled `border.rest` left a disabled member with no edge at all.
+    'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
     'border.read-only': 'color.border.secondary',
@@ -164,8 +190,8 @@ export const textarea: ComponentDef = {
     // surface and a saturated ring around a 600×400 box is noise, favouring an inset indicator. The
     // engine emits one field-ring offset and no large-surface variant, so this binds what exists and
     // the argument is recorded rather than acted on (`notes.contested`) — inventing a token here
-    // would be a def authoring engine surface.
-    'focus-ring': 'color.border.focus',
+    // would be a def authoring engine surface. The ring is the nested `focus-ring`, which owns its own
+    // color (text-field's reading), so only its geometry is bound here.
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset-field',
     // Disabled skin (contrast-exempt), the shared cross-cutting family. On-fill because a field
@@ -173,14 +199,120 @@ export const textarea: ComponentDef = {
     'disabled.fill': 'color.disabled.fill',
     'disabled.label.on-fill': 'color.disabled.on-fill',
     'disabled.border': 'color.disabled.border',
-    // Geometry. Padding only — see the header.
+    // Geometry. Padding only — see the header. The BARE keys are the projected `md` rung (text-field's
+    // shape); the `size.{small,medium,large}.*` keys below are the code-API ladder, not projected.
     'radius': 'radius.sm',
+    'pad-x': 'size.md.padding-x',
+    'pad-y': 'size.md.padding-y',
+    // The stack spacing between label, control and message — text-field's.
+    'root-gap': 'space.100',
+    // 1px field hairline, text-field's edge weight.
+    'border-width': 'border-width.hairline',
+    // The value ink's type, text-field's running body text. Its LINE HEIGHT is what the reserved rows
+    // multiply (the text part's `lines`), so the height tracks the type scale rather than a pixel.
+    'type': 'type.body.md.default',
     'size.small.pad-x': 'size.sm.padding-x',
     'size.small.pad-y': 'size.sm.padding-y',
     'size.medium.pad-x': 'size.md.padding-x',
     'size.medium.pad-y': 'size.md.padding-y',
     'size.large.pad-x': 'size.lg.padding-x',
     'size.large.pad-y': 'size.lg.padding-y',
+  },
+
+  // ── ANATOMY — text-field's column, with a control that HUGS its reserved rows ──────────────────
+  //
+  // container (column) → nested FieldLabel · control (the bordered box) · nested FieldMessage. The label,
+  // the message, the focus ring, the status-led border and the 320 width floor are text-field's, part for
+  // part. The control differs in two ways: it binds no height (it hugs its padding and the text), and it
+  // holds the value text alone — no leading glyph, no trailing affix, since this def declares neither.
+  anatomy: {
+    root: 'container',
+    parts: {
+      // The stack. Structure only; fills its column so the control and message span the field's width.
+      container: {
+        kind: 'box',
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        gap: 'root-gap',
+        children: ['label', 'control', 'message'],
+      },
+      // THE NESTED LABEL — text-field's, exactly (nest-exposed size / emphasis / weight, state fixed at rest).
+      label: {
+        kind: 'nest',
+        nests: 'field-label',
+        nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the textarea. Starts at the field default (small / secondary / regular).',
+      },
+      // THE CONTROL — the bordered, interactive box and the single target. Paints the fill, the hover wash
+      // and the stateful border (text-field's `paintSlots`). NO bound height: it hugs its block padding plus
+      // the text's reserved rows, so the box is rows × line height + padding and grows past it with longer
+      // copy. `align: 'start'` keeps the text at the top of a taller box. The 320 min-width is text-field's
+      // literal projection floor (#1518), not a token.
+      control: {
+        kind: 'box',
+        role: 'target',
+        paintSlots: ['overlay', 'fill', 'border'],
+        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        minWidth: 320,
+        radius: 'radius',
+        strokeWidth: 'border-width',
+        padding: { block: 'pad-y', inlineLabel: 'pad-x' },
+        children: ['text', 'focusRing'],
+      },
+      // THE DISPLAYED TEXT — placeholder or value. Fills the control's width and wraps (`wrap`, bounded by
+      // the control's `minWidth`), sits at the TOP of its box (`verticalAlign`, as schema #1009 predicted for
+      // this def), and reserves `rows` lines of its own line height (`lines`).
+      text: {
+        kind: 'text',
+        type: 'type',
+        wrap: true,
+        verticalAlign: 'top',
+        lines: 'rows',
+        note: 'The value the field shows, or the placeholder. Wraps across the field width and reserves the default rows of its own line height, so the box is as tall as `rows` lines before anything is typed.',
+      },
+      // THE FOCUS RING — text-field's: an absolute sibling that rings the control on focus-visible.
+      focusRing: {
+        kind: 'absolute',
+        when: 'focus-visible',
+        nests: 'focus-ring',
+        inset: 'ring-offset',
+        strokeInset: 'ring-width',
+        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
+        note: 'An absolutely-positioned sibling nesting the shared `focus-ring`. Rings the control, takes no cell, and has its own stroke.',
+      },
+      // THE NESTED MESSAGE — text-field's: nest-fixed, following `status` by name, hidden by `showMessage`.
+      message: {
+        kind: 'nest',
+        nests: 'field-message',
+        nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
+        optional: true,
+        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name. Shown by default; the `showMessage` boolean hides the whole part.',
+      },
+    },
+    codeOnly: [
+      'size — the small / medium / large ladder is a code-API PROP + padding tokens (`size.{small,medium,large}.pad-*`), NOT a variants axis and NOT a projected Figma variant. Figma renders the single `md` rung (the bare `pad-x` / `pad-y` keys), text-field\'s shape: a declared size axis must project a rung (#795), so the single-projected-size field is expressed by the prop and tokens.',
+      'style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline`, so there is nothing for a Figma variant to enumerate.',
+      'pending — a real STATE (content streaming into the field, with aria-busy), deliberately NOT a Figma variant: its delta is runtime behavior with no distinct static skin, so it stays in `states` and is admitted out of the projected `stateAxis`.',
+      'empty — a real STATE (the displayed text is the placeholder), deliberately NOT a Figma variant, text-field\'s posture: its delta is the value ink (`label.empty`) and `error.border.empty`, a content condition code drives. It and `pending` are the two states held back, leaving the projected set at status(4) × state(5) = 20 members.',
+      'rows / minRows / maxRows and auto-grow — Figma has no numeric component property, so `rows` is not a Figma property: the value text reserves the `rows` prop\'s DEFAULT line count (3) of its own line height, frozen at paste. A designer wanting more rows types more lines (the box grows) or resizes the instance; `minRows` / `maxRows` and the auto-grow measurement are runtime behavior.',
+      'the RESIZE HANDLE (`resize`) — the drag grip is browser chrome in code and is not drawn in the Figma component. Whether to draw it, with which glyph and at which `resize` values, is an open design question.',
+      'the CHARACTER COUNTER (`maxLength` / `showCount`) — not drawn in the Figma component; `showCount` defaults to off and only ever shows with a real limit. Whether the Figma component carries a counter, and where, is an open design question.',
+      'the label / describedby WIRING and the counter\'s two-node live region — the host generates ids, ties the FieldLabel to the textarea, stitches the FieldMessage and the counter into aria-describedby, and sets aria-invalid. Figma has no accessibility tree, so the nested parts are associated by proximity alone.',
+      'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` (its state vocabulary is not the field\'s), so in Figma the nested label reads at rest regardless. A projection limit, not a design choice.',
+      'the KEYBOARD MODEL — native multi-line editing, the Enter key (a newline unless submitOnEnter), IME composition guards and the resize drag. All of it is runtime interaction the closed static member cannot carry.',
+    ],
+  },
+
+  // How this projects into Figma — text-field's shape. `status` is the one variant axis; `state` projects
+  // the five interactive states. The message's presence is a node-visibility boolean, so the set is
+  // status(4) × state(5) = 20 members.
+  figmaProperties: {
+    variantAxes: ['status'],
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only'] },
+    gridAxis: 'state',
+    texts: { value: { part: 'text', default: 'Placeholder' } },
+    booleans: {
+      showMessage: { part: 'message', figmaName: 'message', default: true },
+    },
   },
 
   accessibility: {
@@ -255,7 +387,8 @@ export const textarea: ComponentDef = {
     unverified: [
       'CSS `field-sizing: content` as the auto-grow mechanism — the brief calls it the biggest near-term implementation shift and prioritizes it behind an @supports query with the ghost-sizer JS polyfill as fallback. It also says explicitly not to treat its own version numbers (Chromium 123+, "Firefox following") as settled. NOT verified in this pass, which was authoring rather than research; verify before any implementation reads it as current.',
       'The Polaris unbounded-growth bug cited in brief §3 and §13 as the evidence for always setting maxRows — attributed to the external research pass, no `_source-text` backing in the vault. The RULE stands on its own reasoning; the citation is what is unverified.',
-      'The error stroke belongs on the CONTAINER, not the input, so a Windows scrollbar docks inside the error boundary rather than breaking it (brief §4). Real, and unexpressible today: `color.border.danger` paints either node and this def has no anatomy block to say which. Lands with the anatomy (docs/40 Arc 2 step 5) — recorded here so the requirement is not lost in the gap.',
+      'The error stroke belongs on the CONTAINER, not the input, so a Windows scrollbar docks inside the error boundary rather than breaking it (brief §4). The Figma anatomy strokes the `control` box that wraps the text, which is that reading; the code-side node split (a wrapper carrying the border around the native <textarea>) is not expressed by anything a gate reads.',
+      'The reserved rows are the value text\'s `minHeight` (rows × its line height), written by the executor after the text is appended to the auto-layout control. That Figma accepts and keeps a `minHeight` on a TEXT child of an auto-layout frame, with `textAutoResize: HEIGHT`, is modelled offline (the shim and the read-back) and not yet confirmed on a live host. Symptom if it is not kept: a `minHeight -> DISCARDED` miss, and a one-line-tall control.',
       'Brief §4 says `size` scales "typography and padding only", and this def binds padding but NO type token — because the substrate binds none either, so there is no type role for a field value to narrow. The padding half is expressed and the typography half is not, in both defs. Whether the field family should bind a type role is a substrate question, not a Textarea one — filed as #862 rather than decided here, because a child def is the wrong place to make the family\'s type call.',
       'rows / minRows / maxRows are in LINES and therefore resolve against the computed line-height, which brief §9 warns must be the RENDERED line box rather than an assumed Latin one (Arabic, Thai and Devanagari grow differently). No token expresses a line-height for this def to bind, so the constraint lives in prose only and nothing checks it.',
     ],

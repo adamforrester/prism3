@@ -56,6 +56,10 @@ export const fontKey = (f: FontName): string => `${f.family}|${f.style}`;
  *  Regular so a style's font is DIFFERENT from the font a fresh `createText` node starts on — equal
  *  fonts would make the loaded-font model below unfalsifiable. */
 export const STYLE_FONT: FontName = { family: 'Inter', style: 'Semi Bold' };
+/** The metrics a text style gives a node when a case names none (`ShimOpts.styleMetrics`): a 16px size at
+ *  150%, the shape every emitted brand bakes (`lint-lineheight-bake.ts` — a PERCENT line height, never
+ *  bound). A plausible host value, not an oracle: no assertion may read its expected number from here. */
+export const DEFAULT_STYLE_METRICS = { fontSize: 16, lineHeight: { unit: 'PERCENT' as const, value: 150 } };
 /** The font a fresh `createText` node STARTS on, before any style is applied — Figma's editor default,
  *  and deliberately DIFFERENT from `STYLE_FONT` (Regular vs Semi Bold). Like every font here it is not
  *  loaded until a `loadFontAsync` call names it, so a `characters` write against a node still carrying
@@ -134,6 +138,12 @@ export type ShimOpts = {
   /** The LINE BOX, in px, a TEXT node measures under the named applied style when `layoutModel` is on —
    *  the caption's line height, keyed by style NAME as `textAdvance` is. Unlisted styles measure 0. */
   textLineBox?: Record<string, number>;
+  /** The FONT SIZE and LINE HEIGHT an applied text style gives a TEXT node, keyed by style NAME — what the
+   *  host reports as `node.fontSize` / `node.lineHeight` once `setTextStyleIdAsync` resolves. The reserved-
+   *  lines floor (textarea's `rows`) multiplies them, so a node with no metrics would be a floor nothing can
+   *  compute. Unlisted styles read `DEFAULT_STYLE_METRICS`, because on the host every style HAS both; a case
+   *  that asserts a height names its own numbers here rather than trusting the default. */
+  styleMetrics?: Record<string, { fontSize: number; lineHeight: { unit: 'PIXELS' | 'PERCENT' | 'AUTO'; value?: number } }>;
   /** DELIBERATE COST, in ms, charged to a named host call — the only way this harness can gate a rule
    *  about WHEN the clock starts. Everything else here is synchronous, so every `chunkMs` is 0 and the
    *  strongest available assertion is `>= 0`, which no clock rule can fail. `setup` burns inside
@@ -586,8 +596,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const bv = node.boundVariables as Record<string, { value?: number }>;
         const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
         if (bv.height) return bv.height.value ?? 0;
+        // A LITERAL `minHeight` (the reserved-lines floor, textarea's `rows`) holds the node at least that tall,
+        // as the host does — a TEXT node's box is then max(floor, its own line box).
+        const litFloor = typeof node.minHeight === 'number' ? node.minHeight : 0;
         if (opts.layoutModel && node.type === 'TEXT')
-          return opts.textLineBox?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0;
+          return Math.max(litFloor, opts.textLineBox?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0);
         const pad = (bv.paddingTop?.value ?? 0) + (bv.paddingBottom?.value ?? 0);
         const flow = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE');
         // Max, not sum: the row is HORIZONTAL, so the cross axis hugs the tallest child. A COLUMN (under
@@ -596,7 +609,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           ? flow.reduce((a, c) => a + ((c.height as number) || 0), 0) + Math.max(0, flow.length - 1) * (bv.itemSpacing?.value ?? 0)
           : flow.reduce((a, c) => Math.max(a, (c.height as number) || 0), 0);
         // THE FLOOR: a bound `minHeight` holds a hugging frame at least that tall, as the host does.
-        return Math.max(bv.minHeight?.value ?? 0, pad + content + (stroked ? 2 * (node.strokeWeight as number) : 0));
+        return Math.max(bv.minHeight?.value ?? 0, litFloor, pad + content + (stroked ? 2 * (node.strokeWeight as number) : 0));
       },
       // Releases the aspect-ratio lock (#682). Counted as well as applied: the port field is optional and
       // the executor calls it `?.()`, so a port that lost the method would skip the unlock in silence.
@@ -653,6 +666,14 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // style's font, while a node whose style was ABSENT still carries `DEFAULT_FONT` and depends on
         // the floor. Left untouched when the style names no font, so the node keeps whatever it had.
         if (fn) (node as Record<string, unknown>).fontName = fn;
+        // …and its SIZE and LINE HEIGHT, as the host resolves them from the style (the reserved-lines floor
+        // reads both). Only for a style this file holds, so an absent style leaves the node's metrics unset.
+        const styleName = textStyles.find((s) => s.id === id)?.name;
+        if (styleName !== undefined) {
+          const m = opts.styleMetrics?.[styleName] ?? DEFAULT_STYLE_METRICS;
+          node.fontSize = m.fontSize;
+          node.lineHeight = { ...m.lineHeight };
+        }
         node._textStyleId = id;
         node.textStyleId = id;
       },

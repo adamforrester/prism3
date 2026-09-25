@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.159.0 — Textarea builds in Figma, its projection modeled on text-field: the same column (nested
+ * FieldLabel, the bordered control, nested FieldMessage following `status`), the same status-led border, five
+ * projected states, focus-ring nesting and footprint — status(4) × state(5) = 20 members, the single `md`
+ * rung (`size` left `variants`, text-field's #795 reason; `lint-rung-names` admits the ladder stated once).
+ * The control binds NO height: a new `PartDef.lines` on the value text names the `rows` prop, the plan
+ * carries the count (`minLines`), and both executors write the text's `minHeight` = rows × the line height
+ * the host reports for the styled node, after the append — so the box is rows × line height + padding in
+ * every brand with no pixel in the def. New def surface + a new plan field → MINOR; the component-surface
+ * and paint-census baselines accepted. CONTRACT STANDS (every binding is an existing name).
  * 0.158.0 — The field-message row reserves its status glyph's height in every status (owner decision, option
  * (a), 2026-09-25). On a brand whose caption line box is shorter than the 16px glyph (`nb-redesign`: 12px at
  * 1.25 = 15) the default message row measured 15 and the three status rows 16, so text-field built with 15
@@ -3639,7 +3648,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.158.0';
+export const ENGINE_VERSION = '0.159.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

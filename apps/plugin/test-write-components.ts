@@ -3457,6 +3457,71 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `message-row: with a ${TALL}px caption the row hugs the caption in every status, not the ${GLYPH}px floor ([${tallFm.join(', ')}], ${tall.foot.length} footprint misses)`);
 }
 
+// ---- THE TEXTAREA CONTROL IS `rows` LINES TALL, PLUS PADDING (its Figma projection) ----------------
+// The textarea's control binds no height: it hugs its block padding and a value text that reserves the
+// `rows` prop's default of its own line height. So the built control must measure rows × line + 2 × pad-y
+// at every member, in whatever brand, and track the line height when it moves.
+//
+// Driven through the REAL executor, dependency-first into one live file, with the shim's `layoutModel`.
+// ORACLES AUTHORED HERE (docs/34): ROWS is hand-written (3, the def's documented default — not read off the
+// def), the line height is (a) a real brand's EMITTED text style resolved through its own tree, and (b)/(c)
+// two synthetic metrics chosen here, one per unit, and the padding is read off the shim's own variable
+// model. Never read off the plan. The in-test mutation drops the def's `lines` and requires a one-line box.
+{
+  const ROWS = 3;
+  const textarea = componentDefs.find((d) => d.id === 'textarea')!;
+  const taPlans = figmaAnatomySet(materializeForBrand(textarea, null), { swapTarget: SWAP });
+  const valueStyles = [...new Set(taPlans.flatMap((p) => planTextStyles(p.root)))];
+  ok(valueStyles.length === 1, `textarea rows: the value text sets in exactly one style (${valueStyles.join(', ')})`);
+  const VALUE = valueStyles[0];
+  const PAD_Y = varValue('size/md/padding-y');   // what the shim binds the control's block padding to
+  type Metrics = NonNullable<ShimOpts['styleMetrics']>[string];
+  const lineOf = (m: Metrics): number => (m.lineHeight.unit === 'PIXELS' ? m.lineHeight.value! : (m.lineHeight.value! / 100) * m.fontSize);
+
+  const buildTextarea = async (m: Metrics, def: ComponentDef = textarea) => {
+    const defs = componentDefs.map((d) => (d.id === 'textarea' ? def : d));
+    const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+    const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
+    const f = fullFor(all);
+    const page: Page = { children: [] };
+    // One line of the value style is exactly `lineOf(m)` tall, so an unfloored text is ONE line.
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, textLineBox: { [VALUE]: lineOf(m) }, styleMetrics: { [VALUE]: m } });
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    await prebuildDependencies(def, { defs, project, host: shim as any, build });
+    const r = await build(def);
+    const set = page.children.find((c) => c.name === 'textarea' && c.type === 'COMPONENT_SET') as Node | undefined;
+    const controls = ((set?.children as Node[] | undefined) ?? []).map((mb) => ((mb.children as Node[]) ?? []).find((c) => c.name === 'control'));
+    return { r, controls, heights: [...new Set(controls.map((c) => (c ? Math.round((c.height as number) * 1000) / 1000 : NaN)))], foot: r.misses.filter((x) => x.startsWith('footprint -> ')) };
+  };
+
+  // (a) A REAL BRAND'S LINE HEIGHT: the NB fixture's emitted `body/md/default`, its font size resolved
+  // through the brand's own tree — the emitter, a code path separate from the projection.
+  const nbStyle = buildFigmaTextStyles(nbTheme()).styles.find((s) => s.name === VALUE)!;
+  const { tree: nbTree } = buildTree(nbTheme());
+  const sizeVar = (nbStyle.properties.fontSize as { variable: string }).variable.split('/');
+  const sizeLeaf = sizeVar.slice(1).reduce<any>((o, k) => o?.[k], (nbTree as any)[sizeVar[0]]);
+  const NB: Metrics = { fontSize: pxOf(nbTree as never, sizeLeaf), lineHeight: (nbStyle.properties.lineHeight as { value: Metrics['lineHeight'] }).value };
+  ok(NB.fontSize > 0 && NB.lineHeight.unit === 'PERCENT', `textarea rows seed: the NB value style is ${NB.fontSize}px at ${NB.lineHeight.value}% (one line ${lineOf(NB)}px)`);
+  // (b) and (c): two metrics that differ from the brand's and from each other, one per unit.
+  const CASES: [string, Metrics][] = [
+    ['NB body/md/default', NB],
+    ['18px at 140%', { fontSize: 18, lineHeight: { unit: 'PERCENT', value: 140 } }],
+    ['a 30px PIXELS line', { fontSize: 20, lineHeight: { unit: 'PIXELS', value: 30 } }],
+  ];
+  for (const [label, m] of CASES) {
+    const want = ROWS * lineOf(m) + 2 * PAD_Y;
+    const b = await buildTextarea(m);
+    ok(b.controls.length === 20 && b.controls.every(Boolean) && b.heights.length === 1 && Math.abs(b.heights[0] - want) < 1e-6 && b.foot.length === 0 && b.r.misses.length === 0,
+      `textarea rows (${label}): every one of the 20 controls measures ${ROWS} × ${lineOf(m)} + 2 × ${PAD_Y} = ${want} (got [${b.heights.join(', ')}] over ${b.controls.length} member(s); ${b.foot.length} footprint misses; ${b.r.misses.length} misses${b.r.misses.length ? ` — ${b.r.misses[0]}` : ''})`);
+  }
+
+  // (d) MUTATION, BY NAME: without `lines` the value text is one line and the control is one line tall.
+  const unreserved: ComponentDef = { ...textarea, anatomy: { ...textarea.anatomy!, parts: { ...textarea.anatomy!.parts, text: { ...textarea.anatomy!.parts.text, lines: undefined } } } };
+  const bare = await buildTextarea(NB, unreserved);
+  ok(bare.heights.length === 1 && Math.abs(bare.heights[0] - (lineOf(NB) + 2 * PAD_Y)) < 1e-6,
+    `textarea rows MUTATION: with the text's \`lines\` removed the control is ONE line tall, ${lineOf(NB)} + 2 × ${PAD_Y} (got [${bare.heights.join(', ')}]) — so the arms above measure the reserved rows, not a hug that happens to agree`);
+}
+
 // =============================================================================================
 // #1664 — THE REFERENCE RETRY OUTLASTS A HOST REFUSAL WINDOW MEASURED IN SECONDS, AND STAYS BOUNDED
 // =============================================================================================

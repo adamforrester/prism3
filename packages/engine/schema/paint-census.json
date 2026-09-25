@@ -133,6 +133,18 @@
         "sha256": "62c11db232bfacec58ac6f8f5480a835fd7ec3ed8d335d14deb8c9f57a41b52d"
       }
     },
+    "textarea": {
+      "set": {
+        "members": 20,
+        "assignments": 60,
+        "sha256": "dfc928882f854ff002c46697323396fbf157adfbbd87fdd9c88600c4b01ca8ef"
+      },
+      "grid": {
+        "members": 28,
+        "assignments": 84,
+        "sha256": "c1a46db13ea5c79b90e523e7359d4acb01830ba8ae90ba536a7fbf18688a2b88"
+      }
+    },
     "checkbox-control": {
       "set": {
         "members": 54,

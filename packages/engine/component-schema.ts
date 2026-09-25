@@ -333,6 +333,27 @@ export type PartDef = {
    *  `'fill'`/`'hug'` main axis projects to AUTO), so a `wrap` label under a floorless row is refused, which
    *  is what makes the row's `minWidth` load-bearing rather than decorative. `boolean`; absent means hug. */
   wrap?: boolean;
+  /** For a `text` part: the text box is at least this many LINES of its own type's line height tall —
+   *  a multi-line field's visible rows (textarea). NAMED AS A PROP, never a count: the value is the
+   *  numeric `default` of the def's own prop by this name (`'rows'` → 3), so the Figma control and the
+   *  code prop cannot drift apart. A count here would be a second statement of `rows` that nothing
+   *  compares with the first.
+   *
+   *  WHY A LINE COUNT AND NOT A HEIGHT TOKEN. No emitted token is "three lines of body text plus
+   *  padding", and minting one would put a Figma projection default in the platform-neutral tree
+   *  (CONTRACT surface). The height the brief asks for is rows × the RENDERED line height, which only the
+   *  applied text style knows — so the plan carries the count (`minLines`) and each executor multiplies it
+   *  by the line height the host reports for the node it just styled, at paste. Padding is the control's
+   *  own bound padding, added by the hug; nothing here is a pixel.
+   *
+   *  A FLOOR, NOT A FIXED HEIGHT: projected as the text node's `minHeight`, so a designer's longer copy
+   *  grows the box the way auto-grow does, while an empty or one-line value still reserves the rows.
+   *  Frozen at paste like the ring inset (Figma's `minHeight` takes a number, not a variable), so a
+   *  brand changing its line height after the build does not move an already-pasted box.
+   *
+   *  Refused on a non-`text` kind, and when the named prop is missing or its default is not a positive
+   *  integer — the silent-no-op shape: a count that resolves to nothing would project a one-line box. */
+  lines?: string;
   /** For `box` and `nest` parts: FILL the parent's CROSS axis — the missing twin of `wrap` (#1503). Where
    *  `wrap` stretches a text along the parent's MAIN axis (`layoutGrow: 1`), this stretches an in-flow child
    *  across the parent's CROSS axis so it spans the container's width in a column (or its height in a row).
@@ -2414,9 +2435,8 @@ const NESTED_WITHOUT_ANATOMY: Record<string, string[]> = {
   // `nests: 'focus-ring'`, so `nestedIds` sees the nesting and the def no longer binds a `focus-ring` COLOR
   // key at all (the nested ring owns its stroke). The UNREACHABLE direction below compels the removal —
   // exactly as #910 retired `checkbox` and #1221 retired `radio`/`switch` when their blocks landed.
-  // Same case still open: `textarea` binds the substrate's ring and has no `anatomy` yet, so `nests` cannot
-  // see it either. Its entry goes when its own block lands, which the UNREACHABLE direction now compels.
-  'textarea': ['focus-ring'],
+  // `textarea`'s entry left the same way when its Figma projection landed: its `focusRing` part nests
+  // `focus-ring`, and the def dropped its `focus-ring` COLOR key with it. The map is empty.
   // WHAT HAS ALREADY LEFT, and why the trigger needed teeth. `checkbox` came out in #910 when its
   // anatomy landed — the guard retiring an entry as designed, and at the time the only such removal.
   // `radio` and `switch` should have followed for the same reason and did not: both gained `anatomy`
@@ -3160,6 +3180,19 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       const boundedMain = !!pp?.layout && (pp.minWidth !== undefined || pp.layout.sizing.x === 'fixed');
       if (!boundedMain)
         e.push(`anatomy part '${n}' declares 'wrap' but its parent '${parent ?? '(none)'}' does not bound its main-axis width (minWidth ${pp?.minWidth ?? 'unset'}, sizing.x '${pp?.layout?.sizing.x ?? 'n/a'}') — 'layoutGrow' fills the REMAINING main-axis space and a hugging parent has none, so the label would hug its glyphs and overflow ('fill'/'hug' project to AUTO, #989). Give the parent a 'minWidth' floor or a fixed main axis`);
+    }
+    // ---- THE RESERVED LINES (textarea's `rows`) ----
+    // `lines` names a numeric PROP whose default is the line count the text box reserves. A TEXT-only
+    // capability (a line is a property of a type style), and the prop must resolve to a positive integer —
+    // otherwise the plan carries no count and the box silently projects one line tall.
+    if (p.lines !== undefined) {
+      if (p.kind !== 'text')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'lines' — only a 'text' part has a line height to multiply; a box sizes with its bindings and a slot/vector by its artboard`);
+      const prop = def.props.find((q) => q.name === p.lines);
+      if (!prop)
+        e.push(`anatomy part '${n}' declares lines: '${p.lines}', which is not a declared prop — the line count is read from that prop's default, so the text box would reserve nothing`);
+      else if (typeof prop.default !== 'number' || !Number.isInteger(prop.default) || prop.default < 1)
+        e.push(`anatomy part '${n}' declares lines: '${p.lines}', but that prop's default is ${JSON.stringify(prop.default)} — the reserved line count must be a positive integer`);
     }
     // ---- CROSS-AXIS CHILD FILL (#1503) ----
     // `crossAxisFill` projects `layoutAlign: 'STRETCH'` — Figma's per-child cross-axis stretch, the twin of

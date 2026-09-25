@@ -309,6 +309,24 @@ export const FIELDS: Record<string, FieldCheck> = {
     check: (p, n) => (n.textAutoResize === p ? null : str(n.textAutoResize)),
   },
 
+  // ── reserved lines (textarea's `rows`) ────────────────────────────────────────────────────────────
+  // The plan carries a LINE COUNT; the executor writes `minHeight` = count × the node's own line height. The
+  // host echoes neither the count nor the product's derivation, so this re-derives the expected floor from
+  // what the HOST holds — the built node's `lineHeight` (`PIXELS`, or `PERCENT` of its `fontSize`) — and
+  // compares it with the host's `minHeight`. An executor that dropped the write, wrote one line, or wrote a
+  // hard-coded number reads back wrong here whatever the plan says.
+  minLines: {
+    show: (p) => `minHeight = ${String(p)} lines`,
+    check: (p, n) => {
+      const lh = n.lineHeight as { unit?: string; value?: number } | undefined;
+      const fs = n.fontSize;
+      const line = lh?.unit === 'PIXELS' ? lh.value : lh?.unit === 'PERCENT' && typeof fs === 'number' && typeof lh.value === 'number' ? (lh.value / 100) * fs : undefined;
+      if (typeof line !== 'number') return `NO PIXEL LINE HEIGHT (lineHeight ${str(lh)}, fontSize ${str(fs)})`;
+      const want = (p as number) * line;
+      return typeof n.minHeight === 'number' && Math.abs(n.minHeight - want) < 1e-6 ? null : `minHeight ${str(n.minHeight)} (want ${want})`;
+    },
+  },
+
   // ── cross-axis child fill (#1503) ────────────────────────────────────────────────────────────────
   // The child-side cross-axis stretch (`layoutAlign: 'STRETCH'`), the twin of `layoutGrow` above. The
   // PARENT sets it on the child (both executors' child loops), so it reaches a nested INSTANCE; the host

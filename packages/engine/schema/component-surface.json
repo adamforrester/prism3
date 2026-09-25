@@ -109,7 +109,18 @@
       "members": 20,
       "sha256": "9a732dd6b277358c2eaadf679721c0f4dd13940b9ab192ec4574802fc8e6759d"
     },
-    "textarea": null,
+    "textarea": {
+      "members": 20,
+      "sha256": "e46c4e035376b02d4a458ef94effa92a80f167e505c9aee73724c46fccab0c27"
+    },
+    "textarea@outline-solid-tint": {
+      "members": 20,
+      "sha256": "6bc718331bfcd636c7b499d5c1697198c24c7a15fa3a1b72e8d2aaedb228f62a"
+    },
+    "textarea@outline-none": {
+      "members": 20,
+      "sha256": "187effd1f4385a96d99deca46038424f44b2b22dacb15f3c0d09e4a7661b821d"
+    },
     "checkbox-control": {
       "members": 54,
       "sha256": "547a58c826db0cdcfba9604b5af73757cf04b55737efabcd00c3fe38f796d58e"

@@ -403,6 +403,15 @@ export type FigmaNodePlan = {
    *  `n.textAutoResize ?? 'WIDTH_AND_HEIGHT'`. Paired with `layoutGrow: 1` for a wrapping label: the grow
    *  fixes the width and this lets the height flow. Set from `PartDef.wrap`. */
   textAutoResize?: 'WIDTH_AND_HEIGHT' | 'HEIGHT' | 'TRUNCATE' | 'NONE';
+  /** For a `TEXT` node: the LINE COUNT its box reserves — the node's `minHeight` is this many lines of its
+   *  own line height (textarea's `rows`). A COUNT, not pixels, so the plan stays brand-invariant: the
+   *  executor multiplies it by the line height the host reports for the node once its style is applied
+   *  (`PIXELS` as is, `PERCENT` of the font size), and writes the product at paste — the `absoluteInset`
+   *  division of labor, for the same reason (Figma's `minHeight` takes a number, not a variable). Applied
+   *  by the PARENT after the append, because a minimum size is a property of an auto-layout CHILD. Carried
+   *  ONLY on a text part declaring `lines`, so every other plan is byte-identical. Set from `PartDef.lines`,
+   *  resolved to the named prop's default. */
+  minLines?: number;
   /** Cross-axis child FILL (#1503): `'STRETCH'` when this in-flow child should span its parent's CROSS axis
    *  (a column's width, a row's height) rather than hug its own content — the twin of `layoutGrow`'s main-axis
    *  fill above. Figma's `layoutAlign: 'STRETCH'` is the only non-deprecated per-child cross-axis stretch. A
@@ -1489,6 +1498,19 @@ export const figmaAnatomyPlan = (
       // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
       // width (a `minWidth` floor or `fixed`), or the fill has nothing to resolve against (#989).
       ...(p.kind === 'text' && p.wrap ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
+      // THE RESERVED LINES (textarea's `rows`), carried ONLY on a `text` part declaring `lines`, as the
+      // named prop's DEFAULT — so the Figma box and the code prop read one number. A count, never pixels:
+      // the executor multiplies it by the node's own line height at paste. `anatomyErrors` has already
+      // proven the prop exists with a positive-integer default; the throw is the backstop for a caller
+      // that skipped validation, because a dropped count would project a one-line box in silence.
+      ...(p.kind === 'text' && p.lines !== undefined
+        ? (() => {
+            const count = def.props.find((q) => q.name === p.lines)?.default;
+            if (typeof count !== 'number' || !Number.isInteger(count) || count < 1)
+              throw new Error(`${def.id}: part '${name}' reserves lines from prop '${p.lines}', whose default ${JSON.stringify(count)} is not a positive integer`);
+            return { minLines: count };
+          })()
+        : {}),
       // CROSS-AXIS CHILD FILL (#1503), carried ONLY on a `box`/`nest` that opts in, so every other node's
       // plan is byte-identical. `layoutAlign: 'STRETCH'` is Figma's per-child cross-axis stretch — the twin
       // of `wrap`'s main-axis `layoutGrow` above. `anatomyErrors` restricts the kinds and refuses the root.
@@ -2654,7 +2676,7 @@ export const SWAP_NO_PROPERTY = 'the property is NOT created, so this slot is no
  */
 export const planToPluginJs = (plan: AnatomyPlan): string => stripPayloadComments(`const PLAN=${JSON.stringify(plan.root)};
 ${PAYLOAD_PREAMBLE}
-${PAYLOAD_BUILD}
+${payloadBuildFor([plan.root])}
 const root=await build(PLAN);
 figma.currentPage.appendChild(root);
 const comp=figma.createComponentFromNode(root);
@@ -2768,6 +2790,28 @@ for(const [t,names] of seenTail) if(names.length>1) misses.push('AMBIGUOUS varia
  * binding, the four API shapes, and the two read-backs — which is the other half of why this is one
  * string: those are the lines a divergent copy would silently lose.
  */
+/**
+ * THE RESERVED-LINES WRITE (textarea's `rows`), spliced into `PAYLOAD_BUILD`'s child loop ONLY for a
+ * payload whose plans carry `minLines` — so every other payload is byte-identical. That is a budget
+ * decision, measured: Button's #536 probe grid packed to 41,983 of `SET_CHUNK_BYTES`' 42,000, and these
+ * lines unconditional pushed it into a second chunk. Applied by the PARENT after the append, because a
+ * minimum size belongs to an auto-layout CHILD. The count is the plan's; the line height is the host's,
+ * read off the node its style was just applied to — `PIXELS` as is, `PERCENT` of the font size. `AUTO`
+ * has no number to multiply, so it is reported rather than guessed. Frozen at paste, like the ring inset.
+ * Lockstep with the plugin executor (`write-components.ts`).
+ */
+const MIN_LINES_SLOT = '__MIN_LINES__';
+const PAYLOAD_MIN_LINES = `    if(c.minLines){
+      const lh=kid.lineHeight||{},fs=kid.fontSize;
+      const h=c.minLines*(lh.unit==='PIXELS'?lh.value:lh.unit==='PERCENT'?lh.value/100*fs:NaN);
+      if(!(h>0))misses.push(c.name+'.minLines -> no px line height');
+      else{kid.minHeight=h;if(kid.minHeight!==h)misses.push(c.name+'.minHeight -> DISCARDED');}
+    }`;
+const hasMinLines = (n: FigmaNodePlan): boolean => n.minLines !== undefined || n.children.some(hasMinLines);
+/** `PAYLOAD_BUILD` for these roots: the reserved-lines write spliced in where one of them needs it. */
+const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
+  PAYLOAD_BUILD.replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '');
+
 const PAYLOAD_BUILD = `const __expose=[];
 // #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
 // else. That call is what puts the nested instances inside a component, which is Figma's precondition for
@@ -3089,6 +3133,7 @@ const build=async(n)=>{
     // nested INSTANCE (a \`nest\` row / label / message) the child neutralizer returns early on. Written only
     // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`.
     if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;
+${MIN_LINES_SLOT}
   }
   // A CENTERED absolute child (#612's pending spinner with no visual cell to take). Applied by the
   // parent for the same reason the inset ones are — \`layoutPositioning\` only means anything inside an
@@ -3694,7 +3739,7 @@ const PROPS=${JSON.stringify(props)};
 const REFS=${JSON.stringify(refs)};
 const REF_OVERRIDES=${JSON.stringify(refOverrides)};
 ${PAYLOAD_PREAMBLE}
-${PAYLOAD_BUILD}
+${payloadBuildFor(cells.map((c) => c.root))}
 const built=[];
 for(const spec of PLANS){
   const root=await build(spec.root);
@@ -4066,7 +4111,7 @@ const PROPS_ALL=${JSON.stringify(last ? props : [])};
 const REFS_ALL=${JSON.stringify(last ? refs : [])};
 const REF_OVERRIDES_ALL=${JSON.stringify(last ? refOverrides : [])};
 ${PAYLOAD_PREAMBLE}
-${PAYLOAD_BUILD}
+${payloadBuildFor(slice.map((x) => x.root))}
 ${PAYLOAD_CHUNK_BODY}
 ${PAYLOAD_DECLARE_PROPS}
 ${PAYLOAD_WIRE_REFS}

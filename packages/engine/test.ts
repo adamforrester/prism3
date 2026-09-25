@@ -11904,8 +11904,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
     // THE REACH: every def that binds the wash is rewritten — named, so a fifth binder must be added here.
     const binders = componentDefs.filter((d) => applyOutlineInteraction(d, 'none') !== d).map((d) => d.id).sort();
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'select', 'text-field']),
-      `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, select, text-field (${binders.join(', ')})`);
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'select', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, select, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw. The wrap is what makes the gate above green.
@@ -12991,8 +12991,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             if (bv.height) return bv.height.value ?? 0;
             const pad = (bv.paddingTop?.value ?? 0) + (bv.paddingBottom?.value ?? 0);
             const flow = ((node.children as Record<string, unknown>[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE');
-            // Max, not sum: the row is HORIZONTAL, so the cross axis hugs the tallest child.
-            return pad + flow.reduce((a, c) => Math.max(a, (c.height as number) || 0), 0) + (stroked ? 2 * weight : 0);
+            // Max, not sum: the row is HORIZONTAL, so the cross axis hugs the tallest child. A literal
+            // `minHeight` (the reserved-lines floor) holds the node at least that tall, as the host does.
+            return Math.max(typeof node.minHeight === 'number' ? node.minHeight : 0, pad + flow.reduce((a, c) => Math.max(a, (c.height as number) || 0), 0) + (stroked ? 2 * weight : 0));
           },
           // Modeled as a plain settable field, so a payload that never writes it leaves `''` — which is
           // the empty-label set #510 shipped, and the state the read-back has to be able to report.
@@ -13064,7 +13065,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             }
             bv[prop] = { id: v.id, value: v.value };
           },
-          setTextStyleIdAsync: async (id: string) => { node.textStyleId = id; },
+          // …and the style's SIZE and LINE HEIGHT, as the host resolves them (the reserved-lines floor reads
+          // both). The plugin shim's `DEFAULT_STYLE_METRICS`, restated: a plausible host value, not an oracle.
+          setTextStyleIdAsync: async (id: string) => { node.textStyleId = id; node.fontSize = 16; node.lineHeight = { unit: 'PERCENT', value: 150 }; },
           // #1007 — STORED UNDER FIGMA'S OWN NAME, `effectStyleId`, as the plugin shim does. This was
           // `async () => {}`: the write was accepted and kept nowhere, so deleting the payload's effect-style
           // apply was invisible here. A stub that discards a write it accepted is the permissive model the
@@ -19814,10 +19817,21 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const walkPlan = (n: FigmaNodePlan, f: (n: FigmaNodePlan) => void): void => { f(n); n.children.forEach((c) => walkPlan(c, f)); };
   let textNodes = 0, claimed = 0, onNonText = 0;
   const values = new Set<string>();
+  // The ONE override in the corpus, hand-named: `textarea`'s value text sits at the TOP of the rows it
+  // reserves, as this block predicted. Every other text node keeps the default.
+  const OVERRIDES = new Set(['textarea/text:TOP']);
+  const overridden = new Set<string>();
   for (const def of componentDefs) {
     if (!def.figmaProperties) continue;
     for (const m of figmaAnatomySet(def, { swapTarget: 'FPO' })) walkPlan(m.root, (n) => {
-      if (n.type === 'TEXT') { textNodes++; if (n.textAlignVertical) { claimed++; values.add(n.textAlignVertical); } }
+      if (n.type === 'TEXT') {
+        textNodes++;
+        if (n.textAlignVertical) {
+          claimed++;
+          if (n.textAlignVertical === 'CENTER') values.add(n.textAlignVertical);
+          else overridden.add(`${def.id}/${n.name}:${n.textAlignVertical}`);
+        }
+      }
       else if (n.textAlignVertical) onNonText++;
     });
   }
@@ -19827,8 +19841,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `#1009: EVERY text node carries textAlignVertical, not only the overriding ones — a field absent whenever it agrees with the default is one #865's second-direction gate cannot tell from a silence (${claimed}/${textNodes})`);
   ok(onNonText === 0,
     `#1009: and NOTHING else carries it — textAlignVertical is a TextNode property, so a frame carrying it is a plan the executor cannot execute and Figma throws on (got ${onNonText})`);
-  ok(values.size === 1 && values.has('CENTER'),
-    `#1009: the projector's default is CENTER at every text node, since no def overrides it yet (got [${[...values].join(', ')}])`);
+  ok(values.size === 1 && values.has('CENTER') && [...overridden].sort().join() === [...OVERRIDES].sort().join(),
+    `#1009: the projector's default is CENTER at every text node but the one def that overrides it (textarea's value text, TOP) — got default [${[...values].join(', ')}], overrides [${[...overridden].join(', ')}]`);
 
   // THE OVERRIDE EXISTS AND WORKS, exercised on a synthesised part rather than waiting for `textarea`'s
   // anatomy. An opt-out that ships after the default is an opt-out nobody could have used, so it has to
