@@ -30,7 +30,7 @@
 
 **Traps for whoever re-verifies this.**
 - **The paste read-back compared washes as plain aliases.** Adding a `solid-tint` parity brand to `test-mcp-paste.ts` found it: 3 × 6 findings per mode. `runReadbackVars` and `compareReadback` now carry the opacity variable's name.
-- **`materialise-to-figma.ts` (the legacy CLI payload) was not taught the new shape.** It reads committed `out/figma/<brand>/`, and no committed brand has a wash. Filed as a follow-up rather than widened here.
+- **`materialise-to-figma.ts` (the legacy CLI payload) was not taught the new shape.** It reads committed `out/figma/<brand>/`, and no committed brand has a wash. Filed as #1672 rather than widened here.
 
 **Gates (docs/34), with mutations run from `wip:` commits:** listed in the PR body, each failing by name.
 
