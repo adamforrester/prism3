@@ -188,6 +188,9 @@ The keys live under the `prism3agent` namespace of the file's root shared plugin
 and `claimed`, `result:<id>`, `results` and `link` (the plugin's). Each key has one writer, so the two
 sides never overwrite each other.
 
+**On the owner's machine, use the desktop bridge instead** (`tools/figma-bridge/README.md`). It runs the
+same commands over a localhost WebSocket, with no round trip through the file.
+
 **Not yet verified live:** whether a write made by `use_figma` reaches the owner's open plugin through
 multiplayer, and how fast. The plugin polls rather than waits for a change event so that either route
 works, but if `read` stays at `queued: true` for more than about ten seconds while `link.on` is true,

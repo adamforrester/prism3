@@ -8,6 +8,7 @@
   "documentAccess": "dynamic-page",
   "networkAccess": {
     "allowedDomains": ["none"],
-    "reasoning": "The Prism3 engine is bundled into the plugin; theming runs fully offline with no runtime network calls."
+    "reasoning": "The Prism3 engine is bundled into the plugin; theming runs fully offline with no runtime network calls.",
+    "devAllowedDomains": ["ws://localhost:17331"]
   }
 }

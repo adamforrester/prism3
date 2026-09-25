@@ -2926,6 +2926,11 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.156.0 — The AGENT LINK, transport B (the local desktop bridge): while the owner has the link on, the
+ * plugin's UI iframe holds a WebSocket to `tools/figma-bridge/server.ts` on `ws://localhost:17331` (the one
+ * `devAllowedDomains` origin the manifest adds) and relays its commands to the same main-thread dispatcher
+ * the mailbox uses; the link state gains `transports.bridge` and a `link-off` refusal. Plugin behavior →
+ * MINOR; stamp-only regen. CONTRACT STANDS.
  * 0.155.0 — The AGENT LINK, transport A (the file mailbox): an agent can drive the running plugin by command
  * and read back a structured result. The plugin's main-thread handlers now report to an `ActionSink` (the panel
  * passes one that posts exactly what it posted before), one `ACTIONS` table serves the UI switch and the
@@ -3618,7 +3623,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.155.0';
+export const ENGINE_VERSION = '0.156.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

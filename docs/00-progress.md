@@ -7,6 +7,24 @@
 
 ---
 
+## (2026-09-25) — the agent link, transport B: a local desktop bridge over the same protocol
+
+**STATUS: PR open, labeled DO NOT MERGE; stacks on the mailbox PR (#1660).** Plugin + `tools/figma-bridge/` + a stamp-only regen. **ENGINE 0.155.0 → 0.156.0** (plugin behavior → MINOR); CONTRACT STANDS. Gate count **STANDS**: `apps/plugin/test-agent-bridge.ts` is an arm of the plugin `test` step.
+
+**What it adds.** `tools/figma-bridge/server.ts` is a stdio MCP server (`figma_status`, `figma_run {cmd, args, timeoutMs}`, `figma_logs {since, limit}`) and a hand-rolled RFC 6455 WebSocket server on `ws://localhost:17331` (`node:http` + `node:crypto`, no `ws`). While the owner has the link on, the plugin's UI iframe holds the socket — the main thread has no network — and `src/agent-bridge-relay.ts` relays each command to the SAME dispatcher the mailbox uses, then streams progress and console lines back; they reach the MCP client as `notifications/progress` / `notifications/message` and stay readable through `figma_logs`. The protocol is unchanged apart from two additive fields: `transports.bridge` on the link state and a `link-off` error for a bridge command that lands after switch-off.
+
+**Netting found a phantom-plugin defect, fixed here.** The first version had no test for a plugin reconnecting mid-command (deleting the replacement branch in `attach` left the suite green). Writing that test, modeled on the Figma Console MCP bridge's same-file reconnect (MIT, studied not copied), exposed a second, real defect: `node:http` hands over upgraded sockets HALF-OPEN, so a plugin that simply goes away — Figma quits, the iframe is killed, no close frame — never fired `'close'`, and `figma_status` kept reporting a connected plugin whose every command would wait out its timeout. The server now treats the peer's `'end'` as the end (destroy → `'close'` → detach). New `test-agent-bridge.ts` arms, each mutated from a committed HEAD and failing by name: removing the replacement → `reconnect: the older connection is closed (1000)` + `reconnect: the in-flight run fails with the reason, not a timeout`; removing the `'end'` handler → `drop: a plugin that goes away without a close frame is not left "connected"`.
+
+**The manifest change (the owner approved it, 2026-09-25).** `networkAccess.devAllowedDomains: ["ws://localhost:17331"]`, and nothing else — `allowedDomains: ["none"]` and its offline reasoning stay as shipped. The port has one source (`BRIDGE_PORT` in the relay); the server reads it, and the manifest entry has to match it.
+
+**Two traps worth knowing.** (1) `localhost` resolves to `::1` on some machines and `127.0.0.1` on others, so the server binds both loopback addresses (IPv6 best-effort). (2) The first test run failed `run: … unchanged` on a result carrying `é`: the TEST's stdout reader decoded each chunk separately and split a two-byte character at a chunk boundary. The server's own stdin reader already used `setEncoding('utf8')`; the test now does too.
+
+**Mutations, each from a committed `wip:` HEAD, restored, each failing by name:** B1 the relay stops recording the ids it delivered → `e2e/routes`, `e2e/parity`; B2 bridge commands dispatched through a module-load copy of `ACTIONS` → `e2e/routes` ×2 (a copy spread per call survives — it copies the spied entries — so the mutation that means "a copy" is the load-time one); B3 the server stops unmasking → `fragmented`, `ping`; B4 the relay ignores switch-off → `e2e/switch-off` ×2.
+
+**Not verified — the first live check.** Whether Figma's desktop app lets a development plugin's iframe open `ws://localhost:17331` under `devAllowedDomains`. First run: start the server, switch the link on, and `figma_status` should say `connected: true`.
+
+---
+
 ## (2026-09-25) — the agent link, transport A: an agent drives the RUNNING plugin by command through the file (mailbox)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Plugin + `tools/figma-mcp/` + a stamp-only regen. **ENGINE 0.154.0 → 0.155.0** (plugin behavior → MINOR); CONTRACT STANDS at 12.0.0 (`--accept` refreshed only the informational `engineVersion`). Gate count **STANDS** at 66: the new suite `apps/plugin/test-agent-link.ts` is an arm of the existing plugin `test` step. The desktop bridge (transport B) is the stacked follow-up PR.

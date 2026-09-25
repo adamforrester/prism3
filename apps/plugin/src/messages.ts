@@ -23,7 +23,7 @@
  * means Button.
  */
 import type { BrandInput } from '@prism3/engine/theme';
-import type { AgentLinkState } from './agent-protocol';
+import type { AgentLinkState, AgentResult, AgentProgress } from './agent-protocol';
 
 /** Messages the UI iframe sends TO the main thread. Wrapped in `{ pluginMessage }` on the wire. */
 export type UiToMain =
@@ -85,6 +85,12 @@ export type UiToMain =
   /** The owner's AGENT LINK switch (`agent-link.ts`). The ONLY way the link turns on: an agent cannot send
    *  this, because only the panel posts to the main thread. Not persisted — the link is off at every launch. */
   | { type: 'agent-link'; on: boolean }
+  /** A command the desktop bridge delivered (transport B), relayed by the panel's socket. Unvalidated here —
+   *  the main thread's dispatcher parses it exactly as it parses a mailbox entry, and answers `agent-result`.
+   *  Refused with `link-off` unless the owner's switch is on. */
+  | { type: 'agent-command'; command: unknown }
+  /** Whether the panel's socket to the desktop bridge is open — shown on the link state. */
+  | { type: 'agent-bridge'; connected: boolean }
   /** Designer is dragging the UI's resize grip (#144). Sent continuously during the drag so the
    *  window tracks the pointer; `commit` is true only on pointer-up, which is when the main thread
    *  persists the size to `clientStorage`. Splitting it this way keeps the drag smooth without
@@ -212,7 +218,13 @@ export type MainToUi =
    *  listening, and the last command it ran with its headline. Sent on `ui-ready`, on every switch, and
    *  after every command, so the panel's control always shows what the link is doing. The shared UI body
    *  never reads it — the agent-link control (`agent-link-ui.ts`) is its only consumer. */
-  | { type: 'agent-link-state'; state: AgentLinkState };
+  | { type: 'agent-link-state'; state: AgentLinkState }
+  /** The result of an `agent-command` — the protocol's own envelope, relayed to the bridge unchanged. */
+  | { type: 'agent-result'; result: AgentResult }
+  /** A build's progress reading while an agent command runs, streamed to the bridge (#684's reading). */
+  | { type: 'agent-progress'; id: string; progress: AgentProgress }
+  /** A console line printed while an agent command runs, streamed to the bridge. */
+  | { type: 'agent-log'; id: string; line: string };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */
 export type OfType<U extends { type: string }, T extends U['type']> = Extract<U, { type: T }>;

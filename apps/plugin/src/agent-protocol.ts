@@ -8,7 +8,8 @@
  *
  *   · the FILE MAILBOX (`agent-link.ts`) — the envelopes travel through the file's root shared plugin data,
  *     so a cloud agent whose only Figma access is the hosted MCP's `use_figma` can reach the plugin;
- *   · the LOCAL DESKTOP BRIDGE (a later PR) — the same envelopes over a localhost WebSocket.
+ *   · the LOCAL DESKTOP BRIDGE (`agent-bridge-relay.ts`, `tools/figma-bridge/`) — the same envelopes over a
+ *     localhost WebSocket, for a Claude Code session on the owner's machine.
  *
  * CONTEXT-NEUTRAL, like `messages.ts`: pure data and pure functions, type-only imports, so it compiles
  * under BOTH tsconfigs (main = no DOM, ui = no plugin API) and the Node-side agent tools import it too.
@@ -73,7 +74,9 @@ export type AgentErrorCode =
   /** The command was already queued when the owner switched the link on, so it was not run. */
   | 'stale'
   /** The handler threw past its own catch — a defect in the plugin, reported rather than swallowed. */
-  | 'handler-threw';
+  | 'handler-threw'
+  /** A bridge command reached the plugin after the owner switched the link off. */
+  | 'link-off';
 export type AgentError = { code: AgentErrorCode; message: string };
 
 /** One `component-progress` reading, as the UI's pill receives it, with when it arrived. */
@@ -123,7 +126,8 @@ export type AgentLinkState = {
   build: string;
   /** The mailbox poll interval while on. */
   pollMs: number;
-  transports: { mailbox: boolean };
+  /** `mailbox`: polling. `bridge`: the panel holds an open socket to the local desktop bridge. */
+  transports: { mailbox: boolean; bridge: boolean };
   lastCommand: { id: string; cmd: string; ok: boolean; finishedAt: string; headline: string } | null;
   /** An inbox the plugin could not read, or entries it could not answer by id. */
   inboxError: string | null;

@@ -55,7 +55,7 @@ import type { ComponentDef } from '@prism3/engine/component-schema';
 import { createAgentLink } from './agent-link';
 import { createDispatcher, componentCensus } from './agent-dispatch';
 import type { ActionSink, AgentActions } from './agent-dispatch';
-import { AGENT_COMMANDS } from './agent-protocol';
+import { AGENT_COMMANDS, failedResult } from './agent-protocol';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
 // (the inlined `apps/studio/src` app; declared for the sandbox global in `figma-env.d.ts`). The shared
@@ -888,6 +888,9 @@ export const ACTIONS: AgentActions = { applyTheme, buildComponents, fileSetup, p
  */
 const dispatch = createDispatcher({
   actions: ACTIONS,
+  // Streamed to the panel, which forwards them to the desktop bridge for the commands it delivered.
+  onProgress: (id, progress) => postToUi({ type: 'agent-progress', id, progress }),
+  onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
   // which are not necessarily the input the agent previewed.
@@ -951,6 +954,23 @@ onUiMessage((msg: UiToMain) => {
     case 'agent-link':
       // The owner's switch — the only way the link turns on. See `agent-link.ts`.
       agentLink.setOn(msg.on);
+      return;
+    case 'agent-command':
+      // Transport B: a command the desktop bridge delivered through the panel's socket. The same
+      // dispatcher as the mailbox — and the same refusal when the owner has not switched the link on.
+      if (!agentLink.state().on) {
+        const id = typeof (msg.command as { id?: unknown })?.id === 'string' ? (msg.command as { id: string }).id : '';
+        const cmd = typeof (msg.command as { cmd?: unknown })?.cmd === 'string' ? (msg.command as { cmd: string }).cmd : '';
+        postToUi({ type: 'agent-result', result: failedResult({ id, cmd, transport: 'bridge', engineVersion: ENGINE_VERSION, at: new Date().toISOString() }, { code: 'link-off', message: 'the agent link is off in this plugin session' }) });
+        return;
+      }
+      void dispatch(msg.command, 'bridge').then((result) => {
+        agentLink.noteCommand(result);
+        postToUi({ type: 'agent-result', result });
+      });
+      return;
+    case 'agent-bridge':
+      agentLink.setBridge(msg.connected);
       return;
     case 'resize-ui': {
       // Resize on every drag message so the window tracks the pointer; persist only on the

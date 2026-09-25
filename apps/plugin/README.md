@@ -261,7 +261,7 @@ The CLIs and the runbook are in `tools/figma-mcp/`.
 "The plugin does the writing; the agent does the triggering and reading of the output." With the owner's
 **Agent link** switched on (a temporary dashed chip, bottom-left of the panel — its placement and name are
 open owner decisions), an agent sends a command and reads back a structured result. One protocol, two
-transports; this section covers the protocol and transport A.
+transports: A, the file mailbox, and B, the local desktop bridge.
 
 - ✅ **One protocol** — `src/agent-protocol.ts`, context-neutral like `messages.ts` (compiles under both
   tsconfigs): the command envelope `{v, id, cmd, args, issuedAt}`, the result envelope
@@ -285,6 +285,12 @@ transports; this section covers the protocol and transport A.
   `figma` and imports `main.ts` itself, then drives the mailbox with the exact scripts the CLI prints.
 - ⏭ **Not verified live:** whether a `use_figma` write reaches an open plugin through multiplayer, and how
   fast. The mailbox polls so either route works; the first live run confirms it.
+- ✅ **Transport B, the local desktop bridge** — `tools/figma-bridge/server.ts` (a stdio MCP server plus a
+  hand-rolled RFC 6455 WebSocket server on `ws://localhost:17331`) and `src/agent-bridge-relay.ts`: while
+  the link is on, the UI iframe holds the socket (the main thread has no network) and relays each command
+  to the same dispatcher the mailbox uses. It streams progress and console lines back. The manifest adds
+  that one origin under `networkAccess.devAllowedDomains` only; `allowedDomains: ["none"]` is unchanged.
+  Gate: `test-agent-bridge.ts`.
 - ⏭ **No `cleanup` command** — no panel action removes components, and the link routes only to those.
 
 The iframe entry is now `src/ui/entry.ts`: it imports `apps/studio/src/main.ts` whole and unchanged (one UI,
