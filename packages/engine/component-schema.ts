@@ -2375,12 +2375,11 @@ export type WeightIntent = (typeof WEIGHT_INTENTS)[number];
  * byte-identical), gated per brand for the same reason.
  *
  * This sentence used to end *"and the ring is in `composition.composesWith`"*, which is FALSE for both
- * defs it describes — neither `text-field` nor `textarea` lists the ring there. Dropped rather than
- * repaired by editing the defs, because the measurement says a two-def repair would make things worse:
- * NINE defs bind `focus-ring` and SIX omit it from `composesWith`, the whole button family among them,
- * so the split is corpus-wide and does not follow `nests`. Which direction is intended — add it to six,
- * or remove it from the three that carry it — is a question about what `composesWith` means, not a typo.
- * Filed as #1238.
+ * defs it described at the time — neither `text-field` nor `textarea` listed the ring there, and the
+ * split was corpus-wide (the whole button family omitted it too). #1238 settled it: `composesWith`
+ * follows `nests`, so every def that nests the ring now lists it, and `test.ts` (component-refs, arm a2)
+ * fails any def whose anatomy nests a component its `composesWith` leaves out. `textarea` is listed by
+ * hand, because a def without `anatomy` has no `nests` for that arm to read.
  *
  * This map is deliberately the SMALLEST possible escape hatch, and an entry is INERT the moment its def
  * gains an `anatomy` block — the guard requires `!def.anatomy`, so the derived path simply takes over.

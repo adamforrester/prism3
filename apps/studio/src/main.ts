@@ -40,6 +40,7 @@ import { hostCommit } from './write-adapter';
 import { buildChip, buildTitle } from './build-identity';
 import { sizeColumnHeader } from './size-labels';
 import { persistInput, restoreInput } from './persist-local';
+import { outlineStateRoles } from './outline-roles';
 import { emToPercentLabel } from './em-percent';
 import {
   provenanceOf, noOrigin, needsOverwriteConfirm, isDirty, isUnrecoverable, joinSeed, withRecovered,
@@ -2238,7 +2239,6 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // test was the only spelling available while the marker sat mid-path in three different positions;
   // #1140 makes it a single leading segment, so the question has one answer and one place to ask it.
   const onInverseGround = isInverseRole(surf.key);
-  const outlineFill = outlineFillFamily(theme.outlineInteraction);
   const paletteBlock = (nm: string, c: string): HTMLElement => {
     const block = el('div', 'sg-pblock');
     const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', nm), sgPill(`interactive.${c}.fill.rest`, `color.interactive.${c}`)); block.append(hd);
@@ -2249,9 +2249,14 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // exist, `paint()` returns 'transparent' for a missing role, and the row rendered the `none`
     // treatment. Two of three methods therefore looked identical on the surface a designer hands a
     // developer as the reference — and `none` was only "right" by accident.
-    const fillRole = (s: string): string | null => (s === 'rest' ? null : outlineFillRole(theme.outlineInteraction, c, s));
+    //
+    // The GROUND is part of that choice too (#1629): on an inverse preview ground the fill reads the
+    // `inverse.` twin of that role, as the ink and edge below do. All three keys come from one pure
+    // helper, `outlineStateRoles`, so the three cannot take the ground switch separately again — the
+    // fill was the one that did not, and painted the page wash on the band.
+    const rolesFor = (s: string) => outlineStateRoles(theme.outlineInteraction, c, s, onInverseGround);
     const bgFor: Record<string, string> = Object.fromEntries(
-      STATES.map((s) => { const k = fillRole(s); return [s, k ? paint(cur, k) : 'transparent']; }));
+      STATES.map((s) => { const k = rolesFor(s).fill; return [s, k ? paint(cur, k) : 'transparent']; }));
     // The OUTLINE ink is the one role here measured against the PAGE rather than against its own
     // fill, so it is the one that breaks when the preview ground stops being the page. On the
     // inverse band `interactive.<c>.text.rest` rendered #0e0d0c on #0e0d0c — 1.00:1, the identical
@@ -2266,8 +2271,8 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // The switch is PER STATE, not per row, and fixing the fill above is what forced that. The wash
     // is translucent, so a hovered control on the inverse band is still on the band and the
     // `inverse` ink is right for all three states. Since #1614 the `solid-tint` fill is translucent
-    // too (the fill at an opacity step), so `opaque` is false and the switch below no longer fires for
-    // it. Until then it was an OPAQUE palette step: it covered the band, so from `hover` onward the ground is a page-tuned tint and the
+    // too (the fill at an opacity step), so `opaque` is false and the switch (now in `outlineStateRoles`)
+    // no longer fires for it. Until then it was an OPAQUE palette step: it covered the band, so from `hover` onward the ground is a page-tuned tint and the
     // band's ink is measured against something that is no longer there. Probed across the corpus —
     // 5 brands × 4 modes × {primary, destructive} × {hover, pressed} — the inverse ink on that tint
     // fails 3:1 in **79 of 80** combinations, worst 1.32:1. The engine gates the tint against the
@@ -2277,12 +2282,11 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // gated-ground/painted-ground family as #63, #570 and #573.
     // The marker is a PREFIX since #1140, so the conditional moved to the front of the key rather
     // than into the middle of it. Same two candidate roles, one segment position.
-    const onBand = (s: string): boolean => onInverseGround && !(outlineFill.opaque && fillRole(s));
-    const otxt = (s: string) => `${onBand(s) ? 'inverse.' : ''}interactive.${c}.text.${s}`;
+    const otxt = (s: string) => rolesFor(s).text;
     // The edge is now stateful too (#576), so this appends the state exactly as `otxt` does. #575
     // had already made this function per-state — it took `s` only to choose the GROUND, and returned
     // the same single border for all three. The state key is the half that was missing.
-    const obdFor = (s: string) => `${onBand(s) ? 'inverse.' : ''}interactive.${c}.border.${s}`;
+    const obdFor = (s: string) => rolesFor(s).border;
     // The footer pill names the REST edge — the state whose ground is the row's own, and the one a
     // reader is looking at when they read the label.
     const obd = obdFor('rest');
@@ -2321,7 +2325,7 @@ const PAGE_COPY: Record<PageKey, [string, string]> = {
   preview: ['Preview your system.', 'The style guide, the full contrast-contract table, and every resolved token — through the mode picked above. Switch modes to preview them; this is the one place the whole system renders together.'],
   // #718. The lede states the role rather than the feature, because that is the fact this page exists
   // to convey: the write is how the anatomy schema is proven to materialize, not a component library
-  // the brand ships. Naming the one def and the member count keeps it from reading as a catalogue.
+  // the brand ships. Naming the one def and the member count keeps it from reading as a catalog.
   components: ['Components.', 'Internal — the Button set, written onto the Figma canvas from the component definition. One definition carries the anatomy this needs, so one component builds: 648 variants across intent, appearance, size, state, and the two icon slots. This is how the definition format is proven to materialize, not a component library the brand ships.'],
 };
 
@@ -7645,7 +7649,7 @@ const paintFluidPreview = (into: HTMLElement): void => {
  *  you change the tempo), plus a Replay. A Playback control uniformly divides all four durations for
  *  legibility only: it never changes the `${ms}ms` label (always the real resolved token value) or the
  *  curve shape, and it preserves the ratio between transitions (exit stays 2× faster than default,
- *  etc.) at any speed. `prefers-reduced-motion` is honoured (dot shown at its resting position, no
+ *  etc.) at any speed. `prefers-reduced-motion` is honored (dot shown at its resting position, no
  *  animation), nodding to the engine's derived reduced ramp. Kind-B specimen: reads `theme.motion`. */
 /** The easing curve for one stage, plotted 0→1 in a 100-unit viewBox (SVG). Y is flipped (SVG y grows
  *  down). Percent-based, not px, so the stage scales for free. */
@@ -7675,7 +7679,7 @@ const renderMotionSpecimen = (): HTMLElement => {
   const moByMode = mo.motionByMode?.[currentMode];
   const durOf = (role: string): number => (moByMode?.duration ?? mo.duration)[role] ?? 0;
   const tempoLabel = moByMode?.tempo ?? mo.tempo;
-  const wrap = palSection('Motion', `The semantic transitions at tempo '${tempoLabel}' — each stage traces the resolved duration + easing curve. Playback below is a legibility aid only (the ms label is always the real token value); reduce-motion is honoured (the engine also derives a reduced ramp).`);
+  const wrap = palSection('Motion', `The semantic transitions at tempo '${tempoLabel}' — each stage traces the resolved duration + easing curve. Playback below is a legibility aid only (the ms label is always the real token value); reduce-motion is honored (the engine also derives a reduced ramp).`);
 
   const toolbar = el('div', 'mo-toolbar');
   const slowmoLabel = el('label', 'mo-slowmo');
@@ -8798,9 +8802,19 @@ const renderBrandMenu = (): HTMLElement => {
     f.append(inp);
     return f;
   };
+  // The Examples `.cur` marker is computed from `brandState.id`, which the Name field below writes per
+  // keystroke WITHOUT re-rendering this menu (a re-render mid-typing takes the caret with it). So the
+  // marker is patched in place, next to the `.bs-name` patch, from the SAME predicate the render uses
+  // (#1075) — otherwise it goes stale while the menu is open and only corrects on the next open. Which
+  // key that predicate should compare (the id, or the origin) is #1073's question, deliberately not
+  // answered here: whichever it becomes, render and patch read the one function.
+  const isCurrentExample = (name: string): boolean => name === brandState.id;
+  const exampleItems: Array<[string, HTMLElement]> = [];
+  const markCurrentExample = (): void => { for (const [name, b] of exampleItems) b.classList.toggle('cur', isCurrentExample(name)); };
   menu.append(field('Name', brandState.id, false, (v) => {
     brandState.id = v.trim() || 'untitled';
     (barHost.querySelector('.bs-name') as HTMLElement).textContent = brandState.id;
+    markCurrentExample();
     syncIdentity();   // #1196 — reach lastGoodInput (persist / Apply / design.md / filename) without a rebuild; the name is not in any ref, so no re-resolve
   }));
   const nsHint = el('p', 'bm-hint');
@@ -8830,7 +8844,8 @@ const renderBrandMenu = (): HTMLElement => {
   menu.append(el('div', 'bm-div'));
   menu.append(el('div', 'bm-cap', 'Examples'));
   for (const name of Object.keys(BRANDS)) {
-    const b = el('button', 'bm-item' + (name === brandState.id ? ' cur' : '')) as HTMLButtonElement;
+    const b = el('button', 'bm-item' + (isCurrentExample(name) ? ' cur' : '')) as HTMLButtonElement;
+    exampleItems.push([name, b]);
     const d = el('span', 'bm-dot'); d.style.background = hex(oklchToRgb(BRANDS[name].primary));
     b.append(d, el('span', undefined, name));
     // #1033: through the guard, not straight to `loadBrand`. Examples STAY here and stay one click from

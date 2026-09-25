@@ -489,7 +489,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   },
 
   composition: {
-    composesWith: ['icon'],
+    composesWith: ['icon', 'focus-ring'],
     alternativeTo: ['button'],
     planned: ['tooltip', 'button-group', 'menu', 'popover', 'link'],
   },

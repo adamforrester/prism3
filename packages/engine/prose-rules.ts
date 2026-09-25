@@ -54,7 +54,11 @@
 // `able` joined the `-ise` branch in #1623: `recognisable` sat in shipped def prose (`icon-button`
 // `docs.do`) through every scan, because no branch ended in `-isable`. It brings en-US words with it
 // (`advisable`), subtracted in NOT_EN_GB below.
-const PATTERN = /\b[A-Za-z]{3,}(?:is(?:e|ed|es|ing|ation|able)|our)s?\b/g;
+// The `-our` arm now carries its inflections too (#991). It allowed only `s?` after `our`, while the
+// `-ise` arm beside it enumerated `e|ed|es|ing|ation` — an asymmetry invisible from reading either one
+// — so `coloured`, `recoloured`, `brand-coloured`, `favourite` and `honourable` all walked through.
+// The en-US words this newly reaches (`poured`, `touring`, `contoured`, …) are subtracted in NOT_EN_GB.
+const PATTERN = /\b[A-Za-z]{3,}(?:is(?:e|ed|es|ing|ation|able)s?|our(?:s|ed|ing|ings|ful|less|able|ably|ite|ites)?)\b/g;
 // ...and a second scan, because ONE shape cannot cover both and the pattern alone was under-counting
 // in the opposite direction from the word list it replaced.
 //
@@ -97,7 +101,31 @@ const DOUBLE_L = /\b[A-Za-z]*(?:travel|label|cancel|model|signal|fuel|level|chan
 // ...and a FIFTH (#1623): whole en-GB words no suffix shape reaches. `judgement` ends in `-ment`,
 // which en-US shares, so the word itself is the only handle — a list, anchored at both boundaries,
 // with `[A-Za-z]*` in front for the prefixed forms (`misjudgement`).
-const EN_GB_WORDS = /\b[A-Za-z]*judgements?\b/gi;
+//
+// #1463 grew it by the classes no suffix shape reaches, each anchored so its en-US spelling cannot
+// match (the en-US form differs by a letter, not by an ending):
+//   - vowel/letter swaps: `artefact` (artifact), `aluminium`, `programme(s)` — whole word only, since
+//     `programmed`/`programming` are en-US — `tyre`, `kerb`, `mould`, `plough`, `cheque`, `sceptic`,
+//     `paediatric`, `oestrogen`, `draught`.
+//   - `-ogue` where en-US drops the `-ue`: `catalogue`, `analogue` (+ `-d`, `-s`, `-ing`). `dialogue`,
+//     `prologue`, `monologue` are deliberately ABSENT — standard in en-US too, so flagging them would
+//     be a house-style decision, not a spelling rule.
+//   - `-ence` nouns en-US spells `-ense`: `licence`, `defence`, `offence`, `pretence`, matched as the
+//     `…enc` stem so `licenced`/`defenceless` come with them. (`practise` is already PATTERN's `-ise`.)
+const EN_GB_WORDS = /\b(?:[A-Za-z]*judgements?|[A-Za-z]*artefacts?|aluminium|programmes|programme|tyres?|kerbs?|[A-Za-z]*mould[A-Za-z]*|plough[A-Za-z]*|cheque[A-Za-z]*|[A-Za-z]*sceptic[A-Za-z]*|paediatr[A-Za-z]*|oestr[A-Za-z]*|draughts?|[A-Za-z]*(?:catalogu|analogu)(?:e|ed|es|ing|er|ers)|[A-Za-z]*(?:licenc|defenc|offenc|pretenc)[A-Za-z]*)\b/gi;
+// THE `-yse` VERBS (#1463): en-GB `analyse`/`paralyse`/`catalyse`, en-US `analyze`. PATTERN's `-ise`
+// arm matches `is…`, never `ys…`, so `analysed` was invisible by construction. Anchored on `-lys-`
+// (every such verb is a `-lysis` noun's verb) and whole-word. The plural NOUNS `analyses`,
+// `paralyses`, … are en-US, so they are subtracted in NOT_EN_GB — which also hides the en-GB verb
+// `analyses`; the `-e/-ed/-ing` forms stay visible, and a writer who uses one uses the others.
+const YSE = /\b[A-Za-z]*lys(?:e|ed|es|ing|er|ers)\b/gi;
+// THE REVERSE SINGLE-L CLASS (#1463): en-GB has ONE `l` where en-US has two — `skilful`, `wilful`,
+// `fulfil`, `enrol`, `instil`, `instal`, `distil` and their `-s`/`-ment` forms. DOUBLE_L cannot see
+// these by construction (it looks for the doubled form), so they get their own shape. Each is
+// anchored at a word boundary right after the single `l` or its listed suffix, so the en-US `fulfill`,
+// `enrollment`, `installment` never reach it; `fulfilled`/`installed` are shared by both dialects and
+// are not listed.
+const SINGLE_L = /\b(?:[A-Za-z]*(?:skil|wil)ful(?:ly|ness)?|fulfil(?:s|ment|ments)?|enrol(?:s|ment|ments)?|instil(?:s|ment|ments)?|instal(?:s|ment|ments)?|distil(?:s)?)\b/gi;
 const RE_ENDINGS = /\b[A-Za-z]*(?:centre|metre|litre|theatre|fibre|calibre|lustre|sabre|spectre|meagre|manoeuvre|sepulchre)[A-Za-z]*\b/gi;
 // Ordinary English that merely ENDS in those letters. Subtracting these is what makes a pattern scan
 // usable; adding to this list is the correct fix for a false positive, never narrowing the pattern.
@@ -115,6 +143,12 @@ const NOT_EN_GB = new Set([
   'contour', 'contours', 'velour', 'dour', 'scour', 'sour',
   // DOUBLE_L over-catches (#1447): en-US words that happen to be stem + `ll` + a listed suffix.
   'cancellous', // anatomy — the spongy bone; doubled in both dialects
+  // `-our` inflection over-catches (#991): en-US words that are `our` + a now-listed suffix. Only stems
+  // with 3+ letters before `our` can reach PATTERN, so `poured`/`toured`/`scoured` never do.
+  'contoured', 'contouring', 'devoured', 'devouring', 'detoured', 'detouring',
+  // `-yse` over-catches (#1463): the plural NOUNS of `-lysis` are en-US, and `lyse` is en-US biology.
+  'analyses', 'paralyses', 'catalyses', 'dialyses', 'hydrolyses', 'electrolyses', 'psychoanalyses',
+  'lyse', 'lysed', 'lyses', 'lysing',
 ]);
 // The ONE place either regex is applied. `scan()` (real files) and SELF_CHECK (samples) both drive
 // this, and that sharing is load-bearing — the exact opposite of the DRY trap, because here the two
@@ -128,7 +162,7 @@ const NOT_EN_GB = new Set([
 // it calls — so it has to call the thing that runs.
 export const enGb = (txt: string): { word: string; index: number }[] => {
   const found: { word: string; index: number }[] = [];
-  for (const re of [PATTERN, STEMS, DOUBLE_L, RE_ENDINGS, EN_GB_WORDS]) {
+  for (const re of [PATTERN, STEMS, DOUBLE_L, RE_ENDINGS, EN_GB_WORDS, YSE, SINGLE_L]) {
     for (const m of txt.matchAll(re)) {
       if (NOT_EN_GB.has(m[0].toLowerCase())) continue;
       found.push({ word: m[0], index: m.index ?? 0 });

@@ -1823,6 +1823,32 @@ ok(labelRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 2,
   ok(nonText.length > 0 && nonText.every((n) => n.textAlignVertical === undefined),
     `#1009 ...and no frame carries it, on a shim that THROWS if one is written — so this is a refusal witnessed, not a property nobody set (${nonText.length} non-text nodes)`);
 }
+// #1302 — THE THROW THE LINE ABOVE LEANS ON, asserted directly. It was dead for months: the accessor sat
+// in an object spread, which reads the getter once and drops the setter, so a frame took the write
+// silently and "a refusal witnessed" was a property nobody set after all. Asked of a fresh FRAME and a
+// fresh TEXT, so the check is the shim's behaviour and nothing the executor did.
+{
+  const shim = makeShim({});
+  const frame = shim.createFrame() as Node;
+  let threw = '';
+  try { (frame as Record<string, unknown>).textAlignVertical = 'CENTER'; } catch (e) { threw = (e as Error).message; }
+  ok(/set_textAlignVertical/.test(threw) && frame.textAlignVertical === undefined,
+    `#1302 the shim REFUSES textAlignVertical on a FRAME, as Figma does — the setter is live, not flattened to a data property by a spread (threw: ${threw || 'nothing'}; reads ${String(frame.textAlignVertical)})`);
+  const text = shim.createText() as Node;
+  (text as Record<string, unknown>).textAlignVertical = 'CENTER';
+  ok(text.textAlignVertical === 'CENTER', `#1302 positive control: a TEXT node takes the write (${String(text.textAlignVertical)})`);
+}
+// #1007 — AN EFFECT STYLE READS BACK UNDER FIGMA'S OWN NAME. No def declares `effectStyle` today, so no
+// run here ever reached the executor's `setEffectStyleIdAsync`; this probe puts one on field-label's root
+// and reads `effectStyleId`, the host property a real reader uses, never the shim's private `_effectStyleId`.
+{
+  const probe: AnatomyPlan = { ...labelPlans[0], root: { ...labelPlans[0].root, effectStyle: 'shadow/md' } };
+  const effPage: Page = { children: [] };
+  const effRun = await run([probe], { ...fullFor([probe]), page: effPage });
+  const member = ((effPage.children[0]?.children as Node[] | undefined) ?? [])[0];
+  ok(effRun.misses.length === 0 && member?.effectStyleId === 'E:shadow/md',
+    `#1007 an applied effect style reads back as node.effectStyleId, the host's own property name (reads ${String(member?.effectStyleId)}; misses ${effRun.misses.join('; ') || 'none'})`);
+}
 // A SET NO LARGER THAN ONE CHUNK still yields and still ends at its total — the edge Button's 648 never
 // exercised, since every count in this file is a multiple of 21 and `CHUNK` is 4. Through `instrumented`
 // so the YIELD is witnessed separately from the REPORT: at this size the two could not be told apart by

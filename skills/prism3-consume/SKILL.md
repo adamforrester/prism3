@@ -11,7 +11,7 @@ when_to_use: >-
   When writing component code or token bindings against a Prism3 token system
   (the `<brand>.tokens.json` DTCG tree + its `<brand>.ai.json` metadata sidecar),
   whether you reach the tokens through the MCP `theme_brand` tool, a committed
-  catalogue, or a design.md brief.
+  catalog, or a design.md brief.
 ---
 
 # prism3-consume — using a Prism3 token system to build compliant UI
@@ -40,7 +40,7 @@ A Prism3 tree has layers, and you consume them from the top:
 
 **1. Names are the API — never invent a token.**
 Every token you reference must exist in the tree. If you don't know the name, look it up
-(the catalogue, the MCP `theme_brand` output, or the `.ai.json`) — do **not** guess a
+(the catalog, the MCP `theme_brand` output, or the `.ai.json`) — do **not** guess a
 plausible-sounding name. Prism3's naming is deliberate and diverges from generic
 convention in exactly the places guessing fails (e.g. it's `color.foreground.success-subtle`
 for a tinted success surface, not `color.feedback.success.surface`; it's `focus.ring.width`,
@@ -99,7 +99,7 @@ system has a role that passes (that's what the generation-time contracts guarant
 
 ## Two worked edges (where the raw name isn't enough)
 
-These are the exact cases where "the catalogue alone" leaves an agent one step short — the
+These are the exact cases where "the catalog alone" leaves an agent one step short — the
 sidecar's `avoid_when` closes them:
 
 - **A card outline.** Tempting: `border.primary` as a 3:1 UI edge. Wrong — it's decorative
@@ -114,5 +114,5 @@ Get those two right and you match the engine's own compliance contract.
 
 Call `list_levers` to learn the knobs and `theme_brand` to get the tree + `.ai.json` for the
 brand, then apply everything above. The skill and the MCP compose: the MCP gives you the
-*data*, this skill is the *discipline* for using it. Without the MCP (a committed catalogue,
+*data*, this skill is the *discipline* for using it. Without the MCP (a committed catalog,
 a `design.md`), the discipline is identical — you read the tree from the file.

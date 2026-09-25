@@ -49,8 +49,8 @@
  *     their `description` / `note` / `aria` / `avoidWhen` / `errorPattern` prose is read by an agent
  *     and rendered in the plugin's own panels, and it reached neither `out/**` nor the studio bundle.
  *     Measured on the first run of this scan: 89 hits in `main.js`, 86 in `ui.html`, of which 34 and
- *     33 sit in comments (the open question below) and **55 and 53 are prose in string literals**,
- *     which no open question covers.
+ *     33 sit in comments (the #849 question, decided below) and **55 and 53 are prose in string
+ *     literals**, which that question never covered.
  *
  *  6. THE PATTERN SET WAS NARROWER THAN THE STANDARD IT ENFORCED (#1447). Traps 1 and 1b each widened
  *     the DETECTION by one shape and stopped at CLAUDE.md's three named rules (`-ise`, `-our`, `grey`)
@@ -67,20 +67,29 @@
  *     of WORDS does. When a class ships past this gate, the question is which shape is missing, not
  *     which word.
  *
- * OPEN, AND DELIBERATELY NOT DECIDED HERE. CLAUDE.md's US-English section carves comments out of the
- * standard, then narrows the carve-out for `apps/studio/src` — because a bundle cannot tell a comment
- * from a string, so an exemption this gate cannot see is not enforceable — and records as OPEN whether
- * that same narrowing extends to `packages/engine/components/*.ts`, which #849 owns. Widening the scan
- * to the plugin bundle does not answer it and must not: this file scans what ships and reports what it
- * finds. What the scan DOES establish is that #849's answer is not sufficient on its own — exempting
- * every comment in every component def still leaves 108 prose hits across the two files, because the
- * `description` and `note` fields were never comments. Those are a separate defect with a separate
- * owner (#947), not a consequence of the open decision.
+ *  7. …AND AN ARM CAN BE NARROWER THAN ITS SIBLING (#991, #1463). The `-ise` arm enumerated its
+ *     inflections and the `-our` arm allowed only `s`, so `brand-coloured` shipped; and six more classes
+ *     (`-ogue`, `-ence` nouns, `-yse`, letter swaps like `artefact`, the reverse single-L `skilful`/
+ *     `fulfil`) sat outside every shape while `catalogue` and `licence` shipped. All now live in
+ *     `prose-rules.ts` (`PATTERN`, `EN_GB_WORDS`, `YSE`, `SINGLE_L`), each sampled both ways below.
+ *     Trap 6's lesson again: ask which SHAPE is missing, and check each arm's suffixes against its
+ *     neighbors'.
+ *
+ * DECIDED: COMPONENT-DEF COMMENTS ARE IN SCOPE (#849). CLAUDE.md's US-English section carves code
+ * comments out of the standard, then narrows the carve-out wherever comments demonstrably ship: an
+ * unminified `esbuild` bundle keeps `//` comments intact, so once a file is reachable into a built
+ * bundle its comments are shipped text. That applies to `apps/studio/src` (#464) and, since an import
+ * made them reachable into `apps/plugin/dist`, to `packages/engine/components/*.ts` (#849, decided: in
+ * scope). This file does not decide the scope by widening its scan; it scans what ships and reports what
+ * it finds. The scan also showed that the comment question was never the whole of it: exempting every
+ * comment in every component def would still have left 108 prose hits across the two files, because the
+ * `description` and `note` fields were never comments. Those were a separate defect with a separate
+ * owner (#947).
  *
  * ── #968: THE "GATE CANNOT SEE THE EXEMPTION" PREMISE IS FALSE (relocated from CLAUDE.md) ────────
  *
- * The OPEN paragraph above — and an earlier version of CLAUDE.md's US-English line, and this header —
- * justified narrowing the comment carve-out with *"a bundle cannot tell a comment from a string, so an
+ * An earlier version of the #849 paragraph above — and of CLAUDE.md's US-English line — justified
+ * narrowing the comment carve-out with *"a bundle cannot tell a comment from a string, so an
  * exemption this gate cannot see is not enforceable."* That premise is false. `lint-voice.ts`'s
  * `stripLineComments` is the counterexample: it blanks whole-line `//` comments in a built `.js` bundle
  * BEFORE scanning, so a gate over a bundle can and does tell a comment from shipped prose. The real
@@ -305,6 +314,20 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'use recognisable icons', expect: true },    // PATTERN's `-isable` branch
   { sample: 'a judgement call', expect: true },          // EN_GB_WORDS — no suffix to match
   { sample: 'it is advisable to', expect: false },       // en-US `-isable`; NOT_EN_GB must subtract
+  // #991 — the `-our` arm's inflections, which `our` + `s?` could not see. `brand-coloured` shipped.
+  { sample: 'a brand-coloured box', expect: true },      // PATTERN `-oured`
+  { sample: 'my favourite, honourable pick', expect: true }, // `-ourite`, `-ourable`
+  { sample: 'poured into a contoured, devoured tour', expect: false }, // en-US `our`+suffix; NOT_EN_GB subtracts
+  // #1463 — the classes none of the shapes above reach, each sampled in both directions.
+  { sample: 'the component catalogue', expect: true },   // EN_GB_WORDS `-ogue`
+  { sample: 'the component catalog and its dialogue', expect: false }, // en-US; `dialogue` is en-US too
+  { sample: 'under its own licence', expect: true },     // EN_GB_WORDS `-ence` noun
+  { sample: 'a license for the offense', expect: false }, // en-US `-ense`
+  { sample: 'the regression artefact', expect: true },   // EN_GB_WORDS vowel swap
+  { sample: 'we analysed it', expect: true },            // YSE
+  { sample: 'two analyses, analyzed', expect: false },   // en-US noun plural; `-yze`
+  { sample: 'a skilful way to fulfil it', expect: true }, // SINGLE_L — the reverse of DOUBLE_L
+  { sample: 'a skillful way to fulfill the installment', expect: false }, // en-US doubled forms
 ];
 // Drives `enGb` — the same function `scan()` calls — so neutering either regex fails HERE. See the
 // comment on `enGb`; reimplementing the match inline is what let a real `greyscale` ship clean.

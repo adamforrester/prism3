@@ -812,6 +812,10 @@ const findOwnPart = (member: CompNode | undefined, name: string): CompNode | und
 // recorded in one place, which is what makes #1009's `textAlignVertical: 'TOP'` a named hole that can be
 // argued with rather than a silence nobody can find.
 //
+// ITS PASTE TWIN is `claimDefaults` in `PAYLOAD_BUILD` (`packages/engine/anatomy-figma.ts`, #1393), kept in
+// LOCKSTEP: same properties, same values, same carve-outs. A change here is a change there, and `test.ts`'s
+// #1393 gate reads the paste side's fills off the stub the parity gate shares.
+//
 // DO NOT ROUTE THE GATE THROUGH THIS TABLE. `apps/plugin/lint-unclaimed-defaults.ts` authors its own
 // list of visually-significant properties, from the Figma typings, and that duplication IS the gate
 // (docs/34): a gate importing this table would assert `table === table` and pass on any hole the table
@@ -1306,8 +1310,16 @@ const writeComponentSet = async (
   };
 
   /** Build one node and its subtree. Returns `null` for a NESTED_INSTANCE whose shared component is
-   *  absent — no placeholder, deliberately: an unstroked frame in a focus ring's place is invisible and
-   *  reads as a ring that built fine, where a slot's placeholder is a box a designer can still fill.
+   *  absent — no placeholder, deliberately, and every such return records a miss. The same refusal
+   *  serves both nest kinds, for different reasons:
+   *   · OUT OF FLOW (`absolute`, a focus ring): an unstroked frame in the ring's place is invisible and
+   *     reads as a ring that built fine — the #869 shape, and why the refusal exists.
+   *   · IN FLOW (`nest`, a row's control, #1262): the premise inverts — the missing child is a visible
+   *     hole, and the auto-layout closes up around it. A placeholder frame would not be invisible here,
+   *     but it would still be a stand-in shaped like a built control, so the row is left without it and
+   *     the miss list is the report, as for the ring. (Filed as #1264 once the in-flow kind landed; this
+   *     is the rationale for the behavior as built, not a change to it.)
+   *  A slot's placeholder is different in kind: it is a box a designer is meant to fill.
    *
    *  `parts` is the #701 collector: every descendant the wire loop will later need, registered by name
    *  as it is built, so that loop does not have to search the scenegraph for a node this loop is holding.

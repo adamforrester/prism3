@@ -2082,6 +2082,23 @@ for (const b of brands) {
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
 
+  // ---- #1220: the line box is UNAMBIGUOUS per rung, or the build says so --------------------------
+  // `line-box` is baked from the body composites at a rung, and there are several (default / -link /
+  // strong / strong-link). They agree by construction today, so last-write-wins was harmless; `buildTree`
+  // now asserts the agreement. Proven by bending ONE composite's size in a copy of a real theme: the build
+  // must throw and name it, where the old loop would have emitted whichever composite came last.
+  {
+    const th = brandTheme(exampleBrands()['aurora'] as BrandInput);
+    const mdBody = th.typography.composites.filter((c) => c.group === 'body' && c.path.split('.')[1] === 'md');
+    ok(mdBody.length >= 2, `#1220 reachable: body.md has several composites to disagree (${mdBody.map((c) => c.path).join(', ')})`);
+    const target = mdBody[mdBody.length - 1].path;
+    const bent: Theme = { ...th, typography: { ...th.typography, composites: th.typography.composites.map((c) => (c.path === target ? { ...c, sizePx: c.sizePx + 2 } : c)) } };
+    let threw = '';
+    try { buildTree(bent); } catch (e) { threw = (e as Error).message; }
+    ok(/line-box is ambiguous/.test(threw) && threw.includes(target),
+      `#1220 a body composite that disagrees with its rung-mates fails the build by name, instead of the line box following composite order (${threw || 'no throw'})`);
+  }
+
   // ---- VALUES × DENSITY: the window, and the clamping bug it exists to prevent -----------------
   // `componentSizes` once CLAMPED a shifted index instead of windowing, and aurora shipped with
   // `size.xs.height` and `size.sm.height` both resolving to `dimension.32` — five names, four values.
@@ -7648,6 +7665,41 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(judged > 0 && bad.length === 0, `solid-tint keeps each ground's own hover ink legible on its composite (${judged} judged) — ${id}`
       + (bad.length ? ` — FAIL: ${bad.slice(0, 6).join('; ')}` : ''));
   }
+
+  // #1618 — the hover step is picked against the OVERRIDDEN label ink, not the derived one. No corpus
+  // brand overrides `interactive.<c>.text.hover`, so the corpus arm above cannot see which ink the pick
+  // read. Here a synthetic brand pins its light hover ink to a primary step that clears its bar on the bare
+  // page but NOT on the nominal 20% composite — chosen HERE with `mixHex`, from nothing the engine picked.
+  // The derived ink clears the nominal, so a pick made against it stays at 20 and this arm fails by name;
+  // a pick made against the override steps down to the largest step (on the scale authored below) whose
+  // composite the pinned ink survives. BY-NAME MUTATION (the #1618 defect, reintroduced): make
+  // `settleSolidTint`'s `cells` read the ink from `resolveAllModes({ ...theme, overrides: undefined })[mi]`,
+  // the derived ink, instead of the settled `m` → this arm, and only this arm, fails (opacity.20, want .10).
+  {
+    const inp = { id: 'i1618', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+    const DOWN = [20, 10, 5];   // the hover's text-guard walk, nominal first — authored, not imported
+    const lightOf = (ov?: object) => resolveAllModes({ ...brandTheme({ ...inp, ...(ov ? { overrides: { light: ov } } : {}) } as any), outlineInteraction: 'solid-tint' as const })
+      .find((m) => m.mode === 'light')!.roles;
+    const base = lightOf();
+    const pal = brandTheme(inp as any).roleToPalette.action;
+    const steps = (brandTheme(inp as any).palettes.find((p) => p.palette === pal)?.steps ?? []) as Array<{ key: string; rgb: RGB }>;
+    const fillHex = base['interactive.primary.fill.rest'].hex, groundHex = base['background.primary'].hex;
+    const min = base['interactive.primary.text.hover'].min;
+    const survives = (inkHex: string, s: number) => contrast(hexToRgb(inkHex), hexToRgb(mixHex(fillHex, groundHex, s / 100))) >= min;
+    // the pin: legible on the bare page, illegible on the nominal composite, legible on SOME step of the walk
+    const pin = steps.find((s) => contrast(s.rgb, hexToRgb(groundHex)) >= min && !survives(hex(s.rgb), DOWN[0]) && DOWN.some((d) => survives(hex(s.rgb), d)));
+    const derivedStep = base['interactive.primary.subtle-fill.hover'].tint?.opacity;
+    ok(!!pin && derivedStep === DOWN[0] && survives(base['interactive.primary.text.hover'].hex, DOWN[0]),
+      `#1618 precondition: a primary step exists that fails the nominal composite, and the derived ink holds the nominal (pin ${pin?.key}, derived step ${derivedStep})`);
+    if (pin) {
+      const ov = lightOf({ 'interactive.primary.text.hover': { palette: pal, step: pin.key } });
+      const inkHex = ov['interactive.primary.text.hover'].hex;
+      const got = ov['interactive.primary.subtle-fill.hover'].tint?.opacity;
+      const want = DOWN.find((d) => survives(inkHex, d));
+      ok(inkHex.toLowerCase() === hex(pin.rgb).toLowerCase() && got === want,
+        `#1618 solid-tint picks the hover step against the OVERRIDDEN label ink (${inkHex}): opacity.${got}, want opacity.${want} — the derived ink held opacity.${derivedStep}`);
+    }
+  }
 }
 
 // (11) EMIT-FIGMA COLOUR (docs/10) — buildFigmaColor(nbTheme) must reproduce the frozen
@@ -10170,6 +10222,24 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       }
     }
     ok(refsRead > 50, `component-refs: the id lists are live (${refsRead} entries read) — a scan over empty lists asserts nothing`);
+
+    // (a2) #1238 — `composesWith` FOLLOWS `nests`. Every component a def's anatomy nests is one it composes
+    // with. The oracle is `anatomy.parts[*].nests`: derived from the build plan, never from the list under
+    // test. Before this, the button family and text-field nested `focus-ring` while leaving it out of
+    // `composesWith`, and checkbox/radio/switch listed it — a split that followed no property. A def with no
+    // anatomy yet (textarea) has no `nests` to read, so this arm cannot see it; its list is kept by hand
+    // until its anatomy lands. BY-NAME MUTATION: drop 'focus-ring' from `button`'s `composesWith` → this
+    // arm fails, naming button and its two variants.
+    let nestsRead = 0;
+    for (const def of componentDefs) {
+      const cw = new Set(def.composition?.composesWith ?? []);
+      const nested = new Set(Object.values(def.anatomy?.parts ?? {}).map((p) => (p as { nests?: string }).nests).filter((n): n is string => !!n));
+      for (const n of nested) {
+        nestsRead++;
+        ok(cw.has(n), `component-refs: ${def.id} nests '${n}' in its anatomy but its composition.composesWith leaves it out — a nested component is one it composes with (#1238)`);
+      }
+    }
+    ok(nestsRead >= 15, `component-refs: the nests side is live (${nestsRead} nested parts read) — an arm over no nests asserts nothing`);
 
     const retired = new Map<string, string>();
     for (const d of componentDefs) for (const a of d.aliases ?? []) if (d.id.startsWith(`${a}-`) && !ids.has(a)) retired.set(a, d.id);
@@ -12695,7 +12765,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[] };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -12829,19 +12899,17 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           // in lockstep: Figma allows the property only on an auto-layout frame and THROWS otherwise, and a
           // stub that let it be set on a `layoutMode: NONE` frame would let the paste executor's guard be
           // ungated with the suite still green — the exact half-fix the ring's real-host crash was.
-          ...(type === 'FRAME' ? { strokeWeight: 0, _strokesInLayout: true } : {}),
+          // A CREATED FRAME STARTS WITH FIGMA'S DEFAULT OPAQUE WHITE FILL (#1393), in lockstep with the plugin
+          // shim (#1387). A stub that started frames at `[]` could not witness the paste executor leaving that
+          // white behind on an unclaimed or unresolvable fill, nor its `claimDefaults` clearing it — both look
+          // like no-ops against an already-empty array (docs/34 shape 4). Only a FRAME carries it in Figma.
+          ...(type === 'FRAME'
+            ? { strokeWeight: 0, _strokesInLayout: true, fills: [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 1, b: 1 } }] as unknown[] }
+            : {}),
           // #1009: a `TextNode` property. Mirrors the plugin shim exactly, which is the whole point of the
           // parity gate — TEXT starts at Figma's default `'TOP'`, and every other type THROWS on the write
-          // as Figma does. A stub that accepted it on a frame would let the two executors diverge on the
-          // one property this change adds, while parity still reported clean.
-          ...(type === 'TEXT'
-            ? { textAlignVertical: 'TOP' as string }
-            : {
-                get textAlignVertical(): string | undefined { return undefined; },
-                set textAlignVertical(_v: string | undefined) {
-                  throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
-                },
-              }),
+          // (installed with `defineProperty` below this literal, #1302).
+          ...(type === 'TEXT' ? { textAlignVertical: 'TOP' as string } : {}),
           // FIXED-OR-HUG, plus the border-box term — Figma's actual two sizing modes rather than a
           // constant. This was `return stroked ? 2 * strokeWeight : 0` until the absolute part arrived
           // (#536 item 3), and the constant is what made the ring ungatable: a ring is sized as
@@ -12917,6 +12985,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           // the detach is also modelled where the #1514 fix is PROVEN for the plugin round-trip
           // (`component-shim.ts`'s `guardRefs`).
           textStyleId: '',
+          // #1007 — Figma's own default for an unstyled node, so a read-back can tell "applied" from "never".
+          effectStyleId: '',
           // #1330 / #1378 — EXPOSED NESTED INSTANCE, mirroring the plugin shim so the two offline models
           // stay in lockstep (the parity gate drives both executors against this one host). Starts a
           // definite `false` (Figma's default for a primary instance), not undefined, so a never-marked
@@ -12973,7 +13043,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             }
             bv[prop] = { id: v.id, value: v.value };
           },
-          setTextStyleIdAsync: async (id: string) => { node.textStyleId = id; }, setEffectStyleIdAsync: async () => {},
+          setTextStyleIdAsync: async (id: string) => { node.textStyleId = id; },
+          // #1007 — STORED UNDER FIGMA'S OWN NAME, `effectStyleId`, as the plugin shim does. This was
+          // `async () => {}`: the write was accepted and kept nowhere, so deleting the payload's effect-style
+          // apply was invisible here. A stub that discards a write it accepted is the permissive model the
+          // plugin shim's header forbids. The `#1007` read-back below reads it through the host's name.
+          setEffectStyleIdAsync: async (id: string) => { node.effectStyleId = id; },
           // ABSOLUTE POSITIONING, modeled with its REJECTION CASE, which is the only part worth modeling.
           // Figma ignores `layoutPositioning` on a child whose parent is not an auto-layout frame, and it
           // ignores it SILENTLY — so a stub that simply stored the value would let the payload's read-back
@@ -13052,7 +13127,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         // (or unset) frame — the constraint the ring's paste crash fell through. Installed with
         // `defineProperty` so the setter survives (an accessor in the spread literal above would be
         // flattened to a plain value — the reason the `textAlignVertical` accessor there never actually
-        // throws), and auto-layout-POSITIVE so an unset `layoutMode` (a plain absolute frame like the ring)
+        // threw, #1302), and auto-layout-POSITIVE so an unset `layoutMode` (a plain absolute frame like the ring)
         // is refused too, mirroring the payload guard's `&&node.layoutMode`. Mirrors the plugin shim: a
         // model that cannot refuse cannot witness a refusal, and the parity gate drives both executors
         // against these two stubs.
@@ -13066,6 +13141,21 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
               if (lm !== 'HORIZONTAL' && lm !== 'VERTICAL')
                 throw new Error('in set_strokesIncludedInLayout: The strokesIncludedInLayout property is only available on auto-layout frames');
               node._strokesInLayout = v;
+            },
+          });
+        }
+        // #1009 / #1302 — `textAlignVertical` THROWS on every non-TEXT node, as Figma does. A stub that
+        // accepted it on a frame would let the two executors diverge on it while parity reported clean.
+        // Installed with `defineProperty` rather than in the literal's spread, which is the #1302 fix: the
+        // spread read the getter once and dropped the setter, so the throw never fired. Mirrors the plugin
+        // shim; the `#1302` assertion after `makeFigmaStub` fails if it moves back into a spread.
+        if (type !== 'TEXT') {
+          Object.defineProperty(node, 'textAlignVertical', {
+            configurable: true,
+            enumerable: true,
+            get() { return undefined; },
+            set(_v: string | undefined) {
+              throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
             },
           });
         }
@@ -13125,7 +13215,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         // `setTextStyleIdAsync` pulls in a family/style pair that need not be what `createText` starts on.
         getLocalTextStylesAsync: async () => (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: { family: 'Inter', style: 'Semi Bold' } })),
         loadFontAsync: async () => {},
-        getLocalEffectStylesAsync: async () => [],
+        // #1007 — a file CAN hold effect styles (`opts.effectStyles`), so the payload's effect-style apply has
+        // a success path to take. Was `async () => []`, which left the apply unreachable on this harness.
+        getLocalEffectStylesAsync: async () => (opts.effectStyles ?? []).map((name) => ({ id: `E:${name}`, name })),
         loadAllPagesAsync: async () => {},
         // A COMPONENT the payload can instantiate, so the swap path is exercised rather than always
         // degrading to the placeholder frame. `createInstance` returns a node with a VECTOR inside,
@@ -13248,6 +13340,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         combineAsVariants: (members: Record<string, unknown>[]) => {
           const set = mkNode('COMPONENT_SET');
           set.children = members;
+          // #1430 / #1393 — the set comes back DRESSED, as `component-shim.ts` models it: a purple dashed
+          // border and a 5px radius. Without it the paste `claimDefaults` KEEPING that framing and BLANKING it
+          // read the same off a bare `mkNode` set, and the #1393 lockstep row for the set could not see which.
+          set.strokes = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0x97 / 255, g: 0x47 / 255, b: 1 } }];
+          set.strokeWeight = 1;
+          set.strokeAlign = 'INSIDE';
+          set.dashPattern = [10, 5];
+          for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) set[c] = 5;
           takeFromPage(members);
           // A SET RESIZES, and its box does NOT follow its members. Modeled because that is the whole
           // reason the chunked payload calls `resize` at all: appending a member at x=208 to a 184-wide
@@ -13458,6 +13558,35 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const clean = await runPayload(planToPluginJs(runnable), full);
     ok(clean.misses.length === 0,
       `anatomy: a fully-resolved paste reports NOTHING — misses[] stays empty when every write landed (${JSON.stringify(clean.misses)})`);
+
+    // ---- #1302: the stub's `textAlignVertical` refusal is LIVE ------------------------------------------
+    // The accessor used to sit in `mkNode`'s object spread, which reads the getter once and drops the setter,
+    // so a FRAME took the write silently and every gate leaning on "the wrong node type throws" was testing
+    // against a stub that never refused. Asked of fresh nodes, so this is the stub's behaviour alone.
+    {
+      const bare = makeFigmaStub({}) as unknown as { createFrame(): Record<string, unknown>; createText(): Record<string, unknown> };
+      const frame = bare.createFrame();
+      let threw = '';
+      try { frame.textAlignVertical = 'CENTER'; } catch (e) { threw = (e as Error).message; }
+      ok(/set_textAlignVertical/.test(threw) && frame.textAlignVertical === undefined,
+        `#1302 the paste stub REFUSES textAlignVertical on a FRAME, as Figma does — the setter is live, not flattened by a spread (threw: ${threw || 'nothing'}; reads ${String(frame.textAlignVertical)})`);
+      const text = bare.createText();
+      text.textAlignVertical = 'CENTER';
+      ok(text.textAlignVertical === 'CENTER', `#1302 positive control: a TEXT node takes the write (${String(text.textAlignVertical)})`);
+    }
+
+    // ---- #1007: an effect style reads back under Figma's own name, on the paste leg ------------------------
+    // The stub's `setEffectStyleIdAsync` stored nothing, so the payload's apply was deletable green. No def
+    // declares `effectStyle` today, so a probe puts one on the runnable plan's root; the read is
+    // `effectStyleId`, the property a real reader uses.
+    {
+      const probe: AnatomyPlan = { ...runnable, root: { ...runnable.root, effectStyle: 'shadow/md' } };
+      const effPage: StubPage = { children: [] };
+      const effRun = await runPayload(planToPluginJs(probe), { ...full, effectStyles: ['shadow/md'], page: effPage });
+      const built = effPage.children[0];
+      ok(effRun.misses.length === 0 && built?.effectStyleId === 'E:shadow/md',
+        `#1007 paste leg: an applied effect style reads back as node.effectStyleId, the host's own property name (reads ${String(built?.effectStyleId)}; misses ${JSON.stringify(effRun.misses)})`);
+    }
 
     // ---- #1614: THE PAINT OPACITY, EXECUTED on BOTH legs -----------------------------------------------
     // A `solid-tint` outline hover is the category's fill VARIABLE at a paint opacity. Both executors write it
@@ -14190,6 +14319,47 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       };
       const setRun = await runPayload(planSetToPluginJs(grid), fullSet);
       ok(setRun.misses.length === 0, `set properties: the set payload runs CLEAN end to end${setRun.misses.length ? ` — ${JSON.stringify(setRun.misses)}` : ''}`);
+
+      // ---- #1393: the PASTE executor leaves no Figma white default on an unclaimed or unresolvable fill ----
+      // The payload half of #1387/F1. The plugin executor has `claimDefaults` (#865), which neutralizes a fill
+      // nobody claimed to `[]`; the paste executor had no such pass, so on the host every frame whose plan
+      // declared no fill (outline/text at rest) kept `createFrame()`'s opaque white, and so did every frame
+      // whose declared fill could not resolve. Two runs, one per cause: the fully-resolved grid (UNCLAIMED) and
+      // the same grid with no variable in the file (DECLARED-BUT-UNRESOLVABLE).
+      //
+      // Guards per docs/34, mirroring `test-write-components.ts`'s #1387 gate: (4) the stub MODELS the white,
+      // asserted directly so "no white after build" is not a pass over empty arrays; (9) a reachability floor
+      // read off the PLAN, independent of the executor, proves unclaimed frames exist in what is built. The
+      // white is the stub's, the neutralize is the subject, the read-back is neither.
+      {
+        type Paint = { type?: string; opacity?: number; color?: { r: number; g: number; b: number }; boundVariables?: { color?: unknown } };
+        const isOpaqueWhite = (n: Record<string, unknown>): boolean => {
+          const p = (n.fills as Paint[] | undefined)?.[0];
+          return p?.type === 'SOLID' && !p.boundVariables?.color && (p.opacity ?? 1) === 1 && p.color?.r === 1 && p.color?.g === 1 && p.color?.b === 1;
+        };
+        const freshFrame = (makeFigmaStub({}) as unknown as { createFrame(): Record<string, unknown> }).createFrame();
+        ok(isOpaqueWhite(freshFrame),
+          `#1393 positive control: the paste stub's fresh frame carries Figma's opaque WHITE default, so "no white after build" is a real check (${JSON.stringify((freshFrame.fills as Paint[])[0] ?? null)})`);
+        type PlanNode = { type: string; paints?: { fills?: string }; children: PlanNode[] };
+        const planNodes = (n: PlanNode): PlanNode[] => [n, ...n.children.flatMap(planNodes)];
+        const unclaimed = grid.flatMap((p) => planNodes(p.root as unknown as PlanNode)).filter((n) => n.type === 'FRAME' && !n.paints?.fills);
+        ok(unclaimed.length > 0,
+          `#1393 reachable: the grid builds FRAME parts whose plan declares NO fill, so the unclaimed path is exercised (${unclaimed.length})`);
+        const builtNodes = (page: StubPage): Record<string, unknown>[] => {
+          const out: Record<string, unknown>[] = [];
+          const walk = (n: Record<string, unknown>) => { out.push(n); for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walk(c); };
+          for (const c of page.children) walk(c);
+          return out;
+        };
+        for (const [label, opts] of [['UNCLAIMED (fully resolved)', fullSet], ['DECLARED-BUT-UNRESOLVABLE (no variables)', { ...fullSet, vars: [] }]] as const) {
+          const page: StubPage = { children: [] };
+          await runPayload(planSetToPluginJs(grid), { ...opts, page });
+          const built = builtNodes(page);
+          const white = built.filter(isOpaqueWhite);
+          ok(built.length > grid.length && white.length === 0,
+            `#1393 ${label}: no node the paste executor builds keeps an opaque #ffffff literal — an unclaimed or unresolvable fill neutralizes to transparent, never Figma's white default (${white.length} white of ${built.length}${white.length ? `: ${[...new Set(white.map((n) => String(n.name)))].slice(0, 4).join(', ')}` : ''})`);
+        }
+      }
       // Sorted, because the order `componentPropertyDefinitions` returns is Figma's to choose and
       // asserting it would gate a promise the API does not make.
       ok(JSON.stringify([...(setRun.properties ?? [])].sort()) === JSON.stringify(['label:TEXT', '↳ swap leading icon:INSTANCE_SWAP']),
@@ -14210,6 +14380,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         `set properties: the axis read-back is unaffected — it filters type === 'VARIANT', because non-variant keys come back suffixed (${JSON.stringify(setRun.axes)})`);
 
       // MUTATION-TESTED, one per new read-back. Each of these passes if the check is dead.
+      // Every payload write of the border-box claim — the paints branch's guarded one and `claimDefaults`'
+      // (#1393). Global, so a `replace` with it removes both; see the FOOTPRINT arm below.
+      const STROKES_IN_LAYOUT_WRITES = /if\('strokesIncludedInLayout' in node&&node\.layoutMode&&node\.layoutMode!=='NONE'\)node\.strokesIncludedInLayout=false;|set\('strokesIncludedInLayout',false\);/g;
       // Returns the matching misses, so a caller that needs to assert something ABOUT the report — the
       // footprint delta below — can, rather than only that a report exists.
       const mutate = async (label: string, from: string | RegExp, to: string, want: RegExp) => {
@@ -14253,8 +14426,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // (#536 item 3 — see the `width` note), so a pinned pair would be a landmark that goes stale on the
       // next size-token change while the claim it stands for — the stroke adds exactly 2px to the hug
       // axis — is unchanged. Backreference, so it is still the SAME group being compared.
+      // BOTH writes of the border-box claim go (#1393): the paints branch's AND `claimDefaults`', which since
+      // #1393 claims `strokesIncludedInLayout: false` on every auto-layout frame exactly as the plugin
+      // executor's does. Removing only one leaves the other holding the footprint, and the detector under
+      // test would then be correctly silent. `STROKES_IN_LAYOUT_WRITES` is global so `replace` takes both.
       const drift = await mutate('FOOTPRINT drift is reported — an outlined member outgrows its group when the stroke joins the layout',
-        "if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;", '',
+        STROKES_IN_LAYOUT_WRITES, '',
         /footprint -> .*appearance=outline.* measures \d+x\d+ but .*appearance=filled.* measures \d+x\d+/);
       const deltas = drift.map((m) => {
         const [, w1, h1, w2, h2] = /measures (\d+)x(\d+) but .* measures (\d+)x(\d+)/.exec(m)!;
@@ -14553,12 +14730,24 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             `chunked: and the originals are left orphaned, which the read-back names${again.misses.some((m) => /ORPHAN/.test(m)) ? '' : ` — got ${JSON.stringify(again.misses.slice(0, 5))}`}`);
         }
 
+        // #1393 — THE CHUNKED SET IS CLAIMED TOO. Chunk 1 combines, so it is the chunked path's own copy of the
+        // set-level `claimDefaults` call, separate from the single-shot one the lockstep parity reads. Hand-named
+        // expectations, not a comparison against either executor: the set's opaque fill cleared, its framing
+        // (the stub's dressed border and 5px radius) KEPT, and a neutral the stub never seeds (`blendMode`)
+        // written — the one that tells "claimed" from "left alone".
+        {
+          const cset = page.children.find((c) => c.type === 'COMPONENT_SET');
+          const row = cset && { blendMode: cset.blendMode, rotation: cset.rotation, fills: cset.fills, dashPattern: cset.dashPattern, topLeftRadius: cset.topLeftRadius };
+          ok(JSON.stringify(row) === JSON.stringify({ blendMode: 'PASS_THROUGH', rotation: 0, fills: [], dashPattern: [10, 5], topLeftRadius: 5 }),
+            `#1393 chunked: the set chunk 1 combines is claimed like the single-shot one — neutrals written, fill cleared, #1430 framing kept (${JSON.stringify(row)})`);
+        }
+
         // MUTATION-TESTED. Same discipline as the single-shot path, and the same reason: every claim
         // above is a read-back, and a read-back that cannot fail is decoration. Each mutation is applied
         // to the CHUNK sequence and run against a FRESH page, because a mutation's whole point is that
         // the run diverges from the clean one.
-        const mutateChunks = async (label: string, from: string, to: string, want: RegExp) => {
-          const mutated = chunks.map((c) => ({ ...c, js: c.js.replace(from, to) }));
+        const mutateChunks = async (label: string, from: string | RegExp, to: string, want: RegExp) => {
+          const mutated = chunks.map((c) => ({ ...c, js: c.js.replace(from as string, to) }));
           ok(mutated.some((m, i) => m.js !== chunks[i].js), `chunked: the mutation for '${label}' actually applied`);
           const p: { children: Record<string, unknown>[] } = { children: [] };
           const rs: PayloadResult[] = [];
@@ -14610,7 +14799,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         // What this one adds is the SPLIT: `state` and `appearance` are exactly the siblings a chunk
         // boundary separates, so the report has to come from comparing the whole set.
         await mutateChunks('footprint drift is caught even when the cohort is split across chunks',
-          "if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;", '',
+          STROKES_IN_LAYOUT_WRITES, '',
           /footprint -> .*appearance=outline.* measures \d+x\d+ but .*appearance=filled.* measures \d+x\d+/);
       }
 
@@ -14916,23 +15105,53 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         ok(posMap(plugPage) === posMap(pastePage),
           'parity: every member lands at the same coordinate and measures the same box on both paths — the pitch is measured, so this is the layout claim `size` cannot make');
 
+        // #1393 — THE DEFAULT CLAIMS, IN LOCKSTEP. Both executors run a `claimDefaults` pass (#865; the paste
+        // twin since #1393), and the comparisons above are all structure — none of them reads a claimed
+        // default, so a property one pass writes and the other forgets would leave the two files differing
+        // with parity green. This reads every #865 property off every built node, the SET included, on both
+        // pages. The list is AUTHORED HERE from Figma's typings (the mixins `claimDefaults` covers), not
+        // imported from either executor, so it cannot agree with a hole both copies share by construction.
+        // Hoisted out of the block: the field-message pair below reuses it for the GLYPH's imported subtree.
+        const CLAIMED = ['visible', 'opacity', 'blendMode', 'effects', 'rotation', 'layoutAlign', 'layoutGrow', 'constraints',
+          'fills', 'strokes', 'strokeWeight', 'strokeAlign', 'dashPattern',
+          'topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius', 'clipsContent',
+          'itemSpacing', 'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom', 'strokesIncludedInLayout',
+          'textAlignVertical', 'textAlignHorizontal', 'textAutoResize', 'textTruncation', 'paragraphSpacing', 'leadingTrim'];
+        const claims = (page: StubPage): string[] => {
+          const rows: string[] = [];
+          const walk = (n: Record<string, unknown>, path: string) => {
+            rows.push(`${path} ${String(n.type)} ${JSON.stringify(CLAIMED.map((k) => n[k] ?? null))}`);
+            ((n.children as Record<string, unknown>[] | undefined) ?? []).forEach((c, i) => walk(c, `${path}/${i}:${String(c.name)}`));
+          };
+          walk(page.children.find((c) => c.type === 'COMPONENT_SET')!, 'set');
+          return rows.sort();
+        };
+        const claimDiff = (a: string[], b: string[]) => [...a.filter((r) => !b.includes(r)).map((r) => `plugin ${r}`), ...b.filter((r) => !a.includes(r)).map((r) => `paste ${r}`)];
+        {
+          const plugClaims = claims(plugPage);
+          const pasteClaims = claims(pastePage);
+          // FLOOR: the set and its members' subtrees are all in the comparison, and a claimed default is present
+          // on them — a pair of lists of all-null rows would agree vacuously.
+          ok(plugClaims.length > grid.length && plugClaims.every((r) => !r.endsWith(JSON.stringify(CLAIMED.map(() => null)))),
+            `#1393 reachable: every node on the plugin page carries claimed defaults to compare (${plugClaims.length} nodes)`);
+          const diff = claimDiff(plugClaims, pasteClaims);
+          ok(plugClaims.length === pasteClaims.length && diff.length === 0,
+            `#1393 lockstep: both executors leave every #865 default IDENTICAL on every node, the set included — plugin vs paste differ on ${diff.length}: ${diff.slice(0, 2).join(' | ').slice(0, 600)}`);
+        }
+
         // #1514/#1567 — THE STYLE SURVIVES BOTH PATHS, EACH FOR ITS OWN REASON, AND THEY STILL AGREE.
         //
         // This block used to witness two post-wire re-asserts against a stub that modelled a characters-bind
         // reset. The host disproved that model (2026-09-22, #1567) and the stub now models what it measured:
         // the bind detaches nothing, and writing `paragraphSpacing`/`leadingTrim` detaches the style even when
-        // the value is unchanged (`mkNode`). That makes the two executors asymmetric in a way worth stating,
-        // because "they agree" is a weaker claim than it looks (docs/34 shape 11):
+        // the value is unchanged (`mkNode`). Since #1393 BOTH executors run a `claimDefaults` pass (#865) on every
+        // TEXT node AFTER applying the style — the paste path gained its twin of the plugin's — so both DETACH
+        // and both re-apply at that source. (Before #1393 the paste path wrote none of the seven detaching
+        // properties and needed no repair; the two sides reached this observable by different means.)
         //
-        //   • THE PLUGIN path runs `claimDefaults` (#865) on every TEXT node AFTER applying the style, so it
-        //     DOES detach and must re-apply at that source — the fix this gate makes load-bearing.
-        //   • THE PASTE path writes none of the seven detaching properties after its style, so its style was
-        //     never detached and it needs no repair. Its old re-assert was reparing nothing.
-        //
-        // So the agreement below is not two implementations of one repair; it is two different mechanisms
-        // landing on the same observable. The FLOOR is what keeps it honest: every text node must carry a
-        // NON-EMPTY style id on the PLUGIN path, which is the side the stub actually detaches. Drop the
-        // plugin's re-apply and the floor fails first, by name, on a list of empty ids.
+        // The FLOOR is what keeps the agreement honest: every text node must carry a NON-EMPTY style id on the
+        // PLUGIN path. Drop the plugin's re-apply and the floor fails first, by name, on a list of empty ids;
+        // drop the paste's and the parity line below it fails, the paste side reading empty ids.
         //
         // The CAPTION half moved out of this pair entirely — see the field-message block below, where a
         // per-member caption is now asserted to be IMPOSSIBLE rather than restored.
@@ -14952,7 +15171,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         ok(plugStyle.length > 0 && plugStyle.every((s) => !s.endsWith('#') && !s.endsWith('#undefined')),
           `#1514 reachable: every member's text node carries a named style on the plugin path — the #865 defaults detached it and the source re-apply restored it (${plugStyle.slice(0, 2).join('; ')})`);
         ok(JSON.stringify(plugStyle) === JSON.stringify(pasteStyle),
-          `#1514 parity: both executors land every member's text STYLE on the node — the plugin by re-applying after the #865 defaults, the paste path by never writing a detaching property — plugin vs paste disagree on: ${JSON.stringify([...plugStyle.filter((s) => !pasteStyle.includes(s)), ...pasteStyle.filter((s) => !plugStyle.includes(s))].slice(0, 4))}`);
+          `#1514 parity: both executors land every member's text STYLE on the node — each by re-applying it after its #865 defaults (#1393) — plugin vs paste disagree on: ${JSON.stringify([...plugStyle.filter((s) => !pasteStyle.includes(s)), ...pasteStyle.filter((s) => !plugStyle.includes(s))].slice(0, 4))}`);
 
         // #1575 — ONE CAPTION, ON BOTH PATHS. field-message used to ship a per-status byVariant caption
         // (#1018/#1474), but a characters-bound TEXT node is a VIEW onto the set-level TEXT property's ONE
@@ -14981,6 +15200,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         // (1) BOTH PATHS RUN CLEAN, with NO collapse. field-message declares ONE caption (Option 2, #1575),
         // so there is nothing to overwrite and no COLLAPSED miss on either path. `fmOther` stays as the clean
         // check; `fmCollapse` is now asserted EMPTY, and a re-added byVariant spread would fail it by name.
+        // #1393 — THE GLYPH'S IMPORTED SUBTREE, in lockstep. `createNodeFromSvg` bypasses `createFrame()`, so both
+        // executors claim the nodes inside a GLYPH in 'imported' mode; the button grid above builds no glyph, so
+        // this is where that branch is compared. FLOOR: the page really holds an imported VECTOR to compare.
+        {
+          const plugFm = claims(fmPlugPage);
+          const fmDiff = claimDiff(plugFm, claims(fmPastePage));
+          ok(plugFm.some((r) => / VECTOR \[/.test(r)) && fmDiff.length === 0,
+            `#1393 lockstep (GLYPH): both executors claim a glyph's imported subtree identically — plugin vs paste differ on ${fmDiff.length}: ${fmDiff.slice(0, 2).join(' | ').slice(0, 600)}`);
+        }
         const fmCollapse = (ms: string[]) => ms.filter((m) => /^text text\.characters -> COLLAPSED/.test(m));
         const fmOther = (ms: string[]) => ms.filter((m) => !/^text text\.characters -> COLLAPSED/.test(m));
         ok(fmOther(fmPasted.misses).length === 0 && fmOther(fmPlugged.misses).length === 0,
@@ -15548,8 +15776,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // literal, so it costs the designer nothing) — that trimming is what kept this at 12 rather than 13.
       // Re-pinned per the standing instruction rather than worked around; every chunk stays under budget (the
       // check below), which is the property that actually matters.
+      //
+      // NOW 14, AS OF #1393 — another shell-byte move: the paste executor gained its `claimDefaults` pass (the
+      // plugin executor's #865 neutralizer, ported in lockstep) plus the #1567 style re-apply that pass makes
+      // necessary, ~2.4 KB in every chunk's shell. The payload code was compacted to keep the #536 probe grid in
+      // ONE chunk (its premise, gated below); icon-button's 216 members spill into two more. Re-pinned per the
+      // same standing instruction.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 12, `anatomy/icon-button: the set packs into 12 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 14, `anatomy/icon-button: the set packs into 14 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
