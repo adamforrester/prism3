@@ -690,10 +690,10 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // #1279: the field-binding sibling of the line above. A non-zero count means the read-back caught a
     // `boundVariables` write (a bound `strokeWeight`, padding or radius) dropped by `combineAsVariants`'s
     // id rewrite and re-applied it onto the live node — the live signal #1218 verifies against.
-    // #1662: printed ONLY when the reference back-off ran. One entry per pass — the wait before it, how many
+    // #1664: printed ONLY when the reference back-off ran. One entry per pass — the wait before it, how many
     // queued references it retried, how many landed and read back — so a live run says how long the host's
     // per-member refusal window lasted, instead of leaving it to be inferred from a miss list.
-    if (r.refsBackoff?.length) console.log(`[prism3 #1662] reference back-off: ${r.refsBackoff.map((p) => `after ${p.afterMs}ms ${p.repaired}/${p.retried} repaired`).join('; ')}`);
+    if (r.refsBackoff?.length) console.log(`[prism3 #1664] reference back-off: ${r.refsBackoff.map((p) => `after ${p.afterMs}ms ${p.repaired}/${p.retried} repaired`).join('; ')}`);
     if (r.boundRepaired > 0) console.log(`[prism3 #1279] repaired ${r.boundRepaired} variable binding(s) onto the live post-combine node`);
     // #1574: the SET-level sibling of the two lines above. A non-zero count means the host had replaced the
     // component set object this run combined, and the property loop / wire loop were re-pointed at the live

@@ -280,7 +280,7 @@ export type ShimOpts = {
    */
   refuseRefsUntilYield?: string[];
   /**
-   * A HOST REFUSAL WINDOW MEASURED IN TIME, NOT IN MACROTASKS (#1662) — the shape `refuseRefsUntilYield`
+   * A HOST REFUSAL WINDOW MEASURED IN TIME, NOT IN MACROTASKS (#1664) — the shape `refuseRefsUntilYield`
    * was too short to model. Live Button (2026-09-25): a contiguous run of 44 members refused every reference
    * write in a 0.8 s span, #1568's one retry after a `setTimeout(0)` ~6 s later still met the refusal, and
    * the same write succeeded minutes later.
@@ -394,7 +394,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
    *  FIRST refusal, so a same-task retry throws again and only a pass that has yielded to the host gets
    *  through. Empty unless `refuseRefsUntilYield` is set. */
   const refusingRefs = new Set(opts.refuseRefsUntilYield ?? []);
-  /** #1662 — the members in the time window, and when it opened (on the caller's clock; unset until the
+  /** #1664 — the members in the time window, and when it opened (on the caller's clock; unset until the
    *  first write on one of them). */
   const windowMembers = new Set(opts.refuseRefsWindow?.members ?? []);
   let windowOpenedAt: number | undefined;
@@ -875,7 +875,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
             setTimeout(() => refusingRefs.delete(owner), 0);
             throw new Error('in set_componentPropertyReferences: Could not create a new component property reference');
           }
-          // #1662 — THE TIME WINDOW. Opens at the first write on a window member; refuses (throw) or drops
+          // #1664 — THE TIME WINDOW. Opens at the first write on a window member; refuses (throw) or drops
           // (discard) every write on those members until `ms` has passed on the caller's clock.
           const win = opts.refuseRefsWindow;
           if (win && owner !== undefined && windowMembers.has(owner)) {

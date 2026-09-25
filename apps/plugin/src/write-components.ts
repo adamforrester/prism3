@@ -443,7 +443,7 @@ export type ComponentApplyResult = {
    *  `setBoundVariable` lands the binding where `findOne` now sees it. Almost always 0 — the divergence
    *  has not reproduced by hand — so a non-zero count is the live signal #1218 verifies against. */
   boundRepaired: number;
-  /** THE REFERENCE BACK-OFF, PASS BY PASS (#1662) — see `REF_BACKOFF_MS`. Empty when nothing was queued,
+  /** THE REFERENCE BACK-OFF, PASS BY PASS (#1664) — see `REF_BACKOFF_MS`. Empty when nothing was queued,
    *  which is every clean run. Optional because the paste path has no wire loop of its own to back off. */
   refsBackoff?: RefBackoffPass[];
   /** Times the SET's own handle was found to have been replaced and was re-resolved off the destination
@@ -601,7 +601,7 @@ export const CHUNK = 4;
 const realYield: YieldFn = (ms = 0) => new Promise<void>((resolve) => { setTimeout(resolve, ms); });
 
 /**
- * THE REFERENCE BACK-OFF (#1662) — the waits, in ms, before each retry pass over the references the wire
+ * THE REFERENCE BACK-OFF (#1664) — the waits, in ms, before each retry pass over the references the wire
  * loop could not place (a throw) or the host accepted and did not keep (a DISCARD on the same node).
  *
  * #1568 retried ONCE after a `setTimeout(0)`. Measured live on 2026-09-25 (Button, 432 members, through the
@@ -620,7 +620,7 @@ const realYield: YieldFn = (ms = 0) => new Promise<void>((resolve) => { setTimeo
  */
 export const REF_BACKOFF_MS: readonly number[] = [500, 2000, 5000, 10000];
 
-/** One back-off pass, as reported (#1662): the wait before it, how many queued references it retried, and
+/** One back-off pass, as reported (#1664): the wait before it, how many queued references it retried, and
  *  how many of those landed AND read back on a fresh re-find. */
 export type RefBackoffPass = { afterMs: number; retried: number; repaired: number };
 
@@ -735,7 +735,7 @@ export type BuildReport = {
   setReresolved: number;
   refsRepaired: number;
   boundRepaired: number;
-  /** #1662 — the reference back-off passes this run needed, in order; absent or empty on a clean run. */
+  /** #1664 — the reference back-off passes this run needed, in order; absent or empty on a clean run. */
   refsBackoff?: readonly RefBackoffPass[];
   misses: readonly string[];
 };
@@ -2338,7 +2338,7 @@ const writeComponentSet = async (
   let refsRepaired = 0;
   // #1568 — REFERENCES THE WIRE LOOP COULD NOT PLACE, held for one retry AFTER a host yield. See the pass
   // below the wire loop for why a yield is the discriminating variable and identity is not.
-  // #1662: `discarded` marks the ACCEPTED-BUT-NOT-KEPT shape, queued by the pre-scan below the wire loop, so
+  // #1664: `discarded` marks the ACCEPTED-BUT-NOT-KEPT shape, queued by the pre-scan below the wire loop, so
   // a reference that is still discarded after the last pass is reported in the read-back's own words.
   let deferredRefs: { member: string; part: string; field: string; id: string; prop: string; cause: string; discarded?: boolean }[] = [];
   const refsBackoff: RefBackoffPass[] = [];
@@ -2470,7 +2470,7 @@ const writeComponentSet = async (
     }
     if ((i + 1) % chunkSize === 0 || i + 1 === toWire.length) await breathe('wire', i + 1, toWire.length);
   }
-  // #1568 → #1662 — A BOUNDED BACK-OFF, WITH REAL WAITS, FOR EVERY REFERENCE THE WIRE LOOP COULD NOT PLACE.
+  // #1568 → #1664 — A BOUNDED BACK-OFF, WITH REAL WAITS, FOR EVERY REFERENCE THE WIRE LOOP COULD NOT PLACE.
   //
   // WHY TIME AND NOT ANOTHER RE-FIND. #1337/#1473/#1516 all diagnosed a refused reference as a STALE
   // IDENTITY — some handle detached, the live node is a different object — and each fix re-resolves the

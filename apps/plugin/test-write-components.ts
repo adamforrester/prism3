@@ -3372,7 +3372,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
 
 // =============================================================================================
-// #1662 — THE REFERENCE RETRY OUTLASTS A HOST REFUSAL WINDOW MEASURED IN SECONDS, AND STAYS BOUNDED
+// #1664 — THE REFERENCE RETRY OUTLASTS A HOST REFUSAL WINDOW MEASURED IN SECONDS, AND STAYS BOUNDED
 // =============================================================================================
 // Live Button (2026-09-25): a CONTIGUOUS run of members refused every reference write for a window —
 // 44 members wired in 0.8 s, 90 misses — as a throw or as an accepted write that read back `undefined`.
@@ -3411,7 +3411,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const cleanHeld = heldRefs(cleanSet);
   const runRefs = RUN.reduce((n, m) => n + (cleanHeld.get(m)?.length ?? 0), 0);
   ok(RUN.length === 6 && runRefs > 0,
-    `#1662 input pin: the refusing run is 6 contiguous members holding ${runRefs} references in a clean build (${RUN.join(' | ')})`);
+    `#1664 input pin: the refusing run is 6 contiguous members holding ${runRefs} references in a clean build (${RUN.join(' | ')})`);
 
   const runWindow = async (win?: { ms: number; shape: 'throw' | 'discard' }) => {
     const clock = { t: 0 };
@@ -3451,7 +3451,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // ---- (c) a clean build schedules no back-off wait -------------------------------------------
   const c = await runWindow();
   ok(!c.threw && c.waits.length === 0 && c.lost.length === 0,
-    `#1662c a clean build asks the host for no back-off wait at all (${c.waits.length} wait(s): ${c.waits.join(', ') || 'none'}; ${c.lost.length} reference(s) lost)`);
+    `#1664c a clean build asks the host for no back-off wait at all (${c.waits.length} wait(s): ${c.waits.join(', ') || 'none'}; ${c.lost.length} reference(s) lost)`);
 
   // ---- (a) a window shorter than the back-off heals fully, both shapes ------------------------
   for (const shape of ['throw', 'discard'] as const) {
@@ -3459,28 +3459,28 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const passes = (a.res?.refsBackoff ?? []);
     // FLOOR: the window really refused — the first pass found work, so the repairs are the window's.
     ok(!a.threw && passes.length > 0 && passes[0].retried === runRefs,
-      `#1662a floor (${shape}): the 3 s window refused all ${runRefs} references on the run's first attempt (first pass retried ${passes[0]?.retried ?? 0})`);
+      `#1664a floor (${shape}): the 3 s window refused all ${runRefs} references on the run's first attempt (first pass retried ${passes[0]?.retried ?? 0})`);
     ok(!a.threw && a.lost.length === 0 && a.refMisses.length === 0,
-      `#1662a a ${shape} refusal window of 3 s heals fully — every reference the clean build holds is held, 0 ref misses (${a.lost.length} lost: ${a.lost.slice(0, 3).join(' | ') || 'none'}; misses: ${a.refMisses.slice(0, 2).join(' | ') || 'none'}${a.threw ? `; THREW ${a.threw}` : ''})`);
+      `#1664a a ${shape} refusal window of 3 s heals fully — every reference the clean build holds is held, 0 ref misses (${a.lost.length} lost: ${a.lost.slice(0, 3).join(' | ') || 'none'}; misses: ${a.refMisses.slice(0, 2).join(' | ') || 'none'}${a.threw ? `; THREW ${a.threw}` : ''})`);
     const repaired = passes.reduce((n, p) => n + p.repaired, 0);
     ok(repaired === runRefs && a.waits.reduce((x, y) => x + y, 0) >= 3000,
-      `#1662a (${shape}) the repair is reported and the wait that made it is real: ${repaired}/${runRefs} repaired over passes [${passes.map((p) => `${p.afterMs}ms ${p.repaired}/${p.retried}`).join(', ')}], clock waits [${a.waits.join(', ')}]`);
+      `#1664a (${shape}) the repair is reported and the wait that made it is real: ${repaired}/${runRefs} repaired over passes [${passes.map((p) => `${p.afterMs}ms ${p.repaired}/${p.retried}`).join(', ')}], clock waits [${a.waits.join(', ')}]`);
     const rb = a.report.refsBackoff as { afterMs: number; repaired: number }[] | undefined;
     ok(Array.isArray(rb) && rb.length === passes.length && rb.reduce((n, p) => n + p.repaired, 0) === runRefs,
-      `#1662a (${shape}) the set's build report carries the window: refsBackoff ${JSON.stringify(rb)}`);
+      `#1664a (${shape}) the set's build report carries the window: refsBackoff ${JSON.stringify(rb)}`);
   }
 
   // ---- (b) a permanent refusal ends as misses after the bounded passes, both shapes -----------
   const scheduled = REF_BACKOFF_MS.reduce((x, y) => x + y, 0);
   ok(REF_BACKOFF_MS.length === 4 && scheduled <= 18000,
-    `#1662b input pin: the back-off is at most 4 passes and ~18 s (${REF_BACKOFF_MS.join(', ')} = ${scheduled}ms)`);
+    `#1664b input pin: the back-off is at most 4 passes and ~18 s (${REF_BACKOFF_MS.join(', ')} = ${scheduled}ms)`);
   for (const shape of ['throw', 'discard'] as const) {
     const b = await runWindow({ ms: Infinity, shape });
     const want = shape === 'throw' ? /Could not create a new component property reference/ : /DISCARDED \(set /;
     ok(!b.threw && b.waits.length <= 4 && b.waits.reduce((x, y) => x + y, 0) <= 18000,
-      `#1662b a permanent ${shape} refusal still TERMINATES within the bound — ${b.waits.length} wait(s) totalling ${b.waits.reduce((x, y) => x + y, 0)}ms${b.threw ? `; THREW ${b.threw}` : ''}`);
+      `#1664b a permanent ${shape} refusal still TERMINATES within the bound — ${b.waits.length} wait(s) totalling ${b.waits.reduce((x, y) => x + y, 0)}ms${b.threw ? `; THREW ${b.threw}` : ''}`);
     ok(!b.threw && b.refMisses.length === runRefs && b.refMisses.every((m) => want.test(m) && RUN.some((r) => m.includes(r))) && b.lost.length === runRefs,
-      `#1662b ...and every refused reference ends as a named ${shape} miss on the run's members (${b.refMisses.length}/${runRefs}: ${b.refMisses[0] ?? 'none'})`);
+      `#1664b ...and every refused reference ends as a named ${shape} miss on the run's members (${b.refMisses.length}/${runRefs}: ${b.refMisses[0] ?? 'none'})`);
   }
 }
 

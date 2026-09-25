@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.157.0 — #1662: component WIRING outlasts the host's per-member reference-refusal window. Live Button
+ * 0.157.0 — #1664: component WIRING outlasts the host's per-member reference-refusal window. Live Button
  * builds (2026-09-25, via the agent link) left one contiguous run of members — 44 on one file, 54 on another —
  * whose every component-property reference refused (a throw, or an accepted write that read back undefined);
  * #1568's single deferred retry after a `setTimeout(0)` repaired none, and the same write succeeded minutes
