@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.160.0 — The textarea's resize grip and character counter in Figma (owner decisions (c) and (d),
+ * 0.161.0 — The textarea's resize grip and character counter in Figma (owner decisions (c) and (d),
  * 2026-09-25). A new `resize-grip` glyph joins the icon set (drawn for this project; the `icon` set grows by
  * one member). A new `PartDef.corner` pins a `vector` into its parent's bottom-right corner, out of the flow,
  * `inset` in from both edges; the plan carries the inset's name (`cornerInset`) and both executors lift the
@@ -2937,6 +2937,15 @@
  * text-field and select project byte-identically. New glyph + a new plan field + a def surface move → MINOR;
  * the component-surface and paint-census baselines accepted. CONTRACT STANDS (every binding is an existing
  * name).
+ *
+ * 0.160.0 — The textarea's reserved-rows floor was reported DISCARDED on all 20 members of a live build
+ * (owner's MCP testing file, 2026-09-25, through the agent link) although the host had kept it: `minHeight` is
+ * stored at single precision, so 3 × 16px × 165% = 79.19999885559082 read back as 79.19999694824219 and the
+ * exact compare failed. The plugin executor, the paste payload and the read-back now accept a read-back within
+ * `MIN_HEIGHT_TOLERANCE` (0.01px); a dropped or wrong floor misses by whole lines. The plugin shim stores
+ * `minHeight` via `Math.fround`, as the host does, and the textarea rows gate gains the live case. Behavior of
+ * the build report changes → ENGINE bump. CONTRACT STANDS — no token name moves.
+ *
  * 0.159.0 — Textarea builds in Figma, its projection modeled on text-field: the same column (nested
  * FieldLabel, the bordered control, nested FieldMessage following `status`), the same status-led border, five
  * projected states, focus-ring nesting and footprint — status(4) × state(5) = 20 members, the single `md`
@@ -3659,7 +3668,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.160.0';
+export const ENGINE_VERSION = '0.161.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
