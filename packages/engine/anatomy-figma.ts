@@ -2805,7 +2805,7 @@ const PAYLOAD_MIN_LINES = `    if(c.minLines){
       const lh=kid.lineHeight||{},fs=kid.fontSize;
       const h=c.minLines*(lh.unit==='PIXELS'?lh.value:lh.unit==='PERCENT'?lh.value/100*fs:NaN);
       if(!(h>0))misses.push(c.name+'.minLines -> no px line height');
-      else{kid.minHeight=h;if(kid.minHeight!==h)misses.push(c.name+'.minHeight -> DISCARDED');}
+      else{kid.minHeight=h;if(!(Math.abs(kid.minHeight-h)<=0.01))misses.push(c.name+'.minHeight -> DISCARDED');}
     }`;
 const hasMinLines = (n: FigmaNodePlan): boolean => n.minLines !== undefined || n.children.some(hasMinLines);
 /** `PAYLOAD_BUILD` for these roots: the reserved-lines write spliced in where one of them needs it. */
