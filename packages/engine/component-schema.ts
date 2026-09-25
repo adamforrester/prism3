@@ -379,6 +379,26 @@ export type PartDef = {
    *  `slot`/`vector`/`text` (sized by artboard / content — `wrap` is the text twin), and on `overlay`/
    *  `absolute` (out of the flow). `boolean`; absent means the child keeps its own cross-axis sizing. */
   crossAxisFill?: boolean;
+  /** For a non-root `box`: FILL the parent's MAIN axis (`layoutGrow: 1`) — `wrap`'s main-axis fill, for a box
+   *  rather than a text. Textarea's counter cell is the case: it grows across the message row and justifies
+   *  its caption to the end, so the counter trails whether or not the message beside it is shown. A
+   *  `space-between` row cannot do that: with its first child hidden it puts the one left at the START.
+   *
+   *  Projects the same `layoutGrow: 1` a wrapping label does, and both executors already write it on every
+   *  created node (`claimDefaults` claims `0` everywhere else), so no executor changes. Carried onto the plan
+   *  ONLY when set. Refused on the root and on every kind but `box` (a nested instance's child-side writes are
+   *  the parent's, and only `layoutAlign` is threaded there). ITS PRECONDITION is `wrap`'s: the parent must
+   *  BOUND its main axis, or the grow fills nothing (#989). A row is bounded by a `minWidth` floor, a fixed
+   *  main axis, or a `crossAxisFill` stretch across a COLUMN parent (it is then as wide as that column). */
+  grow?: boolean;
+  /** For a `box` with `layout`: the binding key for its TOP padding only, the other three sides zero. The
+   *  space ABOVE a part that a boolean hides, so the space hides with it. Textarea's message and counter cells
+   *  each carry the field's stack gap this way: a column gap before a visible but EMPTY row stays, and a
+   *  boolean toggles one layer, so the gap has to live inside the layer it belongs to.
+   *
+   *  Refused alongside `padding` (a box states its padding once), on a box with no `layout` (Figma pads only an
+   *  auto-layout frame), and on every other kind. */
+  paddingTop?: string;
   /** For `box` parts: WHICH paint slots this box takes, in precedence order (#933). Absent means the
    *  box paints nothing — it is structure, and `field-label`'s and `field-message`'s boxes are exactly
    *  that. The words must come from `BOX_PAINT_SLOTS`.
@@ -2907,7 +2927,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
+    [p.gap, p.height, p.minHeight, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.paddingTop]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
@@ -3231,6 +3251,35 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'crossAxisFill' — cross-axis fill is a CHILD-side property (layoutAlign: STRETCH) and the root has no parent whose cross axis it could fill`);
       else if (p.kind !== 'box' && p.kind !== 'nest')
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'crossAxisFill' — only a 'box' or a 'nest' takes an in-flow cell that can STRETCH across its parent's cross axis; a slot/vector is sized by its artboard, a text by its content ('wrap' is the main-axis twin for text), and overlay/absolute sit outside the flow`);
+    }
+    // ---- MAIN-AXIS BOX GROW (`grow`) ----
+    // `wrap`'s `layoutGrow: 1` for a box. The kind and root rules are `crossAxisFill`'s; the precondition is
+    // `wrap`'s (a bounded parent main axis), widened by one case `wrap` never needed: a row stretched across a
+    // COLUMN parent is as wide as that column, so a grow inside it has real space to fill.
+    if (p.grow !== undefined) {
+      const parent = claimed.get(n);
+      const pp = parent ? parts[parent] : undefined;
+      const gp = parent ? claimed.get(parent) : undefined;
+      const gpp = gp ? parts[gp] : undefined;
+      const row = pp?.layout?.direction === 'row';
+      const boundedMain = !!pp?.layout && (row
+        ? pp.minWidth !== undefined || pp.layout.sizing.x === 'fixed' || (!!pp.crossAxisFill && gpp?.layout?.direction === 'column')
+        : pp.layout.sizing.y === 'fixed' || (!!pp.crossAxisFill && gpp?.layout?.direction === 'row'));
+      if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'grow' — main-axis grow is a CHILD-side property (layoutGrow) and the root has no parent to fill`);
+      else if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'grow' — only a 'box' grows along its parent's main axis ('wrap' is the text twin); a nested instance's child-side writes are its parent's, and only 'crossAxisFill' is threaded there`);
+      else if (!boundedMain)
+        e.push(`anatomy part '${n}' declares 'grow' but its parent '${parent ?? '(none)'}' does not bound its main axis (a row needs a 'minWidth' floor, a fixed width, or 'crossAxisFill' under a column; a column a fixed height, or 'crossAxisFill' under a row) — 'layoutGrow' fills REMAINING space and a hugging parent has none (#989)`);
+    }
+    // ---- TOP-ONLY PADDING (`paddingTop`) ----
+    if (p.paddingTop !== undefined) {
+      if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'paddingTop' — only a 'box' lays out`);
+      else if (!p.layout)
+        e.push(`anatomy part '${n}' declares 'paddingTop' but binds no 'layout' — Figma pads only an auto-layout frame, so the padding would be silently dropped`);
+      if (p.padding)
+        e.push(`anatomy part '${n}' declares both 'padding' and 'paddingTop' — a box states its padding once, and the projector would keep whichever wrote last`);
     }
     // `inset` is the absolute kind's own geometry and means nothing anywhere else: on a flow part it
     // reads as though the part were offset from its cell, which no projection does. Checked as its own

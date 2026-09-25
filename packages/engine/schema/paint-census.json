@@ -137,12 +137,12 @@
       "set": {
         "members": 20,
         "assignments": 100,
-        "sha256": "0d2fc0ef27b7b296d41277e49876c00744235adf3e63e7e0adc73d2d0d33d7ad"
+        "sha256": "2270061b19d494c66539d7b3bbec1f51c23936a87be936231404d5ff479e7a83"
       },
       "grid": {
         "members": 28,
         "assignments": 140,
-        "sha256": "0c24e720dc20103d465fd752999e4b07d8bbd15e9bb2e5061fd24e1f02f62304"
+        "sha256": "b4fe143c0a688e0a6c410caea61266e7baa2520a8d0ad249cbb0b4688e847294"
       }
     },
     "checkbox-control": {

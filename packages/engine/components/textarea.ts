@@ -79,6 +79,17 @@
  * `character count` boolean. The row is this def's own box around the nested FieldMessage, so field-message,
  * text-field and select project byte-identically. The row's height is the message's (a caption beside a
  * caption), so the counter moves no footprint either way.
+ *
+ * ── THE MESSAGE AND THE COUNTER ARE INDEPENDENT (the owner's answer 2, 2026-09-25) ───────────────────────
+ *
+ * Designers need message only, counter only, both, or neither, with no stray empty row or gap, and a Figma
+ * boolean toggles ONE layer. Two host facts decide the construction: a column's gap still applies before a
+ * visible child that is empty, and a hidden child takes no cell and no gap. So each switch toggles a CELL that
+ * carries its own space above it (`paddingTop: 'root-gap'`), and the control and the row sit in a gap-0 column
+ * (`body`): with both cells off the row is empty, and nothing is left above it. The counter's cell GROWS across
+ * the row and justifies the caption to the end, so the counter trails with the message on or off (a
+ * `space-between` row puts a lone child at the start). No third switch: the owner's fallback (a `footer`
+ * switch holding the two) would still leave a stray gap with the footer on and both inside it off.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -248,8 +259,8 @@ export const textarea: ComponentDef = {
 
   // ── ANATOMY — text-field's column, with a control that HUGS its reserved rows ──────────────────
   //
-  // container (column) → nested FieldLabel · control (the bordered box) · message row (nested FieldMessage
-  // and the counter). The label, the message, the focus ring, the status-led border and the 320 width floor
+  // container (column) → nested FieldLabel · body (a gap-0 column: control, the bordered box · message row,
+  // a message cell and a counter cell). The label, the message, the focus ring, the status-led border and the 320 width floor
   // are text-field's, part for part. The control differs in two ways: it binds no height (it hugs its padding
   // and the text), and it holds the value text plus the corner grip — no leading glyph, no trailing affix.
   // The message row is this def's own, so the counter can trail the message without touching field-message.
@@ -261,7 +272,7 @@ export const textarea: ComponentDef = {
         kind: 'box',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'root-gap',
-        children: ['label', 'control', 'messageRow'],
+        children: ['label', 'body'],
       },
       // THE NESTED LABEL — text-field's, exactly (nest-exposed size / emphasis / weight, state fixed at rest).
       label: {
@@ -269,6 +280,15 @@ export const textarea: ComponentDef = {
         nests: 'field-label',
         nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
         note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the textarea. Starts at the field default (small / secondary / regular).',
+      },
+      // THE BODY — the control and the message row in a GAP-0 column. The stack gap between them is carried
+      // by the message and counter CELLS instead (their `paddingTop`), so it hides with them: a column gap
+      // would stay above the row when both are off, since an empty row is still a visible child.
+      body: {
+        kind: 'box',
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        crossAxisFill: true,
+        children: ['control', 'messageRow'],
       },
       // THE CONTROL — the bordered, interactive box and the single target. Paints the fill, the hover wash
       // and the stateful border (text-field's `paintSlots`). NO bound height: it hugs its block padding plus
@@ -319,32 +339,49 @@ export const textarea: ComponentDef = {
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
         note: 'An absolutely-positioned sibling nesting the shared `focus-ring`. Rings the control, takes no cell, and has its own stroke.',
       },
-      // THE MESSAGE ROW — the nested message at the start and the counter at the end (`space-between`),
-      // stretched to the field's width. Structure only. It carries the `message` boolean, so hiding the message
-      // takes the whole row out of the column and the field measures what it did before the counter existed.
-      // Its height is the message's: the counter is a caption beside a caption, one line box.
+      // THE MESSAGE ROW — the message cell at the start and the counter cell growing to the end, stretched to
+      // the field's width. Structure only, always present, and never switched: each cell is. With both cells
+      // off it is empty and measures nothing; its height is otherwise the taller cell's.
       messageRow: {
         kind: 'box',
-        layout: { direction: 'row', align: 'start', justify: 'space-between', sizing: { x: 'fill', y: 'hug' } },
+        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'root-gap',
         crossAxisFill: true,
+        children: ['messageCell', 'counterCell'],
+      },
+      // THE MESSAGE CELL — the nested message with the stack gap above it. The `message` boolean toggles this
+      // cell, so the gap hides with the message.
+      messageCell: {
+        kind: 'box',
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        paddingTop: 'root-gap',
         optional: true,
-        children: ['message', 'counter'],
+        children: ['message'],
       },
       // THE NESTED MESSAGE — text-field's: nest-fixed, following `status` by name.
       message: {
         kind: 'nest',
         nests: 'field-message',
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name. Shown by default; the `message` boolean hides the row it sits in.',
+        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name. Shown by default; the `message` boolean hides it, with the space above it.',
       },
-      // THE CHARACTER COUNTER (owner decision (d)) — a caption trailing the message, hidden by default.
+      // THE COUNTER CELL — the stack gap above the counter, GROWING across the rest of the row and justifying
+      // the caption to its end, so the counter trails whether or not the message is shown. The `character
+      // count` boolean toggles this cell.
+      counterCell: {
+        kind: 'box',
+        layout: { direction: 'row', align: 'start', justify: 'end', sizing: { x: 'fill', y: 'hug' } },
+        paddingTop: 'root-gap',
+        grow: true,
+        optional: true,
+        children: ['counter'],
+      },
+      // THE CHARACTER COUNTER (owner decision (d)) — a caption at the end of the row, hidden by default.
       counter: {
         kind: 'text',
         type: 'counter-type',
         paintSlot: 'indicator',
-        optional: true,
-        note: 'The character counter, trailing the message in its row. Hidden by default (the `character count` boolean), matching `showCount`; shown, it takes no height the message row does not already have.',
+        note: 'The character counter, at the end of the message row. Hidden by default (the `character count` boolean), matching `showCount`, and independent of the message: either, both or neither can show. Beside the message it takes no height the row does not already have.',
       },
     },
     codeOnly: [
@@ -354,7 +391,7 @@ export const textarea: ComponentDef = {
       'empty — a real STATE (the displayed text is the placeholder), deliberately NOT a Figma variant, text-field\'s posture: its delta is the value ink (`label.empty`) and `error.border.empty`, a content condition code drives. It and `pending` are the two states held back, leaving the projected set at status(4) × state(5) = 20 members.',
       'rows / minRows / maxRows and auto-grow — Figma has no numeric component property, so `rows` is not a Figma property: the value text reserves the `rows` prop\'s DEFAULT line count (3) of its own line height, frozen at paste. A designer wanting more rows types more lines (the box grows) or resizes the instance; `minRows` / `maxRows` and the auto-grow measurement are runtime behavior.',
       'the RESIZE HANDLE\'s behavior (`resize`) — Figma draws a decorative grip behind the `resize handle` boolean, on by default because `resize` defaults to `vertical`. In code the handle is the browser\'s own, drawn at the inline-end corner (bottom-left in a right-to-left layout); Figma members are drawn left to right, so the grip sits bottom-right. `auto` and `none` draw no handle in code; in Figma, switch the boolean off.',
-      'the CHARACTER COUNTER\'s live value (`maxLength` / `showCount`) — Figma draws a static "0 / 200" caption trailing the message, behind the `character count` boolean, off by default like `showCount`. Code counts graphemes, sets tabular numerals (`font-variant-numeric: tabular-nums`, which the type tokens do not carry, so Figma uses the caption style as it is) and paints the counter in the error role past the limit. In Figma the counter rides the message row, so switching `message` off hides it too; in code it renders on its own.',
+      'the CHARACTER COUNTER\'s live value (`maxLength` / `showCount`) — Figma draws a static "0 / 200" caption trailing the message, behind the `character count` boolean, off by default like `showCount`. Code counts graphemes, sets tabular numerals (`font-variant-numeric: tabular-nums`, which the type tokens do not carry, so Figma uses the caption style as it is) and paints the counter in the error role past the limit. In Figma, as in code, the counter and the message switch independently.',
       'the label / describedby WIRING and the counter\'s two-node live region — the host generates ids, ties the FieldLabel to the textarea, stitches the FieldMessage and the counter into aria-describedby, and sets aria-invalid. Figma has no accessibility tree, so the nested parts are associated by proximity alone.',
       'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` (its state vocabulary is not the field\'s), so in Figma the nested label reads at rest regardless. A projection limit, not a design choice.',
       'the KEYBOARD MODEL — native multi-line editing, the Enter key (a newline unless submitOnEnter), IME composition guards and the resize drag. All of it is runtime interaction the closed static member cannot carry.',
@@ -376,12 +413,14 @@ export const textarea: ComponentDef = {
       maxLength: { part: 'counter', figmaName: 'count', default: '0 / 200' },
     },
     booleans: {
-      showMessage: { part: 'messageRow', figmaName: 'message', default: true },
+      // Each switch toggles its own CELL, which carries the space above it — so any of the four combinations
+      // leaves no empty row and no stray gap (the header's last section).
+      showMessage: { part: 'messageCell', figmaName: 'message', default: true },
       // Keyed by `resize`, the code prop that decides whether the browser draws a handle (`vertical`, the
       // default, does). A boolean rather than a variant axis: the grip is pinned out of the flow, so its
       // presence moves nothing and a node-visibility toggle carries it (the icon-property canon).
       resize: { part: 'grip', figmaName: 'resize handle', default: true },
-      showCount: { part: 'counter', figmaName: 'character count', default: false },
+      showCount: { part: 'counterCell', figmaName: 'character count', default: false },
     },
   },
 
@@ -459,6 +498,7 @@ export const textarea: ComponentDef = {
       'The Polaris unbounded-growth bug cited in brief §3 and §13 as the evidence for always setting maxRows — attributed to the external research pass, no `_source-text` backing in the vault. The RULE stands on its own reasoning; the citation is what is unverified.',
       'The error stroke belongs on the CONTAINER, not the input, so a Windows scrollbar docks inside the error boundary rather than breaking it (brief §4). The Figma anatomy strokes the `control` box that wraps the text, which is that reading; the code-side node split (a wrapper carrying the border around the native <textarea>) is not expressed by anything a gate reads.',
       'The reserved rows are the value text\'s `minHeight` (rows × its line height), written by the executor after the text is appended to the auto-layout control. That Figma accepts and keeps a `minHeight` on a TEXT child of an auto-layout frame, with `textAutoResize: HEIGHT`, is modelled offline (the shim and the read-back) and not yet confirmed on a live host. Symptom if it is not kept: a `minHeight -> DISCARDED` miss, and a one-line-tall control.',
+      'With both the `message` and `character count` switches off, the message row is an auto-layout frame with no visible child, and the field relies on the host collapsing it to zero height (it has no padding of its own; the space above each part lives in that part\'s cell). Modeled offline, not yet confirmed on a live host. Symptom if it does not collapse: a sliver below the control.',
       'The resize grip is an ABSOLUTE child of the auto-layout control, placed at the control\'s built size and constrained `MAX`/`MAX`. That the host keeps it in the corner when the value text grows the control after paste (a designer typing more lines) is modeled offline, not yet confirmed on a live host. Symptom if it does not: a grip left at the old corner, inside the grown box.',
       'Brief §4 says `size` scales "typography and padding only", and this def binds padding but NO type token — because the substrate binds none either, so there is no type role for a field value to narrow. The padding half is expressed and the typography half is not, in both defs. Whether the field family should bind a type role is a substrate question, not a Textarea one — filed as #862 rather than decided here, because a child def is the wrong place to make the family\'s type call.',
       'rows / minRows / maxRows are in LINES and therefore resolve against the computed line-height, which brief §9 warns must be the RENDERED line box rather than an assumed Latin one (Arabic, Thai and Devanagari grow differently). No token expresses a line-height for this def to bind, so the constraint lives in prose only and nothing checks it.',

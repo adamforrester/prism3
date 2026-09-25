@@ -3492,7 +3492,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     await prebuildDependencies(def, { defs, project, host: shim as any, build });
     const r = await build(def);
     const set = page.children.find((c) => c.name === 'textarea' && c.type === 'COMPONENT_SET') as Node | undefined;
-    const controls = ((set?.children as Node[] | undefined) ?? []).map((mb) => ((mb.children as Node[]) ?? []).find((c) => c.name === 'control'));
+    // Found by name at any depth: the control sits in the field's `body` column, below the member's root.
+    const named = (n: Node, name: string): Node | undefined => n.name === name ? n : ((n.children as Node[]) ?? []).map((c) => named(c, name)).find(Boolean);
+    const controls = ((set?.children as Node[] | undefined) ?? []).map((mb) => ((mb.children as Node[]) ?? []).map((c) => named(c, 'control')).find(Boolean));
     return { r, controls, heights: [...new Set(controls.map((c) => (c ? Math.round((c.height as number) * 1000) / 1000 : NaN)))], foot: r.misses.filter((x) => x.startsWith('footprint -> ')) };
   };
 
@@ -3541,7 +3543,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 //
 // The mutations each arm exists to catch, by name: the grip left IN the flow (no `layoutPositioning`) fails
 // `textarea grip corner` and `textarea grip footprint`; the counter defaulted ON fails `textarea counter
-// default`.
+// default`; the stack gap moved from the cells back onto the column above the row fails `textarea counter
+// footprint` on the neither combination.
 {
   const textarea = componentDefs.find((d) => d.id === 'textarea')!;
   const GRIP = varValue('icon/size/xs');              // the smallest icon rung, as the shim binds it
@@ -3636,35 +3639,67 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(b.members.length === 20 && gripFoot.length === 0,
     `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 20 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
 
-  // ---- the counter: a `character count` boolean, OFF by default, trailing in the message row ----
+  // ---- the counter and the message: two INDEPENDENT booleans (the owner's answer 2, 2026-09-25) ----
+  // Each switch drives its own layer, and neither layer holds the other, so all four combinations exist.
   const count = boolProp(b.set, 'character count');
+  const msg = boolProp(b.set, 'message');
+  const refOf = (n: Node | undefined) => (n?.componentPropertyReferences as Record<string, string> | null)?.visible;
+  const holder = (m: Node, key: string | undefined): Node | undefined => {
+    const walk = (n: Node): Node | undefined => {
+      if (refOf(n) === key) return n;
+      for (const c of (n.children as Node[] | undefined) ?? []) { const f = walk(c); if (f) return f; }
+      return undefined;
+    };
+    return key ? walk(m) : undefined;
+  };
   const counters = b.members.map((m) => find(m, 'counter'));
+  const countLayers = b.members.map((m) => holder(m, count?.key));
+  const msgLayers = b.members.map((m) => holder(m, msg?.key));
   ok(count?.type === 'BOOLEAN' && count.defaultValue === false
-    && counters.every((c) => c && c.visible === false && (c.componentPropertyReferences as Record<string, string> | null)?.visible === count.key),
-    `textarea counter default: a 'character count' BOOLEAN defaulting to false drives the counter's visibility, and all 20 members build it hidden (${JSON.stringify(count)}; ${counters.filter((c) => c && c.visible === false).length} hidden)`);
+    && countLayers.every((l, i) => l && l.visible === false && find(l, 'counter') === counters[i]),
+    `textarea counter default: a 'character count' BOOLEAN defaulting to false drives a layer holding the counter, and all 20 members build it hidden (${JSON.stringify(count)}; ${countLayers.filter((l) => l && l.visible === false).length} hidden)`);
+  ok(msg?.type === 'BOOLEAN' && msg.defaultValue === true
+    && msgLayers.every((l, i) => l && l.visible !== false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
+    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 20 members (${JSON.stringify(msg)})`);
   const rows = b.members.map((m) => find(m, 'messageRow'));
-  ok(rows.every((r, i) => r && r.primaryAxisAlignItems === 'SPACE_BETWEEN' && (r.children as Node[]).at(-1) === counters[i] && (r.children as Node[])[0]?.name === 'message'),
-    `textarea counter row: on all 20 members the counter is the LAST child of the message row, after the message, and the row spreads them to its two ends (SPACE_BETWEEN)`);
+  ok(rows.every((r, i) => r && r.layoutAlign === 'STRETCH' && (r.children as Node[]).at(-1) === countLayers[i]
+      && countLayers[i]!.layoutGrow === 1 && countLayers[i]!.primaryAxisAlignItems === 'MAX'),
+    `textarea counter row: on all 20 members the counter's layer is the LAST child of the stretched message row, GROWS across it (layoutGrow 1) and justifies the counter to its end (MAX), so the counter trails with the message on or off`);
   ok(counters.every((c) => c && c.characters === '0 / 200'),
     `textarea counter text: the counter reads "0 / 200", the def's counter format (${counters[0]?.characters})`);
 
-  // ---- the counter moves no box, with the caption's line box under the glyph and over it ----
+  // ---- the four combinations, each with no stray row or gap, with the caption's line box under and over
+  // the glyph. The expected height is worked here from the stack gap (the shim's `space/100`, the field's
+  // `root-gap`) and the measured label, control, message and counter: neither → label + gap + control; any
+  // shown → that plus ONE gap plus the taller of what is shown. Never read off the def or the plan.
+  const GAP = varValue('space/100');
   for (const captionBox of [GRIP - 1, GRIP + 4]) {
     const bb = captionBox === GRIP - 1 ? b : await buildIt(textarea, captionBox);
-    const moved: string[] = [];
+    const off: string[] = [];
+    let cells = 0;
     for (const m of bb.members) {
-      const c = find(m, 'counter');
-      if (!c) { moved.push(`${m.name}: no counter`); continue; }
-      // The row's HEIGHT and the member's box. The row's width is its STRETCH across the field on the host,
-      // which this shim does not model (a hugging row widens by the counter here and nowhere else).
-      const off = [String(Math.round((find(m, 'messageRow')?.height as number) * 1000) / 1000), box(m)];
-      c.visible = true;
-      const on = [String(Math.round((find(m, 'messageRow')?.height as number) * 1000) / 1000), box(m)];
-      c.visible = false;
-      if (on.join() !== off.join()) moved.push(`${m.name}: row ${off[0]} → ${on[0]}, member ${off[1]} → ${on[1]}`);
+      const cl = holder(m, count?.key);
+      const ml = holder(m, msg?.key);
+      const label = find(m, 'label');
+      const ctl = find(m, 'control');
+      const message = find(m, 'message');
+      const counter = find(m, 'counter');
+      if (!cl || !ml || !label || !ctl || !message || !counter) { off.push(`${m.name}: incomplete`); continue; }
+      const base = (label.height as number) + GAP + (ctl.height as number);
+      for (const [showMsg, showCount] of [[true, false], [false, true], [true, true], [false, false]] as const) {
+        ml.visible = showMsg;
+        cl.visible = showCount;
+        const shown = [showMsg ? (message.height as number) : 0, showCount ? (counter.height as number) : 0];
+        const want = base + (showMsg || showCount ? GAP + Math.max(...shown) : 0);
+        const got = m.height as number;
+        if (Math.abs(got - want) > 1e-6) off.push(`${m.name} message ${showMsg ? 'on' : 'off'}, count ${showCount ? 'on' : 'off'}: ${got}, want ${want}`);
+        else cells++;
+      }
+      ml.visible = true;
+      cl.visible = false;
     }
-    ok(bb.members.length === 20 && bb.r.misses.length === 0 && moved.length === 0,
-      `textarea counter footprint (caption line box ${captionBox}, glyph ${GRIP}): the message row and the member measure alike with the counter on and off, on all 20 members (${moved.length} moved — ${moved[0] ?? 'none'})`);
+    ok(bb.members.length === 20 && bb.r.misses.length === 0 && off.length === 0 && cells === 80,
+      `textarea counter footprint (caption line box ${captionBox}, glyph ${GRIP}): message only, counter only, both and neither each measure label + gap + control, plus one gap and the taller shown part when any is shown, on all 20 members (${cells}/80; ${off.length} off — ${off[0] ?? 'none'})`);
   }
 }
 

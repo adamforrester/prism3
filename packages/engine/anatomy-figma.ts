@@ -1304,6 +1304,9 @@ export const figmaAnatomyPlan = (
       // fallback now stands down when this binding wrote — unconditional it would UNBIND what Figma just
       // accepted, which is the same last-write-wins silence the aspect-ratio unlock exists for.
       if (p.strokeWidth) bound.strokeWeight = varOf(p.strokeWidth);
+      // TOP-ONLY padding: the space above a part a boolean hides, so the space hides with it (textarea's
+      // message and counter cells). The validator refuses it alongside `padding`, so the two never both write.
+      if (p.paddingTop) bound.paddingTop = varOf(p.paddingTop);
       if (p.padding) {
         bound.paddingTop = varOf(p.padding.block);
         bound.paddingBottom = varOf(p.padding.block);
@@ -1507,6 +1510,9 @@ export const figmaAnatomyPlan = (
       // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
       // width (a `minWidth` floor or `fixed`), or the fill has nothing to resolve against (#989).
       ...(p.kind === 'text' && p.wrap ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
+      // A GROWING BOX (`grow`), `wrap`'s main-axis fill without the reflow: carried ONLY when set, so every
+      // other box's plan is byte-identical. `anatomyErrors` asserts the parent bounds its main axis.
+      ...(p.kind === 'box' && p.grow ? { layoutGrow: 1 } : {}),
       // THE RESERVED LINES (textarea's `rows`), carried ONLY on a `text` part declaring `lines`, as the
       // named prop's DEFAULT — so the Figma box and the code prop read one number. A count, never pixels:
       // the executor multiplies it by the node's own line height at paste. `anatomyErrors` has already
