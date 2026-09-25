@@ -307,7 +307,7 @@ export const runPersist = (raw: unknown) => writeStep(raw, 'persist', async (hos
 
 /* ── read-back ─────────────────────────────────────────────────────────────────────────────────────── */
 
-type ReadValue = number | string | boolean | { r: number; g: number; b: number; a?: number } | { alias: string } | null;
+type ReadValue = number | string | boolean | { r: number; g: number; b: number; a?: number } | { alias: string; opacity?: number | string } | null;
 
 /**
  * VARIABLES READ-BACK — one page of every local variable, sorted by (collection, name), plus every
@@ -328,10 +328,14 @@ export const runReadbackVars = async (raw: unknown): Promise<StepReport> => {
   const colName = (v: Variable) => colById.get(v.variableCollectionId)?.name ?? `?${v.variableCollectionId}`;
   const sorted = [...all].sort((a, b) => (colName(a) + '\u0000' + a.name < colName(b) + '\u0000' + b.name ? -1 : 1));
   const page = sorted.slice(d.offset, d.offset + d.limit);
+  const aliasName = (v: { id: string }): string => byId.get(v.id)?.name ?? `?${v.id}`;
+  const isAlias = (v: unknown): v is { id: string } => !!v && typeof v === 'object' && (v as { type?: string }).type === 'VARIABLE_ALIAS';
   const value = (v: unknown): ReadValue => {
-    if (v && typeof v === 'object' && (v as { type?: string }).type === 'VARIABLE_ALIAS') {
-      const t = byId.get((v as { id: string }).id);
-      return { alias: t ? t.name : `?${(v as { id: string }).id}` };
+    if (isAlias(v)) return { alias: aliasName(v) };
+    // The tinted wash (#1646): an alias laid at an opacity — a percentage, or an alias to an `opacity/<n>` variable.
+    if (v && typeof v === 'object' && isAlias((v as { color?: unknown }).color)) {
+      const o = (v as { opacity?: unknown }).opacity;
+      return { alias: aliasName((v as { color: { id: string } }).color), opacity: isAlias(o) ? aliasName(o) : (o as number) };
     }
     return (v ?? null) as ReadValue;
   };

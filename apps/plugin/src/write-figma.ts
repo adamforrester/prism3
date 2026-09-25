@@ -73,11 +73,14 @@ export interface VarCollection {
   setSharedPluginData?(namespace: string, key: string, value: string): void;
 }
 export interface VariableAlias { type: 'VARIABLE_ALIAS'; id: string }
+/** A color variable's ALIAS WITH OPACITY (#1646, host-probed on the owner's file): the color is an alias, the
+ *  opacity a percentage or an alias to a FLOAT variable. The tinted wash's value (#1614). */
+export interface AliasWithOpacity { color: VariableAlias; opacity: number | VariableAlias }
 /** The value a variable can hold in a mode, as the READ executor sees it (#109). A SUPERSET of the
  *  real Figma `VariableValue` union (alias | RGB(A) | number | string | boolean), so `figma.variables`
  *  structurally satisfies this port; `{ r; g; b; a? }` covers both RGB and RGBA. The write path only
  *  ever sets `Rgba | VariableAlias` (a subset), which is assignable here. */
-export type ReadVarValue = VariableAlias | { r: number; g: number; b: number; a?: number } | number | string | boolean;
+export type ReadVarValue = VariableAlias | AliasWithOpacity | { r: number; g: number; b: number; a?: number } | number | string | boolean;
 export interface Variable {
   id: string;
   name: string;
@@ -577,6 +580,12 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
   // Alias TARGETS are palette primitives (in `core`), so resolve against BOTH collections' vars, not
   // just the colour collection — mirrors the CLI pass's unscoped global name map.
   const targetByName = new Map<string, Variable>([...pal.byName, ...col.byName]);
+  // A TINTED WASH's opacity aliases an `opacity/<n>` FLOAT variable in the `opacity` collection, which the
+  // FLOAT executor writes — so Apply Theme runs that one first (`apply-theme.ts`), and the target is found
+  // by name across the whole file. Fetched only when the plan carries a wash.
+  const opacityByName = aliases.some((r) => r.opacityByMode)
+    ? new Map((await vars.getLocalVariablesAsync()).map((v) => [v.name, v] as const))
+    : new Map<string, Variable>();
   let bound = 0;
   const misses: string[] = [];
   for (const row of aliases) {
@@ -587,7 +596,17 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
       if (!target) return; // no alias for this mode (literal-only) — leave the pass-A value
       const tv = targetByName.get(target);
       if (!tv) { misses.push(`${row.name} @${m} -> ${target}`); return; }
-      v.setValueForMode(modeIds[m], vars.createVariableAlias(tv));
+      const op = row.opacityByMode?.[i];
+      if (op) {
+        // The wash (#1614, #1646): the fill's alias at an opacity, the opacity aliasing its scale step. A
+        // missing step is a miss, never a quiet literal — the wash would stop following the scale.
+        const ov = opacityByName.get(op.name);
+        if (!ov) { misses.push(`${row.name} @${m} opacity -> ${op.name}`); return; }
+        const wash: AliasWithOpacity = { color: vars.createVariableAlias(tv), opacity: vars.createVariableAlias(ov) };
+        // The host accepts this shape (probed on the owner's file, #1646) but the plugin typings do not list it
+        // yet (figma/plugin-typings#375), so the port keeps the typed union and this one write is cast.
+        v.setValueForMode(modeIds[m], wash as unknown as VariableAlias);
+      } else v.setValueForMode(modeIds[m], vars.createVariableAlias(tv));
       bound++;
     });
   }

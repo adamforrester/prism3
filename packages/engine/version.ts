@@ -2926,6 +2926,20 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.161.0 — The tinted wash lives in its own Figma variable, so Apply Theme no longer resets button hovers
+ * (#1646, owner-approved 2026-09-25). Measured live: one Apply Theme reset all 288 `solid-tint` hover/pressed
+ * paints on button, button-destructive and button-neutral from 0.1–0.3 to 1, because the host resets the
+ * opacity of every paint bound to a color variable it rewrites. Each `[inverse.]interactive.<c>.subtle-fill.<state>`
+ * leaf (already in the DTCG tree) is now emitted as a Figma color variable whose value per mode is the fill
+ * variable's alias at the `opacity/<n>` variable (#1646 probe cases A–C, E), and `applyOutlineInteraction` binds
+ * it at paint opacity 1. The plan's `paintOpacity`, `ComponentDef.paintOpacity`, both executors' second-
+ * assignment step (#1656) and their opacity read-back are gone. Apply Theme writes the FLOAT axes before
+ * color, so a wash's opacity target exists when it binds (paste path reordered to match). No step moves: every
+ * wash's opacity equals the old paint opacity in every mode of every example brand. Figma surface and
+ * projected bindings change for `solid-tint` brands → MINOR; the component-surface baseline is accepted
+ * (the `@outline-solid-tint` rows). CONTRACT STANDS — the `subtle-fill` names were already in the tree, and
+ * no corpus brand sets `solid-tint`, so the guaranteed surface does not move.
+ *
  * 0.160.0 — The textarea's reserved-rows floor was reported DISCARDED on all 20 members of a live build
  * (owner's MCP testing file, 2026-09-25, through the agent link) although the host had kept it: `minHeight` is
  * stored at single precision, so 3 × 16px × 165% = 79.19999885559082 read back as 79.19999694824219 and the
@@ -3656,7 +3670,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.160.0';
+export const ENGINE_VERSION = '0.161.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

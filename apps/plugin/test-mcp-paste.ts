@@ -271,7 +271,10 @@ const ALL_BRANDS: [string, BrandInput][] = [
 ];
 const FACES = allFaces(ALL_BRANDS.map(([, b]) => b));
 const fresh = (opts: Opts = {}) => { const f = new FileShim(opts); f.faces = FACES; return f; };
-const PARITY: [string, BrandInput][] = [['nb-redesign', designMd('nb-redesign')], ['aurora', designMd('aurora')]];
+// The third member is the owner's own case (#1646): a `solid-tint` brand, whose tinted washes are color variables
+// aliasing the fill at an `opacity/<n>` variable — so the plugin's Apply Theme must write the FLOAT axes before
+// color, and the paste path in the same order, or every wash is a named miss.
+const PARITY: [string, BrandInput][] = [['nb-redesign', designMd('nb-redesign')], ['aurora', designMd('aurora')], ['nb-redesign@solid-tint', { ...designMd('nb-redesign'), outlineInteraction: 'solid-tint' }]];
 
 console.log('MCP paste (#111/#1553) — the paste-in Apply Theme against the plugin\'s own, on one file model\n');
 

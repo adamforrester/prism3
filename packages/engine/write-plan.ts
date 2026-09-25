@@ -59,6 +59,10 @@ export type ColorCreateRow = {
 export type ColorAliasRow = {
   name: string;
   targetsByMode: (string | null)[];
+  /** A TINTED WASH only (#1614, #1646): per mode, the opacity the alias is laid at — a percentage, and the
+   *  `opacity/<n>` variable to alias it to. The executor writes `{ color: <alias>, opacity: <alias> }`.
+   *  Absent on every other row, so every plan without a wash is byte-identical to before. */
+  opacityByMode?: ({ value: number; name: string } | null)[];
 };
 
 /** The full colour materialisation plan — host-neutral, ready for any executor. */
@@ -107,10 +111,14 @@ export const buildWritePlan = (
     description: v.description,
     valuesByMode: color.map((f) => rgba(f.variables[i].value as FigmaColor)),
   }));
-  const aliases: ColorAliasRow[] = base.map((v, i) => ({
-    name: v.name,
-    targetsByMode: color.map((f) => f.variables[i].alias?.name ?? null),
-  }));
+  const aliases: ColorAliasRow[] = base.map((v, i) => {
+    const opacityByMode = color.map((f) => f.variables[i].aliasOpacity ?? null);
+    return {
+      name: v.name,
+      targetsByMode: color.map((f) => f.variables[i].alias?.name ?? null),
+      ...(opacityByMode.some((o) => o) ? { opacityByMode } : {}),
+    };
+  });
 
   return { palette: paletteRows, color: { modes, create, aliases } };
 };

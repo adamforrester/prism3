@@ -33,11 +33,7 @@
  * delete the gate and report that as a pass, which is the shape this whole file exists to prevent.
  */
 
-import { readFileSync } from 'node:fs';
 import { applyOutlineInteraction } from '@prism3/engine/anatomy-figma';
-import { resolveAllModes } from '@prism3/engine/modes';
-import { brandTheme } from '@prism3/engine/theme';
-import { parseDesignMd } from '@prism3/engine/design-md';
 import { figmaAnatomySet, planComponentName, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -152,12 +148,10 @@ console.log(`\n  NOT round-tripped (no figmaProperties — the projection is opt
 
 console.log(`\nround-tripping ${PROJECTED.length} projected defs…\n`);
 const inventory: { def: string; divergences: Divergence[]; members: number; plans: number }[] = [];
-// …plus every def the `solid-tint` lever MATERIALIZES differently (#1614), built for the owner's brand: its
-// outline/text hover binds the category's fill at a PAINT OPACITY, a plan field (`paintOpacity`) no default
-// def carries — so without these rows that predicate would compare nothing, and an executor dropping the
-// opacity would read back as the fill, opaque, with every binding check green.
-const TINT_ROLES = resolveAllModes({ ...brandTheme(parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input), outlineInteraction: 'solid-tint' })[0].roles;
-const TINTED = PROJECTED.flatMap((d) => { const m = applyOutlineInteraction(d, 'solid-tint', TINT_ROLES); return m === d ? [] : [{ ...m, id: `${d.id}@solid-tint` }]; });
+// …plus every def the `solid-tint` lever MATERIALIZES differently (#1614): its outline/text hover binds the
+// tinted-wash variable (`interactive.<c>.subtle-fill.<state>`, #1646) where the default binds the neutral
+// overlay, so these rows are the ones that read a wash binding back off the host.
+const TINTED = PROJECTED.flatMap((d) => { const m = applyOutlineInteraction(d, 'solid-tint'); return m === d ? [] : [{ ...m, id: `${d.id}@solid-tint` }]; });
 for (const def of [...PROJECTED, ...TINTED]) {
   try {
     const r = await roundTrip(def);
@@ -166,8 +160,9 @@ for (const def of [...PROJECTED, ...TINTED]) {
     inventory.push({ def: def.id, divergences: [{ member: '(build)', path: '', field: 'THREW', expected: 'a built set', actual: (e as Error).message }], members: 0, plans: 0 });
   }
 }
-ok(TINTED.length > 0 && (EXERCISED.paintOpacity ?? 0) > 0,
-  `#1614 the solid-tint materializations round-trip too — ${TINTED.length} def(s), ${EXERCISED.paintOpacity ?? 0} paint opacities read back off the host`);
+const washPaints = TINTED.flatMap((d) => figmaAnatomySet(d, { swapTarget: SWAP_TARGET })).reduce((n, p) => n + planPaintVars(p.root).filter((v) => v.includes('/subtle-fill/')).length, 0);
+ok(TINTED.length > 0 && washPaints > 0,
+  `#1646 the solid-tint materializations round-trip too — ${TINTED.length} def(s), ${washPaints} tinted-wash paint bindings among their plans`);
 
 // ---- THE REPORT --------------------------------------------------------------------------------
 const clean = inventory.filter((i) => !i.divergences.length);

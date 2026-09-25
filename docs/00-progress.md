@@ -7,6 +7,35 @@
 
 ---
 
+## (2026-09-25) — the tinted wash lives in its own variable, so Apply Theme no longer resets button hovers (#1646)
+
+**STATUS: PR open, labeled DO NOT MERGE; the naming pattern is the owner's open question.** Files: `emit-figma-color.ts`, `write-plan.ts`, `tree.ts`, `figma-description.ts`, `ai-metadata.ts`, `anatomy-figma.ts`, `anatomy-readback.ts`, `component-schema.ts`, `read-back.ts`, `modes.ts` (comment only), `components/button.ts` (one `contested` sentence), plugin `write-figma.ts`, `write-components.ts`, `brand-def.ts`, `read-figma.ts`, `apply-theme.ts`, `mcp-steps.ts`, `mcp-paste.ts`, `component-shim.ts`, and the tests. **ENGINE 0.160.0 → 0.161.0**; CONTRACT STANDS at 12.0.0.
+
+**The defect (measured live through the agent link).** One Apply Theme reset all 288 tinted-wash paints on button, button-destructive and button-neutral from 0.1–0.3 to opacity 1. The host resets the opacity of every paint bound to a color variable when that variable is rewritten, the same rule #1656 measured for first binds. The owner's file showed near-black text-button hovers after a re-apply.
+
+**The fix (owner-approved).**
+- Each `[inverse.]interactive.<c>.subtle-fill.<state>` leaf, already in the DTCG tree, is now a Figma color variable.
+- Its value in each mode is `{ color: <alias to the fill>, opacity: <alias to opacity/<n>> }` (#1646 probe cases A–C and E). `FigmaVar.aliasOpacity` and `ColorAliasRow.opacityByMode` carry it.
+- `applyOutlineInteraction` binds that variable, and the paint stays at opacity 1.
+- Removed: `paintOpacity` (plan and def), both executors' second-assignment step (#1656), and their opacity read-back.
+- **Apply Theme now writes the FLOAT axes before color**, so the `opacity/<n>` target exists when a wash binds. Nothing in the FLOAT axes reads a color variable. The paste path was reordered to match.
+- A missing opacity target is a named miss, never a quiet literal.
+
+**Deliberate calls.**
+- **One variable per DTCG leaf, `selected` included.** Buttons bind only hover and pressed, but a Figma collection that skipped a leaf would be a new divergence from the tree.
+- **No visual change.** Every wash's opacity equals the old paint opacity in every mode of every example brand. The per-mode step rule is untouched, and per-mode tuning stays #1646's later decision. The `modes.ts` rationale now says the single step is a choice rather than a Figma limit.
+- **CONTRACT did not move, contrary to the brief's expectation.** The `subtle-fill` names were already in the tree, and no corpus brand sets `solid-tint`, so no guaranteed path was added. `--accept` rewrote only the `engineVersion` stamp.
+- **Sidecar relations use `tracks`, not `sits_on`.** `sits_on`/`carries` are gated as opaque ink-on-ground legibility pairs, and a wash is neither. The ground it lies over is named in the prose. `tracks` names the fill it follows and the label measured on it.
+- **The name reuses `subtle-fill`,** which is also the Figma name of the opaque orphans #1630 retired. A file that still holds one adopts it through find-by-name: same id, new value, and any stale binding to it now shows the tint. A file that pruned them gets fresh variables. Prune treats the washes as current because they are in the plan. The alternative (`wash`) is in the PR as the owner's question.
+
+**Traps for whoever re-verifies this.**
+- **The paste read-back compared washes as plain aliases.** Adding a `solid-tint` parity brand to `test-mcp-paste.ts` found it: 3 × 6 findings per mode. `runReadbackVars` and `compareReadback` now carry the opacity variable's name.
+- **`materialise-to-figma.ts` (the legacy CLI payload) was not taught the new shape.** It reads committed `out/figma/<brand>/`, and no committed brand has a wash. Filed as a follow-up rather than widened here.
+
+**Gates (docs/34), with mutations run from `wip:` commits:** listed in the PR body, each failing by name.
+
+---
+
 ## (2026-09-25) — the textarea's rows floor was kept by the host but reported DISCARDED (single precision)
 
 **STATUS: merged by the orchestrator.** Plugin + engine paste payload + read-back. **ENGINE 0.159.0 → 0.160.0**; CONTRACT STANDS.

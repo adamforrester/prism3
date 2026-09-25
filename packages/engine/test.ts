@@ -1920,10 +1920,68 @@ for (const b of brands) {
         }
         ok(refs > 0 && bad.length === 0, `#1614 every subtle fill's $value is its fill role at its opacity token, and both references resolve (${refs} mode-values)`
           + (bad.length ? ` — BAD: ${bad.slice(0, 3).join(', ')}` : ''));
-        const figVars = (t: any) => buildFigmaColor(t).color[0].variables.map((v: { name: string }) => v.name);
-        const tintVars = figVars({ ...auroraT, outlineInteraction: 'solid-tint' });
-        ok(JSON.stringify(tintVars) === JSON.stringify(figVars({ ...auroraT, outlineInteraction: 'none' })) && !tintVars.some((n: string) => n.includes('subtle-fill')),
-          `#1614 solid-tint adds no Figma color variable — the hover is the fill variable at a paint opacity (${tintVars.length} variables either way)`);
+        // #1646 — the wash IS a Figma color variable now (the paint-opacity form lost its tint on every Apply
+        // Theme). solid-tint adds exactly the 18 subtle-fill leaves the tree carries, and in every mode each one
+        // aliases its own fill variable at the opacity variable the tree's `tint.opacity` names, at that token's
+        // value as a percentage. Names HAND-SPELLED from the rule; values read off the TREE, not the emitter.
+        const figFiles = (t: any) => buildFigmaColor(t).color;
+        const tintFiles = figFiles({ ...auroraT, outlineInteraction: 'solid-tint' });
+        const noneNames = new Set(figFiles({ ...auroraT, outlineInteraction: 'none' })[0].variables.map((v: { name: string }) => v.name));
+        const added = tintFiles[0].variables.map((v: { name: string }) => v.name).filter((n: string) => !noneNames.has(n)).sort();
+        const WANT_ADDED = ['', 'inverse/'].flatMap((pre) => ['primary', 'neutral', 'destructive'].flatMap((c) => ['hover', 'pressed', 'selected'].map((st) => `${root}/color/${pre}interactive/${c}/subtle-fill/${st}`))).sort();
+        ok(JSON.stringify(added) === JSON.stringify(WANT_ADDED),
+          `#1646 solid-tint adds exactly the 18 tinted-wash color variables, nothing else (${added.length}: ${added.slice(0, 2).join(', ')}…)`);
+        const washBad: string[] = [];
+        let washCells = 0;
+        for (const f of tintFiles) for (const v of f.variables.filter((x: { name: string }) => x.name.includes('/subtle-fill/'))) {
+          washCells++;
+          const [, pre, c, st] = /\/color\/(inverse\/)?interactive\/([^/]+)\/subtle-fill\/([^/]+)$/.exec(v.name) ?? [];
+          const leaf = at(tintTree[root].color, `${pre ? 'inverse.' : ''}interactive.${c}.subtle-fill.${st}`);
+          const tintRef = String((f.$mode === 'light' ? leaf.$extensions.prism3.tint : leaf.$extensions.prism3.modes[f.$mode].tint).opacity).slice(1, -1);
+          const wantOp = Math.round(at(tintTree, tintRef).$value * 100);
+          const wantFill = `${root}/color/${pre ?? ''}interactive/${c}/fill/rest`;
+          if (v.alias?.name !== wantFill || v.aliasOpacity?.name !== tintRef.replace(/\./g, '/') || v.aliasOpacity?.value !== wantOp)
+            washBad.push(`${f.$mode}/${v.name}: ${v.alias?.name} @ ${v.aliasOpacity?.name}=${v.aliasOpacity?.value} (want ${wantFill} @ ${tintRef}=${wantOp})`);
+        }
+        ok(washCells === 18 * tintFiles.length && washBad.length === 0,
+          `#1646 every tinted-wash variable aliases its fill variable at its opacity variable, in every mode (${washCells} mode-values${washBad.length ? ` — BAD: ${washBad.slice(0, 3).join('; ')}` : ''})`);
+        // Every other variable is untouched: no plain alias gains an opacity.
+        const strayOpacity = tintFiles.flatMap((f: any) => f.variables.filter((v: any) => v.aliasOpacity && !v.name.includes('/subtle-fill/')).map((v: any) => v.name));
+        ok(strayOpacity.length === 0, `#1646 only the tinted washes carry an alias opacity (${strayOpacity.length} others)`);
+      }
+
+      // #1646 — NO VISUAL CHANGE. Moving the tint from the paint into the variable must not move it: in every
+      // mode of every example brand, each wash variable's opacity equals the ONE paint opacity the pre-#1646
+      // plan bound (`paintOpacity`, the engine's settled step). The expected steps below are LITERALS captured
+      // from origin/main at ca55dee — never recomputed — so a change to the step rule, or an emitter that
+      // aliased the wrong opacity token, fails here by name. Per-mode tuning is #1646's later decision; until
+      // the owner makes it, every mode must carry the same value.
+      {
+        const STANDARD = { 'interactive.primary.hover': 20, 'interactive.primary.pressed': 30, 'interactive.primary.selected': 30, 'interactive.neutral.hover': 50, 'interactive.neutral.pressed': 60, 'interactive.neutral.selected': 60, 'interactive.destructive.hover': 20, 'interactive.destructive.pressed': 30, 'interactive.destructive.selected': 30, 'inverse.interactive.primary.hover': 10, 'inverse.interactive.primary.pressed': 30, 'inverse.interactive.primary.selected': 30, 'inverse.interactive.neutral.hover': 20, 'inverse.interactive.neutral.pressed': 30, 'inverse.interactive.neutral.selected': 30, 'inverse.interactive.destructive.hover': 10, 'inverse.interactive.destructive.pressed': 30, 'inverse.interactive.destructive.selected': 30 } as Record<string, number>;
+        const NB_REDESIGN = { ...STANDARD, 'interactive.primary.hover': 10, 'interactive.neutral.hover': 20, 'interactive.neutral.pressed': 30, 'interactive.neutral.selected': 30, 'inverse.interactive.destructive.hover': 20 } as Record<string, number>;
+        const examples: Array<[string, any, Record<string, number>]> = [
+          ['nb', nbTheme(), STANDARD],
+          ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input), STANDARD],
+          ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input), STANDARD],
+          ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input), STANDARD],
+          ['nb-redesign', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input), NB_REDESIGN],
+        ];
+        const moved: string[] = [];
+        let cells = 0;
+        for (const [id, t, want] of examples) {
+          const files = buildFigmaColor({ ...t, outlineInteraction: 'solid-tint' }).color;
+          const opacityVars = new Map(buildFigmaDims({ ...t, outlineInteraction: 'solid-tint' }).opacity.variables.map((v) => [v.name, v.value]));
+          for (const f of files) for (const v of f.variables.filter((x) => x.name.includes('/subtle-fill/'))) {
+            cells++;
+            const key = v.name.replace(/^[^/]+\/color\//, '').replace('/subtle-fill/', '/').replace(/\//g, '.');
+            const got = v.aliasOpacity?.value;
+            // The opacity variable it aliases must exist, in the opacity collection, holding that same value.
+            const held = v.aliasOpacity ? opacityVars.get(v.aliasOpacity.name) : undefined;
+            if (got !== want[key] || held !== want[key]) moved.push(`${id}/${f.$mode}/${key}: ${got} (variable holds ${held}), was ${want[key]}`);
+          }
+        }
+        ok(cells === 18 * (4 + 4 + 4 + 4 + 1) && moved.length === 0,
+          `#1646 no visual change: every wash variable's opacity, in every mode of all 5 example brands, equals the paint opacity the pre-#1646 plan bound (${cells} mode-values${moved.length ? ` — MOVED: ${moved.slice(0, 4).join('; ')}` : ''})`);
       }
     }
   }
@@ -11870,28 +11928,24 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
 
     // HAND-NAMED: what each method binds on the member the owner hit — primary outline, hover, default ground.
-    const member = (method: typeof METHODS[number], inverse: boolean, roles?: any, state = 'hover') =>
-      figmaAnatomySet(applyOutlineInteraction(button, method, roles))
+    const member = (method: typeof METHODS[number], inverse: boolean, state = 'hover') =>
+      figmaAnatomySet(applyOutlineInteraction(button, method))
         .find((q) => /appearance=outline/.test(planComponentName(q)) && new RegExp(`state=${state}`).test(planComponentName(q)) && onInverse(q) === inverse);
     const hoverFill = (method: typeof METHODS[number]): string | undefined => member(method, false)?.root.paints?.fills;
     ok(hoverFill('overlay-neutral') === 'color/interactive/primary/overlay/hover',
       `#1608 overlay-neutral: button outline hover binds the wash color/interactive/primary/overlay/hover (${hoverFill('overlay-neutral')})`);
-    // #1614: solid-tint binds the category's EXISTING fill variable at a PAINT OPACITY — the nominal opacity.20
-    // hover / opacity.30 pressed with no brand roles, and the step the engine chose with them.
-    const tintPaint = (inverse: boolean, roles?: any, state = 'hover') => {
-      const r = member('solid-tint', inverse, roles, state)?.root;
-      return `${r?.paints?.fills} @ ${r?.paintOpacity?.fills}`;
+    // #1646: solid-tint binds the TINTED-WASH VARIABLE, opaque — the tint lives in the variable's value, so the
+    // plan carries no paint opacity at all (a paint opacity is reset by the host on every Apply Theme).
+    const tintPaint = (inverse: boolean, state = 'hover') => {
+      const r = member('solid-tint', inverse, state)?.root as Record<string, any> | undefined;
+      return `${r?.paints?.fills}${r && 'paintOpacity' in r ? ` @ ${JSON.stringify(r.paintOpacity)}` : ''}`;
     };
-    ok(tintPaint(false) === 'color/interactive/primary/fill/rest @ 0.2' && tintPaint(false, undefined, 'pressed') === 'color/interactive/primary/fill/rest @ 0.3',
-      `#1614 solid-tint: button outline hover/pressed bind the existing fill at the nominal paint opacity 0.2/0.3 (${tintPaint(false)}; ${tintPaint(false, undefined, 'pressed')})`);
-    const nbrRoles = resolveAllModes({ ...brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input), outlineInteraction: 'solid-tint' })[0].roles;
-    ok(tintPaint(false, nbrRoles) === 'color/interactive/primary/fill/rest @ 0.1' && tintPaint(true, nbrRoles) === 'color/inverse/interactive/primary/fill/rest @ 0.1'
-      && tintPaint(true, nbrRoles, 'pressed') === 'color/inverse/interactive/primary/fill/rest @ 0.3',
-      `#1614 solid-tint on nb-redesign: the plan carries the engine's guarded step per ground — page hover ${tintPaint(false, nbrRoles)}, band hover ${tintPaint(true, nbrRoles)}, band pressed ${tintPaint(true, nbrRoles, 'pressed')}`);
-    // #1613 — the same member on the INVERSE band binds the band's fill, which the brand emits.
-    ok(tintPaint(true).startsWith('color/inverse/interactive/primary/fill/rest @')
-      && emittedColor({ ...nbTheme(), outlineInteraction: 'solid-tint' }).has('color/inverse/interactive/primary/fill/rest'),
-      `#1613 solid-tint: inverse-band button outline hover binds color/inverse/interactive/primary/fill/rest, and the brand emits it (${tintPaint(true)})`);
+    ok(tintPaint(false) === 'color/interactive/primary/subtle-fill/hover' && tintPaint(false, 'pressed') === 'color/interactive/primary/subtle-fill/pressed',
+      `#1646 solid-tint: button outline hover/pressed bind the tinted-wash variable, with no paint opacity on the plan (${tintPaint(false)}; ${tintPaint(false, 'pressed')})`);
+    // #1613 — the same member on the INVERSE band binds the band's wash, which the brand emits.
+    ok(tintPaint(true) === 'color/inverse/interactive/primary/subtle-fill/hover'
+      && emittedColor({ ...nbTheme(), outlineInteraction: 'solid-tint' }).has('color/inverse/interactive/primary/subtle-fill/hover'),
+      `#1613 solid-tint: inverse-band button outline hover binds color/inverse/interactive/primary/subtle-fill/hover, and the brand emits it (${tintPaint(true)})`);
     ok(hoverFill('none') === undefined,
       `#1608 none: button outline hover binds NO container fill — the intended no-hover (${hoverFill('none')})`);
 
@@ -12876,7 +12930,27 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           : 2;
       // `name` is ROOTED, everything else keyed root-relative — see `STUB_ROOT`. The id stays
       // root-relative because it is the stub's own handle, not something Figma's naming applies to.
-      const mkVar = (name: string) => ({ id: `V:${name}`, name: `${STUB_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolved(name) }) });
+      // #1646 — REWRITING A BOUND VARIABLE RESETS ITS PAINTS' OPACITY (host-measured 2026-09-25; the same model
+      // as `component-shim.ts`): `setValueForMode` sets `opacity: 1` on every paint bound to that variable on the
+      // page. Values written are kept per variable, per mode, so an arm can read what the variable holds.
+      const varValuesByName = new Map<string, Record<string, unknown>>();
+      const walkNodes = (n: Record<string, unknown>, f: (n: Record<string, unknown>) => void): void => { f(n); for (const k of (n.children as Record<string, unknown>[] | undefined) ?? []) walkNodes(k, f); };
+      const rewriteVar = (name: string, modeId: string, value: unknown): void => {
+        varValuesByName.set(name, { ...(varValuesByName.get(name) ?? {}), [modeId]: value });
+        const boundHere = (p: unknown) => (p as { boundVariables?: { color?: { id?: string } } } | null)?.boundVariables?.color?.id === `V:${name}`;
+        for (const top of page?.children ?? []) walkNodes(top, (n) => {
+          for (const key of ['fills', 'strokes'] as const) {
+            const arr = n[key];
+            if (!Array.isArray(arr) || !arr.some((p) => boundHere(p) && ((p as { opacity?: number }).opacity ?? 1) !== 1)) continue;
+            n[key] = arr.map((p) => (boundHere(p) ? { ...(p as object), opacity: 1 } : p));
+          }
+        });
+      };
+      const mkVar = (name: string) => ({
+        id: `V:${name}`, name: `${STUB_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolved(name) }),
+        get valuesByMode(): Record<string, unknown> { return varValuesByName.get(name) ?? {}; },
+        setValueForMode: (modeId: string, value: unknown): void => rewriteVar(name, modeId, value),
+      });
       // Is `n` inside a component or component set — the precondition Figma puts on `isExposedInstance`
       // (#1378), mirroring `component-shim.ts`'s `inComponent` so the parity gate compares two executors
       // against one Figma model. Walks ANCESTORS and includes the node itself (a converted root is a
@@ -13648,34 +13722,56 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         `#1007 paste leg: an applied effect style reads back as node.effectStyleId, the host's own property name (reads ${String(built?.effectStyleId)}; misses ${JSON.stringify(effRun.misses)})`);
     }
 
-    // ---- #1614: THE PAINT OPACITY, EXECUTED on BOTH legs -----------------------------------------------
-    // A `solid-tint` outline hover is the category's fill VARIABLE at a paint opacity. Both executors write it
-    // after `setBoundVariableForPaint` in different code (a string in the payload, `paint()` in the plugin), so
-    // each leg is read back off the host here, against a hand-named step: nb-redesign's page primary hover
-    // steps down to opacity.10. Plus the payload's own read-back must NAME a dropped opacity.
+    // ---- #1646: THE TINTED WASH, EXECUTED on BOTH legs, and it SURVIVES APPLY THEME ----------------------
+    // A `solid-tint` outline hover binds the tinted-wash VARIABLE at paint opacity 1; the tint is the variable's
+    // own value. Both executors write the paint in different code (a string in the payload, `paint()` in the
+    // plugin), so each leg is read back off the host here against a hand-named binding. Then the wash variable
+    // is REWRITTEN, as Apply Theme does — the host resets the opacity of every paint bound to a rewritten
+    // variable (modeled in `makeFigmaStub`) — and the paint must still read back unchanged: bound to the wash,
+    // at 1. The pre-#1646 form (the fill variable at a paint opacity) reads back at 1 here, the fill opaque.
     {
-      const nbrRoles = resolveAllModes({ ...brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input), outlineInteraction: 'solid-tint' })[0].roles;
-      const tinted = figmaAnatomySet(applyOutlineInteraction(button, 'solid-tint', nbrRoles), { swapTarget: 'FPO-default-icon' })
+      const tinted = figmaAnatomySet(applyOutlineInteraction(button, 'solid-tint'), { swapTarget: 'FPO-default-icon' })
         .find((q) => /appearance=outline/.test(planComponentName(q)) && /state=hover/.test(planComponentName(q)) && !/surface=inverse/.test(planComponentName(q)))!;
       const tVars = { vars: [...planBoundVars(tinted.root), ...planPaintVars(tinted.root)], styles: planTextStyles(tinted.root), comps: ['FPO-default-icon'] };
-      const opacities = (n: Record<string, unknown>): string[] => {
+      const bound = (n: Record<string, unknown>): string[] => {
         const f = (n.fills as { opacity?: number; boundVariables?: { color?: { id?: string } } }[] | undefined)?.[0];
-        const own = f?.opacity !== undefined ? [`${f.boundVariables?.color?.id} @ ${f.opacity}`] : [];
-        return [...own, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(opacities)];
+        const own = f?.boundVariables?.color?.id?.includes('/subtle-fill/') ? [`${f.boundVariables.color.id} @ ${f.opacity ?? 1}`] : [];
+        return [...own, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(bound)];
+      };
+      const WANT = JSON.stringify(['V:color/interactive/primary/subtle-fill/hover @ 1']);
+      const reapply = async (stub: { variables: { getLocalVariablesAsync(): Promise<{ name: string; setValueForMode(m: string, v: unknown): void }[]> } }) => {
+        for (const v of await stub.variables.getLocalVariablesAsync()) v.setValueForMode('light', { color: { type: 'VARIABLE_ALIAS', id: 'V:color/interactive/primary/fill/rest' }, opacity: 10 });
       };
       const pastePage: StubPage = { children: [] };
       const pasted = await runPayload(planToPluginJs(tinted), { ...tVars, page: pastePage });
+      // A second handle on the SAME page: the stub's variables walk whatever page they were given, which is the
+      // file-wide reach the host rule has (Apply Theme runs in a different plugin session from the paste).
+      const pasteStub = makeFigmaStub({ ...tVars, page: pastePage });
+      ok(pasted.misses.length === 0 && JSON.stringify(pastePage.children.flatMap(bound)) === WANT,
+        `#1646 paste leg: the solid-tint hover pastes the primary tinted-wash variable at paint opacity 1 (${JSON.stringify(pastePage.children.flatMap(bound))}; misses ${JSON.stringify(pasted.misses)})`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await reapply(pasteStub as any);
+      ok(JSON.stringify(pastePage.children.flatMap(bound)) === WANT,
+        `#1646 paste leg SURVIVES APPLY THEME: rewriting every variable leaves the hover bound to its wash at paint opacity 1 (${JSON.stringify(pastePage.children.flatMap(bound))})`);
       const plugPage: StubPage = { children: [] };
+      const plugStub = makeFigmaStub({ ...tVars, page: plugPage });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
-      const plugged = await applyComponentPlan([tinted], makeFigmaStub({ ...tVars, page: plugPage }) as any);
-      const WANT = JSON.stringify(['V:color/interactive/primary/fill/rest @ 0.1']);
-      ok(pasted.misses.length === 0 && JSON.stringify(pastePage.children.flatMap(opacities)) === WANT,
-        `#1614 paste leg: the solid-tint hover pastes the primary fill variable at paint opacity 0.1 (${JSON.stringify(pastePage.children.flatMap(opacities))}; misses ${JSON.stringify(pasted.misses)})`);
-      ok(plugged.misses.length === 0 && JSON.stringify(plugPage.children.flatMap(opacities)) === WANT,
-        `#1614 plugin leg: applyComponentPlan builds the same paint at the same opacity (${JSON.stringify(plugPage.children.flatMap(opacities))}; misses ${JSON.stringify(plugged.misses)})`);
-      const dropped = await runPayload(planToPluginJs(tinted).replace('if(o!=null)node.fills=[Object.assign({},node.fills[0],{opacity:o})];', ''), tVars);
-      ok(dropped.misses.some((m) => /\.fills\.opacity -> DISCARDED \(wanted 0\.1, read back/.test(m)),
-        `#1614 paste leg: an opacity the payload fails to keep IS reported by its read-back (${JSON.stringify(dropped.misses)})`);
+      const plugged = await applyComponentPlan([tinted], plugStub as any);
+      ok(plugged.misses.length === 0 && JSON.stringify(plugPage.children.flatMap(bound)) === WANT,
+        `#1646 plugin leg: applyComponentPlan builds the same paint (${JSON.stringify(plugPage.children.flatMap(bound))}; misses ${JSON.stringify(plugged.misses)})`);
+      // The rule is live in THIS model too (precondition, so the survive line cannot pass on an inert stub).
+      const probePage: StubPage = { children: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const probeHost = makeFigmaStub({ vars: ['color/interactive/primary/fill/rest'], page: probePage }) as any;
+      const [pv] = await probeHost.variables.getLocalVariablesAsync();
+      const pf = probeHost.createFrame();
+      probePage.children.push(pf);
+      pf.fills = [probeHost.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }, 'color', pv)];
+      pf.fills = [{ ...pf.fills[0], opacity: 0.2 }];
+      const before = pf.fills[0].opacity;
+      pv.setValueForMode('light', { type: 'VARIABLE_ALIAS', id: 'V:x' });
+      ok(before === 0.2 && pf.fills[0].opacity === 1,
+        `#1646 paste stub host model: a paint bound at opacity 0.2 reads back 1 once its variable is rewritten (${before} → ${pf.fills[0].opacity})`);
     }
 
     // ---- the ABSOLUTE part, EXECUTED (#536 item 3) -----------------------------------------------

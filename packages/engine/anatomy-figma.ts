@@ -32,8 +32,7 @@ import { WEIGHT_ROLE_ORDER, TYPE_WEIGHTS_DEFAULT } from './theme';
 import type { TypeGroup, WeightRoleName, Theme } from './theme';
 // `outlineFillRole` (#1608) — the ONE method → family mapping, reused by `applyOutlineInteraction`
 // rather than re-derived. `modes.ts` does not import this file, so there is no cycle.
-import { outlineFillRole, TINT_NOMINAL } from './modes';
-import type { ResolvedRole } from './modes';
+import { outlineFillRole } from './modes';
 // The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
 // plugin sandbox, which has no filesystem — see `emit-icons.ts`'s header.
@@ -124,11 +123,6 @@ export type FigmaNodePlan = {
    *  `textStyle` and `effectStyle` — one field per API shape, so the plan cannot imply a call that
    *  does not exist. */
   paints?: { fills?: string; strokes?: string };
-  /** The OPACITY of a bound paint, where it is not 1 (#1614) — a `solid-tint` outline/text hover is the
-   *  category's fill variable at an opacity-scale step. Figma cannot bind a paint's opacity to a variable,
-   *  so it is the step's number (0.2 for `opacity.20`) written onto the paint the variable is bound to. Both
-   *  executors apply it right after `setBoundVariableForPaint`; absent means an opaque paint. */
-  paintOpacity?: { fills?: number };
   /** The PLACEHOLDER copy for a `TEXT` node, from `figmaProperties.texts[*].default`.
    *
    *  On the node rather than looked up in the payload, because the payload builds nodes and knows
@@ -1029,18 +1023,10 @@ export const figmaAnatomyPlan = (
       const k = fillPaintKey(t, slot, { ...paintCoord, state: undefined });
       return !!k && !!def.tokens[k];
     });
-  // The def KEY a slot resolves to at this coordinate — `paintOf` names its variable, `paintOpacityOf` its
-  // paint opacity (#1614). One resolution for both, so the opacity can never belong to a different key.
+  // The def KEY a slot resolves to at this coordinate, and `paintOf` the variable it names.
   const paintOf = (slot: string): string | undefined => {
     const key = paintKeyOf(slot);
     return key ? paintVarName(def.tokens[key]) : undefined;
-  };
-  // Only a def `applyOutlineInteraction` materialized for `solid-tint` carries `paintOpacity`; the ground is
-  // the member's `surface`, because the step is chosen per ground (a band hover can step down where the page's
-  // does not). Absent → an opaque paint, which is every other binding.
-  const paintOpacityOf = (slot: string): number | undefined => {
-    const key = paintKeyOf(slot);
-    return key ? def.paintOpacity?.[key]?.[onInverse ? 'inverse' : 'page'] : undefined;
   };
   const paintKeyOf = (slot: string): string | undefined => {
     if (!def.paintKeys?.length) return undefined;
@@ -1347,7 +1333,6 @@ export const figmaAnatomyPlan = (
     // text; a slot takes ink on its VECTOR descendants; a box takes the slots it names in `paintSlots`.
     // Nothing here reads `role` — see below, and see the field's own note for why it still exists.
     const paints: { fills?: string; strokes?: string } = {};
-    let paintOpacity: { fills: number } | undefined;
     let descendantFills: string | undefined;
     if (p.kind === 'box') {
       // THIS LINE USED TO READ `p.kind === 'box' && p.role === 'target'`, and that was #933: `role`
@@ -1376,17 +1361,13 @@ export const figmaAnatomyPlan = (
       // and for the other two only the overlay does, so a def keying both is stating a contradiction,
       // and it should be reading its own answer to that rather than inheriting ours.
       let fill: string | undefined;
-      let fillOpacity: number | undefined;
       for (const slot of declared) {
         if (slot === 'border') continue; // the one EDGE slot — it reaches `strokes`, never `fills`
         fill = paintOf(slot);
-        if (fill) { fillOpacity = paintOpacityOf(slot); break; }
+        if (fill) break;
       }
       const border = declared.includes('border') ? paintOf('border') : undefined;
       if (fill) paints.fills = fill;
-      // A `solid-tint` hover/pressed fill is the category's fill VARIABLE at a paint opacity (#1614). A
-      // sibling field rather than a widened `paints.fills`, so every reader of the variable name is unmoved.
-      if (fill && fillOpacity !== undefined) paintOpacity = { fills: fillOpacity };
       if (border) paints.strokes = border;
     } else if (p.kind === 'text') {
       // THE ONE PLACE A PART NAMES ITS OWN SLOT (#796), and the default is what keeps that from being a
@@ -1555,7 +1536,6 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'text' ? { textAlignVertical: VERTICAL_ALIGN[p.verticalAlign ?? 'center'] } : {}),
       ...((p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
-      ...(paintOpacity ? { paintOpacity } : {}),
       ...(descendantFills ? { descendantFills } : {}),
       ...(p.layout
         ? {
@@ -1847,7 +1827,7 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
 //
 // `outlineInteraction` decides WHICH family carries an outline/text control's hover fill, and the
 // engine EMITS only that family (`modes.ts`, the `overlay-neutral` / `solid-tint` branches): the
-// translucent `interactive.<c>.overlay.*` wash, the opaque `interactive.<c>.subtle-fill.*` tint, or
+// translucent `interactive.<c>.overlay.*` wash, the tinted `interactive.<c>.subtle-fill.*` wash, or
 // neither. Four defs (button, icon-button, select, text-field) bind the wash by name, which is right
 // for the default and names a variable that does not exist for the other two methods — the owner's
 // NB file, at `solid-tint` or `none`, built `button` with 96 misses on `container.fills`.
@@ -1868,7 +1848,7 @@ const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
  * not carry a third copy of the method → family table:
  *
  *   · `overlay-neutral` → IDENTITY. Returns the same object, so every default plan is byte-identical.
- *   · `solid-tint`      → the ref is repointed to the category's fill at a paint opacity (below). The
+ *   · `solid-tint`      → the ref is repointed to the tinted-wash variable (below). The
  *                         slot precedence (`paintSlots: ['overlay', 'fill', …]`) is unchanged, so the
  *                         tinted wash lands exactly where the neutral wash did.
  *   · `none`            → the ENTRY IS DROPPED. `paintOf('overlay')` then resolves nothing and the box
@@ -1877,36 +1857,25 @@ const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
  *                         than binding transparent is what makes this a non-event on the host: no
  *                         variable is asked for, so there is nothing to miss.
  *
- * `solid-tint` (#1614, owner decision) binds the category's EXISTING FILL, not a tint variable: the ref becomes
- * `color.interactive.<color>.fill.rest` and the key gains a `paintOpacity` — the opacity-scale step the engine
- * chose for that role (`interactive.<color>.subtle-fill.<state>`'s `tint.opacity`), as a fraction. One per
- * GROUND: the projector's surface rewrite turns the ref into `color.inverse.interactive.<color>.fill.rest` on a
- * `surface=inverse` member — the resolved band fill the owner configures per category — and that member takes
- * the band's step, which the text guard can lower where the page's is not.
- *
- * `roles` is one mode's resolved roles, where those steps live (every mode carries the same step, by
- * construction — `settleSolidTint`). Without it — a brand-agnostic caller, `lint-component-surface` — the
- * nominal steps apply (`opacity.20` hover, `opacity.30` pressed/selected), so the BINDINGS are brand-invariant
- * and only the opacities are the brand's.
+ * `solid-tint` binds `color.interactive.<color>.subtle-fill.<state>` — the TINTED WASH VARIABLE, whose value in
+ * each mode is the category's fill variable aliased at the opacity step the engine chose (#1614, `settleSolidTint`),
+ * the opacity itself aliasing `opacity.<n>` (#1646). The projector's surface rewrite turns the ref into its
+ * `color.inverse.…` twin on a `surface=inverse` member, which carries the band's own step. The paint is OPAQUE:
+ * until the tint moved into the variable it was the fill variable at a PAINT opacity, and the host resets a
+ * bound paint's opacity whenever Apply Theme rewrites the variable it is bound to, so one re-apply turned every
+ * tinted hover into the solid fill (288 paints on the owner's NB file, 2026-09-25).
  */
-export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlineInteraction'], roles?: Record<string, ResolvedRole>): ComponentDef => {
+export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlineInteraction']): ComponentDef => {
   if (method === 'overlay-neutral') return def;
   if (!Object.values(def.tokens).some((ref) => OUTLINE_OVERLAY_REF.test(ref))) return def;
   const tokens: Record<string, string> = {};
-  const paintOpacity: Record<string, { page: number; inverse: number }> = { ...(def.paintOpacity ?? {}) };
-  const step = (prefix: '' | 'inverse.', color: string, state: string): number =>
-    (roles?.[`${prefix}interactive.${color}.subtle-fill.${state}`]?.tint?.opacity ?? TINT_NOMINAL[state] ?? TINT_NOMINAL.hover) / 100;
   for (const [k, ref] of Object.entries(def.tokens)) {
     const m = OUTLINE_OVERLAY_REF.exec(ref);
     if (!m) { tokens[k] = ref; continue; }
     const role = outlineFillRole(method, m[1], m[2]);
-    if (!role) continue;
-    if (role.includes('.subtle-fill.')) {
-      tokens[k] = `color.interactive.${m[1]}.fill.rest`;
-      paintOpacity[k] = { page: step('', m[1], m[2]), inverse: step('inverse.', m[1], m[2]) };
-    } else tokens[k] = `color.${role}`;
+    if (role) tokens[k] = `color.${role}`;
   }
-  return { ...def, tokens, ...(Object.keys(paintOpacity).length ? { paintOpacity } : {}) };
+  return { ...def, tokens };
 };
 
 /**
@@ -3051,11 +3020,9 @@ const build=async(n)=>{
   };
   // Same reason as \`wrote\` above: only a paint that was actually assigned can have been discarded.
   const painted={};
-  // A PAINT OPACITY (#1614) goes on the paint the variable was bound to — Figma cannot bind a paint's opacity
-  // to a variable, so a \`solid-tint\` hover is the fill variable at the opacity step's number. It takes a
-  // SECOND assignment: the host resets the opacity of a bound paint the first time it lands on a node
-  // (measured 2026-09-25). Lockstep with the plugin executor in write-components.ts.
-  if(n.paints&&n.paints.fills){const p=paint(n.paints.fills,'fills'),o=n.paintOpacity&&n.paintOpacity.fills;if(p){node.fills=[p];if(o!=null)node.fills=[Object.assign({},node.fills[0],{opacity:o})];painted.fills=1;}
+  // Every bound paint is OPAQUE — a \`solid-tint\` hover's tint lives in the wash VARIABLE it binds (#1614,
+  // #1646), because the host resets a bound paint's opacity whenever Apply Theme rewrites its variable.
+  if(n.paints&&n.paints.fills){const p=paint(n.paints.fills,'fills');if(p){node.fills=[p];painted.fills=1;}
   // DECLARED BUT UNRESOLVABLE -> transparent, never Figma's opaque white (#1387, ported #1393). TEXT exempt:
   // \`[]\` is invisible text. Lockstep with the plugin executor's paints branch.
   else if(node.type!=='TEXT')node.fills=[];}
@@ -3104,9 +3071,6 @@ const build=async(n)=>{
   // paint object, so \`boundVariables.fills\` is not where it is.
   const boundPaint=(arr)=>!!(arr&&arr[0]&&arr[0].boundVariables&&arr[0].boundVariables.color);
   if(painted.fills&&!boundPaint(node.fills))misses.push(n.name+'.fills -> DISCARDED (paint set, not retained)');
-  // And the paint OPACITY a \`solid-tint\` fill carries (#1614): a bound paint read back at 1 would be the
-  // category's fill, opaque — the very color the label sits in, not a hover.
-  if(painted.fills&&n.paintOpacity&&n.paintOpacity.fills!=null&&!(node.fills[0]&&Math.abs((node.fills[0].opacity==null?1:node.fills[0].opacity)-n.paintOpacity.fills)<0.001))misses.push(n.name+'.fills.opacity -> DISCARDED (wanted '+n.paintOpacity.fills+', read back '+(node.fills[0]&&node.fills[0].opacity)+')');
   if(painted.strokes&&!boundPaint(node.strokes))misses.push(n.name+'.strokes -> DISCARDED (paint set, not retained)');
   // FLOW CHILDREN FIRST, absolute ones after — two passes, because an absolute child is positioned
   // against its parent's FINAL size and the parent hugs its flow content. Positioning inside one loop

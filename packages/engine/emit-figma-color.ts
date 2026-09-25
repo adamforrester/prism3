@@ -31,6 +31,11 @@ export type FigmaVar = {
   description: string;
   value: FigmaVarValue;
   alias: { type: 'VARIABLE_ALIAS'; name: string } | null;
+  /** A TINTED WASH only (#1614, #1646): the opacity this mode's alias is laid at, as Figma stores a color
+   *  variable's alias-with-opacity value — a PERCENTAGE (20, not 0.2) — plus the `opacity/<n>` FLOAT
+   *  variable that holds it, which the executor aliases so the wash follows the opacity scale. Absent on
+   *  every other variable: their alias is opaque. */
+  aliasOpacity?: { value: number; name: string };
   /** Present + `true` only on ref-tier PRIMITIVE variables (palette, dimension,
    *  font/family, font/size, font/weight). (opacity is directly consumable — #79 —
    *  so it is NOT hidden.) Figma's official mechanism
@@ -109,6 +114,7 @@ const INTERACTIVE_SLOT_SCOPES: Record<string, string[]> = {
   border: ['STROKE_COLOR'],
   icon: ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'],
   overlay: ['FRAME_FILL', 'SHAPE_FILL'], // a translucent wash painted over a surface
+  'subtle-fill': ['FRAME_FILL', 'SHAPE_FILL'], // the tinted wash — the fill at an opacity step (#1614)
 };
 // `disabled.<slot>` (docs/20) is also slot-scoped — the same picker-context reasoning
 // as interactive. Without this map the family fell through to fill scopes, so
@@ -384,10 +390,12 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
   // to walk `color.appearance.*`: `color.*` was a second, pointer tier, and walking the parent pulled
   // both into one collection — 130 alias rows emitted again, in five appearance modes, aliasing
   // themselves. The pointer tier is gone, so the parent IS the value tier and there is nothing to skip.
-  // A `solid-tint` subtle fill (#1614) is the fill variable at a PAINT opacity, not a variable of its own:
-  // Figma cannot alias a variable at an alpha, and a raw translucent variable would be a new color that
-  // stops following the fill. The component plan binds the fill with the opacity instead (`applyOutlineInteraction`).
-  const colLeaves = leaves(tree[root].color, `${root}.color`).filter(([, leaf]) => !leaf.$extensions?.prism3?.tint);
+  // A `solid-tint` subtle fill (#1614) IS a variable of its own since the wash moved into the variable: a
+  // color variable whose value per mode is the fill variable's ALIAS at an opacity, the opacity itself
+  // aliasing the `opacity/<n>` variable (host-probed on the owner's file, #1646 cases A-C and E). Until
+  // then it was the fill variable at a PAINT opacity, and one Apply Theme reset every such paint to 1: the
+  // host resets the opacity of paints bound to a color variable when that variable is rewritten.
+  const colLeaves = leaves(tree[root].color, `${root}.color`);
   // Iterate only the modes THIS brand ships (respects BrandInput.modes opt-out — Pillar 1a).
   // Canonical order: the built-ins in their fixed COLOR_MODES order first, then any user-added
   // custom modes (C1 — the modes in theme.modes that aren't built-ins) in declaration order. For a
@@ -406,6 +414,24 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
     variables: colLeaves.map(([dotted, leaf]) => {
       const ext = leaf.$extensions?.prism3 ?? {};
       const modeVal = mode === 'light' ? leaf.$value : ext.modes?.[mode]?.$value ?? leaf.$value;
+      // A wash's two sources, as the tree names them for THIS mode: the fill role and the `opacity.<n>` token.
+      const tint = (mode === 'light' ? ext.tint : ext.modes?.[mode]?.tint ?? ext.tint) as { color: string; opacity: string } | undefined;
+      if (tint) {
+        const fillDotted = tint.color.replace(/^\{|\}$/g, '');
+        const opacityDotted = tint.opacity.replace(/^\{|\}$/g, '');
+        const opacity = at(tree, opacityDotted)?.$value;
+        if (typeof opacity !== 'number') throw new Error(`emit-figma-color: ${dotted} @${mode} lays its fill at '${opacityDotted}', which is not a number token`);
+        return {
+          name: figName(dotted),
+          resolvedType: 'COLOR' as const,
+          scopes: colorScopes(dotted),
+          description: neutralDesc.get(dotted)!,
+          // The literal fallback (pass A) is the resolved translucent color, the tree's own `$value`.
+          value: parseColor(modeVal),
+          alias: { type: 'VARIABLE_ALIAS' as const, name: figName(fillDotted) },
+          aliasOpacity: { value: Math.round(opacity * 100), name: figName(opacityDotted) },
+        };
+      }
       const targetDotted = String(modeVal).replace(/^\{|\}$/g, '');
       const targetLeaf = at(tree, targetDotted);
       return {

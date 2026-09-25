@@ -138,6 +138,10 @@ export const figmaColorDescription = (f: ColorFacts): string => {
       if (part === 'text') return `${c} label, ${st} — ${claim} (outline, text)`;
       if (part === 'icon') return `${c} icon, ${st} — ${claim} (outline, ghost, text)`;
       if (part === 'border') return `${c} outline edge, ${st} — ${claim}, follows the label`;
+      // The tinted wash (#1614): the category's own fill at an opacity step, over whatever it sits on.
+      if (part === 'subtle-fill') return inv
+        ? `${c} ${st} tinted wash on inverse — the ${seg[1]} inverse fill at ${pct}`
+        : `${c} ${st} tinted wash — the ${seg[1]} fill at ${pct} over the page (inverse surfaces use the inverse wash)`;
       if (part === 'overlay') return inv
         ? `${c} ${st} wash on inverse — ${pct}, opposite polarity to the page wash`
         : `${c} ${st} wash — ${pct} neutral over the page (inverse surfaces use the inverse wash)`;
