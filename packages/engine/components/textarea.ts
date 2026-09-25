@@ -233,7 +233,7 @@ export const textarea: ComponentDef = {
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'button', 'icon'],
+    composesWith: ['field-label', 'field-message', 'focus-ring', 'button', 'icon'],
     // ALTERNATIVE TO text-field, not a superseder — they are siblings a designer picks between by
     // input shape. The brief flags that its external research pass typed this as
     // `supersedes: text-field` and corrects it against the prose; carried here so the corrected

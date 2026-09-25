@@ -45,7 +45,7 @@
     {
       "kind": "icon-glyphs",
       "pattern": "icon-glyphs.ts",
-      "why": "The glyph vocabulary and its path data, generated from `icons/*.svg` through `icon-set.ts` (#833). PAYLOAD because any component projection that renders an icon carries this data with it — a client's ejected button needs the caret. It is a generated MODULE rather than an `out/` tree because `components/icon.ts` imports it and the plugin bundles that import into a sandbox with no filesystem, so it could not be read from disk at runtime. The SVGs beside it are authoring input and are outside this manifest, the same way a brand's design brief is. Licence and provenance: `icons/NOTICE.md` — the set is Remix Icon under its own v1.0 licence, held as a swappable placeholder core, which is what keeps our use inside the licence's `design systems where Icons are a minor component` clause."
+      "why": "The glyph vocabulary and its path data, generated from `icons/*.svg` through `icon-set.ts` (#833). PAYLOAD because any component projection that renders an icon carries this data with it — a client's ejected button needs the caret. It is a generated MODULE rather than an `out/` tree because `components/icon.ts` imports it and the plugin bundles that import into a sandbox with no filesystem, so it could not be read from disk at runtime. The SVGs beside it are authoring input and are outside this manifest, the same way a brand's design brief is. License and provenance: `icons/NOTICE.md` — the set is Remix Icon under its own v1.0 license, held as a swappable placeholder core, which is what keeps our use inside the license's `design systems where Icons are a minor component` clause."
     }
   ],
   "ours": [
