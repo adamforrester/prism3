@@ -379,6 +379,26 @@ export type PartDef = {
    *  `slot`/`vector`/`text` (sized by artboard / content — `wrap` is the text twin), and on `overlay`/
    *  `absolute` (out of the flow). `boolean`; absent means the child keeps its own cross-axis sizing. */
   crossAxisFill?: boolean;
+  /** For a non-root `box`: FILL the parent's MAIN axis (`layoutGrow: 1`) — `wrap`'s main-axis fill, for a box
+   *  rather than a text. Textarea's counter cell is the case: it grows across the message row and justifies
+   *  its caption to the end, so the counter trails whether or not the message beside it is shown. A
+   *  `space-between` row cannot do that: with its first child hidden it puts the one left at the START.
+   *
+   *  Projects the same `layoutGrow: 1` a wrapping label does, and both executors already write it on every
+   *  created node (`claimDefaults` claims `0` everywhere else), so no executor changes. Carried onto the plan
+   *  ONLY when set. Refused on the root and on every kind but `box` (a nested instance's child-side writes are
+   *  the parent's, and only `layoutAlign` is threaded there). ITS PRECONDITION is `wrap`'s: the parent must
+   *  BOUND its main axis, or the grow fills nothing (#989). A row is bounded by a `minWidth` floor, a fixed
+   *  main axis, or a `crossAxisFill` stretch across a COLUMN parent (it is then as wide as that column). */
+  grow?: boolean;
+  /** For a `box` with `layout`: the binding key for its TOP padding only, the other three sides zero. The
+   *  space ABOVE a part that a boolean hides, so the space hides with it. Textarea's message and counter cells
+   *  each carry the field's stack gap this way: a column gap before a visible but EMPTY row stays, and a
+   *  boolean toggles one layer, so the gap has to live inside the layer it belongs to.
+   *
+   *  Refused alongside `padding` (a box states its padding once), on a box with no `layout` (Figma pads only an
+   *  auto-layout frame), and on every other kind. */
+  paddingTop?: string;
   /** For `box` parts: WHICH paint slots this box takes, in precedence order (#933). Absent means the
    *  box paints nothing — it is structure, and `field-label`'s and `field-message`'s boxes are exactly
    *  that. The words must come from `BOX_PAINT_SLOTS`.
@@ -435,8 +455,27 @@ export type PartDef = {
    *
    *  Refused on a non-`box` kind, and on a `box` with no `layout`: Figma applies `minWidth` only to an
    *  auto-layout frame, so a floor on a layout-less box would be silently dropped (or throw on the real
-   *  host) — the silent-loss shape the width and sizing rules exist to catch. */
-  minWidth?: number;
+   *  host) — the silent-loss shape the width and sizing rules exist to catch.
+   *
+   *  PER SIZE, as a map keyed by the `size` axis values (#1667): the button's floor is DERIVED per brand as
+   *  `height × multiplier`, rounded up to the 8px grid, so each size has its own number. A def never authors
+   *  that map — `applyButtonLayout` writes it before projection, from the brand's resolved heights, which is
+   *  why the def stays brand-agnostic. The map must name exactly the def's `size` values. */
+  minWidth?: number | Record<string, number>;
+  /** For a `slot`: take the node OUT OF FLOW and PIN it to one inline edge of its parent row (#1667, the
+   *  button's "Locked to edges"). Figma: `layoutPositioning: 'ABSOLUTE'`, `x` at `inset` px from that edge,
+   *  vertically centered, and `constraints.horizontal` `MIN` (start) or `MAX` (end), so the node stays on its
+   *  edge however wide the parent grows — a longer label hugging it wider, or a designer's fixed width on an
+   *  instance. An out-of-flow node takes no room, so the parent's padding on that side becomes `reserve` px
+   *  (the edge inset + the node's width + the gap it kept from the label), which is what keeps the label from
+   *  running under it. Both are PER SIZE and literal: `applyButtonLayout` writes them before projection from
+   *  the brand's resolved numbers, the per-size `minWidth` argument (Figma's padding takes one variable, and
+   *  the reserve is a sum of three). Applied only where the slot is FILLED, so an empty side keeps its bound
+   *  padding. An overlay that takes a pinned cell (the pending spinner) takes its pin with it.
+   *
+   *  Refused on any kind but `slot`, under a parent that is not an auto-layout ROW with inline padding, and
+   *  with keys other than the def's sizes or a `reserve` that does not clear `inset`. */
+  pin?: { edge: 'start' | 'end'; inset: Record<string, number>; reserve: Record<string, number> };
   /** For `box` parts: the binding key giving the frame's MINIMUM height — Figma's auto-layout `minHeight`,
    *  bound to a variable. The token-bound twin of `minWidth`'s literal, and a token rather than a
    *  literal because the floor it states IS a token's value: `field-message`'s row reserves its status
@@ -738,6 +777,28 @@ export type PartDef = {
    *  stroke and is what every non-ring absolute part will want. `lint-absolute-inset.ts` is what stops
    *  the omission from being silent for a part that does carry one. */
   strokeInset?: string;
+  /** For `vector` parts: PIN the glyph into a corner of its parent, OUT of the auto-layout flow, `inset`
+   *  (a binding key, like `absolute`'s) in from both edges of that corner. The textarea's resize grip is the
+   *  case: a small glyph that sits at the control's bottom-right corner and must not take a cell — in the
+   *  flow it would steal its own width (plus nothing, since the control has no gap) from the value text's
+   *  row, and the text would wrap earlier with the handle drawn than without it.
+   *
+   *  WHY NOT `kind: 'absolute'`. That kind is an INSTANCE of a shared component, SIZED BY its parent grown
+   *  by `inset` (a focus ring), and the schema refuses `size` on it for exactly that reason. A grip is the
+   *  opposite on both counts: it draws its own glyph, and it keeps its own square artboard (`size`). So
+   *  the placement is a field on the `vector` kind rather than a second meaning for `absolute`.
+   *
+   *  ONE CORNER, `bottom-right`, because it is the only one any def needs; a second value is a one-line
+   *  union widening plus its executor arithmetic. PHYSICAL rather than logical (`block-end inline-end`):
+   *  Figma has no writing direction, so a member is drawn left-to-right, and code mirrors the handle to the
+   *  inline-end corner on its own (the browser draws it there).
+   *
+   *  PROJECTED as `FigmaNodePlan.cornerInset` — the inset's variable NAME, resolved to a number at paste,
+   *  for the reason `absoluteInset` gives: `x`/`y` take no variable binding. Both executors lift the node
+   *  (`layoutPositioning: 'ABSOLUTE'`), place it at `parent − artboard − inset` on both axes, and constrain
+   *  it `MAX`/`MAX`, so it stays in the corner when a designer resizes the instance. `lint-absolute-inset.ts`
+   *  holds the inset to the parent's stroke weight in every brand, so the artboard never overlaps the edge. */
+  corner?: 'bottom-right';
   note?: string;
 };
 
@@ -2880,7 +2941,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
+    [p.gap, p.height, p.minHeight, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.paddingTop]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
@@ -3205,12 +3266,64 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       else if (p.kind !== 'box' && p.kind !== 'nest')
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'crossAxisFill' — only a 'box' or a 'nest' takes an in-flow cell that can STRETCH across its parent's cross axis; a slot/vector is sized by its artboard, a text by its content ('wrap' is the main-axis twin for text), and overlay/absolute sit outside the flow`);
     }
+    // ---- MAIN-AXIS BOX GROW (`grow`) ----
+    // `wrap`'s `layoutGrow: 1` for a box. The kind and root rules are `crossAxisFill`'s; the precondition is
+    // `wrap`'s (a bounded parent main axis), widened by one case `wrap` never needed: a row stretched across a
+    // COLUMN parent is as wide as that column, so a grow inside it has real space to fill.
+    if (p.grow !== undefined) {
+      const parent = claimed.get(n);
+      const pp = parent ? parts[parent] : undefined;
+      const gp = parent ? claimed.get(parent) : undefined;
+      const gpp = gp ? parts[gp] : undefined;
+      const row = pp?.layout?.direction === 'row';
+      const boundedMain = !!pp?.layout && (row
+        ? pp.minWidth !== undefined || pp.layout.sizing.x === 'fixed' || (!!pp.crossAxisFill && gpp?.layout?.direction === 'column')
+        : pp.layout.sizing.y === 'fixed' || (!!pp.crossAxisFill && gpp?.layout?.direction === 'row'));
+      if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'grow' — main-axis grow is a CHILD-side property (layoutGrow) and the root has no parent to fill`);
+      else if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'grow' — only a 'box' grows along its parent's main axis ('wrap' is the text twin); a nested instance's child-side writes are its parent's, and only 'crossAxisFill' is threaded there`);
+      else if (!boundedMain)
+        e.push(`anatomy part '${n}' declares 'grow' but its parent '${parent ?? '(none)'}' does not bound its main axis (a row needs a 'minWidth' floor, a fixed width, or 'crossAxisFill' under a column; a column a fixed height, or 'crossAxisFill' under a row) — 'layoutGrow' fills REMAINING space and a hugging parent has none (#989)`);
+    }
+    // ---- TOP-ONLY PADDING (`paddingTop`) ----
+    if (p.paddingTop !== undefined) {
+      if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'paddingTop' — only a 'box' lays out`);
+      else if (!p.layout)
+        e.push(`anatomy part '${n}' declares 'paddingTop' but binds no 'layout' — Figma pads only an auto-layout frame, so the padding would be silently dropped`);
+      if (p.padding)
+        e.push(`anatomy part '${n}' declares both 'padding' and 'paddingTop' — a box states its padding once, and the projector would keep whichever wrote last`);
+    }
     // `inset` is the absolute kind's own geometry and means nothing anywhere else: on a flow part it
     // reads as though the part were offset from its cell, which no projection does. Checked as its own
     // rule rather than folded into the loop above because the layout rule is about what LAYS OUT
     // children and this is about what sits OUTSIDE the flow — two different claims.
-    if (p.kind !== 'absolute' && p.inset !== undefined)
-      e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'inset' — only an 'absolute' part sits outside the flow to be inset from it`);
+    //
+    // ONE EXCEPTION, and it is the other out-of-flow placement: a `vector` pinned into a `corner` is also
+    // outside the flow, and its `inset` is the distance in from that corner's two edges. Refused on a
+    // vector with no `corner`, where it would again read as an offset from a cell.
+    if (p.kind !== 'absolute' && p.inset !== undefined && !(p.kind === 'vector' && p.corner))
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'inset' — only an 'absolute' part, or a 'vector' pinned into a 'corner', sits outside the flow to be inset from it`);
+    // ---- THE CORNER PIN (textarea's resize grip) ----
+    // Four ways to author it so it validates and then projects nothing, or projects into the flow: on a kind
+    // whose branch never reads it; with no `inset`, so the executor has no distance to place it at; on the
+    // ROOT, which has no parent corner; and under a parent that is not an auto-layout box, where Figma
+    // ignores `layoutPositioning` silently and the glyph takes a cell after all.
+    if (p.corner !== undefined) {
+      if (p.kind !== 'vector')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'corner' — only a 'vector' draws its own glyph at its own artboard size and can be pinned into a corner (an 'absolute' part is sized by its parent instead)`);
+      if (!p.inset)
+        e.push(`anatomy part '${n}' declares corner '${p.corner}' but binds no 'inset' — the executor places the glyph 'inset' in from the corner's two edges, so without one it has no distance to write and the part lands on the parent's own border`);
+      if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'corner' — a corner belongs to a parent, and the root has none`);
+      else {
+        const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+        const pp = parent ? parts[parent] : undefined;
+        if (!pp || pp.kind !== 'box' || !pp.layout)
+          e.push(`anatomy part '${n}' declares corner '${p.corner}' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the glyph would take a cell in the flow`);
+      }
+    }
     // `strokeInset` gets the same rule for the same reason: it is a compensation applied to `inset`, so
     // off an absolute part there is nothing for it to compensate and it would project to nothing.
     if (p.kind !== 'absolute' && p.strokeInset !== undefined)
@@ -3400,6 +3513,41 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidth' — only a 'box' becomes an auto-layout frame that can carry a minimum width; every other kind is sized by its content or its artboard`);
     if (p.minWidth !== undefined && p.kind === 'box' && !p.layout)
       e.push(`anatomy part '${n}' declares 'minWidth' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so a floor on a layout-less box would be silently dropped`);
+    // The PER-SIZE form (#1667) must name exactly the def's sizes: a size it misses would project no floor at
+    // that size (the silent-loss shape), and a key no size carries names nothing.
+    if (p.minWidth !== undefined && typeof p.minWidth === 'object') {
+      const sizes = def.variants?.size ?? [];
+      const keys = Object.keys(p.minWidth);
+      const missing = sizes.filter((v) => !keys.includes(v));
+      const extra = keys.filter((k) => !sizes.includes(k));
+      if (missing.length || extra.length)
+        e.push(`anatomy part '${n}' declares a per-size 'minWidth' whose keys [${keys.join(', ')}] are not the def's sizes [${sizes.join(', ')}] — a missing size projects no floor there, and an extra key names nothing`);
+    }
+    if (p.minWidth !== undefined && (typeof p.minWidth === 'number' ? [p.minWidth] : Object.values(p.minWidth)).some((w) => !(typeof w === 'number' && w > 0)))
+      e.push(`anatomy part '${n}' declares a 'minWidth' that is not a positive number of px`);
+    // ---- `pin`, a SLOT taken out of flow onto one inline edge (#1667) ----
+    // Every refusal is a silent-loss shape: pinned under a parent with no inline padding, the reserve has
+    // nowhere to go and the label runs under the icon; a size with no entry projects no pin there.
+    if (p.pin !== undefined) {
+      if (p.kind !== 'slot')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'pin' — only a 'slot' (an icon cell) is pinned to an edge`);
+      const parent = Object.entries(parts).find(([, q]) => q.children?.includes(n))?.[1];
+      if (!parent || parent.kind !== 'box' || parent.layout?.direction !== 'row' || !parent.padding)
+        e.push(`anatomy part '${n}' declares 'pin', but its parent is not an auto-layout row with inline padding — the reserved padding would have nowhere to go and the label would run under it`);
+      if (p.pin.edge !== 'start' && p.pin.edge !== 'end')
+        e.push(`anatomy part '${n}': pin edge '${String(p.pin.edge)}' is not one of [start, end]`);
+      const sizes = def.variants?.size ?? [];
+      for (const k of ['inset', 'reserve'] as const) {
+        const keys = Object.keys(p.pin[k] ?? {});
+        if (sizes.some((v) => !keys.includes(v)) || keys.some((v) => !sizes.includes(v)))
+          e.push(`anatomy part '${n}' declares a pin '${k}' whose keys [${keys.join(', ')}] are not the def's sizes [${sizes.join(', ')}]`);
+      }
+      for (const v of sizes) {
+        const inset = p.pin.inset?.[v], reserve = p.pin.reserve?.[v];
+        if (!(typeof inset === 'number' && inset >= 0 && typeof reserve === 'number' && reserve > inset))
+          e.push(`anatomy part '${n}' at size '${v}': pin inset ${String(inset)} / reserve ${String(reserve)} — the inset must be a px number and the reserve must clear it (it holds the inset, the icon and the gap)`);
+      }
+    }
     // ---- `minHeight`, the BOX kind's token-bound auto-layout height FLOOR ----
     // `minWidth`'s two rules, plus one: a floor under a bound `height`/`size` states the height twice.
     if (p.minHeight !== undefined && p.kind !== 'box')

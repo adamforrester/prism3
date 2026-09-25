@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.161.0 — The tinted wash lives in its own Figma variable, so Apply Theme no longer resets button hovers
+ * 0.163.0 — The tinted wash lives in its own Figma variable, so Apply Theme no longer resets button hovers
  * (#1646, owner-approved 2026-09-25). Measured live: one Apply Theme reset all 288 `solid-tint` hover/pressed
  * paints on button, button-destructive and button-neutral from 0.1–0.3 to 1, because the host resets the
  * opacity of every paint bound to a color variable it rewrites. Each `[inverse.]interactive.<c>.subtle-fill.<state>`
@@ -2939,6 +2939,41 @@
  * projected bindings change for `solid-tint` brands → MINOR; the component-surface baseline is accepted
  * (the `@outline-solid-tint` rows). CONTRACT STANDS — the `subtle-fill` names were already in the tree, and
  * no corpus brand sets `solid-tint`, so the guaranteed surface does not move.
+ *
+ * 0.162.0 — #1667: three button BRAND levers, owner-decided 2026-09-25, for button / button-destructive /
+ * button-neutral (not icon-button). `buttonIcons` ("Button icons": Attached to label | Locked to edges),
+ * `buttonMinWidthMultiplier` (a slider, default 2.25 — Spectrum's `button-minimum-width-multiplier`) and
+ * `buttonContentSize` ("Button label & icon": Match button size | One step smaller). All three are
+ * materialized into the def before projection by `applyButtonLayout` (the `controlShape` path), in both
+ * executors via `materializeForBrand`. (1) Every button size now carries a minimum width, height ×
+ * multiplier rounded UP to the 8px grid (nb 36/44/56 → 88/104/128), in BOTH icon placements — so an
+ * "Attached to label" button with a short label is wider than before, the consequence the owner accepted.
+ * (2) "Locked to edges" (the owner's construction): the root keeps hugging above that floor, each icon slot
+ * is PINNED out of flow at the visual padding from its edge with a MIN/MAX constraint (new `PartDef.pin` →
+ * plan `pin`), and that side reserves inset + icon + gap as literal padding (new plan `paddingPx`), so the
+ * hugging label centers in the space beside the icons and still widens the button. (3) "One step smaller" gives the MEDIUM size
+ * small's label style and icon. `PartDef.minWidth` also takes a per-size map. The projected component
+ * surface moves (new `@button-default/@button-edges/@button-smaller` rows, and the button defs' own rows for
+ * their edited `codeOnly` prose) → ENGINE bump. NO token is emitted or renamed — `out/**` is a stamp-only
+ * regen, and the levers live in brand input, not in the tree — so CONTRACT STANDS at 12.0.0
+ * (`token-contract --check` level `none`).
+ *
+ * 0.161.0 — The textarea's resize grip and character counter in Figma (owner decisions (c) and (d),
+ * 2026-09-25). A new `resize-grip` glyph joins the icon set (drawn for this project; the `icon` set grows by
+ * one member). A new `PartDef.corner` pins a `vector` into its parent's bottom-right corner, out of the flow,
+ * `inset` in from both edges; the plan carries the inset's name (`cornerInset`) and both executors lift the
+ * glyph, place it at parent − artboard − inset and constrain it MAX/MAX. Textarea draws the grip at the
+ * smallest icon rung in the muted icon role behind a `resize handle` boolean (ON by default, as code's
+ * `resize` is `vertical`), and a "0 / 200" caption trailing the message in a new message row behind a
+ * `character count` boolean (OFF by default, as `showCount` is). The message and the counter switch
+ * INDEPENDENTLY (the owner's answer 2): each boolean toggles a cell carrying the stack gap above it (a new
+ * top-only `PartDef.paddingTop`), the control and the row sit in a gap-0 column, and the counter's cell grows
+ * across the row (a new box `PartDef.grow`, `layoutGrow: 1`) so the caption trails with the message on or
+ * off. Message only, counter only, both and neither each leave no empty row and no stray gap. The grip moves
+ * no box. field-message, text-field and select project byte-identically. New glyph + three new schema fields
+ * + a new plan field + a def surface move → MINOR;
+ * the component-surface and paint-census baselines accepted. CONTRACT STANDS (every binding is an existing
+ * name).
  *
  * 0.160.0 — The textarea's reserved-rows floor was reported DISCARDED on all 20 members of a live build
  * (owner's MCP testing file, 2026-09-25, through the agent link) although the host had kept it: `minHeight` is
@@ -3670,7 +3705,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.161.0';
+export const ENGINE_VERSION = '0.163.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -236,7 +236,7 @@
       "type": "string",
       "enum": ["overlay-neutral", "solid-tint", "none"],
       "default": "overlay-neutral",
-      "description": "OPTIONAL. How an outline/text interactive control expresses hover/pressed/selected (docs/20 §10). 'overlay-neutral' (default): generate translucent `interactive.<color>.overlay.*` washes that composite over any surface (each is contrast-verified on the composited result). 'solid-tint': use opaque `foreground.<color>-subtle` surfaces instead — no overlays. 'none': no hover expression, no overlays. ('overlay-tint' — the color's own hue at low alpha — is scheduled; it needs per-color alpha ramps.)"
+      "description": "OPTIONAL. How an outline/text interactive control expresses hover/pressed/selected (docs/20 §10). 'overlay-neutral' (default): generate translucent `interactive.<color>.overlay.*` washes that composite over any surface (each is contrast-verified on the composited result). 'solid-tint': use opaque `foreground.<color>-subtle` surfaces instead — no overlays. 'none': no hover expression, no overlays."
     },
     "neutralEmphasis": {
       "type": "string",
@@ -501,13 +501,16 @@
       "default": "rounded",
       "description": "OPTIONAL. Corner shape for pill-able controls (button, icon-button). 'boxed' is sharp (radius.none, 0px); 'hairline' is a fixed 1px edge (radius.hairline, implies the hairline rung); 'rounded' follows corner softness (radius.md); 'pill' is a full height ÷ 2 (radius.capsule). Default 'rounded'."
     },
+    "buttonIcons": { "type": "string", "enum": ["attached", "edges"], "default": "attached", "description": "OPTIONAL. Button icons: 'attached' beside the label, or 'edges' with the label centered between them." },
+    "buttonContentSize": { "type": "string", "enum": ["match", "smaller"], "default": "match", "description": "OPTIONAL. 'smaller': a medium button takes the small label and icon." },
+    "buttonMinWidthMultiplier": { "type": "number", "default": 2.25, "minimum": 1, "maximum": 4, "description": "OPTIONAL. Button min width = height × this, rounded up to 8px." },
     "radiusScale": { "oneOf": [ { "type": "number", "default": 1, "description": "OPTIONAL. Corner softness: 0 = sharp, 1 = default, 2 = soft. Default 1." }, { "type": "string", "enum": ["sharp", "modest", "standard", "soft", "round"], "description": "Named stop — sharp 0 · modest 0.5 · standard 1 · soft 1.5 · round 2." } ] },
     "baseMd": { "type": "number", "default": 4, "description": "OPTIONAL. The radius.md anchor (px) at scale 1. Default 4." },
     "radiusHairline": { "type": "boolean", "default": false, "description": "OPTIONAL, OPT-IN (off by default). `true` adds a fixed, unscaled `radius.hairline` = 1px sentinel alongside the pills. The scaled ramp rides an even 2px sub-grid, so 1px is unreachable from radiusScale/baseMd — this is the way to a near-sharp 1px corner (New Balance uses 1px as its dominant corner). Off leaves every rung byte-identical." },
     "personality": {
       "type": "array",
       "items": { "type": "string", "enum": ["energetic", "calm", "premium", "restrained", "bold", "generous", "dense", "sharp", "soft"] },
-      "description": "OPTIONAL. Cross-cutting brand traits, in priority order — the authoring layer, not a lever. Each trait fills SEVERAL levers at once, but only ones this input leaves absent: anything set explicitly always wins, and the engine records what it declined to change. Between traits the first listed wins. Every inference lands in the decisions log, so a choice made for you is as visible as one you made yourself. The vocabulary is read from the language real briefs use ('corners are generous and the UI is dense'); engine/vocabulary.ts lists what each trait implies and cites the brief it came from."
+      "description": "OPTIONAL. Cross-cutting brand traits, in priority order — the authoring layer, not a lever. Each trait fills SEVERAL levers at once, but only ones this input leaves absent: anything set explicitly always wins, and the engine records what it declined to change. Between traits the first listed wins. Every inference lands in the decisions log, so a choice made for you is as visible as one you made yourself. engine/vocabulary.ts lists what each trait implies."
     }
   },
   "$defs": {
@@ -607,7 +610,7 @@
         "floorStep": { "type": "number", "description": "The neutral step used as the contrast floor; defaults follow `base`." },
         "inverseBase": {
           "allOf": [{ "$ref": "#/$defs/surfaceSpec" }],
-          "description": "OPTIONAL. The inverse band for this mode — the dark hero / inverse section. Defaults to near-black 950 in light and near-white 25 in dark (near the extreme, not at it: pure black reads muddy, pure white halates). A bare number is a neutral step; `{ palette, step }` names a non-status brand or custom palette so the band can be brand navy or a deep accent (#898). Declared here, not through `overrides`: a ground must RE-DERIVE `inverse.background.*`, `inverse.foreground.*` and every band-gated role — which the post-derivation `overrides` pass cannot, so routing a band through it reported contrast the tokens lacked. High-contrast modes keep the pure extremes."
+          "description": "OPTIONAL. The inverse band for this mode — the dark hero / inverse section. Defaults to near-black 950 in light and near-white 25 in dark (near the extreme, not at it: pure black reads muddy, pure white halates). A bare number is a neutral step; `{ palette, step }` names a non-status brand or custom palette so the band can be brand navy or a deep accent (#898). Set it here, not through `overrides`, which cannot re-derive the band's roles. High-contrast modes keep the pure extremes."
         }
       }
     }

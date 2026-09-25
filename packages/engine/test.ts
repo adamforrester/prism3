@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale, ICON_SIZES, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
+import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -52,7 +52,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -10587,6 +10587,202 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
   }
 
+  // #1667 — THE BUTTON LEVERS: a derived minimum width in BOTH icon placements, "Locked to edges", and
+  // "One step smaller" (owner-decided 2026-09-25). Every oracle below is computed HERE from each brand's own
+  // resolved numbers — never from `buttonMinWidth` or `applyButtonLayout`, which are the subject (docs/34):
+  //   · the floor by COUNTING up in 8px steps to the first width not below height × multiplier;
+  //   · the label's text center by an independent layout model of the PLAN (flow order, bound padding, gap,
+  //     icon widths, fill vs hug, text alignment), checked against the midpoint of the space between the
+  //     icons worked out from the brand's `size.*` and icon numbers;
+  //   · the medium offset against the untouched def's own small-size plan.
+  // Five brands: the four example briefs plus the NB fixture. Mutations are recorded in docs/00-progress.md.
+  {
+    const brief = (f: string): BrandInput => parseDesignMd(readFileSync(resolve(HERE, './examples', f), 'utf8')).input;
+    const BL_BRANDS: [string, Theme][] = [
+      ['nb', nbTheme()],
+      ['aurora', brandTheme(brief('aurora.design.md'))],
+      ['harbor', brandTheme(brief('harbor.design.md'))],
+      ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
+      ['nb-redesign', brandTheme(brief('nb-redesign.design.md'))],
+    ];
+    const FAMILY = [button, buttonDestructive, buttonNeutral];
+    const floorOracle = (h: number, m: number): number => { let w = 0; while (w + 1e-9 < h * m) w += 8; return w; };
+    const heightOf = (t: Theme) => (ref: string): number | undefined => t.dims.sizes.find((z) => `size.${z.name}.height` === ref)?.height;
+    const stepOf = (def: ComponentDef, size: string): string => def.tokens[`size.${size}.height`].split('.')[1];
+    const planOf = (def: ComponentDef, size: string, leading = false, trailing = false) =>
+      figmaAnatomyPlan(def, size, { leading, trailing, swapTarget: 'FPO-default-icon', appearance: 'filled', state: 'rest' });
+
+    // THE SET: exactly the three text buttons; icon-button is outside it and every lever is its identity.
+    ok(componentDefs.filter(isButtonFamily).map((d) => d.id).sort().join(',') === 'button,button-destructive,button-neutral',
+      `#1667 button levers: the set is button + button-destructive + button-neutral (${componentDefs.filter(isButtonFamily).map((d) => d.id).join(', ')})`);
+    ok([iconButton, iconButtonDestructive, iconButtonNeutral].every((d) =>
+      applyButtonLayout(d, { icons: 'edges', content: 'smaller', minWidthMultiplier: 4 }, () => 44) === d),
+      '#1667 button levers: icon-button is untouched by every setting — the same object back');
+
+    // (1) THE PER-SIZE FLOOR — every brand × family × size, at the default 2.25 and at 2.5.
+    for (const [bid, t] of BL_BRANDS) for (const def of FAMILY) for (const m of [2.25, 2.5]) {
+      const md = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, minWidthMultiplier: m }, heightOf(t));
+      for (const size of def.variants.size) {
+        const h = t.dims.sizes.find((z) => z.name === stepOf(def, size))!.height;
+        const want = floorOracle(h, m);
+        const got = planOf(md, size).root.minWidth;
+        ok(got === want, `#1667 min width: ${bid} ${def.id}@${size} ×${m} floors at ${want}px — height ${h} × ${m} = ${+(h * m).toFixed(2)}, rounded up to the 8px grid (got ${got})`);
+      }
+    }
+    // The owner's worked numbers, pinned literally: nb 36/44/56 → 88/104/128 at 2.25, 96/112/144 at 2.5.
+    {
+      const nb = BL_BRANDS[0][1];
+      const floors = (m: number) => button.variants.size.map((sz) => planOf(applyButtonLayout(button, { ...DEFAULT_BUTTON_LAYOUT, minWidthMultiplier: m }, heightOf(nb)), sz).root.minWidth).join('/');
+      ok(floors(2.25) === '88/104/128', `#1667 min width: nb at 2.25 is 88/104/128 (got ${floors(2.25)})`);
+      ok(floors(2.5) === '96/112/144', `#1667 min width: nb at 2.5 is 96/112/144 — New Balance's 142 rounded to the grid (got ${floors(2.5)})`);
+    }
+
+    // (2) "Attached to label" IS TODAY'S PLAN plus the floor: every member of every family, with the root's
+    // `minWidth` set aside, is byte-identical to the unmaterialized def's — hug root, hugging label.
+    {
+      const t = BL_BRANDS[0][1];
+      for (const def of FAMILY) {
+        const base = figmaAnatomySet(def);
+        const att = figmaAnatomySet(applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, heightOf(t)));
+        const strip = (p: AnatomyPlan) => { const r = { ...p.root } as Record<string, unknown>; delete r.minWidth; return JSON.stringify({ ...p, root: r }); };
+        const same = base.length === att.length && base.every((p, i) => strip(att[i]) === JSON.stringify(p));
+        ok(same && att.every((p) => p.root.minWidth !== undefined && p.root.primaryAxisSizingMode === 'AUTO' && !p.root.paddingPx && p.root.children.every((c) => !c.pin)),
+          `#1667 attached: ${def.id} projects today's plan plus a root minWidth on all ${att.length} members — hug root, icons in flow, label unchanged`);
+      }
+    }
+
+    // (3) "Locked to edges" (owner's construction, 2026-09-25): the root HUGS above its floor, each icon is
+    // OUT OF FLOW pinned to its edge (MIN left, MAX right) at the visual padding, the side it sits on reserves
+    // inset + icon + gap as literal padding, and the label is plain HUG text in the `justify: center` row.
+    // `layout` is an independent model of Figma's row over the PLAN: flow children (never a pinned or other
+    // absolute one) hug inside the padding, the frame is max(floor, hug) unless a designer fixes a width, the
+    // single flow child is centered in the space inside the padding, and a pinned child keeps the x it was
+    // placed at on the hugged frame, moved by the width change when its constraint is MAX. `oracle` never
+    // looks at the plan: it works the same positions out of the brand's own `size.*` and icon numbers.
+    for (const [bid, t] of BL_BRANDS) {
+      const pxOf = (v: string | undefined): number => {
+        const s = v && /^size\/([^/]+)\/(padding-x-visual|padding-x|gap)$/.exec(v);
+        if (s) { const z = t.dims.sizes.find((q) => q.name === s[1])!; return s[2] === 'gap' ? z.gap : s[2] === 'padding-x' ? z.padX : z.padXVisual; }
+        const i = v && /^icon\/size\/([^/]+)$/.exec(v);
+        if (i) return ICON_SIZES.find((q) => q.name === i[1])!.px;
+        throw new Error(`#1667 layout model: no px for ${v}`);
+      };
+      type Box = { x: number; w: number };
+      const layout = (root: AnatomyPlan['root'], textW: number, fixedW?: number): { W: number; label: Box; icons: Record<string, Box> } => {
+        const side = (k: 'paddingLeft' | 'paddingRight'): number => root.paddingPx?.[k] ?? pxOf(root.bound[k]);
+        const padL = side('paddingLeft'), padR = side('paddingRight'), gap = pxOf(root.bound.itemSpacing);
+        const widthOf = (c: typeof root): number => (c.type === 'TEXT' ? textW : pxOf(c.bound.width));
+        const flow = root.children.filter((c) => !c.absoluteInset && !c.absoluteCenter && !c.pin);
+        const content = flow.reduce((a, c) => a + widthOf(c), 0) + gap * Math.max(0, flow.length - 1);
+        const hugW = Math.max(root.minWidth ?? 0, padL + content + padR);
+        const W = fixedW ?? hugW;
+        let x = root.primaryAxisAlignItems === 'CENTER' ? padL + (W - padL - padR - content) / 2 : padL;
+        const boxes: Record<string, Box> = {};
+        for (const c of flow) { boxes[c.name] = { x, w: widthOf(c) }; x += widthOf(c) + gap; }
+        const icons: Record<string, Box> = {};
+        for (const c of root.children.filter((q) => q.pin)) {
+          const w = widthOf(c);
+          const placed = c.pin!.edge === 'MIN' ? c.pin!.inset : hugW - c.pin!.inset - w;
+          icons[c.name] = { x: c.pin!.edge === 'MAX' ? placed + (W - hugW) : placed, w };
+        }
+        const label = root.children.find((c) => c.type === 'TEXT')!;
+        if (!boxes[label.name]) throw new Error('#1667 layout model: the label is not in the flow');
+        return { W, label: boxes[label.name], icons };
+      };
+      for (const def of FAMILY) {
+        const edges = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, sizeRefPx(t.dims.sizes));
+        for (const size of def.variants.size) {
+          const z = t.dims.sizes.find((q) => q.name === stepOf(def, size))!;
+          const icon = ICON_SIZES.find((q) => `icon.size.${q.name}` === def.tokens[`size.${size}.icon`])!.px;
+          const floor = floorOracle(z.height, DEFAULT_BUTTON_LAYOUT.minWidthMultiplier);
+          for (const [lead, trail] of [[false, false], [true, false], [false, true], [true, true]] as [boolean, boolean][]) {
+            const root = planOf(edges, size, lead, trail).root;
+            const tag = `${bid} ${def.id}@${size} leading=${lead} trailing=${trail}`;
+            const left = lead ? z.padXVisual + icon + z.gap : z.padX;
+            const right = trail ? z.padXVisual + icon + z.gap : z.padX;
+            const label = root.children.find((c) => c.type === 'TEXT')!;
+            const lv = root.children.find((c) => c.name === 'leadingVisual');
+            const tv = root.children.find((c) => c.name === 'trailingVisual');
+            // THE CONSTRUCTION, read off the plan: a hugging root with its floor and no fixed width, a hugging
+            // label, and each present icon pinned — leading MIN, trailing MAX — at the visual padding.
+            ok(root.primaryAxisSizingMode === 'AUTO' && root.minWidth === floor && !('fixedWidth' in root)
+              && label.layoutGrow === undefined && label.textAutoResize === undefined && !('textAlignHorizontal' in label)
+              && (!lead || (lv?.pin?.edge === 'MIN' && lv.pin.inset === z.padXVisual))
+              && (!trail || (tv?.pin?.edge === 'MAX' && tv.pin.inset === z.padXVisual)),
+              `#1667 edges: ${tag} — root HUGs above its ${floor}px floor, the label hugs, and each icon is pinned at ${z.padXVisual}px (leading MIN, trailing MAX) (got ${root.primaryAxisSizingMode} floor ${root.minWidth}, label grow ${label.layoutGrow}, pins ${JSON.stringify([lv?.pin, tv?.pin])})`);
+            // THE RESERVED PADDING, against the oracle: inset + icon + gap on an icon side, the label padding on the other.
+            const padL = root.paddingPx?.paddingLeft ?? pxOf(root.bound.paddingLeft);
+            const padR = root.paddingPx?.paddingRight ?? pxOf(root.bound.paddingRight);
+            ok(padL === left && padR === right,
+              `#1667 edges: ${tag} — the padding reserves the icon: ${left}/${right}px (got ${padL}/${padR})`);
+            // The label center the oracle expects at width W: the midpoint of the space inside the padding.
+            const center = (W: number): number => left + (W - left - right) / 2;
+            const atEdges = (m: ReturnType<typeof layout>): boolean =>
+              (!lead || m.icons.leadingVisual?.x === z.padXVisual) && (!trail || m.W - m.icons.trailingVisual?.x - icon === z.padXVisual);
+            // M4's intent, kept: at the floor, the label centers in the space BESIDE the icons, not on the button.
+            // Two labels that fit the floor: half the room inside the reserves, and all of it.
+            for (const textW of [(floor - left - right) / 2, floor - left - right].filter((w) => w > 0)) {
+              const m = layout(root, textW);
+              const got = m.label.x + textW / 2;
+              ok(m.W === floor && Math.abs(got - center(floor)) < 1e-9 && atEdges(m),
+                `#1667 edges: ${tag} at its ${floor}px floor — the label text centers in the space beside the icons at x=${center(floor)} (got ${got} on a ${m.W}px button${lead !== trail ? `; the button center is ${floor / 2}` : ''})`);
+            }
+            // (a) A LONG LABEL widens the button past its floor, and the icons stay at the edges.
+            {
+              const textW = floor + 120;
+              const m = layout(root, textW);
+              ok(m.W === left + textW + right && m.W > floor && atEdges(m) && Math.abs(m.label.x + textW / 2 - center(m.W)) < 1e-9,
+                `#1667 edges (a): ${tag} — a ${textW}px label widens the button to ${left + textW + right}px, past its ${floor}px floor, with the icons still ${z.padXVisual}px from the edges (got ${m.W}px, icons ${JSON.stringify(m.icons)})`);
+            }
+            // (b) AN INSTANCE WIDENED TO 240px keeps the icons at the edges and the label centered in the space left.
+            {
+              const m = layout(root, 40, 240);
+              ok(atEdges(m) && Math.abs(m.label.x + 20 - center(240)) < 1e-9,
+                `#1667 edges (b): ${tag} widened to 240px — icons ${z.padXVisual}px from each edge, label centered at x=${center(240)} (got icons ${JSON.stringify(m.icons)}, label center ${m.label.x + 20})`);
+            }
+            // (c) NO OVERLAP AT THE FLOOR: the widest label that still fits the floor keeps the gap from each icon.
+            {
+              const textW = floor - left - right;
+              const m = layout(root, textW);
+              const lx = m.icons.leadingVisual, tx = m.icons.trailingVisual;
+              const clearL = lx ? m.label.x - (lx.x + lx.w) : Infinity;
+              const clearR = tx ? tx.x - (m.label.x + m.label.w) : Infinity;
+              ok(m.W === floor && clearL >= z.gap && clearR >= z.gap,
+                `#1667 edges (c): ${tag} — a ${textW}px label at the ${floor}px floor keeps ≥ ${z.gap}px from each icon (got ${clearL} / ${clearR})`);
+            }
+          }
+        }
+      }
+    }
+
+    // (4) "One step smaller": MEDIUM binds small's label style and icon; small and large are untouched; the
+    // height, padding and gap stay medium's. Compared against the def's OWN small-size plan (the oracle) and
+    // against the "Match button size" plan at each size — never against `CONTENT_OFFSET`.
+    {
+      const t = BL_BRANDS[0][1];
+      const grab = (root: AnatomyPlan['root']) => ({
+        label: root.children.find((c) => c.name === 'label')?.textStyle,
+        icon: root.children.find((c) => c.name === 'trailingVisual')?.bound.width,
+      });
+      for (const def of FAMILY) {
+        const match = applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, heightOf(t));
+        const smaller = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, content: 'smaller' }, heightOf(t));
+        for (const size of ['small', 'large']) {
+          const a = figmaAnatomySet(match).filter((p) => p.size === size).map((p) => JSON.stringify(p));
+          const b = figmaAnatomySet(smaller).filter((p) => p.size === size).map((p) => JSON.stringify(p));
+          ok(a.length > 0 && a.join('\n') === b.join('\n'), `#1667 smaller: ${def.id}@${size} is untouched — all ${a.length} members byte-identical to Match button size`);
+        }
+        const med = planOf(smaller, 'medium', false, true).root;
+        const small = grab(planOf(def, 'small', false, true).root);
+        const matchMed = planOf(match, 'medium', false, true).root;
+        ok(JSON.stringify(grab(med)) === JSON.stringify(small) && grab(matchMed).label !== small.label,
+          `#1667 smaller: ${def.id}@medium binds small's label style and icon (${small.label}, ${small.icon}) — got ${JSON.stringify(grab(med))}`);
+        ok(JSON.stringify(med.bound) === JSON.stringify(matchMed.bound) && med.minWidth === matchMed.minWidth,
+          `#1667 smaller: ${def.id}@medium keeps medium's height, padding, gap and floor — only the content moves`);
+      }
+    }
+  }
+
   // #1353 — THE `shape` VARIANT AXIS (square | circular, square default), owner-decided 2026-09-10. Pure
   // GEOMETRY: the two values differ ONLY in the container's corner radius and are token-identical everywhere
   // else, which is what makes it a 2-value AXIS and not a component split. Every pin below is derived
@@ -11048,6 +11244,33 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const floorless = { ...radioRow, anatomy: { ...radioRow.anatomy, parts: { ...radioRow.anatomy.parts, row: floorlessRow } } };
       ok(validateComponentDef(floorless as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /does not bound its main-axis width/.test(e)),
         "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; removing the row's minWidth fires this, so the floor is load-bearing");
+    }
+
+    // ---- `grow` and `paddingTop` (textarea's independent message and counter, 2026-09-25): the plan carries
+    //      each exactly where declared, and each refusal fires BY NAME (docs/34) ----
+    {
+      const taParts = textarea.anatomy!.parts;
+      const withTa = (over: Record<string, unknown>) => ({ ...textarea, anatomy: { ...textarea.anatomy!, parts: { ...taParts, ...over } } }) as ComponentDef;
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((c) => findIn(c, name)).find(Boolean);
+      const root = figmaAnatomySet(textarea, {})[0].root;
+      const cc = findIn(root, 'counterCell');
+      const mc = findIn(root, 'messageCell');
+      ok(cc?.layoutGrow === 1 && findIn(root, 'messageRow')?.layoutGrow === undefined && cc?.bound.paddingTop === 'space/100' && mc?.bound.paddingTop === 'space/100'
+        && cc?.bound.paddingBottom === undefined && mc?.bound.paddingBottom === undefined,
+        `textarea grow/paddingTop: the counter cell grows (layoutGrow ${String(cc?.layoutGrow)}), the row does not, and both cells bind the stack gap ABOVE only (top ${String(cc?.bound.paddingTop)}/${String(mc?.bound.paddingTop)}, bottom ${String(cc?.bound.paddingBottom)}/${String(mc?.bound.paddingBottom)})`);
+      const refuses = (d: ComponentDef, ...res: RegExp[]) => validateComponentDef(d).errors.some((e) => res.every((r) => r.test(e)));
+      ok(refuses(withTa({ counter: { ...taParts.counter, grow: true } }), /declares 'grow'/, /only a 'box'/),
+        "'grow' on a NON-box part is refused BY NAME");
+      ok(refuses(withTa({ messageRow: { ...taParts.messageRow, crossAxisFill: undefined } }), /declares 'grow'/, /does not bound its main axis/),
+        "'grow' under a row that is neither floored, fixed nor stretched across a column is refused BY NAME — the #989 silent no-op; removing the row's crossAxisFill fires it, so the stretch is load-bearing");
+      ok(refuses(withTa({ container: { ...taParts.container, grow: true } }), /anatomy ROOT and declares 'grow'/),
+        "'grow' on the anatomy root is refused BY NAME");
+      ok(refuses(withTa({ counter: { ...taParts.counter, paddingTop: 'root-gap' } }), /declares 'paddingTop'/, /only a 'box'/),
+        "'paddingTop' on a NON-box part is refused BY NAME");
+      ok(refuses(withTa({ messageCell: { ...taParts.messageCell, layout: undefined } }), /declares 'paddingTop'/, /binds no 'layout'/),
+        "'paddingTop' on a box with no layout is refused BY NAME");
+      ok(refuses(withTa({ messageCell: { ...taParts.messageCell, padding: { block: 'pad-y', inlineLabel: 'pad-x' } } }), /both 'padding' and 'paddingTop'/),
+        "'paddingTop' beside 'padding' is refused BY NAME");
     }
 
     // ---- #1433a: under ERROR the selected inner fill stays on the INTERACTIVE role; only the border/ring
@@ -13051,7 +13274,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             const weight = (bv.strokeWeight?.value ?? bv.strokeTopWeight?.value ?? (node.strokeWeight as number)) || 0;   // #1332: the weight binds per-side
             if (bv.width) return bv.width.value ?? 0;
             if (node.type === 'TEXT') return ((node.characters as string) || '').length * 6;
-            const pad = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0);
+            // A LITERAL side (#1667's reserve beside a pinned icon) counts where the side is not bound, as on the host.
+            const lit = (k: string): number => (typeof node[k] === 'number' ? node[k] as number : 0);
+            const pad = (bv.paddingLeft?.value ?? lit('paddingLeft')) + (bv.paddingRight?.value ?? lit('paddingRight'));
             const hug = ((node.children as Record<string, unknown>[]) ?? [])
               .filter((c) => c.layoutPositioning !== 'ABSOLUTE')
               .reduce((a, c) => a + ((c.width as number) || 0), 0);
@@ -13177,7 +13402,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             if (node._absolute || !p || !p.layoutMode) return node._x as number;
             const bv = p.boundVariables as Record<string, { value?: number }>;
             const gap = bv.itemSpacing?.value ?? 0;
-            let at = bv.paddingLeft?.value ?? 0;
+            let at = bv.paddingLeft?.value ?? (typeof p.paddingLeft === 'number' ? p.paddingLeft : 0);
             for (const c of ((p.children as Record<string, unknown>[]) ?? [])) {
               if (c === node) return at;
               if (c.layoutPositioning === 'ABSOLUTE') continue;   // takes no cell, contributes no offset
@@ -13772,6 +13997,40 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       pv.setValueForMode('light', { type: 'VARIABLE_ALIAS', id: 'V:x' });
       ok(before === 0.2 && pf.fills[0].opacity === 1,
         `#1646 paste stub host model: a paint bound at opacity 0.2 reads back 1 once its variable is rewritten (${before} → ${pf.fills[0].opacity})`);
+    }
+
+    // #1667 — "Locked to edges", EXECUTED by BOTH executors on the same stub. A medium trailing-only member:
+    // the root keeps its bound left padding and writes the right one as the literal reserve, and the trailing
+    // icon comes out of flow, constrained MAX/CENTER, at the visual padding from the right edge of the frame
+    // it was built in. Expectations are worked out here from nb's own numbers (docs/34), so an executor that
+    // drops the constraint, the lift or the reserve fails here by name.
+    {
+      const nbSizes = nbTheme().dims.sizes;
+      const md = nbSizes.find((z) => z.name === 'md')!;
+      const iconPx = ICON_SIZES.find((q) => `icon.size.${q.name}` === button.tokens['size.medium.icon'])!.px;
+      const edgesDef = applyButtonLayout(button, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, sizeRefPx(nbSizes));
+      const edgesPlan = figmaAnatomySet(edgesDef, { swapTarget: 'FPO-default-icon' })
+        .find((q) => /appearance=filled/.test(planComponentName(q)) && /state=rest/.test(planComponentName(q)) && !/surface=inverse/.test(planComponentName(q))
+          && q.size === 'medium' && q.slots.trailing && !q.slots.leading)!;
+      const eOpts = { vars: [...planBoundVars(edgesPlan.root), ...planPaintVars(edgesPlan.root)], styles: planTextStyles(edgesPlan.root), comps: ['FPO-default-icon'] };
+      const shape = (root: Record<string, unknown>): string => {
+        const icon = (root.children as Record<string, unknown>[]).find((c) => c.name === 'trailingVisual');
+        if (!icon) return `no trailing icon under ${String(root.name)} [${(root.children as Record<string, unknown>[]).map((c) => c.name).join(', ')}]`;
+        const c = icon.constraints as { horizontal?: string; vertical?: string } | null;
+        return JSON.stringify([root.paddingRight, icon.layoutPositioning, c?.horizontal ?? null, c?.vertical ?? null, (root.width as number) - (icon.x as number) - (icon.width as number)]);
+      };
+      const WANT = JSON.stringify([md.padXVisual + iconPx + md.gap, 'ABSOLUTE', 'MAX', 'CENTER', md.padXVisual]);
+      const pastePage: StubPage = { children: [] };
+      const pasted = await runPayload(planToPluginJs(edgesPlan), { ...eOpts, page: pastePage });
+      const plugPage: StubPage = { children: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+      const plugged = await applyComponentPlan([edgesPlan], makeFigmaStub({ ...eOpts, page: plugPage }) as any);
+      ok(pasted.misses.length === 0 && shape(pastePage.children[0] as Record<string, unknown>) === WANT,
+        `#1667 paste leg: a Locked to edges medium button pastes the reserve and a trailing icon pinned MAX at the visual padding — want ${WANT} (got ${shape(pastePage.children[0] as Record<string, unknown>)}; misses ${JSON.stringify(pasted.misses)})`);
+      // The plugin combines its members into a set; the member is the set's one child.
+      const plugMember = ((plugPage.children[0] as Record<string, unknown>).children as Record<string, unknown>[])[0];
+      ok(plugged.misses.length === 0 && shape(plugMember) === WANT,
+        `#1667 plugin leg: applyComponentPlan builds the same reserve and pinned icon — want ${WANT} (got ${shape(plugMember)}; misses ${JSON.stringify(plugged.misses)})`);
     }
 
     // ---- the ABSOLUTE part, EXECUTED (#536 item 3) -----------------------------------------------
@@ -18241,8 +18500,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const c = canonicalShape(ICON_PATHS[n]);
       byShape.set(c, [...(byShape.get(c) ?? []), n].sort());
     }
-    ok(byShape.size === 40,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 40 distinct RENDERED shapes (got ${byShape.size}) — 41 distinct path STRINGS, so string comparison is off by one`);
+    // 41 since the textarea's `resize-grip` joined the set (2026-09-25): a new shape, so both counts move by
+    // one and the three collisions below stay the only ones.
+    ok(byShape.size === 41,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 41 distinct RENDERED shapes (got ${byShape.size}) — 42 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);

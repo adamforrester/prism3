@@ -1,9 +1,9 @@
 {
-  "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless ENGINE_VERSION has already moved — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection and a sha256 over its sorted `planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and `<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, bump ENGINE_VERSION, then accept.",
+  "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless ENGINE_VERSION has already moved — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection and a sha256 over its sorted `planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and `<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. The button family (#1667) carries `<id>@button-default`, `<id>@button-edges` and `<id>@button-smaller` rows — its derived minimum width, the Locked to edges layout and the One step smaller medium content, against the default-density heights. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, bump ENGINE_VERSION, then accept.",
   "defs": {
     "icon": {
-      "members": 43,
-      "sha256": "7a840bf84edc219b4eb42509d18a57e2979ec654ec60eabca3c3c75ebcb18d04"
+      "members": 44,
+      "sha256": "0c1e85ee37807b6373dd2a3d050eeddcac7963e89ec9fc86fd10ebe635a66cc2"
     },
     "focus-ring": {
       "members": 2,
@@ -11,39 +11,75 @@
     },
     "button": {
       "members": 432,
-      "sha256": "0159ceb35b8ed582c34c095a00717726f05d9a38cbbae0dbe214879d879a5a4c"
+      "sha256": "6a114d7bcb749e18f71aad425d2d5833b1fc91d5c7c836915bc125c7dfe29ff8"
     },
     "button@outline-solid-tint": {
       "members": 432,
-      "sha256": "bd0bb71ff828479f0952d773e5d7a10e57aca0027d6e7fcea117c0420897a12d"
+      "sha256": "f141824adde1c08a65cd01965cbf34cf852fd58e2896475487cabc63292af51e"
     },
     "button@outline-none": {
       "members": 432,
-      "sha256": "d3f5ca6c59eadb875a68581bff3847e35e3035eea52af4b158ddf1bc1bd23580"
+      "sha256": "20abdee1f4841e9ad1e58bdf91d91154f14a665a45d352d382dda687cfbb8cc2"
+    },
+    "button@button-default": {
+      "members": 432,
+      "sha256": "1cb27caa28bdd7c70571c9bb9e770e64e0c25f0c93d1e4cd16f48f96833de90b"
+    },
+    "button@button-edges": {
+      "members": 432,
+      "sha256": "dfbfda999da3ad10fe767c497cc082a6241c305267f2a1c5fbbddab89edc9e06"
+    },
+    "button@button-smaller": {
+      "members": 432,
+      "sha256": "935e85d7de92bb056061e6db89e555d51fbf41cd4febdc75b8643e6d8b406d04"
     },
     "button-destructive": {
       "members": 432,
-      "sha256": "ed1301c72e91649616f5aee1912cd9016e5e97d549016f1adde1b9ca0e32441d"
+      "sha256": "e2f2d7d71375daa50ad7cda525cc4e67236a1fb7256be4376a6f9026d586c708"
     },
     "button-destructive@outline-solid-tint": {
       "members": 432,
-      "sha256": "2a8e48eb4ae3b7287fd19990d729d5816f24e8e348d2f6bebba462c942010c61"
+      "sha256": "7d5eb1b8179a69054d7a18f82549b9a1f65c2306bf9050b89959a091f506eff6"
     },
     "button-destructive@outline-none": {
       "members": 432,
-      "sha256": "8c4866502f0df15943c93521050c4ef12392679929d97d45b786b74e7f1fe188"
+      "sha256": "baf7f8168c6035ae9ab939e78637e4fa9790c508ad3496cfe1c82a6f5905bfb2"
+    },
+    "button-destructive@button-default": {
+      "members": 432,
+      "sha256": "7699b1a72dabb283ae1976d0cc5c05388b755db28373889e949d9c1003ea93c1"
+    },
+    "button-destructive@button-edges": {
+      "members": 432,
+      "sha256": "8416110b8b0e36d208dfb2fe54aa8556b19a991923b98b3a2bec8bfaa1608481"
+    },
+    "button-destructive@button-smaller": {
+      "members": 432,
+      "sha256": "03925e6a82ecbbd66fd612437c78f12911c73b930d1a15d9ea929f4f60cfca02"
     },
     "button-neutral": {
       "members": 432,
-      "sha256": "9e833f18ab0e1496fe42a4dd241e223e26a5fa9eb0d2dcdceb46e657b02f37fc"
+      "sha256": "ebb1206301860abcc1c12f4e9ff70692943573dfc2057da93fae827a3a9754ef"
     },
     "button-neutral@outline-solid-tint": {
       "members": 432,
-      "sha256": "ed22dd9cd7d3f771a900f0f3758eeaee75be2e231e605bb91d6a426d9a896d9f"
+      "sha256": "a257ac166a6f4ffc1ec79996d522e733d183ca3eecdc2083e72478647fdd1d8c"
     },
     "button-neutral@outline-none": {
       "members": 432,
-      "sha256": "52dee49298dd2cc10573f90e6f93d69cf6f34902fae38c80947443a33c9020b1"
+      "sha256": "a578a7fe5a59ee3a14d0bffdc71ede5440c5166389a19382b4f4a9f8a39466d4"
+    },
+    "button-neutral@button-default": {
+      "members": 432,
+      "sha256": "3bfda11f1f686525948970a9bdecdb00dcaa1be324a5c102c343b6ec70623751"
+    },
+    "button-neutral@button-edges": {
+      "members": 432,
+      "sha256": "68cb6d6c1f8fe161c89e7107e5ccf47c294af5c964e4db74e350e909f530651b"
+    },
+    "button-neutral@button-smaller": {
+      "members": 432,
+      "sha256": "f6507c75d218bf227623200d2d871c1388f04ab0781457cf41bd8b4f03b1a588"
     },
     "icon-button": {
       "members": 216,
@@ -111,15 +147,15 @@
     },
     "textarea": {
       "members": 20,
-      "sha256": "e46c4e035376b02d4a458ef94effa92a80f167e505c9aee73724c46fccab0c27"
+      "sha256": "1abc297aa751afeae00745d7ec680f59b9c2d83156dbe15049a52e496ab84dad"
     },
     "textarea@outline-solid-tint": {
       "members": 20,
-      "sha256": "f361c96d15615ae9d938605831f54f9c03fcde6adf68c9642cc3562ed34f5ca7"
+      "sha256": "e08fc03147d6fafe7d1dfa3cefbd9d77baa587c08df96996dbd03b00701684c8"
     },
     "textarea@outline-none": {
       "members": 20,
-      "sha256": "187effd1f4385a96d99deca46038424f44b2b22dacb15f3c0d09e4a7661b821d"
+      "sha256": "419ca048990141756289d8cd170a2f09db3058a22c4acedfcbb912fb15af014d"
     },
     "checkbox-control": {
       "members": 54,

@@ -229,6 +229,54 @@
       "description": "Corner shape for pill-able controls like buttons. Boxed is sharp (0px); hairline is a fixed 1px edge; rounded follows corner softness; pill is a full height ÷ 2, whatever the softness."
     },
     {
+      "key": "buttonIcons",
+      "group": "form",
+      "label": "Button icons",
+      "control": "enum",
+      "default": "attached",
+      "options": [
+        {
+          "value": "attached",
+          "label": "Attached to label"
+        },
+        {
+          "value": "edges",
+          "label": "Locked to edges"
+        }
+      ],
+      "description": "Where button icons sit. Attached to label keeps them beside the label. Locked to edges pins them to the button edges and centers the label in the space between."
+    },
+    {
+      "key": "buttonContentSize",
+      "group": "form",
+      "label": "Button label & icon",
+      "control": "enum",
+      "default": "match",
+      "options": [
+        {
+          "value": "match",
+          "label": "Match button size"
+        },
+        {
+          "value": "smaller",
+          "label": "One step smaller"
+        }
+      ],
+      "description": "The label and icon size of a medium button. One step smaller gives it the small button’s label and icon at the same height and padding. Small and large buttons are unchanged."
+    },
+    {
+      "key": "buttonMinWidthMultiplier",
+      "group": "form",
+      "label": "Button minimum width",
+      "control": "slider",
+      "default": 2.25,
+      "min": 1,
+      "max": 4,
+      "step": 0.25,
+      "unit": "× height",
+      "description": "A button is at least its height times this wide, rounded up to the 8px grid, so a short label never makes a stubby button."
+    },
+    {
       "key": "baseMd",
       "group": "form",
       "label": "Radius anchor",

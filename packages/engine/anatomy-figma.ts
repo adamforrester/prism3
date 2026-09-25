@@ -24,7 +24,8 @@
  */
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
 import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape } from './scale';
+import type { ControlShape, ButtonIcons, ButtonContentSize } from './scale';
+import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
 // nothing back from here (no cycle); `theme.ts` already bundles into the plugin alongside this file.
@@ -296,6 +297,15 @@ export type FigmaNodePlan = {
    *  measure and the executor does the arithmetic against the LIVE box, the same division of labor
    *  `absoluteInset` uses for a value Figma will not let us bind. */
   absoluteCenterOn?: string;
+  /** For a `GLYPH` pinned into its parent's bottom-right corner (`PartDef.corner`, textarea's resize grip):
+   *  taken out of the auto-layout flow and placed `inset` in from the corner's two edges, where this is the
+   *  inset's variable NAME. Resolved to a number at paste, never bound — `x`/`y` take no variable, the same
+   *  reason `absoluteInset` is a name. A THIRD placement beside that one and `absoluteCenter`, because the
+   *  geometry is a third shape: the ring is sized from its parent, the spinner is centered, and the grip
+   *  keeps its own artboard and anchors to one corner (`MAX`/`MAX` constraints, so it follows the corner when
+   *  the instance is resized). Carried ONLY on a pinned glyph, so every other plan is byte-identical. In
+   *  `readVarsOwn`, so the emit gate verifies the name like the ring's. */
+  cornerInset?: string;
   /** Rendered at zero opacity — in the flow and in the accessibility tree, but not visible.
    *
    *  The only node property here that exists to preserve GEOMETRY rather than to express a design
@@ -384,6 +394,20 @@ export type FigmaNodePlan = {
    *  `layoutMode` branch, where Figma accepts a minimum width. See `PartDef.minWidth` for why a `select`
    *  gets a min-width and not a bound `width`. */
   minWidth?: number;
+  /** For a `box`: inline padding written as LITERAL px, replacing that side's binding (#1667). The side a
+   *  PINNED child (below) sits on: the pinned node is out of flow, so the padding reserves its room — edge
+   *  inset + icon + gap, a sum Figma cannot bind to one variable. Keyed by Figma's own property names so the
+   *  executors write it as is. Both write it inside the `layoutMode` branch, BEFORE the children are built
+   *  (the end pin is measured off the parent's width), and their default passes leave these sides alone.
+   *  Carried ONLY on such a box, so every other plan is byte-identical. */
+  paddingPx?: { paddingLeft?: number; paddingRight?: number };
+  /** For a child of an auto-layout row: OUT OF FLOW, pinned to one inline edge (#1667, `PartDef.pin`). The
+   *  PARENT applies it after its flow pass, as it does every absolute child: `layoutPositioning: 'ABSOLUTE'`,
+   *  `x` at `inset` px from the `edge` (`MIN` left, `MAX` right), vertically centered, and
+   *  `constraints: { horizontal: edge, vertical: 'CENTER' }` so the node keeps its edge when the parent grows
+   *  or is widened. Carried ONLY on a filled pinned slot (or the overlay that took one), so every other
+   *  node's plan is byte-identical. */
+  pin?: { edge: 'MIN' | 'MAX'; inset: number };
   /** For a `TEXT` node that WRAPS (#1424): `1` when the label should FILL its row's main axis and wrap to
    *  multiple lines rather than hug its content and overflow. Figma's child-side `layoutGrow` (a 0/1 stretch
    *  flag along the parent's PRIMARY axis). Carried ONLY when `1`, so every other node's plan is byte-identical
@@ -1228,8 +1252,29 @@ export const figmaAnatomyPlan = (
   // swap or text on the same node, and `propertyRef` is singular. The boolean's plan carrier is
   // `visibleProp`/`visible`, computed above in `booleanParts` and emitted on the node below.
 
+  // A per-size floor (#1667) resolves at THIS plan's size; a sizeless plan cannot pick one, so it throws.
+  const minWidthAt = (part: string, w: number | Record<string, number>): number => {
+    if (typeof w === 'number') return w;
+    const px = size === undefined ? undefined : w[size];
+    if (px === undefined) throw new Error(`${def.id}: part '${part}' has a per-size minWidth with no entry for size '${size}'`);
+    return px;
+  };
+  // A per-size literal (#1667's pin) resolves at THIS plan's size, the `minWidthAt` rule.
+  const perSize = (part: string, what: string, m: Record<string, number>): number => {
+    const px = size === undefined ? undefined : m[size];
+    if (px === undefined) throw new Error(`${def.id}: part '${part}' has a per-size ${what} with no entry for size '${size}'`);
+    return px;
+  };
+  // The pin a node carries (#1667): its own when it is a pinned part (only ever projected when present),
+  // or the replaced cell's when it is the overlay that took that cell.
+  const pinOf = (name: string): FigmaNodePlan['pin'] => {
+    const from = activeOverlay && name === activeOverlay[0] && replacedByOverlay ? replacedByOverlay : name;
+    const pin = a.parts[from]?.pin;
+    return pin ? { edge: pin.edge === 'start' ? 'MIN' : 'MAX', inset: perSize(from, 'pin inset', pin.inset) } : undefined;
+  };
   const node = (name: string, p: PartDef): FigmaNodePlan => {
     const bound: Record<string, string> = {};
+    const paddingPx: NonNullable<FigmaNodePlan['paddingPx']> = {};
     // THE ASPECT-RATIO LOCK for a box (#1316), as the numeric proportion parsed from THIS member's own
     // `ratio` coordinate. Present only where the def declares `aspectRatio` and the coordinate carries
     // that axis — a structure-only plan supplies no value and stays unlocked, which no member ever
@@ -1281,6 +1326,9 @@ export const figmaAnatomyPlan = (
       // fallback now stands down when this binding wrote — unconditional it would UNBIND what Figma just
       // accepted, which is the same last-write-wins silence the aspect-ratio unlock exists for.
       if (p.strokeWidth) bound.strokeWeight = varOf(p.strokeWidth);
+      // TOP-ONLY padding: the space above a part a boolean hides, so the space hides with it (textarea's
+      // message and counter cells). The validator refuses it alongside `padding`, so the two never both write.
+      if (p.paddingTop) bound.paddingTop = varOf(p.paddingTop);
       if (p.padding) {
         bound.paddingTop = varOf(p.padding.block);
         bound.paddingBottom = varOf(p.padding.block);
@@ -1291,6 +1339,16 @@ export const figmaAnatomyPlan = (
         const inlineVisual = p.padding.inlineVisual ?? p.padding.inlineLabel;
         bound.paddingLeft = varOf(leadingFilled ? inlineVisual : p.padding.inlineLabel);
         bound.paddingRight = varOf(trailingFilled ? inlineVisual : p.padding.inlineLabel);
+        // A PINNED cell's side (#1667) trades its binding for the literal reserve: the pinned node is out of
+        // flow, so the padding holds its room. Keyed off `pin`, and off the CELL being filled (the caller's
+        // slot or an overlay that took it), the same question the two lines above ask.
+        for (const c of p.children ?? []) {
+          const pin = a.parts[c]?.pin;
+          if (!pin || !slotPresent(c)) continue;
+          const side = pin.edge === 'start' ? 'paddingLeft' : 'paddingRight';
+          delete bound[side];
+          paddingPx[side] = perSize(c, 'pin reserve', pin.reserve);
+        }
       }
     } else if (p.kind === 'absolute') {
       // NOTHING in `bound`, deliberately. An absolute part's geometry is its position and its size, and
@@ -1472,13 +1530,21 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'box' && p.clipsContent ? { clipsContent: true as const } : {}),
       // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
       // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
-      ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: p.minWidth } : {}),
+      ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: minWidthAt(name, p.minWidth) } : {}),
+      // THE RESERVED SIDES (#1667), computed with the padding above — see `paddingPx`.
+      ...(Object.keys(paddingPx).length ? { paddingPx } : {}),
+      // THE PIN (#1667), on a filled pinned slot, or on the overlay that took a pinned cell — the spinner
+      // stands in for the icon, so it sits where the icon sat, out of flow.
+      ...(pinOf(name) ? { pin: pinOf(name) } : {}),
       // THE WRAPPING LABEL (#1424), carried ONLY on a `text` part that opts in, so every other TEXT node's
       // plan is byte-identical. `layoutGrow: 1` fills the row's main axis (fixing the width) and
       // `textAutoResize: 'HEIGHT'` lets the fixed-width box reflow — the two facts that turn a hugging,
       // overflowing label into a wrapping one. `anatomyErrors` requires the parent to bound its main-axis
       // width (a `minWidth` floor or `fixed`), or the fill has nothing to resolve against (#989).
       ...(p.kind === 'text' && p.wrap ? { layoutGrow: 1, textAutoResize: 'HEIGHT' as const } : {}),
+      // A GROWING BOX (`grow`), `wrap`'s main-axis fill without the reflow: carried ONLY when set, so every
+      // other box's plan is byte-identical. `anatomyErrors` asserts the parent bounds its main axis.
+      ...(p.kind === 'box' && p.grow ? { layoutGrow: 1 } : {}),
       // THE RESERVED LINES (textarea's `rows`), carried ONLY on a `text` part declaring `lines`, as the
       // named prop's DEFAULT — so the Figma box and the code prop read one number. A count, never pixels:
       // the executor multiplies it by the node's own line height at paste. `anatomyErrors` has already
@@ -1514,6 +1580,9 @@ export const figmaAnatomyPlan = (
       // The stroke to compensate for (#801), projected only alongside an inset — on its own it has
       // nothing to correct, and the schema rejects that shape before the projection sees it.
       ...(p.kind === 'absolute' && p.inset && p.strokeInset ? { absoluteStrokeInset: varOf(p.strokeInset) } : {}),
+      // THE CORNER PIN (textarea's resize grip): a glyph lifted out of the flow into its parent's corner.
+      // Only on a pinned vector, so every other plan is byte-identical; the schema requires the inset.
+      ...(p.kind === 'vector' && p.corner && p.inset ? { cornerInset: varOf(p.inset) } : {}),
       // The out-of-flow half of the #612 fix, on the two nodes it concerns: the overlay is centered
       // absolutely, and the part it covers holds its cell at zero opacity. Both are keyed off
       // `overlaidPart`, so when the overlay lands on a real cell (`replaces` present) neither appears
@@ -1691,6 +1760,104 @@ export const applyControlShape = (def: ComponentDef, shape: ControlShape): Compo
     Object.entries(def.tokens).map(([k, ref]) => [k, ref === ROUNDED_RADIUS_RUNG ? target : ref]),
   );
   return { ...def, tokens };
+};
+
+// ── BUTTON LAYOUT (#1667) ───────────────────────────────────────────────────────────────────────
+//
+// Three brand choices for the text-bearing button family, owner-decided 2026-09-25 (issue #1667). All
+// three are materialized into the def BEFORE projection, for `applyControlShape`'s reason: the projector
+// stays a pure function of its def and the brand-specificity lives here.
+
+/** The `derived` key a def carries to opt IN to the button levers. Its VALUE is inert prose ("height ×
+ *  minWidthMultiplier — …"); its PRESENCE is the selector, the `pill-radius` shape. `button`,
+ *  `button-destructive` and `button-neutral` carry it (one factory); `icon-button` does not — it is square,
+ *  its glyph is 1:1 with the control and it has no label — so it is outside the set by construction. */
+export const MIN_WIDTH_DERIVATION = 'min-width';
+
+/** True when `def` is in the button family the #1667 levers reach — it declares the `min-width` derivation. */
+export const isButtonFamily = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[MIN_WIDTH_DERIVATION];
+
+/** The three settings, as `materializeForBrand` reads them off a brand. */
+export type ButtonLayout = { icons: ButtonIcons; content: ButtonContentSize; minWidthMultiplier: number };
+export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content: 'match', minWidthMultiplier: DEFAULT_MIN_WIDTH_MULTIPLIER };
+
+/** "One step smaller" (#1667): the ONE size whose content moves, and the size it borrows from. Medium only,
+ *  and deliberately: New Balance's 44px button (our `size.md.height`) carries a 12px label and a 16px icon,
+ *  which is small's content at medium's height. Small is excluded because one step below it would be a 10px
+ *  label; large keeps its own. `keys` are the two content bindings — the label's type and the icon artboard
+ *  (the spinner reads the icon key too, so it shrinks with the icon it stands in for). */
+export const CONTENT_OFFSET = { size: 'medium', from: 'small', keys: ['type', 'icon'] } as const;
+
+/**
+ * Materialize a button-family def for a brand's three button settings (#1667). Identity for any def outside
+ * the family. For a button:
+ *
+ *   1. MINIMUM WIDTH, in BOTH icon placements. The root's floor becomes a per-size map, each entry
+ *      `buttonMinWidth(height, multiplier)` — the size's height in px (via `px`, which the caller resolves
+ *      off the brand) times the multiplier, rounded UP to the 8px grid. It is a literal at the projection
+ *      (docs/28 §4: "resolved to a literal at emit"), because the def is brand-agnostic and Figma's frame
+ *      holds a number; the live `height × multiplier` relationship is code's.
+ *   2. "Locked to edges" (`icons: 'edges'`, owner's construction, 2026-09-25). The root still HUGS, above
+ *      its floor, so a long label grows the button and a designer can still fix a wider width on an
+ *      instance. Each icon slot is PINNED (`PartDef.pin`): out of flow, `inset` = the size's visual padding
+ *      from its edge, constraints `MIN` (the slot before the label) or `MAX` (after it). The side it sits
+ *      on reserves `inset + icon + gap` as literal padding, so the label never runs under it. The label is
+ *      untouched — HUG text in a `justify: center` row — so it centers in the space BESIDE the icons at
+ *      every width: with only a trailing icon it sits left of the button's center (New Balance's layout).
+ *      `attached` leaves the icons in flow, exactly as authored.
+ *   3. "One step smaller" (`content: 'smaller'`). Medium's label type and icon bind small's
+ *      (`CONTENT_OFFSET`). Height, padding, gap and the other two sizes are untouched, and no token moves —
+ *      this is a button-only rebinding, never a change to the shared type or icon ladders. With "Locked to
+ *      edges" the reserve reads the icon AFTER this rebinding, so it holds the smaller icon.
+ *
+ * THROWS when a size's number does not resolve: a button with no floor, or a pinned icon with no reserve,
+ * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
+ */
+export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (ref: string) => number | undefined): ComponentDef => {
+  if (!isButtonFamily(def)) return def;
+  const a = def.anatomy!;
+  const root = a.parts[a.root];
+  if (!root.layout || !root.height)
+    throw new Error(`${def.id}: the button levers need an auto-layout root that binds a height, and '${a.root}' does not`);
+
+  let tokens = def.tokens;
+  if (layout.content === 'smaller') {
+    tokens = { ...def.tokens };
+    for (const k of CONTENT_OFFSET.keys) {
+      const from = def.tokens[`size.${CONTENT_OFFSET.from}.${k}`];
+      if (!from || !def.tokens[`size.${CONTENT_OFFSET.size}.${k}`])
+        throw new Error(`${def.id}: "One step smaller" moves size.${CONTENT_OFFSET.size}.${k} onto size.${CONTENT_OFFSET.from}.${k}, and the def binds no such pair`);
+      tokens[`size.${CONTENT_OFFSET.size}.${k}`] = from;
+    }
+  }
+
+  const sizes = def.variants?.size ?? [];
+  // A def key (`size.{size}.gap`) at one size → px, through the (possibly rebound) token map.
+  const at = (key: string, v: string, what: string): number => {
+    const ref = tokens[key.replace('{size}', v)];
+    const n = ref === undefined ? undefined : px(ref);
+    if (n === undefined) throw new Error(`${def.id}: size '${v}' ${what} ${ref ?? '(unbound)'} does not resolve`);
+    return n;
+  };
+  const minWidth = Object.fromEntries(sizes.map((v) => [v, buttonMinWidth(at(root.height!, v, 'height'), layout.minWidthMultiplier)]));
+
+  const parts: Record<string, PartDef> = { ...a.parts, [a.root]: { ...root, minWidth } };
+  if (layout.icons === 'edges') {
+    const kids = root.children ?? [];
+    const label = kids.findIndex((c) => a.parts[c]?.kind === 'text');
+    if (label < 0) throw new Error(`${def.id}: "Locked to edges" centers the label between the icons, and '${a.root}' has no text child`);
+    const inlineVisual = root.padding?.inlineVisual ?? root.padding?.inlineLabel;
+    if (!inlineVisual || !root.gap) throw new Error(`${def.id}: "Locked to edges" pins the icons at the visual padding and reserves the gap, and '${a.root}' binds no inline padding or gap`);
+    kids.forEach((c, i) => {
+      const p = a.parts[c];
+      if (p?.kind !== 'slot' || i === label) return;
+      if (!p.size) throw new Error(`${def.id}: "Locked to edges" reserves the icon's width, and slot '${c}' binds no size`);
+      const inset = Object.fromEntries(sizes.map((v) => [v, at(inlineVisual, v, 'visual padding')]));
+      const reserve = Object.fromEntries(sizes.map((v) => [v, inset[v] + at(p.size!, v, 'icon') + at(root.gap!, v, 'gap')]));
+      parts[c] = { ...p, pin: { edge: i < label ? 'start' : 'end', inset, reserve } };
+    });
+  }
+  return { ...def, tokens, anatomy: { ...a, parts } };
 };
 
 // ── WEIGHT INTENT (#1602) ───────────────────────────────────────────────────────────────────────
@@ -2021,7 +2188,7 @@ const paintVarsOwn = (n: FigmaNodePlan): string[] =>
  *  and both executors fall back to the offset alone when it misses, which is a legible ring rather than a
  *  broken one, and therefore the kind of failure only a gate notices. */
 const readVarsOwn = (n: FigmaNodePlan): string[] =>
-  [n.absoluteInset, n.absoluteStrokeInset].filter((x): x is string => !!x);
+  [n.absoluteInset, n.absoluteStrokeInset, n.cornerInset].filter((x): x is string => !!x);
 
 /** Every paint variable a plan binds, depth-first. Exported for the gate that asserts a skinned plan
  *  actually carries paints — the check that a coordinate resolved to something. */
@@ -2777,9 +2944,62 @@ const PAYLOAD_MIN_LINES = `    if(c.minLines){
       else{kid.minHeight=h;if(!(Math.abs(kid.minHeight-h)<=0.01))misses.push(c.name+'.minHeight -> DISCARDED');}
     }`;
 const hasMinLines = (n: FigmaNodePlan): boolean => n.minLines !== undefined || n.children.some(hasMinLines);
-/** `PAYLOAD_BUILD` for these roots: the reserved-lines write spliced in where one of them needs it. */
+/**
+ * THE PINNED ICONS (#1667, "Locked to edges"), spliced in after the flow pass ONLY for a payload whose plans
+ * carry a `pin` — the `MIN_LINES_SLOT` budget decision again: unconditional, these lines pushed Button's #536
+ * probe grid into a second chunk. TWO splices, because the width the end pin is measured off must be FINAL:
+ * the reserved sides (`paddingPx`) are written before the children (the `layoutMode` branch); each pinned
+ * child leaves the flow the moment it is appended (`PIN_LIFT_SLOT`, in the child loop), so it never counts
+ * in the hug; and each pin is placed LAST (`PIN_SLOT`, after the ring's pass, whose own lift is the other
+ * thing that moves the width) — `inset` from its edge, vertically centered, constrained to the edge so a
+ * frame that grows with its label (or is widened by a designer) keeps it there — and read back. Measured:
+ * placed before the ring's lift, a focus-visible member's end pin sat 36px off (the round-trip gate). The
+ * lift goes through a variable, like the centering lift, so no statement here is byte-identical to the
+ * ring's `kid.layoutPositioning='ABSOLUTE';` (a test mutates that one by `String.replace`, which takes the
+ * FIRST match). `claimDefaults` leaves the reserved sides alone. Lockstep with the plugin executor.
+ */
+const PIN_LIFT_SLOT = '__PIN_LIFT__';
+const PAYLOAD_PIN_LIFT = `    if(c.pin){const P='ABSOLUTE';kid.layoutPositioning=P;}`;
+const PIN_SLOT = '__PIN__';
+const PAYLOAD_PIN = `  for(const c of n.children){
+    const kid=c.pin&&boxes.get(c.name);if(!kid)continue;
+    const {edge:e,inset:i}=c.pin;
+    kid.x=e==='MIN'?i:node.width-i-kid.width;kid.y=(node.height-kid.height)/2;
+    kid.constraints={horizontal:e,vertical:'CENTER'};
+    if(kid.layoutPositioning!=='ABSOLUTE'||(kid.constraints||{}).horizontal!==e)misses.push(c.name+'.pin -> DISCARDED');
+  }`;
+const hasPin = (n: FigmaNodePlan): boolean => n.pin !== undefined || n.children.some(hasPin);
+/**
+ * THE CORNER PIN (textarea's resize grip), spliced after the flow pass ONLY for a payload whose plans carry
+ * `cornerInset` — the reserved-lines slot's budget reason, unchanged: an unconditional addition to
+ * `PAYLOAD_BUILD` pushes Button's probe grid into a second chunk. After the flow pass because the corner is
+ * measured on the parent's FINAL size. The inset is the variable's VALUE (`x`/`y` take no binding), the glyph
+ * keeps its own artboard, and `MAX`/`MAX` keeps it in the corner when the instance is resized. Written through
+ * a variable so the statement is not byte-identical to the ring's lift, which a test mutates by `replace`.
+ * Lockstep with the plugin executor (`write-components.ts`).
+ */
+const CORNER_SLOT = '__CORNER__';
+const PAYLOAD_CORNER = `  for(const c of n.children){
+    if(!c.cornerInset)continue;
+    const kid=boxes.get(c.name),v=byName.get(c.cornerInset);
+    if(!kid)continue;
+    if(!v){misses.push(c.name+'.cornerInset -> '+c.cornerInset);continue;}
+    const at=v.resolveForConsumer(kid).value;
+    if(typeof at!=='number'){misses.push(c.name+'.cornerInset -> '+c.cornerInset+' resolved to '+JSON.stringify(at)+', not a number');continue;}
+    const pin='ABSOLUTE';kid.layoutPositioning=pin;
+    kid.x=node.width-kid.width-at;kid.y=node.height-kid.height-at;
+    kid.constraints={horizontal:'MAX',vertical:'MAX'};
+    if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the glyph would take a cell in the row)');
+  }
+`;
+const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || n.children.some(hasCorner);
+/** `PAYLOAD_BUILD` for these roots: the reserved-lines write, the pinned icons and the corner pin spliced in
+ *  where one of them needs it. */
 const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
-  PAYLOAD_BUILD.replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '');
+  PAYLOAD_BUILD.replace(MIN_LINES_SLOT, roots.some(hasMinLines) ? PAYLOAD_MIN_LINES : '')
+    .replace(PIN_LIFT_SLOT, roots.some(hasPin) ? PAYLOAD_PIN_LIFT : '')
+    .replace(PIN_SLOT, roots.some(hasPin) ? PAYLOAD_PIN : '')
+    .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '');
 
 const PAYLOAD_BUILD = `const __expose=[];
 // #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
@@ -2829,7 +3049,7 @@ const claimDefaults=(node,n,mode)=>{
     set('clipsContent',!!m.clipsContent);
     // Parent-side auto-layout properties apply only on an auto-layout frame, and Figma THROWS on
     // \`strokesIncludedInLayout\` elsewhere — so gated on the PLAN's \`layoutMode\`.
-    if(m.layoutMode){for(const k of ['itemSpacing','paddingLeft','paddingRight','paddingTop','paddingBottom'])if(!(k in B))set(k,0);set('strokesIncludedInLayout',false);}
+    if(m.layoutMode){for(const k of ['itemSpacing','paddingLeft','paddingRight','paddingTop','paddingBottom'])if(!(k in B||k in(m.paddingPx||B)))set(k,0);set('strokesIncludedInLayout',false);}
   }
   // The last two DETACH an applied text style on the host (#1567) — \`build\` re-applies it right after.
   if(t==='TEXT'){if(!m.textAlignVertical)set('textAlignVertical','TOP');set('textAlignHorizontal','LEFT');set('textAutoResize',m.textAutoResize||'WIDTH_AND_HEIGHT');set('textTruncation','DISABLED');set('paragraphSpacing',0);set('leadingTrim','NONE');}
@@ -2970,25 +3190,25 @@ const build=async(n)=>{
   // AFTER the text style, because a text style does not carry it and could not overwrite it — \`TextStyle\`
   // has no alignment field on either axis (#1009, measured against \`@figma/plugin-typings\`). Ordered
   // here anyway so the sequence reads the same as every other text write in this function.
-  if(n.textAlignVertical)node.textAlignVertical=n.textAlignVertical;
-  // WRAPPING LABEL (#1424): auto-height lets a fixed-width text reflow. Written only when the plan carries
-  // it (a wrapping label); \`claimDefaults\` below writes WIDTH_AND_HEIGHT on every other TEXT node (#1393).
-  if(n.textAutoResize)node.textAutoResize=n.textAutoResize;
+  // WRAPPING LABEL (#1424): auto-height lets a fixed-width text reflow — written only when the plan carries
+  // it; \`claimDefaults\` writes WIDTH_AND_HEIGHT on every other TEXT node (#1393). One loop over the two,
+  // in this order, because the chunked paste budget (\`SET_CHUNK_BYTES\`) is counted in the bytes of this code.
+  for(const k of['textAlignVertical','textAutoResize'])if(n[k])node[k]=n[k];
   if(n.effectStyle){
     const ef=effectByName.get(n.effectStyle);
     if(!ef)misses.push(n.name+'.effectStyle -> '+n.effectStyle);
     else await node.setEffectStyleIdAsync(ef.id);
   }
   if(n.layoutMode){
-    node.layoutMode=n.layoutMode;
-    node.primaryAxisAlignItems=n.primaryAxisAlignItems;
-    node.counterAxisAlignItems=n.counterAxisAlignItems;
-    node.primaryAxisSizingMode=n.primaryAxisSizingMode;
-    node.counterAxisSizingMode=n.counterAxisSizingMode;
+    // The five, in this order — one loop for the chunk byte budget (#1667), \`layoutMode\` first.
+    for(const k of['layoutMode','primaryAxisAlignItems','counterAxisAlignItems','primaryAxisSizingMode','counterAxisSizingMode'])node[k]=n[k];
     // THE MIN-WIDTH FLOOR (#1343a, #1345). Inside the \`layoutMode\` branch because Figma accepts a
     // minimum width only on an auto-layout frame (the schema refuses \`minWidth\` on a layout-less box for
-    // the same reason). Written only when the plan carries it, so every other frame is untouched.
-    if(n.minWidth!==undefined)node.minWidth=n.minWidth;
+    // the same reason). Written only when the plan carries it, so every other frame is untouched. A floor
+    // is never 0 (the schema refuses a non-positive one), so truthiness is the presence test.
+    if(n.minWidth)node.minWidth=n.minWidth;
+    // #1667 reserve beside a pinned icon (\`paddingPx\`), before the children; \`claimDefaults\` keeps it.
+    Object.assign(node,n.paddingPx);
   }
   // WRAPPING LABEL (#1424), child-side: a text that FILLS its row's main axis so it reflows rather than
   // overflowing. Settable on any node (outside an auto-layout parent Figma ignores it), written only when
@@ -3098,6 +3318,7 @@ const build=async(n)=>{
     // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`.
     if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;
 ${MIN_LINES_SLOT}
+${PIN_LIFT_SLOT}
   }
   // A CENTERED absolute child (#612's pending spinner with no visual cell to take). Applied by the
   // parent for the same reason the inset ones are — \`layoutPositioning\` only means anything inside an
@@ -3134,7 +3355,7 @@ ${MIN_LINES_SLOT}
     // silently: the button would grow by the spinner's cell exactly as it did before #612.
     if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the spinner would take a cell and the button would grow on pending)');
   }
-  // Applied by the PARENT, because every fact here is about the child's relationship to it:
+${CORNER_SLOT}  // Applied by the PARENT, because every fact here is about the child's relationship to it:
   // \`layoutPositioning\` is only meaningful inside an auto-layout parent, and the parent's size is what
   // the inset is measured from.
   for(const [c,kid] of absolutes){
@@ -3199,6 +3420,7 @@ ${MIN_LINES_SLOT}
     if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the ring would take a cell in the row)');
   }
   // #1393 — AND IT HAS TO BE LAST: every write above declares something; this declares nothing else was.
+${PIN_SLOT}
   claimDefaults(node,n,'created');
   // RE-APPLY THE TEXT STYLE, because \`claimDefaults\`' \`paragraphSpacing\`/\`leadingTrim\` just detached it
   // (#1567, host-measured). No \`loadFontAsync\`: the style's font was loaded above, in this same run.
@@ -4075,7 +4297,7 @@ const PROPS_ALL=${JSON.stringify(last ? props : [])};
 const REFS_ALL=${JSON.stringify(last ? refs : [])};
 const REF_OVERRIDES_ALL=${JSON.stringify(last ? refOverrides : [])};
 ${PAYLOAD_PREAMBLE}
-${payloadBuildFor(slice.map((x) => x.root))}
+${payloadBuildFor((slice.length ? slice : specs).map((x) => x.root))}
 ${PAYLOAD_CHUNK_BODY}
 ${PAYLOAD_DECLARE_PROPS}
 ${PAYLOAD_WIRE_REFS}
@@ -4112,6 +4334,13 @@ ${PAYLOAD_CHUNK_RETURN}
     if (cur.length) groups.push(cur);
     return groups;
   };
+  // THE SHELL CARRIES THE SET'S SPLICES. It is measured from an EMPTY slice, and `payloadBuildFor` splices
+  // the reserved-lines and corner-pin code only where a plan needs it — so an empty slice measured the shell
+  // WITHOUT them and every textarea chunk shipped ~1KB over the budget it was packed to (45,963 characters
+  // against the MCP paste's 45,000 ceiling, `apps/plugin/test-mcp-paste.ts`). So `emit` splices from the
+  // WHOLE set's plans when handed no slice: the worst case, and the same case for every chunk of a set
+  // whose plans all carry the field.
+  //
   // THE SHELL IS NOT A CONSTANT, and this cost four bytes at 121 chunks before it was measured. The
   // header interpolates `CHUNK`, `TOTAL` and `FIRST`, so a payload's own index widens it: measuring the
   // shell as chunk 1-of-1 charges `0`, `1` and `true`, while chunk 108-of-121 spends two more digits on
