@@ -18,6 +18,7 @@
 import { Theme, CORE_TIER } from './theme';
 import { buildTree, at } from './tree';
 import { contrast } from './color';
+import { interactiveStateRungs } from './modes';
 import { figmaColorDescription, figmaPaletteDescription, figmaAlphaDescription, FIGMA_EXTREME } from './figma-description';
 
 export type FigmaColor = { r: number; g: number; b: number; a: number };
@@ -299,17 +300,6 @@ const paletteDescription = (theme: Theme, [palette, key]: string[], leaf: any): 
   });
 };
 
-/** How many neutral rungs (50 apart) an inverse fill state sits off its white / black rest fill, read off
- *  the light-mode aliases: white is rung 0 of the neutral ramp, black rung 1000. */
-const rungsOffRest = (tree: any, root: string, dotted: string): number => {
-  const stepOf = (d: string): string => String(at(tree, d)?.$extensions?.prism3?.aliasOf ?? '').split('.').slice(-2).join('.');
-  const rest = stepOf(dotted.replace(/\.[a-z]+$/, '.rest'));
-  const anchor = rest === 'palette.white' ? 0 : rest === 'palette.black' ? 1000 : NaN;
-  const own = /^neutral\.(\d+)$/.exec(stepOf(dotted));
-  if (Number.isNaN(anchor) || !own) throw new Error(`emit-figma-color: ${dotted} is not a neutral step off a white / black rest fill (rest ${rest}) — the Figma line cannot count its rungs`);
-  return Math.abs(Number(own[1]) - anchor) / 50;
-};
-
 const rgb255 = (c: FigmaColor) => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
 
 /**
@@ -359,7 +349,7 @@ const colorRoleDescription = (tree: any, root: string, dotted: string, leaf: any
     alphas: modes.map((m) => [m, Math.round((valueIn(dotted, m)?.a ?? 1) * 100)] as [string, number]),
     ground,
     dropsOn,
-    rungs: inverseFill ? rungsOffRest(tree, root, dotted) : undefined,
+    rungs: inverseFill ? interactiveStateRungs(dotted.slice(dotted.lastIndexOf('.') + 1)) : undefined,
   });
 };
 

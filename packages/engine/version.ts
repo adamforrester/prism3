@@ -2926,6 +2926,14 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.152.0 — Owner-found (2026-09-25): Apply Theme aborted with "write failed: emit-figma-color: …inverse.
+ * interactive.primary.fill.hover is not a neutral step off a white / black rest fill (rest brand-neutral.025)".
+ * The #1645 Figma line for the inverse fill states RE-DERIVED its rung count from the light-mode aliases and
+ * assumed the rest was white / black; a brand that overrides that rest to its own palette step (the plugin
+ * UI allows it) made it throw, and the throw took the whole write down. The count is now the engine's own
+ * per-state rule (`interactiveStateRungs`, hover/focused 2, pressed/selected 4), exported from `modes.ts`
+ * so the walk and the Figma line state one number. Committed `out/**` is byte-identical apart from the
+ * stamp (the re-derivation agreed with the rule for every committed brand). Behavior fix → MINOR. CONTRACT STANDS.
  * 0.151.0 — #1393: the paste/MCP-console executor (`PAYLOAD_BUILD`) gains a `claimDefaults` pass, the twin of
  * the plugin executor's #865 neutralizer, kept in lockstep (same properties, values and carve-outs, including
  * the set's #1430 preserved framing). Before it, every frame whose plan declared no fill (outline/text at
@@ -3588,7 +3596,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.151.0';
+export const ENGINE_VERSION = '0.152.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
