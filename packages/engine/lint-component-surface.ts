@@ -178,7 +178,9 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
 import { componentDefs } from './components/index';
-import { figmaAnatomySet, planComponentName, planStamp, applyWeightIntent, applyOutlineInteraction, DEFAULT_WEIGHT_AVAILABILITY } from './anatomy-figma';
+import { figmaAnatomySet, planComponentName, planStamp, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from './anatomy-figma';
+import type { ButtonLayout } from './anatomy-figma';
+import { componentSizes, sizeRefPx, SPACE_BASE } from './scale';
 import type { AnatomyPlan, WeightAvailability } from './anatomy-figma';
 import type { ComponentDef } from './component-schema';
 
@@ -277,6 +279,20 @@ const OUTLINE_SURFACE_CONFIGS = [
   { id: 'outline-none', method: 'none' },
 ] as const;
 
+// AND FOR THE BUTTON LAYOUT (#1667). Its DEFAULT is not the identity — every button gets a per-size minimum
+// width — but the floor and the pinned icons need a brand's numbers, which the plain `<id>` row (a def and no theme) does not
+// have. So the button family carries three scenario rows against the ENGINE's default-density ladder (a
+// fixed input, not a brand): the default settings, "Locked to edges", and "One step smaller". A change to
+// the floor's derivation, the edges layout or the medium offset moves one of them. Which defs get them is
+// again decided by the transform (a def it changes), so `icon-button` gets none.
+const DEFAULT_LADDER = componentSizes('comfortable', SPACE_BASE);
+const ladderPx = sizeRefPx(DEFAULT_LADDER);
+const BUTTON_SURFACE_CONFIGS: { id: string; layout: ButtonLayout }[] = [
+  { id: 'button-default', layout: DEFAULT_BUTTON_LAYOUT },
+  { id: 'button-edges', layout: { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' } },
+  { id: 'button-smaller', layout: { ...DEFAULT_BUTTON_LAYOUT, content: 'smaller' } },
+];
+
 const liveDefs = (): Record<string, Surface> => {
   const out: Record<string, Surface> = {};
   for (const def of componentDefs) {
@@ -285,6 +301,10 @@ const liveDefs = (): Record<string, Surface> => {
       for (const { id, avail } of BRAND_SURFACE_CONFIGS) out[`${def.id}@${id}`] = surfaceOf(applyWeightIntent(def, avail));
     for (const { id, method } of OUTLINE_SURFACE_CONFIGS) {
       const m = applyOutlineInteraction(def, method);
+      if (m !== def) out[`${def.id}@${id}`] = surfaceOf(m);
+    }
+    for (const { id, layout } of BUTTON_SURFACE_CONFIGS) {
+      const m = applyButtonLayout(def, layout, ladderPx);
       if (m !== def) out[`${def.id}@${id}`] = surfaceOf(m);
     }
   }
@@ -324,7 +344,10 @@ const NOTE =
   'rows record the surface under canonical availability scenarios (body-emphasis = NB\'s bold→emphasis, ' +
   'body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise ' +
   'a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and ' +
-  '`<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. It ' +
+  '`<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. The ' +
+  'button family (#1667) carries `<id>@button-default`, `<id>@button-edges` and `<id>@button-smaller` rows — its ' +
+  'derived minimum width, the Locked to edges layout and the One step smaller medium content, against the ' +
+  'default-density heights. It ' +
   'records no engine version of its own on purpose — a pure value change bumps the engine and moves no ' +
   'component surface. A failure here is a CHANGED projection: read the diff, decide whether the change ' +
   'was intended, bump ENGINE_VERSION, then accept.';

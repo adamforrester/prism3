@@ -550,7 +550,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
         if (node._absolute || !p || !p.layoutMode) return node._x as number;
         const bv = p.boundVariables as Record<string, { value?: number }>;
         const gap = bv.itemSpacing?.value ?? 0;
-        let at = bv.paddingLeft?.value ?? 0;
+        // A LITERAL padding (#1667's reserve beside a pinned icon) counts when the side is not bound.
+        let at = bv.paddingLeft?.value ?? (typeof p.paddingLeft === 'number' ? p.paddingLeft : 0);
         for (const c of ((p.children as Node[]) ?? [])) {
           if (c === node) return at;
           if (c.layoutPositioning === 'ABSOLUTE') continue;   // takes no cell, contributes no offset
@@ -580,7 +581,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         if (bv.width) return bv.width.value ?? 0;
         if (node.type === 'TEXT')
           return ((node.characters as string) || '').length * 6 + (opts.textAdvance?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0);
-        const pad = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0);
+        // A LITERAL side (#1667's reserve beside a pinned icon) counts where the side is not bound, as on the host.
+        const lit = (k: string): number => (typeof node[k] === 'number' ? node[k] as number : 0);
+        const pad = (bv.paddingLeft?.value ?? lit('paddingLeft')) + (bv.paddingRight?.value ?? lit('paddingRight'));
         // A HIDDEN child takes no cell either, under `layoutModel` — the host lays out visible children only,
         // which is what lets a boolean-driven part be measured on and off (textarea's grip and counter).
         const kids = ((node.children as Node[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE' && !(opts.layoutModel && c.visible === false));

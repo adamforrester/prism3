@@ -2926,6 +2926,24 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.162.0 — #1667: three button BRAND levers, owner-decided 2026-09-25, for button / button-destructive /
+ * button-neutral (not icon-button). `buttonIcons` ("Button icons": Attached to label | Locked to edges),
+ * `buttonMinWidthMultiplier` (a slider, default 2.25 — Spectrum's `button-minimum-width-multiplier`) and
+ * `buttonContentSize` ("Button label & icon": Match button size | One step smaller). All three are
+ * materialized into the def before projection by `applyButtonLayout` (the `controlShape` path), in both
+ * executors via `materializeForBrand`. (1) Every button size now carries a minimum width, height ×
+ * multiplier rounded UP to the 8px grid (nb 36/44/56 → 88/104/128), in BOTH icon placements — so an
+ * "Attached to label" button with a short label is wider than before, the consequence the owner accepted.
+ * (2) "Locked to edges" (the owner's construction): the root keeps hugging above that floor, each icon slot
+ * is PINNED out of flow at the visual padding from its edge with a MIN/MAX constraint (new `PartDef.pin` →
+ * plan `pin`), and that side reserves inset + icon + gap as literal padding (new plan `paddingPx`), so the
+ * hugging label centers in the space beside the icons and still widens the button. (3) "One step smaller" gives the MEDIUM size
+ * small's label style and icon. `PartDef.minWidth` also takes a per-size map. The projected component
+ * surface moves (new `@button-default/@button-edges/@button-smaller` rows, and the button defs' own rows for
+ * their edited `codeOnly` prose) → ENGINE bump. NO token is emitted or renamed — `out/**` is a stamp-only
+ * regen, and the levers live in brand input, not in the tree — so CONTRACT STANDS at 12.0.0
+ * (`token-contract --check` level `none`).
+ *
  * 0.161.0 — The textarea's resize grip and character counter in Figma (owner decisions (c) and (d),
  * 2026-09-25). A new `resize-grip` glyph joins the icon set (drawn for this project; the `icon` set grows by
  * one member). A new `PartDef.corner` pins a `vector` into its parent's bottom-right corner, out of the flow,
@@ -3673,7 +3691,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.161.0';
+export const ENGINE_VERSION = '0.162.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -31,6 +31,7 @@
     "./rename-map": "./rename-map.ts",
     "./read-back": "./read-back.ts",
     "./resolve-preview": "./resolve-preview.ts",
+    "./scale": "./scale.ts",
     "./standard-design-md": "./standard-design-md.ts",
     "./theme": "./theme.ts",
     "./tree": "./tree.ts",

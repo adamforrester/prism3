@@ -27,8 +27,10 @@
  * before. A persisted brand whose theme fails to build falls back the same way — the build still runs,
  * against the defaults, which is what the `controlShape` read already did on an untrusted input.
  */
-import { applyControlShape, applyWeightIntent, applyOutlineInteraction, DEFAULT_WEIGHT_AVAILABILITY } from '@prism3/engine/anatomy-figma';
-import type { WeightAvailability } from '@prism3/engine/anatomy-figma';
+import { applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
+import type { WeightAvailability, ButtonLayout } from '@prism3/engine/anatomy-figma';
+import { componentSizes, sizeRefPx, SPACE_BASE } from '@prism3/engine/scale';
+import type { SizeStep } from '@prism3/engine/scale';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { brandTheme, weightAvailability } from '@prism3/engine/theme';
 import type { BrandInput, Theme } from '@prism3/engine/theme';
@@ -36,8 +38,10 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import type { ResolvedRole } from '@prism3/engine/modes';
 
 /** The theme-derived levers, off ONE `brandTheme` call — or the defaults when there is no usable brand. */
-const brandLevers = (input: BrandInput | null): { avail: WeightAvailability; outline: Theme['outlineInteraction']; roles?: Record<string, ResolvedRole> } => {
-  const fallback = { avail: DEFAULT_WEIGHT_AVAILABILITY, outline: 'overlay-neutral' as const };
+const brandLevers = (input: BrandInput | null): { avail: WeightAvailability; outline: Theme['outlineInteraction']; roles?: Record<string, ResolvedRole>; sizes: SizeStep[] } => {
+  // THE DEFAULT DENSITY'S HEIGHTS when there is no usable brand (#1667): the button floor applies to every
+  // brand at the default multiplier, so a themeless build still gets one, at the default ladder.
+  const fallback = { avail: DEFAULT_WEIGHT_AVAILABILITY, outline: 'overlay-neutral' as const, sizes: componentSizes('comfortable', SPACE_BASE) };
   if (!input) return fallback;
   try {
     const theme = brandTheme(input);
@@ -45,16 +49,27 @@ const brandLevers = (input: BrandInput | null): { avail: WeightAvailability; out
     // the text guard can step a role down, the visibility guard up — so the resolved roles come along. Every
     // mode carries the same step, so the first mode's roles are enough. Resolved only when the lever needs it.
     const roles = theme.outlineInteraction === 'solid-tint' ? resolveAllModes(theme)[0]?.roles : undefined;
-    return { avail: weightAvailability(theme.typography), outline: theme.outlineInteraction, roles };
+    return { avail: weightAvailability(theme.typography), outline: theme.outlineInteraction, roles, sizes: theme.dims.sizes };
   } catch { return fallback; }
 };
 
 /** The weight roles a brand ships per type category, or the defaults when there is no usable brand. */
 export const brandWeightAvailability = (input: BrandInput | null): WeightAvailability => brandLevers(input).avail;
 
+/** The brand's three button settings (#1667), off the raw input like `controlShape`, defaults filled in. */
+export const brandButtonLayout = (input: BrandInput | null): ButtonLayout => ({
+  icons: input?.buttonIcons ?? DEFAULT_BUTTON_LAYOUT.icons,
+  content: input?.buttonContentSize ?? DEFAULT_BUTTON_LAYOUT.content,
+  minWidthMultiplier: input?.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
+});
+
 /** `def` resolved against the brand: corner shape, then weight intent (#1605's owner-locked order), then
- *  the outline hover family (#1608 — independent of the other two: it touches only `color.*` refs). */
+ *  the outline hover family (#1608 — independent of the other two: it touches only `color.*` refs), then
+ *  the button layout (#1667 — independent too: it touches the button family's geometry and its two
+ *  medium content refs, none of which the earlier three read or write). */
 export const materializeForBrand = (def: ComponentDef, input: BrandInput | null): ComponentDef => {
-  const { avail, outline, roles } = brandLevers(input);
-  return applyOutlineInteraction(applyWeightIntent(applyControlShape(def, input?.controlShape ?? 'rounded'), avail), outline, roles);
+  const { avail, outline, roles, sizes } = brandLevers(input);
+  return applyButtonLayout(
+    applyOutlineInteraction(applyWeightIntent(applyControlShape(def, input?.controlShape ?? 'rounded'), avail), outline, roles),
+    brandButtonLayout(input), sizeRefPx(sizes));
 };

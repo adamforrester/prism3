@@ -455,8 +455,27 @@ export type PartDef = {
    *
    *  Refused on a non-`box` kind, and on a `box` with no `layout`: Figma applies `minWidth` only to an
    *  auto-layout frame, so a floor on a layout-less box would be silently dropped (or throw on the real
-   *  host) — the silent-loss shape the width and sizing rules exist to catch. */
-  minWidth?: number;
+   *  host) — the silent-loss shape the width and sizing rules exist to catch.
+   *
+   *  PER SIZE, as a map keyed by the `size` axis values (#1667): the button's floor is DERIVED per brand as
+   *  `height × multiplier`, rounded up to the 8px grid, so each size has its own number. A def never authors
+   *  that map — `applyButtonLayout` writes it before projection, from the brand's resolved heights, which is
+   *  why the def stays brand-agnostic. The map must name exactly the def's `size` values. */
+  minWidth?: number | Record<string, number>;
+  /** For a `slot`: take the node OUT OF FLOW and PIN it to one inline edge of its parent row (#1667, the
+   *  button's "Locked to edges"). Figma: `layoutPositioning: 'ABSOLUTE'`, `x` at `inset` px from that edge,
+   *  vertically centered, and `constraints.horizontal` `MIN` (start) or `MAX` (end), so the node stays on its
+   *  edge however wide the parent grows — a longer label hugging it wider, or a designer's fixed width on an
+   *  instance. An out-of-flow node takes no room, so the parent's padding on that side becomes `reserve` px
+   *  (the edge inset + the node's width + the gap it kept from the label), which is what keeps the label from
+   *  running under it. Both are PER SIZE and literal: `applyButtonLayout` writes them before projection from
+   *  the brand's resolved numbers, the per-size `minWidth` argument (Figma's padding takes one variable, and
+   *  the reserve is a sum of three). Applied only where the slot is FILLED, so an empty side keeps its bound
+   *  padding. An overlay that takes a pinned cell (the pending spinner) takes its pin with it.
+   *
+   *  Refused on any kind but `slot`, under a parent that is not an auto-layout ROW with inline padding, and
+   *  with keys other than the def's sizes or a `reserve` that does not clear `inset`. */
+  pin?: { edge: 'start' | 'end'; inset: Record<string, number>; reserve: Record<string, number> };
   /** For `box` parts: the binding key giving the frame's MINIMUM height — Figma's auto-layout `minHeight`,
    *  bound to a variable. The token-bound twin of `minWidth`'s literal, and a token rather than a
    *  literal because the floor it states IS a token's value: `field-message`'s row reserves its status
@@ -3499,6 +3518,41 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidth' — only a 'box' becomes an auto-layout frame that can carry a minimum width; every other kind is sized by its content or its artboard`);
     if (p.minWidth !== undefined && p.kind === 'box' && !p.layout)
       e.push(`anatomy part '${n}' declares 'minWidth' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so a floor on a layout-less box would be silently dropped`);
+    // The PER-SIZE form (#1667) must name exactly the def's sizes: a size it misses would project no floor at
+    // that size (the silent-loss shape), and a key no size carries names nothing.
+    if (p.minWidth !== undefined && typeof p.minWidth === 'object') {
+      const sizes = def.variants?.size ?? [];
+      const keys = Object.keys(p.minWidth);
+      const missing = sizes.filter((v) => !keys.includes(v));
+      const extra = keys.filter((k) => !sizes.includes(k));
+      if (missing.length || extra.length)
+        e.push(`anatomy part '${n}' declares a per-size 'minWidth' whose keys [${keys.join(', ')}] are not the def's sizes [${sizes.join(', ')}] — a missing size projects no floor there, and an extra key names nothing`);
+    }
+    if (p.minWidth !== undefined && (typeof p.minWidth === 'number' ? [p.minWidth] : Object.values(p.minWidth)).some((w) => !(typeof w === 'number' && w > 0)))
+      e.push(`anatomy part '${n}' declares a 'minWidth' that is not a positive number of px`);
+    // ---- `pin`, a SLOT taken out of flow onto one inline edge (#1667) ----
+    // Every refusal is a silent-loss shape: pinned under a parent with no inline padding, the reserve has
+    // nowhere to go and the label runs under the icon; a size with no entry projects no pin there.
+    if (p.pin !== undefined) {
+      if (p.kind !== 'slot')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'pin' — only a 'slot' (an icon cell) is pinned to an edge`);
+      const parent = Object.entries(parts).find(([, q]) => q.children?.includes(n))?.[1];
+      if (!parent || parent.kind !== 'box' || parent.layout?.direction !== 'row' || !parent.padding)
+        e.push(`anatomy part '${n}' declares 'pin', but its parent is not an auto-layout row with inline padding — the reserved padding would have nowhere to go and the label would run under it`);
+      if (p.pin.edge !== 'start' && p.pin.edge !== 'end')
+        e.push(`anatomy part '${n}': pin edge '${String(p.pin.edge)}' is not one of [start, end]`);
+      const sizes = def.variants?.size ?? [];
+      for (const k of ['inset', 'reserve'] as const) {
+        const keys = Object.keys(p.pin[k] ?? {});
+        if (sizes.some((v) => !keys.includes(v)) || keys.some((v) => !sizes.includes(v)))
+          e.push(`anatomy part '${n}' declares a pin '${k}' whose keys [${keys.join(', ')}] are not the def's sizes [${sizes.join(', ')}]`);
+      }
+      for (const v of sizes) {
+        const inset = p.pin.inset?.[v], reserve = p.pin.reserve?.[v];
+        if (!(typeof inset === 'number' && inset >= 0 && typeof reserve === 'number' && reserve > inset))
+          e.push(`anatomy part '${n}' at size '${v}': pin inset ${String(inset)} / reserve ${String(reserve)} — the inset must be a px number and the reserve must clear it (it holds the inset, the icon and the gap)`);
+      }
+    }
     // ---- `minHeight`, the BOX kind's token-bound auto-layout height FLOOR ----
     // `minWidth`'s two rules, plus one: a floor under a bound `height`/`size` states the height twice.
     if (p.minHeight !== undefined && p.kind !== 'box')
