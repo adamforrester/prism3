@@ -2926,6 +2926,13 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.149.0 — #1238: `composition.composesWith` follows `anatomy.parts[*].nests`. The button family (`button`,
+ * `button-destructive`, `button-neutral`, `icon-button` and its two variants) and `text-field` nested the
+ * focus ring while leaving it out of `composesWith`; they now list it, and `textarea` (no anatomy yet, binds
+ * the ring) lists it by hand. A new `test.ts` arm fails any def whose anatomy nests a component its list
+ * leaves out. The def strings ship in the plugin bundle and the `.ai.json` registry → ENGINE bump; no token
+ * or projected component member moves. CONTRACT STANDS.
+ *
  * 0.148.0 — owner decision 2026-09-24 ("Setting should cover destructive"): the `strictInteractiveContrast`
  * lever now swaps EVERY brand-ink inverse label to the neutral extreme — destructive's danger ink as well as
  * primary's brand ink — so with the lever ON no inverse state fill drops its label below 4.5:1 (destructive
@@ -3565,7 +3572,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.148.0';
+export const ENGINE_VERSION = '0.149.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

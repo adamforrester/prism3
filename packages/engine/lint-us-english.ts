@@ -49,8 +49,8 @@
  *     their `description` / `note` / `aria` / `avoidWhen` / `errorPattern` prose is read by an agent
  *     and rendered in the plugin's own panels, and it reached neither `out/**` nor the studio bundle.
  *     Measured on the first run of this scan: 89 hits in `main.js`, 86 in `ui.html`, of which 34 and
- *     33 sit in comments (the open question below) and **55 and 53 are prose in string literals**,
- *     which no open question covers.
+ *     33 sit in comments (the #849 question, decided below) and **55 and 53 are prose in string
+ *     literals**, which that question never covered.
  *
  *  6. THE PATTERN SET WAS NARROWER THAN THE STANDARD IT ENFORCED (#1447). Traps 1 and 1b each widened
  *     the DETECTION by one shape and stopped at CLAUDE.md's three named rules (`-ise`, `-our`, `grey`)
@@ -67,20 +67,21 @@
  *     of WORDS does. When a class ships past this gate, the question is which shape is missing, not
  *     which word.
  *
- * OPEN, AND DELIBERATELY NOT DECIDED HERE. CLAUDE.md's US-English section carves comments out of the
- * standard, then narrows the carve-out for `apps/studio/src` — because a bundle cannot tell a comment
- * from a string, so an exemption this gate cannot see is not enforceable — and records as OPEN whether
- * that same narrowing extends to `packages/engine/components/*.ts`, which #849 owns. Widening the scan
- * to the plugin bundle does not answer it and must not: this file scans what ships and reports what it
- * finds. What the scan DOES establish is that #849's answer is not sufficient on its own — exempting
- * every comment in every component def still leaves 108 prose hits across the two files, because the
- * `description` and `note` fields were never comments. Those are a separate defect with a separate
- * owner (#947), not a consequence of the open decision.
+ * DECIDED: COMPONENT-DEF COMMENTS ARE IN SCOPE (#849). CLAUDE.md's US-English section carves code
+ * comments out of the standard, then narrows the carve-out wherever comments demonstrably ship: an
+ * unminified `esbuild` bundle keeps `//` comments intact, so once a file is reachable into a built
+ * bundle its comments are shipped text. That applies to `apps/studio/src` (#464) and, since an import
+ * made them reachable into `apps/plugin/dist`, to `packages/engine/components/*.ts` (#849, decided: in
+ * scope). This file does not decide the scope by widening its scan; it scans what ships and reports what
+ * it finds. The scan also showed that the comment question was never the whole of it: exempting every
+ * comment in every component def would still have left 108 prose hits across the two files, because the
+ * `description` and `note` fields were never comments. Those were a separate defect with a separate
+ * owner (#947).
  *
  * ── #968: THE "GATE CANNOT SEE THE EXEMPTION" PREMISE IS FALSE (relocated from CLAUDE.md) ────────
  *
- * The OPEN paragraph above — and an earlier version of CLAUDE.md's US-English line, and this header —
- * justified narrowing the comment carve-out with *"a bundle cannot tell a comment from a string, so an
+ * An earlier version of the #849 paragraph above — and of CLAUDE.md's US-English line — justified
+ * narrowing the comment carve-out with *"a bundle cannot tell a comment from a string, so an
  * exemption this gate cannot see is not enforceable."* That premise is false. `lint-voice.ts`'s
  * `stripLineComments` is the counterexample: it blanks whole-line `//` comments in a built `.js` bundle
  * BEFORE scanning, so a gate over a bundle can and does tell a comment from shipped prose. The real
