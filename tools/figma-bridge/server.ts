@@ -259,6 +259,10 @@ export const listen = async (bridge: Bridge, port: number): Promise<{ port: numb
       error: (code, why) => conn.close(code, why),
     });
     socket.on('data', (d: Buffer) => decode(d));
+    // A peer that just goes away (Figma quits, the plugin window is killed) ends its side WITHOUT a close
+    // frame. `node:http` upgrades sockets half-open, so without this the server side never closes, 'close'
+    // never fires, and a phantom plugin stays "connected" until every command to it times out.
+    socket.on('end', () => { closed = true; socket.destroy(); });
     socket.on('close', () => { closed = true; bridge.detach(conn); });
     socket.on('error', () => { closed = true; bridge.detach(conn); });
     bridge.attach(conn);

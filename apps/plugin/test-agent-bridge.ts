@@ -43,6 +43,12 @@ const until = async (cond: () => boolean, ms = 5000): Promise<boolean> => {
   while (!cond()) { if (Date.now() - t0 > ms) return false; await sleep(10); }
   return true;
 };
+/** `until` for a condition that has to ask the server (an MCP round trip). */
+const untilAsync = async (cond: () => Promise<boolean>, ms = 5000): Promise<boolean> => {
+  const t0 = Date.now();
+  while (!(await cond())) { if (Date.now() - t0 > ms) return false; await sleep(25); }
+  return true;
+};
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -233,6 +239,27 @@ section('disconnect + unmasked');
   const r = await done();
   ok(r.isError && /disconnected/.test(r.value?.error), 'disconnect: a run in flight fails with the disconnect, not a hang');
   ok((await call('figma_status')).value?.connected === false, 'and figma_status says not connected');
+}
+
+section('reconnect — a newer plugin connection replaces the older one');
+{
+  // The same file reconnecting (the plugin reloaded, the link toggled) must not leave two sockets that both
+  // look like "the plugin", and a command sent to the old one must fail with the reason, not wait out its
+  // timeout. A pattern the Figma Console MCP bridge also uses (MIT; "Replaced by same file reconnection").
+  const old = await openClient();
+  old.sendJson({ type: 'hello', state: state() });
+  ok(await untilAsync(async () => (await call('figma_status')).value?.connected === true), 'reconnect: the first connection is the plugin');
+  const done = callLater('figma_run', { cmd: 'readback', timeoutMs: 15000 });
+  ok(await until(() => old.texts().some((m) => m.type === 'command')), 'reconnect: a command is in flight on the first connection');
+  const fresh = await openClient();
+  fresh.sendJson({ type: 'hello', state: state() });
+  ok(await until(() => old.frames.some((f) => f.op === 0x8 && f.payload.readUInt16BE(0) === 1000)), 'reconnect: the older connection is closed (1000)');
+  const r = await done();
+  ok(r.isError && /reconnected/.test(r.value?.error ?? ''), `reconnect: the in-flight run fails with the reason, not a timeout (${String(r.value?.error ?? '').slice(0, 60)})`);
+  ok((await call('figma_status')).value?.connected === true, 'reconnect: the newer connection is now the plugin');
+  fresh.sock.destroy();
+  ok(await untilAsync(async () => (await call('figma_status')).value?.connected === false),
+    'drop: a plugin that goes away without a close frame is not left "connected"');
 }
 
 /* ── the plugin itself: real relay + real main.ts ───────────────────────────────────────────────────── */
