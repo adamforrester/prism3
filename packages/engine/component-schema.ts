@@ -2089,10 +2089,18 @@ export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator'] as con
  * single-def entries that clear it — each is a real interaction state of a text input with no existing
  * entry expressing it. An eleventh entry that turns out to be a synonym for one of these is the failure
  * mode; that is what the census above is for, and `loading` is what it caught.
+ *
+ * ── `filled`, THE ELEVENTH (owner decision, 2026-09-25) ────────────────────────────────────────────
+ *
+ * The field family (text-field, textarea, select) projects a member that HOLDS A VALUE, Prism 2's own
+ * `state: Enabled (Empty) | Hovered | Filled | Focused | Disabled` on all three specs. It is the complement
+ * of `empty`, not a synonym for any entry: `rest`/`hover`/`focus-visible` now show the placeholder (the
+ * empty field at each interaction), and `filled` is the one coordinate whose text is a value in value ink.
+ * `empty` stays for code, where emptiness is a content condition that co-occurs with every interaction.
  */
 export const STATES = [
   'rest', 'hover', 'pressed', 'focus-visible', 'disabled',
-  'pending', 'inactive', 'read-only', 'error', 'empty',
+  'pending', 'inactive', 'read-only', 'error', 'empty', 'filled',
 ] as const;
 
 /** One member of the closed state vocabulary. `ComponentDef.states` is `State[]`, so an unknown state

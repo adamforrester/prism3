@@ -3428,8 +3428,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(bareFm.get('status=default')?.h === SHORT && bareFm.get('status=error')?.h === GLYPH,
     `message-row seed: with no floor, a ${SHORT}px caption row measures ${SHORT} in the default message and ${GLYPH} beside the glyph (default ${bareFm.get('status=default')?.h}, error ${bareFm.get('status=error')?.h})`);
 
-  // The live report's counts, hand-copied: 15 on text-field (3 statuses x 5 states), 12 on select.
-  const LIVE_MISSES: Record<string, number> = { 'text-field': 15, select: 12 };
+  // The live report's counts, hand-copied: 15 on text-field (3 statuses x 5 states), 12 on select (3 x 4).
+  // One more state column since the field family's `filled` (2026-09-25): 3 x 6 and 3 x 5.
+  const LIVE_MISSES: Record<string, number> = { 'text-field': 18, select: 15 };
   for (const id of ['text-field', 'select']) {
     const shipped = await buildFile(byDef(id), SHORT);
     const fm = shipped.boxes('field-message');
@@ -3519,8 +3520,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   for (const [label, m] of CASES) {
     const want = ROWS * lineOf(m) + 2 * PAD_Y;
     const b = await buildTextarea(m);
-    ok(b.controls.length === 20 && b.controls.every(Boolean) && b.heights.length === 1 && Math.abs(b.heights[0] - want) <= 0.01 && b.foot.length === 0 && b.r.misses.length === 0,
-      `textarea rows (${label}): every one of the 20 controls measures ${ROWS} × ${lineOf(m)} + 2 × ${PAD_Y} = ${want} (got [${b.heights.join(', ')}] over ${b.controls.length} member(s); ${b.foot.length} footprint misses; ${b.r.misses.length} misses${b.r.misses.length ? ` — ${b.r.misses[0]}` : ''})`);
+    ok(b.controls.length === 24 && b.controls.every(Boolean) && b.heights.length === 1 && Math.abs(b.heights[0] - want) <= 0.01 && b.foot.length === 0 && b.r.misses.length === 0,
+      `textarea rows (${label}): every one of the 24 controls measures ${ROWS} × ${lineOf(m)} + 2 × ${PAD_Y} = ${want} (got [${b.heights.join(', ')}] over ${b.controls.length} member(s); ${b.foot.length} footprint misses; ${b.r.misses.length} misses${b.r.misses.length ? ` — ${b.r.misses[0]}` : ''})`);
   }
 
   // (d) MUTATION, BY NAME: without `lines` the value text is one line and the control is one line tall.
@@ -3590,15 +3591,15 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   };
 
   const b = await buildIt(textarea, GRIP - 1);
-  ok(b.members.length === 20 && b.r.misses.length === 0,
-    `textarea grip/counter: the set builds 20 members with 0 misses (${b.members.length}; ${b.r.misses[0] ?? 'none'})`);
+  ok(b.members.length === 24 && b.r.misses.length === 0,
+    `textarea grip/counter: the set builds 24 members with 0 misses (${b.members.length}; ${b.r.misses[0] ?? 'none'})`);
 
   // ---- the grip: a `resize handle` boolean, ON by default, on every member ----
   const handle = boolProp(b.set, 'resize handle');
   const grips = b.members.map((m) => find(m, 'grip'));
   ok(handle?.type === 'BOOLEAN' && handle.defaultValue === true
     && grips.every((g) => g && g.visible !== false && (g.componentPropertyReferences as Record<string, string> | null)?.visible === handle.key),
-    `textarea grip default: a 'resize handle' BOOLEAN defaulting to true drives the grip's visibility, and all 20 members build it shown (${JSON.stringify(handle)}; ${grips.filter((g) => g && g.visible !== false).length} shown)`);
+    `textarea grip default: a 'resize handle' BOOLEAN defaulting to true drives the grip's visibility, and all 24 members build it shown (${JSON.stringify(handle)}; ${grips.filter((g) => g && g.visible !== false).length} shown)`);
 
   // ---- the grip sits IN THE CORNER, out of the flow ----
   const cornerMiss: string[] = [];
@@ -3613,8 +3614,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       || g.width !== GRIP || g.height !== GRIP || Math.abs((g.x as number) - wantX) > 1e-6 || Math.abs((g.y as number) - wantY) > 1e-6)
       cornerMiss.push(`${m.name}: ${String(g.layoutPositioning)} ${JSON.stringify(c)} ${g.width}x${g.height} at (${g.x}, ${g.y}), want ABSOLUTE MAX/MAX ${GRIP}x${GRIP} at (${wantX}, ${wantY})`);
   }
-  ok(b.members.length === 20 && cornerMiss.length === 0,
-    `textarea grip corner: on all 20 members the ${GRIP}px grip is ABSOLUTE, constrained MAX/MAX, at (control − ${GRIP} − ${INSET}) on both axes (${cornerMiss.length} off — ${cornerMiss[0] ?? 'none'})`);
+  ok(b.members.length === 24 && cornerMiss.length === 0,
+    `textarea grip corner: on all 24 members the ${GRIP}px grip is ABSOLUTE, constrained MAX/MAX, at (control − ${GRIP} − ${INSET}) on both axes (${cornerMiss.length} off — ${cornerMiss[0] ?? 'none'})`);
 
   // ---- the grip moves no box: the control and the member measure alike with it on and off ----
   // With the LONG value the control's width follows its flow content (the floor is checked, so this arm
@@ -3634,10 +3635,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     g.visible = true;
     if (on.join() !== off.join()) gripFoot.push(`${m.name}: control ${on[0]} with the grip, ${off[0]} without; member ${on[1]} vs ${off[1]}`);
   }
-  ok(b.members.length === 20 && contentDriven === 20,
-    `textarea grip footprint seed: with an ${LONG.length}-character value every control is wider than its 320 floor, so a glyph in the flow would show in its width (${contentDriven}/20)`);
-  ok(b.members.length === 20 && gripFoot.length === 0,
-    `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 20 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
+  ok(b.members.length === 24 && contentDriven === 24,
+    `textarea grip footprint seed: with an ${LONG.length}-character value every control is wider than its 320 floor, so a glyph in the flow would show in its width (${contentDriven}/24)`);
+  ok(b.members.length === 24 && gripFoot.length === 0,
+    `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 24 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
 
   // ---- the counter and the message: two INDEPENDENT booleans (the owner's answer 2, 2026-09-25) ----
   // Each switch drives its own layer, and neither layer holds the other, so all four combinations exist.
@@ -3657,14 +3658,14 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const msgLayers = b.members.map((m) => holder(m, msg?.key));
   ok(count?.type === 'BOOLEAN' && count.defaultValue === false
     && countLayers.every((l, i) => l && l.visible === false && find(l, 'counter') === counters[i]),
-    `textarea counter default: a 'character count' BOOLEAN defaulting to false drives a layer holding the counter, and all 20 members build it hidden (${JSON.stringify(count)}; ${countLayers.filter((l) => l && l.visible === false).length} hidden)`);
+    `textarea counter default: a 'character count' BOOLEAN defaulting to false drives a layer holding the counter, and all 24 members build it hidden (${JSON.stringify(count)}; ${countLayers.filter((l) => l && l.visible === false).length} hidden)`);
   ok(msg?.type === 'BOOLEAN' && msg.defaultValue === true
     && msgLayers.every((l, i) => l && l.visible !== false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
-    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 20 members (${JSON.stringify(msg)})`);
+    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 24 members (${JSON.stringify(msg)})`);
   const rows = b.members.map((m) => find(m, 'messageRow'));
   ok(rows.every((r, i) => r && r.layoutAlign === 'STRETCH' && (r.children as Node[]).at(-1) === countLayers[i]
       && countLayers[i]!.layoutGrow === 1 && countLayers[i]!.primaryAxisAlignItems === 'MAX'),
-    `textarea counter row: on all 20 members the counter's layer is the LAST child of the stretched message row, GROWS across it (layoutGrow 1) and justifies the counter to its end (MAX), so the counter trails with the message on or off`);
+    `textarea counter row: on all 24 members the counter's layer is the LAST child of the stretched message row, GROWS across it (layoutGrow 1) and justifies the counter to its end (MAX), so the counter trails with the message on or off`);
   ok(counters.every((c) => c && c.characters === '0 / 200'),
     `textarea counter text: the counter reads "0 / 200", the def's counter format (${counters[0]?.characters})`);
 
@@ -3698,8 +3699,58 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       ml.visible = true;
       cl.visible = false;
     }
-    ok(bb.members.length === 20 && bb.r.misses.length === 0 && off.length === 0 && cells === 80,
-      `textarea counter footprint (caption line box ${captionBox}, glyph ${GRIP}): message only, counter only, both and neither each measure label + gap + control, plus one gap and the taller shown part when any is shown, on all 20 members (${cells}/80; ${off.length} off — ${off[0] ?? 'none'})`);
+    ok(bb.members.length === 24 && bb.r.misses.length === 0 && off.length === 0 && cells === 96,
+      `textarea counter footprint (caption line box ${captionBox}, glyph ${GRIP}): message only, counter only, both and neither each measure label + gap + control, plus one gap and the taller shown part when any is shown, on all 24 members (${cells}/96; ${off.length} off — ${off[0] ?? 'none'})`);
+  }
+}
+
+// ---- THE FIELD FAMILY'S FILLED STATE: TEXT INK BY STATE (owner decision, 2026-09-25) ---------------
+// Every non-filled state shows the placeholder in `text.secondary` (rest, hover, focus-visible); disabled
+// uses the disabled ink; `filled` shows the value in `text.primary`; read-only shows a value, so primary too.
+// The map below is TYPED FROM THAT RULE (docs/34) — never read off a def or a plan — and every projected
+// member of text-field, textarea and select is built through the REAL executor and its value text's bound
+// fill read back off the shim. The state column must be exactly the owner's: a member at a state the map
+// does not name, or a map state with no member, fails as loudly as a wrong ink.
+//
+// The mutations it exists to catch, by name: `filled` bound to secondary, or `hover` bound to primary, in
+// any of the three defs fails `field ink (<def>)`.
+{
+  const PLACEHOLDER = 'color/text/secondary';
+  const VALUE = 'color/text/primary';
+  const DISABLED = 'color/disabled/on-fill';   // the value text sits on the disabled fill
+  const INK: Record<string, Record<string, string>> = {
+    'text-field': { rest: PLACEHOLDER, hover: PLACEHOLDER, filled: VALUE, 'focus-visible': PLACEHOLDER, disabled: DISABLED, 'read-only': VALUE },
+    textarea: { rest: PLACEHOLDER, hover: PLACEHOLDER, filled: VALUE, 'focus-visible': PLACEHOLDER, disabled: DISABLED, 'read-only': VALUE },
+    select: { rest: PLACEHOLDER, hover: PLACEHOLDER, filled: VALUE, 'focus-visible': PLACEHOLDER, disabled: DISABLED },
+  };
+  const STATUSES = ['default', 'error', 'warning', 'success'];
+  const named = (n: Node, name: string): Node | undefined => n.name === name ? n : ((n.children as Node[]) ?? []).map((c) => named(c, name)).find(Boolean);
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  for (const [id, want] of Object.entries(INK)) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true });
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    await prebuildDependencies(def, { defs: componentDefs, project, host: shim as any, build });
+    const r = await build(def);
+    const set = page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET') as Node | undefined;
+    const members = ((set?.children as Node[] | undefined) ?? []);
+    const wrong: string[] = [];
+    const seen = new Set<string>();
+    for (const m of members) {
+      const coord = Object.fromEntries(String(m.name).split(', ').map((kv) => kv.split('=')));
+      const state = coord.state;
+      seen.add(`${coord.status}|${state}`);
+      const text = named(m, 'text');
+      const got = text ? paintVar(text, 'fills') : 'NO TEXT';
+      if (!(state in want)) wrong.push(`${m.name}: a state the owner's rule does not name`);
+      else if (got !== want[state]) wrong.push(`${m.name}: ${got}, want ${want[state]}`);
+    }
+    const missing = STATUSES.flatMap((st) => Object.keys(want).filter((s2) => !seen.has(`${st}|${s2}`)).map((s2) => `status=${st}, state=${s2}`));
+    ok(r.misses.length === 0 && members.length === STATUSES.length * Object.keys(want).length && wrong.length === 0 && missing.length === 0,
+      `field ink (${id}): on all ${members.length} members the value text binds the owner's ink for its state — placeholder ${PLACEHOLDER} at rest/hover/focus-visible, value ${VALUE} at filled${'read-only' in want ? '/read-only' : ''}, ${DISABLED} at disabled (${wrong.length} wrong — ${wrong[0] ?? 'none'}; ${missing.length} missing — ${missing[0] ?? 'none'}; ${r.misses[0] ?? '0 misses'})`);
   }
 }
 

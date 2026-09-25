@@ -119,7 +119,10 @@ export const textField: ComponentDef = {
   // `error` IS NO LONGER A STATE (#1494) — validation is the `status` axis (see the header and `variants`
   // below), so the border's error swap is a status-led paint key rather than a state row. It co-occurs
   // with the interactive states rather than replacing one of them, which is exactly what a state cannot do.
-  states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
+  //
+  // `filled` (owner decision, 2026-09-25, Prism 2's `Filled` on `reference/Prism2/component-specs/text-field.json`)
+  // is the PROJECTED member that holds a value. rest / hover / focus-visible show the placeholder.
+  states: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
   // `status` is field-message's status axis by name and value — the alignment that lets the nested message
   // follow it (see the header). `style` stays as a code-API axis (one value, not projected — admitted in
   // `anatomy.codeOnly`). SIZE IS NOT A VARIANTS AXIS: the `size` PROP + the `size.{small,medium,large}.*`
@@ -202,7 +205,16 @@ export const textField: ComponentDef = {
     // (no new guaranteed NAME → CONTRACT stands). Neither key is axis-value-led (`label`/`empty` are a slot and
     // a state, not a variant value), so `lint-paint` arm 1 says nothing about them and neither takes a
     // provenance exception. Select carries the same two bindings (#1518 applies it there too).
+    //
+    // THE FILLED STATE (owner decision, 2026-09-25). The projected rest / hover / focus-visible members are
+    // the EMPTY field at each interaction, so they show the placeholder in `text.secondary`; `filled` is the
+    // member holding a value, and it and read-only take the bare `label`, `text.primary`. Disabled keeps the
+    // cross-cutting disabled ink. Before this, the bare `label` reached every projected member, so the
+    // placeholder copy rendered in value ink at rest, hover and focus.
     'label': 'color.text.primary',
+    'label.rest': 'color.text.secondary',
+    'label.hover': 'color.text.secondary',
+    'label.focus-visible': 'color.text.secondary',
     'label.empty': 'color.text.secondary',
 
     // ── BORDER — stateful, with the status-led swaps (border-ONLY). `border` (bare) is the rest value;
@@ -230,16 +242,19 @@ export const textField: ComponentDef = {
     'error.border.focus-visible': 'color.border.danger',
     'error.border.read-only': 'color.border.danger',
     'error.border.empty': 'color.border.danger',
+    'error.border.filled': 'color.border.danger',
     'warning.border.rest': 'color.border.warning',
     'warning.border.hover': 'color.border.warning',
     'warning.border.focus-visible': 'color.border.warning',
     'warning.border.read-only': 'color.border.warning',
     'warning.border.empty': 'color.border.warning',
+    'warning.border.filled': 'color.border.warning',
     'success.border.rest': 'color.border.success',
     'success.border.hover': 'color.border.success',
     'success.border.focus-visible': 'color.border.success',
     'success.border.read-only': 'color.border.success',
     'success.border.empty': 'color.border.success',
+    'success.border.filled': 'color.border.success',
 
     // ── THE ICON INK — the leading glyph AND the trailing affix glyph, ONE binding for both. `primary`,
     // not `secondary`, so the glyphs match the value ink (`text.primary`) rather than sitting a step muted
@@ -352,12 +367,12 @@ export const textField: ComponentDef = {
         note: 'An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.',
       },
       // THE DISPLAYED TEXT — placeholder or value. `paintSlot` defaults to `label`, which the paint grammar
-      // re-points: bare `label` is the full-contrast value ink, `label.empty` the muted placeholder ink at
-      // the `empty` state.
+      // re-points: bare `label` is the full-contrast value ink (`filled`, `read-only`), and `label.rest` /
+      // `.hover` / `.focus-visible` / `.empty` the muted placeholder ink.
       text: {
         kind: 'text',
         type: 'type',
-        note: 'The value the input shows, or the placeholder. One line, ellipsized in code; a plain text node in Figma. The placeholder-vs-value distinction is the internal `empty` state, carried in code, not projected as a Figma variant.',
+        note: 'The value the input shows, or the placeholder. One line, ellipsized in code; a plain text node in Figma. Figma shows the placeholder ink at rest, hover and focus, and the value ink at filled and read-only.',
       },
       // THE TRAILING AFFIX — the clear-button / password-reveal edge control that select's chevron slot is
       // NOT. Modeled exactly as the leading glyph (an optional swap slot painted the `icon` ink, its presence
@@ -401,7 +416,7 @@ export const textField: ComponentDef = {
       'size — the small / medium / large ladder is a code-API PROP + geometry tokens (`size.{small,medium,large}.*`), NOT a variants axis and NOT a projected Figma variant. Figma renders the single `md` rung (the bare geometry keys — the field control is one interactive target, and a projected size axis would triple the set for geometry a designer reads off one member); a code consumer picks the density via the `size` prop. It is kept off `variants` deliberately: `size` is `figmaAnatomyPlan`\'s positional argument, so a declared size axis MUST project a rung (#795), which is why select — the template for this def — also expresses its single size as bare `md` geometry rather than a `size` variant. Same not-projected posture as the `style` axis, reached a different way.',
       'style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline` and filled/underline are a brand skin over the same anatomy, so there is nothing for a Figma variant to enumerate. Admitted here rather than projected.',
       'pending — a real STATE (a spinner replaces an adornment while async validation/value resolves, and the field sets aria-busy), deliberately NOT a Figma variant. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix — the pending member would differ from `rest` only by a node Figma cannot animate — so it stays in `states` (the code tier carries it) and is admitted OUT of the projected `stateAxis`.',
-      'empty — a real STATE (the displayed text is the placeholder, not a typed value), deliberately NOT a Figma variant, the same posture as select\'s `empty`. Its whole delta is the value INK: `label.empty` swaps the muted placeholder role in for `text.primary`, and `error.border.empty` keeps the danger boundary at the "required field left blank" coordinate. That is a content condition the code (or an instance\'s typed value) drives, not a skin a designer toggles — and Figma cannot show one text node as two strings across a column anyway. So `empty` stays in `states` (the paint model carries the distinction, and `lint-paint` reaches `label.empty` / `error.border.empty` at the empty coordinate of the declared grid) and is admitted out of the projected `stateAxis` — it and `pending` are the two states held back, leaving the projected set at status(4) × state(5) = 20 members over rest / hover / focus-visible / disabled / read-only.',
+      'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the placeholder in `text.secondary`, and `filled` is the member holding a value in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving status(4) × state(6) = 24 members over rest / hover / filled / focus-visible / disabled / read-only. One `value` text property drives every member, so a filled member shows the same copy as the others, in value ink.',
       'the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `suffix` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host\'s.',
       'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
       'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not the field\'s, so it cannot be followed by value. In code a disabled field dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
@@ -410,20 +425,20 @@ export const textField: ComponentDef = {
   },
 
   // How this projects into Figma (#1494). `status` is the one variant axis; `state` projects the five
-  // interactive states (read-only INCLUDED — the field state select lacks). The leading and trailing glyphs'
-  // PRESENCE and the message's are node-visibility BOOLEANS, NOT variant axes, so none multiplies the set:
-  // status(4) × state(5) = 20 members. `pending` and `empty` are real states (see `states` and the codeOnly
+  // interactive states (read-only INCLUDED — the field state select lacks) plus `filled`, the member holding a
+  // value. The leading and trailing glyphs' PRESENCE and the message's are node-visibility BOOLEANS, NOT variant
+  // axes, so none multiplies the set: status(4) × state(6) = 24 members. `pending` and `empty` are real states (see `states` and the codeOnly
   // entries leading with those names) but are deliberately absent from this projected axis.
   figmaProperties: {
     variantAxes: ['status'],
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only'] },
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only'] },
     // `state` across the columns — the axis a designer reads a control's skin across, and the widest here.
     gridAxis: 'state',
     // The displayed text. `value`, a designer-facing name, lowercase per #1333 — the placeholder is the copy
     // every member ships, and a typed string is what a designer types over it. Projects FIRST in the panel.
     texts: { value: { part: 'text', default: 'Placeholder' } },
     // THREE NODE-VISIBILITY BOOLEANS (#1331/#1412/#1494), none a variant axis — each toggles a part's
-    // `visible` in place, so none multiplies the set (still 20 members).
+    // `visible` in place, so none multiplies the set (still 24 members).
     //   · `leadingIcon`: `leadingVisual` is emitted hidden (default false) and the `leading icon` switch shows it.
     //   · `trailingIcon`: `trailingVisual` is emitted hidden (default false) and the `trailing icon` switch shows it.
     //   · `showMessage`: the composed `message` nest is emitted VISIBLE (default true — the message is part of the

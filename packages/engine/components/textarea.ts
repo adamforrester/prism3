@@ -55,7 +55,7 @@
  * ── THE FIGMA PROJECTION, MODELED ON `text-field` (its #1494 shape) ─────────────────────────────
  *
  * The same column — nested FieldLabel, the bordered control, nested FieldMessage following `status` —
- * the same status-led border, the same five projected states, the same focus-ring nesting and the same
+ * the same status-led border, the same six projected states, the same focus-ring nesting and the same
  * footprint (status and state are runtime axes, so every member of a status × state set measures alike).
  * `size` left `variants` for text-field's reason: `figmaAnatomySet` refuses a declared-but-unprojected
  * size (#795), and Figma renders the one `md` rung, so the ladder lives in `props.size` + the
@@ -141,7 +141,9 @@ export const textarea: ComponentDef = {
   // the same async-in-flight concept `button` and `icon-button` already name `pending`, and #868
   // closed `loading` out of the vocabulary entirely — a rejected name returning through a fourth def
   // would have been the exact shape #868 filed the vocabulary to stop.
-  states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
+  // `filled` (owner decision, 2026-09-25, Prism 2's `Filled` on `reference/Prism2/component-specs/text-area.json`)
+  // is the PROJECTED member that holds a value. rest / hover / focus-visible show the placeholder.
+  states: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
 
   // `style`, plus text-field's `status` axis with text-field's exact values (#1623 sign-off, C1/TA-4) —
   // the validation outcome, driven by the `validation` prop. `size` is NOT a variants axis, for text-field's
@@ -179,7 +181,14 @@ export const textarea: ComponentDef = {
     // The hover WASH, text-field's (#1341/#1342): the transparent field fill takes a translucent overlay
     // on hover (precedence overlay > fill, the control's `paintSlots`) while the border strengthens.
     'overlay.hover': 'color.interactive.neutral.overlay.hover',
+    // THE FILLED STATE (owner decision, 2026-09-25), text-field's keys exactly. The projected rest / hover /
+    // focus-visible members are the EMPTY field at each interaction, so they show the placeholder in
+    // `text.secondary`; `filled` and read-only take the bare `label`, `text.primary`. Before this, the bare
+    // `label` reached every projected member, so the placeholder rendered in value ink at rest and hover.
     'label': 'color.text.primary',
+    'label.rest': 'color.text.secondary',
+    'label.hover': 'color.text.secondary',
+    'label.focus-visible': 'color.text.secondary',
     // The placeholder binds `text.secondary`, text-field's #1518 binding (#1623 sign-off, C1/TA-4), so
     // the two fields express empty-vs-value with the same two text roles.
     'label.empty': 'color.text.secondary',
@@ -198,16 +207,19 @@ export const textarea: ComponentDef = {
     'error.border.focus-visible': 'color.border.danger',
     'error.border.read-only': 'color.border.danger',
     'error.border.empty': 'color.border.danger',
+    'error.border.filled': 'color.border.danger',
     'warning.border.rest': 'color.border.warning',
     'warning.border.hover': 'color.border.warning',
     'warning.border.focus-visible': 'color.border.warning',
     'warning.border.read-only': 'color.border.warning',
     'warning.border.empty': 'color.border.warning',
+    'warning.border.filled': 'color.border.warning',
     'success.border.rest': 'color.border.success',
     'success.border.hover': 'color.border.success',
     'success.border.focus-visible': 'color.border.success',
     'success.border.read-only': 'color.border.success',
     'success.border.empty': 'color.border.success',
+    'success.border.filled': 'color.border.success',
     // Focus ring — the field offset, as on the substrate. Brief §4 argues a textarea is a LARGE
     // surface and a saturated ring around a 600×400 box is noise, favouring an inset indicator. The
     // engine emits one field-ring offset and no large-surface variant, so this binds what exists and
@@ -315,7 +327,7 @@ export const textarea: ComponentDef = {
         wrap: true,
         verticalAlign: 'top',
         lines: 'rows',
-        note: 'The value the field shows, or the placeholder. Wraps across the field width and reserves the default rows of its own line height, so the box is as tall as `rows` lines before anything is typed.',
+        note: 'The value the field shows, or the placeholder: the placeholder ink at rest, hover and focus, the value ink at filled and read-only. Wraps across the field width and reserves the default rows of its own line height, so the box is as tall as `rows` lines before anything is typed.',
       },
       // THE RESIZE GRIP (owner decision (c)) — pinned into the control's bottom-right corner, out of the flow,
       // so it takes no cell: the value text keeps the control's whole width with the grip drawn or not, and
@@ -388,7 +400,7 @@ export const textarea: ComponentDef = {
       'size — the small / medium / large ladder is a code-API PROP + padding tokens (`size.{small,medium,large}.pad-*`), NOT a variants axis and NOT a projected Figma variant. Figma renders the single `md` rung (the bare `pad-x` / `pad-y` keys), text-field\'s shape: a declared size axis must project a rung (#795), so the single-projected-size field is expressed by the prop and tokens.',
       'style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline`, so there is nothing for a Figma variant to enumerate.',
       'pending — a real STATE (content streaming into the field, with aria-busy), deliberately NOT a Figma variant: its delta is runtime behavior with no distinct static skin, so it stays in `states` and is admitted out of the projected `stateAxis`.',
-      'empty — a real STATE (the displayed text is the placeholder), deliberately NOT a Figma variant, text-field\'s posture: its delta is the value ink (`label.empty`) and `error.border.empty`, a content condition code drives. It and `pending` are the two states held back, leaving the projected set at status(4) × state(5) = 20 members.',
+      'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant, text-field\'s posture: in Figma the empty field IS the rest, hover and focus-visible members, in `text.secondary`, and `filled` is the member holding a value, in `text.primary`. It and `pending` are the two states held back, leaving the projected set at status(4) × state(6) = 24 members. One `value` text property drives every member, so a filled member shows the same copy as the others, in value ink.',
       'rows / minRows / maxRows and auto-grow — Figma has no numeric component property, so `rows` is not a Figma property: the value text reserves the `rows` prop\'s DEFAULT line count (3) of its own line height, frozen at paste. A designer wanting more rows types more lines (the box grows) or resizes the instance; `minRows` / `maxRows` and the auto-grow measurement are runtime behavior.',
       'the RESIZE HANDLE\'s behavior (`resize`) — Figma draws a decorative grip behind the `resize handle` boolean, on by default because `resize` defaults to `vertical`. In code the handle is the browser\'s own, drawn at the inline-end corner (bottom-left in a right-to-left layout); Figma members are drawn left to right, so the grip sits bottom-right. `auto` and `none` draw no handle in code; in Figma, switch the boolean off.',
       'the CHARACTER COUNTER\'s live value (`maxLength` / `showCount`) — Figma draws a static "0 / 200" caption trailing the message, behind the `character count` boolean, off by default like `showCount`. Code counts graphemes, sets tabular numerals (`font-variant-numeric: tabular-nums`, which the type tokens do not carry, so Figma uses the caption style as it is) and paints the counter in the error role past the limit. In Figma, as in code, the counter and the message switch independently.',
@@ -399,11 +411,11 @@ export const textarea: ComponentDef = {
   },
 
   // How this projects into Figma — text-field's shape. `status` is the one variant axis; `state` projects
-  // the five interactive states. The message's presence is a node-visibility boolean, so the set is
-  // status(4) × state(5) = 20 members.
+  // the five interactive states plus `filled`. The message's presence is a node-visibility boolean, so the set
+  // is status(4) × state(6) = 24 members.
   figmaProperties: {
     variantAxes: ['status'],
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only'] },
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only'] },
     gridAxis: 'state',
     // The counter's caption is keyed by `maxLength`, the prop whose limit it shows (a TEXT property must key
     // on a declared prop, and the counter has no string prop of its own). "0 / 200" is the def's own counter

@@ -470,7 +470,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   ok(!!liKey && defs[liKey!].type === 'BOOLEAN',
     `#1331 host-truth: the built set carries a 'leading icon' BOOLEAN property (host holds ${liKey})`);
   const lvs = members.map((m) => findByName(m, 'leadingVisual'));
-  ok(members.length === 16 && lvs.every(Boolean),
+  ok(members.length === 20 && lvs.every(Boolean),
     `#1331 host-truth: the leading glyph node is built into EVERY member (${lvs.filter(Boolean).length}/${members.length})`);
   ok(lvs.length > 0 && lvs.every((lv) => lv.visible === false),
     '#1331 host-truth: every built leading glyph reads back `visible=false` — built hidden by default, not dropped');
@@ -514,7 +514,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // this, the miss-count assertion below could pass because the fixture never built the colliding node.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim
   const naive = members[0]?.findOne?.((x: any) => x.name === 'text');
-  ok(members.length === 16 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
+  ok(members.length === 20 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
     `#1428 reachability: a naive descending findOne on a built select member returns a nested-instance \`text\` (the wrong node the fix defends against) — collision materialised (${members.length} members)`);
   const textRefMisses = res.misses.filter((m) => /\btext\.characters\b/.test(m));
   ok(res.wiredMembers === plans.length && textRefMisses.length === 0,

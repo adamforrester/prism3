@@ -11071,13 +11071,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // block below for the halving.
     const projStates = select.figmaProperties!.stateAxis!.values;
     const V = select.variants!.status!.length;                 // status: 4
-    const St = projStates.length;                               // rest/hover/focus-visible/disabled: 4
+    const St = projStates.length;                               // rest/hover/filled/focus-visible/disabled: 5
     const set = figmaAnatomySet(select);
     // (a) empty is absent from the PROJECTED axis, and the enumeration matches the product WITHOUT it.
     ok(!projStates.includes('empty'),
       `#1344 'empty' is NOT a projected Figma state (stateAxis = [${projStates.join(', ')}])`);
-    ok(set.length === V * St && set.length === 16,
-      `#1344 select projects status(${V})×state(${St}) = ${V * St} members (was 20 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
+    ok(set.length === V * St && set.length === 20,
+      `#1344 select projects status(${V})×state(${St}) = ${V * St} members (the filled column since 2026-09-25; 24 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
     ok(!set.some((p) => planComponentName(p).includes('empty')),
       '#1344 no projected member names the empty state');
     // (b) empty IS still a real state — the placeholder-vs-value ink distinction is carried internally, and
@@ -11095,8 +11095,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     //   names the empty state' BY NAME.
     const projMutant = { ...select, figmaProperties: { ...select.figmaProperties!, stateAxis: { name: 'state', values: [...projStates, 'empty'] } } };
     const mutSet = figmaAnatomySet(projMutant as ComponentDef);
-    ok(mutSet.length === 20 && mutSet.some((p) => planComponentName(p).includes('empty')),
-      `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 16 members' to failing`);
+    ok(mutSet.length === 24 && mutSet.some((p) => planComponentName(p).includes('empty')),
+      `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 20 members' to failing`);
     //   MUTATION B — drop `empty` from `states`. `label.empty` / `error.border.empty` then name a state the
     //   def no longer declares, so `validateComponentDef` reports them as unreachable paint keys — the
     //   internal carry is load-bearing, and this flips '#1344 empty stays in states' BY NAME.
@@ -11132,9 +11132,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(lvNodes.length > 0 && lvNodes.every((lv) => lv?.swapTarget === 'FPO-default-icon'),
       '#1331 the leading glyph node carries the content swap AND the visibility boolean on ONE node (mainComponent + visible)');
 
-    // (3) the set HALVES: status(4) × state(4) = 16, from 32 while `leading` was a ×2 axis.
-    ok(sset.length === 16,
-      `#1331 select projects 16 members (was 32 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
+    // (3) the set HALVES: status(4) × state(5) = 20 (with the 2026-09-25 filled column), from 40 as a ×2 axis.
+    ok(sset.length === 20,
+      `#1331 select projects 20 members (40 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
 
     // (4) planSetProperties declares `leading icon` as a BOOLEAN defaulting to the built (hidden) visibility,
     //     ordered ABOVE the swap it gates (the #1380 `leading icon` → `↳ swap leading icon` panel nesting).
@@ -11154,13 +11154,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(noBoolSet.every((p) => !findLV(p.root)),
       '#1331 MUTATION: dropping the boolean drops the (optional) leading glyph from every member — the boolean is what keeps it present, flipping "#1331 the leading glyph node is emitted at EVERY projected member" BY NAME');
 
-    // (6) BEHAVIOR MUTATION — reverting `leading` to a VARIANT SLOT AXIS re-doubles the set to 32 and re-drops
+    // (6) BEHAVIOR MUTATION — reverting `leading` to a VARIANT SLOT AXIS re-doubles the set to 40 and re-drops
     //     the node in the leading=false members (present-in-some/absent-in-others), the exact multiplication the
-    //     boolean replaced. Flips "#1331 select projects 16 members" BY NAME.
+    //     boolean replaced. Flips "#1331 select projects 20 members" BY NAME.
     const asAxis = { ...select, figmaProperties: { ...fp, booleans: {}, slotAxes: [{ name: 'leading', part: 'leadingVisual', figmaName: 'leading icon' }] } };
     const asAxisSet = figmaAnatomySet(asAxis as never, { swapTarget: 'FPO-default-icon' });
-    ok(asAxisSet.length === 32 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
-      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 32 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
+    ok(asAxisSet.length === 40 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
+      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 40 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
 
     // (7) VALIDATOR ARMS (new refusals, by-name).
     //   (a) the LOOSENING is real: select's leadingVisual carries a swap AND a boolean and validates clean
@@ -11220,9 +11220,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(hiddenMsgs.length > 0 && hiddenMsgs.every((m) => m?.visible === false),
       '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
 
-    // (3) the boolean does NOT multiply the set — still status(4) × state(4) = 16 members.
-    ok(sset.length === 16,
-      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 16 members (got ${sset.length})`);
+    // (3) the boolean does NOT multiply the set — still status(4) × state(5) = 20 members.
+    ok(sset.length === 20,
+      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 20 members (got ${sset.length})`);
 
     // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
     const props = planSetProperties(sset);
@@ -15067,7 +15067,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           return undefined;
         };
         const collided = members.filter((m) => descend(m, 'text'));
-        ok(members.length === 16 && collided.length === members.length,
+        ok(members.length === 20 && collided.length === members.length,
           `#1428 reachability (paste): every built select member carries a colliding nested-instance \`text\` (${collided.length}/${members.length})`);
         const textMisses = run.misses.filter((m) => /\btext\.characters\b/.test(m));
         ok(textMisses.length === 0,

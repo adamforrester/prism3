@@ -98,28 +98,28 @@
       "sha256": "8dcfdf135160fa4b4c3251403cbc71a8eddee15a126ae8986d6077156e6bdbe8"
     },
     "text-field": {
-      "members": 20,
-      "sha256": "5b362c4738fe368a6c94914a76f45926b663ead6601103e28624bf561311b217"
+      "members": 24,
+      "sha256": "ba2afe8f9ab3f37f57a3e71e4a38c2801abbf5825dcb17c8c1ba81ebf8bb2634"
     },
     "text-field@outline-solid-tint": {
-      "members": 20,
-      "sha256": "43caeef11e635e3ec8cf96eb917a5dad0fae285db10f037a3efd697315f8f186"
+      "members": 24,
+      "sha256": "5d5392284462bd43c3dd2eea5bb1c2e1a8703b481da864a20ae140b2d2ed8895"
     },
     "text-field@outline-none": {
-      "members": 20,
-      "sha256": "9a732dd6b277358c2eaadf679721c0f4dd13940b9ab192ec4574802fc8e6759d"
+      "members": 24,
+      "sha256": "37e31ce1408dab055fff01854f9d92a93eadd27ce35ab8f6879bb71aa88bfc30"
     },
     "textarea": {
-      "members": 20,
-      "sha256": "1abc297aa751afeae00745d7ec680f59b9c2d83156dbe15049a52e496ab84dad"
+      "members": 24,
+      "sha256": "d42190ae89c8e776b276d4031f62cc1cbd240e0b54ffc5f7134fe0df0bffb3ec"
     },
     "textarea@outline-solid-tint": {
-      "members": 20,
-      "sha256": "9adc79199ea3ab76371251d45e3d2bd7a8d73a495ac6e485d44c96e839d01395"
+      "members": 24,
+      "sha256": "4ea2af4db2b8956ddf63bd6b64e37421666333fa3bc0a4309fe1ceeef3485c2d"
     },
     "textarea@outline-none": {
-      "members": 20,
-      "sha256": "419ca048990141756289d8cd170a2f09db3058a22c4acedfcbb912fb15af014d"
+      "members": 24,
+      "sha256": "e74e50a247afb170ad42e7548a01fb75cbc1c4c22b675b006565b1bdc5738095"
     },
     "checkbox-control": {
       "members": 54,
@@ -154,16 +154,16 @@
       "sha256": "6386898f2d9e6f585eae72abee7d2fff30d24cd9a56244d9779ae9a105ee0e5c"
     },
     "select": {
-      "members": 16,
-      "sha256": "544e353f7c479cae95355e8fc68e5297282cc240978a5b4bbb6c0dcfe80bfa37"
+      "members": 20,
+      "sha256": "c2ce81b98bc40de547f70bf38651bd648724d331451ad567a13ed1061ddd8991"
     },
     "select@outline-solid-tint": {
-      "members": 16,
-      "sha256": "4926fd264d26be8dda4fb4c99b260dfdbb816ad5b25d4dbc009f3c5eac52ae22"
+      "members": 20,
+      "sha256": "f129adddca54907a5d2fb059729dd1590f5183770f5a003b117cb81226b6bf6e"
     },
     "select@outline-none": {
-      "members": 16,
-      "sha256": "0e7bf7ceb985ecd5f3e32ab18a588820fe48f4691f02c01e4eb256c6837c612a"
+      "members": 20,
+      "sha256": "af8a8f9e7884050239339a7f5ef4f70ce7cd2f695228878d58068bbef9f9c95e"
     },
     "veil": {
       "members": 6,

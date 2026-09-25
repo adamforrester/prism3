@@ -2926,6 +2926,18 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.162.0 — The field family gains a projected `filled` state (owner decision, 2026-09-25, Prism 2's
+ * `Enabled (Empty) | Hovered | Filled | Focused | Disabled` on all three specs). `filled` joins the closed
+ * `STATES` vocabulary and the projected state axis of text-field, textarea and select. The value text binds
+ * the placeholder ink (`text.secondary`) at rest, hover and focus-visible (new `label.rest` / `label.hover` /
+ * `label.focus-visible` keys), and the value ink (`text.primary`, the bare `label`) at filled and read-only;
+ * disabled is unchanged. This fixes two live QA defects: the placeholder rendered in value ink at rest, hover
+ * and focus on all three. Each status border gains a `.filled` key, so the boundary holds on a filled member.
+ * Sets grow by one state column: text-field and textarea 20 → 24 members, select 16 → 20. The text property
+ * stays one `value` shared by every member (a bound TEXT node shows the set's one default, #1567), so a filled
+ * member shows the same copy in value ink. New state + def surface moves → MINOR; component-surface and
+ * paint-census baselines accepted for the three defs. CONTRACT STANDS (every binding is an existing name).
+ *
  * 0.161.0 — The textarea's resize grip and character counter in Figma (owner decisions (c) and (d),
  * 2026-09-25). A new `resize-grip` glyph joins the icon set (drawn for this project; the `icon` set grows by
  * one member). A new `PartDef.corner` pins a `vector` into its parent's bottom-right corner, out of the flow,
@@ -3673,7 +3685,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.161.0';
+export const ENGINE_VERSION = '0.162.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
