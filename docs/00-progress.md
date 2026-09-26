@@ -9,7 +9,7 @@
 
 ## (2026-09-26) — a Build over an existing set repairs the references a refusal window left unset (#1679)
 
-**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Plugin + a stamp-only regen. **ENGINE 0.164.0 → 0.165.0** (plugin behavior → MINOR); CONTRACT STANDS at 12.0.0. Gate count **STANDS**: the new arms live in `test-write-components.ts` and `test-apply-summary.ts`, inside the plugin `test` step.
+**STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Plugin + a stamp-only regen. **ENGINE 0.166.0 → 0.167.0** (plugin behavior → MINOR); CONTRACT STANDS at 13.0.0. Gate count **STANDS**: the new arms live in `test-write-components.ts` and `test-apply-summary.ts`, inside the plugin `test` step.
 
 **What was measured (orchestrator, owner's master file, 2026-09-26).** Button rebuilt on 0.164.0 reported `780 refs across 382 members, ⚠️ 232 misses`. A read-only host scan afterwards found 73 references unset on 36 members (`appearance=text, surface=default`, one contiguous run in build order), and nothing else differed from their `surface=inverse` twins. All 73 took on the first try when written by hand ~25 min later. So #1664's diagnosis holds (a refusal window that closes with time), and the window in a heavy file lasts longer than 17.5 s and less than ~25 min.
 
@@ -24,6 +24,48 @@
 **Mutations, from a committed `wip:` HEAD, restored after each:** skip non-built members entirely (the issue's "existing set is skipped" shape) → `#1679a` ×2 on the tree itself (12 → 12) + `#1679c` ×2 + three older idempotency arms; treat every existing slot as held → `#1679a` ×2 (`refsRelinked=0`; the #1664 pre-scan still heals the tree, so only the count sees it); drop the held-slot skip → `#1679a` ×2 + `#1679c` ×2 (42 writes). **Not mutation-gated:** the per-slot keying. No path reaches one slot twice today, so removing the dedup changes nothing offline. It is structural, and the comment says so.
 
 **Traps.** (1) The back-off still posts no progress while it waits, and the silent pause after the last wire chunk is now up to 67.5 s instead of ~18 s. A progress phase would be new UI copy, so it is held for the owner (PR body). (2) The verdict headline is unchanged: a re-run that only re-linked references still reads as `already built`, and the re-link shows only in the summary line. Changing the pill is a designer-visible change beyond the report line, so it is held too. (3) The shim's window accessor is installed at the *first* shim's combine and closes over that shim's options, so a second `makeShim` over the same page still sees the first window. The #1679 block relies on that and advances the shared clock instead of passing a new window.
+
+---
+
+## (2026-09-26) — Every type category keeps a weight; label keeps emphasis (#1639)
+
+**STATUS: PR open on `lane/type-weights-required`, stacked on #1676 (#1215), labeled DO NOT MERGE.** Engine + studio. **ENGINE 0.165.0 → 0.166.0**; **CONTRACT 12.0.0 → 13.0.0** (MAJOR: 4 guaranteed paths demoted, accepted with `token-contract --accept` after the raise). `out/**` moves by the version stamp only; `lever-manifest.json` by the lever description.
+
+**The owner's disposition (2026-09-26).** Every category keeps at least one weight, for now: removing weights is never how a text-style category disappears. `label` keeps `emphasis`, because `button` binds `type.label.*.emphasis` by name. `eyebrow` and `code` may swap their single weight, so the composites a swap removes are no longer guaranteed.
+
+**Engine.** `buildComposites` refuses, per category, a `typography.weights` set that is empty (`typography.weights.<category>: … needs at least one weight role`), and a label set without `emphasis` (the message names the button). The label rule lives in `REQUIRED_WEIGHT_ROLES` in `theme.ts` so the studio reads the same table. Before this, an empty set emitted no `type.<category>.*` at all, silently.
+
+**Contract.** New corpus member `minimal-weight-swap`: `MINIMAL_BRAND` with `eyebrow: ['strong']`, `code: ['emphasis']`. It demotes exactly `type.eyebrow.{sm,md,lg}.emphasis` and `type.code.inline.default`; the swapped-in roles are brand-dependent adds. No component binds either family (grepped the defs, `anatomy-figma.ts`, `tree.ts`). Recorded in `docs/30` as a `Decided` heading and indexed in `docs/42`. The skills make no claim about these guarantees, so they didn't change.
+
+**The schema budget trap.** The first cut added `minItems: 1` to all seven weight arrays in `theme-schema.json` plus a long description. That pushed MCP `tools/list` to 60,128 chars, over its 60,000 budget (`test.ts` fails by name). The schema is inlined in `tools/list`, so every character counts. `minItems` came out (the engine refusal is the one that runs), and the description shrank to one clause.
+
+**Studio.** The category table's weight checkboxes disable the last ticked weight of a category and label's `emphasis`, with the reason as the tooltip (the pattern the rung selects use). **Found on the way:** the weight checkboxes called `apply()`, which repaints only the volatile region, so the table kept its pre-click `has` set. Tick a second eyebrow weight, then untick the first, and the stale set computed `[]` → `undefined` → the default, silently dropping the tick. They call `applyFull()` now, the same fix the rung selects carry.
+
+**Gates.** `test.ts` `#1639`: each of seven categories (listed in the test, not read from `TYPE_GROUPS`) refused empty, by name; three label sets without emphasis refused, naming the button; label may gain a weight; the eyebrow/code swap accepted and real in the emission; the four swappable paths brand-dependent in the committed baseline and `type.label.*.emphasis` guaranteed. Corpus-count pins 9 → 10. `test-smoke.mjs` 2e: ticks a second label weight, then checks `emphasis` is still disabled and names the button; checks eyebrow's single weight is disabled; swaps eyebrow's weight with no engine error. Waits are on the row's style count, which only moves once the engine's answer paints.
+
+**Mutations, each from a committed `wip:` HEAD, restored:**
+- Remove the empty-category check → `❌ #1639 an empty weight set for '<category>' is refused, naming the category (got: no throw)` ×6. `label` still throws, from the label rule, and fails by name for the wrong message.
+- Allow label without emphasis → `❌ #1639 a label set without emphasis (strong|default/strong|subtle) is refused …` ×3.
+- Drop the corpus member → `contract: the corpus spans…`, `contract: the COMMITTED baseline still matches…`, `#1010 …`; `--check` reports the 4 paths ADDED (MINOR).
+- Studio: drop the label rule's `disabled` → `✗ <brand>: with two label weights ticked, label's emphasis box is still disabled …` for aurora and harbor.
+
+---
+
+## (2026-09-26) — Aurora moves to comfortable density; compact stays covered by a test fixture (#1215)
+
+**STATUS: PR open on `lane/aurora-comfortable`, labeled DO NOT MERGE.** Engine only. **ENGINE 0.164.0 → 0.165.0** (aurora's emitted values move); CONTRACT STANDS at 12.0.0 (`token-contract --check` level `none`; `--accept` rewrote only the informational `engineVersion` and `corpus` fields). `lint-component-surface` clean: 0 defs moved, nothing accepted.
+
+**The owner's decision (2026-09-26).** Aurora becomes `comfortable`. The studio keeps booting it; neither studio example should demo compact while there are only two. Compact stays covered by a test-only fixture, not an example brand.
+
+**What moved in `out/`, and why.** Only aurora's artifacts. Its size ladder `sm/md/lg` goes 28/36/44 → 36/44/56 (xs 24 → 28, xl 56 → 68), and its control ladder 12/16/20 → 16/20/24 (dots 6/8/10 → 8/10/12). Files: `aurora.tokens.json`, `aurora.base.tokens.json`, `aurora.ai.json` (the `$description` prose names the density), `figma/aurora/{size,control,core.dimension}.json`, `tokens.html`, `modes-report.md`, `schema/example-brands.json`. `core.dimension.30` joins aurora's grid: a comfortable control px compact never produced.
+
+**The fixture, and why it's a corpus member.** `MINIMAL_COMPACT_BRAND` in `token-contract.ts`: `MINIMAL_BRAND` plus `density: 'compact'`, so density is the only thing that varies. It lives beside the other `minimal-*` members, not under `examples/`, so it never reaches `out/` or the studio's brand list. It has to be in the corpus, not just in the tests. `theme.ts` feeds the comfortable px into the grid only at spacious, on the argument that compact is a corpus density and so can't remove a guaranteed path unseen. Measured without it, the guaranteed set GAINS `core.dimension.30` (aurora now emits it, nothing compact is left to decline it), a MINOR move with no real promise behind it. With it, the guaranteed and brand-dependent sets are byte-identical to `main`. The fixture also inherited aurora's old role as the only source of `core.dimension.5` in a compact grid (measured: dropping the `(height − dot) / 2` feed removes it).
+
+**Retargeted at the fixture** (found by grepping `compact` and `aurora` across tests and gates, then confirmed by the 8 arms that failed once aurora moved): #900 control ladder, #910 dot ladder and the per-def "moves with density" arm, #1437's non-vacuous floor arm and its mutation basis. #325's gap-aliasing arm passed after the move but had silently lost its compact case, so the fixture joined its brand list. The corpus-count pins (`contract: the corpus spans…`, #1010's 16px glyph) go 8 → 9. `lint-hit-target.ts` already builds its compact case off the lever, not a brand, so it needed nothing.
+
+**The new gate.** `test.ts` `#1215`: the fixture's `size.md.height` is 36 (compact's window, transcribed in the test, not read from `SIZE_RUNGS`); it is a corpus member; it is in neither `schema/example-brands.json` nor `out/`; and aurora's md is 44. Mutation from a committed `wip:` HEAD: delete the fixture's `density` line → `❌ #1215 the compact fixture's md control is 36px (compact's window) … (got 44)`, alongside the seven retargeted arms.
+
+**Left as is, flagged.** Aurora's prose body still says "the UI is dense", and `vocabulary.ts`'s `dense` personality quotes it. The prose isn't parsed, it already disagrees with the frontmatter (it describes a tinted page; aurora went white earlier), and brand copy is the owner's. Not changed here.
 
 ---
 

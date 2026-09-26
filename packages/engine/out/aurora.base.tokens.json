@@ -3265,6 +3265,17 @@
             }
           }
         },
+        "30": {
+          "$type": "dimension",
+          "$value": "30px",
+          "$description": "30px — dimension primitive",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "px": 30
+            }
+          }
+        },
         "32": {
           "$type": "dimension",
           "$value": "32px",
@@ -14808,21 +14819,21 @@
       "xs": {
         "height": {
           "$type": "dimension",
-          "$value": "{ads.core.dimension.24}",
-          "$description": "size.xs control height — 24px (density: compact)",
+          "$value": "{ads.core.dimension.28}",
+          "$description": "size.xs control height — 28px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "ads.core.dimension.24",
-              "px": 24,
-              "density": "compact"
+              "aliasOf": "ads.core.dimension.28",
+              "px": 28,
+              "density": "comfortable"
             }
           }
         },
         "padding-x": {
           "$type": "dimension",
           "$value": "{ads.space.100}",
-          "$description": "size.xs horizontal inset — 8px (density: compact)",
+          "$description": "size.xs horizontal inset — 8px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14845,20 +14856,20 @@
         },
         "padding-y": {
           "$type": "dimension",
-          "$value": "{ads.space.025}",
-          "$description": "size.xs vertical inset — 2px (density: compact)",
+          "$value": "{ads.space.050}",
+          "$description": "size.xs vertical inset — 4px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "ads.space.025",
-              "px": 2
+              "aliasOf": "ads.space.050",
+              "px": 4
             }
           }
         },
         "gap": {
           "$type": "dimension",
           "$value": "{ads.space.050}",
-          "$description": "size.xs label↔visual gap — 4px (density: compact)",
+          "$description": "size.xs label↔visual gap — 4px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14871,33 +14882,45 @@
       "sm": {
         "height": {
           "$type": "dimension",
-          "$value": "{ads.core.dimension.28}",
-          "$description": "size.sm control height — 28px (density: compact)",
+          "$value": "{ads.core.dimension.36}",
+          "$description": "size.sm control height — 36px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "ads.core.dimension.28",
-              "px": 28,
-              "density": "compact"
+              "aliasOf": "ads.core.dimension.36",
+              "px": 36,
+              "density": "comfortable"
             }
           }
         },
         "padding-x": {
           "$type": "dimension",
-          "$value": "{ads.space.100}",
-          "$description": "size.sm horizontal inset — 8px (density: compact)",
+          "$value": "{ads.space.200}",
+          "$description": "size.sm horizontal inset — 16px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "ads.space.100",
-              "px": 8
+              "aliasOf": "ads.space.200",
+              "px": 16
             }
           }
         },
         "padding-x-visual": {
           "$type": "dimension",
+          "$value": "{ads.space.150}",
+          "$description": "size.sm horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "ads.space.150",
+              "px": 12
+            }
+          }
+        },
+        "padding-y": {
+          "$type": "dimension",
           "$value": "{ads.space.075}",
-          "$description": "size.sm horizontal inset on the visual side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
+          "$description": "size.sm vertical inset — 6px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14906,27 +14929,15 @@
             }
           }
         },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{ads.space.050}",
-          "$description": "size.sm vertical inset — 4px (density: compact)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "ads.space.050",
-              "px": 4
-            }
-          }
-        },
         "gap": {
           "$type": "dimension",
-          "$value": "{ads.space.050}",
-          "$description": "size.sm label↔visual gap — 4px (density: compact)",
+          "$value": "{ads.space.100}",
+          "$description": "size.sm label↔visual gap — 8px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "ads.space.050",
-              "px": 4
+              "aliasOf": "ads.space.100",
+              "px": 8
             }
           }
         }
@@ -14934,21 +14945,21 @@
       "md": {
         "height": {
           "$type": "dimension",
-          "$value": "{ads.core.dimension.36}",
-          "$description": "size.md control height — 36px (density: compact)",
+          "$value": "{ads.core.dimension.44}",
+          "$description": "size.md control height — 44px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "ads.core.dimension.36",
-              "px": 36,
-              "density": "compact"
+              "aliasOf": "ads.core.dimension.44",
+              "px": 44,
+              "density": "comfortable"
             }
           }
         },
         "padding-x": {
           "$type": "dimension",
           "$value": "{ads.space.200}",
-          "$description": "size.md horizontal inset — 16px (density: compact)",
+          "$description": "size.md horizontal inset — 16px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14971,20 +14982,20 @@
         },
         "padding-y": {
           "$type": "dimension",
-          "$value": "{ads.space.075}",
-          "$description": "size.md vertical inset — 6px (density: compact)",
+          "$value": "{ads.space.100}",
+          "$description": "size.md vertical inset — 8px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "ads.space.075",
-              "px": 6
+              "aliasOf": "ads.space.100",
+              "px": 8
             }
           }
         },
         "gap": {
           "$type": "dimension",
           "$value": "{ads.space.100}",
-          "$description": "size.md label↔visual gap — 8px (density: compact)",
+          "$description": "size.md label↔visual gap — 8px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14996,7 +15007,7 @@
         "min-height": {
           "$type": "dimension",
           "$value": "{ads.core.dimension.44}",
-          "$description": "size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height 36, 44) = 44px",
+          "$description": "size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height 44, 44) = 44px",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -15009,21 +15020,33 @@
       "lg": {
         "height": {
           "$type": "dimension",
-          "$value": "{ads.core.dimension.44}",
-          "$description": "size.lg control height — 44px (density: compact)",
+          "$value": "{ads.core.dimension.56}",
+          "$description": "size.lg control height — 56px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "ads.core.dimension.44",
-              "px": 44,
-              "density": "compact"
+              "aliasOf": "ads.core.dimension.56",
+              "px": 56,
+              "density": "comfortable"
             }
           }
         },
         "padding-x": {
           "$type": "dimension",
+          "$value": "{ads.space.300}",
+          "$description": "size.lg horizontal inset — 24px (density: comfortable)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "ads.space.300",
+              "px": 24
+            }
+          }
+        },
+        "padding-x-visual": {
+          "$type": "dimension",
           "$value": "{ads.space.200}",
-          "$description": "size.lg horizontal inset — 16px (density: compact)",
+          "$description": "size.lg horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -15032,22 +15055,10 @@
             }
           }
         },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{ads.space.150}",
-          "$description": "size.lg horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "ads.space.150",
-              "px": 12
-            }
-          }
-        },
         "padding-y": {
           "$type": "dimension",
           "$value": "{ads.space.100}",
-          "$description": "size.lg vertical inset — 8px (density: compact)",
+          "$description": "size.lg vertical inset — 8px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -15058,13 +15069,13 @@
         },
         "gap": {
           "$type": "dimension",
-          "$value": "{ads.space.100}",
-          "$description": "size.lg label↔visual gap — 8px (density: compact)",
+          "$value": "{ads.space.150}",
+          "$description": "size.lg label↔visual gap — 12px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "ads.space.100",
-              "px": 8
+              "aliasOf": "ads.space.150",
+              "px": 12
             }
           }
         }
@@ -15072,21 +15083,21 @@
       "xl": {
         "height": {
           "$type": "dimension",
-          "$value": "{ads.core.dimension.56}",
-          "$description": "size.xl control height — 56px (density: compact)",
+          "$value": "{ads.core.dimension.68}",
+          "$description": "size.xl control height — 68px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "ads.core.dimension.56",
-              "px": 56,
-              "density": "compact"
+              "aliasOf": "ads.core.dimension.68",
+              "px": 68,
+              "density": "comfortable"
             }
           }
         },
         "padding-x": {
           "$type": "dimension",
           "$value": "{ads.space.300}",
-          "$description": "size.xl horizontal inset — 24px (density: compact)",
+          "$description": "size.xl horizontal inset — 24px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -15109,20 +15120,20 @@
         },
         "padding-y": {
           "$type": "dimension",
-          "$value": "{ads.space.100}",
-          "$description": "size.xl vertical inset — 8px (density: compact)",
+          "$value": "{ads.space.200}",
+          "$description": "size.xl vertical inset — 16px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "ads.space.100",
-              "px": 8
+              "aliasOf": "ads.space.200",
+              "px": 16
             }
           }
         },
         "gap": {
           "$type": "dimension",
           "$value": "{ads.space.150}",
-          "$description": "size.xl label↔visual gap — 12px (density: compact)",
+          "$description": "size.xl label↔visual gap — 12px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -15138,86 +15149,86 @@
         "sm": {
           "height": {
             "$type": "dimension",
-            "$value": "{ads.core.dimension.12}",
-            "$description": "control.size.sm — 12px box edge for a square control's own dimension: a checkbox square or a radio circle (density: compact). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "ads.core.dimension.12",
-                "px": 12,
-                "density": "compact"
-              }
-            }
-          },
-          "width": {
-            "$type": "dimension",
-            "$value": "{ads.core.dimension.32}",
-            "$description": "control.size.sm width — 32px track width for a two-position control, i.e. a switch (2x the 16px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "ads.core.dimension.32",
-                "px": 32,
-                "density": "compact"
-              }
-            }
-          },
-          "dot": {
-            "$type": "dimension",
-            "$value": "{ads.core.dimension.6}",
-            "$description": "control.size.sm dot — 6px inner mark for a radio's dot (half the 12px box edge, leaving a 3px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "ads.core.dimension.6",
-                "px": 6,
-                "density": "compact"
-              }
-            }
-          },
-          "inset": {
-            "$type": "dimension",
-            "$value": "{ads.core.dimension.2}",
-            "$description": "control.size.sm inset — 2px gap between the thumb and the track's boundary ((16px track − 12px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "ads.core.dimension.2",
-                "px": 2,
-                "density": "compact"
-              }
-            }
-          },
-          "track": {
-            "$type": "dimension",
             "$value": "{ads.core.dimension.16}",
-            "$description": "control.size.sm track — 16px track height for a switch (density: compact). The switch's own cross-axis edge, larger than the 12px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+            "$description": "control.size.sm — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "ads.core.dimension.16",
                 "px": 16,
-                "density": "compact"
+                "density": "comfortable"
+              }
+            }
+          },
+          "width": {
+            "$type": "dimension",
+            "$value": "{ads.core.dimension.48}",
+            "$description": "control.size.sm width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.dimension.48",
+                "px": 48,
+                "density": "comfortable"
+              }
+            }
+          },
+          "dot": {
+            "$type": "dimension",
+            "$value": "{ads.core.dimension.8}",
+            "$description": "control.size.sm dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.dimension.8",
+                "px": 8,
+                "density": "comfortable"
+              }
+            }
+          },
+          "inset": {
+            "$type": "dimension",
+            "$value": "{ads.core.dimension.3}",
+            "$description": "control.size.sm inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.dimension.3",
+                "px": 3,
+                "density": "comfortable"
+              }
+            }
+          },
+          "track": {
+            "$type": "dimension",
+            "$value": "{ads.core.dimension.24}",
+            "$description": "control.size.sm track — 24px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.dimension.24",
+                "px": 24,
+                "density": "comfortable"
               }
             }
           },
           "thumb": {
             "$type": "dimension",
-            "$value": "{ads.core.dimension.12}",
-            "$description": "control.size.sm thumb — 12px traveling thumb for a switch (0.75 × the 16px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$value": "{ads.core.dimension.18}",
+            "$description": "control.size.sm thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.dimension.12",
-                "px": 12,
-                "density": "compact"
+                "aliasOf": "ads.core.dimension.18",
+                "px": 18,
+                "density": "comfortable"
               }
             }
           },
           "radius": {
             "$type": "dimension",
             "$value": "{ads.core.dimension.2}",
-            "$description": "control.size.sm radius — 2px corner on the 12px box edge (min of radius.sm 4px and one eighth of the box, 12px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+            "$description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 4px and one eighth of the box, 16px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -15243,86 +15254,86 @@
         "md": {
           "height": {
             "$type": "dimension",
-            "$value": "{ads.core.dimension.16}",
-            "$description": "control.size.md — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: compact). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+            "$value": "{ads.core.dimension.20}",
+            "$description": "control.size.md — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.dimension.16",
-                "px": 16,
-                "density": "compact"
+                "aliasOf": "ads.core.dimension.20",
+                "px": 20,
+                "density": "comfortable"
               }
             }
           },
           "width": {
             "$type": "dimension",
-            "$value": "{ads.core.dimension.48}",
-            "$description": "control.size.md width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+            "$value": "{ads.core.dimension.64}",
+            "$description": "control.size.md width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.dimension.48",
-                "px": 48,
-                "density": "compact"
+                "aliasOf": "ads.core.dimension.64",
+                "px": 64,
+                "density": "comfortable"
               }
             }
           },
           "dot": {
             "$type": "dimension",
-            "$value": "{ads.core.dimension.8}",
-            "$description": "control.size.md dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$value": "{ads.core.dimension.10}",
+            "$description": "control.size.md dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.dimension.8",
-                "px": 8,
-                "density": "compact"
+                "aliasOf": "ads.core.dimension.10",
+                "px": 10,
+                "density": "comfortable"
               }
             }
           },
           "inset": {
             "$type": "dimension",
-            "$value": "{ads.core.dimension.3}",
-            "$description": "control.size.md inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+            "$value": "{ads.core.dimension.4}",
+            "$description": "control.size.md inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.dimension.3",
-                "px": 3,
-                "density": "compact"
+                "aliasOf": "ads.core.dimension.4",
+                "px": 4,
+                "density": "comfortable"
               }
             }
           },
           "track": {
             "$type": "dimension",
-            "$value": "{ads.core.dimension.24}",
-            "$description": "control.size.md track — 24px track height for a switch (density: compact). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+            "$value": "{ads.core.dimension.32}",
+            "$description": "control.size.md track — 32px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.dimension.24",
-                "px": 24,
-                "density": "compact"
+                "aliasOf": "ads.core.dimension.32",
+                "px": 32,
+                "density": "comfortable"
               }
             }
           },
           "thumb": {
             "$type": "dimension",
-            "$value": "{ads.core.dimension.18}",
-            "$description": "control.size.md thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$value": "{ads.core.dimension.24}",
+            "$description": "control.size.md thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.dimension.18",
-                "px": 18,
-                "density": "compact"
+                "aliasOf": "ads.core.dimension.24",
+                "px": 24,
+                "density": "comfortable"
               }
             }
           },
           "radius": {
             "$type": "dimension",
             "$value": "{ads.core.dimension.2}",
-            "$description": "control.size.md radius — 2px corner on the 16px box edge (min of radius.sm 4px and one eighth of the box, 16px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+            "$description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 4px and one eighth of the box, 20px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -15348,91 +15359,91 @@
         "lg": {
           "height": {
             "$type": "dimension",
-            "$value": "{ads.core.dimension.20}",
-            "$description": "control.size.lg — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: compact). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "ads.core.dimension.20",
-                "px": 20,
-                "density": "compact"
-              }
-            }
-          },
-          "width": {
-            "$type": "dimension",
-            "$value": "{ads.core.dimension.64}",
-            "$description": "control.size.lg width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "ads.core.dimension.64",
-                "px": 64,
-                "density": "compact"
-              }
-            }
-          },
-          "dot": {
-            "$type": "dimension",
-            "$value": "{ads.core.dimension.10}",
-            "$description": "control.size.lg dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "ads.core.dimension.10",
-                "px": 10,
-                "density": "compact"
-              }
-            }
-          },
-          "inset": {
-            "$type": "dimension",
-            "$value": "{ads.core.dimension.4}",
-            "$description": "control.size.lg inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "ads.core.dimension.4",
-                "px": 4,
-                "density": "compact"
-              }
-            }
-          },
-          "track": {
-            "$type": "dimension",
-            "$value": "{ads.core.dimension.32}",
-            "$description": "control.size.lg track — 32px track height for a switch (density: compact). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "ads.core.dimension.32",
-                "px": 32,
-                "density": "compact"
-              }
-            }
-          },
-          "thumb": {
-            "$type": "dimension",
             "$value": "{ads.core.dimension.24}",
-            "$description": "control.size.lg thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$description": "control.size.lg — 24px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "ads.core.dimension.24",
                 "px": 24,
-                "density": "compact"
+                "density": "comfortable"
+              }
+            }
+          },
+          "width": {
+            "$type": "dimension",
+            "$value": "{ads.core.dimension.80}",
+            "$description": "control.size.lg width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.dimension.80",
+                "px": 80,
+                "density": "comfortable"
+              }
+            }
+          },
+          "dot": {
+            "$type": "dimension",
+            "$value": "{ads.core.dimension.12}",
+            "$description": "control.size.lg dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.dimension.12",
+                "px": 12,
+                "density": "comfortable"
+              }
+            }
+          },
+          "inset": {
+            "$type": "dimension",
+            "$value": "{ads.core.dimension.5}",
+            "$description": "control.size.lg inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.dimension.5",
+                "px": 5,
+                "density": "comfortable"
+              }
+            }
+          },
+          "track": {
+            "$type": "dimension",
+            "$value": "{ads.core.dimension.40}",
+            "$description": "control.size.lg track — 40px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.dimension.40",
+                "px": 40,
+                "density": "comfortable"
+              }
+            }
+          },
+          "thumb": {
+            "$type": "dimension",
+            "$value": "{ads.core.dimension.30}",
+            "$description": "control.size.lg thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.dimension.30",
+                "px": 30,
+                "density": "comfortable"
               }
             }
           },
           "radius": {
             "$type": "dimension",
-            "$value": "{ads.core.dimension.2}",
-            "$description": "control.size.lg radius — 2px corner on the 20px box edge (min of radius.sm 4px and one eighth of the box, 20px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+            "$value": "{ads.core.dimension.4}",
+            "$description": "control.size.lg radius — 4px corner on the 24px box edge (min of radius.sm 4px and one eighth of the box, 24px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "ads.core.dimension.2",
-                "px": 2,
+                "aliasOf": "ads.core.dimension.4",
+                "px": 4,
                 "radiusScale": 2,
                 "clampedFrom": 4
               }
@@ -15456,7 +15467,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.165.0",
+      "version": "0.166.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -15473,7 +15484,7 @@
         "info: engine default hue 245",
         "action color is decoupled: uses palette 'accent', NOT the primary brand palette — explicit brand decision",
         "danger: primary hue 285 is NOT red → carved a dedicated danger red at hue 27",
-        "dimension axis: 4px grid, 8px space rhythm, density 'compact' (drives component sizes), radius scale 2 (baseMd 4px)",
+        "dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 2 (baseMd 4px)",
         "motion: tempo 'snappy' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)",
         "shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1.3; tinted base (hue 285, amount 0.5). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.",
         "gradient: 2 brand gradient(s) [brand linear 135° 2-stop, glow radial 2-stop] — OPT-IN. DTCG composite spine, stop colors alias the ramp; kind/angle/oklch interpolation in $extensions (DTCG omits them — issue #101). OKLCH-interpolated + 5-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colors bind). Worst-case-stop contrast computed for text-on-gradient.",

@@ -175,7 +175,7 @@ export const radioRow: ComponentDef = {
     'size.large.control-box': 'control.size.lg.line-box',
 
     // ── THE NESTED CONTROL'S OWN SQUARE (#1348). The `control` nest part binds this so the nested instance
-    // is PINNED to the control square — 16/20/24 on nb, 12/16/20 on aurora — and does NOT stretch to fill
+    // is PINNED to the control square — 16/20/24 at comfortable density, 12/16/20 at compact — and does NOT stretch to fill
     // the taller `control-box` line box it is centered within. Radio's control is SQUARE (a circle
     // inscribed in it), so the Row pins via `size` (both axes from one key), exactly as checkbox does —
     // where switch, a non-square track, pinned `height` alone. `control.size.*.height` and NOT `icon.size.*`

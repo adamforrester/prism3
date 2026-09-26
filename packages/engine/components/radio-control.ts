@@ -197,7 +197,7 @@ export const radioControl: ComponentDef = {
 
     // ── THE CONTROL CIRCLE. ONE key on BOTH axes, so the control is round-able by construction rather
     // than by two values that happen to agree. `control.size.*.height` and NOT `icon.size.*`: the control
-    // ladder shifts a rung with brand density (12/16/20 on aurora) where the glyph grid is fixed
+    // ladder shifts a rung with brand density (12/16/20 at compact density) where the glyph grid is fixed
     // 16/20/24 in every brand.
     'size.small.control': 'control.size.sm.height',
     'size.medium.control': 'control.size.md.height',

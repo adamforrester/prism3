@@ -919,6 +919,61 @@ for (const brand of BRANDS) {
   }, null, { timeout: 5000 }).then(() => true, () => false);
   ok(cleared, `${brand}: undoing the refused edit clears the bar`);
 
+  // --- 2e. the weight checkboxes refuse what the engine refuses (#1639) ----------------------------
+  // The engine refuses a category with no weight, and a label without `emphasis`. The studio's
+  // category table must not offer either untick: the box is disabled, with the reason on hover. The
+  // required pair (label → emphasis) is authored here, not read from the engine (docs/34). A swap the
+  // owner allowed is driven too: tick a second eyebrow weight, then clear the first, with no error.
+  const weightRow = (cat) => page.evaluate((c) => {
+    const table = [...document.querySelectorAll('table.cs-table')].find((t) => !t.classList.contains('pincut'));
+    const heads = [...table.querySelectorAll('tr:first-child th.cs-c')].map((t) => t.textContent.trim().toLowerCase());
+    const roles = heads.slice(0, heads.length - 4);   // then Leading, Tracking, Italic, Link
+    const row = [...table.querySelectorAll('tr')].find((tr) => tr.querySelector('.cs-name')?.textContent === c);
+    const boxes = row ? [...row.querySelectorAll('td.cs-c input[type=checkbox]')].slice(0, roles.length) : [];
+    return roles.map((role, i) => ({ role, checked: !!boxes[i]?.checked, disabled: !!boxes[i]?.disabled, title: boxes[i]?.title ?? '' }));
+  }, cat);
+  // The row's style count is re-derived from the rebuilt theme, so it moves only once the table has
+  // re-rendered: the wait is on the ENGINE's answer painting, not on the click. Read before clicking.
+  const countOf = (cat) => page.evaluate((c) => [...document.querySelectorAll('table.cs-table:not(.pincut) tr')]
+    .find((tr) => tr.querySelector('.cs-name')?.textContent === c)?.querySelector('.cs-count')?.textContent, cat);
+  const repainted = (cat, before) => page.waitForFunction(({ c, b }) => [...document.querySelectorAll('table.cs-table:not(.pincut) tr')]
+    .find((tr) => tr.querySelector('.cs-name')?.textContent === c)?.querySelector('.cs-count')?.textContent !== b, { c: cat, b: before });
+  const boxIn = (cat, row0, role) => page.locator('table.cs-table:not(.pincut) tr').filter({ has: page.locator('.cs-name', { hasText: new RegExp(`^${cat}$`) }) })
+    .locator('td.cs-c input[type=checkbox]').nth(row0.findIndex((b) => b.role === role));
+  // Give label a SECOND weight first, so the last-weight rule cannot be what holds `emphasis`: only
+  // the label rule can, and the box must say why.
+  const label0 = await weightRow('label');
+  const labelExtra = label0.find((b) => !b.checked && b.role !== 'emphasis');
+  if (labelExtra) {
+    const before = await countOf('label');
+    await boxIn('label', label0, labelExtra.role).click();
+    await repainted('label', before);
+  }
+  const label1 = await weightRow('label');
+  const labelEmphasis = label1.find((b) => b.role === 'emphasis');
+  ok(label1.filter((b) => b.checked).length >= 2 && !!labelEmphasis && labelEmphasis.checked && labelEmphasis.disabled && /button/.test(labelEmphasis.title),
+    `${brand}: with two label weights ticked, label's emphasis box is still disabled, and says the button uses it (${JSON.stringify(label1.filter((b) => b.checked))})`);
+  const eyebrow0 = await weightRow('eyebrow');
+  const eyebrowOn = eyebrow0.filter((b) => b.checked);
+  ok(eyebrowOn.length === 1 && eyebrowOn[0].disabled,
+    `${brand}: eyebrow's only weight is disabled — a category keeps at least one (${eyebrowOn.map((b) => `${b.role}${b.disabled ? ' disabled' : ''}`).join(', ')})`);
+  const other = eyebrow0.find((b) => !b.checked);
+  if (eyebrowOn.length === 1 && other) {
+    const count1 = await countOf('eyebrow');
+    await boxIn('eyebrow', eyebrow0, other.role).click();
+    await repainted('eyebrow', count1);
+    const two = await weightRow('eyebrow');
+    ok(two.filter((b) => b.checked).every((b) => !b.disabled),
+      `${brand}: with two eyebrow weights ticked, either can be cleared (${JSON.stringify(two.filter((b) => b.checked))})`);
+    const count2 = await countOf('eyebrow');
+    await boxIn('eyebrow', eyebrow0, eyebrowOn[0].role).click();
+    await repainted('eyebrow', count2);
+    const swapped = await weightRow('eyebrow');
+    const swapErr = await errState();
+    ok(swapped.find((b) => b.checked)?.role === other.role && !swapErr.shown,
+      `${brand}: eyebrow swaps ${eyebrowOn[0].role} → ${other.role} with no engine error (${swapErr.text.slice(0, 90)})`);
+  }
+
   const errs = drain();
   ok(errs.length === 0, `${brand}: driving the controls raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();

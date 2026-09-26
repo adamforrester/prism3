@@ -1149,7 +1149,7 @@ Component sizes — t-shirt, density `comfortable` (height + paired padding from
 - info: engine default hue 245
 - action color is decoupled: uses palette 'accent', NOT the primary brand palette — explicit brand decision
 - danger: primary hue 285 is NOT red → carved a dedicated danger red at hue 27
-- dimension axis: 4px grid, 8px space rhythm, density 'compact' (drives component sizes), radius scale 2 (baseMd 4px)
+- dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 2 (baseMd 4px)
 - motion: tempo 'snappy' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)
 - shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1.3; tinted base (hue 285, amount 0.5). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
 - gradient: 2 brand gradient(s) [brand linear 135° 2-stop, glow radial 2-stop] — OPT-IN. DTCG composite spine, stop colors alias the ramp; kind/angle/oklch interpolation in $extensions (DTCG omits them — issue #101). OKLCH-interpolated + 5-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colors bind). Worst-case-stop contrast computed for text-on-gradient.
@@ -2245,7 +2245,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 
 ## aurora — dimension axis
 
-Grid (40 primitives, px): 0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 128
+Grid (41 primitives, px): 0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 18, 20, 24, 28, 30, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 128
 
 Space — numbered multiplier, `8px` rhythm (reference tier, density-free):
 
@@ -2281,15 +2281,15 @@ Radius — scale `2`:
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
 
-Component sizes — t-shirt, density `compact` (height + paired padding from the shared scales):
+Component sizes — t-shirt, density `comfortable` (height + paired padding from the shared scales):
 
 | size | height | padding-x | padding-y |
 |---|---|---|---|
-| size.xs | 24px | 8px | 2px |
-| size.sm | 28px | 8px | 4px |
-| size.md | 36px | 16px | 6px |
-| size.lg | 44px | 16px | 8px |
-| size.xl | 56px | 24px | 8px |
+| size.xs | 28px | 8px | 4px |
+| size.sm | 36px | 16px | 6px |
+| size.md | 44px | 16px | 8px |
+| size.lg | 56px | 24px | 8px |
+| size.xl | 68px | 24px | 16px |
 
 # Theme: harbor (hds.* / hex)
 
