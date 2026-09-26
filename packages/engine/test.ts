@@ -17830,9 +17830,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   {
     const norm = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
     const briefText = new Map(readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md'))
-      .map((f) => [f.slice(0, -'.design.md'.length), norm(readFileSync(resolve(HERE, `./examples/${f}`), 'utf8'))] as const));
+      // THE BRIEF'S PROSE ONLY (#1688 net): the text after the frontmatter's closing `---`. The frontmatter is
+      // settings and the engine authors' `#` comments, not the brand's words, so a `why` quoting `density:
+      // comfortable` or a `# … sharp-ish corners` comment would otherwise pass as brief language.
+      .map((f) => [f.slice(0, -'.design.md'.length), norm(readFileSync(resolve(HERE, `./examples/${f}`), 'utf8').split(/^---$/m).slice(2).join('---'))] as const));
     const traits = Object.entries(TRAITS);
-    ok(traits.length >= 9 && briefText.size >= 4,
+    ok(traits.length >= 9 && briefText.size >= 4 && [...briefText.values()].every((t) => t.length > 200),
       `vocabulary: the trait-citation check runs over the nine traits and the committed briefs (found ${traits.length} traits, ${briefText.size} briefs)`);
     for (const [name, { why }] of traits) {
       const quotes = [...why.matchAll(/"([^"]*)"/g)];
