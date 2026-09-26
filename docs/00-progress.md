@@ -7,6 +7,20 @@
 
 ---
 
+## (2026-09-26) — read-back: `modesDistinct` on a single-mode brand (#1662)
+
+**STATUS: PR open from `lane/readback-single-mode`, labeled DO NOT MERGE.** Engine (`read-back.ts`, consumed by the plugin's boot read-back). **ENGINE 0.169.0 → 0.170.0** (MINOR — the seed pill's verdict changes). CONTRACT stands; `out/**` restamps the generator version and nothing else.
+
+**Diagnosis: a vacuous failure, not a real one.** `modesDistinct` is the collapse guard from #85: `color/background/primary` must bind a different target in each mode, because a script once collapsed every mode onto one target. It was computed as `new Set(perModeTargets).size > 1`, and a file with one mode yields a set of size 1 no matter what it holds. So every `modes: ['light']` brand failed it — first seen live on `nb-redesign` in the #1660 agent-link run ("247 color vars, modes light — FAILED: modesDistinct"). Nothing was missing and nothing had collapsed; the brand declares one mode and the file carries one.
+
+**The fix.** With exactly one mode, the guard asserts only that the probe is bound there (not `ABSENT`) — the same case a multi-mode file with the probe missing everywhere already fails on. Zero modes (no `color` collection) still fails; multi-mode is unchanged. The deliberate limit, stated in the code: `verifyReadback` is pure over the snapshot and receives no brand input, so it cannot tell "single-mode brand" from "a multi-mode brand whose other modes never landed". Verifying declared-vs-present modes would need the brand passed in; not taken here, since nothing in #1662 asked for it and the materialise side writes whatever modes the plan carries.
+
+**Tests (`test.ts`).** A new block builds a real single-mode plan (`aurora` with `modes: ['light']`, through `buildWritePlan(buildFigmaColor(…))`), asserts the fixture really has one mode, then: a faithful read passes `modesDistinct` and the whole contract; the same read with the probe dropped still fails `modesDistinct`, so a single-mode pass means "bound", not "unchecked". The existing NB negative (collapsed four-mode file fails `modesDistinct`) is untouched and still bites. **Mutation:** restoring `size > 1` fails "read-back single-mode: modesDistinct PASSES — one mode has nothing to collapse (#1662)" and the whole-contract arm, by name.
+
+**Filed, not fixed.** The paste-path twin in `materialise-to-figma.ts`'s verify pass computes the same `size>1` and has the same single-mode failure; filed as #1687 (one concern per PR).
+
+---
+
 ## (2026-09-26) — the Spinner component, to the owner's spec, used by the button's pending state (#1670)
 
 **STATUS: PR open from `lane/spinner`, labeled DO NOT MERGE; the owner answered all five open questions (below).** Engine + plugin. Main merged in after #1676, #1678 and #1680 (0.167.0). **ENGINE 0.168.0 → 0.169.0** (renumbered in the orchestrator's net: #1682 took 0.168.0) (a new def, the button families' pending members move, two new motion tokens in every brand's `out/**` → MINOR). **CONTRACT 13.0.0 → 13.1.0**, four adds: `motion.duration.spin`, `motion.duration-reduced.spin`, and the `motion.duration-ms.800` / `.2600` primitives they alias, now emitted at every tempo. `component-surface` accepted (the three button families plus `spinner`); `paint-census` accepted for `spinner` alone (the button census did not move).
