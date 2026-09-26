@@ -32,7 +32,7 @@
  * reports the nodes as present. The facts here are authored fixtures — the executor's own collection of
  * them is gated against real host state in `test-write-components.ts`.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, partialWriteHeadline, partialWriteNote } from './src/apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, partialWriteHeadline, partialWriteNote } from './src/apply-summary';
 import type { PartialWriteFacts } from './src/apply-summary';
 
 let failed = 0;
@@ -253,6 +253,38 @@ const pWorst = [1, 2, 9, 99, 648, 9999, 99999].flatMap((n) =>
 const pOver = pWorst.filter((h) => h.length > 24);
 ok(pOver.length === 0, `every partial-write headline fits the 24-char pill budget (longest ${Math.max(...pWorst.map((h) => h.length))}: "${pWorst.reduce((a, b) => (b.length > a.length ? b : a))}")`);
 ok(pWorst.every((h) => h.trim().length > 0), 'no partial-write headline is blank (the UI would replace it with a generic verdict)');
+
+// ---- #1679: the reference clauses of a set verdict -----------------------------------------
+// The owner's wording (2026-09-26), transcribed here rather than read from `refsNote`, with the plural. Each
+// clause says only what happened to its own slots: the retry remedy rides on `refused` alone (#1679 review),
+// and no clause states a retry time.
+const Z = { refused: 0, lost: 0, discarded: 0 };
+ok(refsNote(0, Z) === '' && refsNote(undefined, undefined) === '', 'a clean run adds no reference clause');
+ok(refsNote(73, Z) === ', 73 property links repaired', `a re-link reads as the owner's count (${JSON.stringify(refsNote(73, Z))})`);
+ok(refsNote(1, Z) === ', 1 property link repaired', `singular at one (${JSON.stringify(refsNote(1, Z))})`);
+ok(refsNote(0, { ...Z, refused: 12 }) === ', 12 property links still missing — build again to retry',
+  `a slot refused after the whole back-off reads as the owner's copy, remedy included (${JSON.stringify(refsNote(0, { ...Z, refused: 12 }))})`);
+ok(refsNote(0, { ...Z, refused: 1 }) === ', 1 property link still missing — build again to retry', 'singular for the refused clause');
+const lostClause = refsNote(0, { ...Z, lost: 3 });
+ok(lostClause === ', 3 property links missing — layer not found' && !/build again|retr/i.test(lostClause),
+  `#1679 review: a lost-part slot is its own line and carries no retry remedy or retry claim (${JSON.stringify(lostClause)})`);
+const discClause = refsNote(0, { ...Z, discarded: 2 });
+ok(discClause === ', 2 property links missing — not kept after writing' && !/build again|retr/i.test(discClause),
+  `#1679 review: a read-back discard is its own line and carries no retry remedy or retry claim (${JSON.stringify(discClause)})`);
+const mixed = refsNote(4, { refused: 5, lost: 1, discarded: 1 });
+ok((mixed.match(/build again to retry/g) ?? []).length === 1 && /5 property links still missing — build again to retry/.test(mixed),
+  `with every kind at once, the remedy appears once, on the refused count (${JSON.stringify(mixed)})`);
+ok(!/\d+(\.\d+)? s\b/.test(refsNote(1, { refused: 1, lost: 1, discarded: 1 })), 'no clause states a retry time');
+
+// The pill (#1679): a Build over an existing set that only repaired links says so, instead of "already built".
+ok(componentHeadline(0, 648, 0, 0, 12) === '✓ 12 links repaired', `a repair-only re-run's pill names the repair (${componentHeadline(0, 648, 0, 0, 12)})`);
+ok(componentHeadline(0, 648, 0, 0, 1) === '✓ 1 link repaired', `singular (${componentHeadline(0, 648, 0, 0, 1)})`);
+ok(componentHeadline(0, 648, 0, 0, 0) === '✓ already built', 'a clean re-run still reads as already built');
+ok(componentHeadline(0, 648, 3, 0, 12) === '⚠ 3 misses' && componentHeadline(0, 648, 0, 5, 12) === '⚠ 5 stale',
+  'misses and stale still outrank the repair, as they outrank "already built"');
+ok(componentHeadline(4, 644, 0, 0, 12) === '✓ built 4 variants', 'a run that added members leads with what it added');
+const rWorst = [0, 1, 9, 99, 780, 9999].map((n) => componentHeadline(0, 648, 0, 0, n));
+ok(rWorst.every((h) => h.length <= 24), `every repair headline fits the 24-char pill budget (longest "${rWorst.reduce((a, b) => (b.length > a.length ? b : a))}")`);
 
 console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

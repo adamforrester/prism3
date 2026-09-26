@@ -749,7 +749,7 @@ let fileSetupState: { ok: boolean; headline: string; summary: string } | 'pendin
  *  `renderApplyStatus` shares with `applyState`, forcing the theme write to handle a state it can never
  *  be in. Kept beside it, `componentState === 'pending'` still means exactly "in flight" and this only
  *  says how far. */
-let componentProgress: { phase: 'build' | 'wire'; done: number; total: number } | null = null;
+let componentProgress: { phase: 'build' | 'wire' | 'retry'; done: number; total: number } | null = null;
 /** OPT-IN PRUNE (#1521) — Figma-only, and three slots for the same reason `applyState` is not
  *  `seedInfo`: the prune is its own action and its verdict must not land in another write's pill.
  *  `pruneBusy` is the in-flight state — a preview being computed or a delete running — and disables the
@@ -9277,6 +9277,9 @@ const renderPruneDialog = (): HTMLElement => {
 const componentPendingText = (): string => {
   const p = componentProgress;
   if (!p) return 'Building the Button set…';
+  // #1679: the reference back-off's waits. Owner's wording, and no fraction — a pass count is not progress
+  // through the set, and the waits grow, so "3 of 6" would suggest the pause is half over when it is not.
+  if (p.phase === 'retry') return 'Retrying property links…';
   const label = p.phase === 'build' ? 'Building members' : 'Wiring references';
   return `${label}… ${p.done} of ${p.total}`;
 };
