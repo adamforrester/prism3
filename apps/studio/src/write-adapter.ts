@@ -155,7 +155,7 @@ export interface HostCommit {
         // skeleton get laid" is separately true and separately actionable from a theme or component write,
         // so it needs its own verdict slot and cannot overwrite theirs.
         | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
-        | { kind: 'component-progress'; phase: 'build' | 'wire'; done: number; total: number; chunkMs: number }
+        | { kind: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
         // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
         // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
         // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
@@ -250,7 +250,7 @@ const figmaCommit = (): HostCommit => ({
         const total = n(m.total);
         // `phase` is checked against the union rather than cast: it selects a label the UI shows, and an
         // unknown phase from a newer host should read as generic progress instead of printing its name.
-        const phase = m.phase === 'build' || m.phase === 'wire' ? m.phase : null;
+        const phase = m.phase === 'build' || m.phase === 'wire' || m.phase === 'retry' ? m.phase : null;
         if (phase && done !== null && total !== null && total > 0) {
           cb({ kind: 'component-progress', phase, done, total, chunkMs: n(m.chunkMs) ?? 0 });
         }

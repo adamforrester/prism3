@@ -18,7 +18,7 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, partialWriteHeadline, partialWriteNote } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, partialWriteHeadline, partialWriteNote } from './apply-summary';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
@@ -588,11 +588,15 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         // only place that can see the timing. `chunkMs` is CALIBRATION data (see `CHUNK`) — the shim has
         // no event loop, so chunk size can only be tuned from a live run, and this is how it gets out.
         onProgress: (p) => {
-          reports.push(p);
-          // Logged as it happens, not only in the summary. If the build hangs, the last line printed is
-          // which phase and which chunk it hung on — the single most useful fact in a hang report, and one
-          // an end-of-run summary cannot give because a hung run never reaches it.
-          console.log(chunkLine(p));
+          // #1679: a `retry` reading marks a back-off wait, not a chunk of work, so it stays out of the chunk
+          // telemetry (its passes are in the `[prism3 #1664]` line) and only reaches the pill.
+          if (p.phase !== 'retry') {
+            reports.push(p);
+            // Logged as it happens, not only in the summary. If the build hangs, the last line printed is
+            // which phase and which chunk it hung on — the single most useful fact in a hang report, and one
+            // an end-of-run summary cannot give because a hung run never reaches it.
+            console.log(chunkLine(p));
+          }
           // FIELD BY FIELD, not `...p`, and the reason is that these two consumers want different things.
           // The console gets the whole reading including `elapsedMs`; the pill shows a fraction and nothing
           // more. Spreading would put every field the executor ever adds onto the bridge by default — a
@@ -641,7 +645,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
             `${r.stale ? `, ${r.stale} stale` : ''}), ` +
             `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
             `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
-            `${r.refs} refs across ${r.wiredMembers} members${missNote}${stale ? `. ${stale}` : ''}`;
+            `${r.refs} refs across ${r.wiredMembers} members${refsNote(r.refsRelinked, r.refsUnsetBy)}${missNote}${stale ? `. ${stale}` : ''}`;
       // #1633: what was built first, so a designer is not surprised by a set they did not ask for.
       // `ok` is NOT `misses.length === 0`, and the difference is the whole reason `skipped` is a number:
       // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
@@ -655,7 +659,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       postVerdict({
         type: 'component-result',
         ok: r.set !== null && r.misses.length === r.skipped,
-        headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale),
+        headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale, r.refsRelinked),
         summary: summary + alsoBuiltNote(alsoBuilt),
       }, sink);
       verdictPosted = true;
@@ -693,6 +697,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // #1664: printed ONLY when the reference back-off ran. One entry per pass — the wait before it, how many
     // queued references it retried, how many landed and read back — so a live run says how long the host's
     // per-member refusal window lasted, instead of leaving it to be inferred from a miss list.
+    // #1679: printed only when a Build over an existing set re-linked something.
+    if (r.refsRelinked) console.log(`[prism3 #1679] re-linked ${r.refsRelinked} unset reference(s) on the existing set`);
     if (r.refsBackoff?.length) console.log(`[prism3 #1664] reference back-off: ${r.refsBackoff.map((p) => `after ${p.afterMs}ms ${p.repaired}/${p.retried} repaired`).join('; ')}`);
     if (r.boundRepaired > 0) console.log(`[prism3 #1279] repaired ${r.boundRepaired} variable binding(s) onto the live post-combine node`);
     // #1574: the SET-level sibling of the two lines above. A non-zero count means the host had replaced the

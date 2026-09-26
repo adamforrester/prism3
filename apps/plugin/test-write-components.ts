@@ -84,6 +84,7 @@ import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import { buildWritePlan } from '@prism3/engine/write-plan';
 import type { BrandInput } from '@prism3/engine/theme';
 import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson, REF_BACKOFF_MS } from './src/write-components';
+import { refsNote } from './src/apply-summary';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
 import type { ComponentApplyOptions, ComponentProgress, BuildReport } from './src/write-components';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -4004,15 +4005,213 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // ---- (b) a permanent refusal ends as misses after the bounded passes, both shapes -----------
   const scheduled = REF_BACKOFF_MS.reduce((x, y) => x + y, 0);
-  ok(REF_BACKOFF_MS.length === 4 && scheduled <= 18000,
-    `#1664b input pin: the back-off is at most 4 passes and ~18 s (${REF_BACKOFF_MS.join(', ')} = ${scheduled}ms)`);
+  // #1679 moved the bound from 4 passes / 17.5 s to 6 passes / 67.5 s. Pinned against numbers written HERE
+  // (#1679 review: the old arm compared two sums of the same array and could not fail).
+  ok(JSON.stringify(REF_BACKOFF_MS) === JSON.stringify([500, 2000, 5000, 10000, 20000, 30000]) && scheduled === 67500,
+    `#1664b input pin: the back-off is exactly 0.5/2/5/10/20/30 s, 67.5 s in all (${REF_BACKOFF_MS.join(', ')} = ${scheduled}ms)`);
   for (const shape of ['throw', 'discard'] as const) {
     const b = await runWindow({ ms: Infinity, shape });
     const want = shape === 'throw' ? /Could not create a new component property reference/ : /DISCARDED \(set /;
-    ok(!b.threw && b.waits.length <= 4 && b.waits.reduce((x, y) => x + y, 0) <= 18000,
+    ok(!b.threw && b.waits.length <= 6 && b.waits.reduce((x, y) => x + y, 0) <= 70000,
       `#1664b a permanent ${shape} refusal still TERMINATES within the bound — ${b.waits.length} wait(s) totalling ${b.waits.reduce((x, y) => x + y, 0)}ms${b.threw ? `; THREW ${b.threw}` : ''}`);
     ok(!b.threw && b.refMisses.length === runRefs && b.refMisses.every((m) => want.test(m) && RUN.some((r) => m.includes(r))) && b.lost.length === runRefs,
       `#1664b ...and every refused reference ends as a named ${shape} miss on the run's members (${b.refMisses.length}/${runRefs}: ${b.refMisses[0] ?? 'none'})`);
+  }
+}
+
+// =============================================================================================
+// #1679 — A BUILD OVER AN EXISTING SET REPAIRS THE REFERENCES A REFUSAL WINDOW LEFT UNSET
+// =============================================================================================
+// Live (owner's master file, 2026-09-26): a refusal window outlasted #1664's whole back-off, the build ended
+// with 36 members' references unset, and the same writes took on the first try ~25 min later. The shim's
+// `refuseRefsWindow` stands for that window, set here LONGER than the whole schedule (10 min against 67.5 s),
+// on a clock this block owns. The first Build must report the misses; a second Build over the same page, after
+// the clock has moved 25 min, must re-link every one of them — and a second Build over a CLEAN set must write
+// nothing at all.
+//
+// The oracle is the shim tree, never the executor's counters (docs/34): "unset" is every reference the clean
+// build holds and this page does not, walked off the nodes. The report must equal that count.
+//
+// Mutations, by name (measured): skipping members this run did not build — the "existing set is skipped"
+// shape — fails `#1679a` on the tree itself (12 → 12 unset) and `#1679c`; treating every existing slot as
+// already held fails `#1679a` (refsRelinked=0; the #1664 pre-scan still heals the tree, so only the count
+// sees it); writing held slots again fails `#1679a` and `#1679c` (42 writes on a clean set). The per-slot
+// keying behind `#1679b` is NOT mutation-gated: no path in the executor reaches one slot twice today, so
+// dropping the dedup changes nothing here. `#1679b` pins the count against the tree, not the mechanism.
+//
+// #1679 review, by name (measured): tagging a `lost` slot `refused` fails `#1679d` ×2; giving the lost clause
+// the retry remedy fails `#1679d` (and test-apply-summary's lost/mixed arms); dropping the `retry` progress
+// reading fails `#1679 the executor posts a 'retry' progress reading…`; tagging a read-back discard `refused`
+// fails `#1679e` ×2; counting every written slot as relinked (fix 2 reverted) fails `#1679f`. NOT gated: a
+// slot for a property this run ADDED over an existing set — no fixture here grows a def between builds.
+{
+  const clean = { page: { children: [] } as Page };
+  await run(grid, { ...fullFor(grid), page: clean.page });
+  const cleanSet = clean.page.children[0] as Node | undefined;
+  const RUN = ((cleanSet?.children ?? []) as Node[]).map((m) => String(m.name)).slice(3, 9);
+  /** Every `member/part.field=id` the tree holds, walked off the shim nodes. */
+  const held = (set: Node | undefined): Set<string> => {
+    const out = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural walk over the shim tree
+    const walk = (m: string, x: any): void => { for (const [f, id] of Object.entries(x?.componentPropertyReferences ?? {})) out.add(`${m}/${String(x.name)}.${f}=${id as string}`); for (const c of x?.children ?? []) walk(m, c); };
+    for (const m of ((set?.children ?? []) as Node[])) walk(String(m.name), m);
+    return out;
+  };
+  const want = held(cleanSet);
+  const unset = (set: Node | undefined): number => { const got = held(set); return [...want].filter((r) => !got.has(r)).length; };
+  /** Counts every reference WRITE on the tree from here on, delegating to the shim's own accessor. */
+  const countWrites = (set: Node | undefined): { n: number } => {
+    const c = { n: 0 };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural walk over the shim tree
+    const walk = (x: any): void => {
+      const d = Object.getOwnPropertyDescriptor(x, 'componentPropertyReferences');
+      if (d?.set) Object.defineProperty(x, 'componentPropertyReferences', { configurable: true, get: d.get, set: (v: unknown) => { c.n++; d.set!.call(x, v); } });
+      for (const k of x?.children ?? []) walk(k);
+    };
+    walk(set);
+    return c;
+  };
+  ok(want.size > 0 && RUN.length === 6, `#1679 input pin: the clean build holds ${want.size} references and the refusing run is 6 members`);
+
+  for (const shape of ['throw', 'discard'] as const) {
+    const clock = { t: 0 };
+    const yieldTo = (ms = 0) => { clock.t += ms; return Promise.resolve(); };
+    const page: Page = { children: [] };
+    const r1 = await run(grid, { ...fullFor(grid), page, refuseRefsWindow: { members: RUN, ms: 10 * 60_000, shape, now: () => clock.t } }, { yieldTo });
+    const set = page.children[0] as Node | undefined;
+    const u1 = unset(set);
+    const refLines1 = r1.misses.filter((m) => m.startsWith('ref '));
+    // FLOOR: the window outlasted the whole schedule, so the first Build really left references unset.
+    ok(u1 > 0 && clock.t >= 67500,
+      `#1679 floor (${shape}): a window longer than the 67.5 s back-off leaves ${u1} reference(s) unset after the first Build (clock ${clock.t}ms)`);
+    ok(r1.refsUnset === u1 && refLines1.length === u1 && new Set(refLines1).size === u1,
+      `#1679b (${shape}) the report's miss count is the file's: refsUnset=${String(r1.refsUnset)}, ${refLines1.length} 'ref' lines, ${u1} references unset on the shim`);
+    // Every one of them sat through every pass, so every one is `refused` and the verdict offers the retry.
+    ok(r1.refsUnsetBy?.refused === u1 && r1.refsUnsetBy.lost === 0 && r1.refsUnsetBy.discarded === 0
+      && refsNote(r1.refsRelinked, r1.refsUnsetBy) === `, ${u1} property links still missing — build again to retry`,
+      `#1679b (${shape}) a slot refused through the whole back-off is 'refused' and gets the retry remedy: ${JSON.stringify(r1.refsUnsetBy)} → ${JSON.stringify(refsNote(r1.refsRelinked, r1.refsUnsetBy))}`);
+
+    // 25 min later — the window has closed. Build again over the same page.
+    clock.t += 25 * 60_000;
+    const r2 = await run(grid, { ...fullFor(grid), page }, { yieldTo });
+    const u2 = unset(page.children[0] as Node | undefined);
+    ok(page.children.length === 1 && r2.added === 0 && u2 === 0 && r2.refsRelinked === u1 && r2.refsUnset === 0 && !r2.misses.some((m) => m.startsWith('ref ')),
+      `#1679a (${shape}) a second Build over the existing set re-links every unset reference: ${u1} → ${u2} unset, refsRelinked=${String(r2.refsRelinked)}, added=${r2.added}, ${page.children.length} set on the page`);
+
+    // A third Build over the now-clean set writes nothing and reports no change.
+    const writes = countWrites(page.children[0] as Node | undefined);
+    const r3 = await run(grid, { ...fullFor(grid), page }, { yieldTo });
+    ok(writes.n === 0 && r3.refsRelinked === 0 && r3.refsUnset === 0 && r3.wiredMembers === r2.wiredMembers && unset(page.children[0] as Node | undefined) === 0,
+      `#1679c (${shape}) a Build over a clean existing set writes no reference and reports no change (${writes.n} write(s), refsRelinked=${String(r3.refsRelinked)}, ${r3.wiredMembers} members still wired)`);
+  }
+
+  // ---- #1679 review — each unset slot is reported as what happened to it ------------------------------
+  // (d) LOST: the window refuses 6 members; during the FIRST back-off wait the test renames one refused
+  // member's parts (a designer or the host removing the layer), so the next pass finds nothing to write to.
+  // That slot left the queue after 0.5 s: it did not sit through the back-off, and building again has nothing
+  // to aim at, so it must be `lost`, not `refused`, and its line must not carry the retry remedy.
+  // Mutation, by name: counting `lost` as `refused` fails `#1679d` (the lost line gains "build again").
+  {
+    const clock = { t: 0 };
+    const page: Page = { children: [] };
+    let renamed = 0;
+    const victim = RUN[0];
+    const yieldTo = (ms = 0) => {
+      if (ms > 0 && clock.t === 0) {
+        const m = ((page.children[0] as Node | undefined)?.children as Node[] | undefined)?.find((c) => String(c.name) === victim);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-side edit of the shim tree
+        const walk = (x: any): void => { for (const c of x?.children ?? []) { c.name = `gone-${String(c.name)}`; renamed++; walk(c); } };
+        walk(m);
+      }
+      clock.t += ms;
+      return Promise.resolve();
+    };
+    const progress: string[] = [];
+    let lastPhase = '';
+    const rd = await run(grid, { ...fullFor(grid), page, refuseRefsWindow: { members: RUN, ms: 10 * 60_000, shape: 'throw', now: () => clock.t } },
+      { yieldTo, onProgress: (p) => { lastPhase = p.phase; if (p.phase === 'retry') progress.push(`${p.done}/${p.total}`); } });
+    const by = rd.refsUnsetBy ?? { refused: -1, lost: -1, discarded: -1 };
+    const note = refsNote(rd.refsRelinked, rd.refsUnsetBy);
+    // EXPECTED from the TREE, not from the executor's own miss list (#1679 review): every reference the clean
+    // build holds on the victim is a slot the window refused and the rename then took away.
+    const victimSlots = [...want].filter((r) => r.startsWith(`${victim}/`)).length;
+    const victimLines = rd.misses.filter((m) => m.startsWith(`ref ${victim}/`)).length;
+    ok(renamed > 0 && victimSlots > 0 && victimLines === victimSlots && by.lost === victimSlots && by.refused === (rd.refsUnset ?? 0) - victimSlots && by.discarded === 0,
+      `#1679d floor: renaming ${victim}'s layers mid back-off makes all ${victimSlots} of its slot(s) 'lost' and the rest 'refused' (${JSON.stringify(by)}, ${victimLines} victim line(s), refsUnset=${String(rd.refsUnset)})`);
+    ok(note.includes(`${by.lost} property link${by.lost === 1 ? '' : 's'} missing — layer not found`)
+      && (note.match(/build again to retry/g) ?? []).length === 1
+      && note.includes(`${by.refused} property links still missing — build again to retry`),
+      `#1679d a lost-part slot is reported on its own line without the retry remedy; only the refused count carries it (${JSON.stringify(note)})`);
+    // THE PILL PHASE: one `retry` reading before each wait, numbered against the schedule written here.
+    ok(JSON.stringify(progress) === JSON.stringify(['1/6', '2/6', '3/6', '4/6', '5/6', '6/6']),
+      `#1679 the executor posts a 'retry' progress reading before each of the 6 back-off waits (${progress.join(', ') || 'none'})`);
+    // …and takes the pill back off `Retrying property links…` once the waits are over, so the read-back that
+    // follows is not shown as a retry (#1679 review).
+    ok(lastPhase === 'wire',
+      `#1679 after the back-off the last progress reading is 'wire' again, not 'retry' (last: ${lastPhase || 'none'})`);
+  }
+
+  // (e) READ-BACK DISCARD: a 3 s window heals every refused slot inside the back-off. During the first wait
+  // the test clears one reference on a member OUTSIDE the window — already wired and past the pre-scan — so
+  // only the final fresh read-back sees it unset. It never had a retry, so it must be `discarded` and its line
+  // must carry no retry claim.
+  {
+    const clock = { t: 0 };
+    const page: Page = { children: [] };
+    let cleared = '';
+    let clearedFields = 0;
+    const yieldTo = (ms = 0) => {
+      if (ms > 0 && !cleared) {
+        const m = ((page.children[0] as Node | undefined)?.children as Node[] | undefined)?.find((c) => !RUN.includes(String(c.name)));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-side edit of the shim tree
+        const find = (x: any): any => { for (const c of x?.children ?? []) { if (Object.keys(c.componentPropertyReferences ?? {}).length) return c; const f = find(c); if (f) return f; } return undefined; };
+        const n = find(m);
+        if (n) { cleared = `${String(m?.name)}/${String(n.name)}`; clearedFields = Object.keys(n.componentPropertyReferences).length; n.componentPropertyReferences = {}; }
+      }
+      clock.t += ms;
+      return Promise.resolve();
+    };
+    const re = await run(grid, { ...fullFor(grid), page, refuseRefsWindow: { members: RUN, ms: 3000, shape: 'throw', now: () => clock.t } }, { yieldTo });
+    const note = refsNote(re.refsRelinked, re.refsUnsetBy);
+    // EXPECTED is the number of fields the test cleared on the tree, never the executor's own `refsUnset`.
+    ok(cleared !== '' && clearedFields > 0 && re.refsUnsetBy?.discarded === clearedFields && re.refsUnset === clearedFields && re.refsUnsetBy.refused === 0 && re.refsUnsetBy.lost === 0,
+      `#1679e the ${clearedFields} reference(s) cleared after the pre-scan are 'discarded', not 'refused' (${cleared}: ${JSON.stringify(re.refsUnsetBy)}, refsUnset=${String(re.refsUnset)})`);
+    ok(/property links? missing — not kept after writing/.test(note) && !/build again|retr/i.test(note),
+      `#1679e a read-back discard is reported without a retry remedy or retry claim (${JSON.stringify(note)})`);
+  }
+
+  // (f) A RE-POINTED SLOT IS NOT A REPAIR. Over a clean existing set, the test points one reference at a
+  // different property of the same type. The Build still overwrites it (unchanged since before #1679 — held
+  // item 3), but the slot never read unset, so `refsRelinked` stays 0 and the pill does not claim a repair.
+  // (The pill reads "⚠ 1 miss": the designer's property is left referenced by nothing, which the existing
+  // ORPHAN check reports — correct, and not this arm's subject.)
+  {
+    const page: Page = { children: [] };
+    await run(grid, { ...fullFor(grid), page });
+    const set = page.children[0] as Node | undefined;
+    // A designer's own TEXT property, added test-side, so there is a second property of the label's type to
+    // point at (the button plan declares one of each).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-side edit of the shim set
+    (set as any)?.addComponentProperty?.('designer caption', 'TEXT', 'Caption');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read of the shim set
+    const defs = ((set as any)?.componentPropertyDefinitions ?? {}) as Record<string, { type: string }>;
+    let repointed = '';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-side edit of the shim tree
+    const walk = (x: any): void => {
+      for (const c of x?.children ?? []) {
+        if (repointed) return;
+        for (const [f, id] of Object.entries((c.componentPropertyReferences ?? {}) as Record<string, string>)) {
+          const other = Object.keys(defs).find((k) => k !== id && defs[k].type === defs[id]?.type);
+          if (other) { c.componentPropertyReferences = { ...c.componentPropertyReferences, [f]: other }; repointed = `${String(c.name)}.${f}: ${id} → ${other}`; return; }
+        }
+        walk(c);
+      }
+    };
+    walk(set);
+    const rf = await run(grid, { ...fullFor(grid), page });
+    ok(repointed !== '' && rf.refsRelinked === 0 && unset(page.children[0] as Node | undefined) === 0
+      && !/repaired/.test(componentHeadline(rf.added, rf.skipped, rf.misses.length - rf.skipped - rf.stale, rf.stale, rf.refsRelinked)),
+      `#1679f a slot re-pointed at another property is overwritten as before but not counted as repaired (${repointed || 'no candidate'}; pill ${componentHeadline(rf.added, rf.skipped, rf.misses.length - rf.skipped - rf.stale, rf.stale, rf.refsRelinked)}; ${rf.misses.filter((m) => !/SKIPPED|already/i.test(m)).slice(0, 2).join(' | ')}; refsRelinked=${String(rf.refsRelinked)}, ${unset(page.children[0] as Node | undefined)} unset after)`);
   }
 }
 
