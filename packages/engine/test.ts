@@ -17711,6 +17711,28 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
     ok(refusal({ label: ['emphasis', 'strong'] }) === '',
       '#1639 label may GAIN a weight: [emphasis, strong] is accepted');
+    // #1681 (owner-decided 2026-09-26, option A): body and caption keep `default` the way label keeps
+    // `emphasis`. The controls each message must name are authored here, not read from
+    // `REQUIRED_WEIGHT_ROLES.*.why` (the subject): the text field binds `type.body.md.default`, the
+    // field message `type.caption.md.default`.
+    for (const [g, set, control] of [
+      ['body', ['strong'], 'text field'], ['body', ['emphasis', 'strong'], 'text field'], ['body', ['subtle'], 'text field'],
+      ['caption', ['strong'], 'field message'], ['caption', ['emphasis'], 'field message'],
+    ] as Array<[string, string[], string]>) {
+      const msg = refusal({ [g]: set });
+      ok(msg.startsWith(`typography.weights.${g}:`) && /'default'/.test(msg) && msg.includes(control),
+        `#1681 a ${g} set without default (${set.join('/')}) is refused, and the message names the ${control} (got: ${msg || 'no throw'})`);
+    }
+    for (const [g, set] of [['body', ['default', 'strong', 'emphasis']], ['caption', ['default', 'strong', 'max']], ['body', ['default']]] as Array<[string, string[]]>) {
+      const msg = refusal({ [g]: set });
+      ok(msg === '', `#1681 ${g} may keep default and gain or shed other weights: [${set.join(', ')}] is accepted (got: ${msg || 'accepted'})`);
+    }
+    // And the paths the controls bind stay guaranteed in the committed baseline: the refusal is what
+    // keeps them true, so no corpus member may demote them.
+    const FORM_DEFAULTS = ['type.body.sm.default', 'type.body.md.default', 'type.body.lg.default', 'type.caption.md.default'];
+    const formLost = FORM_DEFAULTS.filter((p) => !(p in committed.guaranteed));
+    ok(formLost.length === 0,
+      `#1681 type.body.{sm,md,lg}.default and type.caption.md.default stay guaranteed — the engine refuses a set without them` + (formLost.length ? ` — MISSING: ${formLost.join(', ')}` : ''));
     // The swap the owner allowed: eyebrow and code each keep one weight, just a different one.
     const swapMsg = refusal({ eyebrow: ['strong'], code: ['emphasis'] });
     ok(swapMsg === '', `#1639 eyebrow and code may swap their single weight (got: ${swapMsg || 'accepted'})`);

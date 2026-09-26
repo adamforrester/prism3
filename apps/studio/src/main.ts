@@ -6385,9 +6385,10 @@ const renderCategorySetup = (): HTMLElement => {
         // volatile-only repaint left them (and `has`) describing the previous set until the next paint.
         setPath(brandState, `typography.weights.${g}`, next.length ? next : undefined); applyFull();
       });
-      // #1639: the engine refuses a category with no weight, and a label without `emphasis`. The two
-      // unticks that would reach those refusals are disabled here, with the reason on hover, the same
-      // way the rung selects disable a step that would cross its neighbor.
+      // #1639/#1681: the engine refuses a category with no weight, a label without `emphasis`, and a
+      // body or caption without `default`. The unticks that would reach those refusals are disabled
+      // here, with the reason on hover, the same way the rung selects disable a step that would cross
+      // its neighbor.
       if (has.has(r) && required?.role === r) {
         box.disabled = true;
         box.title = `${g[0].toUpperCase()}${g.slice(1)} always ships ${r} — ${required.why}.`;

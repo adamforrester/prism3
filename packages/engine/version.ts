@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.168.0 — #1670: the Spinner component, to the owner's spec (2026-09-26), and the button's pending state
+ * 0.169.0 — #1670: the Spinner component, to the owner's spec (2026-09-26), and the button's pending state
  * swaps it in. `spinner` is a new def: four standalone `spinner/<size>` components on the icon ladder
  * (16 / 20 / 24 / 32), each one composed glyph — a full ring at 20% layer opacity under a 33% head arc with
  * round caps, drawn as filled outlines on the 24-unit artboard so the 2px band scales with size. The glyph
@@ -2942,7 +2942,16 @@
  * executors); every layer-opacity read matches the attribute named exactly `opacity`, never `fill-opacity`;
  * the geometry gate checks that each cap bulges outward past the arc's end; and the def no longer cites
  * WCAG 2.3.3 (it slows the turn under reduced motion, which that criterion does not ask for). Lands after
- * #1679's 0.167.0, so 0.168.0.
+ * #1679's 0.167.0 and #1681's 0.168.0, so 0.169.0.
+ *
+ * 0.168.0 — #1681 (owner-decided 2026-09-26, option A): `body` and `caption` keep `default`, the same way
+ * `label` keeps `emphasis`. Both join `REQUIRED_WEIGHT_ROLES` in theme.ts, so the engine refuses a body or
+ * caption set without `default`, naming the form controls that bind `type.body.*.default` and
+ * `type.caption.md.default` by name; either set may still gain weights. The studio disables both
+ * `default` boxes with that reason as the tooltip. The contract doesn't move: those paths were already
+ * guaranteed, and the refusal is what keeps that true (CONTRACT STANDS at 13.0.0, `--check` level
+ * `none`). Also aurora's brief drops "the UI is dense" to match its comfortable density (#1215), so
+ * the `dense` personality's `why` is re-sourced; the lever and schema descriptions state the new rule.
  *
  * 0.167.0 — #1679: a Build over an existing set REPAIRS the references a refusal window left unset. The owner's
  * master-file Button (2026-09-26) came out of 0.157.0's 17.5 s back-off with 73 references unset on 36 members;
@@ -3780,7 +3789,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.168.0';
+export const ENGINE_VERSION = '0.169.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -96,8 +96,9 @@ UI runs on the azure **accent**, which is why `action` is decoupled from the her
 palette above.
 
 The page is a soft, tinted off-white rather than a stark white — the product
-should feel considered, not clinical. Corners are generous and the UI is dense:
-this is a tool people live in, so more fits on screen without feeling cramped.
+should feel considered, not clinical. Corners are generous and the UI has room to
+breathe: this is a tool people live in all day, so controls stay easy to hit without
+feeling sparse.
 Motion is quick and responsive (snappy), never showy in the working surfaces;
 save expression for the hero moments.
 

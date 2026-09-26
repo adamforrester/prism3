@@ -7,11 +7,11 @@
  *
  * THE PROBLEM. `brandTheme({ id, primary, neutral })` produces a complete 575-token system from the
  * three required fields, and logs the 15 decisions it made on your behalf. But a brand brief does
- * not speak in numbers. It says *"corners are generous and the UI is dense"* (aurora), *"restrained
- * on purpose — low chroma"* (harbor), *"bold, not loud"* (wendys). Nothing carried that intent to a
- * lever: `design.md` prose is parsed and discarded, and the 9 slider levers had no vocabulary at
- * all, so an agent working from a brief had to invent a number — and its guess went unrecorded,
- * which is the part that matters. A *logged* default is auditable; a guessed one is not.
+ * not speak in numbers. It says *"corners are generous and the UI has room to breathe"* (aurora),
+ * *"restrained on purpose — low chroma"* (harbor), *"bold, not loud"* (wendys). Nothing carried that
+ * intent to a lever: `design.md` prose is parsed and discarded, and the 9 slider levers had no
+ * vocabulary at all, so an agent working from a brief had to invent a number — and its guess went
+ * unrecorded, which is the part that matters. A *logged* default is auditable; a guessed one is not.
  *
  * TWO LAYERS, and the seam between them is deliberate.
  *
@@ -120,7 +120,9 @@ export const TRAITS: Record<string, Trait> = {
   },
   dense: {
     levers: { density: 'compact', 'layout.containerMax': 'wide' },
-    why: 'aurora: "the UI is dense: this is a tool people live in, so more fits on screen without feeling cramped"',
+    // Re-sourced when aurora moved to comfortable density (#1215): its brief no longer says "dense".
+    // No example brief asks for density outright, so this cites the one that names it by contrast.
+    why: 'the opposite pole of `generous`; harbor names it by contrast: "not a dense dashboard"',
   },
   soft: {
     levers: { radiusScale: 'soft', 'shadow.softness': 'soft' },
