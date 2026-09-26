@@ -7,6 +7,30 @@
 
 ---
 
+## (2026-09-26) — Every type category keeps a weight; label keeps emphasis (#1639)
+
+**STATUS: PR open on `lane/type-weights-required`, stacked on #1676 (#1215), labeled DO NOT MERGE.** Engine + studio. **ENGINE 0.165.0 → 0.166.0**; **CONTRACT 12.0.0 → 13.0.0** (MAJOR: 4 guaranteed paths demoted, accepted with `token-contract --accept` after the raise). `out/**` moves by the version stamp only; `lever-manifest.json` by the lever description.
+
+**The owner's disposition (2026-09-26).** Every category keeps at least one weight, for now: removing weights is never how a text-style category disappears. `label` keeps `emphasis`, because `button` binds `type.label.*.emphasis` by name. `eyebrow` and `code` may swap their single weight, so the composites a swap removes are no longer guaranteed.
+
+**Engine.** `buildComposites` refuses, per category, a `typography.weights` set that is empty (`typography.weights.<category>: … needs at least one weight role`), and a label set without `emphasis` (the message names the button). The label rule lives in `REQUIRED_WEIGHT_ROLES` in `theme.ts` so the studio reads the same table. Before this, an empty set emitted no `type.<category>.*` at all, silently.
+
+**Contract.** New corpus member `minimal-weight-swap`: `MINIMAL_BRAND` with `eyebrow: ['strong']`, `code: ['emphasis']`. It demotes exactly `type.eyebrow.{sm,md,lg}.emphasis` and `type.code.inline.default`; the swapped-in roles are brand-dependent adds. No component binds either family (grepped the defs, `anatomy-figma.ts`, `tree.ts`). Recorded in `docs/30` as a `Decided` heading and indexed in `docs/42`. The skills make no claim about these guarantees, so they didn't change.
+
+**The schema budget trap.** The first cut added `minItems: 1` to all seven weight arrays in `theme-schema.json` plus a long description. That pushed MCP `tools/list` to 60,128 chars, over its 60,000 budget (`test.ts` fails by name). The schema is inlined in `tools/list`, so every character counts. `minItems` came out (the engine refusal is the one that runs), and the description shrank to one clause.
+
+**Studio.** The category table's weight checkboxes disable the last ticked weight of a category and label's `emphasis`, with the reason as the tooltip (the pattern the rung selects use). **Found on the way:** the weight checkboxes called `apply()`, which repaints only the volatile region, so the table kept its pre-click `has` set. Tick a second eyebrow weight, then untick the first, and the stale set computed `[]` → `undefined` → the default, silently dropping the tick. They call `applyFull()` now, the same fix the rung selects carry.
+
+**Gates.** `test.ts` `#1639`: each of seven categories (listed in the test, not read from `TYPE_GROUPS`) refused empty, by name; three label sets without emphasis refused, naming the button; label may gain a weight; the eyebrow/code swap accepted and real in the emission; the four swappable paths brand-dependent in the committed baseline and `type.label.*.emphasis` guaranteed. Corpus-count pins 9 → 10. `test-smoke.mjs` 2e: ticks a second label weight, then checks `emphasis` is still disabled and names the button; checks eyebrow's single weight is disabled; swaps eyebrow's weight with no engine error. Waits are on the row's style count, which only moves once the engine's answer paints.
+
+**Mutations, each from a committed `wip:` HEAD, restored:**
+- Remove the empty-category check → `❌ #1639 an empty weight set for '<category>' is refused, naming the category (got: no throw)` ×6. `label` still throws, from the label rule, and fails by name for the wrong message.
+- Allow label without emphasis → `❌ #1639 a label set without emphasis (strong|default/strong|subtle) is refused …` ×3.
+- Drop the corpus member → `contract: the corpus spans…`, `contract: the COMMITTED baseline still matches…`, `#1010 …`; `--check` reports the 4 paths ADDED (MINOR).
+- Studio: drop the label rule's `disabled` → `✗ <brand>: with two label weights ticked, label's emphasis box is still disabled …` for aurora and harbor.
+
+---
+
 ## (2026-09-26) — Aurora moves to comfortable density; compact stays covered by a test fixture (#1215)
 
 **STATUS: PR open on `lane/aurora-comfortable`, labeled DO NOT MERGE.** Engine only. **ENGINE 0.164.0 → 0.165.0** (aurora's emitted values move); CONTRACT STANDS at 12.0.0 (`token-contract --check` level `none`; `--accept` rewrote only the informational `engineVersion` and `corpus` fields). `lint-component-surface` clean: 0 defs moved, nothing accepted.

@@ -159,6 +159,13 @@
       "title": "a brand that narrows `typography.weights` drops the styles for the weights it doesn't use, and those paths are brand-dependent",
       "doc": "docs/30-versioning-and-compatibility.md",
       "section": null
+    },
+    {
+      "date": "2026-09-26",
+      "issue": 1639,
+      "title": "every type category keeps a weight, label keeps `emphasis`, and eyebrow and code may swap theirs",
+      "doc": "docs/30-versioning-and-compatibility.md",
+      "section": null
     }
   ]
 }

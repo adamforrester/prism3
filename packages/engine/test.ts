@@ -17536,7 +17536,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // fixture. Aurora was the corpus's compact member until the owner moved it to comfortable; without a
   // replacement, compact would sit outside the corpus and a compact-only removal of a guaranteed path
   // would go unseen (theme.ts's grid feed relies on compact being a corpus density).
-  ok(live.corpus.length === 9, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, the minimal input with a two-breakpoint layout, the minimal input with narrowed weight sets, and the minimal input at compact density (${live.corpus.length} brands)`);
+  // TEN since #1639, which added `minimal-weight-swap` — eyebrow and code each replace their single
+  // default weight. Without it their default composites would stay guaranteed on "nobody swapped it".
+  ok(live.corpus.length === 10, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, the minimal input with a two-breakpoint layout, the minimal input with narrowed weight sets, the minimal input at compact density, and the minimal input with eyebrow and code swapping their single weight (${live.corpus.length} brands)`);
   for (const { id, theme } of corpus()) {
     const paths = pathsOf(theme);
     const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
@@ -17546,6 +17548,50 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'contract: the COMMITTED baseline still matches the engine (run token-contract.ts --accept after reviewing the diff)');
   ok(committed.contractVersion === CONTRACT_VERSION,
     `contract: the baseline's stamped version tracks CONTRACT_VERSION (${committed.contractVersion} vs ${CONTRACT_VERSION})`);
+
+  // ---- #1639: every type category keeps a weight; label keeps emphasis (owner-decided 2026-09-26) ----
+  // The refusals are asserted per category, from a list authored HERE (docs/34: not read off
+  // `TYPE_GROUPS` or `REQUIRED_WEIGHT_ROLES`, the subject), each by the category name in the message.
+  {
+    const CATEGORIES = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
+    const refusal = (weights: Record<string, string[]>): string => {
+      try { brandTheme({ ...MINIMAL_BRAND, typography: { weights } } as BrandInput); return ''; }
+      catch (e) { return (e as Error).message; }
+    };
+    for (const g of CATEGORIES) {
+      const msg = refusal({ [g]: [] });
+      ok(msg.startsWith(`typography.weights.${g}:`) && /at least one weight/.test(msg),
+        `#1639 an empty weight set for '${g}' is refused, naming the category (got: ${msg || 'no throw'})`);
+    }
+    for (const set of [['strong'], ['default', 'strong'], ['subtle']]) {
+      const msg = refusal({ label: set });
+      ok(msg.startsWith('typography.weights.label:') && /'emphasis'/.test(msg) && /button/.test(msg),
+        `#1639 a label set without emphasis (${set.join('/')}) is refused, and the message says the button binds it (got: ${msg || 'no throw'})`);
+    }
+    ok(refusal({ label: ['emphasis', 'strong'] }) === '',
+      '#1639 label may GAIN a weight: [emphasis, strong] is accepted');
+    // The swap the owner allowed: eyebrow and code each keep one weight, just a different one.
+    const swapMsg = refusal({ eyebrow: ['strong'], code: ['emphasis'] });
+    ok(swapMsg === '', `#1639 eyebrow and code may swap their single weight (got: ${swapMsg || 'accepted'})`);
+    if (!swapMsg) {
+      const swapped = pathsOf(brandTheme({ ...MINIMAL_BRAND, typography: { weights: { eyebrow: ['strong'], code: ['emphasis'] } } } as BrandInput));
+      ok(swapped.has('type.eyebrow.md.strong') && !swapped.has('type.eyebrow.md.emphasis') && swapped.has('type.code.inline.emphasis') && !swapped.has('type.code.inline.default'),
+        '#1639 the swap is real: the swapped roles are emitted and the default roles are not');
+    }
+    // THE CONTRACT CLASSIFICATION. The four composites a swap removes are brand-dependent in the
+    // committed baseline; label's emphasis composites, which the engine now protects, stay guaranteed.
+    const SWAPPABLE = ['type.eyebrow.sm.emphasis', 'type.eyebrow.md.emphasis', 'type.eyebrow.lg.emphasis', 'type.code.inline.default'];
+    const stillGuaranteed = SWAPPABLE.filter((p) => p in committed.guaranteed);
+    const notEmitted = SWAPPABLE.filter((p) => !committed.brandDependent.includes(p));
+    ok(stillGuaranteed.length === 0 && notEmitted.length === 0,
+      `#1639 the composites an eyebrow/code swap removes are brand-dependent, not guaranteed`
+      + (stillGuaranteed.length ? ` — STILL GUARANTEED: ${stillGuaranteed.join(', ')}` : '')
+      + (notEmitted.length ? ` — NOT IN brandDependent: ${notEmitted.join(', ')}` : ''));
+    const LABEL_EMPHASIS = ['type.label.sm.emphasis', 'type.label.md.emphasis', 'type.label.lg.emphasis'];
+    const labelLost = LABEL_EMPHASIS.filter((p) => !(p in committed.guaranteed));
+    ok(labelLost.length === 0,
+      `#1639 type.label.{sm,md,lg}.emphasis stay guaranteed — the engine refuses a label set without them` + (labelLost.length ? ` — MISSING: ${labelLost.join(', ')}` : ''));
+  }
 
   // One version, stamped everywhere it is claimed. Two hardcoded copies is how a server ends up
   // reporting a version its own artifacts disagree with.
@@ -18870,7 +18916,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
       return { brand: id.split(' ')[0], px: ext };
     });
-    ok(px.length === 9 && px.every((b) => b.px === 16),
+    ok(px.length === 10 && px.every((b) => b.px === 16),
       `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
   }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),

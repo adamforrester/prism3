@@ -1159,7 +1159,8 @@ export type TypographyInput = {
    *  label/eyebrow `[emphasis]`, code `[default]`. Override a role to ship a
    *  multi-weight ramp (e.g. `display: ['default','strong']`, or `['strong','max']`
    *  for a black hero). Roles use the canonical weight-role names
-   *  (subtle/default/emphasis/strong/max, lightest→heaviest). */
+   *  (subtle/default/emphasis/strong/max, lightest→heaviest). Every role keeps at least one weight,
+   *  and label keeps `emphasis` (#1639, refused in `buildComposites`). */
   weights?: Partial<Record<TypeGroup, WeightRoleName[]>>;
   /** Per-(category, weight-role) VERBATIM FACE PIN (#1368). A slot may name the exact Figma face —
    *  `{ family, style }` — it should bind, OVERRIDING the numeric-weight → style-name derivation for
@@ -1233,6 +1234,16 @@ const TYPE_FAMILY_DEFAULT: Record<TypeGroup, { face: string; fallback: string[] 
 export const TYPE_WEIGHTS_DEFAULT: Record<TypeGroup, WeightRoleName[]> = {
   display: ['strong'], title: ['strong'], label: ['emphasis'], eyebrow: ['emphasis'],
   body: ['default', 'strong'], caption: ['default', 'strong'], code: ['default'],
+};
+/**
+ * #1639 (owner-decided 2026-09-26) — the weight roles a category can NEVER drop, each with the reason.
+ * `button` binds `type.label.{sm,md,lg}.emphasis` BY NAME (not through a weight intent, the way
+ * `field-label` does since #1602), so a label set without `emphasis` would leave the button with no
+ * text style. `buildComposites` refuses such a set. Every other single-role default (eyebrow, code)
+ * may be swapped, as long as the category keeps a weight: see the empty-set refusal there.
+ */
+export const REQUIRED_WEIGHT_ROLES: Partial<Record<TypeGroup, { role: WeightRoleName; why: string }>> = {
+  label: { role: 'emphasis', why: 'the button binds type.label.*.emphasis by name' },
 };
 /**
  * #1602 — the weight roles a brand ACTUALLY EMITS per category, derived from the composites it
@@ -1450,6 +1461,17 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     }
   }
   const weightsMap = { ...TYPE_WEIGHTS_DEFAULT, ...(t.weights ?? {}) };
+  // #1639 (owner-decided 2026-09-26): every category keeps at least one weight. Removing weights is
+  // never how a text-style category disappears, so an empty set is refused by name rather than
+  // silently emitting no `type.<category>.*` at all. And a category's required roles stay in its set.
+  for (const g of TYPE_GROUPS) {
+    const roles = weightsMap[g];
+    if (!Array.isArray(roles) || roles.length === 0)
+      throw new Error(`typography.weights.${g}: the '${g}' category needs at least one weight role. Removing weights can't remove a type category, so keep one (its default is ${TYPE_WEIGHTS_DEFAULT[g].join('/')}).`);
+    const req = REQUIRED_WEIGHT_ROLES[g];
+    if (req && !roles.includes(req.role))
+      throw new Error(`typography.weights.${g}: the '${g}' category must include '${req.role}', because ${req.why}. Add '${req.role}' back (the set given is ${roles.join('/')}).`);
+  }
   const linkGroups = new Set(t.links ?? TYPE_LINK_DEFAULT);
   const italicGroups = new Set(t.italics ?? []);   // default none — italics are opt-in per role
   // #1368 — verbatim face pins, validated once here so a bad pin fails at build with a named message

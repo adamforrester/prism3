@@ -399,7 +399,7 @@
         "weights": {
           "type": "object",
           "additionalProperties": false,
-          "description": "Per-role weight set — weight is an axis on every type role, and every composite carries the weight in its name (type.<group>.<size>.<weight>). Defaults: display/title ['strong'], body ['default','strong'] (add 'emphasis' for a 3rd), caption ['default','strong'], label/eyebrow ['emphasis'], code ['default']. Override a role to ship a multi-weight ramp (e.g. display: ['strong','max'] for a black hero). Adding a weight is additive — never renames.",
+          "description": "Per-role weight set — weight is an axis on every type role, and every composite carries the weight in its name (type.<group>.<size>.<weight>). Defaults: display/title ['strong'], body ['default','strong'] (add 'emphasis' for a 3rd), caption ['default','strong'], label/eyebrow ['emphasis'], code ['default']. Override a role to ship a multi-weight ramp (e.g. display: ['strong','max'] for a black hero). Adding a weight is additive — never renames. Every role keeps one or more; label keeps 'emphasis'.",
           "properties": {
             "display": { "type": "array", "items": { "type": "string", "enum": ["subtle", "default", "emphasis", "strong", "max"] } },
             "title": { "type": "array", "items": { "type": "string", "enum": ["subtle", "default", "emphasis", "strong", "max"] } },
