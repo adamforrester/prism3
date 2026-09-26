@@ -7,6 +7,21 @@
 
 ---
 
+## (2026-09-26) — the spinner's SVG import, verified on a real host (notes only)
+
+**STATUS: notes + docs only; no version bump.** `components/spinner.ts` shipped (#1677) with two `notes.unverified` items: that Figma's importer maps a `<path opacity>` to layer opacity, and that it reads the elliptical-arc (`A`) commands. Both were measured live on 2026-09-26 in the NB Approved MCP Testing File. The probe ran `figma.createNodeFromSvg` on the exact spinner document, read it back, and removed it, leaving nothing in the file. The two items move to a `notes.evolution` record.
+
+**What the host did:**
+- **One VECTOR per `<path>`, in path order, named by `id`.** This is what both executors' `ops[vi++]` pairing assumes.
+- **`track`:** layer opacity 0.2 (read back as 0.20000000298, single precision), EVENODD winding, 22×22 at (1,1).
+- **`arc`:** opacity 1, NONZERO winding, 12×16.79 at (11,1).
+- **Curves:** both outlines are cubic curves (24 and 16 segments, 0 line segments), so the arcs are not flattened into polygons.
+
+**Why no ENGINE bump.** `notes` are stripped from the built bundles (#1623) and are not part of the projected plan: `lint-component-surface.ts` is clean with the change. Nothing a consumer can observe moved.
+
+**Trap for re-verification.** The opacity reads back as single-precision 0.20000000298. No executor compares layer opacity exactly today (only the `zeroOpacity` check reads it, and it compares to 0). A future read-back that compares it to `0.2` strictly would report a false DISCARDED, the same shape as #1668's `minHeight`. Compare with a tolerance.
+---
+
 ## (2026-09-26) — paste-path verify: `modesDistinct` on a single-mode brand (#1687)
 
 **STATUS: PR open from `lane/paste-verify-single-mode`, labeled DO NOT MERGE.** Engine (`materialise-to-figma.ts`, the legacy CLI paste path's `verify` pass). **ENGINE 0.172.0 → 0.173.0** (MINOR — the paste-path verdict changes). CONTRACT stands; `out/**` and the contract baseline restamp the generator version and nothing else.
