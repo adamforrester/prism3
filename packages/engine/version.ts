@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.167.0 — #1681 (owner-decided 2026-09-26, option A): `body` and `caption` keep `default`, the same way
+ * `label` keeps `emphasis`. Both join `REQUIRED_WEIGHT_ROLES` in theme.ts, so the engine refuses a body or
+ * caption set without `default`, naming the form controls that bind `type.body.*.default` and
+ * `type.caption.md.default` by name; either set may still gain weights. The studio disables both
+ * `default` boxes with that reason as the tooltip. The contract doesn't move: those paths were already
+ * guaranteed, and the refusal is what keeps that true (CONTRACT STANDS at 13.0.0, `--check` level
+ * `none`). Also aurora's brief drops "the UI is dense" to match its comfortable density (#1215), so
+ * the `dense` personality's `why` is re-sourced; the lever and schema descriptions state the new rule.
+ *
  * 0.166.0 — #1639 (owner-decided 2026-09-26): the engine refuses a `typography.weights` input that leaves
  * any type category with zero weight roles, naming the category, and refuses a `label` set without
  * `emphasis`, saying why (`button` binds `type.label.*.emphasis` by name). `REQUIRED_WEIGHT_ROLES` in
@@ -3750,7 +3759,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.166.0';
+export const ENGINE_VERSION = '0.167.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

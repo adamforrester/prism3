@@ -166,6 +166,13 @@
       "title": "every type category keeps a weight, label keeps `emphasis`, and eyebrow and code may swap theirs",
       "doc": "docs/30-versioning-and-compatibility.md",
       "section": null
+    },
+    {
+      "date": "2026-09-26",
+      "issue": 1681,
+      "title": "body and caption keep `default`, the same way label keeps `emphasis`",
+      "doc": "docs/30-versioning-and-compatibility.md",
+      "section": null
     }
   ]
 }

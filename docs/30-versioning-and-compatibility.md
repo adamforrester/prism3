@@ -249,6 +249,22 @@ The owner's disposition:
 The studio's category table disables the two unticks the engine refuses (the last weight a category
 ships, and label's `emphasis`), with the reason on hover.
 
+The residual from #1632 (above) was still open after this: `body.*.default` and `caption.md.default`
+had no refusal behind them, only the fact that `minimal-weights` keeps them. Filed as #1681 and
+decided below.
+
+#### Decided (2026-09-26, #1681): body and caption keep `default`, the same way label keeps `emphasis`
+
+The owner picked refusal over demotion. `field-label`, `text-field`, `select`, `textarea` and the
+checkbox, radio and switch rows bind `type.body.*.default` by name; `textarea` and `field-message` bind
+`type.caption.md.default`. So `body` and `caption` join `label` in `REQUIRED_WEIGHT_ROLES`, and the
+engine refuses a body or caption set without `default`, naming the controls. Either set may still gain
+weights (`body: ['default', 'strong', 'emphasis']` is accepted). The contract doesn't move: these paths
+were guaranteed already, and the refusal is what keeps that true (`CONTRACT_VERSION` stands at 13.0.0,
+`token-contract --check` level `none`). The studio disables body's and caption's `default` boxes too,
+with the same reason on hover. That closes the residual: every weight a component binds by name is
+one the engine refuses to drop, and `field-label`'s `bold` still resolves by intent (#1602).
+
 **The gate that closes the class, not just these two instances**, is `lint-lever-sweep.ts` (#957). It
 sweeps every toggle and enum option, one at a time, over three brands. It fails on any guaranteed path
 a setting removes or retypes unless an allowlist entry, with its reason, names exactly that removal.

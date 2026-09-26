@@ -919,7 +919,7 @@ for (const brand of BRANDS) {
   }, null, { timeout: 5000 }).then(() => true, () => false);
   ok(cleared, `${brand}: undoing the refused edit clears the bar`);
 
-  // --- 2e. the weight checkboxes refuse what the engine refuses (#1639) ----------------------------
+  // --- 2e. the weight checkboxes refuse what the engine refuses (#1639, #1681) ----------------------
   // The engine refuses a category with no weight, and a label without `emphasis`. The studio's
   // category table must not offer either untick: the box is disabled, with the reason on hover. The
   // required pair (label → emphasis) is authored here, not read from the engine (docs/34). A swap the
@@ -953,6 +953,25 @@ for (const brand of BRANDS) {
   const labelEmphasis = label1.find((b) => b.role === 'emphasis');
   ok(label1.filter((b) => b.checked).length >= 2 && !!labelEmphasis && labelEmphasis.checked && labelEmphasis.disabled && /button/.test(labelEmphasis.title),
     `${brand}: with two label weights ticked, label's emphasis box is still disabled, and says the button uses it (${JSON.stringify(label1.filter((b) => b.checked))})`);
+  // #1681: body and caption keep `default` the same way, for the form controls. The control each
+  // tooltip must name is authored here (docs/34), not read from the engine's `why`. As with label, a
+  // second weight is ticked first when the row has only one, so the last-weight rule can't be what
+  // holds the box.
+  for (const [cat, control] of [['body', /text field/], ['caption', /field message/]]) {
+    const row0 = await weightRow(cat);
+    if (row0.filter((b) => b.checked).length < 2) {
+      const extra = row0.find((b) => !b.checked && b.role !== 'default');
+      if (extra) {
+        const before = await countOf(cat);
+        await boxIn(cat, row0, extra.role).click();
+        await repainted(cat, before);
+      }
+    }
+    const row1 = await weightRow(cat);
+    const def = row1.find((b) => b.role === 'default');
+    ok(row1.filter((b) => b.checked).length >= 2 && !!def && def.checked && def.disabled && control.test(def.title),
+      `${brand}: with two ${cat} weights ticked, ${cat}'s default box is still disabled, and names the ${control.source} (${JSON.stringify(row1.filter((b) => b.checked))})`);
+  }
   const eyebrow0 = await weightRow('eyebrow');
   const eyebrowOn = eyebrow0.filter((b) => b.checked);
   ok(eyebrowOn.length === 1 && eyebrowOn[0].disabled,

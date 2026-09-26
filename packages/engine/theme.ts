@@ -1160,7 +1160,7 @@ export type TypographyInput = {
    *  multi-weight ramp (e.g. `display: ['default','strong']`, or `['strong','max']`
    *  for a black hero). Roles use the canonical weight-role names
    *  (subtle/default/emphasis/strong/max, lightest→heaviest). Every role keeps at least one weight,
-   *  and label keeps `emphasis` (#1639, refused in `buildComposites`). */
+   *  label keeps `emphasis`, and body and caption keep `default` (#1639/#1681, refused in `buildComposites`). */
   weights?: Partial<Record<TypeGroup, WeightRoleName[]>>;
   /** Per-(category, weight-role) VERBATIM FACE PIN (#1368). A slot may name the exact Figma face —
    *  `{ family, style }` — it should bind, OVERRIDING the numeric-weight → style-name derivation for
@@ -1241,9 +1241,13 @@ export const TYPE_WEIGHTS_DEFAULT: Record<TypeGroup, WeightRoleName[]> = {
  * `field-label` does since #1602), so a label set without `emphasis` would leave the button with no
  * text style. `buildComposites` refuses such a set. Every other single-role default (eyebrow, code)
  * may be swapped, as long as the category keeps a weight: see the empty-set refusal there.
+ * #1681 (owner-decided 2026-09-26, option A): `body` and `caption` keep `default` on the same footing —
+ * the form controls bind those composites by name. A brand may still ADD weights to either.
  */
 export const REQUIRED_WEIGHT_ROLES: Partial<Record<TypeGroup, { role: WeightRoleName; why: string }>> = {
   label: { role: 'emphasis', why: 'the button binds type.label.*.emphasis by name' },
+  body: { role: 'default', why: 'the field label, text field, select, textarea and the checkbox, radio and switch rows bind type.body.*.default by name' },
+  caption: { role: 'default', why: 'the textarea and field message bind type.caption.md.default by name' },
 };
 /**
  * #1602 — the weight roles a brand ACTUALLY EMITS per category, derived from the composites it

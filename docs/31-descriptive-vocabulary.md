@@ -1,7 +1,7 @@
 # 31 — Descriptive vocabulary: the words a brief already uses
 
-> A brand brief does not speak in numbers. It says *"corners are generous and the UI is dense"*, not
-> `radiusScale: 2, density: compact`. The engine had no way to hear that: nine slider levers took
+> A brand brief does not speak in numbers. It says *"corners are generous and the UI has room to
+> breathe"*, not `radiusScale: 2, density: comfortable`. The engine had no way to hear that: nine slider levers took
 > bare numbers with no vocabulary at all, and a `design.md`'s prose was parsed and then discarded.
 > So an agent working from a brief had to invent a number — and its guess went unrecorded, which is
 > the part that matters. **A logged default is auditable; a guessed one is not.** This file records
