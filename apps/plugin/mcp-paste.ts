@@ -15,17 +15,19 @@
  * unit that will not fit is a thrown error, never a script over the ceiling.
  *
  * ── HOW THE THEME IS CUT (and why the cut is invisible in the file) ───────────────────────────────────
- * The plugin's apply is: fonts → pre-flight → [rename pre-pass → color → float → styles → grid → font →
- * text → persist]. The paste path keeps that order and cuts it into steps:
+ * The plugin's apply is: fonts → pre-flight → [rename pre-pass → float → color → styles → grid → font →
+ * text → persist] (float before color since #1646: a tinted wash's color value aliases an `opacity/<n>`
+ * variable). The paste path keeps that order and cuts it into steps:
  *
  *   · PRE-FLIGHT, read-only, the whole `preflightPlanOf` output sliced across as many scripts as it needs.
  *     ALL of them run before ANY write; a conflict in any one means nothing is written (runbook rule 1).
+ *   · FLOAT as create slices, then alias slices. `applyFloatPlan` resolves aliases only among the
+ *     collections in the call, so every alias script carries EVERY float collection (with no create rows),
+ *     and only its own slice of alias rows.
  *   · COLOR as three passes, each sliced: palette rows, `color` create rows (literal fallbacks — pass A),
  *     then `color` alias rows (pass B). `applyWritePlan` resolves alias targets from what the FILE holds,
- *     so pass B finds every target pass A wrote in an earlier script, exactly as it would in one call.
- *   · FLOAT the same way, with one difference that is load-bearing: `applyFloatPlan` resolves aliases only
- *     among the collections in the call, so every alias script carries EVERY float collection (with no
- *     create rows), and only its own slice of alias rows.
+ *     so pass B finds every target pass A wrote in an earlier script, exactly as it would in one call —
+ *     and a wash's `opacity/<n>` target, which the FLOAT steps wrote before it.
  *   · FONT in one script — its rows carry literals and aliases together and alias across its two
  *     collections, so it cannot be cut; the size gate fails by name the day it outgrows one.
  *   · STYLES, GRID, TEXT sliced by row (each row is an independent find-or-create by name).
@@ -232,23 +234,6 @@ export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] 
     expect: '{ ok: true, conflicts: [] } — any conflict in any pre-flight script means: stop, write nothing, report the conflicts.',
   }, 'runPreflight', { ...common(`pre-flight ${i + 1}/${pfSlices.length}`), plan: pfPlan(s) }));
 
-  // COLOR — three passes.
-  const { modes } = p.colorPlan.color;
-  const colorData = (label: string, plan: WritePlan) => ({ ...common(label), fonts, plan });
-  const colorPass = (name: string, rows: unknown[], planOf: (rows: never[]) => WritePlan, purpose: string) => {
-    const slices = slice(rows, (s) => assemble('runColor', colorData(name, planOf(s as never[]))), name);
-    slices.forEach((s, i) => {
-      const label = `${name} ${i + 1}/${slices.length}`;
-      add({ phase: 'theme', kind: 'color', label, purpose, expect: '{ ok: true, misses: [] }' }, 'runColor', colorData(label, planOf(s as never[])));
-    });
-  };
-  colorPass('palette', p.colorPlan.palette, (palette) => ({ palette, color: { modes, create: [], aliases: [] } }),
-    'Writes a slice of the palette primitives into the `core` collection.');
-  colorPass('color create', p.colorPlan.color.create, (create) => ({ palette: [], color: { modes, create, aliases: [] } }),
-    'Creates a slice of the `color` variables with a literal value in every mode (pass A).');
-  colorPass('color aliases', p.colorPlan.color.aliases, (aliases) => ({ palette: [], color: { modes, create: [], aliases } }),
-    'Binds a slice of the `color` variables to their palette targets, per mode (pass B).');
-
   // FLOAT — create slices, then alias slices carrying every collection.
   type FItem = { col: number; row?: FloatCollectionPlan['create'][number] };
   const fItems: FItem[] = p.floatPlan.flatMap((c, col) => [{ col }, ...c.create.map((row) => ({ col, row }))]);
@@ -271,6 +256,23 @@ export const themeScripts = (input: BrandInput, opts: ThemeOpts = {}): Script[] 
       add({ phase: 'theme', kind: 'float', label, purpose: 'Binds a slice of the float variables to the dimension variables they alias, per mode.', expect: '{ ok: true, misses: [] }' }, 'runFloat', floatData(label, fAlias(s)));
     });
   }
+
+  // COLOR — three passes.
+  const { modes } = p.colorPlan.color;
+  const colorData = (label: string, plan: WritePlan) => ({ ...common(label), fonts, plan });
+  const colorPass = (name: string, rows: unknown[], planOf: (rows: never[]) => WritePlan, purpose: string) => {
+    const slices = slice(rows, (s) => assemble('runColor', colorData(name, planOf(s as never[]))), name);
+    slices.forEach((s, i) => {
+      const label = `${name} ${i + 1}/${slices.length}`;
+      add({ phase: 'theme', kind: 'color', label, purpose, expect: '{ ok: true, misses: [] }' }, 'runColor', colorData(label, planOf(s as never[])));
+    });
+  };
+  colorPass('palette', p.colorPlan.palette, (palette) => ({ palette, color: { modes, create: [], aliases: [] } }),
+    'Writes a slice of the palette primitives into the `core` collection.');
+  colorPass('color create', p.colorPlan.color.create, (create) => ({ palette: [], color: { modes, create, aliases: [] } }),
+    'Creates a slice of the `color` variables with a literal value in every mode (pass A).');
+  colorPass('color aliases', p.colorPlan.color.aliases, (aliases) => ({ palette: [], color: { modes, create: [], aliases } }),
+    'Binds a slice of the `color` variables to their palette targets, per mode (pass B).');
 
   // STYLES (effect + paint), GRID.
   type SItem = { effect: StylesPlan['effects'][number] } | { paint: StylesPlan['paints'][number] };
@@ -485,7 +487,7 @@ export const mergeLedgers = (results: readonly StepReport[], seed?: Ledger): Led
 /* ── the comparison against the plan (report.ts, and the gate) ─────────────────────────────────────── */
 
 type Rgba = { r: number; g: number; b: number; a?: number };
-type Val = number | string | boolean | Rgba | { alias: string } | null;
+type Val = number | string | boolean | Rgba | { alias: string; opacity?: number | string } | null;
 export type ExpectedVar = { collection: string; type: string; scopes: string[]; hidden: boolean; description: string; values: Val[]; modes: string[] | 'first' };
 
 /** Every variable the plans write, keyed by name, with what each mode should hold. */
@@ -493,8 +495,16 @@ export const expectedVariables = (p: ThemePlans): Map<string, ExpectedVar> => {
   const out = new Map<string, ExpectedVar>();
   for (const r of p.colorPlan.palette) out.set(r.name, { collection: 'core', type: 'COLOR', scopes: r.scopes, hidden: r.hidden, description: r.description, values: [r.value], modes: 'first' });
   const { modes, create, aliases } = p.colorPlan.color;
-  const al = new Map(aliases.map((a) => [a.name, a.targetsByMode] as const));
-  for (const r of create) out.set(r.name, { collection: 'color', type: 'COLOR', scopes: r.scopes, hidden: false, description: r.description, modes, values: r.valuesByMode.map((v, i) => (al.get(r.name)?.[i] ? { alias: al.get(r.name)![i]! } : v)) });
+  const al = new Map(aliases.map((a) => [a.name, a] as const));
+  // A tinted wash's alias carries its opacity variable (#1646), which the read-back reports by name.
+  const colorVal = (name: string, i: number): Val | undefined => {
+    const a = al.get(name);
+    const t = a?.targetsByMode[i];
+    if (!t) return undefined;
+    const op = a?.opacityByMode?.[i];
+    return op ? { alias: t, opacity: op.name } : { alias: t };
+  };
+  for (const r of create) out.set(r.name, { collection: 'color', type: 'COLOR', scopes: r.scopes, hidden: false, description: r.description, modes, values: r.valuesByMode.map((v, i) => colorVal(r.name, i) ?? v) });
   for (const c of p.floatPlan) {
     const fa = new Map(c.aliases.map((a) => [a.name, a.targetsByMode] as const));
     for (const r of c.create) out.set(r.name, { collection: c.name, type: 'FLOAT', scopes: r.scopes, hidden: r.hidden, description: r.description, modes: c.modes, values: r.valuesByMode.map((v, i) => (fa.get(r.name)?.[i] ? { alias: fa.get(r.name)![i]! } : v)) });
@@ -504,7 +514,7 @@ export const expectedVariables = (p: ThemePlans): Map<string, ExpectedVar> => {
 };
 
 const sameVal = (a: Val | undefined, b: Val | undefined): boolean => {
-  if (a && typeof a === 'object' && 'alias' in a) return !!b && typeof b === 'object' && 'alias' in b && b.alias === a.alias;
+  if (a && typeof a === 'object' && 'alias' in a) return !!b && typeof b === 'object' && 'alias' in b && b.alias === a.alias && b.opacity === a.opacity;
   if (a && typeof a === 'object') {
     if (!b || typeof b !== 'object' || 'alias' in b) return false;
     const x = a as Rgba; const y = b as Rgba;

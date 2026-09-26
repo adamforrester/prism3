@@ -676,6 +676,15 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sz-cell{display:flex;flex-direction:column;align-items:center;gap:9px}
 .sz-box{display:flex;align-items:center;justify-content:center;min-width:44px;background:var(--ink);color:var(--panel);border-radius:6px;font-size:12px;font-weight:560}
 .sz-lab{font-size:11px;color:var(--muted);white-space:nowrap}
+/* #1667 button-layout specimen — geometry only, in the page ink. `.btnl-pinned` is Locked to edges: the icon
+   is out of flow at the visual padding, and the button pads that side by padding + icon + gap (set inline). */
+.btnl-list{display:flex;flex-direction:column;gap:18px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
+.btnl-row{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+.btnl-lab{flex:0 0 100%;font-size:11px;color:var(--muted)}
+.btnl-btn{position:relative;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;max-width:100%;background:var(--ink);color:var(--panel);font-weight:600;white-space:nowrap}
+.btnl-icon{flex:none;border-radius:2px;background:currentColor;opacity:.7}
+.btnl-label{flex:none}
+.btnl-icon.btnl-pinned{position:absolute;top:50%;transform:translateY(-50%)}
 /* Spacing ramp preview (#265) — the space.* steps as proportional bars (spacing has no other payoff). */
 .sp-list{display:flex;flex-direction:column;gap:7px;border-radius:var(--r-sm);padding:22px 20px;background:var(--paper);margin-top:14px}
 /* Label and bar on ONE row. Stacked, the 18 steps ran ~950px tall while the bars — now drawn at their

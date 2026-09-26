@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.162.0 — The field family gains a projected `filled` state (owner decision, 2026-09-25, Prism 2's
+ * 0.164.0 — The field family gains a projected `filled` state (owner decision, 2026-09-25, Prism 2's
  * `Enabled (Empty) | Hovered | Filled | Focused | Disabled` on all three specs). `filled` joins the closed
  * `STATES` vocabulary and the projected state axis of text-field, textarea and select. The value text binds
  * the placeholder ink (`text.secondary`) at rest, hover and focus-visible (new `label.rest` / `label.hover` /
@@ -2937,6 +2937,38 @@
  * stays one `value` shared by every member (a bound TEXT node shows the set's one default, #1567), so a filled
  * member shows the same copy in value ink. New state + def surface moves → MINOR; component-surface and
  * paint-census baselines accepted for the three defs. CONTRACT STANDS (every binding is an existing name).
+ *
+ * 0.163.0 — The tinted wash lives in its own Figma variable, so Apply Theme no longer resets button hovers
+ * (#1646, owner-approved 2026-09-25). Measured live: one Apply Theme reset all 288 `solid-tint` hover/pressed
+ * paints on button, button-destructive and button-neutral from 0.1–0.3 to 1, because the host resets the
+ * opacity of every paint bound to a color variable it rewrites. Each `[inverse.]interactive.<c>.subtle-fill.<state>`
+ * leaf (already in the DTCG tree) is now emitted as a Figma color variable whose value per mode is the fill
+ * variable's alias at the `opacity/<n>` variable (#1646 probe cases A–C, E), and `applyOutlineInteraction` binds
+ * it at paint opacity 1. The plan's `paintOpacity`, `ComponentDef.paintOpacity`, both executors' second-
+ * assignment step (#1656) and their opacity read-back are gone. Apply Theme writes the FLOAT axes before
+ * color, so a wash's opacity target exists when it binds (paste path reordered to match). No step moves: every
+ * wash's opacity equals the old paint opacity in every mode of every example brand. Figma surface and
+ * projected bindings change for `solid-tint` brands → MINOR; the component-surface baseline is accepted
+ * (the `@outline-solid-tint` rows). CONTRACT STANDS — the `subtle-fill` names were already in the tree, and
+ * no corpus brand sets `solid-tint`, so the guaranteed surface does not move.
+ *
+ * 0.162.0 — #1667: three button BRAND levers, owner-decided 2026-09-25, for button / button-destructive /
+ * button-neutral (not icon-button). `buttonIcons` ("Button icons": Attached to label | Locked to edges),
+ * `buttonMinWidthMultiplier` (a slider, default 2.25 — Spectrum's `button-minimum-width-multiplier`) and
+ * `buttonContentSize` ("Button label & icon": Match button size | One step smaller). All three are
+ * materialized into the def before projection by `applyButtonLayout` (the `controlShape` path), in both
+ * executors via `materializeForBrand`. (1) Every button size now carries a minimum width, height ×
+ * multiplier rounded UP to the 8px grid (nb 36/44/56 → 88/104/128), in BOTH icon placements — so an
+ * "Attached to label" button with a short label is wider than before, the consequence the owner accepted.
+ * (2) "Locked to edges" (the owner's construction): the root keeps hugging above that floor, each icon slot
+ * is PINNED out of flow at the visual padding from its edge with a MIN/MAX constraint (new `PartDef.pin` →
+ * plan `pin`), and that side reserves inset + icon + gap as literal padding (new plan `paddingPx`), so the
+ * hugging label centers in the space beside the icons and still widens the button. (3) "One step smaller" gives the MEDIUM size
+ * small's label style and icon. `PartDef.minWidth` also takes a per-size map. The projected component
+ * surface moves (new `@button-default/@button-edges/@button-smaller` rows, and the button defs' own rows for
+ * their edited `codeOnly` prose) → ENGINE bump. NO token is emitted or renamed — `out/**` is a stamp-only
+ * regen, and the levers live in brand input, not in the tree — so CONTRACT STANDS at 12.0.0
+ * (`token-contract --check` level `none`).
  *
  * 0.161.0 — The textarea's resize grip and character counter in Figma (owner decisions (c) and (d),
  * 2026-09-25). A new `resize-grip` glyph joins the icon set (drawn for this project; the `icon` set grows by
@@ -3685,7 +3717,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.162.0';
+export const ENGINE_VERSION = '0.164.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

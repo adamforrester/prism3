@@ -1005,7 +1005,8 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     if (n?.layoutMode) {
       if (!('itemSpacing' in bound)) set('itemSpacing', 0);
       for (const pad of ['paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'] as const)
-        if (!(pad in bound)) set(pad as keyof CompNode, 0);
+        // A side the plan writes as literal px (#1667's reserve beside a pinned icon) is claimed there.
+        if (!(pad in bound) && n.paddingPx?.[pad as 'paddingLeft'] === undefined) set(pad as keyof CompNode, 0);
       // `strokesIncludedInLayout` belongs HERE, not above it: Figma allows it only on an auto-layout frame
       // and THROWS on a `layoutMode: NONE` one. Outside the gate the `set` swallowed that throw into a
       // "#865 UNCLAIMED" miss on every non-auto-layout frame — 40 of them per icon run — and on the real
@@ -1588,6 +1589,9 @@ const writeComponentSet = async (
       // minimum width only on an auto-layout frame (the schema refuses `minWidth` on a layout-less box).
       // Written only when the plan carries it, so every other frame is untouched.
       if (n.minWidth !== undefined) node.minWidth = n.minWidth;
+      // THE RESERVED SIDES (#1667): literal padding beside a pinned icon (`FigmaNodePlan.paddingPx`), written
+      // before the children so every later pass measures the final width. `claimDefaults` leaves them alone.
+      if (n.paddingPx) Object.assign(node, n.paddingPx);
     }
 
     // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind
@@ -1621,22 +1625,12 @@ const writeComponentSet = async (
     // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
     let paintedFills = false;
     let paintedStrokes = false;
-    // A PAINT OPACITY (#1614) goes on the paint the variable was bound to: Figma cannot bind a paint's opacity
-    // to a variable, so a `solid-tint` hover is the category's fill variable at the opacity step's number.
-    // Lockstep with the paste executor (`planToPluginJs`).
-    const fillOpacity = n.paintOpacity?.fills;
+    // Every bound paint is OPAQUE. A `solid-tint` hover's tint lives in the wash VARIABLE it binds (#1614,
+    // #1646): the host resets a bound paint's opacity whenever Apply Theme rewrites that paint's variable,
+    // so a tint carried on the paint lasted only until the next re-apply. Lockstep with the paste executor.
     if (n.paints?.fills) {
       const p = paint(n.paints.fills, 'fills');
-      if (p) {
-        node.fills = [p];
-        paintedFills = true;
-        // THE OPACITY TAKES A SECOND ASSIGNMENT (host-measured on the owner's file, 2026-09-25, frames,
-        // components and rectangles alike): the FIRST time a variable-bound paint lands on a node the host
-        // resets its opacity to 1, whether the opacity was on the paint before binding or spread on after;
-        // re-assigning a copy of the now-bound paint with the opacity keeps it. So the bound paint goes on,
-        // then the opacity. Lockstep with the paste executor.
-        if (fillOpacity !== undefined) node.fills = [{ ...((node.fills as object[])[0]), opacity: fillOpacity }];
-      }
+      if (p) { node.fills = [p]; paintedFills = true; }
       // DECLARED BUT UNRESOLVABLE → transparent, NEVER Figma's opaque white default (#1387). The
       // component set is brand-agnostic — it binds `interactive.<family>.overlay.{hover,pressed}` on
       // outline/text hover/pressed unconditionally — while that wash is EMITTED only under
@@ -1703,12 +1697,6 @@ const writeComponentSet = async (
     for (const prop of wrote)
       if (!weightHeld(got, prop)) misses.push(`${n.name}.${prop} -> DISCARDED (resolved, set, not retained)`);
     if (paintedFills && !boundPaint(node.fills)) misses.push(`${n.name}.fills -> DISCARDED (paint set, not retained)`);
-    // …and at the OPACITY it was set at (#1614): read back at 1, a `solid-tint` hover is the category's fill
-    // opaque — the color its own label sits in, not a hover.
-    if (paintedFills && fillOpacity !== undefined) {
-      const got0 = (node.fills as { opacity?: number }[] | undefined)?.[0]?.opacity ?? 1;
-      if (Math.abs(got0 - fillOpacity) >= 0.001) misses.push(`${n.name}.fills.opacity -> DISCARDED (wanted ${fillOpacity}, read back ${got0})`);
-    }
     if (paintedStrokes && !boundPaint(node.strokes)) misses.push(`${n.name}.strokes -> DISCARDED (paint set, not retained)`);
 
     // FLOW CHILDREN FIRST, absolute ones after — three passes, because an absolute child is positioned
@@ -1716,6 +1704,7 @@ const writeComponentSet = async (
     // `node.width` mid-append and make the result depend on the part's ORDER in the def.
     const absolutes: [FigmaNodePlan, Wr][] = [];
     const centered: [FigmaNodePlan, Wr][] = [];
+    const pinned: [FigmaNodePlan, Wr][] = [];
     // This parent's DIRECT children by part name (#848) — the sibling boxes `absoluteCenterOn` measures
     // against. Sibling-scoped on purpose; see the centering loop for why the wider `parts` map is wrong.
     const byPart = new Map<string, Wr>();
@@ -1743,6 +1732,9 @@ const writeComponentSet = async (
       byPart.set(c.name, kid);
       if (c.absoluteInset) absolutes.push([c, kid]);
       if (c.absoluteCenter) centered.push([c, kid]);
+      // A PINNED child (#1667) leaves the flow the moment it is appended, so it never counts in the hug and
+      // the width it is placed against below is final. See the pinned pass.
+      if (c.pin) { kid.layoutPositioning = 'ABSOLUTE'; pinned.push([c, kid]); }
       // Written straight rather than bound: a brand does not get to theme a label under a spinner to
       // half-visible. `visible:false` would yield the cell and collapse the button.
       if (c.zeroOpacity) kid.opacity = 0;
@@ -1910,6 +1902,22 @@ const writeComponentSet = async (
       kid.constraints = { horizontal: 'STRETCH', vertical: 'STRETCH' };
       if (kid.layoutPositioning !== 'ABSOLUTE')
         misses.push(`${c.name}.layoutPositioning -> DISCARDED (set ABSOLUTE, reads ${kid.layoutPositioning}; the ring would take a cell in the row)`);
+    }
+    // A PINNED child (#1667, "Locked to edges"): out of flow, `inset` from its edge, vertically centered, and
+    // constrained to that edge, so a hugging parent that grows with its label — or an instance a designer
+    // widens — keeps the icon there. Read back like the other lifts: an icon that stayed in flow ADDS a cell
+    // on top of the reserve. LAST of the passes, because the width the end pin is measured off must be final:
+    // the reserve (`paddingPx`) was written before the children, the pins left the flow as they were appended,
+    // and the ring's lift above is the other thing that moves the width (measured: placed before it, a
+    // focus-visible member's end pin sat 36px off). Lockstep with the paste executor's `PAYLOAD_PIN`.
+    for (const [c, kid] of pinned) {
+      const { edge, inset } = c.pin!;
+      kid.x = edge === 'MIN' ? inset : (node.width ?? 0) - inset - (kid.width ?? 0);
+      kid.y = ((node.height ?? 0) - (kid.height ?? 0)) / 2;
+      kid.constraints = { horizontal: edge, vertical: 'CENTER' };
+      const held = kid.constraints as { horizontal?: string } | undefined;
+      if (kid.layoutPositioning !== 'ABSOLUTE' || held?.horizontal !== edge)
+        misses.push(`${c.name}.pin -> DISCARDED (reads ${String(kid.layoutPositioning)} / ${JSON.stringify(kid.constraints)}; the icon would not hold the ${edge} edge)`);
     }
     // #865, AND IT HAS TO BE LAST. Every write above declares something; this one declares that nothing
     // else was declared. Placed after the child loop rather than beside `createFrame()` so that a value

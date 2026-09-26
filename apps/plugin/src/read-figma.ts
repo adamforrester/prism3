@@ -24,7 +24,7 @@
  */
 import type { ReadbackSnapshot, ReadValue } from '@prism3/engine/read-back';
 import { axisSource, inAxis } from '@prism3/engine/figma-names';
-import type { VariablesApi, VariableAlias, ReadVarValue } from './write-figma';
+import type { VariablesApi, VariableAlias, AliasWithOpacity, ReadVarValue } from './write-figma';
 
 /** The minimal styles-read surface (shadow/gradient + typography lanes) — the style-name getters.
  *  `figma` structurally satisfies it; passing it is optional so the colour/FLOAT read stays standalone.
@@ -42,6 +42,9 @@ const isAlias = (v: ReadVarValue): v is VariableAlias =>
   typeof v === 'object' && v !== null && (v as VariableAlias).type === 'VARIABLE_ALIAS';
 const isRgb = (v: ReadVarValue): v is { r: number; g: number; b: number; a?: number } =>
   typeof v === 'object' && v !== null && 'r' in v;
+/** The tinted wash's value (#1646): an alias laid at an opacity. */
+const isAliasWithOpacity = (v: ReadVarValue): v is AliasWithOpacity =>
+  typeof v === 'object' && v !== null && 'color' in v && isAlias((v as AliasWithOpacity).color);
 
 /**
  * Read the live colour variables into a `ReadbackSnapshot`. Only the two colour axes (`core/palette` +
@@ -86,6 +89,11 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
             const raw = v.valuesByMode[modeId];
             if (raw === undefined) continue; // mode carries no value for this var
             if (isAlias(raw)) valuesByMode[name] = { alias: nameById.get(raw.id) ?? null };
+            else if (isAliasWithOpacity(raw)) valuesByMode[name] = {
+              alias: nameById.get(raw.color.id) ?? null,
+              // The opacity as the file holds it: a percentage, or the NAME of the FLOAT variable it aliases.
+              opacity: typeof raw.opacity === 'number' ? raw.opacity : nameById.get(raw.opacity.id) ?? null,
+            };
             else if (isRgb(raw)) valuesByMode[name] = { r: raw.r, g: raw.g, b: raw.b, a: raw.a ?? 1 };
             // non-colour literals (string/number/boolean) can't occur on a COLOR var — skip defensively
           }

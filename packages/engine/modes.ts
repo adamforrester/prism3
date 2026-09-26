@@ -2115,10 +2115,11 @@ const TINT_VISIBLE_DE = 2.3;
  * composite into generated core primitives (`core.palette.tint.*`); the owner superseded that in favor of
  * this — no new primitives, the existing fill at an existing opacity token.
  *
- * ONE STEP PER ROLE, ACROSS EVERY MODE. A Figma paint's opacity cannot bind a variable and cannot vary by
- * mode, while the fill variable it binds does. So the step is chosen once per (ground, category, state)
- * against every mode the brand resolves, and every mode — and the tree, and the Figma plan — carries that
- * one step. A per-mode step would make code and Figma disagree in every mode but the one Figma used.
+ * ONE STEP PER ROLE, ACROSS EVERY MODE. The step is chosen once per (ground, category, state) against every
+ * mode the brand resolves, and every mode carries that one step. It was forced while the Figma tint was a
+ * PAINT opacity, which cannot vary by mode. Since the tint moved into its own Figma variable — the fill's
+ * alias at an opacity, per mode (#1646) — a per-mode step is buildable, and the single step stays only
+ * because the owner has not chosen per-mode tuning (#1646 holds that decision).
  *
  * THE TWO GUARDS, both along the scale, never to an in-between value:
  *   · TEXT (hover only): if the hover label fails its bar on the COMPOSITED result in any mode, step DOWN

@@ -338,6 +338,13 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
   //
   // The ground-specific sentence is a `page_note` (AI/A-13): on the inverse twin it used to tell the
   // role to use itself instead of itself. (`foreground.${c}-subtle` is AI/A-11 — held for #1614.)
+  // The TINTED WASH (#1614): the category's own fill at an opacity step, over whatever the control sits on. Its
+  // relations are `tracks`, not `sits_on` / `carries`: those two are legibility pairs gated opaque-on-opaque,
+  // and a wash is neither ink nor an opaque ground. It follows its fill, and its state label is measured on it.
+  if (slot === 'subtle-fill') {
+    const ink = `interactive.${c}.text.${state === 'selected' ? 'pressed' : state ?? 'hover'}`;
+    return { when_to_use: `The tinted ${state ?? 'interaction'} wash behind an outline or text ${c} control: the ${c} fill at a set opacity, laid over ${q('background.primary')}. The label on it is ${q(ink)}.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)}) or for ${other}.`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.subtle-fill.*`)}, which is measured on the band.`, tracks: [`interactive.${c}.fill.rest`, ink] };
+  }
   if (slot === 'overlay') return { when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards.`, avoid_when: `Do not use as an opaque fill (use ${q(`interactive.${c}.fill.*`)} or foreground.${c}-subtle) or as a modal backdrop (use ${q('scrim.default')}).`, page_note: `On an inverse band, use ${q(`inverse.interactive.${c}.overlay.*`)} — the page wash takes the page's polarity.`, carries: ['text.primary'] };
   return { when_to_use: `The ${slot} of a ${c} interactive element.`, avoid_when: `Do not use outside the ${c} interactive family.` };
 };

@@ -14,7 +14,7 @@
  *                     / hex; primitives under palette). This is what makes the system white-label.
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
-import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
+import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, ButtonIcons, ButtonContentSize, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000 } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
@@ -605,6 +605,15 @@ export type BrandInput = {
    *  sentinel alongside the pills for near-sharp brands (New Balance uses 1px as its dominant corner).
    *  Off by default — omitting it leaves every rung byte-identical. */
   radiusHairline?: boolean;
+  /** Button-family FORM levers (#1667) — materialized into the button defs before projection
+   *  (`applyButtonLayout`); they emit no token and move no token name. `buttonIcons`: 'attached' (default,
+   *  icons next to the label) | 'edges' (icons pinned to the edges, the label centered in the space
+   *  between). `buttonContentSize`: 'match' (default) | 'smaller' (medium binds small's label and icon).
+   *  `buttonMinWidthMultiplier`: a button's minimum width is height × this, rounded up to the 8px grid
+   *  (default 2.25, Spectrum's multiplier). */
+  buttonIcons?: ButtonIcons;
+  buttonContentSize?: ButtonContentSize;
+  buttonMinWidthMultiplier?: number;
 };
 
 /**
@@ -2293,6 +2302,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const enumLevers: { path: string; value: unknown; options: readonly (string | number)[] }[] = [
     { path: 'density', value: input.density, options: DENSITY_VALUES },
     { path: 'controlShape', value: input.controlShape, options: ['rounded', 'pill', 'boxed', 'hairline'] },
+    { path: 'buttonIcons', value: input.buttonIcons, options: ['attached', 'edges'] },
+    { path: 'buttonContentSize', value: input.buttonContentSize, options: ['match', 'smaller'] },
     { path: 'typography.typeScale', value: input.typography?.typeScale, options: ['compact', 'default', 'expressive'] },
     { path: 'typography.displayCeiling', value: input.typography?.displayCeiling, options: DISPLAY_VARIANTS },
     { path: 'typography.titleFloor', value: input.typography?.titleFloor, options: [16, 18] },
@@ -2311,6 +2322,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const rangeLevers: { path: string; value: unknown; min: number; max: number }[] = [
     { path: 'radiusScale', value: input.radiusScale, min: 0, max: 2 },
     { path: 'baseMd', value: input.baseMd, min: 2, max: 12 },
+    { path: 'buttonMinWidthMultiplier', value: input.buttonMinWidthMultiplier, min: 1, max: 4 },
     { path: 'shadow.softness', value: input.shadow?.softness, min: 0, max: 2 },
     { path: 'layout.columns', value: input.layout?.columns, min: 4, max: 24 },
     { path: 'layout.containerMax', value: input.layout?.containerMax, min: 960, max: 1920 },

@@ -15,9 +15,10 @@
  * Mirrors the engine suite's dependency-free `ok(...)` style; exits non-zero on any failure.
  */
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan } from '@prism3/engine/write-plan';
+import { buildWritePlan, buildFloatWritePlan } from '@prism3/engine/write-plan';
 import { nbThemeFrom } from '@prism3/engine/theme';
-import { applyWritePlan, orphansOf, strandedCollections, beginMigration } from './src/write-figma';
+import { applyWritePlan, applyFloatPlan, orphansOf, strandedCollections, beginMigration } from './src/write-figma';
+import { readFigmaVariables } from './src/read-figma';
 import { deriveVariableRenames, isRefusal } from '@prism3/engine/rename-map';
 import nbMeasured from '@prism3/engine/schema/nb-measured.json';
 
@@ -41,7 +42,8 @@ const ok = (cond: boolean, label: string): void => {
 };
 
 // ---- the in-memory figma.variables shim ----------------------------------------------------
-type Val = { r: number; g: number; b: number; a: number } | { type: 'VARIABLE_ALIAS'; id: string };
+type Val = { r: number; g: number; b: number; a: number } | { type: 'VARIABLE_ALIAS'; id: string }
+  | { color: { type: 'VARIABLE_ALIAS'; id: string }; opacity: number | { type: 'VARIABLE_ALIAS'; id: string } };
 class ShimVar {
   scopes: string[] = [];
   description = '';
@@ -682,6 +684,66 @@ ok(halfOld.name === nbVar('color/appearance/background/primary') && halfNew.name
   '#1056 and NEITHER moved — one variable with the new name, still the original, and the old one left exactly as the designer left it');
 ok(halfRes.orphans.find((o) => o.name === 'color')!.names.includes(nbVar('color/appearance/background/primary')),
   '#1056 the un-migratable name falls through to the ORPHAN report, so a refusal here is still something the designer is told about');
+
+// (ix) #1646 THE TINTED WASH IS A VARIABLE — a `solid-tint` brand's hover/pressed/selected wash is written as the
+// fill's ALIAS at an OPACITY that itself aliases the `opacity/<n>` FLOAT variable (the value shape the owner's file
+// accepted, #1646 cases A–C). Apply Theme writes the FLOAT axes first (`apply-theme.ts`), so the opacity target
+// exists; this arm runs the two executors in that order, TWICE, and reads the file back. Expected names and
+// steps are HAND-NAMED: NB's page primary hover is the primary fill at opacity.20, its band hover at opacity.10.
+{
+  const tintTheme = { ...nbThemeFrom(nbMeasured), outlineInteraction: 'solid-tint' as const };
+  const tintPlan = buildWritePlan(buildFigmaColor(tintTheme));
+  const floatPlan = buildFloatWritePlan(tintTheme);
+  const tShim = new VariablesShim();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  const applyAll = async () => { await applyFloatPlan(floatPlan, tShim as any); return applyWritePlan(tintPlan, tShim as any); };
+  const t1 = await applyAll();
+  const varsAfter = tShim.vars.length;
+  const t2 = await applyAll();
+  const byId = new Map(tShim.vars.map((v) => [v.id, v]));
+  const tCol = tShim.collections.find((c) => c.name === 'color')!;
+  const washes = tShim.vars.filter((v) => v.variableCollectionId === tCol.id && v.name.includes('/subtle-fill/'));
+  ok(washes.length === 18 && t1.misses.length === 0 && t2.misses.length === 0,
+    `#1646 solid-tint writes the 18 tinted-wash variables with zero misses, twice (${washes.length}; misses ${[...t1.misses, ...t2.misses].slice(0, 3).join(', ') || 'none'})`);
+  ok(t2.colorCreated === 0 && tShim.vars.length === varsAfter,
+    `#1646 re-apply is idempotent: find-by-name updates every wash in place (created +${t2.colorCreated}, ${tShim.vars.length} vars stable)`);
+  const valueOf = (name: string, mode: string): string => {
+    const v = tShim.vars.find((x) => x.name === nbVar(name));
+    const m = tCol.modes.find((x) => x.name === mode)!.modeId;
+    const val = v?.valuesByMode[m] as { color?: { id: string }; opacity?: { id: string } | number } | undefined;
+    if (!val?.color) return `not alias-with-opacity: ${JSON.stringify(val)}`;
+    const op = typeof val.opacity === 'object' ? byId.get(val.opacity.id)?.name : `literal ${val.opacity}`;
+    return `${byId.get(val.color.id)?.name} @ ${op}`;
+  };
+  const WANT = {
+    'color/interactive/primary/subtle-fill/hover': `${nbVar('color/interactive/primary/fill/rest')} @ ${nbVar('opacity/20')}`,
+    'color/inverse/interactive/primary/subtle-fill/hover': `${nbVar('color/inverse/interactive/primary/fill/rest')} @ ${nbVar('opacity/10')}`,
+    'color/interactive/primary/subtle-fill/pressed': `${nbVar('color/interactive/primary/fill/rest')} @ ${nbVar('opacity/30')}`,
+  } as Record<string, string>;
+  const wrong = Object.entries(WANT).flatMap(([name, want]) => tCol.modes.map((m) => [name, m.name, valueOf(name, m.name)] as const).filter(([, , got]) => got !== want).map(([n, m, got]) => `${n} @${m}: ${got}`));
+  ok(wrong.length === 0,
+    `#1646 in every mode each wash aliases its fill at the opacity variable — primary hover opacity/20, band hover opacity/10, pressed opacity/30 (${wrong.slice(0, 3).join('; ') || 'all hold'})`);
+  // The opacity variable holds the percentage the wash's opacity means (20, not 0.2).
+  const op20 = tShim.vars.find((v) => v.name === nbVar('opacity/20'));
+  ok(Object.values(op20?.valuesByMode ?? {}).every((x) => (x as unknown) === 20),
+    `#1646 the aliased opacity variable holds a percentage (${nbVar('opacity/20')} = ${JSON.stringify(Object.values(op20?.valuesByMode ?? {}))})`);
+  // PRUNE KNOWS THEY ARE CURRENT: a wash is in the plan, so it is never an orphan — the set prune deletes from.
+  ok(t2.orphans.every((o) => o.names.length === 0),
+    `#1646 the washes are current, not stale: 0 orphans after a solid-tint apply (${t2.orphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')})`);
+  // The READ adapter carries the value through: alias name + the opacity variable's name.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  const snap = await readFigmaVariables(tShim as any);
+  const readHover = snap.color.find((v) => v.name === nbVar('color/interactive/primary/subtle-fill/hover'))?.valuesByMode.light as { alias?: string; opacity?: unknown } | undefined;
+  ok(readHover?.alias === nbVar('color/interactive/primary/fill/rest') && readHover?.opacity === nbVar('opacity/20'),
+    `#1646 read-back reports the wash as its fill alias at its opacity variable (${JSON.stringify(readHover)})`);
+  // ORDER IS LOAD-BEARING: without the FLOAT axes first, the opacity target is absent and every wash is a named
+  // miss — never a quiet literal that would stop following the opacity scale.
+  const cold = new VariablesShim();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  const coldRes = await applyWritePlan(tintPlan, cold as any);
+  ok(coldRes.misses.length === 18 * tintPlan.color.modes.length && coldRes.misses.every((m) => / opacity -> .*\/opacity\/\d+$/.test(m)),
+    `#1646 color before opacity: every wash names its missing opacity variable (${coldRes.misses.length}: ${coldRes.misses[0]})`);
+}
 
 console.log(`\nplugin write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

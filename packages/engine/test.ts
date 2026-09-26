@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale, ICON_SIZES, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
+import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -52,7 +52,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -1920,10 +1920,68 @@ for (const b of brands) {
         }
         ok(refs > 0 && bad.length === 0, `#1614 every subtle fill's $value is its fill role at its opacity token, and both references resolve (${refs} mode-values)`
           + (bad.length ? ` — BAD: ${bad.slice(0, 3).join(', ')}` : ''));
-        const figVars = (t: any) => buildFigmaColor(t).color[0].variables.map((v: { name: string }) => v.name);
-        const tintVars = figVars({ ...auroraT, outlineInteraction: 'solid-tint' });
-        ok(JSON.stringify(tintVars) === JSON.stringify(figVars({ ...auroraT, outlineInteraction: 'none' })) && !tintVars.some((n: string) => n.includes('subtle-fill')),
-          `#1614 solid-tint adds no Figma color variable — the hover is the fill variable at a paint opacity (${tintVars.length} variables either way)`);
+        // #1646 — the wash IS a Figma color variable now (the paint-opacity form lost its tint on every Apply
+        // Theme). solid-tint adds exactly the 18 subtle-fill leaves the tree carries, and in every mode each one
+        // aliases its own fill variable at the opacity variable the tree's `tint.opacity` names, at that token's
+        // value as a percentage. Names HAND-SPELLED from the rule; values read off the TREE, not the emitter.
+        const figFiles = (t: any) => buildFigmaColor(t).color;
+        const tintFiles = figFiles({ ...auroraT, outlineInteraction: 'solid-tint' });
+        const noneNames = new Set(figFiles({ ...auroraT, outlineInteraction: 'none' })[0].variables.map((v: { name: string }) => v.name));
+        const added = tintFiles[0].variables.map((v: { name: string }) => v.name).filter((n: string) => !noneNames.has(n)).sort();
+        const WANT_ADDED = ['', 'inverse/'].flatMap((pre) => ['primary', 'neutral', 'destructive'].flatMap((c) => ['hover', 'pressed', 'selected'].map((st) => `${root}/color/${pre}interactive/${c}/subtle-fill/${st}`))).sort();
+        ok(JSON.stringify(added) === JSON.stringify(WANT_ADDED),
+          `#1646 solid-tint adds exactly the 18 tinted-wash color variables, nothing else (${added.length}: ${added.slice(0, 2).join(', ')}…)`);
+        const washBad: string[] = [];
+        let washCells = 0;
+        for (const f of tintFiles) for (const v of f.variables.filter((x: { name: string }) => x.name.includes('/subtle-fill/'))) {
+          washCells++;
+          const [, pre, c, st] = /\/color\/(inverse\/)?interactive\/([^/]+)\/subtle-fill\/([^/]+)$/.exec(v.name) ?? [];
+          const leaf = at(tintTree[root].color, `${pre ? 'inverse.' : ''}interactive.${c}.subtle-fill.${st}`);
+          const tintRef = String((f.$mode === 'light' ? leaf.$extensions.prism3.tint : leaf.$extensions.prism3.modes[f.$mode].tint).opacity).slice(1, -1);
+          const wantOp = Math.round(at(tintTree, tintRef).$value * 100);
+          const wantFill = `${root}/color/${pre ?? ''}interactive/${c}/fill/rest`;
+          if (v.alias?.name !== wantFill || v.aliasOpacity?.name !== tintRef.replace(/\./g, '/') || v.aliasOpacity?.value !== wantOp)
+            washBad.push(`${f.$mode}/${v.name}: ${v.alias?.name} @ ${v.aliasOpacity?.name}=${v.aliasOpacity?.value} (want ${wantFill} @ ${tintRef}=${wantOp})`);
+        }
+        ok(washCells === 18 * tintFiles.length && washBad.length === 0,
+          `#1646 every tinted-wash variable aliases its fill variable at its opacity variable, in every mode (${washCells} mode-values${washBad.length ? ` — BAD: ${washBad.slice(0, 3).join('; ')}` : ''})`);
+        // Every other variable is untouched: no plain alias gains an opacity.
+        const strayOpacity = tintFiles.flatMap((f: any) => f.variables.filter((v: any) => v.aliasOpacity && !v.name.includes('/subtle-fill/')).map((v: any) => v.name));
+        ok(strayOpacity.length === 0, `#1646 only the tinted washes carry an alias opacity (${strayOpacity.length} others)`);
+      }
+
+      // #1646 — NO VISUAL CHANGE. Moving the tint from the paint into the variable must not move it: in every
+      // mode of every example brand, each wash variable's opacity equals the ONE paint opacity the pre-#1646
+      // plan bound (`paintOpacity`, the engine's settled step). The expected steps below are LITERALS captured
+      // from origin/main at ca55dee — never recomputed — so a change to the step rule, or an emitter that
+      // aliased the wrong opacity token, fails here by name. Per-mode tuning is #1646's later decision; until
+      // the owner makes it, every mode must carry the same value.
+      {
+        const STANDARD = { 'interactive.primary.hover': 20, 'interactive.primary.pressed': 30, 'interactive.primary.selected': 30, 'interactive.neutral.hover': 50, 'interactive.neutral.pressed': 60, 'interactive.neutral.selected': 60, 'interactive.destructive.hover': 20, 'interactive.destructive.pressed': 30, 'interactive.destructive.selected': 30, 'inverse.interactive.primary.hover': 10, 'inverse.interactive.primary.pressed': 30, 'inverse.interactive.primary.selected': 30, 'inverse.interactive.neutral.hover': 20, 'inverse.interactive.neutral.pressed': 30, 'inverse.interactive.neutral.selected': 30, 'inverse.interactive.destructive.hover': 10, 'inverse.interactive.destructive.pressed': 30, 'inverse.interactive.destructive.selected': 30 } as Record<string, number>;
+        const NB_REDESIGN = { ...STANDARD, 'interactive.primary.hover': 10, 'interactive.neutral.hover': 20, 'interactive.neutral.pressed': 30, 'interactive.neutral.selected': 30, 'inverse.interactive.destructive.hover': 20 } as Record<string, number>;
+        const examples: Array<[string, any, Record<string, number>]> = [
+          ['nb', nbTheme(), STANDARD],
+          ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input), STANDARD],
+          ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input), STANDARD],
+          ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input), STANDARD],
+          ['nb-redesign', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input), NB_REDESIGN],
+        ];
+        const moved: string[] = [];
+        let cells = 0;
+        for (const [id, t, want] of examples) {
+          const files = buildFigmaColor({ ...t, outlineInteraction: 'solid-tint' }).color;
+          const opacityVars = new Map(buildFigmaDims({ ...t, outlineInteraction: 'solid-tint' }).opacity.variables.map((v) => [v.name, v.value]));
+          for (const f of files) for (const v of f.variables.filter((x) => x.name.includes('/subtle-fill/'))) {
+            cells++;
+            const key = v.name.replace(/^[^/]+\/color\//, '').replace('/subtle-fill/', '/').replace(/\//g, '.');
+            const got = v.aliasOpacity?.value;
+            // The opacity variable it aliases must exist, in the opacity collection, holding that same value.
+            const held = v.aliasOpacity ? opacityVars.get(v.aliasOpacity.name) : undefined;
+            if (got !== want[key] || held !== want[key]) moved.push(`${id}/${f.$mode}/${key}: ${got} (variable holds ${held}), was ${want[key]}`);
+          }
+        }
+        ok(cells === 18 * (4 + 4 + 4 + 4 + 1) && moved.length === 0,
+          `#1646 no visual change: every wash variable's opacity, in every mode of all 5 example brands, equals the paint opacity the pre-#1646 plan bound (${cells} mode-values${moved.length ? ` — MOVED: ${moved.slice(0, 4).join('; ')}` : ''})`);
       }
     }
   }
@@ -10529,6 +10587,202 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
   }
 
+  // #1667 — THE BUTTON LEVERS: a derived minimum width in BOTH icon placements, "Locked to edges", and
+  // "One step smaller" (owner-decided 2026-09-25). Every oracle below is computed HERE from each brand's own
+  // resolved numbers — never from `buttonMinWidth` or `applyButtonLayout`, which are the subject (docs/34):
+  //   · the floor by COUNTING up in 8px steps to the first width not below height × multiplier;
+  //   · the label's text center by an independent layout model of the PLAN (flow order, bound padding, gap,
+  //     icon widths, fill vs hug, text alignment), checked against the midpoint of the space between the
+  //     icons worked out from the brand's `size.*` and icon numbers;
+  //   · the medium offset against the untouched def's own small-size plan.
+  // Five brands: the four example briefs plus the NB fixture. Mutations are recorded in docs/00-progress.md.
+  {
+    const brief = (f: string): BrandInput => parseDesignMd(readFileSync(resolve(HERE, './examples', f), 'utf8')).input;
+    const BL_BRANDS: [string, Theme][] = [
+      ['nb', nbTheme()],
+      ['aurora', brandTheme(brief('aurora.design.md'))],
+      ['harbor', brandTheme(brief('harbor.design.md'))],
+      ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
+      ['nb-redesign', brandTheme(brief('nb-redesign.design.md'))],
+    ];
+    const FAMILY = [button, buttonDestructive, buttonNeutral];
+    const floorOracle = (h: number, m: number): number => { let w = 0; while (w + 1e-9 < h * m) w += 8; return w; };
+    const heightOf = (t: Theme) => (ref: string): number | undefined => t.dims.sizes.find((z) => `size.${z.name}.height` === ref)?.height;
+    const stepOf = (def: ComponentDef, size: string): string => def.tokens[`size.${size}.height`].split('.')[1];
+    const planOf = (def: ComponentDef, size: string, leading = false, trailing = false) =>
+      figmaAnatomyPlan(def, size, { leading, trailing, swapTarget: 'FPO-default-icon', appearance: 'filled', state: 'rest' });
+
+    // THE SET: exactly the three text buttons; icon-button is outside it and every lever is its identity.
+    ok(componentDefs.filter(isButtonFamily).map((d) => d.id).sort().join(',') === 'button,button-destructive,button-neutral',
+      `#1667 button levers: the set is button + button-destructive + button-neutral (${componentDefs.filter(isButtonFamily).map((d) => d.id).join(', ')})`);
+    ok([iconButton, iconButtonDestructive, iconButtonNeutral].every((d) =>
+      applyButtonLayout(d, { icons: 'edges', content: 'smaller', minWidthMultiplier: 4 }, () => 44) === d),
+      '#1667 button levers: icon-button is untouched by every setting — the same object back');
+
+    // (1) THE PER-SIZE FLOOR — every brand × family × size, at the default 2.25 and at 2.5.
+    for (const [bid, t] of BL_BRANDS) for (const def of FAMILY) for (const m of [2.25, 2.5]) {
+      const md = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, minWidthMultiplier: m }, heightOf(t));
+      for (const size of def.variants.size) {
+        const h = t.dims.sizes.find((z) => z.name === stepOf(def, size))!.height;
+        const want = floorOracle(h, m);
+        const got = planOf(md, size).root.minWidth;
+        ok(got === want, `#1667 min width: ${bid} ${def.id}@${size} ×${m} floors at ${want}px — height ${h} × ${m} = ${+(h * m).toFixed(2)}, rounded up to the 8px grid (got ${got})`);
+      }
+    }
+    // The owner's worked numbers, pinned literally: nb 36/44/56 → 88/104/128 at 2.25, 96/112/144 at 2.5.
+    {
+      const nb = BL_BRANDS[0][1];
+      const floors = (m: number) => button.variants.size.map((sz) => planOf(applyButtonLayout(button, { ...DEFAULT_BUTTON_LAYOUT, minWidthMultiplier: m }, heightOf(nb)), sz).root.minWidth).join('/');
+      ok(floors(2.25) === '88/104/128', `#1667 min width: nb at 2.25 is 88/104/128 (got ${floors(2.25)})`);
+      ok(floors(2.5) === '96/112/144', `#1667 min width: nb at 2.5 is 96/112/144 — New Balance's 142 rounded to the grid (got ${floors(2.5)})`);
+    }
+
+    // (2) "Attached to label" IS TODAY'S PLAN plus the floor: every member of every family, with the root's
+    // `minWidth` set aside, is byte-identical to the unmaterialized def's — hug root, hugging label.
+    {
+      const t = BL_BRANDS[0][1];
+      for (const def of FAMILY) {
+        const base = figmaAnatomySet(def);
+        const att = figmaAnatomySet(applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, heightOf(t)));
+        const strip = (p: AnatomyPlan) => { const r = { ...p.root } as Record<string, unknown>; delete r.minWidth; return JSON.stringify({ ...p, root: r }); };
+        const same = base.length === att.length && base.every((p, i) => strip(att[i]) === JSON.stringify(p));
+        ok(same && att.every((p) => p.root.minWidth !== undefined && p.root.primaryAxisSizingMode === 'AUTO' && !p.root.paddingPx && p.root.children.every((c) => !c.pin)),
+          `#1667 attached: ${def.id} projects today's plan plus a root minWidth on all ${att.length} members — hug root, icons in flow, label unchanged`);
+      }
+    }
+
+    // (3) "Locked to edges" (owner's construction, 2026-09-25): the root HUGS above its floor, each icon is
+    // OUT OF FLOW pinned to its edge (MIN left, MAX right) at the visual padding, the side it sits on reserves
+    // inset + icon + gap as literal padding, and the label is plain HUG text in the `justify: center` row.
+    // `layout` is an independent model of Figma's row over the PLAN: flow children (never a pinned or other
+    // absolute one) hug inside the padding, the frame is max(floor, hug) unless a designer fixes a width, the
+    // single flow child is centered in the space inside the padding, and a pinned child keeps the x it was
+    // placed at on the hugged frame, moved by the width change when its constraint is MAX. `oracle` never
+    // looks at the plan: it works the same positions out of the brand's own `size.*` and icon numbers.
+    for (const [bid, t] of BL_BRANDS) {
+      const pxOf = (v: string | undefined): number => {
+        const s = v && /^size\/([^/]+)\/(padding-x-visual|padding-x|gap)$/.exec(v);
+        if (s) { const z = t.dims.sizes.find((q) => q.name === s[1])!; return s[2] === 'gap' ? z.gap : s[2] === 'padding-x' ? z.padX : z.padXVisual; }
+        const i = v && /^icon\/size\/([^/]+)$/.exec(v);
+        if (i) return ICON_SIZES.find((q) => q.name === i[1])!.px;
+        throw new Error(`#1667 layout model: no px for ${v}`);
+      };
+      type Box = { x: number; w: number };
+      const layout = (root: AnatomyPlan['root'], textW: number, fixedW?: number): { W: number; label: Box; icons: Record<string, Box> } => {
+        const side = (k: 'paddingLeft' | 'paddingRight'): number => root.paddingPx?.[k] ?? pxOf(root.bound[k]);
+        const padL = side('paddingLeft'), padR = side('paddingRight'), gap = pxOf(root.bound.itemSpacing);
+        const widthOf = (c: typeof root): number => (c.type === 'TEXT' ? textW : pxOf(c.bound.width));
+        const flow = root.children.filter((c) => !c.absoluteInset && !c.absoluteCenter && !c.pin);
+        const content = flow.reduce((a, c) => a + widthOf(c), 0) + gap * Math.max(0, flow.length - 1);
+        const hugW = Math.max(root.minWidth ?? 0, padL + content + padR);
+        const W = fixedW ?? hugW;
+        let x = root.primaryAxisAlignItems === 'CENTER' ? padL + (W - padL - padR - content) / 2 : padL;
+        const boxes: Record<string, Box> = {};
+        for (const c of flow) { boxes[c.name] = { x, w: widthOf(c) }; x += widthOf(c) + gap; }
+        const icons: Record<string, Box> = {};
+        for (const c of root.children.filter((q) => q.pin)) {
+          const w = widthOf(c);
+          const placed = c.pin!.edge === 'MIN' ? c.pin!.inset : hugW - c.pin!.inset - w;
+          icons[c.name] = { x: c.pin!.edge === 'MAX' ? placed + (W - hugW) : placed, w };
+        }
+        const label = root.children.find((c) => c.type === 'TEXT')!;
+        if (!boxes[label.name]) throw new Error('#1667 layout model: the label is not in the flow');
+        return { W, label: boxes[label.name], icons };
+      };
+      for (const def of FAMILY) {
+        const edges = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, sizeRefPx(t.dims.sizes));
+        for (const size of def.variants.size) {
+          const z = t.dims.sizes.find((q) => q.name === stepOf(def, size))!;
+          const icon = ICON_SIZES.find((q) => `icon.size.${q.name}` === def.tokens[`size.${size}.icon`])!.px;
+          const floor = floorOracle(z.height, DEFAULT_BUTTON_LAYOUT.minWidthMultiplier);
+          for (const [lead, trail] of [[false, false], [true, false], [false, true], [true, true]] as [boolean, boolean][]) {
+            const root = planOf(edges, size, lead, trail).root;
+            const tag = `${bid} ${def.id}@${size} leading=${lead} trailing=${trail}`;
+            const left = lead ? z.padXVisual + icon + z.gap : z.padX;
+            const right = trail ? z.padXVisual + icon + z.gap : z.padX;
+            const label = root.children.find((c) => c.type === 'TEXT')!;
+            const lv = root.children.find((c) => c.name === 'leadingVisual');
+            const tv = root.children.find((c) => c.name === 'trailingVisual');
+            // THE CONSTRUCTION, read off the plan: a hugging root with its floor and no fixed width, a hugging
+            // label, and each present icon pinned — leading MIN, trailing MAX — at the visual padding.
+            ok(root.primaryAxisSizingMode === 'AUTO' && root.minWidth === floor && !('fixedWidth' in root)
+              && label.layoutGrow === undefined && label.textAutoResize === undefined && !('textAlignHorizontal' in label)
+              && (!lead || (lv?.pin?.edge === 'MIN' && lv.pin.inset === z.padXVisual))
+              && (!trail || (tv?.pin?.edge === 'MAX' && tv.pin.inset === z.padXVisual)),
+              `#1667 edges: ${tag} — root HUGs above its ${floor}px floor, the label hugs, and each icon is pinned at ${z.padXVisual}px (leading MIN, trailing MAX) (got ${root.primaryAxisSizingMode} floor ${root.minWidth}, label grow ${label.layoutGrow}, pins ${JSON.stringify([lv?.pin, tv?.pin])})`);
+            // THE RESERVED PADDING, against the oracle: inset + icon + gap on an icon side, the label padding on the other.
+            const padL = root.paddingPx?.paddingLeft ?? pxOf(root.bound.paddingLeft);
+            const padR = root.paddingPx?.paddingRight ?? pxOf(root.bound.paddingRight);
+            ok(padL === left && padR === right,
+              `#1667 edges: ${tag} — the padding reserves the icon: ${left}/${right}px (got ${padL}/${padR})`);
+            // The label center the oracle expects at width W: the midpoint of the space inside the padding.
+            const center = (W: number): number => left + (W - left - right) / 2;
+            const atEdges = (m: ReturnType<typeof layout>): boolean =>
+              (!lead || m.icons.leadingVisual?.x === z.padXVisual) && (!trail || m.W - m.icons.trailingVisual?.x - icon === z.padXVisual);
+            // M4's intent, kept: at the floor, the label centers in the space BESIDE the icons, not on the button.
+            // Two labels that fit the floor: half the room inside the reserves, and all of it.
+            for (const textW of [(floor - left - right) / 2, floor - left - right].filter((w) => w > 0)) {
+              const m = layout(root, textW);
+              const got = m.label.x + textW / 2;
+              ok(m.W === floor && Math.abs(got - center(floor)) < 1e-9 && atEdges(m),
+                `#1667 edges: ${tag} at its ${floor}px floor — the label text centers in the space beside the icons at x=${center(floor)} (got ${got} on a ${m.W}px button${lead !== trail ? `; the button center is ${floor / 2}` : ''})`);
+            }
+            // (a) A LONG LABEL widens the button past its floor, and the icons stay at the edges.
+            {
+              const textW = floor + 120;
+              const m = layout(root, textW);
+              ok(m.W === left + textW + right && m.W > floor && atEdges(m) && Math.abs(m.label.x + textW / 2 - center(m.W)) < 1e-9,
+                `#1667 edges (a): ${tag} — a ${textW}px label widens the button to ${left + textW + right}px, past its ${floor}px floor, with the icons still ${z.padXVisual}px from the edges (got ${m.W}px, icons ${JSON.stringify(m.icons)})`);
+            }
+            // (b) AN INSTANCE WIDENED TO 240px keeps the icons at the edges and the label centered in the space left.
+            {
+              const m = layout(root, 40, 240);
+              ok(atEdges(m) && Math.abs(m.label.x + 20 - center(240)) < 1e-9,
+                `#1667 edges (b): ${tag} widened to 240px — icons ${z.padXVisual}px from each edge, label centered at x=${center(240)} (got icons ${JSON.stringify(m.icons)}, label center ${m.label.x + 20})`);
+            }
+            // (c) NO OVERLAP AT THE FLOOR: the widest label that still fits the floor keeps the gap from each icon.
+            {
+              const textW = floor - left - right;
+              const m = layout(root, textW);
+              const lx = m.icons.leadingVisual, tx = m.icons.trailingVisual;
+              const clearL = lx ? m.label.x - (lx.x + lx.w) : Infinity;
+              const clearR = tx ? tx.x - (m.label.x + m.label.w) : Infinity;
+              ok(m.W === floor && clearL >= z.gap && clearR >= z.gap,
+                `#1667 edges (c): ${tag} — a ${textW}px label at the ${floor}px floor keeps ≥ ${z.gap}px from each icon (got ${clearL} / ${clearR})`);
+            }
+          }
+        }
+      }
+    }
+
+    // (4) "One step smaller": MEDIUM binds small's label style and icon; small and large are untouched; the
+    // height, padding and gap stay medium's. Compared against the def's OWN small-size plan (the oracle) and
+    // against the "Match button size" plan at each size — never against `CONTENT_OFFSET`.
+    {
+      const t = BL_BRANDS[0][1];
+      const grab = (root: AnatomyPlan['root']) => ({
+        label: root.children.find((c) => c.name === 'label')?.textStyle,
+        icon: root.children.find((c) => c.name === 'trailingVisual')?.bound.width,
+      });
+      for (const def of FAMILY) {
+        const match = applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, heightOf(t));
+        const smaller = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, content: 'smaller' }, heightOf(t));
+        for (const size of ['small', 'large']) {
+          const a = figmaAnatomySet(match).filter((p) => p.size === size).map((p) => JSON.stringify(p));
+          const b = figmaAnatomySet(smaller).filter((p) => p.size === size).map((p) => JSON.stringify(p));
+          ok(a.length > 0 && a.join('\n') === b.join('\n'), `#1667 smaller: ${def.id}@${size} is untouched — all ${a.length} members byte-identical to Match button size`);
+        }
+        const med = planOf(smaller, 'medium', false, true).root;
+        const small = grab(planOf(def, 'small', false, true).root);
+        const matchMed = planOf(match, 'medium', false, true).root;
+        ok(JSON.stringify(grab(med)) === JSON.stringify(small) && grab(matchMed).label !== small.label,
+          `#1667 smaller: ${def.id}@medium binds small's label style and icon (${small.label}, ${small.icon}) — got ${JSON.stringify(grab(med))}`);
+        ok(JSON.stringify(med.bound) === JSON.stringify(matchMed.bound) && med.minWidth === matchMed.minWidth,
+          `#1667 smaller: ${def.id}@medium keeps medium's height, padding, gap and floor — only the content moves`);
+      }
+    }
+  }
+
   // #1353 — THE `shape` VARIANT AXIS (square | circular, square default), owner-decided 2026-09-10. Pure
   // GEOMETRY: the two values differ ONLY in the container's corner radius and are token-identical everywhere
   // else, which is what makes it a 2-value AXIS and not a component split. Every pin below is derived
@@ -11897,28 +12151,24 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
 
     // HAND-NAMED: what each method binds on the member the owner hit — primary outline, hover, default ground.
-    const member = (method: typeof METHODS[number], inverse: boolean, roles?: any, state = 'hover') =>
-      figmaAnatomySet(applyOutlineInteraction(button, method, roles))
+    const member = (method: typeof METHODS[number], inverse: boolean, state = 'hover') =>
+      figmaAnatomySet(applyOutlineInteraction(button, method))
         .find((q) => /appearance=outline/.test(planComponentName(q)) && new RegExp(`state=${state}`).test(planComponentName(q)) && onInverse(q) === inverse);
     const hoverFill = (method: typeof METHODS[number]): string | undefined => member(method, false)?.root.paints?.fills;
     ok(hoverFill('overlay-neutral') === 'color/interactive/primary/overlay/hover',
       `#1608 overlay-neutral: button outline hover binds the wash color/interactive/primary/overlay/hover (${hoverFill('overlay-neutral')})`);
-    // #1614: solid-tint binds the category's EXISTING fill variable at a PAINT OPACITY — the nominal opacity.20
-    // hover / opacity.30 pressed with no brand roles, and the step the engine chose with them.
-    const tintPaint = (inverse: boolean, roles?: any, state = 'hover') => {
-      const r = member('solid-tint', inverse, roles, state)?.root;
-      return `${r?.paints?.fills} @ ${r?.paintOpacity?.fills}`;
+    // #1646: solid-tint binds the TINTED-WASH VARIABLE, opaque — the tint lives in the variable's value, so the
+    // plan carries no paint opacity at all (a paint opacity is reset by the host on every Apply Theme).
+    const tintPaint = (inverse: boolean, state = 'hover') => {
+      const r = member('solid-tint', inverse, state)?.root as Record<string, any> | undefined;
+      return `${r?.paints?.fills}${r && 'paintOpacity' in r ? ` @ ${JSON.stringify(r.paintOpacity)}` : ''}`;
     };
-    ok(tintPaint(false) === 'color/interactive/primary/fill/rest @ 0.2' && tintPaint(false, undefined, 'pressed') === 'color/interactive/primary/fill/rest @ 0.3',
-      `#1614 solid-tint: button outline hover/pressed bind the existing fill at the nominal paint opacity 0.2/0.3 (${tintPaint(false)}; ${tintPaint(false, undefined, 'pressed')})`);
-    const nbrRoles = resolveAllModes({ ...brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input), outlineInteraction: 'solid-tint' })[0].roles;
-    ok(tintPaint(false, nbrRoles) === 'color/interactive/primary/fill/rest @ 0.1' && tintPaint(true, nbrRoles) === 'color/inverse/interactive/primary/fill/rest @ 0.1'
-      && tintPaint(true, nbrRoles, 'pressed') === 'color/inverse/interactive/primary/fill/rest @ 0.3',
-      `#1614 solid-tint on nb-redesign: the plan carries the engine's guarded step per ground — page hover ${tintPaint(false, nbrRoles)}, band hover ${tintPaint(true, nbrRoles)}, band pressed ${tintPaint(true, nbrRoles, 'pressed')}`);
-    // #1613 — the same member on the INVERSE band binds the band's fill, which the brand emits.
-    ok(tintPaint(true).startsWith('color/inverse/interactive/primary/fill/rest @')
-      && emittedColor({ ...nbTheme(), outlineInteraction: 'solid-tint' }).has('color/inverse/interactive/primary/fill/rest'),
-      `#1613 solid-tint: inverse-band button outline hover binds color/inverse/interactive/primary/fill/rest, and the brand emits it (${tintPaint(true)})`);
+    ok(tintPaint(false) === 'color/interactive/primary/subtle-fill/hover' && tintPaint(false, 'pressed') === 'color/interactive/primary/subtle-fill/pressed',
+      `#1646 solid-tint: button outline hover/pressed bind the tinted-wash variable, with no paint opacity on the plan (${tintPaint(false)}; ${tintPaint(false, 'pressed')})`);
+    // #1613 — the same member on the INVERSE band binds the band's wash, which the brand emits.
+    ok(tintPaint(true) === 'color/inverse/interactive/primary/subtle-fill/hover'
+      && emittedColor({ ...nbTheme(), outlineInteraction: 'solid-tint' }).has('color/inverse/interactive/primary/subtle-fill/hover'),
+      `#1613 solid-tint: inverse-band button outline hover binds color/inverse/interactive/primary/subtle-fill/hover, and the brand emits it (${tintPaint(true)})`);
     ok(hoverFill('none') === undefined,
       `#1608 none: button outline hover binds NO container fill — the intended no-hover (${hoverFill('none')})`);
 
@@ -12903,7 +13153,27 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           : 2;
       // `name` is ROOTED, everything else keyed root-relative — see `STUB_ROOT`. The id stays
       // root-relative because it is the stub's own handle, not something Figma's naming applies to.
-      const mkVar = (name: string) => ({ id: `V:${name}`, name: `${STUB_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolved(name) }) });
+      // #1646 — REWRITING A BOUND VARIABLE RESETS ITS PAINTS' OPACITY (host-measured 2026-09-25; the same model
+      // as `component-shim.ts`): `setValueForMode` sets `opacity: 1` on every paint bound to that variable on the
+      // page. Values written are kept per variable, per mode, so an arm can read what the variable holds.
+      const varValuesByName = new Map<string, Record<string, unknown>>();
+      const walkNodes = (n: Record<string, unknown>, f: (n: Record<string, unknown>) => void): void => { f(n); for (const k of (n.children as Record<string, unknown>[] | undefined) ?? []) walkNodes(k, f); };
+      const rewriteVar = (name: string, modeId: string, value: unknown): void => {
+        varValuesByName.set(name, { ...(varValuesByName.get(name) ?? {}), [modeId]: value });
+        const boundHere = (p: unknown) => (p as { boundVariables?: { color?: { id?: string } } } | null)?.boundVariables?.color?.id === `V:${name}`;
+        for (const top of page?.children ?? []) walkNodes(top, (n) => {
+          for (const key of ['fills', 'strokes'] as const) {
+            const arr = n[key];
+            if (!Array.isArray(arr) || !arr.some((p) => boundHere(p) && ((p as { opacity?: number }).opacity ?? 1) !== 1)) continue;
+            n[key] = arr.map((p) => (boundHere(p) ? { ...(p as object), opacity: 1 } : p));
+          }
+        });
+      };
+      const mkVar = (name: string) => ({
+        id: `V:${name}`, name: `${STUB_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolved(name) }),
+        get valuesByMode(): Record<string, unknown> { return varValuesByName.get(name) ?? {}; },
+        setValueForMode: (modeId: string, value: unknown): void => rewriteVar(name, modeId, value),
+      });
       // Is `n` inside a component or component set — the precondition Figma puts on `isExposedInstance`
       // (#1378), mirroring `component-shim.ts`'s `inComponent` so the parity gate compares two executors
       // against one Figma model. Walks ANCESTORS and includes the node itself (a converted root is a
@@ -13004,7 +13274,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             const weight = (bv.strokeWeight?.value ?? bv.strokeTopWeight?.value ?? (node.strokeWeight as number)) || 0;   // #1332: the weight binds per-side
             if (bv.width) return bv.width.value ?? 0;
             if (node.type === 'TEXT') return ((node.characters as string) || '').length * 6;
-            const pad = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0);
+            // A LITERAL side (#1667's reserve beside a pinned icon) counts where the side is not bound, as on the host.
+            const lit = (k: string): number => (typeof node[k] === 'number' ? node[k] as number : 0);
+            const pad = (bv.paddingLeft?.value ?? lit('paddingLeft')) + (bv.paddingRight?.value ?? lit('paddingRight'));
             const hug = ((node.children as Record<string, unknown>[]) ?? [])
               .filter((c) => c.layoutPositioning !== 'ABSOLUTE')
               .reduce((a, c) => a + ((c.width as number) || 0), 0);
@@ -13130,7 +13402,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             if (node._absolute || !p || !p.layoutMode) return node._x as number;
             const bv = p.boundVariables as Record<string, { value?: number }>;
             const gap = bv.itemSpacing?.value ?? 0;
-            let at = bv.paddingLeft?.value ?? 0;
+            let at = bv.paddingLeft?.value ?? (typeof p.paddingLeft === 'number' ? p.paddingLeft : 0);
             for (const c of ((p.children as Record<string, unknown>[]) ?? [])) {
               if (c === node) return at;
               if (c.layoutPositioning === 'ABSOLUTE') continue;   // takes no cell, contributes no offset
@@ -13675,34 +13947,90 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         `#1007 paste leg: an applied effect style reads back as node.effectStyleId, the host's own property name (reads ${String(built?.effectStyleId)}; misses ${JSON.stringify(effRun.misses)})`);
     }
 
-    // ---- #1614: THE PAINT OPACITY, EXECUTED on BOTH legs -----------------------------------------------
-    // A `solid-tint` outline hover is the category's fill VARIABLE at a paint opacity. Both executors write it
-    // after `setBoundVariableForPaint` in different code (a string in the payload, `paint()` in the plugin), so
-    // each leg is read back off the host here, against a hand-named step: nb-redesign's page primary hover
-    // steps down to opacity.10. Plus the payload's own read-back must NAME a dropped opacity.
+    // ---- #1646: THE TINTED WASH, EXECUTED on BOTH legs, and it SURVIVES APPLY THEME ----------------------
+    // A `solid-tint` outline hover binds the tinted-wash VARIABLE at paint opacity 1; the tint is the variable's
+    // own value. Both executors write the paint in different code (a string in the payload, `paint()` in the
+    // plugin), so each leg is read back off the host here against a hand-named binding. Then the wash variable
+    // is REWRITTEN, as Apply Theme does — the host resets the opacity of every paint bound to a rewritten
+    // variable (modeled in `makeFigmaStub`) — and the paint must still read back unchanged: bound to the wash,
+    // at 1. The pre-#1646 form (the fill variable at a paint opacity) reads back at 1 here, the fill opaque.
     {
-      const nbrRoles = resolveAllModes({ ...brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/nb-redesign.design.md'), 'utf8')).input), outlineInteraction: 'solid-tint' })[0].roles;
-      const tinted = figmaAnatomySet(applyOutlineInteraction(button, 'solid-tint', nbrRoles), { swapTarget: 'FPO-default-icon' })
+      const tinted = figmaAnatomySet(applyOutlineInteraction(button, 'solid-tint'), { swapTarget: 'FPO-default-icon' })
         .find((q) => /appearance=outline/.test(planComponentName(q)) && /state=hover/.test(planComponentName(q)) && !/surface=inverse/.test(planComponentName(q)))!;
       const tVars = { vars: [...planBoundVars(tinted.root), ...planPaintVars(tinted.root)], styles: planTextStyles(tinted.root), comps: ['FPO-default-icon'] };
-      const opacities = (n: Record<string, unknown>): string[] => {
+      const bound = (n: Record<string, unknown>): string[] => {
         const f = (n.fills as { opacity?: number; boundVariables?: { color?: { id?: string } } }[] | undefined)?.[0];
-        const own = f?.opacity !== undefined ? [`${f.boundVariables?.color?.id} @ ${f.opacity}`] : [];
-        return [...own, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(opacities)];
+        const own = f?.boundVariables?.color?.id?.includes('/subtle-fill/') ? [`${f.boundVariables.color.id} @ ${f.opacity ?? 1}`] : [];
+        return [...own, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(bound)];
+      };
+      const WANT = JSON.stringify(['V:color/interactive/primary/subtle-fill/hover @ 1']);
+      const reapply = async (stub: { variables: { getLocalVariablesAsync(): Promise<{ name: string; setValueForMode(m: string, v: unknown): void }[]> } }) => {
+        for (const v of await stub.variables.getLocalVariablesAsync()) v.setValueForMode('light', { color: { type: 'VARIABLE_ALIAS', id: 'V:color/interactive/primary/fill/rest' }, opacity: 10 });
       };
       const pastePage: StubPage = { children: [] };
       const pasted = await runPayload(planToPluginJs(tinted), { ...tVars, page: pastePage });
+      // A second handle on the SAME page: the stub's variables walk whatever page they were given, which is the
+      // file-wide reach the host rule has (Apply Theme runs in a different plugin session from the paste).
+      const pasteStub = makeFigmaStub({ ...tVars, page: pastePage });
+      ok(pasted.misses.length === 0 && JSON.stringify(pastePage.children.flatMap(bound)) === WANT,
+        `#1646 paste leg: the solid-tint hover pastes the primary tinted-wash variable at paint opacity 1 (${JSON.stringify(pastePage.children.flatMap(bound))}; misses ${JSON.stringify(pasted.misses)})`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await reapply(pasteStub as any);
+      ok(JSON.stringify(pastePage.children.flatMap(bound)) === WANT,
+        `#1646 paste leg SURVIVES APPLY THEME: rewriting every variable leaves the hover bound to its wash at paint opacity 1 (${JSON.stringify(pastePage.children.flatMap(bound))})`);
+      const plugPage: StubPage = { children: [] };
+      const plugStub = makeFigmaStub({ ...tVars, page: plugPage });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+      const plugged = await applyComponentPlan([tinted], plugStub as any);
+      ok(plugged.misses.length === 0 && JSON.stringify(plugPage.children.flatMap(bound)) === WANT,
+        `#1646 plugin leg: applyComponentPlan builds the same paint (${JSON.stringify(plugPage.children.flatMap(bound))}; misses ${JSON.stringify(plugged.misses)})`);
+      // The rule is live in THIS model too (precondition, so the survive line cannot pass on an inert stub).
+      const probePage: StubPage = { children: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const probeHost = makeFigmaStub({ vars: ['color/interactive/primary/fill/rest'], page: probePage }) as any;
+      const [pv] = await probeHost.variables.getLocalVariablesAsync();
+      const pf = probeHost.createFrame();
+      probePage.children.push(pf);
+      pf.fills = [probeHost.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }, 'color', pv)];
+      pf.fills = [{ ...pf.fills[0], opacity: 0.2 }];
+      const before = pf.fills[0].opacity;
+      pv.setValueForMode('light', { type: 'VARIABLE_ALIAS', id: 'V:x' });
+      ok(before === 0.2 && pf.fills[0].opacity === 1,
+        `#1646 paste stub host model: a paint bound at opacity 0.2 reads back 1 once its variable is rewritten (${before} → ${pf.fills[0].opacity})`);
+    }
+
+    // #1667 — "Locked to edges", EXECUTED by BOTH executors on the same stub. A medium trailing-only member:
+    // the root keeps its bound left padding and writes the right one as the literal reserve, and the trailing
+    // icon comes out of flow, constrained MAX/CENTER, at the visual padding from the right edge of the frame
+    // it was built in. Expectations are worked out here from nb's own numbers (docs/34), so an executor that
+    // drops the constraint, the lift or the reserve fails here by name.
+    {
+      const nbSizes = nbTheme().dims.sizes;
+      const md = nbSizes.find((z) => z.name === 'md')!;
+      const iconPx = ICON_SIZES.find((q) => `icon.size.${q.name}` === button.tokens['size.medium.icon'])!.px;
+      const edgesDef = applyButtonLayout(button, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, sizeRefPx(nbSizes));
+      const edgesPlan = figmaAnatomySet(edgesDef, { swapTarget: 'FPO-default-icon' })
+        .find((q) => /appearance=filled/.test(planComponentName(q)) && /state=rest/.test(planComponentName(q)) && !/surface=inverse/.test(planComponentName(q))
+          && q.size === 'medium' && q.slots.trailing && !q.slots.leading)!;
+      const eOpts = { vars: [...planBoundVars(edgesPlan.root), ...planPaintVars(edgesPlan.root)], styles: planTextStyles(edgesPlan.root), comps: ['FPO-default-icon'] };
+      const shape = (root: Record<string, unknown>): string => {
+        const icon = (root.children as Record<string, unknown>[]).find((c) => c.name === 'trailingVisual');
+        if (!icon) return `no trailing icon under ${String(root.name)} [${(root.children as Record<string, unknown>[]).map((c) => c.name).join(', ')}]`;
+        const c = icon.constraints as { horizontal?: string; vertical?: string } | null;
+        return JSON.stringify([root.paddingRight, icon.layoutPositioning, c?.horizontal ?? null, c?.vertical ?? null, (root.width as number) - (icon.x as number) - (icon.width as number)]);
+      };
+      const WANT = JSON.stringify([md.padXVisual + iconPx + md.gap, 'ABSOLUTE', 'MAX', 'CENTER', md.padXVisual]);
+      const pastePage: StubPage = { children: [] };
+      const pasted = await runPayload(planToPluginJs(edgesPlan), { ...eOpts, page: pastePage });
       const plugPage: StubPage = { children: [] };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
-      const plugged = await applyComponentPlan([tinted], makeFigmaStub({ ...tVars, page: plugPage }) as any);
-      const WANT = JSON.stringify(['V:color/interactive/primary/fill/rest @ 0.1']);
-      ok(pasted.misses.length === 0 && JSON.stringify(pastePage.children.flatMap(opacities)) === WANT,
-        `#1614 paste leg: the solid-tint hover pastes the primary fill variable at paint opacity 0.1 (${JSON.stringify(pastePage.children.flatMap(opacities))}; misses ${JSON.stringify(pasted.misses)})`);
-      ok(plugged.misses.length === 0 && JSON.stringify(plugPage.children.flatMap(opacities)) === WANT,
-        `#1614 plugin leg: applyComponentPlan builds the same paint at the same opacity (${JSON.stringify(plugPage.children.flatMap(opacities))}; misses ${JSON.stringify(plugged.misses)})`);
-      const dropped = await runPayload(planToPluginJs(tinted).replace('if(o!=null)node.fills=[Object.assign({},node.fills[0],{opacity:o})];', ''), tVars);
-      ok(dropped.misses.some((m) => /\.fills\.opacity -> DISCARDED \(wanted 0\.1, read back/.test(m)),
-        `#1614 paste leg: an opacity the payload fails to keep IS reported by its read-back (${JSON.stringify(dropped.misses)})`);
+      const plugged = await applyComponentPlan([edgesPlan], makeFigmaStub({ ...eOpts, page: plugPage }) as any);
+      ok(pasted.misses.length === 0 && shape(pastePage.children[0] as Record<string, unknown>) === WANT,
+        `#1667 paste leg: a Locked to edges medium button pastes the reserve and a trailing icon pinned MAX at the visual padding — want ${WANT} (got ${shape(pastePage.children[0] as Record<string, unknown>)}; misses ${JSON.stringify(pasted.misses)})`);
+      // The plugin combines its members into a set; the member is the set's one child.
+      const plugMember = ((plugPage.children[0] as Record<string, unknown>).children as Record<string, unknown>[])[0];
+      ok(plugged.misses.length === 0 && shape(plugMember) === WANT,
+        `#1667 plugin leg: applyComponentPlan builds the same reserve and pinned icon — want ${WANT} (got ${shape(plugMember)}; misses ${JSON.stringify(plugged.misses)})`);
     }
 
     // ---- the ABSOLUTE part, EXECUTED (#536 item 3) -----------------------------------------------
