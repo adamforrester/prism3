@@ -7553,13 +7553,13 @@
       "resolves_to": "solid"
     },
     "size.xs.height": {
-      "$description": "size.xs control height — 24px (density: compact)",
+      "$description": "size.xs control height — 28px (density: comfortable)",
       "meaning": "Control size step xs — height",
       "when_to_use": "The height of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.core.dimension.24}"
+      "resolves_to": "{ads.core.dimension.28}"
     },
     "size.xs.padding-x": {
-      "$description": "size.xs horizontal inset — 8px (density: compact)",
+      "$description": "size.xs horizontal inset — 8px (density: comfortable)",
       "meaning": "Control size step xs — padding-x",
       "when_to_use": "The padding-x of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
       "resolves_to": "{ads.space.100}"
@@ -7571,55 +7571,55 @@
       "resolves_to": "{ads.space.075}"
     },
     "size.xs.padding-y": {
-      "$description": "size.xs vertical inset — 2px (density: compact)",
+      "$description": "size.xs vertical inset — 4px (density: comfortable)",
       "meaning": "Control size step xs — padding-y",
       "when_to_use": "The padding-y of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.space.025}"
+      "resolves_to": "{ads.space.050}"
     },
     "size.xs.gap": {
-      "$description": "size.xs label↔visual gap — 4px (density: compact)",
+      "$description": "size.xs label↔visual gap — 4px (density: comfortable)",
       "meaning": "Control size step xs — gap",
       "when_to_use": "The gap of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
       "resolves_to": "{ads.space.050}"
     },
     "size.sm.height": {
-      "$description": "size.sm control height — 28px (density: compact)",
+      "$description": "size.sm control height — 36px (density: comfortable)",
       "meaning": "Control size step sm — height",
       "when_to_use": "The height of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.core.dimension.28}"
-    },
-    "size.sm.padding-x": {
-      "$description": "size.sm horizontal inset — 8px (density: compact)",
-      "meaning": "Control size step sm — padding-x",
-      "when_to_use": "The padding-x of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.space.100}"
-    },
-    "size.sm.padding-x-visual": {
-      "$description": "size.sm horizontal inset on the visual side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
-      "meaning": "Control size step sm — padding-x-visual",
-      "when_to_use": "The padding-x-visual of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.space.075}"
-    },
-    "size.sm.padding-y": {
-      "$description": "size.sm vertical inset — 4px (density: compact)",
-      "meaning": "Control size step sm — padding-y",
-      "when_to_use": "The padding-y of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.space.050}"
-    },
-    "size.sm.gap": {
-      "$description": "size.sm label↔visual gap — 4px (density: compact)",
-      "meaning": "Control size step sm — gap",
-      "when_to_use": "The gap of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.space.050}"
-    },
-    "size.md.height": {
-      "$description": "size.md control height — 36px (density: compact)",
-      "meaning": "Control size step md — height",
-      "when_to_use": "The height of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
       "resolves_to": "{ads.core.dimension.36}"
     },
+    "size.sm.padding-x": {
+      "$description": "size.sm horizontal inset — 16px (density: comfortable)",
+      "meaning": "Control size step sm — padding-x",
+      "when_to_use": "The padding-x of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
+      "resolves_to": "{ads.space.200}"
+    },
+    "size.sm.padding-x-visual": {
+      "$description": "size.sm horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+      "meaning": "Control size step sm — padding-x-visual",
+      "when_to_use": "The padding-x-visual of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
+      "resolves_to": "{ads.space.150}"
+    },
+    "size.sm.padding-y": {
+      "$description": "size.sm vertical inset — 6px (density: comfortable)",
+      "meaning": "Control size step sm — padding-y",
+      "when_to_use": "The padding-y of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
+      "resolves_to": "{ads.space.075}"
+    },
+    "size.sm.gap": {
+      "$description": "size.sm label↔visual gap — 8px (density: comfortable)",
+      "meaning": "Control size step sm — gap",
+      "when_to_use": "The gap of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
+      "resolves_to": "{ads.space.100}"
+    },
+    "size.md.height": {
+      "$description": "size.md control height — 44px (density: comfortable)",
+      "meaning": "Control size step md — height",
+      "when_to_use": "The height of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
+      "resolves_to": "{ads.core.dimension.44}"
+    },
     "size.md.padding-x": {
-      "$description": "size.md horizontal inset — 16px (density: compact)",
+      "$description": "size.md horizontal inset — 16px (density: comfortable)",
       "meaning": "Control size step md — padding-x",
       "when_to_use": "The padding-x of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
       "resolves_to": "{ads.space.200}"
@@ -7631,61 +7631,61 @@
       "resolves_to": "{ads.space.150}"
     },
     "size.md.padding-y": {
-      "$description": "size.md vertical inset — 6px (density: compact)",
+      "$description": "size.md vertical inset — 8px (density: comfortable)",
       "meaning": "Control size step md — padding-y",
       "when_to_use": "The padding-y of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.space.075}"
+      "resolves_to": "{ads.space.100}"
     },
     "size.md.gap": {
-      "$description": "size.md label↔visual gap — 8px (density: compact)",
+      "$description": "size.md label↔visual gap — 8px (density: comfortable)",
       "meaning": "Control size step md — gap",
       "when_to_use": "The gap of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
       "resolves_to": "{ads.space.100}"
     },
     "size.md.min-height": {
-      "$description": "size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height 36, 44) = 44px",
+      "$description": "size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height 44, 44) = 44px",
       "meaning": "Control size step md — min-height",
       "when_to_use": "The min-height of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
       "resolves_to": "{ads.core.dimension.44}"
     },
     "size.lg.height": {
-      "$description": "size.lg control height — 44px (density: compact)",
+      "$description": "size.lg control height — 56px (density: comfortable)",
       "meaning": "Control size step lg — height",
       "when_to_use": "The height of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.core.dimension.44}"
+      "resolves_to": "{ads.core.dimension.56}"
     },
     "size.lg.padding-x": {
-      "$description": "size.lg horizontal inset — 16px (density: compact)",
+      "$description": "size.lg horizontal inset — 24px (density: comfortable)",
       "meaning": "Control size step lg — padding-x",
       "when_to_use": "The padding-x of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.space.200}"
+      "resolves_to": "{ads.space.300}"
     },
     "size.lg.padding-x-visual": {
-      "$description": "size.lg horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+      "$description": "size.lg horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
       "meaning": "Control size step lg — padding-x-visual",
       "when_to_use": "The padding-x-visual of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.space.150}"
+      "resolves_to": "{ads.space.200}"
     },
     "size.lg.padding-y": {
-      "$description": "size.lg vertical inset — 8px (density: compact)",
+      "$description": "size.lg vertical inset — 8px (density: comfortable)",
       "meaning": "Control size step lg — padding-y",
       "when_to_use": "The padding-y of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
       "resolves_to": "{ads.space.100}"
     },
     "size.lg.gap": {
-      "$description": "size.lg label↔visual gap — 8px (density: compact)",
+      "$description": "size.lg label↔visual gap — 12px (density: comfortable)",
       "meaning": "Control size step lg — gap",
       "when_to_use": "The gap of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.space.100}"
+      "resolves_to": "{ads.space.150}"
     },
     "size.xl.height": {
-      "$description": "size.xl control height — 56px (density: compact)",
+      "$description": "size.xl control height — 68px (density: comfortable)",
       "meaning": "Control size step xl — height",
       "when_to_use": "The height of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.core.dimension.56}"
+      "resolves_to": "{ads.core.dimension.68}"
     },
     "size.xl.padding-x": {
-      "$description": "size.xl horizontal inset — 24px (density: compact)",
+      "$description": "size.xl horizontal inset — 24px (density: comfortable)",
       "meaning": "Control size step xl — padding-x",
       "when_to_use": "The padding-x of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
       "resolves_to": "{ads.space.300}"
@@ -7697,55 +7697,55 @@
       "resolves_to": "{ads.space.200}"
     },
     "size.xl.padding-y": {
-      "$description": "size.xl vertical inset — 8px (density: compact)",
+      "$description": "size.xl vertical inset — 16px (density: comfortable)",
       "meaning": "Control size step xl — padding-y",
       "when_to_use": "The padding-y of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{ads.space.100}"
+      "resolves_to": "{ads.space.200}"
     },
     "size.xl.gap": {
-      "$description": "size.xl label↔visual gap — 12px (density: compact)",
+      "$description": "size.xl label↔visual gap — 12px (density: comfortable)",
       "meaning": "Control size step xl — gap",
       "when_to_use": "The gap of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
       "resolves_to": "{ads.space.150}"
     },
     "control.size.sm.height": {
-      "$description": "control.size.sm — 12px box edge for a square control's own dimension: a checkbox square or a radio circle (density: compact). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+      "$description": "control.size.sm — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "meaning": "Selection-control geometry, sm step — height",
       "when_to_use": "The height of a checkbox, radio or switch at the sm step.",
-      "resolves_to": "{ads.core.dimension.12}"
-    },
-    "control.size.sm.width": {
-      "$description": "control.size.sm width — 32px track width for a two-position control, i.e. a switch (2x the 16px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
-      "meaning": "Selection-control geometry, sm step — width",
-      "when_to_use": "The width of a checkbox, radio or switch at the sm step.",
-      "resolves_to": "{ads.core.dimension.32}"
-    },
-    "control.size.sm.dot": {
-      "$description": "control.size.sm dot — 6px inner mark for a radio's dot (half the 12px box edge, leaving a 3px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
-      "meaning": "Selection-control geometry, sm step — dot",
-      "when_to_use": "The dot of a checkbox, radio or switch at the sm step.",
-      "resolves_to": "{ads.core.dimension.6}"
-    },
-    "control.size.sm.inset": {
-      "$description": "control.size.sm inset — 2px gap between the thumb and the track's boundary ((16px track − 12px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
-      "meaning": "Selection-control geometry, sm step — inset",
-      "when_to_use": "The inset of a checkbox, radio or switch at the sm step.",
-      "resolves_to": "{ads.core.dimension.2}"
-    },
-    "control.size.sm.track": {
-      "$description": "control.size.sm track — 16px track height for a switch (density: compact). The switch's own cross-axis edge, larger than the 12px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
-      "meaning": "Selection-control geometry, sm step — track",
-      "when_to_use": "The track of a checkbox, radio or switch at the sm step.",
       "resolves_to": "{ads.core.dimension.16}"
     },
+    "control.size.sm.width": {
+      "$description": "control.size.sm width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "meaning": "Selection-control geometry, sm step — width",
+      "when_to_use": "The width of a checkbox, radio or switch at the sm step.",
+      "resolves_to": "{ads.core.dimension.48}"
+    },
+    "control.size.sm.dot": {
+      "$description": "control.size.sm dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "meaning": "Selection-control geometry, sm step — dot",
+      "when_to_use": "The dot of a checkbox, radio or switch at the sm step.",
+      "resolves_to": "{ads.core.dimension.8}"
+    },
+    "control.size.sm.inset": {
+      "$description": "control.size.sm inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+      "meaning": "Selection-control geometry, sm step — inset",
+      "when_to_use": "The inset of a checkbox, radio or switch at the sm step.",
+      "resolves_to": "{ads.core.dimension.3}"
+    },
+    "control.size.sm.track": {
+      "$description": "control.size.sm track — 24px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "meaning": "Selection-control geometry, sm step — track",
+      "when_to_use": "The track of a checkbox, radio or switch at the sm step.",
+      "resolves_to": "{ads.core.dimension.24}"
+    },
     "control.size.sm.thumb": {
-      "$description": "control.size.sm thumb — 12px traveling thumb for a switch (0.75 × the 16px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "$description": "control.size.sm thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
       "meaning": "Selection-control geometry, sm step — thumb",
       "when_to_use": "The thumb of a checkbox, radio or switch at the sm step.",
-      "resolves_to": "{ads.core.dimension.12}"
+      "resolves_to": "{ads.core.dimension.18}"
     },
     "control.size.sm.radius": {
-      "$description": "control.size.sm radius — 2px corner on the 12px box edge (min of radius.sm 4px and one eighth of the box, 12px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "$description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 4px and one eighth of the box, 16px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "meaning": "Selection-control geometry, sm step — radius",
       "when_to_use": "The radius of a checkbox, radio or switch at the sm step.",
       "resolves_to": "{ads.core.dimension.2}"
@@ -7757,43 +7757,43 @@
       "resolves_to": "21px"
     },
     "control.size.md.height": {
-      "$description": "control.size.md — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: compact). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+      "$description": "control.size.md — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "meaning": "Selection-control geometry, md step — height",
       "when_to_use": "The height of a checkbox, radio or switch at the md step.",
-      "resolves_to": "{ads.core.dimension.16}"
+      "resolves_to": "{ads.core.dimension.20}"
     },
     "control.size.md.width": {
-      "$description": "control.size.md width — 48px track width for a two-position control, i.e. a switch (2x the 24px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "$description": "control.size.md width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
       "meaning": "Selection-control geometry, md step — width",
       "when_to_use": "The width of a checkbox, radio or switch at the md step.",
-      "resolves_to": "{ads.core.dimension.48}"
+      "resolves_to": "{ads.core.dimension.64}"
     },
     "control.size.md.dot": {
-      "$description": "control.size.md dot — 8px inner mark for a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "$description": "control.size.md dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
       "meaning": "Selection-control geometry, md step — dot",
       "when_to_use": "The dot of a checkbox, radio or switch at the md step.",
-      "resolves_to": "{ads.core.dimension.8}"
+      "resolves_to": "{ads.core.dimension.10}"
     },
     "control.size.md.inset": {
-      "$description": "control.size.md inset — 3px gap between the thumb and the track's boundary ((24px track − 18px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+      "$description": "control.size.md inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
       "meaning": "Selection-control geometry, md step — inset",
       "when_to_use": "The inset of a checkbox, radio or switch at the md step.",
-      "resolves_to": "{ads.core.dimension.3}"
+      "resolves_to": "{ads.core.dimension.4}"
     },
     "control.size.md.track": {
-      "$description": "control.size.md track — 24px track height for a switch (density: compact). The switch's own cross-axis edge, larger than the 16px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "$description": "control.size.md track — 32px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
       "meaning": "Selection-control geometry, md step — track",
       "when_to_use": "The track of a checkbox, radio or switch at the md step.",
-      "resolves_to": "{ads.core.dimension.24}"
+      "resolves_to": "{ads.core.dimension.32}"
     },
     "control.size.md.thumb": {
-      "$description": "control.size.md thumb — 18px traveling thumb for a switch (0.75 × the 24px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "$description": "control.size.md thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
       "meaning": "Selection-control geometry, md step — thumb",
       "when_to_use": "The thumb of a checkbox, radio or switch at the md step.",
-      "resolves_to": "{ads.core.dimension.18}"
+      "resolves_to": "{ads.core.dimension.24}"
     },
     "control.size.md.radius": {
-      "$description": "control.size.md radius — 2px corner on the 16px box edge (min of radius.sm 4px and one eighth of the box, 16px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "$description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 4px and one eighth of the box, 20px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "meaning": "Selection-control geometry, md step — radius",
       "when_to_use": "The radius of a checkbox, radio or switch at the md step.",
       "resolves_to": "{ads.core.dimension.2}"
@@ -7805,46 +7805,46 @@
       "resolves_to": "24px"
     },
     "control.size.lg.height": {
-      "$description": "control.size.lg — 20px box edge for a square control's own dimension: a checkbox square or a radio circle (density: compact). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
+      "$description": "control.size.lg — 24px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
       "meaning": "Selection-control geometry, lg step — height",
       "when_to_use": "The height of a checkbox, radio or switch at the lg step.",
-      "resolves_to": "{ads.core.dimension.20}"
-    },
-    "control.size.lg.width": {
-      "$description": "control.size.lg width — 64px track width for a two-position control, i.e. a switch (2x the 32px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
-      "meaning": "Selection-control geometry, lg step — width",
-      "when_to_use": "The width of a checkbox, radio or switch at the lg step.",
-      "resolves_to": "{ads.core.dimension.64}"
-    },
-    "control.size.lg.dot": {
-      "$description": "control.size.lg dot — 10px inner mark for a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
-      "meaning": "Selection-control geometry, lg step — dot",
-      "when_to_use": "The dot of a checkbox, radio or switch at the lg step.",
-      "resolves_to": "{ads.core.dimension.10}"
-    },
-    "control.size.lg.inset": {
-      "$description": "control.size.lg inset — 4px gap between the thumb and the track's boundary ((32px track − 24px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
-      "meaning": "Selection-control geometry, lg step — inset",
-      "when_to_use": "The inset of a checkbox, radio or switch at the lg step.",
-      "resolves_to": "{ads.core.dimension.4}"
-    },
-    "control.size.lg.track": {
-      "$description": "control.size.lg track — 32px track height for a switch (density: compact). The switch's own cross-axis edge, larger than the 20px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
-      "meaning": "Selection-control geometry, lg step — track",
-      "when_to_use": "The track of a checkbox, radio or switch at the lg step.",
-      "resolves_to": "{ads.core.dimension.32}"
-    },
-    "control.size.lg.thumb": {
-      "$description": "control.size.lg thumb — 24px traveling thumb for a switch (0.75 × the 32px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
-      "meaning": "Selection-control geometry, lg step — thumb",
-      "when_to_use": "The thumb of a checkbox, radio or switch at the lg step.",
       "resolves_to": "{ads.core.dimension.24}"
     },
+    "control.size.lg.width": {
+      "$description": "control.size.lg width — 80px track width for a two-position control, i.e. a switch (2x the 40px `track` height, the common 2:1 track ratio). A square control uses `height` on both axes and does not read this.",
+      "meaning": "Selection-control geometry, lg step — width",
+      "when_to_use": "The width of a checkbox, radio or switch at the lg step.",
+      "resolves_to": "{ads.core.dimension.80}"
+    },
+    "control.size.lg.dot": {
+      "$description": "control.size.lg dot — 12px inner mark for a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a glyph draws it full-bleed at `height`; a switch's traveling thumb reads `thumb` instead.",
+      "meaning": "Selection-control geometry, lg step — dot",
+      "when_to_use": "The dot of a checkbox, radio or switch at the lg step.",
+      "resolves_to": "{ads.core.dimension.12}"
+    },
+    "control.size.lg.inset": {
+      "$description": "control.size.lg inset — 5px gap between the thumb and the track's boundary ((40px track − 30px thumb) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centered and static does not read it.",
+      "meaning": "Selection-control geometry, lg step — inset",
+      "when_to_use": "The inset of a checkbox, radio or switch at the lg step.",
+      "resolves_to": "{ads.core.dimension.5}"
+    },
+    "control.size.lg.track": {
+      "$description": "control.size.lg track — 40px track height for a switch (density: comfortable). The switch's own cross-axis edge, larger than the 24px square-control `height` because a track holds a traveling thumb. A checkbox/radio does not read it.",
+      "meaning": "Selection-control geometry, lg step — track",
+      "when_to_use": "The track of a checkbox, radio or switch at the lg step.",
+      "resolves_to": "{ads.core.dimension.40}"
+    },
+    "control.size.lg.thumb": {
+      "$description": "control.size.lg thumb — 30px traveling thumb for a switch (0.75 × the 40px `track`). Larger than a radio's `dot` because the switch's mark is the moving element the eye tracks. A checkbox/radio does not read it.",
+      "meaning": "Selection-control geometry, lg step — thumb",
+      "when_to_use": "The thumb of a checkbox, radio or switch at the lg step.",
+      "resolves_to": "{ads.core.dimension.30}"
+    },
     "control.size.lg.radius": {
-      "$description": "control.size.lg radius — 2px corner on the 20px box edge (min of radius.sm 4px and one eighth of the box, 20px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
+      "$description": "control.size.lg radius — 4px corner on the 24px box edge (min of radius.sm 4px and one eighth of the box, 24px ÷ 8, snapped to the 2px radius sub-grid). Clamped to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does.",
       "meaning": "Selection-control geometry, lg step — radius",
       "when_to_use": "The radius of a checkbox, radio or switch at the lg step.",
-      "resolves_to": "{ads.core.dimension.2}"
+      "resolves_to": "{ads.core.dimension.4}"
     },
     "control.size.lg.line-box": {
       "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (font size × line height). A selection control sits in a box this tall and centers within it, so it tracks the first line of a wrapping label instead of floating mid-paragraph.",
@@ -10231,13 +10231,10 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "border-width.thick",
-        "control.size.lg.radius",
         "control.size.md.radius",
-        "control.size.sm.inset",
         "control.size.sm.radius",
         "focus.ring.offset",
         "focus.ring.width",
-        "size.xs.padding-y",
         "space.025"
       ]
     },
@@ -10247,7 +10244,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.md.inset"
+        "control.size.sm.inset"
       ]
     },
     "core.dimension.4": {
@@ -10257,11 +10254,11 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "border-width.heavy",
-        "control.size.lg.inset",
+        "control.size.lg.radius",
+        "control.size.md.inset",
         "radius.sm",
-        "size.sm.gap",
-        "size.sm.padding-y",
         "size.xs.gap",
+        "size.xs.padding-y",
         "space.050"
       ]
     },
@@ -10269,7 +10266,10 @@
       "$description": "5px — dimension primitive",
       "meaning": "5px grid primitive",
       "tier": "primitive",
-      "consume": "Private primitive — reference via space / radius / size / border-width / focus."
+      "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
+      "aliased_by": [
+        "control.size.lg.inset"
+      ]
     },
     "core.dimension.6": {
       "$description": "6px — dimension primitive",
@@ -10277,9 +10277,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.sm.dot",
-        "size.md.padding-y",
-        "size.sm.padding-x-visual",
+        "size.sm.padding-y",
         "size.xs.padding-x-visual",
         "space.075"
       ]
@@ -10290,13 +10288,12 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.md.dot",
+        "control.size.sm.dot",
         "radius.md",
-        "size.lg.gap",
         "size.lg.padding-y",
         "size.md.gap",
-        "size.sm.padding-x",
-        "size.xl.padding-y",
+        "size.md.padding-y",
+        "size.sm.gap",
         "size.xs.padding-x",
         "space.100"
       ]
@@ -10307,7 +10304,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.lg.dot"
+        "control.size.md.dot"
       ]
     },
     "core.dimension.12": {
@@ -10316,11 +10313,11 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.sm.height",
-        "control.size.sm.thumb",
+        "control.size.lg.dot",
         "radius.lg",
-        "size.lg.padding-x-visual",
+        "size.lg.gap",
         "size.md.padding-x-visual",
+        "size.sm.padding-x-visual",
         "size.xl.gap",
         "space.150"
       ]
@@ -10331,15 +10328,16 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.md.height",
-        "control.size.sm.track",
+        "control.size.sm.height",
         "grid.sm.gutter",
         "grid.xs.gutter",
         "grid.xs.margin",
         "icon.size.xs",
-        "size.lg.padding-x",
+        "size.lg.padding-x-visual",
         "size.md.padding-x",
+        "size.sm.padding-x",
         "size.xl.padding-x-visual",
+        "size.xl.padding-y",
         "space.200"
       ]
     },
@@ -10349,7 +10347,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.md.thumb"
+        "control.size.sm.thumb"
       ]
     },
     "core.dimension.20": {
@@ -10358,7 +10356,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.lg.height",
+        "control.size.md.height",
         "icon.size.sm",
         "space.250"
       ]
@@ -10369,15 +10367,16 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.lg.thumb",
-        "control.size.md.track",
+        "control.size.lg.height",
+        "control.size.md.thumb",
+        "control.size.sm.track",
         "grid.lg.gutter",
         "grid.md.gutter",
         "grid.md.margin",
         "grid.sm.margin",
         "icon.size.md",
+        "size.lg.padding-x",
         "size.xl.padding-x",
-        "size.xs.height",
         "space.300"
       ]
     },
@@ -10387,7 +10386,16 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "size.sm.height"
+        "size.xs.height"
+      ]
+    },
+    "core.dimension.30": {
+      "$description": "30px — dimension primitive",
+      "meaning": "30px grid primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
+      "aliased_by": [
+        "control.size.lg.thumb"
       ]
     },
     "core.dimension.32": {
@@ -10396,8 +10404,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.lg.track",
-        "control.size.sm.width",
+        "control.size.md.track",
         "grid.2xl.gutter",
         "grid.lg.margin",
         "grid.xl.gutter",
@@ -10411,7 +10418,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "size.md.height"
+        "size.sm.height"
       ]
     },
     "core.dimension.40": {
@@ -10420,6 +10427,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
+        "control.size.lg.track",
         "icon.size.xl",
         "space.500"
       ]
@@ -10430,7 +10438,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "size.lg.height",
+        "size.md.height",
         "size.md.min-height"
       ]
     },
@@ -10440,7 +10448,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.md.width",
+        "control.size.sm.width",
         "grid.2xl.margin",
         "grid.xl.margin",
         "space.600"
@@ -10458,7 +10466,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "size.xl.height",
+        "size.lg.height",
         "space.700"
       ]
     },
@@ -10474,7 +10482,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "control.size.lg.width",
+        "control.size.md.width",
         "space.800"
       ]
     },
@@ -10482,7 +10490,10 @@
       "$description": "68px — dimension primitive",
       "meaning": "68px grid primitive",
       "tier": "primitive",
-      "consume": "Private primitive — reference via space / radius / size / border-width / focus."
+      "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
+      "aliased_by": [
+        "size.xl.height"
+      ]
     },
     "core.dimension.72": {
       "$description": "72px — dimension primitive",
@@ -10505,6 +10516,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
+        "control.size.lg.width",
         "space.1000"
       ]
     },

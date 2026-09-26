@@ -8,11 +8,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Control row height — 24px",
-      "value": 24,
+      "description": "Control row height — 28px",
+      "value": 28,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/24"
+        "name": "ads/core/dimension/28"
       }
     },
     {
@@ -47,11 +47,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Vertical padding — 2px",
-      "value": 2,
+      "description": "Vertical padding — 4px",
+      "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/space/025"
+        "name": "ads/space/050"
       }
     },
     {
@@ -73,11 +73,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Control row height — 28px",
-      "value": 28,
+      "description": "Control row height — 36px",
+      "value": 36,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/28"
+        "name": "ads/core/dimension/36"
       }
     },
     {
@@ -86,11 +86,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Horizontal padding, label side — 8px",
-      "value": 8,
+      "description": "Horizontal padding, label side — 16px",
+      "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/space/100"
+        "name": "ads/space/200"
       }
     },
     {
@@ -99,11 +99,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Horizontal padding, icon side — 6px (the icon's box adds space; label side is 8px)",
-      "value": 6,
+      "description": "Horizontal padding, icon side — 12px (the icon's box adds space; label side is 16px)",
+      "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/space/075"
+        "name": "ads/space/150"
       }
     },
     {
@@ -112,11 +112,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Vertical padding — 4px",
-      "value": 4,
+      "description": "Vertical padding — 6px",
+      "value": 6,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/space/050"
+        "name": "ads/space/075"
       }
     },
     {
@@ -125,11 +125,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Gap between label and icon — 4px",
-      "value": 4,
+      "description": "Gap between label and icon — 8px",
+      "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/space/050"
+        "name": "ads/space/100"
       }
     },
     {
@@ -138,11 +138,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Control row height — 36px",
-      "value": 36,
+      "description": "Control row height — 44px",
+      "value": 44,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/36"
+        "name": "ads/core/dimension/44"
       }
     },
     {
@@ -190,11 +190,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Vertical padding — 6px",
-      "value": 6,
+      "description": "Vertical padding — 8px",
+      "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/space/075"
+        "name": "ads/space/100"
       }
     },
     {
@@ -216,11 +216,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Control row height — 44px",
-      "value": 44,
+      "description": "Control row height — 56px",
+      "value": 56,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/44"
+        "name": "ads/core/dimension/56"
       }
     },
     {
@@ -229,11 +229,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Horizontal padding, label side — 16px",
-      "value": 16,
+      "description": "Horizontal padding, label side — 24px",
+      "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/space/200"
+        "name": "ads/space/300"
       }
     },
     {
@@ -242,11 +242,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Horizontal padding, icon side — 12px (the icon's box adds space; label side is 16px)",
-      "value": 12,
+      "description": "Horizontal padding, icon side — 16px (the icon's box adds space; label side is 24px)",
+      "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/space/150"
+        "name": "ads/space/200"
       }
     },
     {
@@ -268,11 +268,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Gap between label and icon — 8px",
-      "value": 8,
+      "description": "Gap between label and icon — 12px",
+      "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/space/100"
+        "name": "ads/space/150"
       }
     },
     {
@@ -281,11 +281,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Control row height — 56px",
-      "value": 56,
+      "description": "Control row height — 68px",
+      "value": 68,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/56"
+        "name": "ads/core/dimension/68"
       }
     },
     {
@@ -320,11 +320,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Vertical padding — 8px",
-      "value": 8,
+      "description": "Vertical padding — 16px",
+      "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/space/100"
+        "name": "ads/space/200"
       }
     },
     {
