@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.172.0 — #1662: the read-back's `modesDistinct` no longer fails a single-mode brand. The check asked
+ * `new Set(perModeTargets).size > 1`, which a file with one mode can never satisfy, so every
+ * `modes: ['light']` brand read "FAILED: modesDistinct" on the plugin's boot read-back (first seen live on
+ * `nb-redesign`) — a vacuous failure, since the guard exists to catch modes collapsed onto one target and
+ * one mode has nothing to collapse. With exactly one mode, `verifyReadback` now asserts only that
+ * `color/background/primary` is bound in it (the same ABSENT case a multi-mode file fails on); zero modes
+ * and multi-mode files are unchanged. A plugin behavior change (the seed pill's verdict) → MINOR. No
+ * token value or name moves — `out/**` restamps the generator version only; CONTRACT STANDS.
+ *
  * 0.171.0 — #1672: the legacy CLI paste path (`materialise-to-figma.ts`) writes a TINTED WASH's alias
  * opacity. Its `color-aliases` pass built its rows from `targetsByMode` alone, so a `solid-tint` brand's
  * `[inverse.]interactive.<c>.subtle-fill.<state>` would have bound as a plain opaque alias to its fill.
@@ -3808,7 +3817,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.171.0';
+export const ENGINE_VERSION = '0.172.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

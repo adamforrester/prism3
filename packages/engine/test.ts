@@ -3041,6 +3041,38 @@ for (const b of brands) {
   ok(!bad.checks.modesDistinct && !bad.ok, 'read-back: collapsed background/primary FAILS modesDistinct (negative — the collapse guard bites)');
 }
 
+// READ-BACK on a SINGLE-MODE brand (#1662). A `modes: ['light']` brand writes one mode, so there is no
+// second target for background/primary to differ from; `size > 1` failed every such file vacuously
+// (first seen live on `nb-redesign`: "FAILED: modesDistinct"). Expected here: a faithful single-mode
+// read PASSES modesDistinct and the whole contract, because nothing can have collapsed. Paired with an
+// arm that removes the probe — a single-mode pass must still mean "bound", not "unchecked".
+{
+  const plan = buildWritePlan(buildFigmaColor(brandTheme({ ...(exampleBrands()['aurora'] as BrandInput), modes: ['light'] })));
+  const snapOf = (dropProbe: boolean, literalProbe = false): ReadbackSnapshot => ({
+    collections: [{ name: 'core', modes: ['Default'] }, { name: 'color', modes: plan.color.modes }],
+    palette: plan.palette.map((p) => ({ name: p.name, scopes: p.scopes, hidden: p.hidden })),
+    color: plan.color.create
+      .map((c, i) => ({
+        name: c.name,
+        scopes: c.scopes,
+        valuesByMode: Object.fromEntries(plan.color.modes.map((m, mi) => [m, literalProbe && tailOf(c.name) === 'color/background/primary'
+          ? { r: 1, g: 1, b: 1, a: 1 }
+          : { alias: plan.color.aliases[i].targetsByMode[mi] }])),
+      }))
+      .filter((c) => !(dropProbe && tailOf(c.name) === 'color/background/primary')),
+  });
+  ok(plan.color.modes.length === 1, `read-back single-mode: the fixture really is single-mode (${plan.color.modes.join('/')})`);
+  const one = verifyReadback(snapOf(false));
+  ok(one.checks.modesDistinct, 'read-back single-mode: modesDistinct PASSES — one mode has nothing to collapse (#1662)');
+  ok(one.ok, 'read-back single-mode: a faithful single-mode read passes every contract check' + (one.ok ? '' : ` — ${Object.entries(one.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
+  const unbound = verifyReadback(snapOf(true));
+  ok(!unbound.checks.modesDistinct, 'read-back single-mode: background/primary ABSENT still FAILS modesDistinct (the vacuous pass is not "unchecked")');
+  // #1691 net — a LITERAL probe (color-create ran, color-aliases did not) is not bound to the palette. A
+  // multi-mode file whose probe is literal in every mode fails; a single-mode one must fail too.
+  const literal = verifyReadback(snapOf(false, true));
+  ok(!literal.checks.modesDistinct, 'read-back single-mode: a LITERAL background/primary (aliases never pasted) still FAILS modesDistinct — bound means aliased');
+}
+
 // BrandInput PERSISTENCE (#131, #480): the shared-data round-trip + version guard. A persisted
 // brand must deserialise back to the EXACT input (so re-opening a themed file rehydrates the
 // knobs); genuine absence (nothing ever stored) collapses to `null`; anything NON-EMPTY that can't
