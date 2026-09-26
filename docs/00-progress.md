@@ -9,7 +9,7 @@
 
 ## (2026-09-26) — Vocabulary: trait citations are checked against the briefs they quote (#1685)
 
-**STATUS: PR open from `lane/trait-citations`, labeled DO NOT MERGE.** Engine only. **ENGINE 0.169.0 → 0.170.0** (four shipped `why` strings change); **CONTRACT STANDS at 13.1.0** (`token-contract --check` level `none`; `--accept` rewrote only the informational `engineVersion`). `out/**` moves by the version stamp only: no corpus brand sets `personality`.
+**STATUS: PR open from `lane/trait-citations`, labeled DO NOT MERGE.** Engine only. **ENGINE 0.172.0 → 0.173.0** (renumbered in the net after #1686, #1690, #1691) (four shipped `why` strings change); **CONTRACT STANDS at 13.1.0** (`token-contract --check` level `none`; `--accept` rewrote only the informational `engineVersion`). `out/**` moves by the version stamp only: no corpus brand sets `personality`.
 
 **Owner direction (2026-09-26): keep `dense`, no new example brand.** Its `why` now says outright that no example brief asks for density and that it stands as the opposite pole of `generous`; harbor's "not a dense dashboard" stays, verbatim, described as the brief rejecting density rather than asking for it.
 
@@ -23,6 +23,76 @@
 **Mutations, each failing by name.** One character in the `dense` quote (`dashbaord`) → `trait 'dense' … not verbatim in harbor.design.md`. The quoted words edited in harbor's brief instead → the same arm, from the other side. `restrained` re-attributed to aurora → `trait 'restrained' … not verbatim in aurora.design.md`. `sharp`'s citation removed → `trait 'sharp' … no quoted brief text`. `sharp` deleted outright → the floor arm (`found 8 traits`), alongside the existing schema-enum arm. An EMPTY `TRAITS` crashes the suite earlier, in arms that resolve `personality: ['soft']`, so it goes red but not through this arm; the eight-trait mutation is what proves the floor.
 
 **Trap for whoever re-verifies.** The attribution is "the nearest brief name before the quote, outside quotes", so a `why` whose prose mentions a second brief between the citation and its quote would re-attribute the quote. Today every `why` is written `<brief>: "…"` or `<brief> … "…"`; keep it that way.
+
+---
+
+## (2026-09-26) — read-back: `modesDistinct` on a single-mode brand (#1662)
+
+**STATUS: PR open from `lane/readback-single-mode`, labeled DO NOT MERGE.** Engine (`read-back.ts`, consumed by the plugin's boot read-back). **ENGINE 0.171.0 → 0.172.0** (renumbered in the net: #1686 and #1690 took 0.170.0 and 0.171.0) (MINOR — the seed pill's verdict changes). CONTRACT stands; `out/**` restamps the generator version and nothing else.
+
+**Diagnosis: a vacuous failure, not a real one.** `modesDistinct` is the collapse guard from #85: `color/background/primary` must bind a different target in each mode, because a script once collapsed every mode onto one target. It was computed as `new Set(perModeTargets).size > 1`, and a file with one mode yields a set of size 1 no matter what it holds. So every `modes: ['light']` brand failed it — first seen live on `nb-redesign` in the #1660 agent-link run ("247 color vars, modes light — FAILED: modesDistinct"). Nothing was missing and nothing had collapsed; the brand declares one mode and the file carries one.
+
+**The fix.** With exactly one mode, the guard asserts only that the probe is bound there (not `ABSENT`) — the same case a multi-mode file with the probe missing everywhere already fails on. Zero modes (no `color` collection) still fails; multi-mode is unchanged. The deliberate limit, stated in the code: `verifyReadback` is pure over the snapshot and receives no brand input, so it cannot tell "single-mode brand" from "a multi-mode brand whose other modes never landed". Verifying declared-vs-present modes would need the brand passed in; not taken here, since nothing in #1662 asked for it and the materialise side writes whatever modes the plan carries.
+
+**Tests (`test.ts`).** A new block builds a real single-mode plan (`aurora` with `modes: ['light']`, through `buildWritePlan(buildFigmaColor(…))`), asserts the fixture really has one mode, then: a faithful read passes `modesDistinct` and the whole contract; the same read with the probe dropped still fails `modesDistinct`, so a single-mode pass means "bound", not "unchecked". The existing NB negative (collapsed four-mode file fails `modesDistinct`) is untouched and still bites. **Mutation:** restoring `size > 1` fails "read-back single-mode: modesDistinct PASSES — one mode has nothing to collapse (#1662)" and the whole-contract arm, by name.
+
+**Filed, not fixed.** The paste-path twin in `materialise-to-figma.ts`'s verify pass computes the same `size>1` and has the same single-mode failure; filed as #1687 (one concern per PR).
+
+**Orchestrator net.** Independent review found the single-mode arm accepted a **literal** probe: `color-create` ran but `color-aliases` never did, so `aliasesResolve` also passed vacuously and the file read "contract holds ✓". Single-mode now requires the probe to be **aliased** (neither `ABSENT` nor `literal`), matching the multi-mode rule. Mutation (drop the `literal` clause) → `❌ read-back single-mode: a LITERAL background/primary (aliases never pasted) still FAILS modesDistinct — bound means aliased`. The owner-held question stands. The plugin's seed verdict still cannot tell a single-mode brand from a multi-mode brand whose other modes never landed; the caller could read the declared modes from the brand saved in the file (#131).
+
+---
+
+## (2026-09-26) — the CLI paste path writes a tinted wash's alias opacity (#1672)
+
+**STATUS: PR open from `lane/materialise-wash-opacity`, labeled DO NOT MERGE.** Engine only: `materialise-to-figma.ts`, `test.ts`, `version.ts`, `docs/10`. **ENGINE 0.170.0 → 0.171.0** (renumbered in the net: #1686 took 0.170.0); CONTRACT STANDS.
+
+**The defect.** #1646 made each tinted wash a color variable whose value is an alias laid at an `opacity/<n>` variable, and taught the plugin (`write-figma.ts`) and the MCP paste path (`mcp-paste.ts`) to write it. The legacy CLI payload generator built its `color-aliases` rows from `targetsByMode` only, so a `solid-tint` brand's washes would have pasted as plain opaque aliases to the fill. Not reachable from a committed brand: none sets `solid-tint`.
+
+**The fix.** A wash row carries a third element, the opacity variable's name per mode (`aliasRowsFrom`); every other row keeps the two-element shape, so a brand with no wash pastes the same bytes as before. The pass writes `{ color, opacity }`, and a missing opacity variable is a named miss rather than a quiet opaque alias. `dims-create` moved ahead of `color-aliases` in `ORDER`, because the opacity variable is a FLOAT that pass creates. The pass's body is now `colorAliasesJs(plan)`, so the suite can drive a plan no committed brand emits through the same string the CLI prints.
+
+**How it is gated (docs/34).** The fixture is aurora with `outlineInteraction: 'solid-tint'`. The test RUNS the payload in a small Variables shim and checks each of the 18 washes in all 4 modes. The fill names are hand-spelled from the rule, and the opacity steps are the #1646 STANDARD literals, never read off this generator's rows. A second arm checks no other row gained an opacity, and a third checks `dims-create` precedes `color-aliases`. Mutations, from a `wip:` commit: the pass ignoring the opacity fails the binding arm by name (72 mode-values, each a plain alias); restoring the old order fails the ordering arm by name.
+
+**Trap.** `test.ts` already asserted `dims-create` before `dims-aliases`; that arm says nothing about the color lane. The new ordering arm is the one that holds this constraint.
+
+---
+
+## (2026-09-26) — Desktop bridge: MCP progress only ever increases across build phases (#1684)
+
+**STATUS: PR open from `lane/bridge-progress`, labeled DO NOT MERGE.** Tool + plugin test. **ENGINE 0.169.0 → 0.170.0**; CONTRACT stands at 13.1.0 (the baseline moved by its `engineVersion` stamp only).
+
+**The defect.** `figma_run` passed each plugin reading's `done` straight through as the MCP `progress` value. The MCP spec requires `progress` to increase with every notification, and a build restarts `done` at every segment: build → wire, each #1679 `retry` pass (1/6 … 6/6), the `wire` reading that closes the back-off, and the next set's build when one command builds several (nested sets, #1633). A client that enforces the rule may drop the stream exactly when the build is slowest.
+
+**The fix.** `createProgressCounter` in `tools/figma-bridge/server.ts`, one per `figma_run`. A segment ends when the phase changes or `done` fails to rise; the finished segment's last `done` is folded into an offset, and progress = offset + done, floored at the previous value + 1 so a segment opening at `done: 0` still moves forward. The mailbox transport is unaffected: it returns readings in the result envelope, not as MCP notifications.
+
+**`total` is omitted, deliberately.** The only totals the plugin knows are per segment, and the number of segments (retry passes, nested sets) is unknown until the run ends, so any sum would be overtaken by a later phase and read to a client as a bar that fills and then falls back. MCP makes `total` optional. `message` keeps the phase's own fraction (`wire 24/48`), and `figma_logs` keeps the raw readings.
+
+**Tried and discarded.** A per-phase offset with a `total` covering every phase (the issue's second suggestion). It works for one build → wire pass but not for retry passes that may or may not happen, or for a command that builds several sets.
+
+**Version class.** The bridge reports `ENGINE_VERSION` as its `serverInfo.version`, and #1661 bumped ENGINE for the bridge's introduction. What an MCP client receives changes, which is a behavior change under principle 5, so MINOR. No emission or projected surface moves; `out/**` is a stamp-only regen.
+
+**Gate.** `apps/plugin/test-agent-bridge.ts`, new section `progress across phases (#1684)`, through the real spawned server and socket: build 24/48, 48/48 → wire 24/48, 48/48 → retry 1/6, 2/6, 3/6 → wire 48/48 → build 12/12 → wire 12/12. The expected sequence is written in the test, `24, 48, 72, 96, 97, 98, 99, 147, 159, 171`, not computed by the counter. The `stream` arm's `total === 9` assertion now checks `message === 'build 3/9'`.
+
+**Mutations, from a committed `wip:` HEAD, restored:**
+- Pass-through restored (`progress: p.done, total: p.total`) → `✗ progress: strictly increasing across build → wire → retry → wire → build (got 24, 48, 24, 48, 1, 2, 3, 48, 12, 12)`, `✗ progress: the sequence is …` and `✗ progress: no total …`.
+- The offset fold removed, floor kept → only `✗ progress: the sequence is … (got 24, 48, 49, … 56)`. The floor alone keeps the values increasing, which is why the exact sequence is asserted and not only strict increase.
+
+---
+
+## (2026-09-26) — the panel side of an agent's prune preview is gated: pillOnly never opens the dialog (#1663)
+
+**STATUS: PR open from `lane/pilonly-gate`, labeled DO NOT MERGE.** Plugin test only. **No ENGINE bump, no CONTRACT bump:** nothing a consumer can observe moved (`version.ts`: ENGINE bumps on observable behavior), no emitted artifact, no bundle byte outside the test file.
+
+**The gap.** #1660 has the main thread mark an agent's prune preview `pillOnly`, and `test-agent-link.ts` proves the flag is *set*. Two panel hops honor it — `write-adapter.ts` carries it across the bridge, and the `prune-result` handler in `apps/studio/src/main.ts` takes a pill branch instead of opening the confirm dialog — and nothing failed if either was deleted. That matters beyond noise on the owner's screen: the dialog's Delete posts `postPrune(lastGoodInput, true)`, the *panel's* knobs, so an owner confirming an agent's count would prune against a different input than the one previewed.
+
+**The arm.** Added to `apps/plugin/test-build-verdict.mjs` (`test:verdict`), the harness that already drives the built `dist/ui.html` through the real `write-adapter.ts` bridge — no new CI step, so `ci.yml`, CONTRIBUTING §3, CLAUDE.md and the PR template are untouched. Two arms post the same `prune-result` (`applied: false, count: 4`) and differ only in `pillOnly`: the **control** (no flag) must open the dialog, found by its accessible name "Prune stale items", with a "Delete 4 items" CTA — proving the probe can see a dialog at all, so "no dialog" is a measurement and not a selector matching nothing; the **agent arm** must show no dialog, no Delete CTA, and a bar pill reading exactly `Agent preview: <summary>`. Suite: 129 → 136 assertions.
+
+**Mutations, by name** (commit before each, bundle rebuilt each time):
+- Delete the studio `m.count > 0 && m.pillOnly` branch → 3 named `#1663` failures (dialog opens, "Delete 4 items" present, pill absent).
+- Drop the adapter's `...(m.pillOnly === true ? …)` carry → the same 3. The flag's loss at either hop is caught, not only the one the issue named.
+
+**Trap for whoever re-runs a mutation here:** the arm reads the *built* bundle, so a mutation that breaks the esbuild step leaves the previous `dist/ui.html` in place and the suite reports against it. A first attempt at the adapter mutation did exactly that (a sed left a stray `)`), and its "3 failing" was the stale bundle from the studio mutation. Check the build exits clean before reading the suite's verdict.
+
+---
 
 ## (2026-09-26) — the Spinner component, to the owner's spec, used by the button's pending state (#1670)
 

@@ -503,6 +503,7 @@ npx tsx packages/engine/emit-figma.ts                                       # re
 npx tsx packages/engine/materialise-to-figma.ts <brand>                     # manifest: byte sizes
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass palette      # 1
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-create --chunk 1  # 2 (see below)
+npx tsx packages/engine/materialise-to-figma.ts <brand> --pass dims-create  # before 3: a tinted wash aliases an opacity/<n> variable (#1672)
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases # 3
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify       # 4
 ```
@@ -531,7 +532,10 @@ npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify       # 4
 3. **`color-aliases`** — rebinds each var **per-mode** as a `VARIABLE_ALIAS` into the
    palette. Each row is `[name, [target-per-mode]]`; the helper reads each mode file's
    own alias target, so the mode-collapse bug the hand-rolled script hit in #84 is
-   structurally impossible here.
+   structurally impossible here. A tinted wash (`solid-tint`, #1646) row carries a third
+   element, the `opacity/<n>` variable per mode, and binds as
+   `{ color: <alias>, opacity: <alias> }`. That variable is written by `dims-create`, so
+   `dims-create` is pasted **before** this pass (#1672); the manifest prints the full order.
 4. **`verify`** — reads back via `getLocalVariablesAsync` (authoritative for scopes,
    aliases, modes, hidden). Reports `colorVars`, `modes`, **`modesDistinct: true`**
    (the collapse guard, probing `color/background/primary` across modes), the

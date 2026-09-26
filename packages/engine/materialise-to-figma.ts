@@ -428,16 +428,29 @@ export const colorIndivisibleUnit = (brand: string, budgetBytes: number = COLOR_
 // `[name, [target-name per mode, in `modes` order]]`. Exported + pure so the suite can
 // assert the rows are DISTINCT per mode — locking the collapse-proofing (each mode binds
 // its OWN target, not light's for all four) into the gate without needing a live Figma.
-export type AliasRow = [string, (string | null)[]];
-export const aliasRows = (brand: string): { modes: string[]; rows: AliasRow[] } => {
-  const { modes, aliases } = planFor(brand).color;
-  const rows: AliasRow[] = aliases.map((r) => [r.name, r.targetsByMode]);
+//
+// A TINTED WASH (#1646, #1672) carries a THIRD element: the `opacity/<n>` variable each mode's alias is
+// laid at. Without it this pass bound every `[inverse.]interactive.<c>.subtle-fill.<state>` as a plain
+// opaque alias to its fill — the wash painted as the solid fill. Only a wash row carries it, so every
+// payload of a brand without `solid-tint` is byte-identical to before.
+export type AliasRow = [string, (string | null)[]] | [string, (string | null)[], (string | null)[]];
+export const aliasRowsFrom = (plan: WritePlan): { modes: string[]; rows: AliasRow[] } => {
+  const { modes, aliases } = plan.color;
+  const rows: AliasRow[] = aliases.map((r) =>
+    r.opacityByMode ? [r.name, r.targetsByMode, r.opacityByMode.map((o) => o?.name ?? null)] : [r.name, r.targetsByMode]);
   return { modes, rows };
 };
+export const aliasRows = (brand: string): { modes: string[]; rows: AliasRow[] } => aliasRowsFrom(planFor(brand));
 
 // ---- pass: color-aliases (rebind PER MODE — the collapse-proof pass) --------------------
-const colorAliasesPass = (brand: string): string => {
-  const { modes, rows: A } = aliasRows(brand);
+// A wash's opacity aliases an `opacity/<n>` FLOAT variable, which `dims-create` writes — so `dims-create`
+// is pasted BEFORE this pass (`ORDER`), and the opacity target is found in the same unscoped name map as
+// the colour target. A missing opacity variable is a miss, never a quiet opaque alias: the wash would
+// stop following the scale. The value shape is the one `apps/plugin/src/write-figma.ts` writes.
+/** The `color-aliases` payload for a plan. Exported so the suite can drive a plan no committed brand
+ *  emits (no brand sets `solid-tint`, #1112) through the SAME string the CLI prints. */
+export const colorAliasesJs = (plan: WritePlan): string => {
+  const { modes, rows: A } = aliasRowsFrom(plan);
   return `${PRELUDE}
 const MODES=${JSON.stringify(modes)};
 const A=${JSON.stringify(A)};
@@ -446,19 +459,26 @@ const byName=new Map(vars.map(v=>[v.name,v]));
 const col=await findCol('color');
 const modeIds={};for(const m of MODES){const mm=col.modes.find(x=>x.name===m);modeIds[m]=mm&&mm.modeId;}
 let bound=0;const misses=[];
-for(const [name,targets] of A){
+for(const [name,targets,ops] of A){
   const v=byName.get(name);
   if(!v){misses.push('var:'+name);continue;}
   MODES.forEach((m,i)=>{
     const t=targets[i];if(!t)return;
     const tv=byName.get(t);
     if(!tv){misses.push(name+' @'+m+' -> '+t);return;}
-    v.setValueForMode(modeIds[m],figma.variables.createVariableAlias(tv));bound++;
+    const o=ops&&ops[i];
+    if(o){
+      const ov=byName.get(o);
+      if(!ov){misses.push(name+' @'+m+' opacity -> '+o);return;}
+      v.setValueForMode(modeIds[m],{color:figma.variables.createVariableAlias(tv),opacity:figma.variables.createVariableAlias(ov)});
+    }else v.setValueForMode(modeIds[m],figma.variables.createVariableAlias(tv));
+    bound++;
   });
 }
 return {bound,expected:A.length*MODES.length,misses};
 `;
 };
+const colorAliasesPass = (brand: string): string => colorAliasesJs(planFor(brand));
 
 // ---- pass: dims-create (every FLOAT collection, N modes, literal fallback values) -------
 // One payload for all ten axes rather than ten payloads: floats are small (≈250 variables
@@ -807,12 +827,13 @@ const PASSES: Record<string, (b: string) => string[]> = {
   'font-vars': (b) => [fontVarsPass(b)], 'text-styles': (b) => [textStylesPass(b)],
   styles: (b) => [stylesPass(b)], verify: (b) => [verifyPass(b)],
 };
-// Colour, then floats, then typography, then styles — the lanes don't alias each other, so the order
-// BETWEEN them is a convention; WITHIN each lane create-before-alias is a hard requirement. The one
-// cross-lane constraint that IS real: `text-styles` after `font-vars`, because a Text Style's
-// `setBoundVariable` resolves `font/family/*`, `font/weight-role/*` and `font-fluid/*` by name.
+// Colour, then floats, then typography, then styles — WITHIN each lane create-before-alias is a hard
+// requirement. Two cross-lane constraints are real: `text-styles` after `font-vars`, because a Text
+// Style's `setBoundVariable` resolves `font/family/*`, `font/weight-role/*` and `font-fluid/*` by name;
+// and `dims-create` before `color-aliases` (#1672), because a tinted wash's alias is laid at an
+// `opacity/<n>` variable that `dims-create` writes.
 const ORDER = [
-  'palette', 'color-create', 'color-aliases', 'dims-create', 'dims-aliases',
+  'palette', 'color-create', 'dims-create', 'color-aliases', 'dims-aliases',
   'font-vars', 'text-styles', 'styles', 'verify',
 ];
 

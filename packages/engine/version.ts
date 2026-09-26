@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.170.0 — #1685: personality-trait citations are checked against the briefs they quote. Four `why`
+ * 0.173.0 — #1685: personality-trait citations are checked against the briefs they quote. Four `why`
  * strings in `vocabulary.ts` change, and each one ships: it is the bracketed text of the note `brandTheme`
  * returns when a `personality` trait fills a lever, and it is inlined into the studio bundle. `dense` now
  * states that no example brief asks for density and that it stands as the opposite pole of `generous`
@@ -2936,6 +2936,34 @@
  * No lever value moves, and no corpus brand sets `personality`, so `out/**` moves by the version stamp
  * only. A note a consumer reads is observable output, so ENGINE bumps (MINOR, by the running convention).
  * CONTRACT STANDS at 13.1.0: no token name moves (`token-contract --check` level `none`).
+ *
+ * 0.172.0 — #1662: the read-back's `modesDistinct` no longer fails a single-mode brand. The check asked
+ * `new Set(perModeTargets).size > 1`, which a file with one mode can never satisfy, so every
+ * `modes: ['light']` brand read "FAILED: modesDistinct" on the plugin's boot read-back (first seen live on
+ * `nb-redesign`) — a vacuous failure, since the guard exists to catch modes collapsed onto one target and
+ * one mode has nothing to collapse. With exactly one mode, `verifyReadback` now asserts only that
+ * `color/background/primary` is bound in it (the same ABSENT case a multi-mode file fails on); zero modes
+ * and multi-mode files are unchanged. A plugin behavior change (the seed pill's verdict) → MINOR. No
+ * token value or name moves — `out/**` restamps the generator version only; CONTRACT STANDS.
+ *
+ * 0.171.0 — #1672: the legacy CLI paste path (`materialise-to-figma.ts`) writes a TINTED WASH's alias
+ * opacity. Its `color-aliases` pass built its rows from `targetsByMode` alone, so a `solid-tint` brand's
+ * `[inverse.]interactive.<c>.subtle-fill.<state>` would have bound as a plain opaque alias to its fill.
+ * A wash row now carries its `opacity/<n>` variable per mode, the pass writes
+ * `{ color: <alias>, opacity: <alias> }` (the shape `write-figma.ts` writes since #1646), and a missing
+ * opacity variable is a named miss. `dims-create` now precedes `color-aliases` in the paste order, so the
+ * opacity variable exists when the wash binds. No committed brand sets `solid-tint`, so every emitted
+ * payload for a committed brand is byte-identical apart from the pass order; `out/**` restamps only.
+ * A paste-path behavior change → ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
+ * 0.170.0 — #1684: the desktop bridge's MCP `notifications/progress` only ever increase. `figma_run` passed a
+ * reading's `done` straight through as `progress`, which restarts at build → wire, at each #1679 `retry` pass
+ * and at the next set's build, so a client enforcing the MCP rule could drop the stream mid-build. The bridge
+ * now folds each finished segment's last `done` into an offset (`createProgressCounter` in
+ * `tools/figma-bridge/server.ts`) and omits `total`, since no honest one is known until the run ends; the
+ * phase's own fraction stays in `message`. Behavior of a tool that reports ENGINE_VERSION as its
+ * `serverInfo.version` (the #1661 precedent) → ENGINE bump; no emission or projected surface moves, so
+ * `out/**` + `schema/*` are a stamp-only regen. CONTRACT STANDS at 13.1.0.
  *
  * 0.169.0 — #1670: the Spinner component, to the owner's spec (2026-09-26), and the button's pending state
  * swaps it in. `spinner` is a new def: four standalone `spinner/<size>` components on the icon ladder
@@ -3800,7 +3828,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.170.0';
+export const ENGINE_VERSION = '0.173.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

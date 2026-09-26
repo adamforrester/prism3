@@ -10,7 +10,8 @@
  * always encoded (the API-probe read-back), so the same guarantees hold whether the read runs via the
  * paste-path or the live plugin:
  *   - **modesDistinct** — `color/background/primary` binds a DIFFERENT target per mode (the
- *     collapse guard: the #85 round-trip caught a script that collapsed every mode to one target).
+ *     collapse guard: the #85 round-trip caught a script that collapsed every mode to one target). A
+ *     single-mode file has nothing to collapse, so there it asserts only that the probe is bound (#1662).
  *   - **aliasesResolve** — every alias target name a colour var references exists (palette or color).
  *
  * **The collection it reads is `color`, and since #1148 that is the only colour collection there is.**
@@ -210,7 +211,16 @@ export const verifyReadback = (snap: ReadbackSnapshot): ReadbackVerdict => {
     const val = bg?.valuesByMode[m];
     backgroundPrimaryByMode[m] = val ? (isAlias(val) ? (val.alias ?? 'literal') : 'literal') : 'ABSENT';
   }
-  const modesDistinct = new Set(Object.values(backgroundPrimaryByMode)).size > 1;
+  // A SINGLE-MODE file (#1662) has nothing to collapse: "distinct per mode" needs two modes to compare,
+  // so `size > 1` failed every `modes: ['light']` brand for a reason that says nothing about a collapse.
+  // The guard's question there reduces to "is the probe bound at all" — ALIASED into the palette, so neither
+  // ABSENT nor a `literal` left by a color-create that color-aliases never followed (#1691 net) — the same
+  // thing a multi-mode file whose every mode reads ABSENT, or literal, fails on. Zero modes (no `color` collection found) still fails.
+  // Whether a single-mode file SHOULD have carried more modes is a brand fact this pure check does not
+  // receive; it verifies what the file holds, not what the brand declared.
+  const perModeTargets = Object.values(backgroundPrimaryByMode);
+  const modesDistinct =
+    colModes.length === 1 ? perModeTargets[0] !== 'ABSENT' && perModeTargets[0] !== 'literal' : new Set(perModeTargets).size > 1;
 
   // aliasesResolve — every alias target name a colour var references must exist somewhere.
   const danglingAliases: string[] = [];
