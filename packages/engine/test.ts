@@ -2944,7 +2944,7 @@ for (const b of brands) {
 // collapsed onto one target still FAILS.
 {
   type VVar = { id: string; name: string; variableCollectionId: string; scopes: string[]; valuesByMode: Record<string, unknown> };
-  const runVerify = async (modes: string[], probe: 'alias' | 'literal' | 'collapse') => {
+  const runVerify = async (modes: string[], probe: 'alias' | 'literal' | 'collapse' | 'dangling') => {
     const plan = buildWritePlan(buildFigmaColor(brandTheme({ ...(exampleBrands()['aurora'] as BrandInput), modes } as BrandInput)));
     const vars: VVar[] = [];
     plan.palette.forEach((p) => vars.push({ id: `P${vars.length}`, name: p.name, variableCollectionId: 'C:core', scopes: p.scopes, valuesByMode: {} }));
@@ -2956,6 +2956,7 @@ for (const b of brands) {
         id: `V${vars.length}`, name: c.name, variableCollectionId: 'C:color', scopes: c.scopes,
         valuesByMode: Object.fromEntries(plan.color.modes.map((m, mi) => {
           if (isProbe && probe === 'literal') return [`M:${m}`, { r: 1, g: 1, b: 1, a: 1 }];
+          if (isProbe && probe === 'dangling') return [`M:${m}`, { type: 'VARIABLE_ALIAS', id: 'V:deleted' }];
           const t = isProbe && probe === 'collapse' ? t0 : plan.color.aliases[i].targetsByMode[mi];
           return [`M:${m}`, t ? { type: 'VARIABLE_ALIAS', id: idOf.get(t) } : { r: 0, g: 0, b: 0, a: 1 }];
         })),
@@ -2981,6 +2982,10 @@ for (const b of brands) {
     '#1687 paste verify: the pass runs to completion and finds the field family + bare danger by tail');
   const lit = await runVerify(['light'], 'literal');
   ok(lit.res.modesDistinct === false, '#1687 paste verify single-mode: a LITERAL background/primary (aliases never pasted) FAILS modesDistinct — bound means aliased');
+  // #1692 net — an alias to a variable that no longer exists (a palette step deleted after the pass) is not
+  // bound either; the single-mode rule's "to an existing variable" clause is what fails it.
+  const dangling = await runVerify(['light'], 'dangling');
+  ok(dangling.res.modesDistinct === false, '#1687 paste verify single-mode: an alias to a DELETED variable FAILS modesDistinct — bound means aliased to something that exists');
   const multi = await runVerify(['light', 'dark'], 'alias');
   ok(multi.res.modesDistinct === true, '#1687 paste verify multi-mode: a faithful light/dark read passes modesDistinct');
   const collapsed = await runVerify(['light', 'dark'], 'collapse');

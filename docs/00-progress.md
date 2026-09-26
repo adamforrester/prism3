@@ -21,6 +21,8 @@
 
 **Trap for whoever re-verifies.** The shim must give the `color` collection's modes the same names as `MODES` (`light`, `dark`): the pass looks up mode ids by name, and a mismatch reads every mode as absent. That would make the single-mode arm fail for the wrong reason.
 
+
+**Orchestrator net.** The "alias to a variable that exists" clause was untested: dropping it survived every arm. A dangling-alias arm now fails it by name (`❌ #1687 paste verify single-mode: an alias to a DELETED variable FAILS modesDistinct …`). **Known divergence (low, recorded rather than changed):** this pass decides "single-mode" from the brand's DECLARED modes (`colourModes`), where `read-back.ts` uses the modes the file's `color` collection actually has. A `['light']` brand pasted over a file still holding light/dark checks only light here. The CLI knows the brand and the read-back doesn't, so each uses what it has.
 ---
 
 ## (2026-09-26) — read-back: `modesDistinct` on a single-mode brand (#1662)
