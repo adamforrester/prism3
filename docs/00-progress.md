@@ -47,6 +47,15 @@
 - **LOW: the def cited WCAG 2.3.3.** That criterion asks for motion that can be turned off; slowing the turn does not satisfy it, and the engine verifies neither. The entry is dropped; `motion.reduceMotion` already states what the def does (2600ms per turn under `prefers-reduced-motion`, never stopped). Whether a spinner should stop entirely under reduced motion is held for the owner.
 - **Mutations, from a committed `wip:` HEAD, restored after each:** paste write reverted to 1 → `#1670 paste size=… : the pasted spinner's track reads 0.2…` and `#1670 lockstep size=…` at all four sizes (8); the paste loop's regex back to `\b` → `#1670 a glyph layer declaring fill-opacity="0.5"…` (paste arc 0.5); `glyphLayerOpacities` back to `\b` → that arm (plugin arc 0.5) and `#1670 glyphLayerOpacities reads the attribute named exactly opacity…`; end cap to sweep 0 → `spinner.ring @ size=…: the arc's caps do not bulge outward past its ends` (end cap -1.000); start cap to sweep 0 → the same line (start cap +1.000). **Not gated:** the shim's own regex (the executor overwrites whatever the importer set, so no reader can see it) and the gate's `attr()` (no shipped document carries `fill-opacity`).
 
+**Orchestrator net (third round).**
+- **Versions:** main merged in after #1682, so the spinner lands as **ENGINE 0.169.0**. CONTRACT 13.1.0 was re-accepted from main's committed 13.0.0 baseline: 4 ADDED, MINOR.
+- **Two fixes from the review of the fix round:**
+  - **The 2.2.2 claim is gone.** The def still cited "2.2.2 Pause, Stop, Hide" for a spinner that never stops, the same shape as the 2.3.3 claim. `wcag` now lists only 1.1.1, 1.4.11 and 4.1.3.
+  - **The payload stub no longer copies `opacity` onto an imported VECTOR.** Because it did, a *deleted* executor write still passed the #1670 paste arms. Every VECTOR now starts at 1, and only the executor's write can make the track 0.2.
+- **Mutations:**
+  - Skipping the paste executor's imported-layer opacity write → `❌ #1670 paste size=x-small: the pasted spinner's track reads 0.2…`, `❌ #1670 lockstep …` and `❌ #1393 lockstep (GLYPH) …`.
+  - Tempo-scaling the spin turn → `❌ #1670 motion (snappy|relaxed): motion.duration.spin is one 800ms turn at every tempo`.
+
 ---
 
 ## (2026-09-26) — Body and caption keep their default weight (#1681); Aurora's brief matches comfortable density

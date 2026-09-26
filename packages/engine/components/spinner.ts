@@ -107,7 +107,6 @@ export const spinner: ComponentDef = {
     wcag: [
       '1.1.1 Non-text Content (decorative inside a host that names the busy state)',
       '1.4.11 Non-text Contrast (the arc takes its host\'s icon ink, which already clears 3:1; the track is decorative and exempt)',
-      '2.2.2 Pause, Stop, Hide (the spinner shows only while work runs, and stops when it ends)',
       '4.1.3 Status Messages (the host announces the busy state, not the spinner)',
     ],
     focus: 'None. The spinner takes no focus; a pending control keeps its own focus while the spinner turns inside it.',

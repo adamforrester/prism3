@@ -13783,8 +13783,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             const span = (v: number[]) => (v.length ? Math.max(...v) - Math.min(...v) : 0);
             const vec = mkNode('VECTOR');
             vec.resize(span(xs), span(ys));
-            const op = /\sopacity="([0-9.]+)"/.exec(el)?.[1];
-            if (op !== undefined) vec.opacity = Number(op);
+            // DELIBERATELY NOT copying `opacity` onto the VECTOR (#1677 net): the paste executor claims each
+            // imported layer's opacity from the plan (#865), so a stub that pre-set it would let a DELETED
+            // executor write pass the #1670 paste/lockstep arms. Every VECTOR starts at 1; only the write sets 0.2.
             const id = /\sid="([^"]*)"/.exec(el)?.[1];
             if (id !== undefined) vec.name = id;
             frame.appendChild(vec);
