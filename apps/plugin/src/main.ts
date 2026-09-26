@@ -18,7 +18,7 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, partialWriteHeadline, partialWriteNote } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, partialWriteHeadline, partialWriteNote } from './apply-summary';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
@@ -31,7 +31,7 @@ import { isRefusal } from '@prism3/engine/rename-map';
 import { rootOf } from '@prism3/engine/figma-names';
 import { conflictSummary } from './preflight';
 import { runApplyTheme } from './apply-theme';
-import { applyComponentPlan, partialWriteOf } from './write-components';
+import { applyComponentPlan, partialWriteOf, REF_BACKOFF_TOTAL_MS } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode } from './write-components';
 import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
 import { buildFileComponents } from './file-components';
@@ -641,7 +641,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
             `${r.stale ? `, ${r.stale} stale` : ''}), ` +
             `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
             `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
-            `${r.refs} refs across ${r.wiredMembers} members${missNote}${stale ? `. ${stale}` : ''}`;
+            `${r.refs} refs across ${r.wiredMembers} members${refsNote(r.refsRelinked, r.refsUnset, REF_BACKOFF_TOTAL_MS)}${missNote}${stale ? `. ${stale}` : ''}`;
       // #1633: what was built first, so a designer is not surprised by a set they did not ask for.
       // `ok` is NOT `misses.length === 0`, and the difference is the whole reason `skipped` is a number:
       // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
@@ -693,6 +693,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // #1664: printed ONLY when the reference back-off ran. One entry per pass — the wait before it, how many
     // queued references it retried, how many landed and read back — so a live run says how long the host's
     // per-member refusal window lasted, instead of leaving it to be inferred from a miss list.
+    // #1679: printed only when a Build over an existing set re-linked something.
+    if (r.refsRelinked) console.log(`[prism3 #1679] re-linked ${r.refsRelinked} unset reference(s) on the existing set`);
     if (r.refsBackoff?.length) console.log(`[prism3 #1664] reference back-off: ${r.refsBackoff.map((p) => `after ${p.afterMs}ms ${p.repaired}/${p.retried} repaired`).join('; ')}`);
     if (r.boundRepaired > 0) console.log(`[prism3 #1279] repaired ${r.boundRepaired} variable binding(s) onto the live post-combine node`);
     // #1574: the SET-level sibling of the two lines above. A non-zero count means the host had replaced the

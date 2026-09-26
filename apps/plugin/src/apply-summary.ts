@@ -119,6 +119,20 @@ export const staleNote = (stale: number, engineVersion: string): string | null =
 };
 
 /**
+ * THE REFERENCE CLAUSES OF A SET VERDICT (#1679) — appended after "N refs across M members".
+ *
+ * `relinked` is what a Build over an existing set re-linked: references a refusal window left unset on an
+ * earlier run. `unset` is what is still unset when this run returned, counted once per slot, so it matches
+ * the file rather than the number of failed attempts. The bound is stated with it because it is the fact
+ * that separates "refused for longer than the retry" from "broken": the same writes have taken later, and
+ * running Build again re-links them without rebuilding anything. `''` when both are 0, so a clean run's
+ * summary reads exactly as before.
+ */
+export const refsNote = (relinked = 0, unset = 0, backoffMs: number): string =>
+  (relinked ? `, ${relinked} refs repaired on existing set` : '') +
+  (unset ? `, ${unset} refs still unset after ${backoffMs / 1000} s of retries — Build again to re-link them` : '');
+
+/**
  * WHAT A FAILED BUILD LEFT IN THE FILE (#913) — the facts the executor collects on its failure path,
  * declared HERE rather than in `write-components.ts` so the two prose builders below can be pure and the
  * executor can import the shape it fills. One declaration, two importers; the alternative is two copies

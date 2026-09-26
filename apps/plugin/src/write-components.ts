@@ -454,6 +454,17 @@ export type ComponentApplyResult = {
   /** THE REFERENCE BACK-OFF, PASS BY PASS (#1664) — see `REF_BACKOFF_MS`. Empty when nothing was queued,
    *  which is every clean run. Optional because the paste path has no wire loop of its own to back off. */
   refsBackoff?: RefBackoffPass[];
+  /** #1679 — references this run WROTE on a member it did not build (an existing set's member, skipped by
+   *  name) because the reference read unset, and that read back as held at the end of the run. A re-run over
+   *  a set a refusal window left partially linked reports its repair here; a clean existing set reports 0 and
+   *  writes nothing — a reference that already reads the plan's property is left untouched. Optional because
+   *  the paste path has no existing-set wire pass. */
+  refsRelinked?: number;
+  /** #1679 — plan references still NOT held when the run returned, one per (member, part, field) slot: the
+   *  count of the `ref …` lines in `misses`, and the number the file actually lacks at report time. Kept apart
+   *  from `misses.length` because that total mixes in every other kind of miss, which is how a live report
+   *  read "232 misses" over a file lacking 73 references. Optional for the same reason as above. */
+  refsUnset?: number;
   /** Times the SET's own handle was found to have been replaced and was re-resolved off the destination
    *  page (#1574) — the set-level sibling of `refsRepaired`/`boundRepaired`, and the counter that says
    *  whether the property loop and the wire loop ran against the live set or a handle the host had moved
@@ -626,13 +637,22 @@ export const MIN_HEIGHT_TOLERANCE = 0.01;
  * lasts longer than one yield and at least as long as ~6 s. No identity moved (`setReresolved: 0`), so this
  * is not the #1337/#1473/#1516 stale-handle family.
  *
- * Four passes after 0.5 s, 2 s, 5 s and 10 s: ~17.5 s worst case, then whatever is still queued is a miss.
- * BOUNDED on purpose — a permanent refusal (a nested-instance sublayer, a property the host lost) must end as
- * a miss, not a stall. The loop stops the moment the queue empties, and a clean build never reaches it, so
+ * #1679 — AND 17.5 s WAS STILL SHORT. The owner's master file (Button, 432 members, 2026-09-26) came out of
+ * that schedule with 36 members' references unset, and every one of the 73 took on the first try when written
+ * by hand ~25 min later. So the window there was longer than 17.5 s and shorter than ~25 min. Two more passes,
+ * after 20 s and 30 s, stretch the worst case to 67.5 s — about four times the bound that failed — and stop
+ * there, because the real safety net is no longer the wait: a Build over the existing set re-links whatever is
+ * still unset (`refsRelinked`), so a window longer than any bound costs one more click, not a rebuild.
+ *
+ * Six passes after 0.5 s, 2 s, 5 s, 10 s, 20 s and 30 s: 67.5 s worst case (`REF_BACKOFF_TOTAL_MS`, which the
+ * verdict states), then whatever is still queued is a miss. BOUNDED on purpose — a permanent refusal (a
+ * nested-instance sublayer, a property the host lost) must end as a miss, not a stall. The loop stops the moment the queue empties, and a clean build never reaches it, so
  * it costs nothing unless something was refused. Each pass's delay and outcome lands in `refsBackoff`, so
  * the next live run reports how long the window really is instead of leaving it to be inferred.
  */
-export const REF_BACKOFF_MS: readonly number[] = [500, 2000, 5000, 10000];
+export const REF_BACKOFF_MS: readonly number[] = [500, 2000, 5000, 10000, 20000, 30000];
+/** The whole back-off, worst case (#1679) — the bound the verdict states when references are still unset. */
+export const REF_BACKOFF_TOTAL_MS = REF_BACKOFF_MS.reduce((a, b) => a + b, 0);
 
 /** One back-off pass, as reported (#1664): the wait before it, how many queued references it retried, and
  *  how many of those landed AND read back on a fresh re-find. */
@@ -2412,6 +2432,14 @@ const writeComponentSet = async (
   // a reference that is still discarded after the last pass is reported in the read-back's own words.
   let deferredRefs: { member: string; part: string; field: string; id: string; prop: string; cause: string; discarded?: boolean }[] = [];
   const refsBackoff: RefBackoffPass[] = [];
+  // #1679 — the (member|part|field) slots this run wrote on a member it did not build, and — keyed the same
+  // way, so one slot can only ever be one miss — every reference still unset when the run ends.
+  const relinkSlots = new Set<string>();
+  const refMissBySlot = new Map<string, string>();
+  const refMiss = (member: string, part: string, field: string, line: string): void => {
+    const slot = `${member}|${part}|${field}`;
+    if (!refMissBySlot.has(slot)) refMissBySlot.set(slot, line);
+  };
   // #1473 / #1516 — THE SET'S LIVE MEMBER FOR A COORDINATE, RE-READ FRESH FROM `set.children` AT EACH USE.
   // `members` was snapshotted right after combine (for the layout pass); a member handle from that snapshot
   // can end up with a DETACHED subtree while the set's live child for that coordinate is a fresh,
@@ -2490,6 +2518,18 @@ const writeComponentSet = async (
       const field = own?.field ?? r.field;
       const id = propIds.get(own?.prop ?? r.prop);
       if (!id) continue;   // the property itself failed above and reported its own cause
+      // #1679 — A MEMBER THIS RUN DID NOT BUILD IS REPAIRED, NOT RE-WIRED. On a Build over an existing set
+      // every member is skipped by name and reaches this loop with no `builtFor`. A reference that already
+      // reads the plan's property is left alone — no write, so a clean existing set costs one read per slot
+      // and changes nothing — and still counted as wired, so the read-back below re-verifies it fresh. Only a
+      // slot that reads otherwise is written, and it is remembered so the end of the run can say how many of
+      // those it actually re-linked (`refsRelinked`). Everything after the write is the same path a fresh
+      // member takes: a refusal queues for the back-off, a discard is caught by the pre-scan.
+      if (!builtFor) {
+        const had = (node.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
+        if (had?.[field] === id) { wiredRefs.push([String(member.name), r.part, field, id, node]); continue; }
+        relinkSlots.add(`${String(member.name)}|${r.part}|${field}`);
+      }
       try {
         wr(node).componentPropertyReferences = Object.assign({}, (node.componentPropertyReferences ?? {}) as object, { [field]: id });
         // Record the field ACTUALLY written (`field` = own?.field ?? r.field), not the deduped `r.field`.
@@ -2606,7 +2646,7 @@ const writeComponentSet = async (
     deferredRefs = still;
   }
   for (const d of lost.concat(deferredRefs))
-    misses.push(d.discarded
+    refMiss(d.member, d.part, d.field, d.discarded
       ? `ref ${d.member}/${d.part}.${d.field} -> DISCARDED (${d.cause})`
       : `ref ${d.member}/${d.part}.${d.field} -> ${d.prop} (${d.cause})`);
 
@@ -2701,8 +2741,16 @@ const writeComponentSet = async (
       const reHeld = (reNode?.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
       if (reHeld?.[field] === id) { refsRepaired++; continue; }
     }
-    misses.push(`ref ${mName}/${part}.${field} -> DISCARDED (set ${id}, reads ${held?.[field]})`);
+    refMiss(mName, part, field, `ref ${mName}/${part}.${field} -> DISCARDED (set ${id}, reads ${held?.[field]})`);
   }
+  // #1679 — ONE LINE PER UNSET SLOT, and the count is the slot count. Every path above that gives up on a
+  // reference goes through `refMiss`. No path reaches one slot twice today (checked for #1679: a queued slot
+  // leaves `wiredRefs`, and a `lost` one leaves the queue), so the keying is structural rather than a live
+  // fix — it keeps the count a count of what the file lacks if a later path ever does.
+  misses.push(...refMissBySlot.values());
+  const refsUnset = refMissBySlot.size;
+  let refsRelinked = 0;
+  for (const slot of relinkSlots) if (!refMissBySlot.has(slot)) refsRelinked++;
 
   // #1567 — READ EACH TEXT PROPERTY'S DEFAULT BACK OFF THE SET, AFTER ALL THE WIRING.
   //
@@ -2913,6 +2961,8 @@ const writeComponentSet = async (
     refsRepaired,
     boundRepaired,
     refsBackoff,
+    refsRelinked,
+    refsUnset,
     setReresolved,
     boundSearched,
     misses: allMisses,

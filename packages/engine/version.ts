@@ -2926,6 +2926,14 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.165.0 — #1679: a Build over an existing set REPAIRS the references a refusal window left unset. The owner's
+ * master-file Button (2026-09-26) came out of 0.157.0's 17.5 s back-off with 73 references unset on 36 members;
+ * all 73 took on the first try ~25 min later. The plugin (`apps/plugin/src/write-components.ts`) now reads each
+ * reference on a member it did not build and writes only the ones that do not read the plan's property, through
+ * the same back-off and read-back as a fresh member (`refsRelinked`; a clean existing set writes nothing); the
+ * back-off gains passes at 20 s and 30 s (67.5 s worst case, `REF_BACKOFF_TOTAL_MS`); and reference misses are
+ * keyed per slot and counted apart (`refsUnset`), so the verdict states what the file lacks and the retry bound.
+ * Plugin behavior → MINOR; stamp-only regen. CONTRACT STANDS.
  * 0.164.0 — The field family gains a projected `filled` state (owner decision, 2026-09-25, Prism 2's
  * `Enabled (Empty) | Hovered | Filled | Focused | Disabled` on all three specs). `filled` joins the closed
  * `STATES` vocabulary and the projected state axis of text-field, textarea and select. The value text binds
@@ -3730,7 +3738,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.164.0';
+export const ENGINE_VERSION = '0.165.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

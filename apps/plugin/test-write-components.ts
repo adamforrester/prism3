@@ -83,7 +83,7 @@ import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import { buildWritePlan } from '@prism3/engine/write-plan';
 import type { BrandInput } from '@prism3/engine/theme';
-import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson, REF_BACKOFF_MS } from './src/write-components';
+import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson, REF_BACKOFF_MS, REF_BACKOFF_TOTAL_MS } from './src/write-components';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
 import type { ComponentApplyOptions, ComponentProgress, BuildReport } from './src/write-components';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -3976,15 +3976,93 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // ---- (b) a permanent refusal ends as misses after the bounded passes, both shapes -----------
   const scheduled = REF_BACKOFF_MS.reduce((x, y) => x + y, 0);
-  ok(REF_BACKOFF_MS.length === 4 && scheduled <= 18000,
-    `#1664b input pin: the back-off is at most 4 passes and ~18 s (${REF_BACKOFF_MS.join(', ')} = ${scheduled}ms)`);
+  // #1679 moved the bound from 4 passes / 17.5 s to 6 passes / 67.5 s; the pin follows the declared schedule.
+  ok(REF_BACKOFF_MS.length === 6 && scheduled === REF_BACKOFF_TOTAL_MS && scheduled <= 70000,
+    `#1664b input pin: the back-off is at most 6 passes and ~70 s (${REF_BACKOFF_MS.join(', ')} = ${scheduled}ms)`);
   for (const shape of ['throw', 'discard'] as const) {
     const b = await runWindow({ ms: Infinity, shape });
     const want = shape === 'throw' ? /Could not create a new component property reference/ : /DISCARDED \(set /;
-    ok(!b.threw && b.waits.length <= 4 && b.waits.reduce((x, y) => x + y, 0) <= 18000,
+    ok(!b.threw && b.waits.length <= 6 && b.waits.reduce((x, y) => x + y, 0) <= 70000,
       `#1664b a permanent ${shape} refusal still TERMINATES within the bound — ${b.waits.length} wait(s) totalling ${b.waits.reduce((x, y) => x + y, 0)}ms${b.threw ? `; THREW ${b.threw}` : ''}`);
     ok(!b.threw && b.refMisses.length === runRefs && b.refMisses.every((m) => want.test(m) && RUN.some((r) => m.includes(r))) && b.lost.length === runRefs,
       `#1664b ...and every refused reference ends as a named ${shape} miss on the run's members (${b.refMisses.length}/${runRefs}: ${b.refMisses[0] ?? 'none'})`);
+  }
+}
+
+// =============================================================================================
+// #1679 — A BUILD OVER AN EXISTING SET REPAIRS THE REFERENCES A REFUSAL WINDOW LEFT UNSET
+// =============================================================================================
+// Live (owner's master file, 2026-09-26): a refusal window outlasted #1664's whole back-off, the build ended
+// with 36 members' references unset, and the same writes took on the first try ~25 min later. The shim's
+// `refuseRefsWindow` stands for that window, set here LONGER than the whole schedule (10 min against 67.5 s),
+// on a clock this block owns. The first Build must report the misses; a second Build over the same page, after
+// the clock has moved 25 min, must re-link every one of them — and a second Build over a CLEAN set must write
+// nothing at all.
+//
+// The oracle is the shim tree, never the executor's counters (docs/34): "unset" is every reference the clean
+// build holds and this page does not, walked off the nodes. The report must equal that count.
+//
+// Mutations, by name (measured): skipping members this run did not build — the "existing set is skipped"
+// shape — fails `#1679a` on the tree itself (12 → 12 unset) and `#1679c`; treating every existing slot as
+// already held fails `#1679a` (refsRelinked=0; the #1664 pre-scan still heals the tree, so only the count
+// sees it); writing held slots again fails `#1679a` and `#1679c` (42 writes on a clean set). The per-slot
+// keying behind `#1679b` is NOT mutation-gated: no path in the executor reaches one slot twice today, so
+// dropping the dedup changes nothing here. `#1679b` pins the count against the tree, not the mechanism.
+{
+  const clean = { page: { children: [] } as Page };
+  await run(grid, { ...fullFor(grid), page: clean.page });
+  const cleanSet = clean.page.children[0] as Node | undefined;
+  const RUN = ((cleanSet?.children ?? []) as Node[]).map((m) => String(m.name)).slice(3, 9);
+  /** Every `member/part.field=id` the tree holds, walked off the shim nodes. */
+  const held = (set: Node | undefined): Set<string> => {
+    const out = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural walk over the shim tree
+    const walk = (m: string, x: any): void => { for (const [f, id] of Object.entries(x?.componentPropertyReferences ?? {})) out.add(`${m}/${String(x.name)}.${f}=${id as string}`); for (const c of x?.children ?? []) walk(m, c); };
+    for (const m of ((set?.children ?? []) as Node[])) walk(String(m.name), m);
+    return out;
+  };
+  const want = held(cleanSet);
+  const unset = (set: Node | undefined): number => { const got = held(set); return [...want].filter((r) => !got.has(r)).length; };
+  /** Counts every reference WRITE on the tree from here on, delegating to the shim's own accessor. */
+  const countWrites = (set: Node | undefined): { n: number } => {
+    const c = { n: 0 };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural walk over the shim tree
+    const walk = (x: any): void => {
+      const d = Object.getOwnPropertyDescriptor(x, 'componentPropertyReferences');
+      if (d?.set) Object.defineProperty(x, 'componentPropertyReferences', { configurable: true, get: d.get, set: (v: unknown) => { c.n++; d.set!.call(x, v); } });
+      for (const k of x?.children ?? []) walk(k);
+    };
+    walk(set);
+    return c;
+  };
+  ok(want.size > 0 && RUN.length === 6, `#1679 input pin: the clean build holds ${want.size} references and the refusing run is 6 members`);
+
+  for (const shape of ['throw', 'discard'] as const) {
+    const clock = { t: 0 };
+    const yieldTo = (ms = 0) => { clock.t += ms; return Promise.resolve(); };
+    const page: Page = { children: [] };
+    const r1 = await run(grid, { ...fullFor(grid), page, refuseRefsWindow: { members: RUN, ms: 10 * 60_000, shape, now: () => clock.t } }, { yieldTo });
+    const set = page.children[0] as Node | undefined;
+    const u1 = unset(set);
+    const refLines1 = r1.misses.filter((m) => m.startsWith('ref '));
+    // FLOOR: the window outlasted the whole schedule, so the first Build really left references unset.
+    ok(u1 > 0 && clock.t >= REF_BACKOFF_TOTAL_MS,
+      `#1679 floor (${shape}): a window longer than the ${REF_BACKOFF_TOTAL_MS}ms back-off leaves ${u1} reference(s) unset after the first Build (clock ${clock.t}ms)`);
+    ok(r1.refsUnset === u1 && refLines1.length === u1 && new Set(refLines1).size === u1,
+      `#1679b (${shape}) the report's miss count is the file's: refsUnset=${String(r1.refsUnset)}, ${refLines1.length} 'ref' lines, ${u1} references unset on the shim`);
+
+    // 25 min later — the window has closed. Build again over the same page.
+    clock.t += 25 * 60_000;
+    const r2 = await run(grid, { ...fullFor(grid), page }, { yieldTo });
+    const u2 = unset(page.children[0] as Node | undefined);
+    ok(page.children.length === 1 && r2.added === 0 && u2 === 0 && r2.refsRelinked === u1 && r2.refsUnset === 0 && !r2.misses.some((m) => m.startsWith('ref ')),
+      `#1679a (${shape}) a second Build over the existing set re-links every unset reference: ${u1} → ${u2} unset, refsRelinked=${String(r2.refsRelinked)}, added=${r2.added}, ${page.children.length} set on the page`);
+
+    // A third Build over the now-clean set writes nothing and reports no change.
+    const writes = countWrites(page.children[0] as Node | undefined);
+    const r3 = await run(grid, { ...fullFor(grid), page }, { yieldTo });
+    ok(writes.n === 0 && r3.refsRelinked === 0 && r3.refsUnset === 0 && r3.wiredMembers === r2.wiredMembers && unset(page.children[0] as Node | undefined) === 0,
+      `#1679c (${shape}) a Build over a clean existing set writes no reference and reports no change (${writes.n} write(s), refsRelinked=${String(r3.refsRelinked)}, ${r3.wiredMembers} members still wired)`);
   }
 }
 

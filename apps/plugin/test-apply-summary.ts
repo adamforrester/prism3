@@ -32,7 +32,7 @@
  * reports the nodes as present. The facts here are authored fixtures — the executor's own collection of
  * them is gated against real host state in `test-write-components.ts`.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, partialWriteHeadline, partialWriteNote } from './src/apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, partialWriteHeadline, partialWriteNote } from './src/apply-summary';
 import type { PartialWriteFacts } from './src/apply-summary';
 
 let failed = 0;
@@ -253,6 +253,15 @@ const pWorst = [1, 2, 9, 99, 648, 9999, 99999].flatMap((n) =>
 const pOver = pWorst.filter((h) => h.length > 24);
 ok(pOver.length === 0, `every partial-write headline fits the 24-char pill budget (longest ${Math.max(...pWorst.map((h) => h.length))}: "${pWorst.reduce((a, b) => (b.length > a.length ? b : a))}")`);
 ok(pWorst.every((h) => h.trim().length > 0), 'no partial-write headline is blank (the UI would replace it with a generic verdict)');
+
+// ---- #1679: the reference clauses of a set verdict -----------------------------------------
+// A clean run appends nothing; a re-link and a still-unset count each say their number, and the unset one
+// carries the retry bound it was handed (not a restated constant) and the next action.
+ok(refsNote(0, 0, 67500) === '' && refsNote(undefined, undefined, 67500) === '', 'a clean run adds no reference clause');
+ok(refsNote(73, 0, 67500) === ', 73 refs repaired on existing set', `a re-link reads as a count (${JSON.stringify(refsNote(73, 0, 67500))})`);
+const unsetClause = refsNote(0, 12, 67500);
+ok(/12 refs still unset after 67\.5 s of retries/.test(unsetClause) && /Build again/.test(unsetClause),
+  `a still-unset count states the retry bound and the remedy (${JSON.stringify(unsetClause)})`);
 
 console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
