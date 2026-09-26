@@ -2926,6 +2926,14 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.173.0 — #1687: the legacy CLI paste path's `verify` pass (`materialise-to-figma.ts`) no longer fails a
+ * single-mode brand's `modesDistinct` — the twin of #1662 in `read-back.ts`. With exactly one mode it now
+ * passes iff `color/background/primary` is aliased to a variable that exists (not absent, not a literal);
+ * multi-mode keeps `size > 1`. The same payload also referenced an undefined `byName` for
+ * `fieldFamilyPresent` / `bareDangerPresent` (the index became `byTail` at #1097), so it threw before
+ * returning; both now read `byTail`. A paste-path verdict behavior change → MINOR. No token value or name
+ * moves — `out/**` restamps the generator version only; CONTRACT STANDS.
+ *
  * 0.172.0 — #1662: the read-back's `modesDistinct` no longer fails a single-mode brand. The check asked
  * `new Set(perModeTargets).size > 1`, which a file with one mode can never satisfy, so every
  * `modes: ['light']` brand read "FAILED: modesDistinct" on the plugin's boot read-back (first seen live on
@@ -3817,7 +3825,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.172.0';
+export const ENGINE_VERSION = '0.173.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
