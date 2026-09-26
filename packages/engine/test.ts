@@ -46,7 +46,7 @@ import {
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND, MINIMAL_COMPACT_BRAND, readBaseline } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIER, PRIMITIVE_GROUPS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
-import { aliasRows, colorAliasesJs, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
+import { aliasRows, colorAliasesJs, verifyJs, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
@@ -2934,6 +2934,62 @@ for (const b of brands) {
     ok(at20.length > 0 && opMisses.length === at20.length * plan.color.modes.length && opaque.length === 0,
       `#1672 materialise: a missing opacity variable is a named miss and its washes stay unbound, never an opaque alias (${opMisses.length} opacity misses for ${at20.length} washes × ${plan.color.modes.length} modes; ${opaque.length} bound anyway)`);
   }
+}
+
+// #1687 — the paste-path `verify` pass on a SINGLE-MODE brand (twin of read-back's #1662). Its collapse
+// guard asked `new Set(perMode).size>1`, which one mode can never satisfy, so every `modes: ['light']`
+// paste reported `modesDistinct: false`. The payload is RUN in a minimal Variables shim (as #1672's arms
+// are) over a real single-mode plan. Expected verdicts are written here, not derived from the pass:
+// a faithful single-mode file PASSES, a literal probe FAILS (bound means aliased), and a multi-mode file
+// collapsed onto one target still FAILS.
+{
+  type VVar = { id: string; name: string; variableCollectionId: string; scopes: string[]; valuesByMode: Record<string, unknown> };
+  const runVerify = async (modes: string[], probe: 'alias' | 'literal' | 'collapse' | 'dangling') => {
+    const plan = buildWritePlan(buildFigmaColor(brandTheme({ ...(exampleBrands()['aurora'] as BrandInput), modes } as BrandInput)));
+    const vars: VVar[] = [];
+    plan.palette.forEach((p) => vars.push({ id: `P${vars.length}`, name: p.name, variableCollectionId: 'C:core', scopes: p.scopes, valuesByMode: {} }));
+    const idOf = new Map(vars.map((v) => [v.name, v.id]));
+    plan.color.create.forEach((c, i) => {
+      const isProbe = tailOf(c.name) === 'color/background/primary';
+      const t0 = plan.color.aliases[i].targetsByMode[0];
+      vars.push({
+        id: `V${vars.length}`, name: c.name, variableCollectionId: 'C:color', scopes: c.scopes,
+        valuesByMode: Object.fromEntries(plan.color.modes.map((m, mi) => {
+          if (isProbe && probe === 'literal') return [`M:${m}`, { r: 1, g: 1, b: 1, a: 1 }];
+          if (isProbe && probe === 'dangling') return [`M:${m}`, { type: 'VARIABLE_ALIAS', id: 'V:deleted' }];
+          const t = isProbe && probe === 'collapse' ? t0 : plan.color.aliases[i].targetsByMode[mi];
+          return [`M:${m}`, t ? { type: 'VARIABLE_ALIAS', id: idOf.get(t) } : { r: 0, g: 0, b: 0, a: 1 }];
+        })),
+      });
+    });
+    const shim = { variables: {
+      getLocalVariablesAsync: async () => vars,
+      getLocalVariableCollectionsAsync: async () => [
+        { id: 'C:core', name: 'core', modes: [{ name: 'Default', modeId: 'M:Default' }] },
+        { id: 'C:color', name: 'color', modes: plan.color.modes.map((m) => ({ name: m, modeId: `M:${m}` })) },
+      ],
+    } };
+    const AsyncFn = Object.getPrototypeOf(async () => {}).constructor;
+    return { plan, res: await new AsyncFn('figma', verifyJs(plan, plan.color.modes))(shim) as { modesDistinct: boolean; modes: string[]; fieldFamilyPresent: boolean; bareDangerPresent: boolean } };
+  };
+  const one = await runVerify(['light'], 'alias');
+  ok(JSON.stringify(one.plan.color.modes) === '["light"]' && JSON.stringify(one.res.modes) === '["light"]',
+    `#1687 paste verify single-mode: the fixture really is single-mode (${one.plan.color.modes.join('/')})`);
+  ok(one.res.modesDistinct === true, '#1687 paste verify single-mode: a faithful single-mode read PASSES modesDistinct — one mode has nothing to collapse');
+  // The payload referenced an undefined `byName` for these two (renamed to `byTail` at #1097), so it threw
+  // before returning anything; running it at all is what exposed that.
+  ok(one.res.fieldFamilyPresent === true && one.res.bareDangerPresent === true,
+    '#1687 paste verify: the pass runs to completion and finds the field family + bare danger by tail');
+  const lit = await runVerify(['light'], 'literal');
+  ok(lit.res.modesDistinct === false, '#1687 paste verify single-mode: a LITERAL background/primary (aliases never pasted) FAILS modesDistinct — bound means aliased');
+  // #1692 net — an alias to a variable that no longer exists (a palette step deleted after the pass) is not
+  // bound either; the single-mode rule's "to an existing variable" clause is what fails it.
+  const dangling = await runVerify(['light'], 'dangling');
+  ok(dangling.res.modesDistinct === false, '#1687 paste verify single-mode: an alias to a DELETED variable FAILS modesDistinct — bound means aliased to something that exists');
+  const multi = await runVerify(['light', 'dark'], 'alias');
+  ok(multi.res.modesDistinct === true, '#1687 paste verify multi-mode: a faithful light/dark read passes modesDistinct');
+  const collapsed = await runVerify(['light', 'dark'], 'collapse');
+  ok(collapsed.res.modesDistinct === false, '#1687 paste verify multi-mode: background/primary collapsed onto one target still FAILS modesDistinct');
 }
 
 // #479 — pruneReport: the paste path's plan-vs-file diff. REPORT ONLY (the function has no
