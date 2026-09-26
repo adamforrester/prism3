@@ -137,6 +137,7 @@ const EXCLUDED: Record<string, string> = {
   'field-message': 'a helper/validation message, not an interactive control',
   'veil': 'a media wash overlay, not an interactive control',
   'image-placeholder': 'an empty-state media frame, not an interactive control',
+  'spinner': 'a decorative loading indicator on the icon ladder, never interactive — the tap target is the host control it sits in (a pending button), which is gated',
   'checkbox-control': 'a nested-only atom — the tap target is the labelled row (checkbox-row), gated here',
   'radio-control': 'a nested-only atom — the tap target is the labelled row (radio), gated here',
   'switch-control': 'a nested-only atom — the tap target is the labelled row (switch), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',

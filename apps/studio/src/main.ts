@@ -19,7 +19,7 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '@prism3/engine/theme';
+import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, SPIN_ROLE } from '@prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
@@ -4135,7 +4135,9 @@ const renderDurationRamp = (): HTMLElement => {
   // path, not something it aliases. A header that is nearly right is worse than a missing one.
   for (const h of ['Step', 'Duration', 'Aliases', 'Reduce-motion']) head.append(el('th', undefined, h));
   table.append(head);
-  for (const name of Object.keys(dur)) {
+  // The spinner's turn (#1670) rides the duration pair but is not a step of this ramp: it is a loop period,
+  // fixed at every tempo, and its reduced value is slower rather than shorter. So it is not a row here.
+  for (const name of Object.keys(dur).filter((n) => n !== SPIN_ROLE)) {
     const ms = dur[name], rms = reduced[name];
     const tr = el('tr');
     const nameCell = el('td'); nameCell.append(el('span', 'mo-ramp-name', name), tokenPill(`motion.duration.${name}`));

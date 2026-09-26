@@ -1162,11 +1162,20 @@ export const makeShim = (opts: ShimOpts = {}) => {
       const attr = (name: string) => Number(new RegExp(`${name}="([0-9.]+)"`).exec(svg)?.[1] ?? 0);
       const frame = mkNode('FRAME');
       (frame.resize as (w: number, h: number) => void)(attr('width'), attr('height'));
-      const d = /<path[^>]*\bd="([^"]*)"/.exec(svg)?.[1] ?? '';
+      // ONE VECTOR PER <path> (#1670), each with the layer `opacity` the element declares — which is how
+      // Figma's importer builds a multi-path document, and the spinner's is one: a track at 0.2 and an arc.
+      // Every icon-set document carries exactly one path and no opacity, so it models exactly as before.
+      const pathEls = svg.match(/<path\b[^>]*>/g) ?? [];
+      for (const el of pathEls.length ? pathEls : ['']) {
+      const d = /\bd="([^"]*)"/.exec(el)?.[1] ?? '';
       const nums = (d.match(/-?[0-9]*\.?[0-9]+/g) ?? []).map(Number);
       const span = (v: number[]) => (v.length ? Math.max(...v) - Math.min(...v) : 0);
       const vec = mkNode('VECTOR');
       (vec.resize as (w: number, h: number) => void)(span(nums.filter((_, i) => i % 2 === 0)), span(nums.filter((_, i) => i % 2 === 1)));
+      const op = /\bopacity="([0-9.]+)"/.exec(el)?.[1];
+      if (op !== undefined) vec.opacity = Number(op);
+      const id = /\bid="([^"]*)"/.exec(el)?.[1];
+      if (id !== undefined) vec.name = id;
       // `vectorPaths`, THE SIXTH TIME A SHIM HERE HAS STOPPED MEASURING SOMETHING IT COULD NOT DISTINGUISH
       // (#1010) — and the first where the missing property is one a real VectorNode carries. The box above
       // is not a fingerprint of the DRAWING: `error-circle` and `check-circle` are the same 20px ring with
@@ -1180,6 +1189,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // limit on this importer having no live SVG parser behind it.
       vec.vectorPaths = (d.match(/[Mm][^Mm]*/g) ?? []).map((sub) => ({ windingRule: 'NONZERO', data: sub.trim() }));
       (frame.appendChild as (c: Node) => void)(vec);
+      }
       return frame;
     },
     // CONVERTS IN PLACE, and the type change is the point (#1378). Was `(n) => n` — the same object, still

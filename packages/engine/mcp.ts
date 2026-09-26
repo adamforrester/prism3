@@ -180,7 +180,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'theme_brand',
     title: 'Generate a design-token system',
-    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 850,000 and 500,000 characters respectively (~340,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first.',
+    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 890,000 and 590,000 characters respectively (~370,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -250,7 +250,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'export_theme',
     title: 'Write the token system to disk',
-    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 850,000 characters for a four-mode brand, which no tool result should carry. Writes tokens.json (DTCG), ai-metadata.json, and a figma/ directory of Figma collection files. Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
+    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 890,000 characters for a four-mode brand, which no tool result should carry. Writes tokens.json (DTCG), ai-metadata.json, and a figma/ directory of Figma collection files. Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -308,7 +308,8 @@ export const toolDefs = (brandSchema: unknown) => [
  *      tokens      536,770 chars     aiMetadata  287,283 chars     notes  3,653 chars
  *
  *  (Measured when `notes` became a default. Re-measured 2026-09-24, #1623: tokens ~850,000 and
- *  aiMetadata ~500,000 — the tool descriptions carry the current figures, and a test holds them to it.)
+ *  aiMetadata ~500,000; re-measured 2026-09-26, #1670: ~890,000 and ~590,000, the aiMetadata figure having
+ *  drifted to the edge of the test's 15% band — the tool descriptions carry the current figures.)
  *
  *  Withholding the two huge payloads is right — no client can spend half a megabyte on one result.
  *  Withholding 3.6KB cost an agent the single most decision-relevant thing the engine produces, and

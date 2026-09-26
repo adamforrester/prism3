@@ -417,6 +417,10 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / caret / indicator after the label. NOT split into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own slot — is already carried by leadingVisual + isPending.' },
       spinner: {
         kind: 'overlay',
+        // THE SPINNER COMPONENT (#1670), swapped in at the member on the slot's own icon rung (a medium
+        // button's `icon.size.sm` → `spinner/small`). Before `spinner` existed the overlay took the caller's
+        // icon placeholder, so a pending member showed a placeholder glyph where the spinner belongs.
+        nests: 'spinner',
         nesting: { kind: 'swap' },
         // ORDERED, and the order is the design decision (#848). Leading first because a spinner on the
         // left reads as "loading" while one on the right reads as a trailing indicator; trailing second
@@ -618,9 +622,9 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   },
 
   composition: {
-    composesWith: ['icon', 'focus-ring'],
+    composesWith: ['icon', 'focus-ring', 'spinner'],
     alternativeTo: ['icon-button', 'switch-row'],
-    planned: ['spinner', 'tooltip', 'button-group', 'menu', 'popover', 'link', 'link-button', 'toggle-button', 'split-button', 'chip'],
+    planned: ['tooltip', 'button-group', 'menu', 'popover', 'link', 'link-button', 'toggle-button', 'split-button', 'chip'],
     replacesPatterns: ['input[type=button|submit]', 'div[role=button]'],
   },
 

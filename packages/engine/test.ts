@@ -66,7 +66,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -4396,6 +4396,56 @@ for (const b of brands) {
 // `$extensions.prism3.modes.<mode>` to the `motion.duration.<role>` / `duration-reduced.<role>` /
 // `stagger` PRIMITIVE; composite transitions inherit via the duration alias, so the transition SET is
 // untouched. Motion is DTCG + web only (not a Figma variable), so buildFigmaFont is unaffected.
+// ---- #1670: THE SPINNER — the button's pending state nests it, and its motion is two tokens ----------------
+// Expectations are the OWNER'S (2026-09-26), written here rather than read from the def or the geometry
+// module: the icon ladder 16 / 20 / 24 / 32, a button slot one rung below its size (#1350), 0.8s per turn
+// and a 2.6s slow turn under reduced motion. The drawing itself is measured by `lint-glyph-geometry.ts`.
+{
+  const LADDER: Record<string, number> = { 'x-small': 16, small: 20, medium: 24, large: 32 };
+  const SLOT_PX: Record<string, number> = { small: 16, medium: 20, large: 24 };
+  const walkNodes = (n: any, out: any[] = []): any[] => { out.push(n); for (const c of n.children ?? []) walkNodes(c, out); return out; };
+  ok(spinner.figmaProperties?.emitAsComponents === true && JSON.stringify(spinner.variants.size) === JSON.stringify(Object.keys(LADDER)),
+    `#1670 spinner: four standalone members on the icon ladder (${JSON.stringify(spinner.variants.size)})`);
+  const members = figmaAnatomySet(spinner, { swapTarget: 'FPO-default-icon' });
+  ok(members.length === 4 && members.every((m) => m.root.bound.width === `icon/size/${({ 'x-small': 'xs', small: 'sm', medium: 'md', large: 'lg' } as Record<string, string>)[m.size!]}`),
+    `#1670 spinner: each member's square binds its own icon rung (${members.map((m) => `${m.size}:${m.root.bound.width}`).join(', ')})`);
+  // THE BUTTON FAMILY'S PENDING MEMBERS NEST THE SPINNER, at the slot's own px — every family, every size,
+  // every appearance and surface, and with the "One step smaller" lever that moves medium's icon rung.
+  const nbHeights = (ref: string) => ({ 'size.sm.height': 36, 'size.md.height': 44, 'size.lg.height': 56 } as Record<string, number>)[ref];
+  for (const [label, layout] of [['default', DEFAULT_BUTTON_LAYOUT], ['smaller', { ...DEFAULT_BUTTON_LAYOUT, content: 'smaller' as const }]] as const) {
+    for (const def of [button, buttonDestructive, buttonNeutral]) {
+      const set = figmaAnatomySet(applyButtonLayout(def, layout, nbHeights), { swapTarget: 'FPO-default-icon' });
+      const pend = set.filter((pl) => pl.coord.state === 'pending');
+      const wrong: string[] = [];
+      for (const pl of pend) {
+        const spin = walkNodes(pl.root).find((n) => n.name === 'spinner');
+        const slotPx = label === 'smaller' && pl.size === 'medium' ? 16 : SLOT_PX[pl.size!];
+        const member = String(spin?.swapTarget ?? '').replace(/^spinner\//, '');
+        if (!spin || !String(spin.swapTarget).startsWith('spinner/') || LADDER[member] !== slotPx || spin.propertyRef !== undefined)
+          wrong.push(`${planComponentName(pl)} → ${spin?.swapTarget ?? '(no spinner)'}`);
+      }
+      ok(pend.length > 0 && wrong.length === 0,
+        `#1670 ${def.id} (${label}): all ${pend.length} pending members swap in the spinner member at the icon slot's px, linked to no swap property${wrong.length ? ` — ${wrong.slice(0, 3).join('; ')}` : ''}`);
+    }
+  }
+  // THE MOTION. Both tokens in every corpus brand at every tempo, fixed rather than scaled, the reduced turn
+  // SLOWER (never 0), and aliasing value-keyed primitives.
+  for (const tempo of ['snappy', 'standard', 'relaxed'] as const) {
+    const t = buildTree(brandTheme({ id: 'spin', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, motionPersonality: { tempo } } as unknown as BrandInput)).tree.prism.motion;
+    ok(t.duration.spin?.$value === '{prism.motion.duration-ms.800}' && t['duration-ms']['800']?.$value === '800ms',
+      `#1670 motion (${tempo}): motion.duration.spin is one 800ms turn at every tempo (${t.duration.spin?.$value})`);
+    ok(t['duration-reduced'].spin?.$value === '{prism.motion.duration-ms.2600}' && t['duration-ms']['2600']?.$value === '2600ms',
+      `#1670 motion (${tempo}): motion.duration-reduced.spin is a 2600ms slow turn — slower, not removed (${t['duration-reduced'].spin?.$value})`);
+  }
+  // THE CODE-SIDE RULE, as the def states it to whoever builds it: linear and infinite, the reduced-motion
+  // substitute a slower turn under `prefers-reduced-motion`, and both tokens named where the motion is.
+  const codeOnly = spinner.anatomy!.codeOnly.join('\n');
+  ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && /\b800ms\b/.test(spinner.motion?.reduceMotion ?? '') && /\b2600ms\b/.test(spinner.motion?.reduceMotion ?? ''),
+    '#1670 spinner: the motion field names both turn tokens and their values');
+  ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly) && /aria-hidden="true"/.test(codeOnly),
+    '#1670 spinner: the code rule spins linear and infinite, slows under prefers-reduced-motion, and is aria-hidden by default');
+}
+
 {
   const root = 'prism';
   const base = { id: 'dmotion', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as unknown as BrandInput;
@@ -14582,7 +14632,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // reason it exists — geometry that throws nothing and reports nothing is only caught by measuring.
     {
       const pend = figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'filled', state: 'pending', leading: false, trailing: false, swapTarget: 'FPO-default-icon' });
-      const pendOpts = { vars: [...planBoundVars(pend.root), ...planPaintVars(pend.root)], styles: planTextStyles(pend.root), comps: ['FPO-default-icon'] };
+      // `spinner/small` — the component a medium button's pending overlay swaps in since #1670.
+      const pendOpts = { vars: [...planBoundVars(pend.root), ...planPaintVars(pend.root)], styles: planTextStyles(pend.root), comps: ['FPO-default-icon', 'spinner/small'] };
       const pendJs = planToPluginJs(pend);
       const pendPage: StubPage = { children: [] };
       const pendRun = await runPayload(pendJs, { ...pendOpts, page: pendPage });
@@ -14646,7 +14697,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const askewPage: StubPage = { children: [] };
       const askewRun = await runPayload(planToPluginJs(askew), {
         vars: [...planBoundVars(askew.root), ...planPaintVars(askew.root)], styles: planTextStyles(askew.root),
-        comps: ['FPO-default-icon'], page: askewPage,
+        comps: ['FPO-default-icon', 'spinner/small'], page: askewPage,
       });
       ok(askewRun.misses.length === 0, `anatomy/pending: the asymmetric tree pastes CLEAN${askewRun.misses.length ? ` — ${JSON.stringify(askewRun.misses)}` : ''}`);
       const aRoot = askewPage.children[0] as Record<string, unknown>;
@@ -14737,7 +14788,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const fullSet = {
         vars: grid.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
         styles: grid.flatMap((p) => planTextStyles(p.root)),
-        comps: ['FPO-default-icon', 'focus-ring'],
+        comps: ['FPO-default-icon', 'focus-ring', 'spinner/small'],
       };
       const setRun = await runPayload(planSetToPluginJs(grid), fullSet);
       ok(setRun.misses.length === 0, `set properties: the set payload runs CLEAN end to end${setRun.misses.length ? ` — ${JSON.stringify(setRun.misses)}` : ''}`);
@@ -14793,8 +14844,11 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // as this step's `addComponentProperty` finding: a duplicate name is renamed rather than refused, so
       // a count match proves nothing about identity. That reasoning was applied to property names and
       // initially not to refs (#513 review).
-      ok(setRun.wiredMembers === 21 && setRun.refs === 42,
-        `set properties: every member is wired individually — ${setRun.wiredMembers}/21 distinct members reached across ${setRun.refs} writes (2 each)`);
+      // 39, not 42, since #1670: the three `pending` members carry the label reference only. Their leading
+      // cell is taken by the spinner, which swaps in its own component and links to no swap property.
+      const pendingMembers = grid.filter((p) => p.coord.state === 'pending').length;
+      ok(setRun.wiredMembers === 21 && pendingMembers === 3 && setRun.refs === 21 * 2 - pendingMembers,
+        `set properties: every member is wired individually — ${setRun.wiredMembers}/21 distinct members reached across ${setRun.refs} writes (2 each, 1 on each of the ${pendingMembers} pending members)`);
       // The AXIS READ-BACK still agrees, which is the regression this step nearly caused: non-variant
       // keys carry a `#nodeId` suffix and variant keys do not, so comparing all keys reported a mismatch
       // on a correct set the moment one TEXT property existed.
@@ -14959,8 +15013,18 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // rather than a degraded one. (Both parts nominate one target, so the identity cannot distinguish a
       // sentence that names its subject from one that assumes it — that claim is row 0's `build X FIRST`
       // anchor above, which reads the name out of the advice itself.)
-      ok(swapRows.every((r) => r.spinner !== '(none)' && r.spinner.slice('spinner'.length) === r.lead.slice('leadingVisual'.length)),
-        `#1288 / #612 the pending spinner is a second swap site in the same run, and gets the same full diagnosis as the leading slot (${swapRows[0].spinner})`);
+      // SINCE #1670 THE SPINNER NOMINATES ITS OWN COMPONENT (`spinner/small` on this medium grid), so starving
+      // the icon no longer starves it: every row's file holds the spinner and it reports nothing. Its own
+      // diagnosis is asserted on a run that starves IT instead — the same full build-order sentence, naming
+      // the spinner member rather than the icon.
+      ok(swapRows.every((r) => r.spinner === '(none)'),
+        `#1288 / #1670 the pending spinner swaps in its OWN component, so a file missing the icon does not starve it (${swapRows.map((r) => r.spinner).join(' | ')})`);
+      {
+        const noSpin = await runPayload(planSetToPluginJs(grid), { ...fullSet, comps: (fullSet.comps ?? []).filter((c) => c !== 'spinner/small') });
+        const spinMiss = swapMissesOf(noSpin.misses, 'spinner')[0] ?? '(none)';
+        ok(spinMiss === `spinner.swapTarget -> spinner/small (${swapMissAdvice('ABSENT', 'spinner/small')}; ${SWAP_PLACEHOLDER})`,
+          `#1288 / #1670 a file without the spinner gets the full build-order diagnosis naming the spinner member (${spinMiss})`);
+      }
       // PARITY WITH THE PLUGIN, composed rather than pinned. The expected string is built from the SHARED
       // `swapMissAdvice` and the shared consequence clause — the same two the plugin's consumers compose
       // from — so this fails the moment the payload spells the wording itself instead of interpolating the
@@ -15471,9 +15535,21 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         // it is the same slot wired to a different property — so only a per-member, per-property compare
         // catches it. This drives a mixed grid through BOTH executors and compares every node's wired
         // property name; reverting the paste-path per-member read makes the two disagree here BY NAME.
+        // THE PRE-#1670 OVERLAY, which is the only shape that reaches the per-member path: since #1670 the
+        // button's spinner names its own component (`nests: 'spinner'`) and inherits no swap property at
+        // all, so the real def wires nothing to diverge. The per-member override mechanism still exists for
+        // any overlay that stands in a cell without naming a component, so it is gated on that shape.
+        const { nests: _ownComponent, ...cellOverlay } = button.anatomy!.parts.spinner;
+        const cellSpinnerButton = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts, spinner: cellOverlay } } } as ComponentDef;
         const spinGrid = (['pending', 'rest'] as const).flatMap((st) =>
           ([[true, false], [false, true], [true, true]] as const).map(([ld, tr]) =>
-            figmaAnatomyPlan(button, 'medium', { leading: ld, trailing: tr, state: st, intent: 'primary', appearance: 'filled', swapTarget: 'FPO-default-icon' })));
+            figmaAnatomyPlan(cellSpinnerButton, 'medium', { leading: ld, trailing: tr, state: st, intent: 'primary', appearance: 'filled', swapTarget: 'FPO-default-icon' })));
+        // AND THE REAL BUTTON WIRES ITS SPINNER TO NO PROPERTY (#1670): its pending overlay swaps in
+        // `spinner/<member>` and would otherwise give the icon's swap property two defaults across the set.
+        const realPend = figmaAnatomyPlan(button, 'medium', { leading: true, trailing: false, state: 'pending', intent: 'primary', appearance: 'filled', swapTarget: 'FPO-default-icon' });
+        const realSpin = realPend.root.children.find((c) => c.name === 'spinner');
+        ok(realSpin?.swapTarget === 'spinner/small' && realSpin.propertyRef === undefined,
+          `#1670 the real pending spinner swaps in spinner/small and carries no swap property (${JSON.stringify([realSpin?.swapTarget, realSpin?.propertyRef])})`);
         const spinOpts = {
           vars: spinGrid.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
           styles: spinGrid.flatMap((p) => planTextStyles(p.root)),

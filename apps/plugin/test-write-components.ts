@@ -195,6 +195,23 @@ const SWAP = mainImportsIt && mainProjectsWithIt ? PLUGIN_SWAP_TARGET : '';
 const grid = button.variants!.appearance!.flatMap((ap) => button.states!.map((st) =>
   figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: SWAP, intent: 'primary', appearance: ap, state: st })));
 
+/** The component properties ONE member's own plan references, read off the plan (the independent side).
+ *  Not every member references every property: since #1670 a pending member's leading cell is the spinner,
+ *  which swaps in its own component and links to no property, so that member carries the label only. */
+type RefNode = { propertyRef?: { prop: string }; visibleProp?: string; children?: RefNode[] };
+const planProps = (pl: AnatomyPlan): string[] => {
+  const out: string[] = [];
+  const walk = (n: RefNode): void => {
+    if (n.propertyRef) out.push(n.propertyRef.prop);
+    if (n.visibleProp) out.push(n.visibleProp);
+    for (const c of n.children ?? []) walk(c);
+  };
+  walk(pl.root as unknown as RefNode);
+  return out;
+};
+/** Every reference the plans declare, summed over members — what a fully-wired set must hold. */
+const planRefCount = (plans: readonly AnatomyPlan[]): number => plans.reduce((n, pl) => n + planProps(pl).length, 0);
+
 /** Every component NAME a plan tree nominates — swap targets and nested shared components. Walked
  *  rather than hand-listed for the same reason `full()` derives its variables: a list drifts the moment
  *  a part is added, and the "fully resolved" run would quietly stop being fully resolved while passing. */
@@ -279,7 +296,9 @@ ok(JSON.stringify(r1.properties.slice().sort()) === JSON.stringify(wantProps),
 // SPREAD, not volume: `refs` is a write count, so 42 writes onto one member satisfies it as readily as
 // 42 across twenty-one — and the whole point of the per-member loop is that references do NOT propagate.
 ok(r1.wiredMembers === 21, `references are wired on EVERY member, not just the first (${r1.wiredMembers}/21)`);
-ok(r1.refs === 21 * planSetProperties(grid).length, `every member carries every reference (${r1.refs} = 21 × ${planSetProperties(grid).length})`);
+// 21 × 2 less the 3 pending members, whose leading cell is the spinner (#1670) and carries no property.
+ok(r1.refs === planRefCount(grid) && planRefCount(grid) === 21 * planSetProperties(grid).length - 3,
+  `every member carries every reference its plan declares (${r1.refs} = ${planRefCount(grid)} = 21 × ${planSetProperties(grid).length} − 3 pending)`);
 
 // ---- the geometry claims: the focus ring and the pending spinner ----------------------------
 const set = page.children[0];
@@ -941,10 +960,13 @@ const targetsOf = (plans: AnatomyPlan[]): string[] => [...new Set(plans.flatMap(
 }))].sort();
 // BOTH DIRECTIONS, because a `retarget` that silently did nothing would drive the whole block with one
 // target, find every advice naming it, and report a vacuous pass on the exact property under test.
-ok(targetsOf(twoSlot).length === 1 && targetsOf(twoSlot)[0] === SWAP,
-  `#1262 reachable: the real two-slot plans nominate ONE component (${targetsOf(twoSlot).join(', ')})`);
-ok(targetsOf(twoTarget).length === 2 && targetsOf(twoTarget).includes(SWAP) && targetsOf(twoTarget).includes(OTHER_SWAP),
-  `#1262 reachable: the retargeted plans nominate TWO, so two misses with different subjects sit adjacent (${targetsOf(twoTarget).join(', ')})`);
+// The pending spinner nominates its OWN component since #1670 (`spinner/small` here), which `fullFor` puts
+// in the file; the icon slots are what this block retargets, so the count is over the icon targets.
+const iconTargetsOf = (plans: AnatomyPlan[]): string[] => targetsOf(plans).filter((t) => !t.startsWith('spinner/'));
+ok(iconTargetsOf(twoSlot).length === 1 && iconTargetsOf(twoSlot)[0] === SWAP,
+  `#1262 reachable: the real two-slot plans nominate ONE icon component (${targetsOf(twoSlot).join(', ')})`);
+ok(iconTargetsOf(twoTarget).length === 2 && iconTargetsOf(twoTarget).includes(SWAP) && iconTargetsOf(twoTarget).includes(OTHER_SWAP),
+  `#1262 reachable: the retargeted plans nominate TWO icon components, so two misses with different subjects sit adjacent (${targetsOf(twoTarget).join(', ')})`);
 
 const twoRun = await run(twoTarget, {
   ...fullFor(twoTarget),
@@ -1019,12 +1041,13 @@ ok(withDup.properties.length === 0 && withDup.refs === 0,
 // `leadingVisual` is absent on `state=pending` and `spinner` is absent on the other six states.
 const refParts = planSetLayout(grid, 'test-701').refs;
 const wantLookups = 21 * refParts.length;
-ok(refParts.length === 3 && wantLookups === 63,
+// TWO since #1670: the pending spinner links to no property, so `spinner` is no longer a ref part.
+ok(refParts.length === 2 && wantLookups === 42,
   `the fixture makes ${wantLookups} lookups — 21 members × ${refParts.length} deduped ref parts (${refParts.map((r) => r.part).join(', ')})`);
 // PIN THE SPLIT, because it is what makes `refsKnownAbsent` a real category rather than a rounding error:
 // 42 of the 63 find a node and 21 do not, and that 21 is a third of the cold pass's round-trips.
-ok(r1.refs === 42 && wantLookups - r1.refs === 21,
-  `and only ${r1.refs} of them find a node — the other ${wantLookups - r1.refs} are parts this variant does not build (the spinner off pending, the leading visual on it)`);
+ok(r1.refs === 39 && wantLookups - r1.refs === 3,
+  `and only ${r1.refs} of them find a node — the other ${wantLookups - r1.refs} are parts this variant does not build (the leading visual on the pending members, where the spinner takes its cell)`);
 // THE THREE ROUTES ARE EXHAUSTIVE. Asserted as a sum against the independent total, so a route that stopped
 // being counted cannot hide inside another.
 ok(r1.refsRetained + r1.refsKnownAbsent + r1.refsSearched === wantLookups,
@@ -1089,8 +1112,10 @@ ok(hostInR2 === r2.refs + r2.refsSearched + r2.boundSearched && r2.refsSearched 
 // THE COUNTER IS NOT DEAD, stated separately because the two assertions above are equalities and an
 // always-zero counter satisfies neither honestly but a reader cannot tell at a glance. If `hostSearches`
 // were never threaded through `mkNode`, both sides would read 0 and the assertions would be vacuous.
-ok(hostAfterR1 > 0 && hostInR2 > hostAfterR1,
-  `the boundary counter is live and discriminating — ${hostAfterR1} calls on the retained run, ${hostInR2} on the searching one`);
+// Net of the binding read-back, which the cold run makes and the warm one does not: with 39 refs and 42
+// bindings the two raw totals can coincide, so the comparison is over what the wire and ref read-back cost.
+ok(hostAfterR1 > 0 && hostInR2 - r2.boundSearched > hostAfterR1 - r1.boundSearched,
+  `the boundary counter is live and discriminating — ${hostAfterR1 - r1.boundSearched} ref/wire calls on the retained run, ${hostInR2 - r2.boundSearched} on the searching one`);
 
 // THE MAP'S REACH MUST EQUAL `findOne`'S REACH, and this is the assertion that makes that claim more than a
 // comment. `build` registers each child from inside its PARENT's append loop, deliberately, because Figma's
@@ -2078,6 +2103,8 @@ ok(mixedThrew === '' && !mixedRun.misses.some((m) => /\.font ->/.test(m)),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's set
     const defs = (liveSetNode ? (liveSetNode as any).componentPropertyDefinitions : {}) as Record<string, { type: string }>;
     const keys = props1574.map((p) => ({ name: p.name, key: Object.keys(defs).find((k) => k.split('#')[0] === p.name) }));
+    // Per member, the properties its own plan references (#1670: pending members carry the label only).
+    const wantOf = new Map(grid.map((pl) => [planComponentName(pl), new Set(planProps(pl))] as const));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural walk over the shim tree
     const refsIn = (m: any): Set<string> => {
       const out = new Set<string>();
@@ -2089,7 +2116,7 @@ ok(mixedThrew === '' && !mixedRun.misses.some((m) => /\.font ->/.test(m)),
     const unwired: string[] = [];
     for (const m of (liveSetNode?.children ?? []) as Node[]) {
       const held = refsIn(m);
-      for (const k of keys) if (k.key && !held.has(k.key)) unwired.push(`${String(m.name)}/${k.name}`);
+      for (const k of keys) if (k.key && wantOf.get(String(m.name))?.has(k.name) !== false && !held.has(k.key)) unwired.push(`${String(m.name)}/${k.name}`);
     }
     return { missing: keys.filter((k) => !k.key).map((k) => k.name), unwired, members: ((liveSetNode?.children ?? []) as Node[]).length };
   };
@@ -2098,7 +2125,7 @@ ok(mixedThrew === '' && !mixedRun.misses.some((m) => /\.font ->/.test(m)),
   // FLOOR: nothing re-resolves when nothing goes stale, so every `setReresolved` below is the injection's.
   ok(control.res.setReresolved === 0 && control.res.refs > 0,
     `#1574 floor: the control projection never re-resolves the set (setReresolved=${control.res.setReresolved}, refs=${control.res.refs}) — the counts below are attributable to the injected staleness`);
-  const wantRefs = grid.length * props1574.length;
+  const wantRefs = planRefCount(grid);
 
   // ---- (a) the handle is stale AT COMBINE: the definitions read is the first casualty ---------
   const atCombine = await run1574(0);
@@ -2235,8 +2262,8 @@ ok(mixedThrew === '' && !mixedRun.misses.some((m) => /\.font ->/.test(m)),
     `#1579a a finished build leaves a readable report on the set — complete=${String(a.complete)}, def '${String(a.def)}' (want '${defId}'), engine '${String(a.engine)}' (want '${ENGINE_VERSION}'), written ${String(a.at)}, ${Array.isArray(a.misses) ? (a.misses as string[]).length : '?'} misses kept and ${String(a.missesOmitted)} omitted${aParsed ? '' : ` — UNPARSEABLE: ${JSON.stringify(okReport.raw.slice(0, 120))}`}`);
 
   // ---- (b) THE COUNTERS ARE TRUE, against the file rather than against the tally ----------------
-  ok(a.refs === walked.refs && a.wiredMembers === walked.members && a.refs === grid.length * props1579.length,
-    `#1579b the report's counters match the references the FILE holds, walked independently: refs ${String(a.refs)} vs ${walked.refs} walked vs ${grid.length * props1579.length} the plan declares, wiredMembers ${String(a.wiredMembers)} vs ${walked.members} walked`);
+  ok(a.refs === walked.refs && a.wiredMembers === walked.members && a.refs === planRefCount(grid),
+    `#1579b the report's counters match the references the FILE holds, walked independently: refs ${String(a.refs)} vs ${walked.refs} walked vs ${planRefCount(grid)} the plan declares, wiredMembers ${String(a.wiredMembers)} vs ${walked.members} walked`);
   ok(a.setReresolved === 0 && a.refsRepaired === 0 && a.boundRepaired === 0,
     `#1579b floor: the undisturbed control reports its three repair counters as zero (setReresolved=${String(a.setReresolved)}, refsRepaired=${String(a.refsRepaired)}, boundRepaired=${String(a.boundRepaired)}) — so a non-zero one in a report from a disturbed run is the disturbance and not the baseline`);
 
@@ -3283,11 +3310,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(ringMisses(bareRun.misses).some((m) => m.indexOf('focusRing.nestTarget -> focus-ring') >= 0),
     `#1633 reachable: button alone into an empty file misses its focus ring (${ringMisses(bareRun.misses).length} focusRing misses)`);
 
-  // (a) FRESH FILE — icon and focus-ring are built first, then button with no ring or slot miss.
+  // (a) FRESH FILE — icon, focus-ring and (since #1670) the pending state's spinner are built first, then
+  // button with no ring or slot miss.
   const fresh = fileWith();
   const built = await prebuildDependencies(button, fresh.ctx);
-  ok(JSON.stringify(built.map((b) => b.id)) === JSON.stringify(['icon', 'focus-ring']),
-    `#1633 fresh file: button's missing nests are built first — icon, focus-ring (${built.map((b) => b.id).join(', ') || 'none'})`);
+  ok(JSON.stringify(built.map((b) => b.id)) === JSON.stringify(['icon', 'focus-ring', 'spinner']),
+    `#1633 fresh file: button's missing nests are built first — icon, focus-ring, spinner (${built.map((b) => b.id).join(', ') || 'none'})`);
   const freshRun = await fresh.build(button);
   const freshRing = ringMisses(freshRun.misses);
   ok(freshRing.length === 0,
@@ -3303,12 +3331,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(again.length === 0 && fresh.order.length === buildsBefore && pageNames() === before,
     `#1633 re-run: nothing is rebuilt once the nests are present (${again.map((b) => b.id).join(', ') || 'none'} built, ${fresh.order.length - buildsBefore} build calls)`);
 
-  // (c) FOCUS-RING ALREADY IN THE FILE — left alone; only the missing icon is built.
+  // (c) FOCUS-RING ALREADY IN THE FILE — left alone; only the missing icon and spinner are built.
   const ringMembers = figmaAnatomySet(byDef('focus-ring')).map(planComponentName);
   const held = fileWith({ fileNodes: [{ name: 'focus-ring', type: 'COMPONENT_SET', variants: ringMembers }] });
   const heldBuilt = await prebuildDependencies(button, held.ctx);
-  ok(!held.order.includes('focus-ring') && JSON.stringify(heldBuilt.map((b) => b.id)) === JSON.stringify(['icon']),
-    `#1633 existing focus-ring: never rebuilt — only icon is built (${held.order.join(', ') || 'nothing'})`);
+  ok(!held.order.includes('focus-ring') && JSON.stringify(heldBuilt.map((b) => b.id)) === JSON.stringify(['icon', 'spinner']),
+    `#1633 existing focus-ring: never rebuilt — only icon and spinner are built (${held.order.join(', ') || 'nothing'})`);
 
   // (d) A CHAIN — checkbox-group → checkbox-row → checkbox-control → focus-ring, plus the group's label.
   const chain = fileWith();

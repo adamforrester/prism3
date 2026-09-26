@@ -86,6 +86,9 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Text field', defs: ['text-field'] },
         { page: 'Textarea', defs: ['textarea'] },
         { page: 'Veil', defs: ['veil'] },
+        // #1670 — the spinner is placed here, at the end of Components, as the simplest reading pending the
+        // owner's call on its section (it is used standalone as well as swapped into a button's slot).
+        { page: 'Spinner', defs: ['spinner'] },
       ],
     },
     {

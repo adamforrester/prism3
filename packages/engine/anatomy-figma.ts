@@ -38,6 +38,10 @@ import { outlineFillRole } from './modes';
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
 // plugin sandbox, which has no filesystem — see `emit-icons.ts`'s header.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
+// Geometry a component owns and the icon set deliberately does not hold — the spinner (#1670).
+import { COMPONENT_GLYPHS } from './component-glyphs';
+// The catalogue, read only to name the member an overlay swaps in (`nestedSwapTarget`, #1670).
+import { componentDefs } from './components';
 
 /** A node in the materialization plan. Property names are Figma Plugin API property names
  *  deliberately — this is the projection's whole job, and naming them anything else would put a
@@ -753,8 +757,53 @@ const glyphDocument = (path: string, fillRule?: string, scale?: number): string 
 /** `glyphDocument` for a resolved glyph NAME — looks its path and (sparse) winding rule up together, so
  *  the two lookups stay in one place and the caller passes a name rather than re-deriving both (#1012).
  *  `scale` pads the artboard per `glyphScale` (#1346); absent leaves the set's own square untouched. */
-const glyphSvgFor = (defId: string, part: string, glyph: string | undefined, scale?: number): string =>
-  glyphDocument(glyphPath(defId, part, glyph), glyph ? ICON_FILL_RULES[glyph as keyof typeof ICON_PATHS] : undefined, scale);
+const glyphSvgFor = (defId: string, part: string, glyph: string | undefined, scale?: number): string => {
+  // A COMPONENT-OWNED glyph (#1670) is looked up first: geometry a component draws that is deliberately not
+  // in the icon set (the spinner), composed of several filled layers, each carrying its own layer opacity.
+  // Same artboard, same `fill="currentColor"` convention, one `<path>` per layer in drawing order; `id`
+  // names the layer the importer builds. `glyphScale` is refused for it — nothing needs it, and the padded
+  // artboard is an icon-set idea.
+  const layers = glyph ? COMPONENT_GLYPHS[glyph] : undefined;
+  if (layers) {
+    if (scale !== undefined && scale !== 1) throw new Error(`${defId}: anatomy part '${part}' scales the component glyph '${glyph}', and a composed glyph draws on the set's own artboard`);
+    const ab = glyphArtboard();
+    return `<svg width="${ab.dims[0]}" height="${ab.dims[1]}" viewBox="${ab.viewBox}" fill="none" xmlns="http://www.w3.org/2000/svg">` +
+      layers.map((l) => `<path id="${l.id}" ${l.fillRule ? `fill-rule="${l.fillRule}" ` : ''}${l.opacity !== undefined ? `opacity="${l.opacity}" ` : ''}d="${l.d}" fill="currentColor"/>`).join('') +
+      '</svg>';
+  }
+  return glyphDocument(glyphPath(defId, part, glyph), glyph ? ICON_FILL_RULES[glyph as keyof typeof ICON_PATHS] : undefined, scale);
+};
+
+/**
+ * The layer opacity each `<path>` of a glyph document declares, in document order — 1 where it declares none.
+ * Both executors write it onto the imported VECTORs in the same order (#1670: the spinner's track at 0.2), so
+ * the opacity is claimed from the plan (#865) rather than left as whatever the importer set.
+ */
+export const glyphLayerOpacities = (svg: string): number[] =>
+  (svg.match(/<path\b[^>]*>/g) ?? []).map((el) => { const m = /\bopacity="([0-9.]+)"/.exec(el); return m ? Number(m[1]) : 1; });
+
+/**
+ * The COMPONENT NAME an overlay swaps in when it names its own component (`nests`, #1670): the nested def's
+ * standalone member whose own `size.<value>` binding is the rung the overlay's size binds. So a medium
+ * button, whose icon slot binds `icon.size.sm`, swaps in `spinner/small` — the spinner at the slot's own
+ * size — and a brand lever that moves the slot's rung (#1667's `buttonContentSize`) moves the member with it.
+ *
+ * The nested def must emit standalone components (`emitAsComponents`): a variant-set member is named by its
+ * coordinate (`size=small`), which is not unique in a file, and both swap consumers look a target up by name.
+ * Every failure THROWS, naming the def and the part — a swap that silently fell back to the icon placeholder
+ * is the pending spinner this exists to replace.
+ */
+const nestedSwapTarget = (defId: string, part: string, nests: string, sizeRef: string | undefined): string => {
+  const nested = componentDefs.find((d) => d.id === nests);
+  if (!nested) throw new Error(`${defId}: anatomy part '${part}' swaps in '${nests}', which is not a registered component def`);
+  if (!nested.figmaProperties?.emitAsComponents)
+    throw new Error(`${defId}: anatomy part '${part}' swaps in '${nests}', which builds a variant set — a swap target is looked up by component name, so the nested def must emit standalone components (emitAsComponents)`);
+  if (!sizeRef) throw new Error(`${defId}: anatomy part '${part}' swaps in '${nests}' and binds no size — the member is chosen by the rung the slot binds`);
+  const member = (nested.variants.size ?? []).find((v) => nested.tokens[`size.${v}`] === sizeRef);
+  if (!member)
+    throw new Error(`${defId}: anatomy part '${part}' binds '${sizeRef}', and '${nests}' has no size member on that rung (its sizes bind ${(nested.variants.size ?? []).map((v) => nested.tokens[`size.${v}`]).join(', ')})`);
+  return `${nests}/${member}`;
+};
 
 const ALIGN: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'> = {
   start: 'MIN', center: 'CENTER', end: 'MAX', baseline: 'BASELINE',
@@ -1499,7 +1548,13 @@ export const figmaAnatomyPlan = (
     // took the TRAILING one, so a designer repointing the trailing visual would find the spinner
     // following it and vice versa — with both properties existing, so nothing would look broken.
     const cellName = p.kind === 'overlay' && replacedByOverlay ? replacedByOverlay : name;
-    const propertyRef = drivenBy.get(cellName);
+    // AN OVERLAY THAT NAMES ITS OWN COMPONENT (#1670) — the pending spinner, once `spinner` existed to be
+    // named — swaps in THAT component and inherits no property. The cell's swap property belongs to the
+    // icon a designer picks; linking the spinner to it would give one INSTANCE_SWAP property two defaults
+    // across the set (the icon at rest, the spinner at pending), which `planSetProperties` refuses — and a
+    // designer repointing the leading icon should not repoint the spinner.
+    const ownTarget = p.kind === 'overlay' && p.nests ? nestedSwapTarget(def.id, name, p.nests, p.size ? resolveKey(p.size, 'binding') : undefined) : undefined;
+    const propertyRef = ownTarget ? undefined : drivenBy.get(cellName);
 
     return {
       name,
@@ -1608,7 +1663,7 @@ export const figmaAnatomyPlan = (
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
       // here and nowhere else, so this line IS the rule #1009 asked to be located.
       ...(p.kind === 'text' ? { textAlignVertical: VERTICAL_ALIGN[p.verticalAlign ?? 'center'] } : {}),
-      ...((p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
+      ...(ownTarget ? { swapTarget: ownTarget } : (p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
       ...(descendantFills ? { descendantFills } : {}),
       ...(p.layout
@@ -3028,14 +3083,16 @@ const __exposeNow=(member)=>{
 // in \`build\`, so a declared value is never clobbered; the PLAN decides "claimed", never the live node.
 // \`n\` is null for the SET, whose border and radius are claimed by PRESERVING the host's framing (#1430).
 // Each write is guarded and reports rather than throws, so a refused default costs a miss, not the member.
-const claimDefaults=(node,n,mode)=>{
+const claimDefaults=(node,n,mode,layerOp)=>{
   const t=node.type,isSet=!n,m=n||{},P=m.paints||{},B=m.bound||{},where=n?n.name:'set';
   // An INSTANCE is claimed by its nomination and a COMPONENT by the frame it was made from.
   if(t==='INSTANCE'||t==='COMPONENT')return;
   const set=(k,v)=>{try{node[k]=v;}catch(err){misses.push(where+'.'+k+' -> UNCLAIMED and could not be neutralized ('+err.message+"); it keeps Figma's default — #865");}};
   const keep=(k,f)=>{const c=node[k];set(k,c===undefined?f:Array.isArray(c)?c.slice():c);};
   set('visible',m.visible!=null?m.visible:true);
-  if(!m.zeroOpacity)set('opacity',1);
+  // An IMPORTED glyph layer's opacity is declared by \`glyphSvg\` (#1670: the spinner's track is a layer at 0.2),
+  // like its fills — so it is claimed by the document, and writing 1 here would erase it.
+  if(!m.zeroOpacity)set('opacity',mode==='imported'&&layerOp!=null?layerOp:1);
   if(!m.effectStyle)set('effects',[]);
   set('blendMode','PASS_THROUGH');set('rotation',0);set('layoutAlign','INHERIT');set('layoutGrow',m.layoutGrow||0);
   if(mode==='created'){
@@ -3433,7 +3490,7 @@ ${PIN_SLOT}
   if(sty){let e='';try{await node.setTextStyleIdAsync(sty.id);}catch(err){e=' ('+err.message+')';}if(node.textStyleId!==sty.id)misses.push(n.name+'.textStyle -> '+sty.name+' DISCARDED after the #865 defaults, reads '+(node.textStyleId||'no style')+e);}
   // The IMPORTED subtree: \`createNodeFromSvg\` bypasses \`createFrame()\`, so its inner nodes are claimed too,
   // in 'imported' mode (fills, strokes and constraints there are the glyph's own).
-  if(n.type==='GLYPH'&&node.findAll)for(const d of node.findAll(()=>true))claimDefaults(d,n,'imported');
+  if(n.type==='GLYPH'&&node.findAll){const ops=(n.glyphSvg||'').match(/<path\\b[^>]*>/g)||[];let vi=0;for(const d of node.findAll(()=>true)){let op;if(d.type==='VECTOR'){const e=ops[vi++];const mm=e&&/\\bopacity="([0-9.]+)"/.exec(e);op=mm?Number(mm[1]):1;}claimDefaults(d,n,'imported',op);}}
   return node;
 };`;
 

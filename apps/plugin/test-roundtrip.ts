@@ -1234,5 +1234,34 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   }
 }
 
+
+// ── #1670: THE SPINNER, BUILT AND READ BACK — HOST-TRUTH ─────────────────────────────────────────────
+// The owner's spec, checked on what the executor LEFT on the nodes rather than on the plan: four standalone
+// `spinner/<size>` components, each holding a track and an arc; the track at 20% LAYER opacity (the one
+// property a host's ink rebind does not reset, so the executor's defaults pass must not reset it either),
+// the arc at full strength, and both layers inked with the same bound color.
+{
+  const def = componentDefs.find((d) => d.id === 'spinner')!;
+  const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(plans), page });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const res = await applyComponentPlan(plans, shim as any, { emitAsComponents: true });
+  const comps = page.children.map((c) => String((c as { name?: string }).name)).sort();
+  ok(res.misses.length === 0 && JSON.stringify(comps) === JSON.stringify(['spinner/large', 'spinner/medium', 'spinner/small', 'spinner/x-small']),
+    `#1670 spinner: builds clean as four standalone components (${comps.join(', ')}${res.misses.length ? `; misses: ${res.misses.slice(0, 3).join(' | ')}` : ''})`);
+  type V = { type?: string; name?: string; opacity?: number; fills?: { boundVariables?: { color?: { id?: string } } }[]; children?: V[] };
+  const vecs = (n: V): V[] => [...(n.type === 'VECTOR' ? [n] : []), ...(n.children ?? []).flatMap(vecs)];
+  for (const c of page.children as unknown as V[]) {
+    const vs = vecs(c);
+    const track = vs.find((v) => v.name === 'track'), arc = vs.find((v) => v.name === 'arc');
+    const inkOf = (v?: V) => v?.fills?.[0]?.boundVariables?.color?.id;
+    ok(vs.length === 2 && track?.opacity === 0.2 && (arc?.opacity ?? 1) === 1,
+      `#1670 ${c.name}: the track keeps its 20% layer opacity through the build and the arc draws at full strength (track ${track?.opacity}, arc ${arc?.opacity ?? 'unset'}, ${vs.length} vectors)`);
+    ok(!!inkOf(track) && inkOf(track) === inkOf(arc),
+      `#1670 ${c.name}: the track and the arc bind the same color variable (${inkOf(track) ?? 'unbound'} / ${inkOf(arc) ?? 'unbound'})`);
+  }
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);

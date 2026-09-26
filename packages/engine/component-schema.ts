@@ -3415,8 +3415,14 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // same posture mismatch #1305 records, one kind past where the issue looked.
     if (p.kind !== 'box' && p.kind !== 'nest' && p.kind !== 'vector' && p.height !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'height' — only a 'box' (which fixes both axes) or a 'nest' (#1299) projects a bound height; a slot/overlay takes the size of the content swapped into it, a text is sized by its own content, and an absolute by its parent's bounds — so this would resolve, validate, and reach no node`);
-    if (p.kind !== 'absolute' && p.kind !== 'nest' && p.nests !== undefined)
-      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'nests' — only an 'absolute' (out-of-flow) or a 'nest' (in-flow) part materializes as an instance of another component`);
+    // An `overlay` may name its component too (#1670): the pending spinner swaps in `spinner` rather than
+    // the caller's icon placeholder. Its relation stays `swap` — the overlay takes a cell's place, whole.
+    if (p.kind !== 'absolute' && p.kind !== 'nest' && p.kind !== 'overlay' && p.nests !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'nests' — only an 'absolute' (out-of-flow), a 'nest' (in-flow) or an 'overlay' (swapping in its own component) part materializes as an instance of another component`);
+    if (p.kind === 'overlay' && p.nests !== undefined && p.nesting?.kind !== 'swap')
+      e.push(`anatomy part '${n}' is kind 'overlay' and nests '${p.nests}', so its relation is 'swap' — the overlay replaces a cell's content with that whole component`);
+    if (p.kind === 'overlay' && p.nests !== undefined && !p.size)
+      e.push(`anatomy part '${n}' is kind 'overlay' and nests '${p.nests}' but binds no 'size' — the nested member is chosen by the rung the overlay binds`);
     // A `nest` (#1226 PR-A) is the in-flow twin of `absolute`: it MUST name what it nests, and its
     // relation is `nest-fixed` (the def names the coordinate) or `nest-exposed` (#1330 — the consumer
     // drives the named child axes). Without `nests` it points at nothing (an in-flow instance of what?);

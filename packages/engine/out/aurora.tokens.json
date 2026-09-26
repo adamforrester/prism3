@@ -17714,6 +17714,28 @@
               "ms": 640
             }
           }
+        },
+        "800": {
+          "$type": "duration",
+          "$value": "800ms",
+          "$description": "duration primitive — 800ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 800
+            }
+          }
+        },
+        "2600": {
+          "$type": "duration",
+          "$value": "2600ms",
+          "$description": "duration primitive — 2600ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 2600
+            }
+          }
         }
       },
       "duration": {
@@ -17788,6 +17810,18 @@
               "ms": 640
             }
           }
+        },
+        "spin": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.800}",
+          "$description": "motion duration spin — 800ms per full turn of a spinner, linear, the same at every tempo",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "ads.motion.duration-ms.800",
+              "ms": 800
+            }
+          }
         }
       },
       "duration-reduced": {
@@ -17860,6 +17894,18 @@
               "role": "semantic",
               "aliasOf": "ads.motion.duration-ms.0",
               "ms": 0
+            }
+          }
+        },
+        "spin": {
+          "$type": "duration",
+          "$value": "{ads.motion.duration-ms.2600}",
+          "$description": "reduce-motion spin — 2600ms per full turn: a slow turn, kept rather than removed, because the spinner is how a sighted user sees work continuing",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "ads.motion.duration-ms.2600",
+              "ms": 2600
             }
           }
         }
@@ -21958,7 +22004,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.164.0",
+      "version": "0.165.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

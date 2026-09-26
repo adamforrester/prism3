@@ -2926,6 +2926,18 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.165.0 — #1670: the Spinner component, to the owner's spec (2026-09-26), and the button's pending state
+ * swaps it in. `spinner` is a new def: four standalone `spinner/<size>` components on the icon ladder
+ * (16 / 20 / 24 / 32), each one composed glyph — a full ring at 20% layer opacity under a 33% head arc with
+ * round caps, drawn as filled outlines on the 24-unit artboard so the 2px band scales with size. The glyph
+ * lives in the new `component-glyphs.ts`, outside the icon set. Button's pending overlay names it
+ * (`nests: 'spinner'`) and swaps in the member on its slot's own icon rung (small → `spinner/x-small`,
+ * medium → `spinner/small`, large → `spinner/medium`) instead of the caller's icon placeholder, and links to
+ * no swap property. Both executors write each imported glyph layer's opacity from its SVG document. Two new
+ * motion tokens, `motion.duration.spin` (800ms) and `motion.duration-reduced.spin` (2600ms), outside the
+ * tempo-scaled ramp, so every brand's `out/**` moves. Projected surface: a new def, and every button
+ * family's pending members change (their spinner's swap target). CONTRACT 12.0.0 → 12.1.0 (four adds).
+ *
  * 0.164.0 — The field family gains a projected `filled` state (owner decision, 2026-09-25, Prism 2's
  * `Enabled (Empty) | Hovered | Filled | Focused | Disabled` on all three specs). `filled` joins the closed
  * `STATES` vocabulary and the projected state axis of text-field, textarea and select. The value text binds
@@ -3730,7 +3742,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.164.0';
+export const ENGINE_VERSION = '0.165.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -4173,6 +4185,13 @@ export const ENGINE_VERSION = '0.164.0';
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
  *
+ * 12.1.0 — #1670 adds FOUR guaranteed names. The two roles: `motion.duration.spin` (800ms, one turn of a
+ * spinner) and `motion.duration-reduced.spin` (2600ms, the slow turn under reduced motion). And the two
+ * value-keyed primitives they alias, `motion.duration-ms.800` and `motion.duration-ms.2600`: the turn is not
+ * tempo-scaled, so every brand at every tempo now emits both, where 800 used to exist only at the standard
+ * tempo. All four land in the GUARANTEED intersection. A pure ADDITION — a new name cannot break an existing
+ * reference — so a clean MINOR. Nothing is removed or retyped. (#1670)
+ *
  * 12.0.0 — #1632 (owner-decided MAJOR): DEMOTE the weight roles a brand declines out of `guaranteed`. A brand
  * that narrows `typography.weights` ships no styles for the weights it doesn't use, which is the lever's
  * purpose ("if we are removing anything we are removing unused weights"). No corpus member pulled the lever,
@@ -4227,7 +4246,7 @@ export const ENGINE_VERSION = '0.164.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '12.0.0';
+export const CONTRACT_VERSION = '12.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

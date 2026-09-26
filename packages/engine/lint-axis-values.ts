@@ -321,6 +321,19 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'size',
+    values: ['x-small', 'small', 'medium', 'large'],
+    defs: ['spinner'],
+    relation: 'superset',
+    reason:
+      'The ICON ladder (16 / 20 / 24 / 32), not the control ladder, because a spinner (#1670) drops into an icon '
+      + 'slot and is sized as the glyph it stands in for. The words are `icon`\'s own size prop enum and bind the '
+      + 'same `icon.size.{xs,sm,md,lg}` rungs, so `x-small` is the rung below `small` rather than a new vocabulary. '
+      + 'It is a superset of canonical by words only: `small` here is a 20px glyph where a small BUTTON is a '
+      + '36px control, the same split `icon`\'s header records. No paint key crosses `size`, so the leading '
+      + '`x-small` is a rest coordinate nothing falls through to.',
+  },
+  {
+    axis: 'size',
     values: ['small', 'medium'],
     // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).

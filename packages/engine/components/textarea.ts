@@ -527,14 +527,14 @@ export const textarea: ComponentDef = {
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'focus-ring', 'button', 'icon'],
+    composesWith: ['field-label', 'field-message', 'focus-ring', 'button', 'icon', 'spinner'],
     // ALTERNATIVE TO text-field, not a superseder — they are siblings a designer picks between by
     // input shape. The brief flags that its external research pass typed this as
     // `supersedes: text-field` and corrects it against the prose; carried here so the corrected
     // reading is the one that reaches the engine.
     alternativeTo: ['text-field', 'select'],
     replacesPatterns: ['a one-row textarea used as a tall input', 'a contenteditable div used for plain multi-line text'],
-    planned: ['spinner', 'form', 'rich-text-editor', 'combobox', 'code-editor'],
+    planned: ['form', 'rich-text-editor', 'combobox', 'code-editor'],
   },
 
   notes: {

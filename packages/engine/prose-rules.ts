@@ -130,7 +130,7 @@ const RE_ENDINGS = /\b[A-Za-z]*(?:centre|metre|litre|theatre|fibre|calibre|lustr
 // Ordinary English that merely ENDS in those letters. Subtracting these is what makes a pattern scan
 // usable; adding to this list is the correct fix for a false positive, never narrowing the pattern.
 const NOT_EN_GB = new Set([
-  'surprise', 'surprises', 'surprised', 'surprising', 'wise', 'otherwise', 'likewise', 'rise', 'rises',
+  'surprise', 'surprises', 'surprised', 'surprising', 'wise', 'otherwise', 'likewise', 'clockwise', 'rise', 'rises',
   'arise', 'arises', 'arising', 'promise', 'promises', 'promised', 'promising', 'precise', 'concise',
   'exercise', 'exercises', 'exercised', 'exercising', 'premise', 'premises', 'compromise', 'compromises',
   'revise', 'revised', 'revises', 'devise', 'devised', 'devises', 'supervise', 'enterprise', 'expertise',

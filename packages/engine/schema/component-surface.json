@@ -11,75 +11,75 @@
     },
     "button": {
       "members": 432,
-      "sha256": "6a114d7bcb749e18f71aad425d2d5833b1fc91d5c7c836915bc125c7dfe29ff8"
+      "sha256": "d7e4f551858234b75e00a8c062c39cb8ba6a3549db6d13e0ceaff9f9c5bf0f7d"
     },
     "button@outline-solid-tint": {
       "members": 432,
-      "sha256": "f141824adde1c08a65cd01965cbf34cf852fd58e2896475487cabc63292af51e"
+      "sha256": "a5f66dad4a1f562e3db9a71043450ed5dbc1e1c2abc39f178de24739963e986a"
     },
     "button@outline-none": {
       "members": 432,
-      "sha256": "20abdee1f4841e9ad1e58bdf91d91154f14a665a45d352d382dda687cfbb8cc2"
+      "sha256": "6a670b522d6be02d15e29c5bd9572c8efe42c3eef42754887296a233f50e25f6"
     },
     "button@button-default": {
       "members": 432,
-      "sha256": "1cb27caa28bdd7c70571c9bb9e770e64e0c25f0c93d1e4cd16f48f96833de90b"
+      "sha256": "cc0b95eefc152cd0258b523eb95f51784395f629f7135527f94af4bbffd30a45"
     },
     "button@button-edges": {
       "members": 432,
-      "sha256": "dfbfda999da3ad10fe767c497cc082a6241c305267f2a1c5fbbddab89edc9e06"
+      "sha256": "8f35c63bf98c6fb8570203277320c0103f76ccb2e58679a1b705bbc508b3a46b"
     },
     "button@button-smaller": {
       "members": 432,
-      "sha256": "935e85d7de92bb056061e6db89e555d51fbf41cd4febdc75b8643e6d8b406d04"
+      "sha256": "84fe0ae570999ac54c95f0b31c5b64a0e6b1210659e97c7869b5e3c5b5030fa7"
     },
     "button-destructive": {
       "members": 432,
-      "sha256": "e2f2d7d71375daa50ad7cda525cc4e67236a1fb7256be4376a6f9026d586c708"
+      "sha256": "e19d6d5882db4b8ec3f40360dabf1c3eb94c96dd876a1ea70f1200629359ba05"
     },
     "button-destructive@outline-solid-tint": {
       "members": 432,
-      "sha256": "7d5eb1b8179a69054d7a18f82549b9a1f65c2306bf9050b89959a091f506eff6"
+      "sha256": "f795662a95f24c5c8feb9b4e8229eef473acb5677539adc78409e6d7de93e671"
     },
     "button-destructive@outline-none": {
       "members": 432,
-      "sha256": "baf7f8168c6035ae9ab939e78637e4fa9790c508ad3496cfe1c82a6f5905bfb2"
+      "sha256": "ebdb7cdb8c097215aff5d7ee5dad4ecf781e108507f66767c3c86cd0c0523a78"
     },
     "button-destructive@button-default": {
       "members": 432,
-      "sha256": "7699b1a72dabb283ae1976d0cc5c05388b755db28373889e949d9c1003ea93c1"
+      "sha256": "72850d2554d5a18c9a65669921e108b8ad9bf38874ceb4f84361ee1b2f2ebfc0"
     },
     "button-destructive@button-edges": {
       "members": 432,
-      "sha256": "8416110b8b0e36d208dfb2fe54aa8556b19a991923b98b3a2bec8bfaa1608481"
+      "sha256": "443b4152549bf83db6090555870258f5a68f135a309650df0dc6bd298fe374f0"
     },
     "button-destructive@button-smaller": {
       "members": 432,
-      "sha256": "03925e6a82ecbbd66fd612437c78f12911c73b930d1a15d9ea929f4f60cfca02"
+      "sha256": "88d7e7c128fe3815d59899c33c12ebb7a4f1c3b5db0128992d40f7ba942d5c0a"
     },
     "button-neutral": {
       "members": 432,
-      "sha256": "ebb1206301860abcc1c12f4e9ff70692943573dfc2057da93fae827a3a9754ef"
+      "sha256": "85b636aed7e4d7e8c574dbe9152e5782fa566d622e5d57217162b8d42bb903f8"
     },
     "button-neutral@outline-solid-tint": {
       "members": 432,
-      "sha256": "a257ac166a6f4ffc1ec79996d522e733d183ca3eecdc2083e72478647fdd1d8c"
+      "sha256": "4b0799a44eefeae6f37eb209aad901edc843df42e7fb659ec0fba3375003e2d1"
     },
     "button-neutral@outline-none": {
       "members": 432,
-      "sha256": "a578a7fe5a59ee3a14d0bffdc71ede5440c5166389a19382b4f4a9f8a39466d4"
+      "sha256": "73f2228b8ef52278189d8eac5397bdc8f1a05c92290450cf855b73cf9f248cb0"
     },
     "button-neutral@button-default": {
       "members": 432,
-      "sha256": "3bfda11f1f686525948970a9bdecdb00dcaa1be324a5c102c343b6ec70623751"
+      "sha256": "bfa242361a2b51591d803d445f801a942a31a3103d3fc9ca9e5f8dcdc104c885"
     },
     "button-neutral@button-edges": {
       "members": 432,
-      "sha256": "68cb6d6c1f8fe161c89e7107e5ccf47c294af5c964e4db74e350e909f530651b"
+      "sha256": "8ed2ad20f9faf8085dea9c333a3041d8bc18ef2dc7cb400f32b27b48fe1d0e01"
     },
     "button-neutral@button-smaller": {
       "members": 432,
-      "sha256": "f6507c75d218bf227623200d2d871c1388f04ab0781457cf41bd8b4f03b1a588"
+      "sha256": "1dbd09a77d3b2ec2d968f89a0408524e391e81fd502e3b5e2128da315fd035ab"
     },
     "icon-button": {
       "members": 216,
@@ -208,6 +208,10 @@
     "image-placeholder": {
       "members": 3,
       "sha256": "9617dd7dd660d2ab828a1a3f8db859947149dadd86bea611516f4051b2e1db9f"
+    },
+    "spinner": {
+      "members": 4,
+      "sha256": "4b71371c2a369bb14966a4a1df6d55550393bca864a3c0ca16c7d0f608c3386c"
     }
   }
 }

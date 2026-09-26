@@ -440,11 +440,12 @@ for (const [id, input] of ALL_BRANDS) { await section(`pack/${id}`, async () => 
 /* ── components ─────────────────────────────────────────────────────────────────────────────────────── */
 await section('components', async () => {
   const input = PARITY[1][1];
-  // Button swaps to `icon/FPO-default-icon` and nests `focus-ring` — named here from the def's own anatomy
-  // rather than from `missingDependencies`, which is the function under test.
+  // Button swaps to `icon/FPO-default-icon`, swaps its pending spinner to `spinner/<size>` (#1670) and nests
+  // `focus-ring` — named here from the def's own anatomy rather than from `missingDependencies`, which is the
+  // function under test.
   const order = buildOrder(input, ['button']).map((d) => d.id);
-  ok(order[order.length - 1] === 'button' && order.includes('icon') && order.includes('focus-ring') && order.length === 3,
-    `components: building 'button' schedules what it swaps to (icon) and nests (focus-ring) first (${order.join(' → ')})`);
+  ok(order[order.length - 1] === 'button' && order.includes('icon') && order.includes('focus-ring') && order.includes('spinner') && order.length === 4,
+    `components: building 'button' schedules what it swaps to (icon, spinner) and nests (focus-ring) first (${order.join(' → ')})`);
   const all = buildOrder(input, 'all').map((d) => d.id);
   ok(all.indexOf('icon') < all.indexOf('button') && new Set(all).size === all.length, `components: 'all' is deduplicated and dependency-ordered (${all.length} defs)`);
   const scripts = number([...componentScripts(input, 'all'), ...componentCleanupScripts(input, 'all')]);
