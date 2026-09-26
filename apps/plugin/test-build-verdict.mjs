@@ -519,6 +519,61 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
+// ── #1663: an agent's prune preview is a pill, never the confirm dialog ─────────────────────────
+//
+// #1660 lets an agent ask the main thread for a prune preview. The main thread marks that preview
+// `pillOnly` (`apps/plugin/src/main.ts`, the agent link's `forward`), and `test-agent-link.ts` proves the
+// flag is SET. Nothing proved the panel HONORS it: `write-adapter.ts` has to carry the flag across the
+// bridge, and the `prune-result` handler in `apps/studio/src/main.ts` has to take the pill branch. With
+// either gone, an agent's preview opens the confirm dialog on the owner's screen — and that dialog's
+// Delete prunes against the PANEL's knobs (`lastGoodInput`), not the input the agent previewed, so the
+// count the owner confirms is not the count that gets deleted.
+//
+// Both arms post the SAME preview through the real bridge, differing only in `pillOnly`. The control arm
+// is not decoration: it proves this probe can see a prune dialog at all, so "no dialog" in the agent arm
+// is a measurement rather than a selector that matches nothing. EXPECTED is authored here in the words
+// on screen — the dialog found by its accessible name, the pill by its text — and nothing reads
+// `prunePreview`/`pruneVerdict` (docs/34 shape 16, same reasoning as the header above).
+{
+  const PRUNE_SUMMARY = 'Would remove 4 items: 2 layout modes, 2 grid styles.';
+  const preview = { type: 'prune-result', ok: true, applied: false, count: 4, summary: PRUNE_SUMMARY };
+  const readPrune = (page) => page.evaluate(() => ({
+    dialog: !!document.querySelector('[role="dialog"][aria-label="Prune stale items"]'),
+    deleteCta: [...document.querySelectorAll('.exdlg-go')].map((n) => n.textContent),
+    pills: [...document.querySelectorAll('.bar .bar-seed')].map((n) => n.textContent),
+  }));
+  const settle = (page) => page
+    .waitForFunction(() => !!document.querySelector('[role="dialog"][aria-label="Prune stale items"]')
+      || [...document.querySelectorAll('.bar .bar-seed')].some((n) => (n.textContent ?? '').includes('Would remove')), null, { timeout: 5000 })
+    .catch(() => {});
+
+  // CONTROL: the panel's own preview (no `pillOnly`) opens the dialog.
+  {
+    const { page, errors } = await openPanel();
+    await post(page, preview);
+    await settle(page);
+    const s = await readPrune(page);
+    ok(s.dialog, '#1663 control: a panel prune preview (no pillOnly) opens the "Prune stale items" dialog, so this probe can see one');
+    ok(s.deleteCta.includes('Delete 4 items'), `#1663 control: the dialog's CTA reads "Delete 4 items" — read ${JSON.stringify(s.deleteCta)}`);
+    ok(errors.length === 0, `#1663 control: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+
+  // THE ARM: the same preview marked `pillOnly`, as the agent link forwards it.
+  {
+    const { page, errors } = await openPanel();
+    await post(page, { ...preview, pillOnly: true });
+    await settle(page);
+    const s = await readPrune(page);
+    ok(!s.dialog, '#1663 an agent prune preview (pillOnly) opens NO confirm dialog on the owner\'s screen');
+    ok(s.deleteCta.length === 0, `#1663 an agent prune preview offers no Delete CTA — found ${JSON.stringify(s.deleteCta)}`);
+    ok(s.pills.includes(`Agent preview: ${PRUNE_SUMMARY}`),
+      `#1663 an agent prune preview reads "Agent preview: ${PRUNE_SUMMARY}" in the bar — read ${JSON.stringify(s.pills)}`);
+    ok(errors.length === 0, `#1663 agent preview: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+}
+
 await browser.close();
 server.close();
 
