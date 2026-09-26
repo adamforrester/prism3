@@ -55,7 +55,7 @@
  * ── THE FIGMA PROJECTION, MODELED ON `text-field` (its #1494 shape) ─────────────────────────────
  *
  * The same column — nested FieldLabel, the bordered control, nested FieldMessage following `status` —
- * the same status-led border, the same five projected states, the same focus-ring nesting and the same
+ * the same status-led border, the same six projected states, the same focus-ring nesting and the same
  * footprint (status and state are runtime axes, so every member of a status × state set measures alike).
  * `size` left `variants` for text-field's reason: `figmaAnatomySet` refuses a declared-but-unprojected
  * size (#795), and Figma renders the one `md` rung, so the ladder lives in `props.size` + the
@@ -110,11 +110,12 @@ export const textarea: ComponentDef = {
   // aria wiring — is `text-field`'s and is not restated. `size` is one exception and the header
   // says why; `validation` + `validationMessage` are the other, for the same reason: a gate reads them
   // (`test.ts` pins the field family's shared validation contract — text-field, textarea and select
-  // carry the same two names and the same value set, #1623 sign-off C1/TA-4). `value` and `showMessage`
-  // are the third exception, and the reason is the same one: the Figma projection keys its text property
+  // carry the same two names and the same value set, #1623 sign-off C1/TA-4). `value`, `placeholder` and
+  // `showMessage` are the third exception (`placeholder` since Option C, owner decision 2026-09-26), and the reason is the same one: the Figma projection keys its text property
   // and its message switch by code prop, and `figmaPropertyErrors` validates each key against `props`.
   props: [
     { name: 'value', type: 'string', required: false, description: 'Controlled value; pair with onChange. The same prop as TextField\'s, restated here because the Figma text property is keyed by it.' },
+    { name: 'placeholder', type: 'string', required: false, description: 'An example only; vanishes on input; nothing load-bearing lives here. The same prop as TextField\'s, restated here because the Figma text property is keyed by it.' },
     { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. ON, the default, renders the helper or validation message below the field; turning it off hides the message entirely. The same prop as TextField\'s. Never hides a message the field needs.' },
     { name: 'rows', type: 'number', default: 3, required: false, description: 'Initial and minimum height, in LINES not pixels — a line count recomputes against the current line-height when the user raises their font size, where a pixel floor does not. Also a content cue: two rows signals brevity, six signals "write more". `cols` is dead on the web; width comes from CSS.' },
     { name: 'resize', type: "enum: 'none' | 'vertical' | 'auto'", values: ['none', 'vertical', 'auto'], default: 'vertical', required: false, description: 'The sizing model in ONE prop, so two props cannot contradict each other. `vertical` (the drag handle) for standalone form fields; `auto` (grow within minRows/maxRows) for composers; `none` where layout stability wins. NEVER horizontal or both — altering the inline dimension shatters grid and flex layouts for no user gain.' },
@@ -141,7 +142,9 @@ export const textarea: ComponentDef = {
   // the same async-in-flight concept `button` and `icon-button` already name `pending`, and #868
   // closed `loading` out of the vocabulary entirely — a rejected name returning through a fourth def
   // would have been the exact shape #868 filed the vocabulary to stop.
-  states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
+  // `filled` (owner decision, 2026-09-25, Prism 2's `Filled` on `reference/Prism2/component-specs/text-area.json`)
+  // is the PROJECTED member that holds a value. rest / hover / focus-visible show the placeholder.
+  states: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
 
   // `style`, plus text-field's `status` axis with text-field's exact values (#1623 sign-off, C1/TA-4) —
   // the validation outcome, driven by the `validation` prop. `size` is NOT a variants axis, for text-field's
@@ -179,10 +182,28 @@ export const textarea: ComponentDef = {
     // The hover WASH, text-field's (#1341/#1342): the transparent field fill takes a translucent overlay
     // on hover (precedence overlay > fill, the control's `paintSlots`) while the border strengthens.
     'overlay.hover': 'color.interactive.neutral.overlay.hover',
+    // THE FILLED STATE (owner decision, 2026-09-25), text-field's keys exactly. The projected rest / hover /
+    // focus-visible members are the EMPTY field at each interaction, so they show the placeholder in
+    // `text.secondary`; `filled` and read-only take the bare `label`, `text.primary`. Before this, the bare
+    // `label` reached every projected member, so the placeholder rendered in value ink at rest and hover.
     'label': 'color.text.primary',
+    'label.rest': 'color.text.secondary',
+    'label.hover': 'color.text.secondary',
+    'label.focus-visible': 'color.text.secondary',
     // The placeholder binds `text.secondary`, text-field's #1518 binding (#1623 sign-off, C1/TA-4), so
     // the two fields express empty-vs-value with the same two text roles.
     'label.empty': 'color.text.secondary',
+    // TWO LAYERS SINCE OPTION C (owner decision, 2026-09-26), text-field's model: the keys above did not
+    // move; the `placeholder` layer exists at rest / hover / focus-visible / disabled and the `value` layer
+    // at filled / read-only, so each state reaches the ink of the layer it shows.
+    //
+    // THE FOCUS CARET (owner decision, 2026-09-26), text-field's binding: its own `caret` slot in the value
+    // ink, hairline wide and one line of the value's type tall (`control.size.md.line-box`, body md's font
+    // size × line height, the same `type` the text binds). `indicator` is the counter's secondary ink here,
+    // which is why the caret cannot reuse it.
+    'caret': 'color.text.primary',
+    'caret-width': 'border-width.hairline',
+    'caret-height': 'control.size.md.line-box',
     // The BARE `border` is the rest value, text-field's spelling: the disabled branch applies
     // `disabled.border` only where the slot resolves at rest through a slot-only key, so a rest border
     // spelled `border.rest` left a disabled member with no edge at all.
@@ -198,16 +219,19 @@ export const textarea: ComponentDef = {
     'error.border.focus-visible': 'color.border.danger',
     'error.border.read-only': 'color.border.danger',
     'error.border.empty': 'color.border.danger',
+    'error.border.filled': 'color.border.danger',
     'warning.border.rest': 'color.border.warning',
     'warning.border.hover': 'color.border.warning',
     'warning.border.focus-visible': 'color.border.warning',
     'warning.border.read-only': 'color.border.warning',
     'warning.border.empty': 'color.border.warning',
+    'warning.border.filled': 'color.border.warning',
     'success.border.rest': 'color.border.success',
     'success.border.hover': 'color.border.success',
     'success.border.focus-visible': 'color.border.success',
     'success.border.read-only': 'color.border.success',
     'success.border.empty': 'color.border.success',
+    'success.border.filled': 'color.border.success',
     // Focus ring — the field offset, as on the substrate. Brief §4 argues a textarea is a LARGE
     // surface and a saturated ring around a 600×400 box is noise, favouring an inset indicator. The
     // engine emits one field-ring offset and no large-surface variant, so this binds what exists and
@@ -304,18 +328,43 @@ export const textarea: ComponentDef = {
         radius: 'radius',
         strokeWidth: 'border-width',
         padding: { block: 'pad-y', inlineLabel: 'pad-x' },
-        children: ['text', 'grip', 'focusRing'],
+        children: ['caret', 'placeholder', 'value', 'grip', 'focusRing'],
       },
-      // THE DISPLAYED TEXT — placeholder or value. Fills the control's width and wraps (`wrap`, bounded by
-      // the control's `minWidth`), sits at the TOP of its box (`verticalAlign`, as schema #1009 predicted for
-      // this def), and reserves `rows` lines of its own line height (`lines`).
-      text: {
+      // THE FOCUS CARET (owner decision, 2026-09-26) — text-field's part: present only at focus-visible, a
+      // childless bar in its own `caret` slot, one hairline wide and one value line tall. The control's row
+      // has no gap, so it sits immediately before the placeholder, at the top with the first line.
+      caret: {
+        kind: 'box',
+        role: 'presentation',
+        paintSlots: ['caret'],
+        width: 'caret-width',
+        height: 'caret-height',
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
+        presentWhen: { state: ['focus-visible'] },
+        note: 'The insertion point on the focused empty field, immediately before the placeholder, in the value ink. Code draws the native caret, colored by `caret-color`.',
+      },
+      // THE TWO TEXT LAYERS (Option C) — text-field's, for #1567's measured reason: a bound TEXT node shows
+      // its set's ONE default, so a placeholder and a value can differ per member only as two nodes. Each
+      // fills the control's width and wraps (`wrap`, bounded by the control's `minWidth`), sits at the TOP of
+      // its box (`verticalAlign`, as schema #1009 predicted for this def), and reserves `rows` lines of its
+      // own line height (`lines`), so the box is one height whichever layer shows.
+      placeholder: {
         kind: 'text',
         type: 'type',
         wrap: true,
         verticalAlign: 'top',
         lines: 'rows',
-        note: 'The value the field shows, or the placeholder. Wraps across the field width and reserves the default rows of its own line height, so the box is as tall as `rows` lines before anything is typed.',
+        presentWhen: { state: ['rest', 'hover', 'focus-visible', 'disabled', 'empty'] },
+        note: 'The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. Wraps across the field width and reserves the default rows of its own line height.',
+      },
+      value: {
+        kind: 'text',
+        type: 'type',
+        wrap: true,
+        verticalAlign: 'top',
+        lines: 'rows',
+        presentWhen: { state: ['filled', 'read-only', 'pending'] },
+        note: 'The entered value, in the value ink. Shown on the filled and read-only field. Wraps across the field width and reserves the default rows of its own line height.',
       },
       // THE RESIZE GRIP (owner decision (c)) — pinned into the control's bottom-right corner, out of the flow,
       // so it takes no cell: the value text keeps the control's whole width with the grip drawn or not, and
@@ -388,7 +437,8 @@ export const textarea: ComponentDef = {
       'size — the small / medium / large ladder is a code-API PROP + padding tokens (`size.{small,medium,large}.pad-*`), NOT a variants axis and NOT a projected Figma variant. Figma renders the single `md` rung (the bare `pad-x` / `pad-y` keys), text-field\'s shape: a declared size axis must project a rung (#795), so the single-projected-size field is expressed by the prop and tokens.',
       'style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline`, so there is nothing for a Figma variant to enumerate.',
       'pending — a real STATE (content streaming into the field, with aria-busy), deliberately NOT a Figma variant: its delta is runtime behavior with no distinct static skin, so it stays in `states` and is admitted out of the projected `stateAxis`.',
-      'empty — a real STATE (the displayed text is the placeholder), deliberately NOT a Figma variant, text-field\'s posture: its delta is the value ink (`label.empty`) and `error.border.empty`, a content condition code drives. It and `pending` are the two states held back, leaving the projected set at status(4) × state(5) = 20 members.',
+      'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant, text-field\'s posture: in Figma the empty field IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. It and `pending` are the two states held back, leaving the projected set at status(4) × state(6) = 24 members. In code the placeholder and the value are one <textarea>: its `placeholder` attribute and its value, never two elements.',
+      'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
       'rows / minRows / maxRows and auto-grow — Figma has no numeric component property, so `rows` is not a Figma property: the value text reserves the `rows` prop\'s DEFAULT line count (3) of its own line height, frozen at paste. A designer wanting more rows types more lines (the box grows) or resizes the instance; `minRows` / `maxRows` and the auto-grow measurement are runtime behavior.',
       'the RESIZE HANDLE\'s behavior (`resize`) — Figma draws a decorative grip behind the `resize handle` boolean, on by default because `resize` defaults to `vertical`. In code the handle is the browser\'s own, drawn at the inline-end corner (bottom-left in a right-to-left layout); Figma members are drawn left to right, so the grip sits bottom-right. `auto` and `none` draw no handle in code; in Figma, switch the boolean off.',
       'the CHARACTER COUNTER\'s live value (`maxLength` / `showCount`) — Figma draws a static "0 / 200" caption trailing the message, behind the `character count` boolean, off by default like `showCount`. Code counts graphemes, sets tabular numerals (`font-variant-numeric: tabular-nums`, which the type tokens do not carry, so Figma uses the caption style as it is) and paints the counter in the error role past the limit. In Figma, as in code, the counter and the message switch independently.',
@@ -399,17 +449,20 @@ export const textarea: ComponentDef = {
   },
 
   // How this projects into Figma — text-field's shape. `status` is the one variant axis; `state` projects
-  // the five interactive states. The message's presence is a node-visibility boolean, so the set is
-  // status(4) × state(5) = 20 members.
+  // the five interactive states plus `filled`. The message's presence is a node-visibility boolean, so the set
+  // is status(4) × state(6) = 24 members.
   figmaProperties: {
     variantAxes: ['status'],
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only'] },
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only'] },
     gridAxis: 'state',
     // The counter's caption is keyed by `maxLength`, the prop whose limit it shows (a TEXT property must key
     // on a declared prop, and the counter has no string prop of its own). "0 / 200" is the def's own counter
     // format (`docs.contentGuidelines`).
     texts: {
-      value: { part: 'text', default: 'Placeholder' },
+      // TWO TEXT PROPERTIES (Option C, owner decision 2026-09-26), text-field's: `placeholder` drives the
+      // placeholder layer and `value` the value layer, each with its own default.
+      placeholder: { part: 'placeholder', default: 'Placeholder' },
+      value: { part: 'value', default: 'Entered text' },
       maxLength: { part: 'counter', figmaName: 'count', default: '0 / 200' },
     },
     booleans: {

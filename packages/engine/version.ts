@@ -2926,6 +2926,31 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.164.0 — The field family gains a projected `filled` state (owner decision, 2026-09-25, Prism 2's
+ * `Enabled (Empty) | Hovered | Filled | Focused | Disabled` on all three specs). `filled` joins the closed
+ * `STATES` vocabulary and the projected state axis of text-field, textarea and select. The value text binds
+ * the placeholder ink (`text.secondary`) at rest, hover and focus-visible (new `label.rest` / `label.hover` /
+ * `label.focus-visible` keys), and the value ink (`text.primary`, the bare `label`) at filled and read-only;
+ * disabled is unchanged. This fixes two live QA defects: the placeholder rendered in value ink at rest, hover
+ * and focus on all three. Each status border gains a `.filled` key, so the boundary holds on a filled member.
+ * Sets grow by one state column: text-field and textarea 20 → 24 members, select 16 → 20.
+ * TWO TEXT LAYERS (Option C, owner decision 2026-09-26). #1567 measured that a bound TEXT node shows its
+ * set's ONE default (#1575 met it too), so one `value` property could not show a placeholder on some members
+ * and a value on others. Each def now has a `placeholder` layer (rest / hover / focus-visible / disabled) and
+ * a `value` layer (filled / read-only), each driven by its own TEXT property with its own default:
+ * "Placeholder", and "Entered text" (text-field, textarea) or "Selected option" (select). textarea gains the
+ * `placeholder` prop its property keys on. The schema move is minimal: `presentWhen` admits one reserved key,
+ * `state` (`STATE_GATE`), read by the projector as the plan's state, with by-name refusals for an undeclared
+ * state, a gate reaching no projected state, an empty list and a no-op over every projected state.
+ * THE FOCUS CARET (owner decision 2026-09-26). text-field and textarea draw a bar immediately before the
+ * placeholder at focus-visible only: `border-width.hairline` wide, `control.size.md.line-box` (one line of
+ * the value's body md type) tall, in `color.text.primary`. It paints a new `caret` slot (`PAINT_SLOTS`,
+ * `BOX_PAINT_SLOTS`): CSS's `caret-color` is its own ink role, and every existing slot was spent on a sibling
+ * (`paintOf` is part-blind). Code keeps the native caret with `caret-color` from `text.primary` (codeOnly).
+ * select draws no caret; that is held for the owner. The member footprint does not move: the control holds its
+ * 320 floor. New state + def surface moves → MINOR; component-surface and paint-census baselines accepted for
+ * the three defs. CONTRACT STANDS (a TEXT property is not a token; every binding is an existing name).
+ *
  * 0.163.0 — The tinted wash lives in its own Figma variable, so Apply Theme no longer resets button hovers
  * (#1646, owner-approved 2026-09-25). Measured live: one Apply Theme reset all 288 `solid-tint` hover/pressed
  * paints on button, button-destructive and button-neutral from 0.1–0.3 to 1, because the host resets the
@@ -3705,7 +3730,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.163.0';
+export const ENGINE_VERSION = '0.164.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

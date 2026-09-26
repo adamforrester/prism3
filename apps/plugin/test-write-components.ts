@@ -3488,8 +3488,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(bareFm.get('status=default')?.h === SHORT && bareFm.get('status=error')?.h === GLYPH,
     `message-row seed: with no floor, a ${SHORT}px caption row measures ${SHORT} in the default message and ${GLYPH} beside the glyph (default ${bareFm.get('status=default')?.h}, error ${bareFm.get('status=error')?.h})`);
 
-  // The live report's counts, hand-copied: 15 on text-field (3 statuses x 5 states), 12 on select.
-  const LIVE_MISSES: Record<string, number> = { 'text-field': 15, select: 12 };
+  // The live report's counts, hand-copied: 15 on text-field (3 statuses x 5 states), 12 on select (3 x 4).
+  // One more state column since the field family's `filled` (2026-09-25): 3 x 6 and 3 x 5.
+  const LIVE_MISSES: Record<string, number> = { 'text-field': 18, select: 15 };
   for (const id of ['text-field', 'select']) {
     const shipped = await buildFile(byDef(id), SHORT);
     const fm = shipped.boxes('field-message');
@@ -3531,8 +3532,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const ROWS = 3;
   const textarea = componentDefs.find((d) => d.id === 'textarea')!;
   const taPlans = figmaAnatomySet(materializeForBrand(textarea, null), { swapTarget: SWAP });
-  // The VALUE text's style — the control's `text` node, found by name, now that the counter adds a caption.
-  const textOf = (n: AnatomyPlan['root']): AnatomyPlan['root'] | undefined => n.name === 'text' ? n : n.children.map(textOf).find(Boolean);
+  // The VALUE text's style — the control's text layer, found by name, now that the counter adds a caption.
+  // Since Option C (owner decision, 2026-09-26) that is the `placeholder` or the `value` layer, whichever
+  // the member's state shows; both set in the one style.
+  const textOf = (n: AnatomyPlan['root']): AnatomyPlan['root'] | undefined => n.name === 'placeholder' || n.name === 'value' ? n : n.children.map(textOf).find(Boolean);
   const valueStyles = [...new Set(taPlans.map((p) => textOf(p.root)?.textStyle))];
   ok(valueStyles.length === 1 && !!valueStyles[0], `textarea rows: the value text sets in exactly one style (${valueStyles.join(', ')})`);
   const VALUE = valueStyles[0]!;
@@ -3579,15 +3582,15 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   for (const [label, m] of CASES) {
     const want = ROWS * lineOf(m) + 2 * PAD_Y;
     const b = await buildTextarea(m);
-    ok(b.controls.length === 20 && b.controls.every(Boolean) && b.heights.length === 1 && Math.abs(b.heights[0] - want) <= 0.01 && b.foot.length === 0 && b.r.misses.length === 0,
-      `textarea rows (${label}): every one of the 20 controls measures ${ROWS} × ${lineOf(m)} + 2 × ${PAD_Y} = ${want} (got [${b.heights.join(', ')}] over ${b.controls.length} member(s); ${b.foot.length} footprint misses; ${b.r.misses.length} misses${b.r.misses.length ? ` — ${b.r.misses[0]}` : ''})`);
+    ok(b.controls.length === 24 && b.controls.every(Boolean) && b.heights.length === 1 && Math.abs(b.heights[0] - want) <= 0.01 && b.foot.length === 0 && b.r.misses.length === 0,
+      `textarea rows (${label}): every one of the 24 controls measures ${ROWS} × ${lineOf(m)} + 2 × ${PAD_Y} = ${want} (got [${b.heights.join(', ')}] over ${b.controls.length} member(s); ${b.foot.length} footprint misses; ${b.r.misses.length} misses${b.r.misses.length ? ` — ${b.r.misses[0]}` : ''})`);
   }
 
   // (d) MUTATION, BY NAME: without `lines` the value text is one line and the control is one line tall.
-  const unreserved: ComponentDef = { ...textarea, anatomy: { ...textarea.anatomy!, parts: { ...textarea.anatomy!.parts, text: { ...textarea.anatomy!.parts.text, lines: undefined } } } };
+  const unreserved: ComponentDef = { ...textarea, anatomy: { ...textarea.anatomy!, parts: { ...textarea.anatomy!.parts, placeholder: { ...textarea.anatomy!.parts.placeholder, lines: undefined }, value: { ...textarea.anatomy!.parts.value, lines: undefined } } } };
   const bare = await buildTextarea(NB, unreserved);
   ok(bare.heights.length === 1 && Math.abs(bare.heights[0] - (lineOf(NB) + 2 * PAD_Y)) < 1e-6,
-    `textarea rows MUTATION: with the text's \`lines\` removed the control is ONE line tall, ${lineOf(NB)} + 2 × ${PAD_Y} (got [${bare.heights.join(', ')}]) — so the arms above measure the reserved rows, not a hug that happens to agree`);
+    `textarea rows MUTATION: with both text layers' \`lines\` removed the control is ONE line tall, ${lineOf(NB)} + 2 × ${PAD_Y} (got [${bare.heights.join(', ')}]) — so the arms above measure the reserved rows, not a hug that happens to agree`);
 }
 
 // ---- THE TEXTAREA'S RESIZE GRIP AND CHARACTER COUNTER (owner decisions (c) and (d), 2026-09-25) ------
@@ -3650,15 +3653,15 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   };
 
   const b = await buildIt(textarea, GRIP - 1);
-  ok(b.members.length === 20 && b.r.misses.length === 0,
-    `textarea grip/counter: the set builds 20 members with 0 misses (${b.members.length}; ${b.r.misses[0] ?? 'none'})`);
+  ok(b.members.length === 24 && b.r.misses.length === 0,
+    `textarea grip/counter: the set builds 24 members with 0 misses (${b.members.length}; ${b.r.misses[0] ?? 'none'})`);
 
   // ---- the grip: a `resize handle` boolean, ON by default, on every member ----
   const handle = boolProp(b.set, 'resize handle');
   const grips = b.members.map((m) => find(m, 'grip'));
   ok(handle?.type === 'BOOLEAN' && handle.defaultValue === true
     && grips.every((g) => g && g.visible !== false && (g.componentPropertyReferences as Record<string, string> | null)?.visible === handle.key),
-    `textarea grip default: a 'resize handle' BOOLEAN defaulting to true drives the grip's visibility, and all 20 members build it shown (${JSON.stringify(handle)}; ${grips.filter((g) => g && g.visible !== false).length} shown)`);
+    `textarea grip default: a 'resize handle' BOOLEAN defaulting to true drives the grip's visibility, and all 24 members build it shown (${JSON.stringify(handle)}; ${grips.filter((g) => g && g.visible !== false).length} shown)`);
 
   // ---- the grip sits IN THE CORNER, out of the flow ----
   const cornerMiss: string[] = [];
@@ -3673,8 +3676,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       || g.width !== GRIP || g.height !== GRIP || Math.abs((g.x as number) - wantX) > 1e-6 || Math.abs((g.y as number) - wantY) > 1e-6)
       cornerMiss.push(`${m.name}: ${String(g.layoutPositioning)} ${JSON.stringify(c)} ${g.width}x${g.height} at (${g.x}, ${g.y}), want ABSOLUTE MAX/MAX ${GRIP}x${GRIP} at (${wantX}, ${wantY})`);
   }
-  ok(b.members.length === 20 && cornerMiss.length === 0,
-    `textarea grip corner: on all 20 members the ${GRIP}px grip is ABSOLUTE, constrained MAX/MAX, at (control − ${GRIP} − ${INSET}) on both axes (${cornerMiss.length} off — ${cornerMiss[0] ?? 'none'})`);
+  ok(b.members.length === 24 && cornerMiss.length === 0,
+    `textarea grip corner: on all 24 members the ${GRIP}px grip is ABSOLUTE, constrained MAX/MAX, at (control − ${GRIP} − ${INSET}) on both axes (${cornerMiss.length} off — ${cornerMiss[0] ?? 'none'})`);
 
   // ---- the grip moves no box: the control and the member measure alike with it on and off ----
   // With the LONG value the control's width follows its flow content (the floor is checked, so this arm
@@ -3684,7 +3687,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   for (const m of b.members) {
     const g = find(m, 'grip');
     const ctl = find(m, 'control');
-    const text = find(ctl, 'text');
+    const text = find(ctl, 'placeholder') ?? find(ctl, 'value');   // the layer this member's state shows (Option C)
     if (!g || !ctl || !text) { gripFoot.push(`${m.name}: incomplete`); continue; }
     text.characters = LONG;
     if ((ctl.width as number) > 320) contentDriven++;
@@ -3694,10 +3697,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     g.visible = true;
     if (on.join() !== off.join()) gripFoot.push(`${m.name}: control ${on[0]} with the grip, ${off[0]} without; member ${on[1]} vs ${off[1]}`);
   }
-  ok(b.members.length === 20 && contentDriven === 20,
-    `textarea grip footprint seed: with an ${LONG.length}-character value every control is wider than its 320 floor, so a glyph in the flow would show in its width (${contentDriven}/20)`);
-  ok(b.members.length === 20 && gripFoot.length === 0,
-    `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 20 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
+  ok(b.members.length === 24 && contentDriven === 24,
+    `textarea grip footprint seed: with an ${LONG.length}-character value every control is wider than its 320 floor, so a glyph in the flow would show in its width (${contentDriven}/24)`);
+  ok(b.members.length === 24 && gripFoot.length === 0,
+    `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 24 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
 
   // ---- the counter and the message: two INDEPENDENT booleans (the owner's answer 2, 2026-09-25) ----
   // Each switch drives its own layer, and neither layer holds the other, so all four combinations exist.
@@ -3717,14 +3720,14 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const msgLayers = b.members.map((m) => holder(m, msg?.key));
   ok(count?.type === 'BOOLEAN' && count.defaultValue === false
     && countLayers.every((l, i) => l && l.visible === false && find(l, 'counter') === counters[i]),
-    `textarea counter default: a 'character count' BOOLEAN defaulting to false drives a layer holding the counter, and all 20 members build it hidden (${JSON.stringify(count)}; ${countLayers.filter((l) => l && l.visible === false).length} hidden)`);
+    `textarea counter default: a 'character count' BOOLEAN defaulting to false drives a layer holding the counter, and all 24 members build it hidden (${JSON.stringify(count)}; ${countLayers.filter((l) => l && l.visible === false).length} hidden)`);
   ok(msg?.type === 'BOOLEAN' && msg.defaultValue === true
     && msgLayers.every((l, i) => l && l.visible !== false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
-    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 20 members (${JSON.stringify(msg)})`);
+    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 24 members (${JSON.stringify(msg)})`);
   const rows = b.members.map((m) => find(m, 'messageRow'));
   ok(rows.every((r, i) => r && r.layoutAlign === 'STRETCH' && (r.children as Node[]).at(-1) === countLayers[i]
       && countLayers[i]!.layoutGrow === 1 && countLayers[i]!.primaryAxisAlignItems === 'MAX'),
-    `textarea counter row: on all 20 members the counter's layer is the LAST child of the stretched message row, GROWS across it (layoutGrow 1) and justifies the counter to its end (MAX), so the counter trails with the message on or off`);
+    `textarea counter row: on all 24 members the counter's layer is the LAST child of the stretched message row, GROWS across it (layoutGrow 1) and justifies the counter to its end (MAX), so the counter trails with the message on or off`);
   ok(counters.every((c) => c && c.characters === '0 / 200'),
     `textarea counter text: the counter reads "0 / 200", the def's counter format (${counters[0]?.characters})`);
 
@@ -3758,8 +3761,117 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       ml.visible = true;
       cl.visible = false;
     }
-    ok(bb.members.length === 20 && bb.r.misses.length === 0 && off.length === 0 && cells === 80,
-      `textarea counter footprint (caption line box ${captionBox}, glyph ${GRIP}): message only, counter only, both and neither each measure label + gap + control, plus one gap and the taller shown part when any is shown, on all 20 members (${cells}/80; ${off.length} off — ${off[0] ?? 'none'})`);
+    ok(bb.members.length === 24 && bb.r.misses.length === 0 && off.length === 0 && cells === 96,
+      `textarea counter footprint (caption line box ${captionBox}, glyph ${GRIP}): message only, counter only, both and neither each measure label + gap + control, plus one gap and the taller shown part when any is shown, on all 24 members (${cells}/96; ${off.length} off — ${off[0] ?? 'none'})`);
+  }
+}
+
+// ---- THE FIELD FAMILY'S TEXT LAYERS AND INK BY STATE (owner decisions, 2026-09-25 and 2026-09-26) ------
+// Option C: two text layers, each driven by its own TEXT property. The `placeholder` layer shows at rest,
+// hover, focus-visible and disabled, in `text.secondary` (the disabled ink at disabled); the `value` layer
+// shows at filled and read-only, in `text.primary`. At every member exactly ONE layer is present, it is the
+// one the map names, it binds the map's ink, and it references the property named after it. The map is
+// TYPED FROM THE OWNER'S RULE (docs/34), never read off a def or a plan, and every projected member of
+// text-field, textarea and select is built through the REAL executor and read back off the shim. A member
+// at a state the map does not name, or a map state with no member, fails as loudly as a wrong ink.
+//
+// The mutations it exists to catch, by name: the value layer shown at rest, `filled` bound to secondary, or
+// `hover` bound to primary, in any of the three defs fails `field ink (<def>)`.
+//
+// THE FOCUS CARET (owner decision, 2026-09-26), `field caret (<def>)`: on text-field and textarea a caret is
+// present at focus-visible and at no other state, binds `color/text/primary`, is `border-width/hairline`
+// wide, sits immediately before the placeholder in the same row, and is exactly one line of the value's type
+// tall. That last oracle is the NB brand's emitted text STYLE (font size × line height, `buildFigmaTextStyles`)
+// against the NB value of the variable the caret binds (`buildTree`): two emitters, neither the def. And the
+// focus-visible member measures what its rest sibling does. select has no caret at any state (held for the
+// owner: a select takes no typed text). Mutations by name: the caret shown at hover, or its ink secondary.
+{
+  const PLACEHOLDER = 'color/text/secondary';
+  const VALUE = 'color/text/primary';
+  const DISABLED = 'color/disabled/on-fill';   // the placeholder sits on the disabled fill
+  type Layer = 'placeholder' | 'value';
+  const INK: Record<string, Record<string, [Layer, string]>> = {
+    'text-field': { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
+    textarea: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
+    select: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED] },
+  };
+  // Which defs draw the caret, and at which states. select is typed empty on purpose (see above).
+  const CARET_AT: Record<string, string[]> = { 'text-field': ['focus-visible'], textarea: ['focus-visible'], select: [] };
+  const CARET_INK = 'color/text/primary';
+  const CARET_WIDTH = 'border-width/hairline';
+  // One line of NB's value type: the emitted style's font size (through NB's own tree) × its line height.
+  const nbTreeAll = buildTree(nbTheme()).tree as any;
+  const nbStyles = buildFigmaTextStyles(nbTheme()).styles;
+  const nbLineOf = (style: string): number => {
+    const st = nbStyles.find((x) => x.name === style)!;
+    const sizeVar = (st.properties.fontSize as { variable: string }).variable.split('/');
+    const px = pxOf(nbTreeAll, sizeVar.slice(1).reduce<any>((o, k) => o?.[k], nbTreeAll[sizeVar[0]]));
+    const lh = (st.properties.lineHeight as { value: { unit: string; value: number } }).value;
+    return lh.unit === 'PIXELS' ? lh.value : (lh.value / 100) * px;
+  };
+  const nbVarPx = (name: string): number => {
+    const segs = name.split('/');
+    return pxOf(nbTreeAll, segs.reduce<any>((o, k) => o?.[k], nbTreeAll[Object.keys(nbTreeAll)[0]]));
+  };
+  const STATUSES = ['default', 'error', 'warning', 'success'];
+  const named = (n: Node, name: string): Node | undefined => n.name === name ? n : ((n.children as Node[]) ?? []).map((c) => named(c, name)).find(Boolean);
+  const parentOf = (n: Node, child: Node): Node | undefined => ((n.children as Node[]) ?? []).includes(child) ? n : ((n.children as Node[]) ?? []).map((c) => parentOf(c, child)).find(Boolean);
+  const boundName = (n: Node, prop: string): string | undefined => ((n.boundVariables as Record<string, { id?: string }> | undefined)?.[prop]?.id ?? '').replace(/^V:/, '') || undefined;
+  const refProp = (n: Node): string => String(((n.componentPropertyReferences ?? {}) as Record<string, string>).characters ?? '').split('#')[0];
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  for (const [id, want] of Object.entries(INK)) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true });
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    await prebuildDependencies(def, { defs: componentDefs, project, host: shim as any, build });
+    const r = await build(def);
+    const set = page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET') as Node | undefined;
+    const members = ((set?.children as Node[] | undefined) ?? []);
+    const wrong: string[] = [];
+    const caretWrong: string[] = [];
+    const seen = new Set<string>();
+    const boxAt = new Map<string, string>();
+    let carets = 0;
+    for (const m of members) {
+      const coord = Object.fromEntries(String(m.name).split(', ').map((kv) => kv.split('=')));
+      const state = coord.state;
+      seen.add(`${coord.status}|${state}`);
+      boxAt.set(`${coord.status}|${state}`, `${Math.round(m.width as number)}x${Math.round(m.height as number)}`);
+      const ph = named(m, 'placeholder');
+      const val = named(m, 'value');
+      if (!(state in want)) { wrong.push(`${m.name}: a state the owner's rule does not name`); continue; }
+      const [layer, ink] = want[state];
+      const shown = layer === 'placeholder' ? ph : val;
+      const other = layer === 'placeholder' ? val : ph;
+      if (!shown) wrong.push(`${m.name}: no ${layer} layer, want it shown`);
+      else if (other) wrong.push(`${m.name}: both layers present, want ${layer} only`);
+      else if (paintVar(shown, 'fills') !== ink) wrong.push(`${m.name}: ${layer} ${paintVar(shown, 'fills')}, want ${ink}`);
+      else if (refProp(shown) !== layer) wrong.push(`${m.name}: the ${layer} layer references '${refProp(shown)}', want its own '${layer}' property`);
+      // The caret.
+      const caret = named(m, 'caret');
+      const due = CARET_AT[id].includes(state);
+      if (caret) carets++;
+      if (due !== !!caret) { caretWrong.push(`${m.name}: caret ${caret ? 'present' : 'absent'}, want ${due ? 'present' : 'absent'}`); continue; }
+      if (!caret) continue;
+      const row = parentOf(m, caret);
+      const kids = ((row?.children as Node[]) ?? []);
+      const lineWant = ph ? nbLineOf(String(ph._textStyleId ?? '').replace(/^S:/, '')) : NaN;
+      const hName = boundName(caret, 'height');
+      if (paintVar(caret, 'fills') !== CARET_INK) caretWrong.push(`${m.name}: caret ${paintVar(caret, 'fills')}, want ${CARET_INK}`);
+      else if (boundName(caret, 'width') !== CARET_WIDTH) caretWrong.push(`${m.name}: caret width ${boundName(caret, 'width')}, want ${CARET_WIDTH}`);
+      else if (!ph || kids[kids.indexOf(caret) + 1] !== ph) caretWrong.push(`${m.name}: caret is not immediately before the placeholder (row [${kids.map((k) => k.name).join(', ')}])`);
+      else if (!hName || !(Math.abs(nbVarPx(hName) - lineWant) < 1e-6)) caretWrong.push(`${m.name}: caret height ${hName} is ${hName ? nbVarPx(hName) : '?'}px on NB, want one line of the value type, ${lineWant}px`);
+    }
+    const missing = STATUSES.flatMap((st) => Object.keys(want).filter((s2) => !seen.has(`${st}|${s2}`)).map((s2) => `status=${st}, state=${s2}`));
+    ok(r.misses.length === 0 && members.length === STATUSES.length * Object.keys(want).length && wrong.length === 0 && missing.length === 0,
+      `field ink (${id}): on all ${members.length} members exactly one text layer shows, the owner's for its state, in the owner's ink and on its own property — placeholder ${PLACEHOLDER} at rest/hover/focus-visible, ${DISABLED} at disabled, value ${VALUE} at filled${'read-only' in want ? '/read-only' : ''} (${wrong.length} wrong — ${wrong[0] ?? 'none'}; ${missing.length} missing — ${missing[0] ?? 'none'}; ${r.misses[0] ?? '0 misses'})`);
+    const drift = STATUSES.filter((st) => boxAt.get(`${st}|focus-visible`) !== boxAt.get(`${st}|rest`)).map((st) => `status=${st}: focus-visible ${boxAt.get(`${st}|focus-visible`)}, rest ${boxAt.get(`${st}|rest`)}`);
+    const caretMembers = STATUSES.length * CARET_AT[id].length;
+    ok(caretWrong.length === 0 && carets === caretMembers && drift.length === 0 && !r.misses.some((x) => x.startsWith('footprint -> ')),
+      `field caret (${id}): ${caretMembers ? `a caret on exactly the ${caretMembers} focus-visible members — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall, immediately before the placeholder — and each focus-visible member measures its rest sibling` : 'no caret on any member'} (${carets} caret(s); ${caretWrong.length} wrong — ${caretWrong[0] ?? 'none'}; ${drift.length} footprint drift — ${drift[0] ?? 'none'})`);
   }
 }
 

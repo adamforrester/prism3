@@ -306,11 +306,15 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // green is not "the def and the oracle agree on a name nothing emits".
 {
   // THE OWNER-DECIDED CONTRACT — a LITERAL table keyed by coordinate, never `figmaTextStyleName(def.type)`.
-  const STYLE_CONTRACT: Record<string, { parts: string[]; style: (c: Record<string, string | undefined>) => string }> = {
+  // A field's text layer depends on the STATE since Option C (owner decision, 2026-09-26): the value layer at
+  // filled / read-only, the placeholder layer everywhere else. Typed from that rule, not read off a def.
+  const fieldLayer = (c: Record<string, string | undefined>): string[] => [c.state === 'filled' || c.state === 'read-only' ? 'value' : 'placeholder'];
+  const STYLE_CONTRACT: Record<string, { parts: string[] | ((c: Record<string, string | undefined>) => string[]); style: (c: Record<string, string | undefined>) => string }> = {
     button:          { parts: ['label'], style: (c) => ({ small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' } as Record<string, string>)[c.size!] },
     'field-message': { parts: ['text'],  style: () => 'caption/md/default' },
-    'text-field':    { parts: ['text'],  style: () => 'body/md/default' },
-    select:          { parts: ['text'],  style: () => 'body/md/default' },
+    'text-field':    { parts: fieldLayer, style: () => 'body/md/default' },
+    textarea:        { parts: fieldLayer, style: () => 'body/md/default' },
+    select:          { parts: fieldLayer, style: () => 'body/md/default' },
     'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'radio-row':     { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'field-label':   { parts: ['text', 'indicator'], style: (c) => (({
@@ -351,7 +355,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       // INDEPENDENT FLOOR: the style the contract names is really emitted — not merely a name the def echoes.
       ok(emittedStyleNames.has(want), `#1514: ${id}'s owner-decided style '${want}' is in the emitted style set (independent oracle)`);
       const member = byName.get(planComponentName(plan));
-      for (const part of contract.parts) {
+      for (const part of typeof contract.parts === 'function' ? contract.parts(axes) : contract.parts) {
         const node = member ? findByName(member, part) : undefined;
         // SCOPE FLOOR: the text node was actually built into this member — otherwise "it carries the style"
         // is a statement about a node that does not exist.
@@ -423,13 +427,15 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // (BOOLEAN) → `↳ swap leading icon` (SWAP) → `message` (the standalone show/hide BOOLEAN, no swap to
     // pair). Reordering `planSetProperties` back to the old all-booleans-then-all-swaps grouping moves the
     // swap after `message` and fails this BY NAME. Dropping the showMessage boolean removes `message` here.
-    select: { componentProps: ['value', 'leading icon', '↳ swap leading icon', 'message'], switches: [] },
+    // Since Option C (owner decision, 2026-09-26) the field family's text is TWO TEXT properties, and both
+    // lead the panel: `placeholder`, then `value`, then the booleans and swaps as before.
+    select: { componentProps: ['placeholder', 'value', 'leading icon', '↳ swap leading icon', 'message'], switches: [] },
     // text-field carries BOTH icon slots as node-visibility booleans (#1494) plus the `message` show/hide
     // boolean. #1519 pairs each swap under its boolean, so the panel reads `value` (TEXT) → `leading icon`
     // → `↳ swap leading icon` → `trailing icon` → `↳ swap trailing icon` → `message` (standalone). This is
     // the def where the pairing matters most (two icon slots): the old grouping would show both booleans,
     // then both swaps, detached — reordering `planSetProperties` back to it fails this BY NAME.
-    'text-field': { componentProps: ['value', 'leading icon', '↳ swap leading icon', 'trailing icon', '↳ swap trailing icon', 'message'], switches: [] },
+    'text-field': { componentProps: ['placeholder', 'value', 'leading icon', '↳ swap leading icon', 'trailing icon', '↳ swap trailing icon', 'message'], switches: [] },
     'icon-button': { componentProps: ['swap icon'], switches: [] },
   };
   for (const [id, want] of Object.entries(CANON)) {
@@ -478,7 +484,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   ok(!!liKey && defs[liKey!].type === 'BOOLEAN',
     `#1331 host-truth: the built set carries a 'leading icon' BOOLEAN property (host holds ${liKey})`);
   const lvs = members.map((m) => findByName(m, 'leadingVisual'));
-  ok(members.length === 16 && lvs.every(Boolean),
+  ok(members.length === 20 && lvs.every(Boolean),
     `#1331 host-truth: the leading glyph node is built into EVERY member (${lvs.filter(Boolean).length}/${members.length})`);
   ok(lvs.length > 0 && lvs.every((lv) => lv.visible === false),
     '#1331 host-truth: every built leading glyph reads back `visible=false` — built hidden by default, not dropped');
@@ -508,11 +514,16 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // failing the SECOND assertion below by name. The reachability floor (first assertion) proves the collision
 // actually materialised — a naive descending `findOne` returns the nested-instance `text`, not select's own
 // — so a green here is the reference surviving a REAL collision, not a fixture that never built one.
+//
+// OPTION C (owner decision, 2026-09-26) renamed select's own text into two layers, `placeholder` and `value`,
+// which no longer share a name with the nested parts' `text`. The scoping is still what holds, so the shim's
+// nested instances now carry parts named like select's own layers as well, and the collision is built on the
+// names select actually references.
 {
   const def = componentDefs.find((d) => d.id === 'select')!;
   const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
   const page: Page = { children: [] };
-  const shim = makeShim({ ...fullFor(plans), page, nestedInstanceParts: ['text'] });
+  const shim = makeShim({ ...fullFor(plans), page, nestedInstanceParts: ['text', 'placeholder', 'value'] });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
   const res = await applyComponentPlan(plans, shim as any, {});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's members
@@ -521,12 +532,12 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // returns a node INSIDE a nested instance (flagged by the shim), not select's own value text. Without
   // this, the miss-count assertion below could pass because the fixture never built the colliding node.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim
-  const naive = members[0]?.findOne?.((x: any) => x.name === 'text');
-  ok(members.length === 16 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
-    `#1428 reachability: a naive descending findOne on a built select member returns a nested-instance \`text\` (the wrong node the fix defends against) — collision materialised (${members.length} members)`);
-  const textRefMisses = res.misses.filter((m) => /\btext\.characters\b/.test(m));
+  const naive = members[0]?.findOne?.((x: any) => x.name === 'placeholder');
+  ok(members.length === 20 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
+    `#1428 reachability: a naive descending findOne on a built select member returns a nested-instance \`placeholder\` (the wrong node the fix defends against) — collision materialised (${members.length} members)`);
+  const textRefMisses = res.misses.filter((m) => /\b(placeholder|value)\.characters\b/.test(m));
   ok(res.wiredMembers === plans.length && textRefMisses.length === 0,
-    `#1428: select's own \`value\` TEXT reference is created on every member despite the nested field-label/field-message \`text\` collision — 0 dropped (${textRefMisses.length ? textRefMisses.slice(0, 2).join(' | ') : 'none'}; wiredMembers=${res.wiredMembers}/${plans.length})`);
+    `#1428: select's own \`placeholder\` / \`value\` TEXT reference is created on every member despite the nested-instance collision on those names — 0 dropped (${textRefMisses.length ? textRefMisses.slice(0, 2).join(' | ') : 'none'}; wiredMembers=${res.wiredMembers}/${plans.length})`);
 }
 
 // ── #1473: A MEMBER-LEVEL id-SETTLE AFTER COMBINE LEAVES NO REFERENCE UNWIRED — HOST-TRUTH ──────────

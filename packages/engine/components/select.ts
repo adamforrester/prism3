@@ -165,9 +165,10 @@ export const select: ComponentDef = {
   // `anatomy.codeOnly` entry leading with `empty`. Placeholder-vs-value is a content condition a designer
   // does not pick from a variant matrix; the code (or an instance's typed value) drives it. `error` is NOT
   // a state — validation is the `status` axis (see the header), so the border's error swap is a status-led
-  // paint key, not a state. No `filled` (not in the engine's states vocabulary) and no `expanded` (the open
-  // menu is the platform's, not modeled here).
-  states: ['rest', 'hover', 'focus-visible', 'disabled', 'empty'],
+  // paint key, not a state. No `expanded` (the open menu is the platform's, not modeled here). `filled` (owner
+  // decision, 2026-09-25, Prism 2's `Filled` on `reference/Prism2/component-specs/select.json`) is the PROJECTED
+  // member holding a chosen value; rest / hover / focus-visible show the placeholder.
+  states: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'empty'],
 
   // ONE axis, `status`, and it IS `field-message`'s status axis by name and value — the alignment that lets
   // the nested message follow it (see the header). Single-size: Prism2's select is single-size, so no
@@ -252,14 +253,17 @@ export const select: ComponentDef = {
     'error.border.hover': 'color.border.danger',
     'error.border.focus-visible': 'color.border.danger',
     'error.border.empty': 'color.border.danger',
+    'error.border.filled': 'color.border.danger',
     'warning.border.rest': 'color.border.warning',
     'warning.border.hover': 'color.border.warning',
     'warning.border.focus-visible': 'color.border.warning',
     'warning.border.empty': 'color.border.warning',
+    'warning.border.filled': 'color.border.warning',
     'success.border.rest': 'color.border.success',
     'success.border.hover': 'color.border.success',
     'success.border.focus-visible': 'color.border.success',
     'success.border.empty': 'color.border.success',
+    'success.border.filled': 'color.border.success',
 
     // ── VALUE INK — full-contrast value by default, the muted placeholder ink at the `empty` state.
     // Text-field's exact polarity (`label.empty` is the placeholder, the bare `label` is the value). Both
@@ -272,7 +276,14 @@ export const select: ComponentDef = {
     // reaches for the SAME two text roles rather than a field-scoped `field.placeholder`. Both roles already ship
     // (no new guaranteed NAME → CONTRACT stands). Neither key is axis-value-led (`label`/`empty` are a slot and a
     // state, not a `status` value), so `lint-paint` arm 1 says nothing about them and neither takes an exception.
+    //
+    // THE FILLED STATE (owner decision, 2026-09-25), text-field's keys exactly. The projected rest / hover /
+    // focus-visible members are the EMPTY control at each interaction, so they show the placeholder in
+    // `text.secondary`; `filled` takes the bare `label`, `text.primary`.
     'label': 'color.text.primary',
+    'label.rest': 'color.text.secondary',
+    'label.hover': 'color.text.secondary',
+    'label.focus-visible': 'color.text.secondary',
     'label.empty': 'color.text.secondary',
 
     // ── THE ICON INK — the trailing chevron AND any leading glyph, ONE binding for both ─────────────
@@ -382,7 +393,7 @@ export const select: ComponentDef = {
         kind: 'box',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'gap',
-        children: ['leadingVisual', 'text'],
+        children: ['leadingVisual', 'placeholder', 'value'],
       },
       // THE OPTIONAL LEADING GLYPH. A swap slot whose PRESENCE is a node-visibility BOOLEAN (#1331): the
       // node is emitted at every member with `visible: false` and the `leading icon` switch toggles it,
@@ -395,13 +406,24 @@ export const select: ComponentDef = {
         nesting: { kind: 'swap' },
         note: 'An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.',
       },
-      // THE DISPLAYED TEXT — placeholder or value. `paintSlot` is the default `label`, which the paint
-      // grammar re-points: `label` (bare) is the full-contrast value ink, `label.empty` the muted
-      // placeholder ink at the `empty` state (see the `tokens` block — there is no `filled` state).
-      text: {
+      // THE TWO TEXT LAYERS (Option C, owner decision 2026-09-26) — text-field's model. #1567 measured on the
+      // live host that a bound TEXT node shows its set's ONE default (#1575 met the same limit), so a
+      // placeholder and a chosen value can differ per member only as two nodes, each with its own TEXT
+      // property and default, gated on complementary states. `paintSlot` is the default `label`: the
+      // placeholder layer's states reach `label.rest` / `.hover` / `.focus-visible` and the disabled ink, and
+      // the value layer's `filled` reaches the bare `label`. NO CARET here: a select takes no typed text (the
+      // owner's open question on this PR, held rather than built).
+      placeholder: {
         kind: 'text',
         type: 'type',
-        note: 'The value the control shows, or the placeholder. One line, ellipsized in code; a plain text node in Figma. The placeholder-vs-value distinction is the internal `empty` state, which re-points the ink to the muted placeholder role — carried in code, not projected as a Figma variant (#1344).',
+        presentWhen: { state: ['rest', 'hover', 'focus-visible', 'disabled', 'empty'] },
+        note: 'The prompt before a choice is made, in the placeholder ink (the disabled ink when disabled). Shown on the empty control: rest, hover, focus and disabled. One line, ellipsized in code.',
+      },
+      value: {
+        kind: 'text',
+        type: 'type',
+        presentWhen: { state: ['filled'] },
+        note: 'The chosen option\'s label, in the value ink. Shown on the filled control. One line, ellipsized in code.',
       },
       // THE TRAILING CHEVRON — a fixed `vector`, glyph `chevron-down` (the engine name; the Prism2 spec's
       // `arrow-down-s-line` is the source file's name, not ours). Its ink is the `icon` slot.
@@ -451,7 +473,7 @@ export const select: ComponentDef = {
     codeOnly: [
       'the OPEN MENU / listbox — the whole option list is the platform\'s (a native `<select>`\'s popup is OS-drawn; a custom one is a separate listbox/popover surface). This def models the CLOSED control only, so there is no `expanded` state and no option-list anatomy. A designer building the open menu reaches for a menu/listbox component, not a variant of this one.',
       'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the control, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the control and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit). aria-expanded / aria-haspopup describe the popup this def does not model.',
-      'empty — a real STATE (the displayed text is the placeholder, not a chosen value), deliberately NOT a Figma variant (#1344, the same posture as `button`\'s `inactive`). Its whole delta is the value INK: `label.empty` swaps the muted placeholder role in for `text.primary`, and `error.border.empty` keeps the danger boundary at the "required field left unchosen" coordinate. That is a content condition the code (or an instance\'s typed value) drives, not a skin a designer toggles from a variant matrix — and Figma cannot show one text node as two strings across a column anyway, so a projected `empty` member differed from `rest` only by an ink no designer chose. So `empty` stays in `states` (the paint model carries the distinction, and `lint-paint` reaches `label.empty` / `error.border.empty` at the empty coordinate of the declared grid) and is admitted OUT of the projected `stateAxis` here, dropping the set from status(4)×state(5)=20 to status(4)×state(4)=16 projected members (#1331 then made the leading glyph a node-visibility boolean, so it no longer multiplies the set — see figmaProperties).',
+      'empty — a real STATE in code (nothing is chosen, so the control shows the placeholder), NOT a Figma variant (#1344): in Figma the empty control IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left unchosen" coordinate) and is held out of the projected `stateAxis`, leaving status(4) × state(5) = 20 members. In code the prompt and the chosen label are one control\'s content, never two elements.',
       'the nested LABEL\'s disabled dimming — select fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not select\'s (rest / hover / focus-visible / disabled / empty), so it cannot be followed by value. In code a disabled select dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
       'the KEYBOARD MODEL — typeahead to a matching option, arrow keys to move within the open list, Enter/Space to open and commit, Escape to close. All of it belongs to the interaction the closed control opens INTO, which is not modeled here.',
     ],
@@ -459,14 +481,14 @@ export const select: ComponentDef = {
 
   // How this projects into Figma. `status` is the one variant axis; `state` projects as the state axis. The
   // leading glyph's PRESENCE is a node-visibility BOOLEAN (`booleans` below), NOT a variant axis, so it does
-  // NOT multiply the set: status(4) × state(4) = 16 members (was 32 while `leading` was a slot ×2 axis —
+  // NOT multiply the set: status(4) × state(5) = 20 members (16 before `filled`; 32 while `leading` was a slot ×2 axis —
   // the #1331 conversion). `empty` is a real state (see `states` and the `codeOnly` entry leading with
   // `empty`) but is deliberately absent from this projected axis (#1344) — a content-driven ink distinction
-  // the code carries, not a variant a designer picks; that is why `state` lists four values while `states`
-  // lists five.
+  // the code carries, not a variant a designer picks; that is why `state` lists five values while `states`
+  // lists six.
   figmaProperties: {
     variantAxes: ['status'],
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'disabled'] },
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'disabled'] },
     // NO slot axis. The leading glyph's presence was a `leading` slot ×2 variant axis until #1331; it is now
     // a node-visibility BOOLEAN (`booleans` below). A select's glyph sits INSIDE `content`, not against the
     // box edge, so it takes NO #326 slot-aware padding asymmetry — which is exactly why a boolean can drive
@@ -474,12 +496,15 @@ export const select: ComponentDef = {
     // node is emitted at every member and hidden by default; the switch flips its visibility in place.
     // `state` across the columns — the axis a designer reads a control's skin across, and the widest here.
     gridAxis: 'state',
-    // The displayed text. `value`, a designer-facing name (#1242), lowercase per #1333 — the
-    // placeholder is the copy every member ships, and a chosen-value string is what a designer types over it.
-    // Projects FIRST in the panel (text → boolean → swap order, #1380/#1331) — the "text property at the top".
-    texts: { value: { part: 'text', default: 'Placeholder' } },
+    // The displayed text, lowercase per #1333, projecting FIRST in the panel (text → boolean → swap order,
+    // #1380/#1331). TWO TEXT PROPERTIES since Option C (owner decision 2026-09-26): `placeholder` drives the placeholder
+    // layer and `value` the value layer, each with its own default. "Selected option" is a generic scaffold.
+    texts: {
+      placeholder: { part: 'placeholder', default: 'Placeholder' },
+      value: { part: 'value', default: 'Selected option' },
+    },
     // TWO NODE-VISIBILITY BOOLEANS (#1331/#1426), neither a variant axis — both toggle a part's `visible`
-    // in place, so neither multiplies the set (still 16 members).
+    // in place, so neither multiplies the set (still 20 members).
     //   · `leadingIcon` (#1331): `leadingVisual` is emitted at every member with `visible: false` (hidden by
     //     default, matching the prop's "Hidden by default"), and the `leading icon` switch toggles it. Panel
     //     label `leading icon` (the #1380 canon, preserved from the retired slot axis); the code prop stays

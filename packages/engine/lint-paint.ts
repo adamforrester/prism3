@@ -277,6 +277,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the focus-visible coordinate, bound so the error border persists through focus (the ring carries the focus signal on top)',
   'select|error.border.empty':
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left unchosen" error',
+  'select|error.border.filled':
+    'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
   // `text-field`'s validation axis is spelled `status` for the same reason select's is (its values are the
   // validation states a consumer names; both align to `field-message`), and `danger` is the token tier's
   // name for that boundary colour — the same axis-value→role mapping select's `error.border.*` records, one
@@ -297,6 +299,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     "status `error` maps to the `danger` border role — the read-only coordinate, bound so an errored read-only field keeps the danger boundary (read-only is text-field's live edge, submitted and validated)",
   'text-field|error.border.empty':
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
+  'text-field|error.border.filled':
+    'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
   // `textarea` took text-field's status axis and its border keys verbatim (#1623 sign-off, C1/TA-4), so it
   // carries the same `error` → `danger` mapping at the same five coordinates, and for the same reason.
   'textarea|error.border.rest':
@@ -309,6 +313,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the read-only coordinate, bound so an errored read-only field keeps the danger boundary',
   'textarea|error.border.empty':
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
+  'textarea|error.border.filled':
+    'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
 };
 
 /**
