@@ -15,7 +15,7 @@
  *      then travels MCP → server → socket → relay → main thread → the `ACTIONS` table → back, and the
  *      suite spies on the table to prove the command reached the UI's own handler.
  *
- * Arms, by name: mcp · no-plugin · handshake · fragmented · ping · run · stream · big-frame · timeout ·
+ * Arms, by name: mcp · no-plugin · handshake · fragmented · ping · run · stream · progress · big-frame · timeout ·
  * unmasked · disconnect · e2e/routes · e2e/parity · e2e/link-off · e2e/switch-off
  */
 import { spawn } from 'node:child_process';
@@ -28,6 +28,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { createBridgeRelay } from './src/agent-bridge-relay';
 import type { WsLike } from './src/agent-bridge-relay';
+import { createProgressCounter } from '../../tools/figma-bridge/server';
 
 let failed = 0;
 let executed = 0;
@@ -216,12 +217,54 @@ section('run + stream');
   c1.sock.write(frame(0x1, payload));
   const r = await done();
   ok(!r.isError && JSON.stringify(r.value) === JSON.stringify(result), 'run: figma_run returns the plugin\'s result envelope unchanged');
-  ok(notes.some((n) => n.method === 'notifications/progress' && n.params?.progressToken === 'tok-1' && n.params?.progress === 3 && n.params?.total === 9), 'stream: progress reaches the MCP client as notifications/progress');
+  ok(notes.some((n) => n.method === 'notifications/progress' && n.params?.progressToken === 'tok-1' && n.params?.progress === 3 && n.params?.message === 'build 3/9'), 'stream: progress reaches the MCP client as notifications/progress');
   ok(notes.some((n) => n.method === 'notifications/message' && /#836/.test(n.params?.data)), 'stream: a console line reaches it as notifications/message');
   const logs = await call('figma_logs', { since: 0 });
   ok(logs.value?.entries?.some((e: { kind: string; line: string }) => e.kind === 'log' && /#836/.test(e.line)) && typeof logs.value?.last === 'number', 'figma_logs: the streamed lines are kept');
   const later = await call('figma_logs', { since: logs.value.last });
   ok(later.value?.entries?.length === 0, 'figma_logs since=last: nothing new');
+}
+
+section('progress across phases (#1684)');
+{
+  // A set's build, its wire pass, three #1679 reference back-off passes, the wire reading that closes the
+  // back-off, then a second set's build and wire. `done` restarts five times; MCP requires `progress` to rise
+  // on every notification. EXPECTED is written out here, not computed by the server's counter: each segment's
+  // last `done` is folded into an offset when the phase changes or `done` fails to rise.
+  const readings: [phase: 'build' | 'wire' | 'retry', done: number, total: number][] = [
+    ['build', 24, 48], ['build', 48, 48], ['wire', 24, 48], ['wire', 48, 48],
+    ['retry', 1, 6], ['retry', 2, 6], ['retry', 3, 6], ['wire', 48, 48],
+    ['build', 12, 12], ['wire', 12, 12],
+  ];
+  const EXPECTED = [24, 48, 72, 96, 97, 98, 99, 147, 159, 171];
+  const done = callLater('figma_run', { cmd: 'build-components' }, { progressToken: 'tok-1684' });
+  ok(await until(() => c1.texts().some((m) => m.type === 'command' && m.command.cmd === 'build-components')), 'progress: the build command reaches the plugin');
+  const cmd = c1.texts().find((m) => m.type === 'command' && m.command.cmd === 'build-components').command;
+  for (const [phase, d, total] of readings)
+    c1.sendJson({ type: 'progress', id: cmd.id, progress: { at: new Date().toISOString(), phase, done: d, total, chunkMs: 0 } });
+  const mine = () => notes.filter((n) => n.method === 'notifications/progress' && n.params?.progressToken === 'tok-1684');
+  await until(() => mine().length >= readings.length);
+  const got = mine().map((n) => n.params.progress);
+  ok(got.length === readings.length && got.every((v, i) => i === 0 || v > got[i - 1]), `progress: strictly increasing across build → wire → retry → wire → build (got ${got.join(', ')})`);
+  ok(JSON.stringify(got) === JSON.stringify(EXPECTED), `progress: the sequence is ${EXPECTED.join(', ')} (got ${got.join(', ')})`);
+  ok(mine().every((n) => n.params.total === undefined), 'progress: no total, since no honest one is known until the run ends');
+  ok(mine().map((n) => n.params.message).join('|') === readings.map(([p, d, t]) => `${p} ${d}/${t}`).join('|'), 'progress: each message keeps the phase\'s own fraction');
+  c1.sendJson({ type: 'result', result: {
+    v: 1, id: cmd.id, cmd: 'build-components', ok: true, startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(),
+    engineVersion: ENGINE_VERSION, transport: 'bridge', result: { verdict: null, data: {}, logs: [] },
+  } });
+  ok(!(await done()).isError, 'progress: the run completes');
+}
+{
+  // #1686 net — the two clauses the spawned-server sequence never reaches (every restart there coincides with
+  // a phase change, and no segment opens at 0). A SAME-PHASE restart (one set's build 48/48, the next set's
+  // build 24/48) must fold the first set's 48 into the offset; a segment opening at `done: 0` must still move
+  // forward (the floor). Expected values written here, traced by hand: 48 → 48+24 → floor 73 → 72+1+1 = 74.
+  const count = createProgressCounter();
+  const seq = [['build', 48], ['build', 24], ['wire', 0], ['wire', 1]] as const;
+  const got = seq.map(([phase, done]) => count({ phase, done, total: 48, chunkMs: 0, elapsedMs: 0 } as never));
+  ok(JSON.stringify(got) === JSON.stringify([48, 72, 73, 74]),
+    `progress: a same-phase restart folds into the offset and a segment opening at 0 still rises (want 48, 72, 73, 74; got ${got.join(', ')})`);
 }
 
 section('timeout');
