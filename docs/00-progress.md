@@ -43,6 +43,34 @@ A pre-existing MCP progress-monotonicity issue in `tools/figma-bridge/server.ts`
 
 ---
 
+## (2026-09-26) — UI exploration brief for the studio and plugin (docs only)
+
+**STATUS: docs only; no engine, studio or plugin change and no version bump.** Two new working notes in `docs/superpowers/specs/`:
+- `2026-09-26-ui-exploration-brief.md`: the product brief;
+- `2026-09-26-ui-exploration-prompt.md`: the ideation prompt that goes with it.
+
+The owner asked for a description of the studio and plugin to hand to one or two fresh agents, so they can propose alternative UI treatments. The ask had three conditions: every feature, setting and rule the product has to support; Prism3-specific names kept exact; and **not** grouped by the current UI, so the exploration isn't biased toward re-skinning today's structure. The owner has sent both documents to the ideation agents. They are committed here so the exploration can resume later without re-deriving the inventory.
+
+**How it was built.** Three read-only inventory passes over the code at ENGINE 0.166.0 / CONTRACT 13.0.0, one each for:
+- the studio (`apps/studio/src/*`);
+- the plugin (`apps/plugin/src/*`, manifest, `docs/18`, `docs/22`);
+- the engine's inputs and rules (`schema/lever-manifest.json`, `theme-schema.json`, `vocabulary.ts`, `modes.ts`, `docs/voice-standard.md`, `docs/30`).
+
+The brief regroups the settings by what they change in the output, and marks each one's scope (global, per-mode, or light-only) and tier (advanced or everyday). Today's rail of pages appears only in Appendix B, labeled "do not copy". The prompt asks for two distinct concepts, each with a thesis, an IA map, a coverage checklist against brief §4–§6, a click-through HTML prototype that includes the 380×420 plugin minimum, and tradeoffs. It ends with two optional starting stances (task-led, preview-led) so that two agents diverge.
+
+**Trap for whoever picks this up.** The brief's counts are a snapshot and will drift: 47 levers (25 advanced), 23 buildable defs, Button at 432 variants, the four levers with no control. `lever-manifest.json` is the source of truth; recount from it before quoting the brief. Some numbers already disagree with older prose: the engine README says "38 levers, 20 advanced" and `docs/31` says 39. Rows the brief marks "being built" or "in flight" (body/caption keep `default`, #1681; the spinner, #1677; the reference-repair copy, #1680) should be re-checked against `main`.
+
+**Gaps the inventory surfaced.** These are recorded in the brief's §11 as openings for the exploration, not filed as defects:
+- levers with no studio control;
+- the decisions log (the engine's `notes`) almost entirely unsurfaced;
+- no undo, reset or compare;
+- Figma actions split between the bar and an "internal" Components page;
+- agent-started work showing no progress in the panel.
+
+Whether any of them become work is for the owner to decide once the concepts come back.
+
+---
+
 ## (2026-09-26) — Every type category keeps a weight; label keeps emphasis (#1639)
 
 **STATUS: PR open on `lane/type-weights-required`, stacked on #1676 (#1215), labeled DO NOT MERGE.** Engine + studio. **ENGINE 0.165.0 → 0.166.0**; **CONTRACT 12.0.0 → 13.0.0** (MAJOR: 4 guaranteed paths demoted, accepted with `token-contract --accept` after the raise). `out/**` moves by the version stamp only; `lever-manifest.json` by the lever description.
