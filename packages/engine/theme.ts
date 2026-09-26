@@ -703,8 +703,9 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
       // The box mark-clearance `(height − dot) / 2` — the gap a checkbox/radio mark has inside its box.
       // It is fed even though NO token exposes it since #1425 (the tier's `inset` now carries the switch's
       // `(track − thumb) / 2` instead). WHY IT STAYS: before #1425 this quantity WAS `inset`, and it is
-      // aurora's only source of `core.dimension.5` (compact box-clearances are 3/4/5). Dropping it would
-      // DEMOTE that guaranteed primitive out of aurora's grid — a contract removal the materialization gate
+      // a compact brand's only source of `core.dimension.5` (compact box-clearances are 3/4/5): aurora's until
+      // #1215 moved it to comfortable, the `minimal-compact` corpus fixture's since (measured). Dropping it would
+      // DEMOTE that guaranteed primitive out of the compact grid — a contract removal the materialization gate
       // blocks — for no consumer benefit (a raw primitive is never an alias target). Feeding it keeps the
       // grid's small-primitive floor exactly what it was on `main`; the switch's own clearance is fed by
       // `c.inset` beside it. See version.ts CONTRACT 10.1.0 and docs/00-progress (#1425).
@@ -712,8 +713,9 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
       // dimension tokens"). The grid is value-keyed, so a density whose own controls don't produce a px
       // drops that primitive: spacious lost `core.dimension.3` (a comfortable `inset`) and `.18` (a
       // comfortable `thumb`), both guaranteed. WHY NOT COMPACT TOO: compact is a contract-corpus density
-      // (aurora), so it cannot remove a guaranteed path by construction, and feeding it would ADD
-      // `core.dimension.30` to aurora, promoting that path to guaranteed (a CONTRACT MINOR, measured).
+      // (the `minimal-compact` fixture since #1215, aurora before), so it cannot remove a guaranteed path by
+      // construction, and feeding it would ADD `core.dimension.30` to that member, promoting the path to
+      // guaranteed (a CONTRACT MINOR, measured).
       // Spacious is the one density outside the corpus; `lint-lever-sweep.ts` holds it to the contract.
       ...[...controls, ...(density === 'spacious' ? controlSizes('comfortable') : [])]
         .flatMap((c) => [c.height, c.width, c.dot, c.inset, c.track, c.thumb, (c.height - c.dot) / 2])]),
@@ -1168,7 +1170,8 @@ export type TypographyInput = {
    *  label/eyebrow `[emphasis]`, code `[default]`. Override a role to ship a
    *  multi-weight ramp (e.g. `display: ['default','strong']`, or `['strong','max']`
    *  for a black hero). Roles use the canonical weight-role names
-   *  (subtle/default/emphasis/strong/max, lightest→heaviest). */
+   *  (subtle/default/emphasis/strong/max, lightest→heaviest). Every role keeps at least one weight,
+   *  and label keeps `emphasis` (#1639, refused in `buildComposites`). */
   weights?: Partial<Record<TypeGroup, WeightRoleName[]>>;
   /** Per-(category, weight-role) VERBATIM FACE PIN (#1368). A slot may name the exact Figma face —
    *  `{ family, style }` — it should bind, OVERRIDING the numeric-weight → style-name derivation for
@@ -1242,6 +1245,16 @@ const TYPE_FAMILY_DEFAULT: Record<TypeGroup, { face: string; fallback: string[] 
 export const TYPE_WEIGHTS_DEFAULT: Record<TypeGroup, WeightRoleName[]> = {
   display: ['strong'], title: ['strong'], label: ['emphasis'], eyebrow: ['emphasis'],
   body: ['default', 'strong'], caption: ['default', 'strong'], code: ['default'],
+};
+/**
+ * #1639 (owner-decided 2026-09-26) — the weight roles a category can NEVER drop, each with the reason.
+ * `button` binds `type.label.{sm,md,lg}.emphasis` BY NAME (not through a weight intent, the way
+ * `field-label` does since #1602), so a label set without `emphasis` would leave the button with no
+ * text style. `buildComposites` refuses such a set. Every other single-role default (eyebrow, code)
+ * may be swapped, as long as the category keeps a weight: see the empty-set refusal there.
+ */
+export const REQUIRED_WEIGHT_ROLES: Partial<Record<TypeGroup, { role: WeightRoleName; why: string }>> = {
+  label: { role: 'emphasis', why: 'the button binds type.label.*.emphasis by name' },
 };
 /**
  * #1602 — the weight roles a brand ACTUALLY EMITS per category, derived from the composites it
@@ -1459,6 +1472,17 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     }
   }
   const weightsMap = { ...TYPE_WEIGHTS_DEFAULT, ...(t.weights ?? {}) };
+  // #1639 (owner-decided 2026-09-26): every category keeps at least one weight. Removing weights is
+  // never how a text-style category disappears, so an empty set is refused by name rather than
+  // silently emitting no `type.<category>.*` at all. And a category's required roles stay in its set.
+  for (const g of TYPE_GROUPS) {
+    const roles = weightsMap[g];
+    if (!Array.isArray(roles) || roles.length === 0)
+      throw new Error(`typography.weights.${g}: the '${g}' category needs at least one weight role. Removing weights can't remove a type category, so keep one (its default is ${TYPE_WEIGHTS_DEFAULT[g].join('/')}).`);
+    const req = REQUIRED_WEIGHT_ROLES[g];
+    if (req && !roles.includes(req.role))
+      throw new Error(`typography.weights.${g}: the '${g}' category must include '${req.role}', because ${req.why}. Add '${req.role}' back (the set given is ${roles.join('/')}).`);
+  }
   const linkGroups = new Set(t.links ?? TYPE_LINK_DEFAULT);
   const italicGroups = new Set(t.italics ?? []);   // default none — italics are opt-in per role
   // #1368 — verbatim face pins, validated once here so a bad pin fails at build with a named message

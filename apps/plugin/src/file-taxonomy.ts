@@ -86,9 +86,6 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Text field', defs: ['text-field'] },
         { page: 'Textarea', defs: ['textarea'] },
         { page: 'Veil', defs: ['veil'] },
-        // #1670 — the spinner is placed here, at the end of Components, as the simplest reading pending the
-        // owner's call on its section (it is used standalone as well as swapped into a button's slot).
-        { page: 'Spinner', defs: ['spinner'] },
       ],
     },
     {
@@ -98,6 +95,9 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Focus Ring', defs: ['focus-ring'] },
         { page: 'Field Label', defs: ['field-label'] },
         { page: 'Field Message', defs: ['field-message'] },
+        // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
+        // host swaps or nests in (the button's pending state swaps it into its icon slot).
+        { page: 'Spinner', defs: ['spinner'] },
       ],
     },
     {

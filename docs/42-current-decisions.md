@@ -85,6 +85,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | the rungs are named for intensity, not for the floor they clear | 2026-09-07 | `docs/20-interactive-color-system.md` §8.2 | #1317 |
 | Prism 2 is an input, not an authority — shipped component metadata is written for machine readers and cites no provenance | 2026-09-24 | `docs/28-component-anatomy-schema.md` §5.3 | #1623 |
 | a brand that narrows `typography.weights` drops the styles for the weights it doesn't use, and those paths are brand-dependent | 2026-09-24 | `docs/30-versioning-and-compatibility.md` | #1632 |
+| every type category keeps a weight, label keeps `emphasis`, and eyebrow and code may swap theirs | 2026-09-26 | `docs/30-versioning-and-compatibility.md` | #1639 |
 
 ## Known gaps, named rather than silent
 
@@ -96,8 +97,8 @@ decision recorded there is correct prose forever and is not this file's subject 
   and `typography.displayCeiling`, are decided and indexed above: demoted to `brandDependent`, levers kept.
   The class is gated by `lint-lever-sweep.ts`, which sweeps every toggle and enum option. What that sweep
   does **not** reach is named in its header. The one instance outside it that was filed, `typography.weights`
-  (#1632), is decided and indexed above; its single-role sets (`label`, `eyebrow`, `code`) are the stated
-  residual, filed as #1639. One instance inside the sweep is a live
+  (#1632), is decided and indexed above, and so are its single-role sets (`label`, `eyebrow`, `code`,
+  #1639). One instance inside the sweep is a live
   defect held on the gate's allowlist until the owner picks a disposition: `density: 'spacious'` removes
   `core.dimension.{3,18}` (#1631).
 

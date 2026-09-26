@@ -160,6 +160,16 @@ console.log('3. resolveComponentPage positions leaves correctly');
   const again = await resolveComponentPage(api, 'button', TAXONOMY);
   ok(n.filter((x) => x === `${NEST_PREFIX}Buttons`).length === 1 && again?.name === `${NEST_PREFIX}Buttons`, 'a second build of the same family does not duplicate its page');
 
+  // #1670 — the owner placed the spinner under Subcomponents (2026-09-26), beside Focus Ring / Field Label /
+  // Field Message. The section is named LITERALLY here, not read off the config, so moving the leaf to
+  // another section fails this arm by name.
+  await resolveComponentPage(api, 'spinner', TAXONOMY);
+  const s = names();
+  const subi = s.indexOf('Subcomponents');
+  const spi = s.indexOf(`${NEST_PREFIX}Spinner`);
+  const afterSub = s.indexOf('---', subi + 1);
+  ok(subi >= 0 && subi < spi && spi < afterSub, `#1670 Spinner sits in the Subcomponents section, after its header and before the next divider (${subi} < ${spi} < ${afterSub})`);
+
   // An unmapped id resolves to null (caller falls back to currentPage).
   const none = await resolveComponentPage(api, 'not-a-real-def', TAXONOMY);
   ok(none === null, 'an unmapped def id resolves to null');

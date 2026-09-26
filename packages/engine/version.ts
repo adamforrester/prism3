@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.165.0 — #1670: the Spinner component, to the owner's spec (2026-09-26), and the button's pending state
+ * 0.167.0 — #1670: the Spinner component, to the owner's spec (2026-09-26), and the button's pending state
  * swaps it in. `spinner` is a new def: four standalone `spinner/<size>` components on the icon ladder
  * (16 / 20 / 24 / 32), each one composed glyph — a full ring at 20% layer opacity under a 33% head arc with
  * round caps, drawn as filled outlines on the 24-unit artboard so the 2px band scales with size. The glyph
@@ -2936,7 +2936,27 @@
  * no swap property. Both executors write each imported glyph layer's opacity from its SVG document. Two new
  * motion tokens, `motion.duration.spin` (800ms) and `motion.duration-reduced.spin` (2600ms), outside the
  * tempo-scaled ramp, so every brand's `out/**` moves. Projected surface: a new def, and every button
- * family's pending members change (their spinner's swap target). CONTRACT 12.0.0 → 12.1.0 (four adds).
+ * family's pending members change (their spinner's swap target). CONTRACT 13.0.0 → 13.1.0 (four adds).
+ *
+ * 0.166.0 — #1639 (owner-decided 2026-09-26): the engine refuses a `typography.weights` input that leaves
+ * any type category with zero weight roles, naming the category, and refuses a `label` set without
+ * `emphasis`, saying why (`button` binds `type.label.*.emphasis` by name). `REQUIRED_WEIGHT_ROLES` in
+ * theme.ts holds the second rule. `eyebrow` and `code` may swap their single weight, so their default
+ * composites demote to brand-dependent (CONTRACT 13.0.0, below). The studio's weight checkboxes refuse
+ * both moves (the last ticked role of a category, and label's `emphasis`, are disabled with the reason
+ * in their tooltip). The schema and lever descriptions state both rules; the schema carries no `minItems`
+ * because MCP `tools/list` inlines it and sits at its 60,000-char budget, so the engine is the one refusal.
+ * No example brand's input changes, so `out/**` moves by the version stamp only.
+ *
+ * 0.165.0 — #1215 (owner-decided 2026-09-26): aurora moves from `compact` to the default `comfortable`
+ * density. The studio boots aurora, and its 36px medium control read as the engine's default; at
+ * comfortable its size ladder is 36/44/56 (was 28/36/44) and its control ladder 16/20/24 (was 12/16/20).
+ * Only aurora's `out/**` moves (tokens, ai.json, figma `size`/`control`/`core.dimension`, tokens.html,
+ * modes-report, example-brands). Compact stays exercised by a new TEST-ONLY corpus member,
+ * `minimal-compact` (token-contract.ts), which every compact-density arm in test.ts now builds from; it is
+ * not an example brand and never reaches `out/` or the studio. CONTRACT STANDS at 12.0.0: `--check` level
+ * `none`. Without the fixture the intersection would have gained `core.dimension.30` (aurora now emits it,
+ * the compact member does not), a MINOR; keeping compact in the corpus holds the guaranteed set exactly.
  *
  * 0.164.0 — The field family gains a projected `filled` state (owner decision, 2026-09-25, Prism 2's
  * `Enabled (Empty) | Hovered | Filled | Focused | Disabled` on all three specs). `filled` joins the closed
@@ -3742,7 +3762,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.165.0';
+export const ENGINE_VERSION = '0.167.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -4185,12 +4205,21 @@ export const ENGINE_VERSION = '0.165.0';
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
  *
- * 12.1.0 — #1670 adds FOUR guaranteed names. The two roles: `motion.duration.spin` (800ms, one turn of a
+ * 13.1.0 — #1670 adds FOUR guaranteed names. The two roles: `motion.duration.spin` (800ms, one turn of a
  * spinner) and `motion.duration-reduced.spin` (2600ms, the slow turn under reduced motion). And the two
  * value-keyed primitives they alias, `motion.duration-ms.800` and `motion.duration-ms.2600`: the turn is not
  * tempo-scaled, so every brand at every tempo now emits both, where 800 used to exist only at the standard
  * tempo. All four land in the GUARANTEED intersection. A pure ADDITION — a new name cannot break an existing
  * reference — so a clean MINOR. Nothing is removed or retyped. (#1670)
+ *
+ * 13.0.0 — #1639 (owner-decided 2026-09-26, the mechanical fallout of the disposition): DEMOTE the single-role
+ * weight composites a brand can swap. `eyebrow` and `code` ship one weight each by default and may replace
+ * it (every category must keep one; `label` must keep `emphasis`), so `type.eyebrow.{sm,md,lg}.emphasis`
+ * and `type.code.inline.default` — 4 paths — move to `brandDependent`. Realized the only honest way: a
+ * `minimal-weight-swap` corpus member swaps both sets and the paths drop out of the intersection. A
+ * guaranteed removal is MAJOR whether or not the path is still emitted elsewhere (reported as DEMOTED, no
+ * migration): 12.0.0 → 13.0.0. No component binds either family by name. `type.label.*.emphasis` stays
+ * guaranteed: the engine refuses a label set without it. Nothing is added or retyped. (#1639)
  *
  * 12.0.0 — #1632 (owner-decided MAJOR): DEMOTE the weight roles a brand declines out of `guaranteed`. A brand
  * that narrows `typography.weights` ships no styles for the weights it doesn't use, which is the lever's
@@ -4246,7 +4275,7 @@ export const ENGINE_VERSION = '0.165.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '12.1.0';
+export const CONTRACT_VERSION = '13.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

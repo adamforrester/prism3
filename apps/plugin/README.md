@@ -204,7 +204,7 @@ Components
   ↳ Select · ↳ Text field · ↳ Textarea · ↳ Veil
 ───
 Subcomponents
-  ↳ Image Placeholder · ↳ Focus Ring · ↳ Field Label · ↳ Field Message
+  ↳ Image Placeholder · ↳ Focus Ring · ↳ Field Label · ↳ Field Message · ↳ Spinner
 ───
 Sandbox
   ↳ File Components     (holds _Section-header, _Headings — plugin-only template assets)

@@ -132,7 +132,7 @@ export const spaceScale = (spaceBase = 8): SpaceStep[] =>
 // is what keeps five names five DISTINCT sizes. The previous shape shifted an index into a
 // five-rung ladder and CLAMPED at the ends, so the end step resolved to its neighbour's
 // metrics: `compact` collapsed xs+sm onto one height and `spacious` collapsed lg+xl — five
-// names, four values. That shipped (aurora is `compact`: `size.xs.height` and `size.sm.height`
+// names, four values. That shipped (aurora was `compact` then: `size.xs.height` and `size.sm.height`
 // both resolved to `dimension.32`), and it was live at the DEFAULT spaceBase, not only at an
 // unusual one. The two outer rungs exist so the window has somewhere to go; they are named
 // only at the density that reaches them.
@@ -308,8 +308,8 @@ export const iconSizes = (): IconSizeStep[] => ICON_SIZES.map((s) => ({ ...s }))
 // reason — an off-grid glyph blurs, so the field prohibits arbitrary sizes — and the two must not be
 // confused: the window here is the SAME `DENSITY_START` `componentSizes` uses, so a compact brand's
 // ladder sits one rung below a comfortable brand's. That is the observable difference and the thing
-// to check when reading this tier: aurora (compact) emits 12/16/20 where nb, harbor and wendys emit
-// 16/20/24. A control family that came out EQUAL in all four brands would be the glyph ladder under
+// to check when reading this tier: a compact brand (the test-only `minimal-compact` corpus member since
+// aurora moved to comfortable, #1215) emits 12/16/20 where nb, harbor and wendys emit 16/20/24. A control family that came out EQUAL in all four brands would be the glyph ladder under
 // a new name, whatever its description claimed.
 //
 // THE NUMBERS, and what they are and are not grounded in. The corpus holds exactly one brief-supplied
@@ -504,7 +504,7 @@ export const radiusScale = (scale: number, baseMd = 4, pill = 128, capsule = 999
  *
  * WHY A CLAMP AND NOT A RUNG. `radius.sm` is the FIELD radius, and a checkbox binding it was a
  * defensible reading of the substrate rather than a measurement. It is also `radiusScale`-driven, and a
- * 12-24px control does not scale the way a card does: on aurora (`radiusScale: 2`, `density: compact`)
+ * 12-24px control does not scale the way a card does: on aurora (`radiusScale: 2`, `density: compact` when measured)
  * that ramp puts **4px on a 12px square** — a third of the edge — while every other corpus brand gets
  * 2px on 16px, an eighth. Same rung, same binding, and the corner is not proportionally consistent
  * across the corpus. Measured in full in #1015.

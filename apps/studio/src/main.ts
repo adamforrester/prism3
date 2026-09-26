@@ -19,7 +19,7 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, SPIN_ROLE } from '@prism3/engine/theme';
+import { brandTheme, ALL_MODES, REQUIRED_WEIGHT_ROLES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, mobileEndpoint, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, SPIN_ROLE } from '@prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput, FacePin } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
@@ -6376,12 +6376,26 @@ const renderCategorySetup = (): HTMLElement => {
     ftd.append(el('div', 'cs-count', 'Set on Semantics'));
     tr.append(ftd);
     const has = new Set(comps.map((c) => c.weightRole));
+    const required = (REQUIRED_WEIGHT_ROLES as Record<string, { role: string; why: string } | undefined>)[g];
     for (const r of roleOrder) {
       const td = el('td', 'cs-c');
-      td.append(cb(has.has(r), () => {
+      const box = cb(has.has(r), () => {
         const next = roleOrder.filter((x) => (x === r ? !has.has(r) : has.has(x)));
-        setPath(brandState, `typography.weights.${g}`, next.length ? next : undefined); apply();
-      }));
+        // `applyFull`, not `apply`: the disabled states below are derived from the shipped set, and a
+        // volatile-only repaint left them (and `has`) describing the previous set until the next paint.
+        setPath(brandState, `typography.weights.${g}`, next.length ? next : undefined); applyFull();
+      });
+      // #1639: the engine refuses a category with no weight, and a label without `emphasis`. The two
+      // unticks that would reach those refusals are disabled here, with the reason on hover, the same
+      // way the rung selects disable a step that would cross its neighbor.
+      if (has.has(r) && required?.role === r) {
+        box.disabled = true;
+        box.title = `${g[0].toUpperCase()}${g.slice(1)} always ships ${r} — ${required.why}.`;
+      } else if (has.has(r) && has.size === 1) {
+        box.disabled = true;
+        box.title = 'Every category ships at least one weight — tick another before clearing this one.';
+      }
+      td.append(box);
       tr.append(td);
     }
     const ltd = el('td', 'cs-c'); ltd.append(nudge(g, 'leadingShift')); tr.append(ltd);

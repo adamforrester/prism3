@@ -108,10 +108,12 @@ vary:
 | corpus member | what it varies |
 |---|---|
 | `nb` | the hand-built legacy system — `nbds.*` dialect, `rgb()` color format |
-| `aurora` | engine-native brief, an extra brand color, compact density, 3:1 icon contrast |
+| `aurora` | engine-native brief, an extra brand color, 3:1 icon contrast (compact density until #1215) |
 | `harbor` | engine-native brief, a different lever combination |
 | `wendys` | **standard dialect** — a flat `colors:` map classified into anchors; a different typeface |
 | `minimal` | the three required fields and **nothing else** — the sparsest input the engine accepts |
+| `minimal-compact` | the sparsest input at **compact density** — a test-only fixture, the corpus's only compact member since aurora moved to comfortable (#1215) |
+| `minimal-weight-swap` | the sparsest input with **eyebrow and code swapping their single weight**, demoting the swapped-out roles (#1639) |
 
 That intersection is **485 paths**, with zero `$type` disagreements between any two members.
 
@@ -223,10 +225,29 @@ the brand ships (#1601/#1602), and every other def binds `body.*.default`, `capt
 `label.*.emphasis`, which this member keeps. `lint-lever-sweep.ts` arm (b) checks nb-redesign's
 materialized bindings against its own emission under every setting.
 
-The residual is stated, not closed. The `label`, `eyebrow` and `code` defaults (`emphasis`, `emphasis`,
-`default`) are single-role sets, so a brand can only replace them, not narrow them, and the corpus still
-doesn't. Their composites stay guaranteed on the same "nobody pulled the lever" footing, and `button`
-binds `label.*.emphasis` by name. That is a separate decision, filed as #1639.
+The residual: the `label`, `eyebrow` and `code` defaults (`emphasis`, `emphasis`, `default`) are
+single-role sets, so a brand can only replace them, not narrow them, and no corpus member did. Their
+composites stayed guaranteed on the same "nobody pulled the lever" footing. Filed as #1639 and decided
+below.
+
+#### Decided (2026-09-26, #1639): every type category keeps a weight, label keeps `emphasis`, and eyebrow and code may swap theirs
+
+The owner's disposition:
+
+- **Every category keeps at least one weight, for now.** Removing weights is never how a text-style
+  category disappears. The engine refuses an empty set for any category, naming it
+  (`typography.weights.<category>: … needs at least one weight role`).
+- **`label` keeps `emphasis`.** `button` binds `type.label.{sm,md,lg}.emphasis` by name, so the engine
+  refuses a label set without it and says why. `REQUIRED_WEIGHT_ROLES` in `theme.ts` holds the rule. A
+  label set may gain roles. Its three `emphasis` composites stay guaranteed.
+- **`eyebrow` and `code` may swap their single weight**, as long as each keeps one. So
+  `type.eyebrow.{sm,md,lg}.emphasis` and `type.code.inline.default` are `brandDependent` now. The
+  `minimal-weight-swap` corpus member swaps both sets on the sparse input (eyebrow → `strong`, code →
+  `emphasis`), so the demotion is attributable to the swap alone. No component binds either family by
+  name. Landed under `CONTRACT_VERSION` 13.0.0 (MAJOR, a guaranteed removal with no migration).
+
+The studio's category table disables the two unticks the engine refuses (the last weight a category
+ships, and label's `emphasis`), with the reason on hover.
 
 **The gate that closes the class, not just these two instances**, is `lint-lever-sweep.ts` (#957). It
 sweeps every toggle and enum option, one at a time, over three brands. It fails on any guaranteed path
@@ -234,7 +255,7 @@ a setting removes or retypes unless an allowlist entry, with its reason, names e
 The allowlist is exact in both directions, so a stale entry fails too. It also fails when a component,
 materialized for the setting, binds something the setting doesn't emit. Its header lists what it does
 not sweep: sliders, structured levers and combinations. `typography.weights`, the structured lever
-that removes paths, is covered by the `minimal-weights` corpus member instead (#1632, above).
+that removes paths, is covered by the `minimal-weights` and `minimal-weight-swap` corpus members instead (#1632, #1639, above).
 
 ## Change classification
 
