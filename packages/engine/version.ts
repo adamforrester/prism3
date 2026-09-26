@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.170.0 — #1672: the legacy CLI paste path (`materialise-to-figma.ts`) writes a TINTED WASH's alias
+ * opacity. Its `color-aliases` pass built its rows from `targetsByMode` alone, so a `solid-tint` brand's
+ * `[inverse.]interactive.<c>.subtle-fill.<state>` would have bound as a plain opaque alias to its fill.
+ * A wash row now carries its `opacity/<n>` variable per mode, the pass writes
+ * `{ color: <alias>, opacity: <alias> }` (the shape `write-figma.ts` writes since #1646), and a missing
+ * opacity variable is a named miss. `dims-create` now precedes `color-aliases` in the paste order, so the
+ * opacity variable exists when the wash binds. No committed brand sets `solid-tint`, so every emitted
+ * payload for a committed brand is byte-identical apart from the pass order; `out/**` restamps only.
+ * A paste-path behavior change → ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
  * 0.169.0 — #1670: the Spinner component, to the owner's spec (2026-09-26), and the button's pending state
  * swaps it in. `spinner` is a new def: four standalone `spinner/<size>` components on the icon ladder
  * (16 / 20 / 24 / 32), each one composed glyph — a full ring at 20% layer opacity under a 33% head arc with
@@ -3789,7 +3799,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.169.0';
+export const ENGINE_VERSION = '0.170.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

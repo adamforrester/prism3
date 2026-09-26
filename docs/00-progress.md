@@ -7,6 +7,18 @@
 
 ---
 
+## (2026-09-26) — the CLI paste path writes a tinted wash's alias opacity (#1672)
+
+**STATUS: PR open from `lane/materialise-wash-opacity`, labeled DO NOT MERGE.** Engine only: `materialise-to-figma.ts`, `test.ts`, `version.ts`, `docs/10`. **ENGINE 0.169.0 → 0.170.0**; CONTRACT STANDS.
+
+**The defect.** #1646 made each tinted wash a color variable whose value is an alias laid at an `opacity/<n>` variable, and taught the plugin (`write-figma.ts`) and the MCP paste path (`mcp-paste.ts`) to write it. The legacy CLI payload generator built its `color-aliases` rows from `targetsByMode` only, so a `solid-tint` brand's washes would have pasted as plain opaque aliases to the fill. Not reachable from a committed brand: none sets `solid-tint`.
+
+**The fix.** A wash row carries a third element, the opacity variable's name per mode (`aliasRowsFrom`); every other row keeps the two-element shape, so a brand with no wash pastes the same bytes as before. The pass writes `{ color, opacity }`, and a missing opacity variable is a named miss rather than a quiet opaque alias. `dims-create` moved ahead of `color-aliases` in `ORDER`, because the opacity variable is a FLOAT that pass creates. The pass's body is now `colorAliasesJs(plan)`, so the suite can drive a plan no committed brand emits through the same string the CLI prints.
+
+**How it is gated (docs/34).** The fixture is aurora with `outlineInteraction: 'solid-tint'`. The test RUNS the payload in a small Variables shim and checks each of the 18 washes in all 4 modes. The fill names are hand-spelled from the rule, and the opacity steps are the #1646 STANDARD literals, never read off this generator's rows. A second arm checks no other row gained an opacity, and a third checks `dims-create` precedes `color-aliases`. Mutations, from a `wip:` commit: the pass ignoring the opacity fails the binding arm by name (72 mode-values, each a plain alias); restoring the old order fails the ordering arm by name.
+
+**Trap.** `test.ts` already asserted `dims-create` before `dims-aliases`; that arm says nothing about the color lane. The new ordering arm is the one that holds this constraint.
+
 ## (2026-09-26) — the Spinner component, to the owner's spec, used by the button's pending state (#1670)
 
 **STATUS: PR open from `lane/spinner`, labeled DO NOT MERGE; the owner answered all five open questions (below).** Engine + plugin. Main merged in after #1676, #1678 and #1680 (0.167.0). **ENGINE 0.168.0 → 0.169.0** (renumbered in the orchestrator's net: #1682 took 0.168.0) (a new def, the button families' pending members move, two new motion tokens in every brand's `out/**` → MINOR). **CONTRACT 13.0.0 → 13.1.0**, four adds: `motion.duration.spin`, `motion.duration-reduced.spin`, and the `motion.duration-ms.800` / `.2600` primitives they alias, now emitted at every tempo. `component-surface` accepted (the three button families plus `spinner`); `paint-census` accepted for `spinner` alone (the button census did not move).

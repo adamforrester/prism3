@@ -46,7 +46,7 @@ import {
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND, MINIMAL_COMPACT_BRAND, readBaseline } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIER, PRIMITIVE_GROUPS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
-import { aliasRows, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
+import { aliasRows, colorAliasesJs, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
@@ -2853,6 +2853,68 @@ for (const b of brands) {
   // red rather than quiet, which is the only reason it is safe to write as a `find`.
   const bg = rows.find(([n]) => n === nbVar('color/background/primary'));
   ok(!!bg && new Set(bg![1]).size > 1, 'materialise: background/primary binds a different palette step per mode (the collapse-guard probe)');
+  // A brand without `solid-tint` carries no wash, so no row gains the opacity element (#1672: byte-identical).
+  ok(rows.every((r) => r.length === 2), 'materialise: a brand with no tinted wash carries no alias opacity in any row');
+}
+
+// #1672 — the paste path writes a TINTED WASH's alias opacity. `color-aliases` used to bind each
+// `[inverse.]interactive.<c>.subtle-fill.<state>` as a plain opaque alias to its fill, dropping the
+// `opacity/<n>` variable the plugin (`write-figma.ts`) and MCP paste (`mcp-paste.ts`) paths both write.
+// No committed brand sets `solid-tint` (#1112), so the fixture is aurora with the lever flipped, and the
+// payload is RUN in a minimal Variables shim rather than string-matched. Expected values are written
+// here: the fill name is hand-spelled from the rule, and the opacity steps are the #1646 literals for a
+// STANDARD brand — never read off this generator's rows.
+{
+  const t = { ...brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input), outlineInteraction: 'solid-tint' } as Theme;
+  const fig = buildFigmaColor(t);
+  const plan = buildWritePlan(fig);
+  const root = t.root;
+  const STEP: Record<string, number> = { 'primary.hover': 20, 'primary.pressed': 30, 'primary.selected': 30, 'neutral.hover': 50, 'neutral.pressed': 60, 'neutral.selected': 60, 'destructive.hover': 20, 'destructive.pressed': 30, 'destructive.selected': 30, 'inverse.primary.hover': 10, 'inverse.primary.pressed': 30, 'inverse.primary.selected': 30, 'inverse.neutral.hover': 20, 'inverse.neutral.pressed': 30, 'inverse.neutral.selected': 30, 'inverse.destructive.hover': 10, 'inverse.destructive.pressed': 30, 'inverse.destructive.selected': 30 };
+  // The shim: every variable the palette, color-create and dims-create passes would have made, by name.
+  type ShimVar = { id: string; name: string; variableCollectionId: string; values: Record<string, unknown>; setValueForMode: (m: string, v: unknown) => void };
+  const shimVars: ShimVar[] = [];
+  const mk = (name: string, col: string) => {
+    const v: ShimVar = { id: `V${shimVars.length}`, name, variableCollectionId: col, values: {}, setValueForMode(m, val) { v.values[m] = val; } };
+    shimVars.push(v);
+  };
+  fig.palette.variables.forEach((v) => mk(v.name, 'C:core'));
+  fig.color[0].variables.forEach((v) => mk(v.name, 'C:color'));
+  buildFigmaDims(t).opacity.variables.forEach((v) => mk(v.name, 'C:opacity'));
+  const colorCol = { id: 'C:color', name: 'color', modes: plan.color.modes.map((m) => ({ name: m, modeId: `M:${m}` })) };
+  const shim = {
+    variables: {
+      getLocalVariablesAsync: async () => shimVars,
+      getLocalVariableCollectionsAsync: async () => [colorCol],
+      createVariableAlias: (v: ShimVar) => ({ type: 'VARIABLE_ALIAS', id: v.id }),
+    },
+  };
+  const AsyncFn = Object.getPrototypeOf(async () => {}).constructor;
+  const res = await new AsyncFn('figma', colorAliasesJs(plan))(shim) as { bound: number; misses: string[] };
+  const byName = new Map(shimVars.map((v) => [v.name, v]));
+  const bad: string[] = [];
+  let cells = 0;
+  for (const pre of ['', 'inverse.']) for (const c of ['primary', 'neutral', 'destructive']) for (const st of ['hover', 'pressed', 'selected']) {
+    const p = pre ? 'inverse/' : '';
+    const wash = byName.get(`${root}/color/${p}interactive/${c}/subtle-fill/${st}`);
+    const fill = byName.get(`${root}/color/${p}interactive/${c}/fill/rest`);
+    const op = byName.get(`${root}/opacity/${STEP[`${pre}${c}.${st}`]}`);
+    for (const m of plan.color.modes) {
+      cells++;
+      const got = JSON.stringify(wash?.values[`M:${m}`]);
+      const want = JSON.stringify({ color: { type: 'VARIABLE_ALIAS', id: fill?.id }, opacity: { type: 'VARIABLE_ALIAS', id: op?.id } });
+      if (!wash || !fill || !op || got !== want) bad.push(`${m}/${pre}${c}.${st}: ${got}`);
+    }
+  }
+  ok(cells === 18 * 4 && bad.length === 0 && res.misses.length === 0,
+    `#1672 materialise color-aliases binds every tinted wash to its fill AND its opacity variable, in every mode (${cells} mode-values, ${res.misses.length} misses${bad.length ? ` — BAD: ${bad.slice(0, 3).join('; ')}` : ''})`);
+  // Every other alias stays a plain alias — no opacity leaks onto a non-wash row.
+  const leaked = shimVars.filter((v) => v.variableCollectionId === 'C:color' && !v.name.includes('/subtle-fill/'))
+    .filter((v) => Object.values(v.values).some((x) => x && typeof x === 'object' && 'opacity' in x)).map((v) => v.name);
+  const plain = byName.get(`${root}/color/background/primary`)?.values[`M:${plan.color.modes[0]}`] as { type?: string } | undefined;
+  ok(leaked.length === 0 && plain?.type === 'VARIABLE_ALIAS', `#1672 materialise: only the washes carry an opacity; every other row binds a plain alias (${leaked.length} leaked)`);
+  // The opacity variable must exist before the pass that aliases it.
+  ok(passOrder().indexOf('dims-create') < passOrder().indexOf('color-aliases'),
+    '#1672 materialise: dims-create is pasted before color-aliases (a wash\'s opacity variable must exist before it is bound)');
 }
 
 // #479 — pruneReport: the paste path's plan-vs-file diff. REPORT ONLY (the function has no
