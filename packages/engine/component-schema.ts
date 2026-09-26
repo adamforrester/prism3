@@ -598,9 +598,20 @@ export type PartDef = {
    *  so it carries neither the check nor the dash rather than both at once, which is a tree no member
    *  ever builds. Asserting presence on no evidence is the direction that ships.
    *
-   *  Restricted to axes in `variants` (never `size`, never a state) by `anatomyErrors`, and the axis
-   *  must be one `figmaProperties.variantAxes` actually projects — a gate on an axis Figma does not
-   *  carry makes the part absent from every member of the set, silently. */
+   *  Restricted to axes in `variants` (never `size`) by `anatomyErrors`, and the axis must be one
+   *  `figmaProperties.variantAxes` actually projects — a gate on an axis Figma does not carry makes the
+   *  part absent from every member of the set, silently.
+   *
+   *  THE ONE NON-VARIANT KEY IS `state` (`STATE_GATE`, owner decision 2026-09-26): presence gated on the
+   *  projected STATE, for an in-flow part. Until then only `overlay`/`absolute` could say that, through
+   *  `when`. The field family needs it twice: its placeholder and value are two text layers shown at
+   *  complementary states (#1567 measured that a bound TEXT node shows its set's ONE default, and #1575
+   *  met the same limit, so per-member copy behind one property collapses), and its focus caret exists
+   *  only at `focus-visible`. Every value must be a declared state and at least one must be one the
+   *  `stateAxis` projects (a code-only state such as `empty` may ride along, since a plan can be asked
+   *  there), and a gate naming every projected state is refused as a no-op. With no state supplied the gate
+   *  reads `rest`: unlike a variant axis a state has a resting value, and the paint grammar already treats
+   *  an unsupplied state as rest. */
   presentWhen?: Record<string, readonly string[]>;
   /** VARIANT-GATED POSITION (#990): axis → value → where along its PARENT's main axis this part sits.
    *  A switch's thumb says `{ selection: { off: 'start', on: 'end' } }` — ONE part, in two places.
@@ -1977,8 +1988,21 @@ export const fillKey = (
  * the honest fix is usually a second part of a different KIND, or a def-tier decision that the two
  * surfaces share ink. And the DO-NOT-WIDEN rule in `paintKeyErrors` still binds independently: an entry
  * needs a real `paintOf('<slot>')` dispatch behind it before it may be added at all.
+ *
+ * `caret` (owner decision, 2026-09-26, the field family's focus caret) passes that test as a ROLE: it is
+ * the insertion point's ink, which CSS carries as its own property (`caret-color`), apart from the text
+ * color. No existing entry expresses it. At focus-visible a field's `label` IS the placeholder ink
+ * (`text.secondary`) while the caret is the value ink (`text.primary`); `indicator` is already textarea's
+ * counter in `text.secondary`; `icon` is the glyph role (#1471). Because `paintOf` is part-blind, reusing
+ * any of the three repaints a sibling. Its dispatch is the box branch, which calls `paintOf` on every
+ * slot a box declares, so it sits in `BOX_PAINT_SLOTS` too: the caret is a bar that draws itself, the
+ * radio dot's case.
  */
-export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator'] as const;
+/** The reserved `presentWhen` key that gates a part on the projected STATE rather than on a variant axis
+ *  (owner decision, 2026-09-26). See `PartDef.presentWhen`. */
+export const STATE_GATE = 'state';
+
+export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator', 'caret'] as const;
 
 /**
  * The paint slots a SLOT-FREE template is allowed to answer (#758).
@@ -2036,7 +2060,7 @@ export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator'
  * than by a list the projector also keeps: `border` is the only edge slot, so it is the only one that
  * reaches `strokes`, and everything else competes for the single `fills` array in declaration order.
  */
-export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator'] as const;
+export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator', 'caret'] as const;
 
 /**
  * The RUNTIME INTERACTION STATES a def may declare (#821, argued in `docs/39` §7(a)).
@@ -2941,6 +2965,15 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     if (drawn.length && !isShapedDisc)
       e.push(`anatomy part '${n}' declares paintSlots 'indicator' and has ${parts[drawn[0]].kind} child${drawn.length > 1 ? 'ren' : ''} [${drawn.join(', ')}] — a box may take an ink slot only when it DRAWS the mark itself, the fill lands behind the node that does (#864), or it is a deliberately-shaped filled mark (binds 'size' AND 'radius', e.g. the switch thumb carrying a state glyph — #1354). Move the ink to the drawing part's own slot, or shape the box.`);
   }
+  // A BOX CLAIMING `caret` DRAWS THE CARET ITSELF, and nothing else (owner decision, 2026-09-26). The bar
+  // is the whole mark, so a child under it is either content the caret's fill would sit behind (#864) or
+  // a caret that is secretly a container.
+  for (const n of names) {
+    const p = parts[n];
+    if (p.kind !== 'box' || !(p.paintSlots ?? []).includes('caret')) continue;
+    if ((p.children ?? []).length)
+      e.push(`anatomy part '${n}' declares paintSlots 'caret' and has children [${p.children!.join(', ')}] — the caret is a bar that draws itself, so a child is content its fill would paint behind (#864). Keep the caret a childless box beside the text it precedes`);
+  }
 
   // Every binding key anatomy names must be a slot the component actually binds, AT EVERY COORDINATE
   // the key varies over — not merely at every size (#1248). The expansion is over the def's whole
@@ -3103,11 +3136,37 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (p.kind === 'overlay' || p.kind === 'absolute')
         e.push(`anatomy part '${n}' is kind '${p.kind}' and declares 'presentWhen' as well as its own 'when' — that kind is already gated by STATE, and two presence rules on one part means one of them is not consulted`);
       for (const [axis, values] of gates) {
+        // STATE-GATED PRESENCE FOR AN IN-FLOW PART (owner decision, 2026-09-26, the field family's two text
+        // layers and its focus caret). The reserved key `state` gates on the projected STATE, the one
+        // coordinate `when` already gates for `overlay`/`absolute`. It is a key here rather than `when` on
+        // more kinds because it AND-composes with the variant gates and means what `presentWhen` means:
+        // present at these values, absent at every other. #1567/#1575 measured why the field needs it: a
+        // bound TEXT node shows its set's ONE default, so a placeholder and a value can differ per member
+        // only as two nodes, each with its own property, present at complementary states.
+        if (axis === STATE_GATE) {
+          const states = statesOf(def);
+          const projected = def.figmaProperties ? def.figmaProperties.stateAxis?.values : undefined;
+          if (def.figmaProperties && !projected)
+            e.push(`anatomy part '${n}' gates presence on 'state', but figmaProperties declares no stateAxis — no member is built at a state, so the part would be absent from every member`);
+          if (!Array.isArray(values) || !values.length)
+            e.push(`anatomy part '${n}' gates presence on 'state' with no values — an empty list is satisfied by nothing, so the part is absent everywhere`);
+          for (const v of values ?? [])
+            if (!states.includes(v))
+              e.push(`anatomy part '${n}' gates presence on state='${v}', which is not one of states [${states.join(', ')}] — the coordinate it names does not exist, so that clause never holds`);
+          // A CODE-ONLY state is admissible (the placeholder is what the `empty` field shows, and a plan can
+          // be asked at `empty`), but a gate reaching NO projected state drops the part from every member.
+          if (projected && Array.isArray(values) && values.length && !values.some((v) => projected.includes(v)))
+            e.push(`anatomy part '${n}' gates presence on state=[${values.join(', ')}], none of which figmaProperties.stateAxis projects [${projected.join(', ')}] — no member is built at any of them, so the part is absent from every member of the set`);
+          // A gate naming EVERY projected state is a no-op wearing a condition's clothes, as below.
+          if (projected && Array.isArray(values) && projected.every((v) => values.includes(v)))
+            e.push(`anatomy part '${n}' gates presence on all ${projected.length} projected states — that is the same as no gate at all, so either a state is missing from the list or the field should go`);
+          continue;
+        }
         const declared = variantsOf(def)[axis];
         // `size` is deliberately not admissible. A part present at only some rungs is the rung-ladder
         // claim (`lint-rung-names.ts`), not a presence one, and nothing in the corpus needs it — so
         // admitting it here would be adding an unexercised axis to a mechanism whose failure mode is
-        // silent absence. A STATE is refused by the same check, since `states` is not in `variants`.
+        // silent absence. A STATE is gated only through the reserved `state` key above.
         if (axis === 'size' || !declared)
           e.push(`anatomy part '${n}' gates presence on '${axis}', which is not one of this def's variant axes [${Object.keys(variantsOf(def)).join(', ') || 'none'}]${axis === 'size' ? " ('size' is deliberately excluded — a part present at only some rungs is a ladder claim, not a presence one)" : ''} — an axis the projector never supplies makes the part absent at EVERY coordinate`);
         else {

@@ -124,25 +124,25 @@
     "text-field": {
       "set": {
         "members": 24,
-        "assignments": 120,
-        "sha256": "16f19cdba2f5758f46ad3d8a8fffd85a617576ee0d0e09773054cca2c8f26ea0"
+        "assignments": 124,
+        "sha256": "cedb76c33edbcebaaae304caeca4303f971dc1060f8a429e5f605ee1453e32dc"
       },
       "grid": {
         "members": 32,
-        "assignments": 160,
-        "sha256": "ceb3631754fb1be83d3446154b896669b77a30f0f299359b208328dc285d0ffa"
+        "assignments": 164,
+        "sha256": "e0c980bad75e49100e30526935fb66ff2f6299973eb371ca7114e162f2ad4339"
       }
     },
     "textarea": {
       "set": {
         "members": 24,
-        "assignments": 120,
-        "sha256": "6cb8658c7045f311f442cf5ffea3c31003276b4309fa7d5c39252ca67b4f113f"
+        "assignments": 124,
+        "sha256": "ceae17426891e1d11da8010889bca8e345931dd3b8d9024edca78eeceaef798f"
       },
       "grid": {
         "members": 32,
-        "assignments": 160,
-        "sha256": "f16be2ebd70b55b04c848e3bae8dd26b805e0f13a1b6a44f3533cb524205be7e"
+        "assignments": 164,
+        "sha256": "c52fa90df381a9745057c649977ae7de2d1320c08ce583681f90c64cc94f1e92"
       }
     },
     "checkbox-control": {
@@ -245,12 +245,12 @@
       "set": {
         "members": 20,
         "assignments": 100,
-        "sha256": "fa4b1bc33301368a5fb31909bc0d45e1b0bd842add565b0831521b95cfb8019c"
+        "sha256": "e43119dffa79e1724d95895ee7f1c8925c7fa76581dfa930386cbf6a68ac641a"
       },
       "grid": {
         "members": 24,
         "assignments": 120,
-        "sha256": "3ea4c33ff552beb67c5ac4c86d128d6e2d8e16adeb31efbeb5a6ce4eb0fbf602"
+        "sha256": "ae16a3236ad9445ab88ccdd8f3dc9d76bb01587cfc0acd5d9925549ed736bdab"
       }
     },
     "veil": {

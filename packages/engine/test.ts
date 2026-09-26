@@ -51,7 +51,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -11043,8 +11043,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // could be deleted from `anatomyErrors` and the whole suite stays green. The precedent is `verticalAlign`'s
     // wrong-kind test (this def cites it). EXPECTED is the authored message shape; the SUBJECT is the mutated def.
     // (a) minWidth on a NON-BOX part — Figma applies a minimum width only to an auto-layout frame, so a floor
-    // on the text node would resolve, validate, and reach no node. `text` is select's only non-box, non-nest part.
-    const minWidthOnText = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, text: { ...select.anatomy.parts.text, minWidth: 320 } } } };
+    // on the text node would resolve, validate, and reach no node. `value` is one of select's two text layers (Option C).
+    const minWidthOnText = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, value: { ...select.anatomy.parts.value, minWidth: 320 } } } };
     ok(validateComponentDef(minWidthOnText as ComponentDef).errors.some((e) => /declares 'minWidth'/.test(e) && /kind 'text'/.test(e) && /only a 'box'/.test(e)),
       "#1343a a NON-box part declaring minWidth is refused BY NAME — otherwise a min-width on a leaf validates clean and reaches no node (the wrong-kind rule modelled on clipsContent/verticalAlign)");
     // (b) minWidth on a BOX with NO layout — Figma would silently drop the floor on a non-auto-layout frame.
@@ -11426,8 +11426,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(validateComponentDef(boolAndGate as never).errors.some((e) => /booleans\.leadingIcon/.test(e) && /also declares presentWhen/.test(e)),
       '#1331 a boolean on a presentWhen-gated part is refused BY NAME — the boolean is the sole presence mechanism, a variant gate would drop the node it toggles');
     //   (c) requireOptional — a boolean toggling a NON-optional part is refused (the anatomy must allow the
-    //       part to be hidden). Pinned on select's own required `text` node.
-    const boolOnRequired = { ...select, figmaProperties: { ...fp, booleans: { required: 'text' } } };
+    //       part to be hidden). Pinned on select's own required `chevron` node (its text layers are
+    //       state-gated since Option C, which a boolean is refused on for a different reason, above).
+    const boolOnRequired = { ...select, figmaProperties: { ...fp, booleans: { required: 'chevron' } } };
     ok(validateComponentDef(boolOnRequired as never).errors.some((e) => /booleans\.required/.test(e) && /not optional/.test(e)),
       '#1331 a boolean toggling a NON-optional part is refused BY NAME — the anatomy must allow the part to be hidden');
   }
@@ -13280,7 +13281,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
             const hug = ((node.children as Record<string, unknown>[]) ?? [])
               .filter((c) => c.layoutPositioning !== 'ABSOLUTE')
               .reduce((a, c) => a + ((c.width as number) || 0), 0);
-            return pad + hug + (stroked ? 2 * weight : 0);
+            // A literal `minWidth` holds the node at least that wide, as the host does and as `minHeight` below
+            // does (`component-shim.ts` models the same floor). Until the field family's two text layers
+            // (owner decision, 2026-09-26) every member of a field set carried the same copy, so the missing
+            // floor never showed; with "Placeholder" at rest and "Entered text" at filled, the stub measured
+            // the copy where the host measures the 320 control. Remove the control's `minWidth` and the
+            // #1392 footprint arm fails again, by name.
+            return Math.max(typeof node.minWidth === 'number' ? node.minWidth : 0, pad + hug + (stroked ? 2 * weight : 0));
           },
           // BOTH AXES, for one reason: a claim about only one of them is half-unfalsifiable. `height` was
           // a plain `0` field, so `kid.resize(node.width+off*2, off*2)` — the ring's height ignoring its
@@ -16478,6 +16485,29 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // part appearing too OFTEN rather than too rarely, which is why it needs its own line.
       ibBroke('a gate naming ALL of an axis\'s values fails as a no-op', /gates presence on all 3 values of 'selection'/, cbPart('mark', { presentWhen: { selection: ['unchecked', 'checked', 'indeterminate'] } }));
 
+      // THE RESERVED `state` KEY (owner decision, 2026-09-26, the field family's two text layers and focus
+      // caret) and the `caret` paint slot, same discipline: each rule deleted from `anatomyErrors` in turn
+      // fails its line BY NAME. Patched onto `text-field`, the def that uses both. Each regex is written from
+      // the RULE, not read off the validator's output.
+      const tf = componentDefs.find((d) => d.id === 'text-field')!;
+      const tfPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(tf, part, patch);
+      ibBroke('a state gate naming an UNDECLARED state fails', /gates presence on state='typing', which is not one of states/, tfPart('caret', { presentWhen: { state: ['typing'] } }));
+      ibBroke('a state gate reaching NO projected state fails — the part is absent from every member', /gates presence on state=\[empty, pending\], none of which figmaProperties\.stateAxis projects/, tfPart('caret', { presentWhen: { state: ['empty', 'pending'] } }));
+      ibBroke('a state gate with no values fails', /gates presence on 'state' with no values/, tfPart('caret', { presentWhen: { state: [] } }));
+      ibBroke('a state gate naming EVERY projected state fails as a no-op', /gates presence on all 6 projected states/, tfPart('caret', { presentWhen: { state: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only'] } }));
+      ibBroke('a state gate on a def with no stateAxis fails', /gates presence on 'state', but figmaProperties declares no stateAxis/,
+        { ...tfPart('caret', { presentWhen: { state: ['focus-visible'] } }), figmaProperties: { ...tf.figmaProperties!, stateAxis: undefined } } as ComponentDef);
+      // The reserved key is unambiguous only while no VARIANT axis can be named `state`; the closed vocabulary
+      // is what guarantees it, so a widening that admits the name fails here rather than in a def.
+      ok(!(VARIANT_AXES as readonly string[]).includes('state'),
+        "state gate: 'state' is not a variant axis name (VARIANT_AXES), so presentWhen's reserved `state` key cannot mean a variant");
+      ibBroke('a `caret` box with a child fails — the bar draws itself', /declares paintSlots 'caret' and has children/, tfPart('caret', { children: ['placeholder'] }));
+      // NEGATIVE CONTROL: the shipped text-field (a state-gated caret and two state-gated layers) draws none of these.
+      {
+        const tfErrs = validateComponentDef(tf, nbTree, nbT.root).errors.filter((x) => /presence on 'state'|presence on state|projected states|paintSlots 'caret'/.test(x));
+        ok(tfErrs.length === 0, `state gate negative control: the shipped text-field draws no state-gate or caret refusal${tfErrs.length ? ' — ' + tfErrs.join('; ') : ''}`);
+      }
+
       // The `positionWhen` rules (#990), and the failure direction is the opposite of `presentWhen`'s: a
       // mis-authored position never makes a part vanish, it leaves the part exactly where the parent's own
       // `layout.justify` already put it. So the symptom is a switch whose thumb does not travel — visible
@@ -18916,7 +18946,11 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // #1348: the radio ROW dropped its `presentWhen` part — the selection-gated dot moved to `radio-control`
   // with the painted disc — so `radio` LEAVES this set and `radio-control` joins it, the same swap #1330
   // made for checkbox → checkbox-control.
-  const GATED_EXPECTED = ['field-message', 'checkbox-control', 'radio-control', 'switch-control'];
+  // The field family joins (owner decision, 2026-09-26): text-field, textarea and select gate their two text
+  // layers, and text-field and textarea their focus caret, on the reserved `state` key. The arm below
+  // supplies that key as the projected STATE, spelled here as a literal so the oracle is not the schema's
+  // own constant.
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -18942,12 +18976,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // process before a single assertion in this block ran. That is exactly the fall-through the comment
       // below warns about, reached through the coordinate this block supplies ITSELF rather than one a def
       // authored: the hazard was understood, and only the instance that had already happened was guarded.
+      // A STATE gate varies the state itself, so the pinned coordinate carries none and `declared` is the
+      // def's states: every excluded state, projected or code-only, must drop the part.
+      const onState = axis === 'state';
       const rest: Record<string, string> = {};
-      if (statesOf(def).includes('rest')) rest.state = 'rest';
+      if (statesOf(def).includes('rest') && !onState) rest.state = 'rest';
       for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
       const has = (coord: Record<string, string>): boolean =>
         planPartNames(figmaAnatomyPlan(def, size, coord as never).root).includes(name);
-      const declared = def.variants?.[axis] ?? [];
+      const declared = onState ? statesOf(def) : def.variants?.[axis] ?? [];
       // A GATE NAMING A VALUE THE AXIS DOES NOT DECLARE IS `anatomyErrors`' ERROR, NOT THIS BLOCK'S, and
       // it has to be handed over rather than projected. `figmaAnatomyPlan` THROWS on an undeclared axis
       // value, so feeding one to the positive loop below kills the process: the suite prints a stack
@@ -18966,8 +19003,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       for (const v of declared.filter((x) => !values.includes(x)))
         ok(!has({ ...rest, [axis]: v }),
           `#910 ${def.id}: '${name}' is NOT in the tree at ${axis}=${v} — the values the gate excludes, which is the direction that makes it a gate rather than a comment`);
-      ok(!has(rest),
-        `#910 ${def.id}: '${name}' is absent when '${axis}' is not supplied at all — an unsupplied axis reads ABSENT, the conservative answer, and the case no member of the projected set can reach`);
+      // A STATE gate is the one exception, and deliberately: a state has a resting value, so an unsupplied
+      // state reads as `rest` (the paint grammar's reading too) — present exactly when the gate names rest.
+      if (onState)
+        ok(has(rest) === values.includes('rest'),
+          `#910 ${def.id}: '${name}' is ${values.includes('rest') ? 'present' : 'absent'} when 'state' is not supplied — an unsupplied state reads as rest, and this gate ${values.includes('rest') ? 'names' : 'does not name'} rest`);
+      else
+        ok(!has(rest),
+          `#910 ${def.id}: '${name}' is absent when '${axis}' is not supplied at all — an unsupplied axis reads ABSENT, the conservative answer, and the case no member of the projected set can reach`);
     }
   }
 
@@ -18995,7 +19038,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const widthDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.width && !p.aspectRatio));
   // #1354 moved the non-square track to `switch-control`, so the def binding `width` is the atom now.
-  const WIDTH_EXPECTED = ['switch-control'];
+  // The field family's focus caret (owner decision, 2026-09-26) binds `width` too: a hairline-wide bar one
+  // value line tall, two different variables, so it joins on the rule's own terms.
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -19003,14 +19048,16 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const size = sizes[Math.min(1, sizes.length - 1)];
     const coord: Record<string, string> = { state: 'rest' };
     for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size') coord[a] = vs[0];
-    const plan = figmaAnatomyPlan(def, size, coord as never);
-    const find = (part: string): any => {
+    const find = (part: string, at: Record<string, string>): any => {
+      const plan = figmaAnatomyPlan(def, size, at as never);
       const walk = (n: any): any => n.name === part ? n : (n.children ?? []).reduce((f: any, c: any) => f ?? walk(c), undefined);
       return walk(plan.root);
     };
     for (const [name, part] of Object.entries(def.anatomy!.parts)) {
       if (!part.width || part.aspectRatio) continue;
-      const node = find(name);
+      // A STATE-GATED part (the caret, at focus-visible) is read at its own first state, not at rest.
+      const gate = part.presentWhen?.state;
+      const node = find(name, gate ? { ...coord, state: gate[0] } : coord);
       const key = part.width.replace('{size}', String(size));
       const ref = (def.tokens ?? {})[key];
       ok(!!ref, `#990 ${def.id}.${name} binds width '${part.width}' and the def's own tokens map resolves it at '${key}' — a template that resolves to nothing would make the arms below vacuous`);
@@ -20190,9 +20237,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const walkPlan = (n: FigmaNodePlan, f: (n: FigmaNodePlan) => void): void => { f(n); n.children.forEach((c) => walkPlan(c, f)); };
   let textNodes = 0, claimed = 0, onNonText = 0;
   const values = new Set<string>();
-  // The ONE override in the corpus, hand-named: `textarea`'s value text sits at the TOP of the rows it
-  // reserves, as this block predicted. Every other text node keeps the default.
-  const OVERRIDES = new Set(['textarea/text:TOP']);
+  // The ONE override in the corpus, hand-named: `textarea`'s text sits at the TOP of the rows it reserves,
+  // as this block predicted. Every other text node keeps the default. Since Option C (owner decision,
+  // 2026-09-26) that text is two layers, the placeholder and the value, and both keep the override.
+  const OVERRIDES = new Set(['textarea/placeholder:TOP', 'textarea/value:TOP']);
   const overridden = new Set<string>();
   for (const def of componentDefs) {
     if (!def.figmaProperties) continue;
@@ -20215,7 +20263,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(onNonText === 0,
     `#1009: and NOTHING else carries it — textAlignVertical is a TextNode property, so a frame carrying it is a plan the executor cannot execute and Figma throws on (got ${onNonText})`);
   ok(values.size === 1 && values.has('CENTER') && [...overridden].sort().join() === [...OVERRIDES].sort().join(),
-    `#1009: the projector's default is CENTER at every text node but the one def that overrides it (textarea's value text, TOP) — got default [${[...values].join(', ')}], overrides [${[...overridden].join(', ')}]`);
+    `#1009: the projector's default is CENTER at every text node but the one def that overrides it (textarea's two text layers, TOP) — got default [${[...values].join(', ')}], overrides [${[...overridden].join(', ')}]`);
 
   // THE OVERRIDE EXISTS AND WORKS, exercised on a synthesised part rather than waiting for `textarea`'s
   // anatomy. An opt-out that ships after the default is an opt-out nobody could have used, so it has to
@@ -20284,12 +20332,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // which is the mechanical half of the same fact (no room to grow into a second line).
     'select.content':
       "a select shows one option's label ellipsized to a single line, so the value row does not wrap — the first line IS the block and centring the leading glyph against it cannot float it mid-paragraph. The control's fixed single-line height is the mechanical half of the same fact.",
-    // `text-field`'s value row is select's shape exactly (#1494): an optional leading glyph paired with the
-    // single-line value/placeholder text, in a control box of fixed single-line height. It does not wrap
-    // (the value ellipsizes to one line), so centring the leading glyph against the first — and only — line
-    // cannot float it mid-paragraph. The fixed control height is the mechanical half of the same fact.
-    'text-field.content':
-      "text-field's value row shows the single-line value/placeholder ellipsized to one line, so it does not wrap — the first line IS the block and centring the leading glyph against it cannot float it mid-paragraph. The control's fixed single-line height is the mechanical half of the same fact (identical to select.content).",
+    // `text-field`'s entry row (owner decision, 2026-09-26) pairs the focus caret with the single-line
+    // placeholder or value. Its `content` row no longer holds text directly (the entry sits between), so the
+    // exemption moved here with the same design fact: the text ellipsizes to one line and never wraps, and
+    // the caret is exactly one line box tall, so centring it against the first — and only — line is the
+    // host's own caret placement. The fixed control height is the mechanical half of the same fact.
+    'text-field.entry':
+      "text-field's entry row shows the single-line placeholder or value ellipsized to one line, so it does not wrap — the first line IS the block, and the caret, one line box tall, centred against it sits where a native caret sits. The control's fixed single-line height is the mechanical half of the same fact (as select.content).",
   };
   let pairedRows = 0;
   const centred: string[] = [];

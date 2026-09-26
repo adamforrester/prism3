@@ -3532,8 +3532,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const ROWS = 3;
   const textarea = componentDefs.find((d) => d.id === 'textarea')!;
   const taPlans = figmaAnatomySet(materializeForBrand(textarea, null), { swapTarget: SWAP });
-  // The VALUE text's style — the control's `text` node, found by name, now that the counter adds a caption.
-  const textOf = (n: AnatomyPlan['root']): AnatomyPlan['root'] | undefined => n.name === 'text' ? n : n.children.map(textOf).find(Boolean);
+  // The VALUE text's style — the control's text layer, found by name, now that the counter adds a caption.
+  // Since Option C (owner decision, 2026-09-26) that is the `placeholder` or the `value` layer, whichever
+  // the member's state shows; both set in the one style.
+  const textOf = (n: AnatomyPlan['root']): AnatomyPlan['root'] | undefined => n.name === 'placeholder' || n.name === 'value' ? n : n.children.map(textOf).find(Boolean);
   const valueStyles = [...new Set(taPlans.map((p) => textOf(p.root)?.textStyle))];
   ok(valueStyles.length === 1 && !!valueStyles[0], `textarea rows: the value text sets in exactly one style (${valueStyles.join(', ')})`);
   const VALUE = valueStyles[0]!;
@@ -3585,10 +3587,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   }
 
   // (d) MUTATION, BY NAME: without `lines` the value text is one line and the control is one line tall.
-  const unreserved: ComponentDef = { ...textarea, anatomy: { ...textarea.anatomy!, parts: { ...textarea.anatomy!.parts, text: { ...textarea.anatomy!.parts.text, lines: undefined } } } };
+  const unreserved: ComponentDef = { ...textarea, anatomy: { ...textarea.anatomy!, parts: { ...textarea.anatomy!.parts, placeholder: { ...textarea.anatomy!.parts.placeholder, lines: undefined }, value: { ...textarea.anatomy!.parts.value, lines: undefined } } } };
   const bare = await buildTextarea(NB, unreserved);
   ok(bare.heights.length === 1 && Math.abs(bare.heights[0] - (lineOf(NB) + 2 * PAD_Y)) < 1e-6,
-    `textarea rows MUTATION: with the text's \`lines\` removed the control is ONE line tall, ${lineOf(NB)} + 2 × ${PAD_Y} (got [${bare.heights.join(', ')}]) — so the arms above measure the reserved rows, not a hug that happens to agree`);
+    `textarea rows MUTATION: with both text layers' \`lines\` removed the control is ONE line tall, ${lineOf(NB)} + 2 × ${PAD_Y} (got [${bare.heights.join(', ')}]) — so the arms above measure the reserved rows, not a hug that happens to agree`);
 }
 
 // ---- THE TEXTAREA'S RESIZE GRIP AND CHARACTER COUNTER (owner decisions (c) and (d), 2026-09-25) ------
@@ -3685,7 +3687,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   for (const m of b.members) {
     const g = find(m, 'grip');
     const ctl = find(m, 'control');
-    const text = find(ctl, 'text');
+    const text = find(ctl, 'placeholder') ?? find(ctl, 'value');   // the layer this member's state shows (Option C)
     if (!g || !ctl || !text) { gripFoot.push(`${m.name}: incomplete`); continue; }
     text.characters = LONG;
     if ((ctl.width as number) > 320) contentDriven++;
@@ -3764,27 +3766,58 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   }
 }
 
-// ---- THE FIELD FAMILY'S FILLED STATE: TEXT INK BY STATE (owner decision, 2026-09-25) ---------------
-// Every non-filled state shows the placeholder in `text.secondary` (rest, hover, focus-visible); disabled
-// uses the disabled ink; `filled` shows the value in `text.primary`; read-only shows a value, so primary too.
-// The map below is TYPED FROM THAT RULE (docs/34) — never read off a def or a plan — and every projected
-// member of text-field, textarea and select is built through the REAL executor and its value text's bound
-// fill read back off the shim. The state column must be exactly the owner's: a member at a state the map
-// does not name, or a map state with no member, fails as loudly as a wrong ink.
+// ---- THE FIELD FAMILY'S TEXT LAYERS AND INK BY STATE (owner decisions, 2026-09-25 and 2026-09-26) ------
+// Option C: two text layers, each driven by its own TEXT property. The `placeholder` layer shows at rest,
+// hover, focus-visible and disabled, in `text.secondary` (the disabled ink at disabled); the `value` layer
+// shows at filled and read-only, in `text.primary`. At every member exactly ONE layer is present, it is the
+// one the map names, it binds the map's ink, and it references the property named after it. The map is
+// TYPED FROM THE OWNER'S RULE (docs/34), never read off a def or a plan, and every projected member of
+// text-field, textarea and select is built through the REAL executor and read back off the shim. A member
+// at a state the map does not name, or a map state with no member, fails as loudly as a wrong ink.
 //
-// The mutations it exists to catch, by name: `filled` bound to secondary, or `hover` bound to primary, in
-// any of the three defs fails `field ink (<def>)`.
+// The mutations it exists to catch, by name: the value layer shown at rest, `filled` bound to secondary, or
+// `hover` bound to primary, in any of the three defs fails `field ink (<def>)`.
+//
+// THE FOCUS CARET (owner decision, 2026-09-26), `field caret (<def>)`: on text-field and textarea a caret is
+// present at focus-visible and at no other state, binds `color/text/primary`, is `border-width/hairline`
+// wide, sits immediately before the placeholder in the same row, and is exactly one line of the value's type
+// tall. That last oracle is the NB brand's emitted text STYLE (font size × line height, `buildFigmaTextStyles`)
+// against the NB value of the variable the caret binds (`buildTree`): two emitters, neither the def. And the
+// focus-visible member measures what its rest sibling does. select has no caret at any state (held for the
+// owner: a select takes no typed text). Mutations by name: the caret shown at hover, or its ink secondary.
 {
   const PLACEHOLDER = 'color/text/secondary';
   const VALUE = 'color/text/primary';
-  const DISABLED = 'color/disabled/on-fill';   // the value text sits on the disabled fill
-  const INK: Record<string, Record<string, string>> = {
-    'text-field': { rest: PLACEHOLDER, hover: PLACEHOLDER, filled: VALUE, 'focus-visible': PLACEHOLDER, disabled: DISABLED, 'read-only': VALUE },
-    textarea: { rest: PLACEHOLDER, hover: PLACEHOLDER, filled: VALUE, 'focus-visible': PLACEHOLDER, disabled: DISABLED, 'read-only': VALUE },
-    select: { rest: PLACEHOLDER, hover: PLACEHOLDER, filled: VALUE, 'focus-visible': PLACEHOLDER, disabled: DISABLED },
+  const DISABLED = 'color/disabled/on-fill';   // the placeholder sits on the disabled fill
+  type Layer = 'placeholder' | 'value';
+  const INK: Record<string, Record<string, [Layer, string]>> = {
+    'text-field': { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
+    textarea: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
+    select: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED] },
+  };
+  // Which defs draw the caret, and at which states. select is typed empty on purpose (see above).
+  const CARET_AT: Record<string, string[]> = { 'text-field': ['focus-visible'], textarea: ['focus-visible'], select: [] };
+  const CARET_INK = 'color/text/primary';
+  const CARET_WIDTH = 'border-width/hairline';
+  // One line of NB's value type: the emitted style's font size (through NB's own tree) × its line height.
+  const nbTreeAll = buildTree(nbTheme()).tree as any;
+  const nbStyles = buildFigmaTextStyles(nbTheme()).styles;
+  const nbLineOf = (style: string): number => {
+    const st = nbStyles.find((x) => x.name === style)!;
+    const sizeVar = (st.properties.fontSize as { variable: string }).variable.split('/');
+    const px = pxOf(nbTreeAll, sizeVar.slice(1).reduce<any>((o, k) => o?.[k], nbTreeAll[sizeVar[0]]));
+    const lh = (st.properties.lineHeight as { value: { unit: string; value: number } }).value;
+    return lh.unit === 'PIXELS' ? lh.value : (lh.value / 100) * px;
+  };
+  const nbVarPx = (name: string): number => {
+    const segs = name.split('/');
+    return pxOf(nbTreeAll, segs.reduce<any>((o, k) => o?.[k], nbTreeAll[Object.keys(nbTreeAll)[0]]));
   };
   const STATUSES = ['default', 'error', 'warning', 'success'];
   const named = (n: Node, name: string): Node | undefined => n.name === name ? n : ((n.children as Node[]) ?? []).map((c) => named(c, name)).find(Boolean);
+  const parentOf = (n: Node, child: Node): Node | undefined => ((n.children as Node[]) ?? []).includes(child) ? n : ((n.children as Node[]) ?? []).map((c) => parentOf(c, child)).find(Boolean);
+  const boundName = (n: Node, prop: string): string | undefined => ((n.boundVariables as Record<string, { id?: string }> | undefined)?.[prop]?.id ?? '').replace(/^V:/, '') || undefined;
+  const refProp = (n: Node): string => String(((n.componentPropertyReferences ?? {}) as Record<string, string>).characters ?? '').split('#')[0];
   const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
   const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
   const f = fullFor(all);
@@ -3798,19 +3831,47 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const set = page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET') as Node | undefined;
     const members = ((set?.children as Node[] | undefined) ?? []);
     const wrong: string[] = [];
+    const caretWrong: string[] = [];
     const seen = new Set<string>();
+    const boxAt = new Map<string, string>();
+    let carets = 0;
     for (const m of members) {
       const coord = Object.fromEntries(String(m.name).split(', ').map((kv) => kv.split('=')));
       const state = coord.state;
       seen.add(`${coord.status}|${state}`);
-      const text = named(m, 'text');
-      const got = text ? paintVar(text, 'fills') : 'NO TEXT';
-      if (!(state in want)) wrong.push(`${m.name}: a state the owner's rule does not name`);
-      else if (got !== want[state]) wrong.push(`${m.name}: ${got}, want ${want[state]}`);
+      boxAt.set(`${coord.status}|${state}`, `${Math.round(m.width as number)}x${Math.round(m.height as number)}`);
+      const ph = named(m, 'placeholder');
+      const val = named(m, 'value');
+      if (!(state in want)) { wrong.push(`${m.name}: a state the owner's rule does not name`); continue; }
+      const [layer, ink] = want[state];
+      const shown = layer === 'placeholder' ? ph : val;
+      const other = layer === 'placeholder' ? val : ph;
+      if (!shown) wrong.push(`${m.name}: no ${layer} layer, want it shown`);
+      else if (other) wrong.push(`${m.name}: both layers present, want ${layer} only`);
+      else if (paintVar(shown, 'fills') !== ink) wrong.push(`${m.name}: ${layer} ${paintVar(shown, 'fills')}, want ${ink}`);
+      else if (refProp(shown) !== layer) wrong.push(`${m.name}: the ${layer} layer references '${refProp(shown)}', want its own '${layer}' property`);
+      // The caret.
+      const caret = named(m, 'caret');
+      const due = CARET_AT[id].includes(state);
+      if (caret) carets++;
+      if (due !== !!caret) { caretWrong.push(`${m.name}: caret ${caret ? 'present' : 'absent'}, want ${due ? 'present' : 'absent'}`); continue; }
+      if (!caret) continue;
+      const row = parentOf(m, caret);
+      const kids = ((row?.children as Node[]) ?? []);
+      const lineWant = ph ? nbLineOf(String(ph._textStyleId ?? '').replace(/^S:/, '')) : NaN;
+      const hName = boundName(caret, 'height');
+      if (paintVar(caret, 'fills') !== CARET_INK) caretWrong.push(`${m.name}: caret ${paintVar(caret, 'fills')}, want ${CARET_INK}`);
+      else if (boundName(caret, 'width') !== CARET_WIDTH) caretWrong.push(`${m.name}: caret width ${boundName(caret, 'width')}, want ${CARET_WIDTH}`);
+      else if (!ph || kids[kids.indexOf(caret) + 1] !== ph) caretWrong.push(`${m.name}: caret is not immediately before the placeholder (row [${kids.map((k) => k.name).join(', ')}])`);
+      else if (!hName || !(Math.abs(nbVarPx(hName) - lineWant) < 1e-6)) caretWrong.push(`${m.name}: caret height ${hName} is ${hName ? nbVarPx(hName) : '?'}px on NB, want one line of the value type, ${lineWant}px`);
     }
     const missing = STATUSES.flatMap((st) => Object.keys(want).filter((s2) => !seen.has(`${st}|${s2}`)).map((s2) => `status=${st}, state=${s2}`));
     ok(r.misses.length === 0 && members.length === STATUSES.length * Object.keys(want).length && wrong.length === 0 && missing.length === 0,
-      `field ink (${id}): on all ${members.length} members the value text binds the owner's ink for its state — placeholder ${PLACEHOLDER} at rest/hover/focus-visible, value ${VALUE} at filled${'read-only' in want ? '/read-only' : ''}, ${DISABLED} at disabled (${wrong.length} wrong — ${wrong[0] ?? 'none'}; ${missing.length} missing — ${missing[0] ?? 'none'}; ${r.misses[0] ?? '0 misses'})`);
+      `field ink (${id}): on all ${members.length} members exactly one text layer shows, the owner's for its state, in the owner's ink and on its own property — placeholder ${PLACEHOLDER} at rest/hover/focus-visible, ${DISABLED} at disabled, value ${VALUE} at filled${'read-only' in want ? '/read-only' : ''} (${wrong.length} wrong — ${wrong[0] ?? 'none'}; ${missing.length} missing — ${missing[0] ?? 'none'}; ${r.misses[0] ?? '0 misses'})`);
+    const drift = STATUSES.filter((st) => boxAt.get(`${st}|focus-visible`) !== boxAt.get(`${st}|rest`)).map((st) => `status=${st}: focus-visible ${boxAt.get(`${st}|focus-visible`)}, rest ${boxAt.get(`${st}|rest`)}`);
+    const caretMembers = STATUSES.length * CARET_AT[id].length;
+    ok(caretWrong.length === 0 && carets === caretMembers && drift.length === 0 && !r.misses.some((x) => x.startsWith('footprint -> ')),
+      `field caret (${id}): ${caretMembers ? `a caret on exactly the ${caretMembers} focus-visible members — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall, immediately before the placeholder — and each focus-visible member measures its rest sibling` : 'no caret on any member'} (${carets} caret(s); ${caretWrong.length} wrong — ${caretWrong[0] ?? 'none'}; ${drift.length} footprint drift — ${drift[0] ?? 'none'})`);
   }
 }
 

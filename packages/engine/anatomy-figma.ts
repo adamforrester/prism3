@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
-import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, WEIGHT_INTENTS } from './component-schema';
+import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPart, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, ButtonIcons, ButtonContentSize } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
@@ -1148,7 +1148,12 @@ export const figmaAnatomyPlan = (
     // would give it both at once in a tree no member of the set ever builds.
     if (p?.presentWhen)
       for (const [axis, values] of Object.entries(p.presentWhen)) {
-        const v = axisValue(axis);
+        // The reserved `state` key reads the projected STATE (owner decision, 2026-09-26). No variant axis
+        // can share the name: `VARIANT_AXES` is closed and excludes it (`test.ts` pins that). Unlike a variant
+        // axis, a state HAS a resting value, and an unsupplied state IS rest everywhere else in this builder
+        // (the paint grammar resolves the bare `{slot}` key there, and `lint-paint`'s grid census enumerates
+        // rest that way), so the gate reads it as `rest` rather than as absent.
+        const v = axis === STATE_GATE ? (state ?? 'rest') : axisValue(axis);
         if (v === undefined || !values.includes(v)) return false;
       }
     // An `absolute` part is state-gated exactly as an overlay is — it appears on its `when` state and
