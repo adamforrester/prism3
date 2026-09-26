@@ -127,7 +127,57 @@ import type { ComponentDef } from './component-schema';
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip'];
+const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip', 'spinner.ring'];
+
+/**
+ * COMPOSED GLYPHS (#1670) — a vector part whose glyph is not in the icon set and draws several filled
+ * LAYERS in one document. The spinner is the one: a track and a head arc. Every arm above assumes one
+ * `<path>` from `ICON_PATHS`, so a composed part is measured here instead, against the OWNER'S NUMBERS
+ * (2026-09-26) stated in this file — not read from `component-glyphs.ts`, which is the subject. A def or a
+ * geometry change that moves the arc length, drops the track, loses the round caps or stops the band scaling
+ * with size fails here by name.
+ *
+ *   · `ringRadius`/`band` — the centerline radius and the band's width on the 24-unit artboard (the
+ *     comparison page's viewBox, radius 10, a 2-unit band).
+ *   · `arc` — the head's length as a fraction of the circle, on the centerline, starting at twelve o'clock.
+ *   · `trackOpacity` — the faint full ring's layer opacity.
+ *   · `strokePx` — the band as RENDERED at each size member: the owner's table (2px at 24, 1.33 at 16,
+ *     1.67 at 20, 2.67 at 32). Read from the member's frame binding through `RUNG_PX`, the icon ladder as
+ *     the owner wrote it, so a size that stops scaling the band is caught at the member it breaks.
+ */
+const COMPOSED_GLYPH: Record<string, {
+  glyph: string; ringRadius: number; band: number; arc: number; trackOpacity: number;
+  strokePx: Record<string, number>; why: string;
+}> = {
+  'spinner.ring': {
+    glyph: 'spinner', ringRadius: 10, band: 2, arc: 0.33, trackOpacity: 0.2,
+    strokePx: { 'x-small': 1.33, small: 1.67, medium: 2, large: 2.67 },
+    why: 'The indeterminate spinner (#1670): a faint full ring under a round-capped head arc, one static member per size.',
+  },
+};
+/** The icon ladder in px, per rung variable — the owner's 16 / 20 / 24 / 32. */
+const RUNG_PX: Record<string, number> = { 'icon/size/xs': 16, 'icon/size/sm': 20, 'icon/size/md': 24, 'icon/size/lg': 32 };
+
+type ArcSeg = { rx: number; ry: number; large: number; sweep: number; from: [number, number]; to: [number, number] };
+/** A path made of M / A / Z only, split into subpaths of arc segments. Throws on anything else — a composed
+ *  glyph that starts using other commands needs this reader extended, not skipped. */
+const arcSubpaths = (d: string): ArcSeg[][] => {
+  const toks = d.match(/[MAZmaz]|-?[0-9]*\.?[0-9]+/g) ?? [];
+  const out: ArcSeg[][] = [];
+  let cur: ArcSeg[] = [];
+  let pos: [number, number] = [0, 0];
+  let i = 0;
+  const num = () => { const v = Number(toks[i++]); if (!Number.isFinite(v)) throw new Error(`bad number in '${d.slice(0, 40)}…'`); return v; };
+  while (i < toks.length) {
+    const c = toks[i++];
+    if (c === 'M') { if (cur.length) out.push(cur); cur = []; pos = [num(), num()]; }
+    else if (c === 'A') { const rx = num(), ry = num(); num(); const large = num(), sweep = num(); const to: [number, number] = [num(), num()]; cur.push({ rx, ry, large, sweep, from: pos, to }); pos = to; }
+    else if (c === 'Z') { /* close */ }
+    else throw new Error(`command '${c}' — a composed glyph is read as M/A/Z only`);
+  }
+  if (cur.length) out.push(cur);
+  return out;
+};
 
 /**
  * VECTOR PARTS THAT DRAW ONE FIXED GLYPH, keyed `<def>.<part>` → the name they draw and why.
@@ -479,6 +529,110 @@ for (const def of componentDefs as ComponentDef[]) {
     // Compared by VALUE in both directions: a def scaling a part this table omits fails as an undeclared
     // inset, an entry the def no longer carries fails as stale (its OTHER direction is the STALE sweep at
     // the end of the file, for a part removed entirely). `paddedArtboard` re-derives the box arm D wants.
+    // A COMPOSED glyph (#1670) is measured by its own arm and skips the icon-set arms below.
+    const composedRec = COMPOSED_GLYPH[key];
+    if (composedRec) {
+      covered.add(key);
+      if (part.glyph !== composedRec.glyph) {
+        failures.push(`${def.id}.${partName}: the def draws glyph '${part.glyph ?? '(none)'}' and COMPOSED_GLYPH records '${composedRec.glyph}'. One of the two moved.`);
+        continue;
+      }
+      const near = (a: number, b: number, tol = 0.01) => Math.abs(a - b) <= tol;
+      const C = vb.w / 2, ro = composedRec.ringRadius + composedRec.band / 2, ri = composedRec.ringRadius - composedRec.band / 2, cap = composedRec.band / 2;
+      const ang = (p: [number, number]) => (Math.atan2(p[1] - C, p[0] - C) * 180) / Math.PI;
+      const onCircle = (p: [number, number], r: number) => near(Math.hypot(p[0] - C, p[1] - C), r, 0.005);
+      const seenSizes = new Set<string>();
+      for (const plan of set) {
+        const at = `size=${plan.size ?? '(none)'}`;
+        const nodes = glyphNodes(plan).filter((g) => g.part === partName);
+        if (nodes.length !== 1) { failures.push(`${def.id}.${partName} @ ${at}: ${nodes.length} GLYPH node(s), expected exactly 1.`); continue; }
+        const svg = nodes[0].node.glyphSvg ?? '';
+        const els = [...svg.matchAll(/<path\b[^>]*>/g)].map((m) => m[0]);
+        const layer = (id: string) => els.find((e) => new RegExp(`\\bid="${id}"`).test(e));
+        const attr = (e: string | undefined, a: string) => (e ? new RegExp(`\\s${a}="([^"]*)"`).exec(e)?.[1] : undefined);
+        const track = layer('track'), head = layer('arc');
+        if (els.length !== 2 || !track || !head) {
+          failures.push(`${def.id}.${partName} @ ${at}: the document carries ${els.length} <path> element(s) [${els.map((e) => attr(e, 'id') ?? '?').join(', ')}], expected exactly a 'track' and an 'arc' — the spinner is a faint full ring under a head arc.`);
+          continue;
+        }
+        for (const [nm, e] of [['track', track], ['arc', head]] as const)
+          if (attr(e, 'fill') !== 'currentColor') failures.push(`${def.id}.${partName} @ ${at}: the ${nm} layer has fill="${attr(e, 'fill') ?? 'absent'}" — both layers take the one ink the host pushes.`);
+        // THE TRACK: 20% layer opacity, a full annulus on the band.
+        const tOp = Number(attr(track, 'opacity') ?? 'NaN');
+        if (!near(tOp, composedRec.trackOpacity, 1e-9))
+          failures.push(`${def.id}.${partName} @ ${at}: the track's layer opacity is ${attr(track, 'opacity') ?? 'absent'}, expected ${composedRec.trackOpacity} — the faint full ring at ${composedRec.trackOpacity * 100}% of the spinner's own color.`);
+        if (attr(head, 'opacity') !== undefined)
+          failures.push(`${def.id}.${partName} @ ${at}: the arc carries opacity="${attr(head, 'opacity')}" — the head draws at full strength.`);
+        try {
+          const tSubs = arcSubpaths(attr(track, 'd') ?? '');
+          const radii = tSubs.map((sp) => sp.map((g) => g.rx));
+          const full = tSubs.length === 2 && tSubs.every((sp) => sp.length === 2 && sp[0].rx === sp[0].ry && sp[1].rx === sp[0].rx && near(sp[1].to[0], sp[0].from[0]) && near(sp[1].to[1], sp[0].from[1]));
+          const rs = radii.map((r) => r[0]).sort((a, b) => a - b);
+          if (!full || !near(rs[0], ri) || !near(rs[1], ro) || attr(track, 'fill-rule') !== 'evenodd')
+            failures.push(`${def.id}.${partName} @ ${at}: the track is not a full ring between radius ${ri} and ${ro} (read radii ${JSON.stringify(radii)}, fill-rule ${attr(track, 'fill-rule') ?? 'absent'}) — the band is ${composedRec.band} units wide on a ${composedRec.ringRadius}-unit radius.`);
+        } catch (err) { failures.push(`${def.id}.${partName} @ ${at}: the track could not be measured — ${(err as Error).message}`); }
+        // THE ARC: outer edge, cap, inner edge, cap — band width, round caps, 33% from twelve o'clock.
+        try {
+          const hSubs = arcSubpaths(attr(head, 'd') ?? '');
+          const sp = hSubs[0] ?? [];
+          if (hSubs.length !== 1 || sp.length !== 4) throw new Error(`${hSubs.length} subpath(s) of ${sp.length} arc(s), expected one closed outline of 4 (outer edge, cap, inner edge, cap)`);
+          const [outer, capEnd, inner, capStart] = sp;
+          if (!near(outer.rx, ro) || !onCircle(outer.from, ro) || !onCircle(outer.to, ro) || !near(inner.rx, ri) || !onCircle(inner.from, ri) || !onCircle(inner.to, ri))
+            failures.push(`${def.id}.${partName} @ ${at}: the arc's edges sit at radius ${outer.rx} and ${inner.rx}, expected ${ro} and ${ri} — a band ${composedRec.band} units wide on the ${composedRec.ringRadius}-unit ring.`);
+          const roundCap = (g: ArcSeg) => near(g.rx, cap) && near(g.ry, cap) && near(Math.hypot(g.to[0] - g.from[0], g.to[1] - g.from[1]), 2 * cap, 0.005);
+          if (!roundCap(capEnd) || !roundCap(capStart))
+            failures.push(`${def.id}.${partName} @ ${at}: the arc's ends are not round caps — each end must be a semicircle of radius ${cap} across the band (read radii ${capEnd.rx} and ${capStart.rx}).`);
+          // THE CAPS BULGE OUTWARD, past each end of the arc (review finding: radius and span alone pass a cap
+          // flipped to sweep 0, which cuts a notch into the band instead). A semicircle's apex is its chord's
+          // midpoint plus a quarter turn in the direction of travel — SVG's y runs down, so sweep 1 is +90° —
+          // and its offset along the ring's clockwise tangent must be +cap at the end and -cap at the start.
+          const capBulge = (g: ArcSeg, deg: number): number => {
+            const m: [number, number] = [(g.from[0] + g.to[0]) / 2, (g.from[1] + g.to[1]) / 2];
+            const t0 = Math.atan2(g.from[1] - m[1], g.from[0] - m[0]) + (g.sweep === 1 ? Math.PI / 2 : -Math.PI / 2);
+            const apex = [m[0] + cap * Math.cos(t0), m[1] + cap * Math.sin(t0)];
+            const t = (deg * Math.PI) / 180;
+            return (apex[0] - m[0]) * -Math.sin(t) + (apex[1] - m[1]) * Math.cos(t);
+          };
+          const endDeg = ang(outer.to), startDeg = ang(outer.from);
+          const bulgeEnd = capBulge(capEnd, endDeg), bulgeStart = capBulge(capStart, startDeg);
+          if (!near(bulgeEnd, cap, 0.005) || !near(bulgeStart, -cap, 0.005))
+            failures.push(`${def.id}.${partName} @ ${at}: the arc's caps do not bulge outward past its ends — the end cap reaches ${bulgeEnd.toFixed(3)} and the start cap ${bulgeStart.toFixed(3)} along the ring, expected +${cap} and -${cap} (sweep flags ${capEnd.sweep} and ${capStart.sweep}).`);
+          // AND THE INNER EDGE ENDS WHERE THE OUTER ONE DOES, so each cap spans the band square across it.
+          const angDiff = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
+          if (angDiff(ang(inner.from), endDeg) > 0.05 || angDiff(ang(inner.to), startDeg) > 0.05)
+            failures.push(`${def.id}.${partName} @ ${at}: the arc's inner edge runs ${ang(inner.from).toFixed(2)}° → ${ang(inner.to).toFixed(2)}°, and its outer edge ${startDeg.toFixed(2)}° → ${endDeg.toFixed(2)}° — the two edges must end at the same angles.`);
+          if (!near(ang(outer.from), -90, 0.05))
+            failures.push(`${def.id}.${partName} @ ${at}: the arc starts at ${ang(outer.from).toFixed(2)}°, expected -90° (twelve o'clock).`);
+          let sweepDeg = ang(outer.to) - ang(outer.from);
+          if (outer.sweep !== 1) sweepDeg = -sweepDeg;
+          sweepDeg = ((sweepDeg % 360) + 360) % 360;
+          if (outer.large === 1 && sweepDeg < 180) sweepDeg = 360 - sweepDeg;
+          const fraction = sweepDeg / 360;
+          if (!near(fraction, composedRec.arc, 0.0005) || outer.sweep !== 1)
+            failures.push(`${def.id}.${partName} @ ${at}: the arc covers ${(fraction * 100).toFixed(2)}% of the circle${outer.sweep !== 1 ? ' counter-clockwise' : ''}, expected ${composedRec.arc * 100}% clockwise from twelve o'clock.`);
+        } catch (err) { failures.push(`${def.id}.${partName} @ ${at}: the arc could not be measured — ${(err as Error).message}`); }
+        // THE BAND AS RENDERED at this member's size: document units × (frame px ÷ artboard units).
+        const rung = plan.root.bound?.width;
+        const px = rung ? RUNG_PX[rung] : undefined;
+        const want = composedRec.strokePx[plan.size ?? ''];
+        const docW = Number(/<svg\b[^>]*\bwidth="([0-9.]+)"/.exec(svg)?.[1]);
+        if (px === undefined || want === undefined || !(docW > 0))
+          failures.push(`${def.id}.${partName} @ ${at}: cannot read the rendered band — frame binds '${rung ?? '(nothing)'}', the owner's table has ${want === undefined ? 'no row for this size' : want}, artboard width ${docW || 'absent'}.`);
+        else {
+          const rendered = composedRec.band * (px / docW);
+          if (!near(rendered, want, 0.005))
+            failures.push(`${def.id}.${partName} @ ${at}: the band renders at ${rendered.toFixed(2)}px (${composedRec.band} units on a ${docW}-unit artboard in a ${px}px frame), expected ${want}px — the stroke must scale with the size.`);
+          if (nodes[0].node.bound?.width !== rung)
+            failures.push(`${def.id}.${partName} @ ${at}: the glyph binds '${nodes[0].node.bound?.width ?? '(nothing)'}' and its frame '${rung}' — the drawing must fill the member's square.`);
+        }
+        seenSizes.add(plan.size ?? '');
+        glyphChecks++;
+      }
+      const missing = Object.keys(composedRec.strokePx).filter((z) => !seenSizes.has(z));
+      if (missing.length) failures.push(`${def.id}.${partName}: no member at size [${missing.join(', ')}] — the owner's ladder is 16 / 20 / 24 / 32.`);
+      notes.push(`${key}: composed '${composedRec.glyph}' (track + arc) measured at ${seenSizes.size} size member(s)`);
+      continue;
+    }
     const scaled = SCALED_GLYPH[key];
     if (part.glyphScale !== undefined && !scaled) {
       failures.push(`${def.id}.${partName}: the def declares glyphScale ${part.glyphScale} and SCALED_GLYPH records no inset for it — an undeclared artboard pad would let arm D's "the artboard is the set's own square" be relaxed with nothing checking to what. Add '${key}' to SCALED_GLYPH with the scale and why.`);
@@ -737,6 +891,10 @@ for (const key of Object.keys(FIXED_GLYPH))
 // see an entry naming a part that no longer exists — a part removed entirely is never reached. So the
 // artboard-pad exemption is made perishable here: an entry for a vanished part fails as stale rather than
 // outliving its subject and relaxing arm D for whatever part next takes that name.
+for (const key of Object.keys(COMPOSED_GLYPH))
+  if (!vectorParts.has(key))
+    failures.push(`STALE COMPOSED_GLYPH: '${key}' records a composed '${COMPOSED_GLYPH[key].glyph}', and no def declares a vector part by that name.`);
+
 for (const key of Object.keys(SCALED_GLYPH))
   if (!vectorParts.has(key))
     failures.push(`STALE SCALED_GLYPH: '${key}' records a glyphScale of ${SCALED_GLYPH[key].scale}, and no def declares a vector part by that name. The per-part loop cannot see this, so the padded-artboard exemption would outlive its subject and let arm D be relaxed for the next part to take that name.`);

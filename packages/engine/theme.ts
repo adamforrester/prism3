@@ -780,6 +780,10 @@ const EASING_ROLE_DEFAULTS = [
 ] as const;
 const DURATION_BASE: Record<string, number> = { instant: 50, fast: 100, normal: 200, moderate: 300, slow: 500, slower: 800 };
 const TEMPO_FACTOR = { snappy: 0.8, standard: 1, relaxed: 1.3 } as const;
+/** The spinner's turn (#1670): `motion.duration.spin` / `motion.duration-reduced.spin`. Fixed, not tempo-scaled. */
+export const SPIN_ROLE = 'spin';
+export const SPIN_MS = 800;
+export const SPIN_REDUCED_MS = 2600;
 const round5 = (n: number) => Math.round(n / 5) * 5;
 
 const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
@@ -791,6 +795,13 @@ const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
   // (vestibular/decorative) → 0 (substituted by an instant cross-fade downstream).
   const durationReduced: Record<string, number> = {};
   for (const [k, v] of Object.entries(duration)) durationReduced[k] = v <= 100 ? v : v <= 200 ? 50 : 0;
+  // ONE TURN OF A SPINNER (#1670, owner spec 2026-09-26) — a loop PERIOD, not a transition, so it sits
+  // outside the tempo-scaled ramp and outside the reduce-motion rule above: 0.8s per turn at every tempo,
+  // and under reduced motion a SLOW turn (2.6s) rather than a shorter or eliminated one. The spinner is
+  // functional — it is how a sighted user knows work is still happening — so reduced motion slows it
+  // instead of removing it. Written after the ramp loops so neither formula touches it.
+  duration[SPIN_ROLE] = SPIN_MS;
+  durationReduced[SPIN_ROLE] = SPIN_REDUCED_MS;
   const easing: Record<string, Bezier> = {
     // Curves are named for their SHAPE, roles for their USE. They used to share names — `easing.enter`
     // and `easing-role.enter` — which made the role table read `enter → enter` and gave a reader no way

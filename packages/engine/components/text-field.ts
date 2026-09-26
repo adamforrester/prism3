@@ -553,10 +553,10 @@ export const textField: ComponentDef = {
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'focus-ring', 'icon', 'button'],
+    composesWith: ['field-label', 'field-message', 'focus-ring', 'icon', 'button', 'spinner'],
     alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row'],
     replacesPatterns: ['bare input without label wiring', 'placeholder-as-label', 'type=number for formatted numeric'],
-    planned: ['spinner', 'form', 'tooltip', 'combobox', 'number-field', 'search-field', 'date-picker', 'password-field'],
+    planned: ['form', 'tooltip', 'combobox', 'number-field', 'search-field', 'date-picker', 'password-field'],
   },
 
   notes: {

@@ -2926,6 +2926,33 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.169.0 — #1670: the Spinner component, to the owner's spec (2026-09-26), and the button's pending state
+ * swaps it in. `spinner` is a new def: four standalone `spinner/<size>` components on the icon ladder
+ * (16 / 20 / 24 / 32), each one composed glyph — a full ring at 20% layer opacity under a 33% head arc with
+ * round caps, drawn as filled outlines on the 24-unit artboard so the 2px band scales with size. The glyph
+ * lives in the new `component-glyphs.ts`, outside the icon set. Button's pending overlay names it
+ * (`nests: 'spinner'`) and swaps in the member on its slot's own icon rung (small → `spinner/x-small`,
+ * medium → `spinner/small`, large → `spinner/medium`) instead of the caller's icon placeholder, and links to
+ * no swap property. Both executors write each imported glyph layer's opacity from its SVG document. Two new
+ * motion tokens, `motion.duration.spin` (800ms) and `motion.duration-reduced.spin` (2600ms), outside the
+ * tempo-scaled ramp, so every brand's `out/**` moves. Projected surface: a new def, and every button
+ * family's pending members change (their spinner's swap target). CONTRACT 13.0.0 → 13.1.0 (four adds).
+ * Review round: the paste executor's opacity write gains a reader (the engine stub's importer builds one
+ * VECTOR per `<path>` with its `opacity`, and a paste-path arm runs every spinner member through both
+ * executors); every layer-opacity read matches the attribute named exactly `opacity`, never `fill-opacity`;
+ * the geometry gate checks that each cap bulges outward past the arc's end; and the def no longer cites
+ * WCAG 2.3.3 (it slows the turn under reduced motion, which that criterion does not ask for). Lands after
+ * #1679's 0.167.0 and #1681's 0.168.0, so 0.169.0.
+ *
+ * 0.168.0 — #1681 (owner-decided 2026-09-26, option A): `body` and `caption` keep `default`, the same way
+ * `label` keeps `emphasis`. Both join `REQUIRED_WEIGHT_ROLES` in theme.ts, so the engine refuses a body or
+ * caption set without `default`, naming the form controls that bind `type.body.*.default` and
+ * `type.caption.md.default` by name; either set may still gain weights. The studio disables both
+ * `default` boxes with that reason as the tooltip. The contract doesn't move: those paths were already
+ * guaranteed, and the refusal is what keeps that true (CONTRACT STANDS at 13.0.0, `--check` level
+ * `none`). Also aurora's brief drops "the UI is dense" to match its comfortable density (#1215), so
+ * the `dense` personality's `why` is re-sourced; the lever and schema descriptions state the new rule.
+ *
  * 0.167.0 — #1679: a Build over an existing set REPAIRS the references a refusal window left unset. The owner's
  * master-file Button (2026-09-26) came out of 0.157.0's 17.5 s back-off with 73 references unset on 36 members;
  * all 73 took on the first try ~25 min later. The plugin (`apps/plugin/src/write-components.ts`) now reads each
@@ -2937,14 +2964,6 @@
  * after every pass. `refsRelinked` counts only slots that read unset for a property already on the set. The
  * progress pill names the back-off wait (`retry` phase, "Retrying property links…"), and a Build that only
  * repaired links says so in the headline pill. Plugin behavior → MINOR; stamp-only regen. CONTRACT STANDS.
- * 0.168.0 — #1681 (owner-decided 2026-09-26, option A): `body` and `caption` keep `default`, the same way
- * `label` keeps `emphasis`. Both join `REQUIRED_WEIGHT_ROLES` in theme.ts, so the engine refuses a body or
- * caption set without `default`, naming the form controls that bind `type.body.*.default` and
- * `type.caption.md.default` by name; either set may still gain weights. The studio disables both
- * `default` boxes with that reason as the tooltip. The contract doesn't move: those paths were already
- * guaranteed, and the refusal is what keeps that true (CONTRACT STANDS at 13.0.0, `--check` level
- * `none`). Also aurora's brief drops "the UI is dense" to match its comfortable density (#1215), so
- * the `dense` personality's `why` is re-sourced; the lever and schema descriptions state the new rule.
  *
  * 0.166.0 — #1639 (owner-decided 2026-09-26): the engine refuses a `typography.weights` input that leaves
  * any type category with zero weight roles, naming the category, and refuses a `label` set without
@@ -3770,7 +3789,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.168.0';
+export const ENGINE_VERSION = '0.169.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -4213,6 +4232,13 @@ export const ENGINE_VERSION = '0.168.0';
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
  *
+ * 13.1.0 — #1670 adds FOUR guaranteed names. The two roles: `motion.duration.spin` (800ms, one turn of a
+ * spinner) and `motion.duration-reduced.spin` (2600ms, the slow turn under reduced motion). And the two
+ * value-keyed primitives they alias, `motion.duration-ms.800` and `motion.duration-ms.2600`: the turn is not
+ * tempo-scaled, so every brand at every tempo now emits both, where 800 used to exist only at the standard
+ * tempo. All four land in the GUARANTEED intersection. A pure ADDITION — a new name cannot break an existing
+ * reference — so a clean MINOR. Nothing is removed or retyped. (#1670)
+ *
  * 13.0.0 — #1639 (owner-decided 2026-09-26, the mechanical fallout of the disposition): DEMOTE the single-role
  * weight composites a brand can swap. `eyebrow` and `code` ship one weight each by default and may replace
  * it (every category must keep one; `label` must keep `emphasis`), so `type.eyebrow.{sm,md,lg}.emphasis`
@@ -4276,7 +4302,7 @@ export const ENGINE_VERSION = '0.168.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '13.0.0';
+export const CONTRACT_VERSION = '13.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

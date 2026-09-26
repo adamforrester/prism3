@@ -95,6 +95,9 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Focus Ring', defs: ['focus-ring'] },
         { page: 'Field Label', defs: ['field-label'] },
         { page: 'Field Message', defs: ['field-message'] },
+        // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
+        // host swaps or nests in (the button's pending state swaps it into its icon slot).
+        { page: 'Spinner', defs: ['spinner'] },
       ],
     },
     {

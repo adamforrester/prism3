@@ -516,6 +516,9 @@ const thinRole = (path: string): { tier: 'layout' | 'motion' | 'typography'; mea
   if (s[0] === 'icon' && s[1] === 'size') return { tier: 'layout', meaning: `Icon size step ${last}`, when: 'The rendered size of an icon glyph.' };
   if (s[0] === 'grid' && s.length === 3) return { tier: 'layout', meaning: `Layout grid ${s[2]} at the ${s[1]} breakpoint`, when: `The ${s[2]} of the page layout grid from the ${s[1]} breakpoint up.` };
   if (s[0] === 'motion') {
+    // The spinner's turn is a loop period, not a transition, and its reduced value is SLOWER, not shorter (#1670).
+    if (s[1] === 'duration' && last === 'spin') return { tier: 'motion', meaning: 'Motion duration role — one full turn of a spinner', when: 'The period of a spinner\'s rotation, run linear and infinite. Under reduced motion, use `motion.duration-reduced.spin`, a slower turn.' };
+    if (s[1] === 'duration-reduced' && last === 'spin') return { tier: 'motion', meaning: 'Reduced-motion duration role — one slow turn of a spinner', when: 'The period of a spinner\'s rotation when the user prefers reduced motion: slower, never stopped, because the turn is what shows work continuing.' };
     if (s[1] === 'duration') return { tier: 'motion', meaning: `Motion duration role — ${last}`, when: `How long a transition runs. Under reduced motion, use \`motion.duration-reduced.${last}\`.` };
     if (s[1] === 'duration-reduced') return { tier: 'motion', meaning: `Reduced-motion duration role — ${last}`, when: `The duration of \`motion.duration.${last}\` when the user prefers reduced motion.` };
     if (s[1] === 'easing-role') return { tier: 'motion', meaning: `Easing role — ${last}`, when: 'The easing curve of a transition, named by purpose. Reference the role, not the curve it maps to.' };

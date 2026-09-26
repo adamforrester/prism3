@@ -54,7 +54,7 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anatomy-figma';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
@@ -911,7 +911,7 @@ type ClaimMode = 'created' | 'imported';
  *  properties genuinely require the node's font to be loaded, and a TEXT plan with no `textStyle` never
  *  loaded one. A throw here would lose a member that had otherwise built correctly, to fix its
  *  alignment. */
-const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode: ClaimMode): void => {
+const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode: ClaimMode, layerOpacity?: number): void => {
   const where = n?.name ?? 'set';
   const set = (prop: keyof CompNode, value: unknown): void => {
     try { (node as Record<string, unknown>)[prop as string] = value; }
@@ -952,7 +952,10 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   set('visible', n?.visible ?? true);
   // `zeroOpacity` is applied by the PARENT after this returns, so writing 1 here would be overwritten
   // anyway. Skipped rather than relied on: a claim the plan makes should not depend on write order.
-  if (!n?.zeroOpacity) set('opacity', 1);
+  // An IMPORTED glyph layer's opacity is the one its `<path>` in `glyphSvg` declares (#1670: the spinner's
+  // track is a layer at 0.2 of the spinner's own ink), passed in by the caller in document order; every
+  // other node, and every layer that declares none, is 1. Written, not left, so it is claimed (#865).
+  if (!n?.zeroOpacity) set('opacity', mode === 'imported' ? (layerOpacity ?? 1) : 1);
   set('blendMode', 'PASS_THROUGH');
   if (!n?.effectStyle) set('effects', []);
   set('rotation', 0);
@@ -1996,8 +1999,13 @@ const writeComponentSet = async (
     // glyph — measured at 36 of `checkbox`'s 90 white frames, which is why a fix touching only the
     // `createFrame` path would have left a third of them in place. `imported` mode skips fills, strokes
     // and constraints: those three are claimed here by `glyphSvg` and by the `SCALE` write above.
-    if (n.type === 'GLYPH')
-      for (const d of node.findAll?.(() => true) ?? []) claimDefaults(wr(d as CompNode), n, misses, 'imported');
+    if (n.type === 'GLYPH') {
+      // Each VECTOR, in document order, takes the opacity its `<path>` declares (`glyphLayerOpacities`).
+      const layerOps = glyphLayerOpacities(n.glyphSvg ?? '');
+      let vi = 0;
+      for (const d of node.findAll?.(() => true) ?? [])
+        claimDefaults(wr(d as CompNode), n, misses, 'imported', (d as CompNode).type === 'VECTOR' ? layerOps[vi++] : undefined);
+    }
     return node;
   };
 

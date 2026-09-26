@@ -7890,6 +7890,12 @@
       "when_to_use": "How long a transition runs. Under reduced motion, use `motion.duration-reduced.slower`.",
       "resolves_to": "{ads.motion.duration-ms.640}"
     },
+    "motion.duration.spin": {
+      "$description": "motion duration spin — 800ms per full turn of a spinner, linear, the same at every tempo",
+      "meaning": "Motion duration role — one full turn of a spinner",
+      "when_to_use": "The period of a spinner's rotation, run linear and infinite. Under reduced motion, use `motion.duration-reduced.spin`, a slower turn.",
+      "resolves_to": "{ads.motion.duration-ms.800}"
+    },
     "motion.duration-reduced.instant": {
       "$description": "reduce-motion instant — 40ms",
       "meaning": "Reduced-motion duration role — instant",
@@ -7925,6 +7931,12 @@
       "meaning": "Reduced-motion duration role — slower",
       "when_to_use": "The duration of `motion.duration.slower` when the user prefers reduced motion.",
       "resolves_to": "{ads.motion.duration-ms.0}"
+    },
+    "motion.duration-reduced.spin": {
+      "$description": "reduce-motion spin — 2600ms per full turn: a slow turn, kept rather than removed, because the spinner is how a sighted user sees work continuing",
+      "meaning": "Reduced-motion duration role — one slow turn of a spinner",
+      "when_to_use": "The period of a spinner's rotation when the user prefers reduced motion: slower, never stopped, because the turn is what shows work continuing.",
+      "resolves_to": "{ads.motion.duration-ms.2600}"
     },
     "motion.easing-role.default": {
       "$description": "easing role 'default' → standard — the intent a transition names, so a mode can substitute a curve without redefining one",
@@ -11318,6 +11330,24 @@
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
       "aliased_by": [
         "motion.duration.slower"
+      ]
+    },
+    "motion.duration-ms.800": {
+      "$description": "duration primitive — 800ms (literal; the semantic tier names the use)",
+      "meaning": "Motion duration primitive",
+      "tier": "primitive",
+      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "aliased_by": [
+        "motion.duration.spin"
+      ]
+    },
+    "motion.duration-ms.2600": {
+      "$description": "duration primitive — 2600ms (literal; the semantic tier names the use)",
+      "meaning": "Motion duration primitive",
+      "tier": "primitive",
+      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "aliased_by": [
+        "motion.duration-reduced.spin"
       ]
     },
     "motion.easing.linear": {
