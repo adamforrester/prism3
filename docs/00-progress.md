@@ -7,6 +7,22 @@
 
 ---
 
+## (2026-09-26) — paste-path verify: `modesDistinct` on a single-mode brand (#1687)
+
+**STATUS: PR open from `lane/paste-verify-single-mode`, labeled DO NOT MERGE.** Engine (`materialise-to-figma.ts`, the legacy CLI paste path's `verify` pass). **ENGINE 0.172.0 → 0.173.0** (MINOR — the paste-path verdict changes). CONTRACT stands; `out/**` and the contract baseline restamp the generator version and nothing else.
+
+**The fix is #1662's rule, restated in the generated JS.** The emitted pass computed `new Set(Object.values(perMode)).size>1`, so a `modes: ['light']` paste always reported `modesDistinct: false`. With exactly one mode it now passes iff the probe's value in that mode is a `VARIABLE_ALIAS` whose target variable exists — not absent, not a literal left by a `color-create` that `color-aliases` never followed (the #1691 net). Multi-mode keeps `size>1`. The logic is re-stated inline rather than imported from `read-back.ts`, because the payload runs in Figma's sandbox and every pass in this file re-states its own rules as a string; the test drives the pasted string, so it stays independent of both copies.
+
+**A latent crash, found by running the payload.** The pass read `byName.has(…)` for `fieldFamilyPresent` and `bareDangerPresent`, but the only index it defines is `byTail` (the #1097 root-strip). So the verify payload threw `ReferenceError: byName is not defined` before returning anything. It was only ever string-matched in `test.ts`, so nothing noticed. Both now read `byTail`; the names they test are already tail-form. Fixed here rather than filed because the shim test cannot run without it.
+
+**Refactor for testability.** `verifyPass(brand)` became `export const verifyJs(plan, modes)`, the `colorAliasesJs` pattern: the CLI still passes `planFor(b)` and `colourModes(b)`, so the printed payload for every committed brand is unchanged apart from the two fixes.
+
+**Tests (`test.ts`).** The payload is run in a Variables shim (as #1672's arms are) over real plans from `buildWritePlan(buildFigmaColor(brandTheme(aurora…)))`. Expected verdicts are literals in the test: single-mode faithful → `modesDistinct === true` (fixture asserted to be `["light"]`); single-mode literal probe → `false`; light/dark faithful → `true`; light/dark with the probe collapsed onto one target → `false`; plus `fieldFamilyPresent`/`bareDangerPresent === true`, which proves the pass ran to completion. **Mutations, by name:** restoring `size>1` → `❌ #1687 paste verify single-mode: a faithful single-mode read PASSES modesDistinct`; dropping the alias check (`?!!probeVal`) → `❌ #1687 paste verify single-mode: a LITERAL background/primary … FAILS modesDistinct`; reverting one `byTail` to `byName` → the suite dies with `ReferenceError: byName is not defined`.
+
+**Trap for whoever re-verifies.** The shim must give the `color` collection's modes the same names as `MODES` (`light`, `dark`): the pass looks up mode ids by name, and a mismatch reads every mode as absent. That would make the single-mode arm fail for the wrong reason.
+
+---
+
 ## (2026-09-26) — read-back: `modesDistinct` on a single-mode brand (#1662)
 
 **STATUS: PR open from `lane/readback-single-mode`, labeled DO NOT MERGE.** Engine (`read-back.ts`, consumed by the plugin's boot read-back). **ENGINE 0.171.0 → 0.172.0** (renumbered in the net: #1686 and #1690 took 0.170.0 and 0.171.0) (MINOR — the seed pill's verdict changes). CONTRACT stands; `out/**` restamps the generator version and nothing else.

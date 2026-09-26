@@ -291,7 +291,7 @@ const findCol=async(n)=>(await cols()).find(c=>c.name===n);`;
 // Writes into the SHARED `core` collection since #1097 — `have` is deliberately unscoped (every var in
 // the collection, including the dimension and font slices) because this loop only ever LOOKS UP its own
 // planned names, so a wider index costs nothing and misses nothing. The scoping that does matter is in
-// `verifyPass`'s orphan diff, which subtracts a name set and would call every other slice an orphan.
+// `verifyJs`'s orphan diff, which subtracts a name set and would call every other slice an orphan.
 const palettePass = (brand: string): string => {
   // row: [name, scopeCode, description, value, hidden]
   const P = planFor(brand).palette.map((r) => [r.name, encodeScopes(r.scopes), r.description, r.value, r.hidden ? 1 : 0]);
@@ -707,7 +707,7 @@ return {total:T.length,created,bound,skipped,misses};
 //   - anything else is simply gone from the plan with no structural relation left (an entire
 //     pre-rename palette generation — `palette/accent/*` after the rename to `red`).
 // PURE — exported so `test.ts` can assert the algorithm against synthetic file/plan name sets with
-// no live Figma. `verifyPass` below inlines the SAME two functions as generated JS rather than
+// no live Figma. `verifyJs` below inlines the SAME two functions as generated JS rather than
 // importing this one: the pass runs inside Figma's execution sandbox pasted via `figma_execute`,
 // not Node, so it can no more `import` this than `colorAliasesPass` can import `aliasRows` — every
 // pass in this file re-states its own logic as a string for that reason. Kept side by side with the
@@ -728,9 +728,9 @@ export const pruneReport = (existing: Iterable<string>, planned: Iterable<string
 };
 
 // ---- pass: verify (API-probe read-back; the collapse guard + the #479 prune report live here) --
-const verifyPass = (brand: string): string => {
-  const modes = colourModes(brand);
-  const plan = planFor(brand);
+/** The `verify` payload for a plan and its colour modes. Exported so the suite can RUN it in a shim
+ *  over a plan no committed brand emits (a single-mode brand, #1687) — the same string the CLI prints. */
+export const verifyJs = (plan: WritePlan, modes: readonly string[]): string => {
   const PLANNED_PALETTE = plan.palette.map((r) => r.name);
   const PLANNED_COLOR = plan.color.create.map((r) => r.name);
   // The `core` tier segment, stated LITERALLY rather than imported from `theme.ts`'s `CORE_TIER`
@@ -761,7 +761,13 @@ const targetOf=(val)=>val&&val.type==='VARIABLE_ALIAS'?(vars.find(x=>x.id===val.
 // modes-distinct guard: background/primary must NOT be identical across modes (the collapse bug)
 const probe=byTail.get('color/background/primary');
 const perMode=Object.fromEntries(MODES.map(m=>[m,targetOf(probe&&probe.valuesByMode[modeIds[m]])]));
-const modesDistinct=new Set(Object.values(perMode)).size>1;
+// ONE mode (#1687, twin of read-back.ts's #1662) has nothing to collapse, so \`size>1\` failed every
+// \`modes: ['light']\` brand vacuously. There the guard asks only whether the probe is ALIASED to a
+// variable that exists — not absent, not a literal left by a color-create that color-aliases never followed.
+const probeVal=MODES.length===1&&probe?probe.valuesByMode[modeIds[MODES[0]]]:undefined;
+const modesDistinct=MODES.length===1
+  ?!!probeVal&&probeVal.type==='VARIABLE_ALIAS'&&vars.some(x=>x.id===probeVal.id)
+  :new Set(Object.values(perMode)).size>1;
 const scope=(n)=>{const v=byTail.get(n);return v?[...v.scopes].sort().join(','):'ABSENT';};
 const absent=(n)=>!byTail.has(n);
 // #479 — plan-vs-file diff, REPORT ONLY: a name present in the file's collection but absent from
@@ -803,12 +809,12 @@ return {
     'field/border/hover':scope('color/field/border/hover'),
     'field/placeholder':scope('color/field/placeholder'),
   },
-  fieldFamilyPresent:['color/field/fill','color/field/border/rest','color/field/border/hover','color/field/placeholder'].every(n=>byName.has(n)),
+  fieldFamilyPresent:['color/field/fill','color/field/border/rest','color/field/border/hover','color/field/placeholder'].every(n=>byTail.has(n)),
   retiredRolesAbsent:['color/action/default','color/text/on-action','color/text/on-disabled','color/foreground/danger/default'].every(absent),
   // renamed by #86 (.surface -> .fill / .on-disabled -> .on-fill) + field never used .surface — all must be gone.
   // field/border also went flat-leaf -> border/{rest,hover} (stateful slot), so the flat leaf must be gone too.
   renamedRolesAbsent:['color/disabled/surface','color/disabled/on-disabled','color/field/surface','color/field/border'].every(absent),
-  bareDangerPresent:byName.has('color/foreground/danger'),
+  bareDangerPresent:byTail.has('color/foreground/danger'),
   orphans,
 };
 `;
@@ -825,7 +831,7 @@ const PASSES: Record<string, (b: string) => string[]> = {
   'color-aliases': (b) => [colorAliasesPass(b)],
   'dims-create': (b) => [dimsCreatePass(b)], 'dims-aliases': (b) => [dimsAliasesPass(b)],
   'font-vars': (b) => [fontVarsPass(b)], 'text-styles': (b) => [textStylesPass(b)],
-  styles: (b) => [stylesPass(b)], verify: (b) => [verifyPass(b)],
+  styles: (b) => [stylesPass(b)], verify: (b) => [verifyJs(planFor(b), colourModes(b))],
 };
 // Colour, then floats, then typography, then styles — WITHIN each lane create-before-alias is a hard
 // requirement. Two cross-lane constraints are real: `text-styles` after `font-vars`, because a Text
