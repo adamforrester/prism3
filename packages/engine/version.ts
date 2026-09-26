@@ -2932,8 +2932,11 @@
  * reference on a member it did not build and writes only the ones that do not read the plan's property, through
  * the same back-off and read-back as a fresh member (`refsRelinked`; a clean existing set writes nothing); the
  * back-off gains passes at 20 s and 30 s (67.5 s worst case, `REF_BACKOFF_TOTAL_MS`); and reference misses are
- * keyed per slot and counted apart (`refsUnset`), so the verdict states what the file lacks and the retry bound.
- * Plugin behavior → MINOR; stamp-only regen. CONTRACT STANDS.
+ * keyed per slot and counted apart (`refsUnset`, split by `refsUnsetBy` into refused / lost / discarded), so the
+ * verdict states what the file lacks and offers "build again to retry" only for slots the host still refused
+ * after every pass. `refsRelinked` counts only slots that read unset for a property already on the set. The
+ * progress pill names the back-off wait (`retry` phase, "Retrying property links…"), and a Build that only
+ * repaired links says so in the headline pill. Plugin behavior → MINOR; stamp-only regen. CONTRACT STANDS.
  *
  * 0.166.0 — #1639 (owner-decided 2026-09-26): the engine refuses a `typography.weights` input that leaves
  * any type category with zero weight roles, naming the category, and refuses a `label` set without

@@ -455,16 +455,29 @@ export type ComponentApplyResult = {
    *  which is every clean run. Optional because the paste path has no wire loop of its own to back off. */
   refsBackoff?: RefBackoffPass[];
   /** #1679 — references this run WROTE on a member it did not build (an existing set's member, skipped by
-   *  name) because the reference read unset, and that read back as held at the end of the run. A re-run over
-   *  a set a refusal window left partially linked reports its repair here; a clean existing set reports 0 and
-   *  writes nothing — a reference that already reads the plan's property is left untouched. Optional because
-   *  the paste path has no existing-set wire pass. */
+   *  name), where the slot read UNSET and the property it names was already on the set before this run, and
+   *  that read back as held at the end of the run. That is the shape a refusal window leaves, and the only
+   *  one counted: a slot a designer re-pointed at another property is still overwritten (unchanged since
+   *  before #1679) but is not a repair, and a slot for a property this run added was never linked to begin
+   *  with. A clean existing set reports 0 and writes nothing — a reference that already reads the plan's
+   *  property is left untouched. Optional because the paste path has no existing-set wire pass. */
   refsRelinked?: number;
-  /** #1679 — plan references still NOT held when the run returned, one per (member, part, field) slot: the
-   *  count of the `ref …` lines in `misses`, and the number the file actually lacks at report time. Kept apart
-   *  from `misses.length` because that total mixes in every other kind of miss, which is how a live report
-   *  read "232 misses" over a file lacking 73 references. Optional for the same reason as above. */
+  /** #1679 — plan references this run attempted and gave up on, one per (member, part, field) slot: the
+   *  count of the `ref …` lines in `misses`, and the sum of `refsUnsetBy`. Kept apart from `misses.length`
+   *  because that total mixes in every other kind of miss, which is how a live report read "232 misses" over
+   *  a file lacking 73 references. NOT every unset reference in the file: a reference is never attempted, so
+   *  never counted here, when its property failed to be created (`if (!id) continue` — that property's own
+   *  miss reports it) or when the member has no such part at wire time. Optional for the same reason as above. */
   refsUnset?: number;
+  /** #1679 review — `refsUnset` split by WHAT HAPPENED to the slot, because only one of the three is fixed by
+   *  building again, and the verdict offers that remedy only for it:
+   *  - `refused`: the host still refused (threw, or accepted and did not keep) after EVERY pass of
+   *    `REF_BACKOFF_MS` — the window outlasted the back-off, so a later Build is the retry;
+   *  - `lost`: during the back-off the member no longer had the part to write to; this can end after the first
+   *    0.5 s pass, so it never had the full back-off and a retry has nothing to aim at;
+   *  - `discarded`: held on the written handle, then read back unset by the final fresh re-find — it had no
+   *    retry at all, so no claim about retries is made for it. */
+  refsUnsetBy?: { refused: number; lost: number; discarded: number };
   /** Times the SET's own handle was found to have been replaced and was re-resolved off the destination
    *  page (#1574) — the set-level sibling of `refsRepaired`/`boundRepaired`, and the counter that says
    *  whether the property loop and the wire loop ran against the live set or a handle the host had moved
@@ -495,7 +508,10 @@ export type ComponentApplyResult = {
  * and `total` is the full set, not the chunk, so the number never resets mid-run.
  */
 export type ComponentProgress = {
-  phase: 'build' | 'wire';
+  /** `retry` (#1679) is posted once before each reference back-off wait (`REF_BACKOFF_MS`), so the pill says
+   *  what the pause is instead of freezing on the last wire fraction: `done` is the pass about to run
+   *  (1-based), `total` the number of passes, `chunkMs` 0 (no work was done). */
+  phase: 'build' | 'wire' | 'retry';
   done: number;
   total: number;
   /** Wall-clock ms this chunk's work took, EXCLUDING the yield — the calibration signal. Reported per
@@ -644,15 +660,12 @@ export const MIN_HEIGHT_TOLERANCE = 0.01;
  * there, because the real safety net is no longer the wait: a Build over the existing set re-links whatever is
  * still unset (`refsRelinked`), so a window longer than any bound costs one more click, not a rebuild.
  *
- * Six passes after 0.5 s, 2 s, 5 s, 10 s, 20 s and 30 s: 67.5 s worst case (`REF_BACKOFF_TOTAL_MS`, which the
- * verdict states), then whatever is still queued is a miss. BOUNDED on purpose — a permanent refusal (a
+ * Six passes after 0.5 s, 2 s, 5 s, 10 s, 20 s and 30 s: 67.5 s worst case, then whatever is still queued is a miss. BOUNDED on purpose — a permanent refusal (a
  * nested-instance sublayer, a property the host lost) must end as a miss, not a stall. The loop stops the moment the queue empties, and a clean build never reaches it, so
  * it costs nothing unless something was refused. Each pass's delay and outcome lands in `refsBackoff`, so
  * the next live run reports how long the window really is instead of leaving it to be inferred.
  */
 export const REF_BACKOFF_MS: readonly number[] = [500, 2000, 5000, 10000, 20000, 30000];
-/** The whole back-off, worst case (#1679) — the bound the verdict states when references are still unset. */
-export const REF_BACKOFF_TOTAL_MS = REF_BACKOFF_MS.reduce((a, b) => a + b, 0);
 
 /** One back-off pass, as reported (#1664): the wait before it, how many queued references it retried, and
  *  how many of those landed AND read back on a fresh re-find. */
@@ -2357,10 +2370,12 @@ const writeComponentSet = async (
   const byBareName = new Map<string, string>();
   for (const k of Object.keys(defs)) if (defs[k].type !== 'VARIANT') byBareName.set(k.split('#')[0], k);
   const propIds = new Map<string, string>();
+  // #1679 review — the property ids that were on the set BEFORE this run (see `refsRelinked`).
+  const preexistingProps = new Set<string>();
   for (const p of readable ? props : []) {
     const already = byBareName.get(p.name);
     if (already) {
-      if (defs[already].type === p.type) { propIds.set(p.name, already); continue; }
+      if (defs[already].type === p.type) { propIds.set(p.name, already); preexistingProps.add(already); continue; }
       misses.push(`property ${p.name} -> ALREADY on the set as ${defs[already].type} but this paste declares ${p.type} (left alone; declaring it again would silently create a second property called ${p.name}2)`);
       continue;
     }
@@ -2434,11 +2449,12 @@ const writeComponentSet = async (
   const refsBackoff: RefBackoffPass[] = [];
   // #1679 — the (member|part|field) slots this run wrote on a member it did not build, and — keyed the same
   // way, so one slot can only ever be one miss — every reference still unset when the run ends.
+  // Each miss carries its KIND (see `refsUnsetBy`), because the verdict's remedy depends on it.
   const relinkSlots = new Set<string>();
-  const refMissBySlot = new Map<string, string>();
-  const refMiss = (member: string, part: string, field: string, line: string): void => {
+  const refMissBySlot = new Map<string, { line: string; kind: 'refused' | 'lost' | 'discarded' }>();
+  const refMiss = (member: string, part: string, field: string, line: string, kind: 'refused' | 'lost' | 'discarded'): void => {
     const slot = `${member}|${part}|${field}`;
-    if (!refMissBySlot.has(slot)) refMissBySlot.set(slot, line);
+    if (!refMissBySlot.has(slot)) refMissBySlot.set(slot, { line, kind });
   };
   // #1473 / #1516 — THE SET'S LIVE MEMBER FOR A COORDINATE, RE-READ FRESH FROM `set.children` AT EACH USE.
   // `members` was snapshotted right after combine (for the layout pass); a member handle from that snapshot
@@ -2525,10 +2541,13 @@ const writeComponentSet = async (
       // slot that reads otherwise is written, and it is remembered so the end of the run can say how many of
       // those it actually re-linked (`refsRelinked`). Everything after the write is the same path a fresh
       // member takes: a refusal queues for the back-off, a discard is caught by the pre-scan.
+      // #1679 review: only a slot that read UNSET, for a property that was on the set before this run, is
+      // remembered as a repair. A re-pointed slot is written all the same (no change to what a Build writes)
+      // but is not a refusal's leftover, and neither is a slot for a property this run just added.
       if (!builtFor) {
         const had = (node.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
         if (had?.[field] === id) { wiredRefs.push([String(member.name), r.part, field, id, node]); continue; }
-        relinkSlots.add(`${String(member.name)}|${r.part}|${field}`);
+        if (had?.[field] === undefined && preexistingProps.has(id)) relinkSlots.add(`${String(member.name)}|${r.part}|${field}`);
       }
       try {
         wr(node).componentPropertyReferences = Object.assign({}, (node.componentPropertyReferences ?? {}) as object, { [field]: id });
@@ -2623,8 +2642,11 @@ const writeComponentSet = async (
   wiredRefs.length = 0;
   wiredRefs.push(...keptRefs);
   const lost: typeof deferredRefs = [];
-  for (const afterMs of REF_BACKOFF_MS) {
+  for (const [pass, afterMs] of REF_BACKOFF_MS.entries()) {
     if (!deferredRefs.length) break;
+    // #1679 — the pill names the pause (`Retrying property links…`) rather than freezing on the last wire
+    // fraction for up to the whole schedule. Posted before the wait, so it is on screen while the wait runs.
+    onProgress?.({ phase: 'retry', done: pass + 1, total: REF_BACKOFF_MS.length, chunkMs: 0, elapsedMs: Date.now() - phaseStart });
     await yieldTo(afterMs);
     const still: typeof deferredRefs = [];
     let repaired = 0;
@@ -2645,10 +2667,13 @@ const writeComponentSet = async (
     refsBackoff.push({ afterMs, retried: deferredRefs.length, repaired });
     deferredRefs = still;
   }
-  for (const d of lost.concat(deferredRefs))
-    refMiss(d.member, d.part, d.field, d.discarded
-      ? `ref ${d.member}/${d.part}.${d.field} -> DISCARDED (${d.cause})`
-      : `ref ${d.member}/${d.part}.${d.field} -> ${d.prop} (${d.cause})`);
+  // `lost` is its own kind: it can leave the queue after the first 0.5 s pass, so it did not get the back-off.
+  // What is left in `deferredRefs` went through every pass and was still refused.
+  for (const [kind, list] of [['lost', lost], ['refused', deferredRefs]] as const)
+    for (const d of list)
+      refMiss(d.member, d.part, d.field, d.discarded
+        ? `ref ${d.member}/${d.part}.${d.field} -> DISCARDED (${d.cause})`
+        : `ref ${d.member}/${d.part}.${d.field} -> ${d.prop} (${d.cause})`, kind);
 
   // #1567 — HOW MANY DISTINCT CAPTIONS THE PLANS DECLARE AT EACH BOUND PART, and what default each TEXT
   // property was created with. Both feed the collapse report in the read-back loop below; computed here,
@@ -2741,13 +2766,14 @@ const writeComponentSet = async (
       const reHeld = (reNode?.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
       if (reHeld?.[field] === id) { refsRepaired++; continue; }
     }
-    refMiss(mName, part, field, `ref ${mName}/${part}.${field} -> DISCARDED (set ${id}, reads ${held?.[field]})`);
+    refMiss(mName, part, field, `ref ${mName}/${part}.${field} -> DISCARDED (set ${id}, reads ${held?.[field]})`, 'discarded');
   }
   // #1679 — ONE LINE PER UNSET SLOT, and the count is the slot count. Every path above that gives up on a
   // reference goes through `refMiss`. No path reaches one slot twice today (checked for #1679: a queued slot
   // leaves `wiredRefs`, and a `lost` one leaves the queue), so the keying is structural rather than a live
   // fix — it keeps the count a count of what the file lacks if a later path ever does.
-  misses.push(...refMissBySlot.values());
+  const refsUnsetBy = { refused: 0, lost: 0, discarded: 0 };
+  for (const { line, kind } of refMissBySlot.values()) { misses.push(line); refsUnsetBy[kind]++; }
   const refsUnset = refMissBySlot.size;
   let refsRelinked = 0;
   for (const slot of relinkSlots) if (!refMissBySlot.has(slot)) refsRelinked++;
@@ -2963,6 +2989,7 @@ const writeComponentSet = async (
     refsBackoff,
     refsRelinked,
     refsUnset,
+    refsUnsetBy,
     setReresolved,
     boundSearched,
     misses: allMisses,
