@@ -255,8 +255,9 @@ decided below.
 
 #### Decided (2026-09-26, #1681): body and caption keep `default`, the same way label keeps `emphasis`
 
-The owner picked refusal over demotion. `field-label`, `text-field`, `select`, `textarea` and the
-checkbox, radio and switch rows bind `type.body.*.default` by name; `textarea` and `field-message` bind
+The owner picked refusal over demotion. `text-field`, `select`, `textarea` and the checkbox, radio
+and switch rows bind `type.body.*.default` by name (`field-label` reaches it through its `regular`
+weight intent instead, #1602, so it would not break); `textarea` and `field-message` bind
 `type.caption.md.default`. So `body` and `caption` join `label` in `REQUIRED_WEIGHT_ROLES`, and the
 engine refuses a body or caption set without `default`, naming the controls. Either set may still gain
 weights (`body: ['default', 'strong', 'emphasis']` is accepted). The contract doesn't move: these paths

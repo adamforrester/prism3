@@ -2926,7 +2926,18 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.167.0 — #1681 (owner-decided 2026-09-26, option A): `body` and `caption` keep `default`, the same way
+ * 0.167.0 — #1679: a Build over an existing set REPAIRS the references a refusal window left unset. The owner's
+ * master-file Button (2026-09-26) came out of 0.157.0's 17.5 s back-off with 73 references unset on 36 members;
+ * all 73 took on the first try ~25 min later. The plugin (`apps/plugin/src/write-components.ts`) now reads each
+ * reference on a member it did not build and writes only the ones that do not read the plan's property, through
+ * the same back-off and read-back as a fresh member (`refsRelinked`; a clean existing set writes nothing); the
+ * back-off gains passes at 20 s and 30 s (67.5 s worst case, `REF_BACKOFF_TOTAL_MS`); and reference misses are
+ * keyed per slot and counted apart (`refsUnset`, split by `refsUnsetBy` into refused / lost / discarded), so the
+ * verdict states what the file lacks and offers "build again to retry" only for slots the host still refused
+ * after every pass. `refsRelinked` counts only slots that read unset for a property already on the set. The
+ * progress pill names the back-off wait (`retry` phase, "Retrying property links…"), and a Build that only
+ * repaired links says so in the headline pill. Plugin behavior → MINOR; stamp-only regen. CONTRACT STANDS.
+ * 0.168.0 — #1681 (owner-decided 2026-09-26, option A): `body` and `caption` keep `default`, the same way
  * `label` keeps `emphasis`. Both join `REQUIRED_WEIGHT_ROLES` in theme.ts, so the engine refuses a body or
  * caption set without `default`, naming the form controls that bind `type.body.*.default` and
  * `type.caption.md.default` by name; either set may still gain weights. The studio disables both
@@ -3759,7 +3770,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.167.0';
+export const ENGINE_VERSION = '0.168.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

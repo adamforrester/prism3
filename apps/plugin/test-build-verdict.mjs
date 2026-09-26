@@ -475,6 +475,15 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const away = await readSurfaces(page);
   ok(away.barPending.some((t) => /Wiring references… 600 of 648/.test(t ?? '')), `away from the page, the bar still reports progress — read ${JSON.stringify(away.barPending)}`);
 
+  // #1679: the reference back-off's wait names itself (owner's wording), with no fraction, instead of the
+  // pill freezing on the last wire reading for the whole pause. Through the real bridge validator, so a
+  // `retry` phase the adapter drops fails here by name rather than leaving "600 of 648" on screen.
+  await post(page, { type: 'component-progress', phase: 'retry', done: 2, total: 6, chunkMs: 0 });
+  await page.waitForFunction(() => /Retrying property links…/.test(document.body.textContent ?? ''), null, { timeout: 4000 }).catch(() => {});
+  const retrying = await readSurfaces(page);
+  ok(retrying.barPending.some((t) => (t ?? '') === 'Retrying property links…'),
+    `#1679 while the reference back-off waits, the pill reads exactly "Retrying property links…" — read ${JSON.stringify(retrying.barPending)}`);
+
   await post(page, { type: 'component-result', ok: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
   await page.waitForFunction(() => [...document.querySelectorAll('.bar .applystat')].some((n) => (n.textContent ?? '').includes('✓ built 648')), null, { timeout: 5000 }).catch(() => {});
   const landed = await readSurfaces(page);

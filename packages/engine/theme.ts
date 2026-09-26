@@ -1246,7 +1246,7 @@ export const TYPE_WEIGHTS_DEFAULT: Record<TypeGroup, WeightRoleName[]> = {
  */
 export const REQUIRED_WEIGHT_ROLES: Partial<Record<TypeGroup, { role: WeightRoleName; why: string }>> = {
   label: { role: 'emphasis', why: 'the button binds type.label.*.emphasis by name' },
-  body: { role: 'default', why: 'the field label, text field, select, textarea and the checkbox, radio and switch rows bind type.body.*.default by name' },
+  body: { role: 'default', why: 'the text field, select, textarea and the checkbox, radio and switch rows bind type.body.*.default by name' },
   caption: { role: 'default', why: 'the textarea and field message bind type.caption.md.default by name' },
 };
 /**

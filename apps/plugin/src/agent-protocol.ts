@@ -80,7 +80,7 @@ export type AgentErrorCode =
 export type AgentError = { code: AgentErrorCode; message: string };
 
 /** One `component-progress` reading, as the UI's pill receives it, with when it arrived. */
-export type AgentProgress = { at: string; phase: 'build' | 'wire'; done: number; total: number; chunkMs: number };
+export type AgentProgress = { at: string; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number };
 
 /** Which transport delivered the command. The protocol is the same on both; this is provenance only. */
 export type AgentTransport = 'mailbox' | 'bridge';

@@ -158,7 +158,7 @@ export type MainToUi =
    *  build that is progressing perfectly. `chunkMs` is what the chunk cost, carried up so a live run can
    *  CALIBRATE the chunk size: the shim has no event loop, so that number cannot be gated and has to be
    *  observed. See `CHUNK` in `write-components.ts`. */
-  | { type: 'component-progress'; phase: 'build' | 'wire'; done: number; total: number; chunkMs: number }
+  | { type: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
   /** Boot read-back (#109): whether an existing Prism3 theme in the file passes the contract, plus a
    *  human summary. Informational — the actual knob-rehydration is `restore-input` below.
    *

@@ -79,10 +79,15 @@ export const conflictHeadline = (conflicts: number): string =>
  * `✓ already built` is the verdict this exists to stop being reachable over a stale set: it asserts the
  * file holds what was asked for, and a name match was never evidence of that.
  */
-export const componentHeadline = (added: number, skipped: number, misses: number, stale = 0): string => {
+export const componentHeadline = (added: number, skipped: number, misses: number, stale = 0, relinked = 0): string => {
   if (added === 0 && skipped === 0 && stale === 0) return '✗ nothing built';
   if (misses > 0) return `⚠ ${misses} miss${misses === 1 ? '' : 'es'}`;
   if (stale > 0) return `⚠ ${stale} stale`;
+  // #1679 — a Build over an existing set that only re-linked references did change the file, so it does not
+  // read as "already built". The owner's wording is "N property links repaired"; the pill carries "N links
+  // repaired" because the full phrase is 28 characters at 3 digits, past the 24-char budget (held for the
+  // owner in #1680). The summary line carries the full wording.
+  if (added === 0 && relinked > 0) return `✓ ${relinked} link${relinked === 1 ? '' : 's'} repaired`;
   if (added === 0) return '✓ already built';
   return `✓ built ${added} variant${added === 1 ? '' : 's'}`;
 };
@@ -117,6 +122,28 @@ export const staleNote = (stale: number, engineVersion: string): string | null =
     `This build is engine ${engineVersion}; to pick it up, delete ${one ? 'that member' : 'those members'} and run again, or build into a fresh page.`
   );
 };
+
+/**
+ * THE REFERENCE CLAUSES OF A SET VERDICT (#1679) — appended after "N refs across M members".
+ *
+ * Wording is the owner's (2026-09-26): "N property links repaired" and "N property links still missing —
+ * build again to retry". Each clause states only what happened to its own slots (#1679 review):
+ *   • `relinked` — slots a Build over an existing set found unset and linked again.
+ *   • `unset.refused` — the host still refused after every back-off pass. Only these carry the remedy: the
+ *     window outlasted the wait, and the same writes have taken on a later Build.
+ *   • `unset.lost` — the member had no such layer to write to during the back-off. No retry claim and no
+ *     remedy: it may have left after the first pass, and building again has nothing to aim at.
+ *   • `unset.discarded` — read back unset at the end with no retry at all. No retry claim either.
+ * No time is stated: the passes that ran are in the `[prism3 #1664]` console line, and a fixed bound here
+ * was untrue for the two kinds that never waited it out. `''` when every count is 0, so a clean run's
+ * summary reads exactly as before.
+ */
+const links = (n: number): string => `${n} property link${n === 1 ? '' : 's'}`;
+export const refsNote = (relinked = 0, unset: { refused: number; lost: number; discarded: number } = { refused: 0, lost: 0, discarded: 0 }): string =>
+  (relinked ? `, ${links(relinked)} repaired` : '') +
+  (unset.refused ? `, ${links(unset.refused)} still missing — build again to retry` : '') +
+  (unset.lost ? `, ${links(unset.lost)} missing — layer not found` : '') +
+  (unset.discarded ? `, ${links(unset.discarded)} missing — not kept after writing` : '');
 
 /**
  * WHAT A FAILED BUILD LEFT IN THE FILE (#913) — the facts the executor collects on its failure path,
