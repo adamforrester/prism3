@@ -320,6 +320,30 @@ export const TOOLS = [
   },
 ];
 
+/**
+ * One run's plugin readings → the MCP `progress` value, which the spec requires to increase with every
+ * notification (#1684). A reading's `done` cannot be passed through: it restarts at every SEGMENT — build →
+ * wire, each #1679 `retry` pass (1/6 … 6/6), the `wire` reading that closes the back-off, and the next set's
+ * build when a command builds several. So a segment ends when the phase changes or `done` fails to rise,
+ * and the finished segment's last `done` is folded into an offset: progress = offset + done, floored at the
+ * previous value + 1 so a segment opening at `done: 0` still moves forward.
+ *
+ * No `total` is returned, on purpose. The only totals the plugin knows are per segment, and how many
+ * segments a run will have (retry passes, nested sets) is unknown until it ends — any sum would be passed
+ * by a later phase. MCP makes `total` optional; the phase's own fraction stays in `message`.
+ */
+export const createProgressCounter = () => {
+  let offset = 0;
+  let last = 0;
+  let prev: { phase: string; done: number } | null = null;
+  return (p: AgentProgress): number => {
+    if (prev && (p.phase !== prev.phase || p.done <= prev.done)) offset += prev.done;
+    prev = { phase: p.phase, done: p.done };
+    last = Math.max(offset + p.done, last + 1);
+    return last;
+  };
+};
+
 const text = (v: unknown, isError = false) => ({ content: [{ type: 'text', text: JSON.stringify(v, null, 2) }], structuredContent: v, ...(isError ? { isError: true } : {}) });
 
 /**
@@ -356,9 +380,10 @@ export const handleRpc = async (req: Rpc, bridge: Bridge, notify: (method: strin
         if (typeof a.cmd !== 'string') return ok(text({ error: 'figma_run needs cmd' }, true));
         const timeoutMs = typeof a.timeoutMs === 'number' && a.timeoutMs > 0 ? Math.min(a.timeoutMs, 3_600_000) : 600_000;
         const token = req.params?._meta?.progressToken;
+        const progress = createProgressCounter();
         try {
           const r = await bridge.run(a.cmd, a.args ?? {}, timeoutMs, {
-            onProgress: (p) => { if (token !== undefined) notify('notifications/progress', { progressToken: token, progress: p.done, total: p.total, message: `${p.phase} ${p.done}/${p.total}` }); },
+            onProgress: (p) => { if (token !== undefined) notify('notifications/progress', { progressToken: token, progress: progress(p), message: `${p.phase} ${p.done}/${p.total}` }); },
             onLog: (line) => notify('notifications/message', { level: 'info', logger: 'figma', data: line }),
           });
           // A result that arrived is the tool working — `ok: false` inside it is the action's own verdict.
