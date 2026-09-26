@@ -2915,6 +2915,25 @@ for (const b of brands) {
   // The opacity variable must exist before the pass that aliases it.
   ok(passOrder().indexOf('dims-create') < passOrder().indexOf('color-aliases'),
     '#1672 materialise: dims-create is pasted before color-aliases (a wash\'s opacity variable must exist before it is bound)');
+  // #1690 net — THE MISS PATH. Run the same payload with one opacity variable absent: every wash that
+  // aliases it must be REPORTED as a named miss and left unbound, never silently bound as an opaque alias.
+  // Expected set written from STEP above (the washes at step 20), not read from the generator's rows.
+  {
+    const gone = `${root}/opacity/20`;
+    const at20 = Object.entries(STEP).filter(([, n]) => n === 20).map(([k]) => k);
+    const vars2 = shimVars.filter((v) => v.name !== gone).map((v) => { const c: ShimVar = { ...v, values: {} }; c.setValueForMode = (m, val) => { c.values[m] = val; }; return c; });
+    const shim2 = { variables: { ...shim.variables, getLocalVariablesAsync: async () => vars2 } };
+    const res2 = await new AsyncFn('figma', colorAliasesJs(plan))(shim2) as { bound: number; misses: string[] };
+    const opMisses = res2.misses.filter((m) => m.includes(' opacity -> ') && m.endsWith(gone));
+    const by2 = new Map(vars2.map((v) => [v.name, v]));
+    const opaque = at20.filter((k) => {
+      const [pre, c, st] = k.startsWith('inverse.') ? ['inverse/', ...k.slice(8).split('.')] : ['', ...k.split('.')];
+      const w = by2.get(`${root}/color/${pre}interactive/${c}/subtle-fill/${st}`);
+      return !w || Object.values(w.values).some((x) => x !== undefined);
+    });
+    ok(at20.length > 0 && opMisses.length === at20.length * plan.color.modes.length && opaque.length === 0,
+      `#1672 materialise: a missing opacity variable is a named miss and its washes stay unbound, never an opaque alias (${opMisses.length} opacity misses for ${at20.length} washes × ${plan.color.modes.length} modes; ${opaque.length} bound anyway)`);
+  }
 }
 
 // #479 — pruneReport: the paste path's plan-vs-file diff. REPORT ONLY (the function has no

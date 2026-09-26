@@ -503,6 +503,7 @@ npx tsx packages/engine/emit-figma.ts                                       # re
 npx tsx packages/engine/materialise-to-figma.ts <brand>                     # manifest: byte sizes
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass palette      # 1
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-create --chunk 1  # 2 (see below)
+npx tsx packages/engine/materialise-to-figma.ts <brand> --pass dims-create  # before 3: a tinted wash aliases an opacity/<n> variable (#1672)
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases # 3
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify       # 4
 ```
