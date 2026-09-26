@@ -19,6 +19,8 @@
 
 **Filed, not fixed.** The paste-path twin in `materialise-to-figma.ts`'s verify pass computes the same `size>1` and has the same single-mode failure; filed as #1687 (one concern per PR).
 
+**Orchestrator net.** Independent review found the single-mode arm accepted a **literal** probe: `color-create` ran but `color-aliases` never did, so `aliasesResolve` also passed vacuously and the file read "contract holds ✓". Single-mode now requires the probe to be **aliased** (neither `ABSENT` nor `literal`), matching the multi-mode rule. Mutation (drop the `literal` clause) → `❌ read-back single-mode: a LITERAL background/primary (aliases never pasted) still FAILS modesDistinct — bound means aliased`. The owner-held question stands. The plugin's seed verdict still cannot tell a single-mode brand from a multi-mode brand whose other modes never landed; the caller could read the declared modes from the brand saved in the file (#131).
+
 ---
 
 ## (2026-09-26) — the CLI paste path writes a tinted wash's alias opacity (#1672)
