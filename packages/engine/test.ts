@@ -2495,7 +2495,8 @@ for (const b of brands) {
     ok(wrong.length === 0, '#1015 every corpus brand\'s `control.size.<rung>.radius` is `min(radius.sm, snap2(edge ÷ 8))`, evaluated per rung from that brand\'s own box edge — the corner keeps its proportion as the box shrinks instead of holding the card ramp\'s value'
       + (wrong.length ? ` — ${wrong.join('; ')}` : ''));
     // …and it MOVED somewhere, or the whole change is a rename. Aurora is the discriminating brand: its
-    // `radius.sm` is 4 (`radiusScale: 2`) on 12/16/20px edges, so all three rungs clamp 4 → 2. If this
+    // `radius.sm` is 4 (`radiusScale: 2`) on 16/20/24px edges (comfortable since #1215), so `sm` and `md`
+    // clamp 4 → 2 while `lg` keeps 4. If this
     // arm ever goes quiet, the corpus has lost the only member that tells the clamp from the ramp, and
     // arm (a) above would then pass on `radius.sm` verbatim.
     ok(moved.some((m) => m.startsWith('aurora')),
@@ -11565,8 +11566,19 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // TEST-ONLY: never an example brand, so never in the studio's brand list or in `out/`.
     const examples = JSON.parse(readFileSync(resolve(HERE, 'schema/example-brands.json'), 'utf8'));
     const exampleIds = Object.keys(examples.brands ?? examples);
-    ok(!exampleIds.includes(MINIMAL_COMPACT_BRAND.id) && !existsSync(resolve(HERE, `out/${MINIMAL_COMPACT_BRAND.id}.tokens.json`)),
-      `#1215 the compact fixture is test-only — not in schema/example-brands.json (${exampleIds.join(', ')}) and not emitted to out/`);
+    // Every path under out/, not one file name — a partial emission (a `.base`, an `.ai.json`, a
+    // `figma/<id>/` tree) must fail this as surely as the main tokens file.
+    const outHits: string[] = [];
+    const walkOut = (dir: string): void => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const p = `${dir}/${e.name}`;
+        if (e.name.includes(MINIMAL_COMPACT_BRAND.id)) outHits.push(p.slice(HERE.length + 1));
+        if (e.isDirectory()) walkOut(p);
+      }
+    };
+    walkOut(resolve(HERE, 'out'));
+    ok(!exampleIds.includes(MINIMAL_COMPACT_BRAND.id) && outHits.length === 0,
+      `#1215 the compact fixture is test-only — not in schema/example-brands.json (${exampleIds.join(', ')}) and nothing under out/ is named for it (${outHits.join(', ') || 'none'})`);
     // And the decision itself: the brand the studio boots shows the default 44px medium control.
     const auroraMd = mdPx(brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input));
     ok(auroraMd === 44, `#1215 aurora (the studio's boot brand) is comfortable: its md control is 44px (got ${auroraMd})`);
