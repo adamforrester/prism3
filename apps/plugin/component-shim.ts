@@ -1172,7 +1172,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       const span = (v: number[]) => (v.length ? Math.max(...v) - Math.min(...v) : 0);
       const vec = mkNode('VECTOR');
       (vec.resize as (w: number, h: number) => void)(span(nums.filter((_, i) => i % 2 === 0)), span(nums.filter((_, i) => i % 2 === 1)));
-      const op = /\bopacity="([0-9.]+)"/.exec(el)?.[1];
+      const op = /\sopacity="([0-9.]+)"/.exec(el)?.[1];
       if (op !== undefined) vec.opacity = Number(op);
       const id = /\bid="([^"]*)"/.exec(el)?.[1];
       if (id !== undefined) vec.name = id;

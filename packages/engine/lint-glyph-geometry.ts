@@ -549,7 +549,7 @@ for (const def of componentDefs as ComponentDef[]) {
         const svg = nodes[0].node.glyphSvg ?? '';
         const els = [...svg.matchAll(/<path\b[^>]*>/g)].map((m) => m[0]);
         const layer = (id: string) => els.find((e) => new RegExp(`\\bid="${id}"`).test(e));
-        const attr = (e: string | undefined, a: string) => (e ? new RegExp(`\\b${a}="([^"]*)"`).exec(e)?.[1] : undefined);
+        const attr = (e: string | undefined, a: string) => (e ? new RegExp(`\\s${a}="([^"]*)"`).exec(e)?.[1] : undefined);
         const track = layer('track'), head = layer('arc');
         if (els.length !== 2 || !track || !head) {
           failures.push(`${def.id}.${partName} @ ${at}: the document carries ${els.length} <path> element(s) [${els.map((e) => attr(e, 'id') ?? '?').join(', ')}], expected exactly a 'track' and an 'arc' — the spinner is a faint full ring under a head arc.`);
@@ -582,6 +582,25 @@ for (const def of componentDefs as ComponentDef[]) {
           const roundCap = (g: ArcSeg) => near(g.rx, cap) && near(g.ry, cap) && near(Math.hypot(g.to[0] - g.from[0], g.to[1] - g.from[1]), 2 * cap, 0.005);
           if (!roundCap(capEnd) || !roundCap(capStart))
             failures.push(`${def.id}.${partName} @ ${at}: the arc's ends are not round caps — each end must be a semicircle of radius ${cap} across the band (read radii ${capEnd.rx} and ${capStart.rx}).`);
+          // THE CAPS BULGE OUTWARD, past each end of the arc (review finding: radius and span alone pass a cap
+          // flipped to sweep 0, which cuts a notch into the band instead). A semicircle's apex is its chord's
+          // midpoint plus a quarter turn in the direction of travel — SVG's y runs down, so sweep 1 is +90° —
+          // and its offset along the ring's clockwise tangent must be +cap at the end and -cap at the start.
+          const capBulge = (g: ArcSeg, deg: number): number => {
+            const m: [number, number] = [(g.from[0] + g.to[0]) / 2, (g.from[1] + g.to[1]) / 2];
+            const t0 = Math.atan2(g.from[1] - m[1], g.from[0] - m[0]) + (g.sweep === 1 ? Math.PI / 2 : -Math.PI / 2);
+            const apex = [m[0] + cap * Math.cos(t0), m[1] + cap * Math.sin(t0)];
+            const t = (deg * Math.PI) / 180;
+            return (apex[0] - m[0]) * -Math.sin(t) + (apex[1] - m[1]) * Math.cos(t);
+          };
+          const endDeg = ang(outer.to), startDeg = ang(outer.from);
+          const bulgeEnd = capBulge(capEnd, endDeg), bulgeStart = capBulge(capStart, startDeg);
+          if (!near(bulgeEnd, cap, 0.005) || !near(bulgeStart, -cap, 0.005))
+            failures.push(`${def.id}.${partName} @ ${at}: the arc's caps do not bulge outward past its ends — the end cap reaches ${bulgeEnd.toFixed(3)} and the start cap ${bulgeStart.toFixed(3)} along the ring, expected +${cap} and -${cap} (sweep flags ${capEnd.sweep} and ${capStart.sweep}).`);
+          // AND THE INNER EDGE ENDS WHERE THE OUTER ONE DOES, so each cap spans the band square across it.
+          const angDiff = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
+          if (angDiff(ang(inner.from), endDeg) > 0.05 || angDiff(ang(inner.to), startDeg) > 0.05)
+            failures.push(`${def.id}.${partName} @ ${at}: the arc's inner edge runs ${ang(inner.from).toFixed(2)}° → ${ang(inner.to).toFixed(2)}°, and its outer edge ${startDeg.toFixed(2)}° → ${endDeg.toFixed(2)}° — the two edges must end at the same angles.`);
           if (!near(ang(outer.from), -90, 0.05))
             failures.push(`${def.id}.${partName} @ ${at}: the arc starts at ${ang(outer.from).toFixed(2)}°, expected -90° (twelve o'clock).`);
           let sweepDeg = ang(outer.to) - ang(outer.from);

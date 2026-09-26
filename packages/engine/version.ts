@@ -2937,6 +2937,12 @@
  * motion tokens, `motion.duration.spin` (800ms) and `motion.duration-reduced.spin` (2600ms), outside the
  * tempo-scaled ramp, so every brand's `out/**` moves. Projected surface: a new def, and every button
  * family's pending members change (their spinner's swap target). CONTRACT 13.0.0 → 13.1.0 (four adds).
+ * Review round: the paste executor's opacity write gains a reader (the engine stub's importer builds one
+ * VECTOR per `<path>` with its `opacity`, and a paste-path arm runs every spinner member through both
+ * executors); every layer-opacity read matches the attribute named exactly `opacity`, never `fill-opacity`;
+ * the geometry gate checks that each cap bulges outward past the arc's end; and the def no longer cites
+ * WCAG 2.3.3 (it slows the turn under reduced motion, which that criterion does not ask for). Lands after
+ * #1679's 0.167.0, so 0.168.0.
  *
  * 0.167.0 — #1679: a Build over an existing set REPAIRS the references a refusal window left unset. The owner's
  * master-file Button (2026-09-26) came out of 0.157.0's 17.5 s back-off with 73 references unset on 36 members;

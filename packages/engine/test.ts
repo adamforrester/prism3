@@ -52,7 +52,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -13769,14 +13769,26 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           const attr = (name: string) => Number(new RegExp(`${name}="([0-9.]+)"`).exec(svg)?.[1] ?? 0);
           const frame = mkNode('FRAME');
           frame.resize(attr('width'), attr('height'));
-          const d = /<path[^>]*\bd="([^"]*)"/.exec(svg)?.[1] ?? '';
-          const nums = (d.match(/-?[0-9]*\.?[0-9]+/g) ?? []).map(Number);
-          const xs = nums.filter((_, i) => i % 2 === 0);
-          const ys = nums.filter((_, i) => i % 2 === 1);
-          const span = (v: number[]) => (v.length ? Math.max(...v) - Math.min(...v) : 0);
-          const vec = mkNode('VECTOR');
-          vec.resize(span(xs), span(ys));
-          frame.appendChild(vec);
+          // ONE VECTOR PER <path> (#1670), each carrying the layer `opacity` the element declares, as
+          // `component-shim.ts` models it — the spinner's document is a track at 0.2 and an arc. Before this the
+          // stub drew only the first path and dropped `opacity`, so the paste executor's opacity write had no
+          // reader and reverting it to 1 left every suite green. Icon-set documents carry one path and no
+          // opacity, so they model exactly as before.
+          const pathEls = svg.match(/<path\b[^>]*>/g) ?? [];
+          for (const el of pathEls.length ? pathEls : ['']) {
+            const d = /\sd="([^"]*)"/.exec(el)?.[1] ?? '';
+            const nums = (d.match(/-?[0-9]*\.?[0-9]+/g) ?? []).map(Number);
+            const xs = nums.filter((_, i) => i % 2 === 0);
+            const ys = nums.filter((_, i) => i % 2 === 1);
+            const span = (v: number[]) => (v.length ? Math.max(...v) - Math.min(...v) : 0);
+            const vec = mkNode('VECTOR');
+            vec.resize(span(xs), span(ys));
+            const op = /\sopacity="([0-9.]+)"/.exec(el)?.[1];
+            if (op !== undefined) vec.opacity = Number(op);
+            const id = /\sid="([^"]*)"/.exec(el)?.[1];
+            if (id !== undefined) vec.name = id;
+            frame.appendChild(vec);
+          }
           return frame;
         },
         // A REAL set: it holds the members it combined, and it models `addComponentProperty` the way the
@@ -15750,6 +15762,59 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           const fmDiff = claimDiff(plugFm, claims(fmPastePage));
           ok(plugFm.some((r) => / VECTOR \[/.test(r)) && fmDiff.length === 0,
             `#1393 lockstep (GLYPH): both executors claim a glyph's imported subtree identically — plugin vs paste differ on ${fmDiff.length}: ${fmDiff.slice(0, 2).join(' | ').slice(0, 600)}`);
+        }
+
+        // #1670 — THE SPINNER'S LAYER OPACITY, THROUGH THE PASTE EXECUTOR AND IN LOCKSTEP WITH THE PLUGIN. The
+        // plugin's write is read back by `apps/plugin/test-roundtrip.ts`; the paste executor's write (the inline
+        // `claimDefaults` and its loop over the imported layers) had no reader, because this stub drew one VECTOR
+        // and dropped `opacity`, and the field-message glyph above has one path at the default 1. So reverting
+        // the paste write to 1 left every suite green while a spinner pasted through MCP drew a solid track.
+        // EXPECTED is the owner's spec (a track at 20%, the arc at full strength), stated here, not read back
+        // out of `glyphSvg`: reading it from the document would agree with a document that drifted.
+        {
+          const SPEC = { track: 0.2, arc: 1 };
+          const layers = (page: StubPage): Record<string, number> => {
+            const out: Record<string, number> = {};
+            const walk = (n: Record<string, unknown>): void => {
+              if (n.type === 'VECTOR') out[String(n.name)] = n.opacity as number;
+              for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walk(c);
+            };
+            for (const c of page.children as Record<string, unknown>[]) walk(c);
+            return out;
+          };
+          const spinMembers = figmaAnatomySet(spinner, { swapTarget: 'FPO-default-icon' });
+          for (const member of spinMembers) {
+            const spOpts = { vars: [...planBoundVars(member.root), ...planPaintVars(member.root)], styles: planTextStyles(member.root) };
+            const spPastePage: StubPage = { children: [] };
+            const spPlugPage: StubPage = { children: [] };
+            const spPasted = await runPayload(planToPluginJs(member), { ...spOpts, page: spPastePage });
+            const spPlugged = await plugRun([member], { ...spOpts, page: spPlugPage });
+            const pasteL = layers(spPastePage);
+            const plugL = layers(spPlugPage);
+            ok(spPasted.misses.length === 0 && JSON.stringify(pasteL) === JSON.stringify(SPEC),
+              `#1670 paste ${planComponentName(member)}: the pasted spinner's track reads 0.2 and its arc 1 — the paste executor claims each imported layer's opacity from the document (${JSON.stringify(pasteL)}${spPasted.misses.length ? `; misses: ${spPasted.misses.slice(0, 2).join(' | ')}` : ''})`);
+            ok(JSON.stringify(plugL) === JSON.stringify(pasteL),
+              `#1670 lockstep ${planComponentName(member)}: both executors leave the same opacity on every imported spinner layer (plugin ${JSON.stringify(plugL)} vs paste ${JSON.stringify(pasteL)}${spPlugged.misses.length ? `; plugin misses: ${spPlugged.misses.slice(0, 2).join(' | ')}` : ''})`);
+          }
+          // AN ATTRIBUTE NAMED EXACTLY `opacity` (review finding): `fill-opacity` and `stroke-opacity` are paint
+          // attributes, not layer opacity, and `\b` matched inside them because the hyphen is a word boundary.
+          // The arc is given `fill-opacity="0.5"` and no `opacity`, and must still read 1 on both paths.
+          const probe = structuredClone(spinMembers[0]) as AnatomyPlan;
+          let tagged = 0;
+          const tag = (n: FigmaNodePlan): void => {
+            if (n.glyphSvg) { const before = n.glyphSvg; n.glyphSvg = n.glyphSvg.replace(/<path id="arc" /, '<path id="arc" fill-opacity="0.5" '); if (n.glyphSvg !== before) tagged++; }
+            for (const c of n.children ?? []) tag(c);
+          };
+          tag(probe.root);
+          const prOpts = { vars: [...planBoundVars(probe.root), ...planPaintVars(probe.root)], styles: planTextStyles(probe.root) };
+          const prPastePage: StubPage = { children: [] };
+          const prPlugPage: StubPage = { children: [] };
+          await runPayload(planToPluginJs(probe), { ...prOpts, page: prPastePage });
+          await plugRun([probe], { ...prOpts, page: prPlugPage });
+          ok(tagged === 1 && layers(prPastePage).arc === 1 && layers(prPlugPage).arc === 1,
+            `#1670 a glyph layer declaring \`fill-opacity="0.5"\` and no \`opacity\` keeps layer opacity 1 on both paths (tagged ${tagged}; paste ${JSON.stringify(layers(prPastePage))}, plugin ${JSON.stringify(layers(prPlugPage))})`);
+          ok(JSON.stringify(glyphLayerOpacities('<svg><path id="a" fill-opacity="0.5" d="M0 0"/><path id="b" stroke-opacity="0.3" opacity="0.2" d="M0 0"/></svg>')) === '[1,0.2]',
+            `#1670 glyphLayerOpacities reads the attribute named exactly \`opacity\`, never \`fill-opacity\`/\`stroke-opacity\` (${JSON.stringify(glyphLayerOpacities('<svg><path id="a" fill-opacity="0.5" d="M0 0"/><path id="b" stroke-opacity="0.3" opacity="0.2" d="M0 0"/></svg>'))})`);
         }
         const fmCollapse = (ms: string[]) => ms.filter((m) => /^text text\.characters -> COLLAPSED/.test(m));
         const fmOther = (ms: string[]) => ms.filter((m) => !/^text text\.characters -> COLLAPSED/.test(m));

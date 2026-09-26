@@ -780,7 +780,7 @@ const glyphSvgFor = (defId: string, part: string, glyph: string | undefined, sca
  * the opacity is claimed from the plan (#865) rather than left as whatever the importer set.
  */
 export const glyphLayerOpacities = (svg: string): number[] =>
-  (svg.match(/<path\b[^>]*>/g) ?? []).map((el) => { const m = /\bopacity="([0-9.]+)"/.exec(el); return m ? Number(m[1]) : 1; });
+  (svg.match(/<path\b[^>]*>/g) ?? []).map((el) => { const m = /\sopacity="([0-9.]+)"/.exec(el); return m ? Number(m[1]) : 1; });
 
 /**
  * The COMPONENT NAME an overlay swaps in when it names its own component (`nests`, #1670): the nested def's
@@ -3490,7 +3490,7 @@ ${PIN_SLOT}
   if(sty){let e='';try{await node.setTextStyleIdAsync(sty.id);}catch(err){e=' ('+err.message+')';}if(node.textStyleId!==sty.id)misses.push(n.name+'.textStyle -> '+sty.name+' DISCARDED after the #865 defaults, reads '+(node.textStyleId||'no style')+e);}
   // The IMPORTED subtree: \`createNodeFromSvg\` bypasses \`createFrame()\`, so its inner nodes are claimed too,
   // in 'imported' mode (fills, strokes and constraints there are the glyph's own).
-  if(n.type==='GLYPH'&&node.findAll){const ops=(n.glyphSvg||'').match(/<path\\b[^>]*>/g)||[];let vi=0;for(const d of node.findAll(()=>true)){let op;if(d.type==='VECTOR'){const e=ops[vi++];const mm=e&&/\\bopacity="([0-9.]+)"/.exec(e);op=mm?Number(mm[1]):1;}claimDefaults(d,n,'imported',op);}}
+  if(n.type==='GLYPH'&&node.findAll){const ops=(n.glyphSvg||'').match(/<path\\b[^>]*>/g)||[];let vi=0;for(const d of node.findAll(()=>true)){let op;if(d.type==='VECTOR'){const e=ops[vi++];const mm=e&&/\\sopacity="([0-9.]+)"/.exec(e);op=mm?Number(mm[1]):1;}claimDefaults(d,n,'imported',op);}}
   return node;
 };`;
 
