@@ -213,13 +213,14 @@ export const verifyReadback = (snap: ReadbackSnapshot): ReadbackVerdict => {
   }
   // A SINGLE-MODE file (#1662) has nothing to collapse: "distinct per mode" needs two modes to compare,
   // so `size > 1` failed every `modes: ['light']` brand for a reason that says nothing about a collapse.
-  // The guard's question there reduces to "is the probe bound at all" — the same thing a multi-mode file
-  // whose every mode reads ABSENT fails on. Zero modes (no `color` collection found) still fails.
+  // The guard's question there reduces to "is the probe bound at all" — ALIASED into the palette, so neither
+  // ABSENT nor a `literal` left by a color-create that color-aliases never followed (#1691 net) — the same
+  // thing a multi-mode file whose every mode reads ABSENT, or literal, fails on. Zero modes (no `color` collection found) still fails.
   // Whether a single-mode file SHOULD have carried more modes is a brand fact this pure check does not
   // receive; it verifies what the file holds, not what the brand declared.
   const perModeTargets = Object.values(backgroundPrimaryByMode);
   const modesDistinct =
-    colModes.length === 1 ? perModeTargets[0] !== 'ABSENT' : new Set(perModeTargets).size > 1;
+    colModes.length === 1 ? perModeTargets[0] !== 'ABSENT' && perModeTargets[0] !== 'literal' : new Set(perModeTargets).size > 1;
 
   // aliasesResolve — every alias target name a colour var references must exist somewhere.
   const danglingAliases: string[] = [];
