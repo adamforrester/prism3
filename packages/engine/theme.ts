@@ -1470,7 +1470,7 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
       throw new Error(`typography.weights.${g}: the '${g}' category needs at least one weight role. Removing weights can't remove a type category, so keep one (its default is ${TYPE_WEIGHTS_DEFAULT[g].join('/')}).`);
     const req = REQUIRED_WEIGHT_ROLES[g];
     if (req && !roles.includes(req.role))
-      throw new Error(`typography.weights.${g}: the '${g}' category must include '${req.role}', because ${req.why}. Add '${req.role}' back (it ships ${roles.join('/')}).`);
+      throw new Error(`typography.weights.${g}: the '${g}' category must include '${req.role}', because ${req.why}. Add '${req.role}' back (the set given is ${roles.join('/')}).`);
   }
   const linkGroups = new Set(t.links ?? TYPE_LINK_DEFAULT);
   const italicGroups = new Set(t.italics ?? []);   // default none — italics are opt-in per role
