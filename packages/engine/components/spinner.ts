@@ -157,9 +157,8 @@ export const spinner: ComponentDef = {
       'STANDALONE COMPONENTS, not one variant set (`emitAsComponents`). The button swaps a spinner into its icon slot by component name, and a set member\'s name is not unique in a file.',
       'THE TURN IS NOT TEMPO-SCALED. `motion.duration.spin` holds 800ms at every tempo, where the transition ramp scales with the brand\'s tempo lever.',
     ],
-    unverified: [
-      'THE LAYER OPACITY ON A REAL HOST. The offline shim imports each `<path>` as its own VECTOR with the element\'s `opacity` as the layer opacity; that Figma\'s importer does the same is the reading of its documented behavior, not a live measurement. The symptom to look for: a spinner member whose track draws at full strength, as a solid ring.',
-      'THE ARC COMMANDS ON A REAL HOST. The outlines use SVG elliptical-arc (`A`) commands, which no icon-set glyph does. Figma\'s importer reads them; the symptom of a problem would be a polygonal or missing ring.',
+    evolution: [
+      'VERIFIED ON A REAL HOST (2026-09-26). The two items this def shipped as unverified were measured live through `figma.createNodeFromSvg` in the owner\'s test file. The importer makes one VECTOR per `<path>`, in path order, named by its `id`. `track` imports at layer opacity 0.2 (read back as 0.20000000298, single precision), even-odd winding, 22x22 at (1,1). `arc` imports at opacity 1, nonzero winding, 12x16.79 at (11,1). Both outlines arrive as cubic curves (24 and 16 segments, no straight lines), so the elliptical-arc commands convert without flattening.',
     ],
   },
 };
