@@ -7,6 +7,28 @@
 
 ---
 
+## (2026-09-26) — Body and caption keep their default weight (#1681); Aurora's brief matches comfortable density
+
+**STATUS: PR open on `lane/body-caption-default`, labeled DO NOT MERGE.** Engine + studio + docs. **ENGINE 0.167.0 → 0.168.0** (renumbered in the net: #1680 took 0.167.0); **CONTRACT STANDS at 13.0.0** (`token-contract --check` level `none`; `--accept` rewrote only the informational `engineVersion`). `out/**` moves by the version stamp only; `lever-manifest.json` and `theme-schema.json` by the weights description.
+
+**The owner's disposition (2026-09-26): option (A), refuse.** `body` and `caption` keep `default` the way `label` keeps `emphasis`. Six defs bind `type.body.*.default` by name (`text-field`, `select`, `textarea`, the checkbox/radio/switch rows; `field-label` reaches it through its `regular` weight intent, #1602, and falls back safely — corrected in the net) and two bind `type.caption.md.default` (`textarea`'s counter, `field-message`). Before this, `typography.weights: { body: ['strong'] }` was accepted and built a theme missing six guaranteed paths.
+
+**Engine.** Two rows added to `REQUIRED_WEIGHT_ROLES` in `theme.ts`; the refusal in `buildComposites` was already table-driven, so no new code path. The `why` strings name the controls, and the refusal message and studio tooltip both read them. A brand may still add weights to either set. The contract doesn't move, which is the point of (A): the paths were guaranteed already, and the refusal is what keeps that true. `docs/30` gains a `Decided (#1681)` heading after #1639's, indexed in `docs/42` and `decisions-index.json`; the residual is closed.
+
+**Schema budget.** The `theme-schema.json` weights description grew by one clause (`body and caption 'default'`). MCP `tools/list` still clears its 60,000-char budget (the `test.ts` arm is green), but the margin is thin; the next schema clause should expect to be traded for one.
+
+**Aurora's brief (owner-approved copy).** #1676 moved aurora to comfortable density but its brief still said "the UI is dense … so more fits on screen". It now says "the UI has room to breathe: this is a tool people live in all day, so controls stay easy to hit without feeling sparse". Three places quoted the old sentence: `vocabulary.ts`'s header (updated verbatim), the `dense` trait's `why` (re-sourced: no example brief asks for density outright any more, so it cites harbor's "not a dense dashboard" as the opposite pole of `generous`, the same footing `sharp` takes against `soft`), and `docs/31`'s opening (now `density: comfortable`). The brief prose does not flow into `out/aurora.ai.json`, so nothing there moved.
+
+**Gates.** `test.ts` `#1681`: body sets without `default` (`strong`, `emphasis/strong`, `subtle`) refused naming the text field; caption sets (`strong`, `emphasis`) refused naming the field message (controls authored in the test, not read from the `why`); three sets that keep `default` accepted; the four bound paths still guaranteed in the committed baseline. `test-smoke.mjs` 2e: for body and caption, with two weights ticked, the `default` box is disabled and its tooltip names the control.
+
+**Mutations, each from a committed `wip:` HEAD, restored:**
+- Drop the `body` row → `❌ #1681 a body set without default (strong|emphasis/strong|subtle) is refused, and the message names the text field (got: no throw)` ×3.
+- Same mutation, studio rebuilt → `✗ <brand>: with two body weights ticked, body's default box is still disabled, and names the text field` for aurora and harbor.
+
+**Trap for whoever re-runs the smoke here.** The container's Playwright wanted `chromium_headless_shell-1234`; only `-1194` is installed. A scratch `PLAYWRIGHT_BROWSERS_PATH` of symlinks to the installed build ran the suite; nothing in the repo changed for it.
+
+---
+
 ## (2026-09-26) — a Build over an existing set repairs the references a refusal window left unset (#1679)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Plugin + a stamp-only regen. **ENGINE 0.166.0 → 0.167.0** (plugin behavior → MINOR); CONTRACT STANDS at 13.0.0. Gate count **STANDS**: the new arms live in `test-write-components.ts` and `test-apply-summary.ts`, inside the plugin `test` step.

@@ -441,7 +441,7 @@
       "label": "Per-role weight sets",
       "control": "object",
       "advanced": true,
-      "description": "Which weights each type role ships (weight is an axis on every role; adding one is additive). Every role keeps at least one, and label keeps emphasis, which the button uses."
+      "description": "Which weights each type role ships (weight is an axis on every role; adding one is additive). Every role keeps at least one. Label keeps emphasis, and body and caption keep default: the button and form controls use them."
     },
     {
       "key": "typography.links",
