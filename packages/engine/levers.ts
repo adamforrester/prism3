@@ -140,7 +140,7 @@ export const leverManifest: Lever[] = [
   { key: 'typography.responsive', group: 'type', label: 'Responsive type', control: 'object', advanced: true,
     description: 'Fluid heading sizing on/off + the min/max viewport pair driving clamp() and the Figma modes.' },
   { key: 'typography.weights', group: 'type', label: 'Per-role weight sets', control: 'object', advanced: true,
-    description: 'Which weights each type role ships (weight is an axis on every role; adding one is additive).' },
+    description: 'Which weights each type role ships (weight is an axis on every role; adding one is additive). Every role keeps at least one, and label keeps emphasis, which the button uses.' },
   { key: 'typography.links', group: 'type', label: 'Underlined link roles', control: 'list', advanced: true, itemLabel: 'type role',
     description: 'Which roles get an underlined .*-link variant. Default body + caption.' },
   { key: 'typography.italics', group: 'type', label: 'Italic roles', control: 'list', advanced: true, itemLabel: 'type role',
