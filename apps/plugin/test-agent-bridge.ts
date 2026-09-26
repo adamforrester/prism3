@@ -28,6 +28,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { createBridgeRelay } from './src/agent-bridge-relay';
 import type { WsLike } from './src/agent-bridge-relay';
+import { createProgressCounter } from '../../tools/figma-bridge/server';
 
 let failed = 0;
 let executed = 0;
@@ -253,6 +254,17 @@ section('progress across phases (#1684)');
     engineVersion: ENGINE_VERSION, transport: 'bridge', result: { verdict: null, data: {}, logs: [] },
   } });
   ok(!(await done()).isError, 'progress: the run completes');
+}
+{
+  // #1686 net — the two clauses the spawned-server sequence never reaches (every restart there coincides with
+  // a phase change, and no segment opens at 0). A SAME-PHASE restart (one set's build 48/48, the next set's
+  // build 24/48) must fold the first set's 48 into the offset; a segment opening at `done: 0` must still move
+  // forward (the floor). Expected values written here, traced by hand: 48 → 48+24 → floor 73 → 72+1+1 = 74.
+  const count = createProgressCounter();
+  const seq = [['build', 48], ['build', 24], ['wire', 0], ['wire', 1]] as const;
+  const got = seq.map(([phase, done]) => count({ phase, done, total: 48, chunkMs: 0, elapsedMs: 0 } as never));
+  ok(JSON.stringify(got) === JSON.stringify([48, 72, 73, 74]),
+    `progress: a same-phase restart folds into the offset and a segment opening at 0 still rises (want 48, 72, 73, 74; got ${got.join(', ')})`);
 }
 
 section('timeout');

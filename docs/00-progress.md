@@ -29,6 +29,22 @@
 
 ---
 
+## (2026-09-26) — the panel side of an agent's prune preview is gated: pillOnly never opens the dialog (#1663)
+
+**STATUS: PR open from `lane/pilonly-gate`, labeled DO NOT MERGE.** Plugin test only. **No ENGINE bump, no CONTRACT bump:** nothing a consumer can observe moved (`version.ts`: ENGINE bumps on observable behavior), no emitted artifact, no bundle byte outside the test file.
+
+**The gap.** #1660 has the main thread mark an agent's prune preview `pillOnly`, and `test-agent-link.ts` proves the flag is *set*. Two panel hops honor it — `write-adapter.ts` carries it across the bridge, and the `prune-result` handler in `apps/studio/src/main.ts` takes a pill branch instead of opening the confirm dialog — and nothing failed if either was deleted. That matters beyond noise on the owner's screen: the dialog's Delete posts `postPrune(lastGoodInput, true)`, the *panel's* knobs, so an owner confirming an agent's count would prune against a different input than the one previewed.
+
+**The arm.** Added to `apps/plugin/test-build-verdict.mjs` (`test:verdict`), the harness that already drives the built `dist/ui.html` through the real `write-adapter.ts` bridge — no new CI step, so `ci.yml`, CONTRIBUTING §3, CLAUDE.md and the PR template are untouched. Two arms post the same `prune-result` (`applied: false, count: 4`) and differ only in `pillOnly`: the **control** (no flag) must open the dialog, found by its accessible name "Prune stale items", with a "Delete 4 items" CTA — proving the probe can see a dialog at all, so "no dialog" is a measurement and not a selector matching nothing; the **agent arm** must show no dialog, no Delete CTA, and a bar pill reading exactly `Agent preview: <summary>`. Suite: 129 → 136 assertions.
+
+**Mutations, by name** (commit before each, bundle rebuilt each time):
+- Delete the studio `m.count > 0 && m.pillOnly` branch → 3 named `#1663` failures (dialog opens, "Delete 4 items" present, pill absent).
+- Drop the adapter's `...(m.pillOnly === true ? …)` carry → the same 3. The flag's loss at either hop is caught, not only the one the issue named.
+
+**Trap for whoever re-runs a mutation here:** the arm reads the *built* bundle, so a mutation that breaks the esbuild step leaves the previous `dist/ui.html` in place and the suite reports against it. A first attempt at the adapter mutation did exactly that (a sed left a stray `)`), and its "3 failing" was the stale bundle from the studio mutation. Check the build exits clean before reading the suite's verdict.
+
+---
+
 ## (2026-09-26) — the Spinner component, to the owner's spec, used by the button's pending state (#1670)
 
 **STATUS: PR open from `lane/spinner`, labeled DO NOT MERGE; the owner answered all five open questions (below).** Engine + plugin. Main merged in after #1676, #1678 and #1680 (0.167.0). **ENGINE 0.168.0 → 0.169.0** (renumbered in the orchestrator's net: #1682 took 0.168.0) (a new def, the button families' pending members move, two new motion tokens in every brand's `out/**` → MINOR). **CONTRACT 13.0.0 → 13.1.0**, four adds: `motion.duration.spin`, `motion.duration-reduced.spin`, and the `motion.duration-ms.800` / `.2600` primitives they alias, now emitted at every tempo. `component-surface` accepted (the three button families plus `spinner`); `paint-census` accepted for `spinner` alone (the button census did not move).
