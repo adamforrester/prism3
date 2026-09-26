@@ -527,14 +527,14 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
       // primitive for it is what the owner ruled out (PR #1622, superseded). So the `$value` is the RESOLVED
       // translucent color (a stock consumer gets the right paint with no custom code), and `tint` carries the
       // two references it was made from — the fill ROLE and the `opacity.<n>` TOKEN — so a consumer that can
-      // compose them (`color-mix`, a Figma paint's opacity) binds the originals and follows them.
+      // compose them (`color-mix`, a Figma variable's alias-with-opacity) binds the originals and follows them.
       const leaf: Token = {
         $type: 'color', $value: tintValue(lr), $description: lr.description,
         $extensions: { prism3: {
           role: 'semantic', tint: tintRefs(lr),
           contrast: round(lr.ratio, 2), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
           modes: modeOverrides,
-          figma: { collection: 'color', note: 'not a Figma variable (a paint opacity cannot bind one): bind the fill variable in `tint.color` at the paint opacity `tint.opacity` resolves to' },
+          figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES], note: 'one Figma color variable: in each mode it aliases the fill variable in `tint.color` at the opacity variable in `tint.opacity`' },
         } },
       };
       const parts = roleKey.split('.');

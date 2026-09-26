@@ -1160,11 +1160,6 @@ export type ComponentDef = {
    *  state- or variant-qualified slot uses a dotted suffix (`fill.hover`, `label.on-fill`).
    *  VALUES are token refs, validated to resolve. Reach for SEMANTIC roles, not primitives. */
   tokens: Record<string, TokenRef>;
-  /** MATERIALIZED, NEVER AUTHORED (#1614): the paint opacity a `tokens` key is bound at, per ground. Written only
-   *  by `applyOutlineInteraction` under `solid-tint`, where an outline/text hover binds the category's FILL at an
-   *  opacity-scale step (`page` for `surface=default`, `inverse` for `surface=inverse` — the step is chosen per
-   *  ground). The projector puts it on the plan as `paintOpacity`; a key absent here paints opaque. */
-  paintOpacity?: Record<string, { page: number; inverse: number }>;
 
   /** HOW `tokens`' PAINT KEYS ARE SPELLED, in the order a lookup tries them (#758).
    *

@@ -453,7 +453,33 @@ export const makeShim = (opts: ShimOpts = {}) => {
    * of `boundVariables` and compare it against what the PLAN asked for. Rooting the id too would just
    * re-add the root on both sides of every one of those comparisons and cancel out.
    */
-  const mkVar = (name: string) => ({ id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }) });
+  /**
+   * #1646 — REWRITING A BOUND VARIABLE RESETS ITS PAINTS' OPACITY (host-measured 2026-09-25 through the agent
+   * link on the owner's NB file): one Apply Theme reset all 288 tinted-wash paints on button,
+   * button-destructive and button-neutral from 0.1–0.3 to 1. `setValueForMode` on a color variable makes the
+   * host set `opacity: 1` on every paint bound to it, anywhere in the file. Modeled over the page's whole
+   * tree, so a re-apply after a build can witness it; the values written are kept per variable, per mode, so
+   * a test can read what the variable itself now holds. Inert until something calls `setValueForMode`.
+   */
+  const varValues = new Map<string, Record<string, unknown>>();
+  const walk = (n: Node, f: (n: Node) => void): void => { f(n); for (const k of (n.children as Node[] | undefined) ?? []) walk(k, f); };
+  const rewriteVar = (name: string, modeId: string, value: unknown): void => {
+    varValues.set(name, { ...(varValues.get(name) ?? {}), [modeId]: value });
+    const id = `V:${name}`;
+    const boundHere = (p: unknown) => (p as { boundVariables?: { color?: { id?: string } } } | null)?.boundVariables?.color?.id === id;
+    for (const top of page?.children ?? []) walk(top, (n) => {
+      for (const key of ['fills', 'strokes'] as const) {
+        const arr = n[key];
+        if (!Array.isArray(arr) || !arr.some((p) => boundHere(p) && ((p as { opacity?: number }).opacity ?? 1) !== 1)) continue;
+        n[key] = arr.map((p) => (boundHere(p) ? { ...(p as object), opacity: 1 } : p));
+      }
+    });
+  };
+  const mkVar = (name: string) => ({
+    id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }),
+    get valuesByMode(): Record<string, unknown> { return varValues.get(name) ?? {}; },
+    setValueForMode: (modeId: string, value: unknown): void => rewriteVar(name, modeId, value),
+  });
 
   /** Is `n` inside a component or component set — the precondition Figma puts on `isExposedInstance` (#1378).
    *

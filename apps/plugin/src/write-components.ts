@@ -1625,22 +1625,12 @@ const writeComponentSet = async (
     // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
     let paintedFills = false;
     let paintedStrokes = false;
-    // A PAINT OPACITY (#1614) goes on the paint the variable was bound to: Figma cannot bind a paint's opacity
-    // to a variable, so a `solid-tint` hover is the category's fill variable at the opacity step's number.
-    // Lockstep with the paste executor (`planToPluginJs`).
-    const fillOpacity = n.paintOpacity?.fills;
+    // Every bound paint is OPAQUE. A `solid-tint` hover's tint lives in the wash VARIABLE it binds (#1614,
+    // #1646): the host resets a bound paint's opacity whenever Apply Theme rewrites that paint's variable,
+    // so a tint carried on the paint lasted only until the next re-apply. Lockstep with the paste executor.
     if (n.paints?.fills) {
       const p = paint(n.paints.fills, 'fills');
-      if (p) {
-        node.fills = [p];
-        paintedFills = true;
-        // THE OPACITY TAKES A SECOND ASSIGNMENT (host-measured on the owner's file, 2026-09-25, frames,
-        // components and rectangles alike): the FIRST time a variable-bound paint lands on a node the host
-        // resets its opacity to 1, whether the opacity was on the paint before binding or spread on after;
-        // re-assigning a copy of the now-bound paint with the opacity keeps it. So the bound paint goes on,
-        // then the opacity. Lockstep with the paste executor.
-        if (fillOpacity !== undefined) node.fills = [{ ...((node.fills as object[])[0]), opacity: fillOpacity }];
-      }
+      if (p) { node.fills = [p]; paintedFills = true; }
       // DECLARED BUT UNRESOLVABLE → transparent, NEVER Figma's opaque white default (#1387). The
       // component set is brand-agnostic — it binds `interactive.<family>.overlay.{hover,pressed}` on
       // outline/text hover/pressed unconditionally — while that wash is EMITTED only under
@@ -1707,12 +1697,6 @@ const writeComponentSet = async (
     for (const prop of wrote)
       if (!weightHeld(got, prop)) misses.push(`${n.name}.${prop} -> DISCARDED (resolved, set, not retained)`);
     if (paintedFills && !boundPaint(node.fills)) misses.push(`${n.name}.fills -> DISCARDED (paint set, not retained)`);
-    // …and at the OPACITY it was set at (#1614): read back at 1, a `solid-tint` hover is the category's fill
-    // opaque — the color its own label sits in, not a hover.
-    if (paintedFills && fillOpacity !== undefined) {
-      const got0 = (node.fills as { opacity?: number }[] | undefined)?.[0]?.opacity ?? 1;
-      if (Math.abs(got0 - fillOpacity) >= 0.001) misses.push(`${n.name}.fills.opacity -> DISCARDED (wanted ${fillOpacity}, read back ${got0})`);
-    }
     if (paintedStrokes && !boundPaint(node.strokes)) misses.push(`${n.name}.strokes -> DISCARDED (paint set, not retained)`);
 
     // FLOW CHILDREN FIRST, absolute ones after — three passes, because an absolute child is positioned

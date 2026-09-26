@@ -81,6 +81,7 @@ import { parseDesignMd } from '@prism3/engine/design-md';
 import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
 // #1608 — the brand's COLOR emission, the host-side oracle for the outline-hover arm.
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
+import { buildWritePlan } from '@prism3/engine/write-plan';
 import type { BrandInput } from '@prism3/engine/theme';
 import { applyComponentPlan, CHUNK, partialWriteOf, buildReportJson, REF_BACKOFF_MS } from './src/write-components';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
@@ -3140,14 +3141,15 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     /appearance=(outline|text)/.test(String(m.name)) && /state=(hover|pressed)/.test(String(m.name)) && new RegExp(`surface=${surface}`).test(String(m.name)));
   const fillMisses = (misses: string[]) => misses.filter((m) => /\.fills -> /.test(m));
 
-  // (a) SOLID-TINT (#1614) — the category's EXISTING fill variable at a PAINT OPACITY lands where the wash did.
-  // nb-redesign's primary hover steps DOWN to opacity.10 on both grounds (its label fails at 20); pressed stays
-  // at opacity.30. Read back off the BUILT node — the variable bound AND the opacity the paint kept — so
-  // dropping the opacity in `paint()` leaves every member an opaque fill, the label's own color, and fails here.
+  // (a) SOLID-TINT (#1614, #1646) — the TINTED-WASH VARIABLE lands where the neutral wash did, bound at paint
+  // opacity 1: the tint lives in the variable (its per-mode value is the fill's alias at an opacity), because
+  // the host resets a bound paint's opacity whenever Apply Theme rewrites that paint's variable.
   const tint = { ...nbInput, outlineInteraction: 'solid-tint' } as BrandInput;
   const tintPlans = figmaAnatomySet(materializeForBrand(button, tint), { swapTarget: SWAP });
   const tintPage: Page = { children: [] };
-  const tintRun = await run(tintPlans, { ...hostFor(tint, tintPlans), page: tintPage });
+  const tintShim = makeShim({ ...hostFor(tint, tintPlans), page: tintPage });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const tintRun = await applyComponentPlan(tintPlans, tintShim as any);
   const paintOf = (n: Node): string => {
     const f = (n.fills as { opacity?: number }[] | undefined) ?? [];
     return `${fillVar(n)} @ ${f[0]?.opacity ?? 1}`;
@@ -3155,17 +3157,75 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const byState = (ms: Node[]) => [...new Set(ms.map((m) => `${/state=(hover|pressed)/.exec(String(m.name))![1]}: ${paintOf(m)}`))].sort();
   const tintDefault = hoverMembers(tintPage, 'default');
   const tintBound = byState(tintDefault);
-  ok(tintDefault.length === 48 && JSON.stringify(tintBound) === JSON.stringify(['hover: color/interactive/primary/fill/rest @ 0.1', 'pressed: color/interactive/primary/fill/rest @ 0.3']),
-    `#1614 solid-tint NB button: the 48 default-ground outline/text (2 appearances × 2 states × 3 sizes × 4 slot combos) hover+pressed members bind interactive/primary/fill/rest at paint opacity 0.1 / 0.3 (${tintDefault.length}: ${tintBound.join(', ')})`);
-  // #1613 — the inverse-band members bind the BAND's fill (`inverse…fill/rest`, the one the owner sets per
-  // category in the plugin) at the band's own step. Hand-named, both sides.
+  ok(tintDefault.length === 48 && JSON.stringify(tintBound) === JSON.stringify(['hover: color/interactive/primary/subtle-fill/hover @ 1', 'pressed: color/interactive/primary/subtle-fill/pressed @ 1']),
+    `#1646 solid-tint NB button: the 48 default-ground outline/text (2 appearances × 2 states × 3 sizes × 4 slot combos) hover+pressed members bind interactive/primary/subtle-fill/{hover,pressed} at paint opacity 1 (${tintDefault.length}: ${tintBound.join(', ')})`);
+  // #1613 — the inverse-band members bind the BAND's wash (`inverse…subtle-fill`, the fill the owner sets per
+  // category in the plugin, at the band's own step). Hand-named, both sides.
   const tintInverse = hoverMembers(tintPage, 'inverse');
   const tintInvBound = byState(tintInverse);
-  ok(tintInverse.length === 48 && JSON.stringify(tintInvBound) === JSON.stringify(['hover: color/inverse/interactive/primary/fill/rest @ 0.1', 'pressed: color/inverse/interactive/primary/fill/rest @ 0.3']),
-    `#1614 solid-tint NB button: the 48 inverse-band outline/text hover+pressed members bind inverse/interactive/primary/fill/rest at paint opacity 0.1 / 0.3 (${tintInverse.length}: ${tintInvBound.join(', ')})`);
+  ok(tintInverse.length === 48 && JSON.stringify(tintInvBound) === JSON.stringify(['hover: color/inverse/interactive/primary/subtle-fill/hover @ 1', 'pressed: color/inverse/interactive/primary/subtle-fill/pressed @ 1']),
+    `#1646 solid-tint NB button: the 48 inverse-band outline/text hover+pressed members bind inverse/interactive/primary/subtle-fill/{hover,pressed} at paint opacity 1 (${tintInverse.length}: ${tintInvBound.join(', ')})`);
   const tintFill = fillMisses(tintRun.misses);
   ok(tintFill.length === 0,
-    `#1613 solid-tint NB button: 0 container.fills misses on BOTH grounds, opacity read back included (${tintFill.length}${tintFill.length ? ` — ${[...new Set(tintFill)].slice(0, 3).join('; ')}` : ''})`);
+    `#1613 solid-tint NB button: 0 container.fills misses on BOTH grounds (${tintFill.length}${tintFill.length ? ` — ${[...new Set(tintFill)].slice(0, 3).join('; ')}` : ''})`);
+
+  // (a2) THE TINT SURVIVES APPLY THEME (#1646) — the defect this arm exists for. Measured live 2026-09-25: one
+  // Apply Theme reset all 288 tinted-wash paints on the owner's NB file to opacity 1, because the host resets
+  // the opacity of every paint bound to a color variable it rewrites (`component-shim.ts` models that rule).
+  // Re-apply = rewrite every color variable of the brand's plan, in every mode, with the value its alias row
+  // carries — the fill's alias, laid at the wash's opacity where the row has one. Then read each hover/pressed
+  // member's EFFECTIVE tint: the paint's opacity times the opacity its bound variable holds, in every mode.
+  // Expected steps are HAND-NAMED (nb-redesign's primary hover steps down to opacity.10 on both grounds; pressed
+  // stays at opacity.30) — never read off the plan. Bind the fill with a paint opacity again (the pre-#1646
+  // path) and the re-apply leaves that paint at 1 on a variable that holds no opacity: this arm fails by name.
+  const tintColor = buildWritePlan(buildFigmaColor(brandTheme(tint))).color;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the shim's variables, structurally
+  const tintVars = (await (tintShim as any).variables.getLocalVariablesAsync()) as { id: string; name: string; valuesByMode: Record<string, { color?: { id: string }; opacity?: number }>; setValueForMode: (m: string, v: unknown) => void }[];
+  const shimByTail = new Map(tintVars.map((v) => [v.name.replace(/^[^/]+\//, ''), v]));
+  let rewritten = 0;
+  for (const row of tintColor.aliases) {
+    const v = shimByTail.get(row.name.replace(/^[^/]+\//, ''));
+    if (!v) continue;
+    tintColor.modes.forEach((m, i) => {
+      const target = row.targetsByMode[i];
+      if (!target) return;
+      const alias = { type: 'VARIABLE_ALIAS', id: `V:${target.replace(/^[^/]+\//, '')}` };
+      const op = row.opacityByMode?.[i];
+      v.setValueForMode(m, op ? { color: alias, opacity: op.value } : alias);
+      rewritten++;
+    });
+  }
+  const WANT_TINT: Record<string, number> = { hover: 0.1, pressed: 0.3 };
+  const effective = (n: Node): string[] => {
+    const f = ((n.fills as { opacity?: number; boundVariables?: { color?: { id?: string } } }[] | undefined) ?? [])[0];
+    const v = tintVars.find((x) => x.id === f?.boundVariables?.color?.id);
+    const st = /state=(hover|pressed)/.exec(String(n.name))![1];
+    // Every mode the re-apply wrote must carry the step; a mode with no opacity is an opaque alias.
+    return tintColor.modes.flatMap((m) => {
+      const held = v?.valuesByMode[m];
+      const got = (f?.opacity ?? 1) * ((held?.opacity ?? 100) / 100);
+      return Math.abs(got - WANT_TINT[st]) < 1e-6 && held?.color ? [] : [`${n.name} @${m}: ${fillVar(n)} paint ${f?.opacity ?? 1} × variable ${held?.opacity ?? 'no opacity'}`];
+    });
+  };
+  const survived = [...tintDefault, ...tintInverse].flatMap(effective);
+  ok(rewritten > 0 && tintDefault.length + tintInverse.length === 96 && survived.length === 0,
+    `#1646 solid-tint NB button SURVIVES APPLY THEME: after ${rewritten} color-variable rewrites, all 96 hover/pressed members still resolve to the tint (0.1 hover / 0.3 pressed, paint opacity 1 × the wash variable's own opacity) in every mode (${survived.length} lost${survived.length ? ` — ${survived.slice(0, 3).join('; ')}` : ''})`);
+  // The rule the arm leans on is live in the model, not assumed: a paint carrying its own opacity on a
+  // rewritten variable reads back at 1. Precondition, so the survive line cannot pass on an inert shim.
+  const probePage: Page = { children: [] };
+  const probeShim = makeShim({ vars: ['color/interactive/primary/fill/rest'], page: probePage });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const probeApi = probeShim as any;
+  const probe = probeApi.createFrame() as Node;
+  probePage.children.push(probe);
+  const [pv] = await probeApi.variables.getLocalVariablesAsync();
+  probe.fills = [probeApi.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }, 'color', pv)];
+  probe.fills = [{ ...(probe.fills as object[])[0], opacity: 0.2 }];
+  const before = (probe.fills as { opacity?: number }[])[0].opacity;
+  pv.setValueForMode('light', { type: 'VARIABLE_ALIAS', id: 'V:x' });
+  const after = (probe.fills as { opacity?: number }[])[0].opacity;
+  ok(before === 0.2 && after === 1,
+    `#1646 host model: a paint bound at opacity 0.2 reads back 1 once its variable is rewritten (${before} → ${after})`);
 
   // (b) NONE — no hover expression: no variable asked for, so nothing to miss, and no fill on the member.
   const none = { ...nbInput, outlineInteraction: 'none' } as BrandInput;

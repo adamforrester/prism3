@@ -83,12 +83,15 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost) => {
       // `beginMigration` is independent of how many entries the map holds, and a future entry can
       // reintroduce a chain without a change on this line.
       const mig = await beginMigration(host.variables);
+      // FLOAT axes (#146): core/dimension, space/radius/size/border-width/focus/opacity + layout. FIRST, since
+      // the tinted wash moved into its variable (#1614, #1646): a wash's color value aliases an `opacity/<n>`
+      // variable, so the opacity collection must exist before the color pass binds it. Nothing in the FLOAT
+      // axes reads a color variable, so nothing depends on the old order.
+      const f = await applyFloatPlan(floatPlan, host.variables, mig);
       // Colour axis (#108): the `core` palette slice + the one `color` collection, per-mode alias-bound.
       // The pointer-tier executor that used to run next went with the tier (#1148) — there is no second
       // collection to alias into, so the cross-call ordering dependency it existed for is gone too.
       const r = await applyWritePlan(colorPlan, host.variables, mig);
-      // FLOAT axes (#146): core/dimension, space/radius/size/border-width/focus/opacity + layout.
-      const f = await applyFloatPlan(floatPlan, host.variables, mig);
       // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
       // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
       const s = await applyStylesPlan(stylesPlan, host);

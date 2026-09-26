@@ -44,8 +44,10 @@ import { tailOf, inCoreGroup } from './figma-names';
 /** A variable's per-mode value, as read back: either a resolved literal or the NAME of the variable
  *  it aliases (names — not Figma ids — so the snapshot is pure + serialisable). `null` alias = the
  *  mode carries a literal with no alias (shouldn't happen for our colour vars, but the read is
- *  faithful about it). A `number` is a FLOAT-axis literal (#146 — dims/space/opacity/…). */
-export type ReadValue = { alias: string | null } | Rgba | number;
+ *  faithful about it). A `number` is a FLOAT-axis literal (#146 — dims/space/opacity/…). `opacity` is set on a
+ *  tinted wash only (#1646): the alias is laid at that opacity — a percentage, or the name of the `opacity/<n>`
+ *  variable it aliases (`null` when that variable cannot be found). */
+export type ReadValue = { alias: string | null; opacity?: number | string | null } | Rgba | number;
 
 export type ReadbackSnapshot = {
   collections: { name: string; modes: string[] }[];
