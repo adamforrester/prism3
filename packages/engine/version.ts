@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.170.0 — #1685: personality-trait citations are checked against the briefs they quote. Four `why`
+ * strings in `vocabulary.ts` change, and each one ships: it is the bracketed text of the note `brandTheme`
+ * returns when a `personality` trait fills a lever, and it is inlined into the studio bundle. `dense` now
+ * states that no example brief asks for density and that it stands as the opposite pole of `generous`
+ * (harbor's "not a dense dashboard" rejects density, and the old wording read as if it cited it). `sharp`
+ * gains the citation it never had (nb-redesign: "Corners are sharp"). `premium` and `bold` split quotes that
+ * spanned markup or an arrow the brief keeps outside its quote marks, so each quoted span is verbatim.
+ * No lever value moves, and no corpus brand sets `personality`, so `out/**` moves by the version stamp
+ * only. A note a consumer reads is observable output, so ENGINE bumps (MINOR, by the running convention).
+ * CONTRACT STANDS at 13.1.0: no token name moves (`token-contract --check` level `none`).
+ *
  * 0.169.0 — #1670: the Spinner component, to the owner's spec (2026-09-26), and the button's pending state
  * swaps it in. `spinner` is a new def: four standalone `spinner/<size>` components on the icon ladder
  * (16 / 20 / 24 / 32), each one composed glyph — a full ring at 20% layer opacity under a 33% head arc with
@@ -3789,7 +3800,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.169.0';
+export const ENGINE_VERSION = '0.170.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

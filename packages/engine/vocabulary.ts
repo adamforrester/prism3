@@ -46,7 +46,9 @@
  *
  * WHERE THE WORDS COME FROM. Not invented — read off the three example briefs, which annotate their
  * own mapping ("*energetic* → snappy tempo; *premium restraint* → tighter tracking"). Every trait
- * below is attested in `packages/engine/examples/*.design.md`; the `why` string cites it. A tenth candidate
+ * below quotes `packages/engine/examples/*.design.md` in its `why` string, and `test.ts` checks each
+ * quote verbatim against the brief it names (#1685). Every trait but one is attested there as asked
+ * for; `dense` is not, and its `why` says it stands as the opposite pole of `generous`. A tenth candidate
  * (`confident`, in both aurora and wendys) was dropped as redundant against `bold` rather than
  * shipped for the sake of a rounder number.
  */
@@ -103,8 +105,10 @@ export const TRAITS: Record<string, Trait> = {
     // the US-English gate rightly fails it. Quoting an en-GB source into US-gated shipped prose is a
     // real tension; shortening the quote keeps it faithful, where editing the words would not. (This
     // comment is phrased around the word rather than using it for the same reason — engine prose
-    // reaches the bundle whether it is a string or a comment.)
-    why: 'aurora: "Energetic, premium, confident" + "premium restraint → tighter tracking"',
+    // reaches the bundle whether it is a string or a comment.) Only the brief's own words sit inside
+    // the quotes: its annotation reads `"premium restraint" → tighter tracking`, with the arrow outside
+    // its quote marks, and `test.ts` checks every quoted span verbatim against the brief (#1685).
+    why: 'aurora: "Energetic, premium, confident"; its brief maps "premium restraint" to tighter tracking',
   },
   restrained: {
     levers: { neutralEmphasis: 'subtle', 'neutral.chroma': 'subtle', 'shadow.softness': 'crisp' },
@@ -112,7 +116,9 @@ export const TRAITS: Record<string, Trait> = {
   },
   bold: {
     levers: { neutralEmphasis: 'strong', 'typography.typeScale': 'expressive', 'typography.displayCeiling': '3xl' },
-    why: 'wendys: "Bold, not loud — confident use of the red on white" + "Confident hierarchy"',
+    // Two quotes where there was one: the brief sets "Bold, not loud" in markdown bold, so the span
+    // across it is not verbatim text in the file (#1685).
+    why: 'wendys: "Bold, not loud" + "confident use of the red on white" + "Confident hierarchy"',
   },
   generous: {
     levers: { density: 'spacious', radiusScale: 'round', 'layout.containerNarrow': 'generous' },
@@ -121,8 +127,9 @@ export const TRAITS: Record<string, Trait> = {
   dense: {
     levers: { density: 'compact', 'layout.containerMax': 'wide' },
     // Re-sourced when aurora moved to comfortable density (#1215): its brief no longer says "dense".
-    // No example brief asks for density outright, so this cites the one that names it by contrast.
-    why: 'the opposite pole of `generous`; harbor names it by contrast: "not a dense dashboard"',
+    // No example brief asks for density, so the trait stands as the opposite pole of `generous` and
+    // the `why` says so outright; the quote is a brief turning density DOWN, not asking for it (#1685).
+    why: 'the opposite pole of `generous`: no example brief asks for density, and harbor names it only to reject it: "not a dense dashboard"',
   },
   soft: {
     levers: { radiusScale: 'soft', 'shadow.softness': 'soft' },
@@ -130,7 +137,8 @@ export const TRAITS: Record<string, Trait> = {
   },
   sharp: {
     levers: { radiusScale: 'sharp', 'shadow.softness': 'crisp' },
-    why: 'the opposite pole of `soft`, so a brief can state the intent rather than only its absence',
+    // It cited no brief until #1685 made every `why` quote one; nb-redesign asks for it outright.
+    why: 'nb-redesign: "Corners are sharp"; also the opposite pole of `soft`, so a brief can state the intent rather than only its absence',
   },
 };
 

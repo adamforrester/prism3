@@ -17817,7 +17817,49 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           `vocabulary: trait '${name}' sets ${lever} to a value that lever accepts ('${String(value)}' in [${opts?.join(', ')}])`);
       }
     }
-    ok(trait.why.length > 20, `vocabulary: trait '${name}' cites the brief language it was read from (an uncited mapping is an invention)`);
+  }
+
+  // ---- every trait's `why` quotes a brief, verbatim (#1685) ----
+  // The arm this replaces asserted only `why.length > 20`, so any sentence passed, and the `dense`
+  // trait kept going green after aurora's brief stopped asking for density. Independence (docs/34):
+  // the EXPECTED text is read off `examples/*.design.md` on disk, and the brief names come from that
+  // directory listing, never from the `why` itself. Each double-quoted span must occur in the brief
+  // named most recently before it (outside quotes), after collapsing whitespace (line wraps) and
+  // case, nothing else; a `…` inside a quote marks an elision, so its fragments must occur in order.
+  // A quote under no brief name, or a `why` with no quote at all, fails by the trait's name.
+  {
+    const norm = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
+    const briefText = new Map(readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md'))
+      .map((f) => [f.slice(0, -'.design.md'.length), norm(readFileSync(resolve(HERE, `./examples/${f}`), 'utf8'))] as const));
+    const traits = Object.entries(TRAITS);
+    ok(traits.length >= 9 && briefText.size >= 4,
+      `vocabulary: the trait-citation check runs over the nine traits and the committed briefs (found ${traits.length} traits, ${briefText.size} briefs)`);
+    for (const [name, { why }] of traits) {
+      const quotes = [...why.matchAll(/"([^"]*)"/g)];
+      const outside = why.replace(/"[^"]*"/g, (q) => ' '.repeat(q.length));
+      const problems: string[] = [];
+      if (quotes.length === 0) problems.push('no quoted brief text');
+      for (const q of quotes) {
+        let brief: string | undefined;
+        let at = -1;
+        for (const id of briefText.keys()) {
+          for (const m of outside.slice(0, q.index).matchAll(new RegExp(`(?<![\\w-])${id.replace(/-/g, '\\-')}(?![\\w-])`, 'g'))) {
+            if (m.index! > at) { at = m.index!; brief = id; }
+          }
+        }
+        if (!brief) { problems.push(`"${q[1]}" names no example brief before it`); continue; }
+        const text = briefText.get(brief)!;
+        let from = 0;
+        for (const frag of q[1].split('…').map(norm)) {
+          const hit = frag ? text.indexOf(frag, from) : -1;
+          if (hit < 0) { problems.push(`"${q[1]}" is not verbatim in ${brief}.design.md (missing: "${frag}")`); break; }
+          from = hit + frag.length;
+        }
+      }
+      ok(problems.length === 0,
+        `vocabulary: trait '${name}' names an example brief and quotes it verbatim (an uncited mapping is an invention)`
+        + (problems.length ? ` — ${problems.join('; ')}` : ''));
+    }
   }
 
   // ---- the structural invariant ----
