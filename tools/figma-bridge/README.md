@@ -40,7 +40,10 @@ imported from its manifest for development.
 5. `figma_logs { since }` — the console and progress lines streamed during runs. Pass the `last` value
    from the previous call to read only new lines. While a `figma_run` is in flight, the same lines
    arrive as `notifications/message`, and progress arrives as `notifications/progress` when the
-   request carries a `progressToken`.
+   request carries a `progressToken`. The plugin's `done` count restarts at every phase (build,
+   wire, each reference back-off `retry` pass), so `progress` is a running count across phases
+   that only ever increases, as MCP requires. No `total` is sent, since the run's total is not known
+   until it ends; `message` carries the phase's own fraction, e.g. `wire 24/48`.
 
 Commands: `status`, `apply-theme {input}`, `build-components {def?}`, `file-setup`,
 `prune {input, confirm}`, `readback` — the same six as the mailbox, run through the same handlers the

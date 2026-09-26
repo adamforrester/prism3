@@ -7,6 +7,28 @@
 
 ---
 
+## (2026-09-26) — Desktop bridge: MCP progress only ever increases across build phases (#1684)
+
+**STATUS: PR open from `lane/bridge-progress`, labeled DO NOT MERGE.** Tool + plugin test. **ENGINE 0.169.0 → 0.170.0**; CONTRACT stands at 13.1.0 (the baseline moved by its `engineVersion` stamp only).
+
+**The defect.** `figma_run` passed each plugin reading's `done` straight through as the MCP `progress` value. The MCP spec requires `progress` to increase with every notification, and a build restarts `done` at every segment: build → wire, each #1679 `retry` pass (1/6 … 6/6), the `wire` reading that closes the back-off, and the next set's build when one command builds several (nested sets, #1633). A client that enforces the rule may drop the stream exactly when the build is slowest.
+
+**The fix.** `createProgressCounter` in `tools/figma-bridge/server.ts`, one per `figma_run`. A segment ends when the phase changes or `done` fails to rise; the finished segment's last `done` is folded into an offset, and progress = offset + done, floored at the previous value + 1 so a segment opening at `done: 0` still moves forward. The mailbox transport is unaffected: it returns readings in the result envelope, not as MCP notifications.
+
+**`total` is omitted, deliberately.** The only totals the plugin knows are per segment, and the number of segments (retry passes, nested sets) is unknown until the run ends, so any sum would be overtaken by a later phase and read to a client as a bar that fills and then falls back. MCP makes `total` optional. `message` keeps the phase's own fraction (`wire 24/48`), and `figma_logs` keeps the raw readings.
+
+**Tried and discarded.** A per-phase offset with a `total` covering every phase (the issue's second suggestion). It works for one build → wire pass but not for retry passes that may or may not happen, or for a command that builds several sets.
+
+**Version class.** The bridge reports `ENGINE_VERSION` as its `serverInfo.version`, and #1661 bumped ENGINE for the bridge's introduction. What an MCP client receives changes, which is a behavior change under principle 5, so MINOR. No emission or projected surface moves; `out/**` is a stamp-only regen.
+
+**Gate.** `apps/plugin/test-agent-bridge.ts`, new section `progress across phases (#1684)`, through the real spawned server and socket: build 24/48, 48/48 → wire 24/48, 48/48 → retry 1/6, 2/6, 3/6 → wire 48/48 → build 12/12 → wire 12/12. The expected sequence is written in the test, `24, 48, 72, 96, 97, 98, 99, 147, 159, 171`, not computed by the counter. The `stream` arm's `total === 9` assertion now checks `message === 'build 3/9'`.
+
+**Mutations, from a committed `wip:` HEAD, restored:**
+- Pass-through restored (`progress: p.done, total: p.total`) → `✗ progress: strictly increasing across build → wire → retry → wire → build (got 24, 48, 24, 48, 1, 2, 3, 48, 12, 12)`, `✗ progress: the sequence is …` and `✗ progress: no total …`.
+- The offset fold removed, floor kept → only `✗ progress: the sequence is … (got 24, 48, 49, … 56)`. The floor alone keeps the values increasing, which is why the exact sequence is asserted and not only strict increase.
+
+---
+
 ## (2026-09-26) — the Spinner component, to the owner's spec, used by the button's pending state (#1670)
 
 **STATUS: PR open from `lane/spinner`, labeled DO NOT MERGE; the owner answered all five open questions (below).** Engine + plugin. Main merged in after #1676, #1678 and #1680 (0.167.0). **ENGINE 0.168.0 → 0.169.0** (renumbered in the orchestrator's net: #1682 took 0.168.0) (a new def, the button families' pending members move, two new motion tokens in every brand's `out/**` → MINOR). **CONTRACT 13.0.0 → 13.1.0**, four adds: `motion.duration.spin`, `motion.duration-reduced.spin`, and the `motion.duration-ms.800` / `.2600` primitives they alias, now emitted at every tempo. `component-surface` accepted (the three button families plus `spinner`); `paint-census` accepted for `spinner` alone (the button census did not move).
