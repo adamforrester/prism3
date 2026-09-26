@@ -108,10 +108,11 @@ vary:
 | corpus member | what it varies |
 |---|---|
 | `nb` | the hand-built legacy system — `nbds.*` dialect, `rgb()` color format |
-| `aurora` | engine-native brief, an extra brand color, compact density, 3:1 icon contrast |
+| `aurora` | engine-native brief, an extra brand color, 3:1 icon contrast (compact density until #1215) |
 | `harbor` | engine-native brief, a different lever combination |
 | `wendys` | **standard dialect** — a flat `colors:` map classified into anchors; a different typeface |
 | `minimal` | the three required fields and **nothing else** — the sparsest input the engine accepts |
+| `minimal-compact` | the sparsest input at **compact density** — a test-only fixture, the corpus's only compact member since aurora moved to comfortable (#1215) |
 
 That intersection is **485 paths**, with zero `$type` disagreements between any two members.
 

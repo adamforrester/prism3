@@ -247,7 +247,7 @@ backs spacing (Prism2's split). NB is a *fidelity test*, not the taxonomy
 authority — so `space` validates against **Prism2** (the numbered scale we
 adopted) and `radius` against **NB** (t-shirt in both). Integer px → exact
 equality, not ΔE: **23/23** (18 space + 5 radius) from `spaceBase=8` /
-`radius.scale=1`. Aurora runs a different form factor (compact / soft) through
+`radius.scale=1`. Aurora runs a different form factor (soft corners) through
 the identical code path.
 
 ## Motion axis (duration · easing · spring · transition)

@@ -43,7 +43,7 @@ import {
   recollect, recollectAll, ACCOUNTING_COLLECTION_MOVES,
   type MaterializationRule, type VarKey,
 } from './materialization-renames';
-import { buildContract, corpus, pathsOf, MINIMAL_BRAND, readBaseline } from './token-contract';
+import { buildContract, corpus, pathsOf, MINIMAL_BRAND, MINIMAL_COMPACT_BRAND, readBaseline } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIER, PRIMITIVE_GROUPS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
 import { aliasRows, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
@@ -2282,7 +2282,7 @@ for (const b of brands) {
     // ladder nor the space extras nor the icon ladder, at the DEFAULT baseUnit, in every corpus brand.
     //
     // Measured, not reasoned: deleting `c.dot` from the extras feed emits `md: 10px` as a LITERAL in
-    // nb/harbor/wendys/minimal and `lg: 10px` in aurora. Note the mechanism is NOT the one #900's two
+    // nb/harbor/wendys/minimal and `lg: 10px` in the compact brand (aurora, when this was measured). Note the mechanism is NOT the one #900's two
     // neighbouring comments predict — the alias does not DANGLE, `controlLeaf` falls back to a literal —
     // so the arm above catches it as an off-grid px and the alias arm in the density loop catches it as
     // `(literal)`, while an alias-resolution check alone would stay green.
@@ -2315,26 +2315,28 @@ for (const b of brands) {
   // ---- BRAND VARIANCE: the check that this is not the glyph ladder renamed ----------------------
   // The owner's own trap, encoded: `icon.size.*` is 16/20/24 in ALL FOUR brands, and a control family
   // that came out brand-invariant would be that ladder under a new name whatever its description
-  // claimed. aurora resolves `compact` (through vocabulary personality, not `modeLevers`), so its
-  // ladder must sit a FULL RUNG below the other three — aurora's `md` equal to their `sm`, not merely
-  // "different somewhere". Read from four built brands, so a brand losing its density lever fails.
+  // claimed. The compact fixture (`MINIMAL_COMPACT_BRAND`, the corpus's only compact member since
+  // aurora moved to comfortable, #1215) must sit a FULL RUNG below the three comfortable brands — its
+  // `md` equal to their `sm`, not merely "different somewhere". Read from built brands, so a fixture
+  // losing its density lever fails.
   {
     const ladder = (t: any) => CONTROL_RUNG_NAMES
       // Optional-chained for the same reason as `px` above: under the leaf mutation these reads would
       // throw and the assertion below could never speak. A missing height reads as `x` in the ladder.
       .map((n) => (buildTree(t).tree as any)[Object.keys(buildTree(t).tree)[0]].control?.size?.[n]?.height?.$extensions?.prism3?.px ?? 'x')
       .join('/');
-    const aurora = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input);
+    // `compact` names the test-only fixture throughout this block — the one brand here whose density moves.
+    const compact = brandTheme(MINIMAL_COMPACT_BRAND);
     const harbor = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input);
     const wendys = brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input);
-    const ladders = { nb: ladder(nbTheme()), aurora: ladder(aurora), harbor: ladder(harbor), wendys: ladder(wendys) };
+    const ladders = { nb: ladder(nbTheme()), compact: ladder(compact), harbor: ladder(harbor), wendys: ladder(wendys) };
     ok(new Set(Object.values(ladders)).size > 1,
-      `#900 control.size.* is NOT brand-invariant — a family equal in all four brands is the glyph ladder renamed (${Object.entries(ladders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
-    ok(ladders.aurora === '12/16/20' && ladders.nb === '16/20/24' && ladders.harbor === ladders.nb && ladders.wendys === ladders.nb,
-      `#900 aurora (compact) sits a FULL RUNG below nb/harbor/wendys (comfortable) — aurora's \`md\` is their \`sm\` (${Object.entries(ladders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
+      `#900 control.size.* is NOT brand-invariant — a family equal in every brand is the glyph ladder renamed (${Object.entries(ladders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
+    ok(ladders.compact === '12/16/20' && ladders.nb === '16/20/24' && ladders.harbor === ladders.nb && ladders.wendys === ladders.nb,
+      `#900 the compact fixture sits a FULL RUNG below nb/harbor/wendys (comfortable) — its \`md\` is their \`sm\` (${Object.entries(ladders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
     // Stated as the inverse of #324's invariance assertion, so the pair reads as one decision.
     const iconLadder = (t: any) => ICON_SIZES.map((s) => (buildTree(t).tree as any)[Object.keys(buildTree(t).tree)[0]].icon.size[s.name].$extensions.prism3.px).join('/');
-    ok(iconLadder(nbTheme()) === iconLadder(aurora),
+    ok(iconLadder(nbTheme()) === iconLadder(compact),
       '#900 …while `icon.size.*` IS equal across those same two brands — the two tiers are opposites by design, not by oversight');
 
     // The SAME check for `dot`, stated separately rather than folded into the ladder above, because a
@@ -2346,16 +2348,16 @@ for (const b of brands) {
     const dotLadder = (t: any) => CONTROL_RUNG_NAMES
       .map((n) => (buildTree(t).tree as any)[Object.keys(buildTree(t).tree)[0]].control?.size?.[n]?.dot?.$extensions?.prism3?.px ?? 'x')
       .join('/');
-    const dotLadders = { nb: dotLadder(nbTheme()), aurora: dotLadder(aurora), harbor: dotLadder(harbor), wendys: dotLadder(wendys) };
-    ok(dotLadders.aurora === '6/8/10' && dotLadders.nb === '8/10/12' && dotLadders.harbor === dotLadders.nb && dotLadders.wendys === dotLadders.nb,
-      `#910 \`control.size.*.dot\` is a DENSITY signal, not a glyph artboard — aurora (compact) 6/8/10 sits a full rung below nb/harbor/wendys 8/10/12 (${Object.entries(dotLadders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
+    const dotLadders = { nb: dotLadder(nbTheme()), compact: dotLadder(compact), harbor: dotLadder(harbor), wendys: dotLadder(wendys) };
+    ok(dotLadders.compact === '6/8/10' && dotLadders.nb === '8/10/12' && dotLadders.harbor === dotLadders.nb && dotLadders.wendys === dotLadders.nb,
+      `#910 \`control.size.*.dot\` is a DENSITY signal, not a glyph artboard — the compact fixture's 6/8/10 sits a full rung below nb/harbor/wendys 8/10/12 (${Object.entries(dotLadders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
 
     // ---- AND THE CONSUMER HALF (#910): a def must READ the varying family, not the invariant one ----
     // Everything above is about the token TIER — that `control.size.*` moves with brand density and that
     // `icon.size.*` does not. Neither says which of the two a control actually BINDS, and measured,
     // nothing did: repointing checkbox's `size.medium.control` at `icon.size.md` left all 42 gates green,
     // engine tests included. Both refs resolve, both are dimensions, both are square, and the only
-    // consequence is that aurora's checkbox silently stops being a rung smaller than everyone else's —
+    // consequence is that a compact brand's checkbox silently stops being a rung smaller than everyone else's —
     // #802's profile exactly, where every layer accepts the write and nothing reads the number.
     //
     // So the claim is stated where it can fail, and stated as the PROPERTY rather than as the spelling:
@@ -2408,7 +2410,7 @@ for (const b of brands) {
       // `track` joined with switch (#990): its control box is not square, so it binds a height at `control`
       // AND a main-axis edge at `track` (→ `control.size.*.width`). That edge needs the same brand-density
       // check as the other two for the same reason — it is a control dimension, and a brand-invariant one
-      // is one rung too large on aurora with nothing downstream able to see it. Naming it here rather than
+      // is one rung too large on a compact brand with nothing downstream able to see it. Naming it here rather than
       // reading `PartDef.width` off the anatomy: the field to check is the TOKEN family, and deriving the
       // list from the anatomy that binds it is the shape `docs/34` forbids.
       for (const field of ['control', 'dot', 'track'] as const) {
@@ -2417,16 +2419,16 @@ for (const b of brands) {
         if (refs.length !== sizes) shortfall.push(`${def.id}.${field} ${refs.length} of ${sizes} (${refs.map(([k]) => k).join(', ')})`);
         for (const [k, ref] of refs) {
           const nbPx = pxOf(nbTheme(), ref as string);
-          const auPx = pxOf(aurora, ref as string);
-          if (nbPx === undefined || auPx === undefined || nbPx === auPx)
-            invariant.push(`${def.id}.${k} → ${ref} (nb ${nbPx}, aurora ${auPx})`);
+          const cPx = pxOf(compact, ref as string);
+          if (nbPx === undefined || cPx === undefined || nbPx === cPx)
+            invariant.push(`${def.id}.${k} → ${ref} (nb ${nbPx}, compact fixture ${cPx})`);
         }
       }
     }
     ok(shortfall.length === 0, '#910 every def binds each control field it uses at EVERY size it declares — a dot bound once does not track the box it sits in'
       + (shortfall.length ? ` — SHORT: ${shortfall.join('; ')}` : ''));
     ok(invariant.length === 0,
-      '#910 every `size.*.control`, `size.*.dot` and `size.*.track` ref, in every def that binds one, resolves to a px that MOVES with brand density — a control bound to a brand-invariant family is one rung too large on aurora, and nothing downstream can see it'
+      '#910 every `size.*.control`, `size.*.dot` and `size.*.track` ref, in every def that binds one, resolves to a px that MOVES with brand density — a control bound to a brand-invariant family is one rung too large on a compact brand, and nothing downstream can see it'
       + (invariant.length ? ` — INVARIANT: ${invariant.join('; ')}` : ''));
   }
 
@@ -2493,7 +2495,8 @@ for (const b of brands) {
     ok(wrong.length === 0, '#1015 every corpus brand\'s `control.size.<rung>.radius` is `min(radius.sm, snap2(edge ÷ 8))`, evaluated per rung from that brand\'s own box edge — the corner keeps its proportion as the box shrinks instead of holding the card ramp\'s value'
       + (wrong.length ? ` — ${wrong.join('; ')}` : ''));
     // …and it MOVED somewhere, or the whole change is a rename. Aurora is the discriminating brand: its
-    // `radius.sm` is 4 (`radiusScale: 2`) on 12/16/20px edges, so all three rungs clamp 4 → 2. If this
+    // `radius.sm` is 4 (`radiusScale: 2`) on 16/20/24px edges (comfortable since #1215), so `sm` and `md`
+    // clamp 4 → 2 while `lg` keeps 4. If this
     // arm ever goes quiet, the corpus has lost the only member that tells the clamp from the ramp, and
     // arm (a) above would then pass on `radius.sm` verbatim.
     ok(moved.some((m) => m.startsWith('aurora')),
@@ -2676,7 +2679,9 @@ for (const b of brands) {
 
   // 3. It ALIASES the space scale — the whole answer to "isn't this a second spacing system?". A
   //    literal here would be exactly the duplicate-value problem the design set out to avoid.
-  for (const [id, t] of [['nb', nbTheme()], ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)]] as Array<[string, any]>) {
+  // The compact fixture joined when aurora moved to comfortable (#1215): compact's gaps are the other
+  // window onto the space scale, and aurora was this arm's only compact brand.
+  for (const [id, t] of [['nb', nbTheme()], ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)], ['minimal-compact', brandTheme(MINIMAL_COMPACT_BRAND)]] as Array<[string, any]>) {
     const built = buildTree(t);
     const size = (built.tree as any)[Object.keys(built.tree)[0]].size;
     const bad = Object.keys(size).filter((k) => {
@@ -11514,14 +11519,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   {
     const brands: Array<[string, any]> = [
       ['nb (comfortable)', nbTheme()],
-      ['aurora (compact)', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
+      ['minimal-compact (the compact fixture)', brandTheme(MINIMAL_COMPACT_BRAND)],
+      ['aurora (comfortable since #1215)', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
     ];
     for (const [id, t] of brands) {
       const tree = buildTree(t).tree as any;
       const md = tree[Object.keys(tree)[0]].size.md;
       const mdPx = md.height.$extensions.prism3.px as number;
       const minPx = md['min-height'].$extensions.prism3.px as number;
-      // The emitter's `max` is under test: drop it (emit `mdStep.height`) and minPx becomes 36 on aurora,
+      // The emitter's `max` is under test: drop it (emit `mdStep.height`) and minPx becomes 36 on the compact fixture,
       // failing `minPx === max(mdPx, 44)` (36 ≠ 44) BY NAME.
       ok(minPx === Math.max(mdPx, AAA_TARGET_PX),
         `#1437 ${id}: size.md.min-height = max(size.md.height ${mdPx}, ${AAA_TARGET_PX}) = ${Math.max(mdPx, AAA_TARGET_PX)} (got ${minPx})`);
@@ -11531,13 +11537,51 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // NOT VACUOUS (docs/34 shape 4): on a compact brand the floor LIFTS the value, so min-height ≠ height.
     const aMd = (buildTree(brands[1][1]).tree as any)[Object.keys(buildTree(brands[1][1]).tree)[0]].size.md;
     ok(aMd.height.$extensions.prism3.px === 36 && aMd['min-height'].$extensions.prism3.px === 44,
-      `#1437 the floor DOES work: aurora (compact) size.md.height=${aMd.height.$extensions.prism3.px} is lifted to min-height=${aMd['min-height'].$extensions.prism3.px} (a constant would coincide)`);
+      `#1437 the floor DOES work: the compact fixture's size.md.height=${aMd.height.$extensions.prism3.px} is lifted to min-height=${aMd['min-height'].$extensions.prism3.px} (a constant would coincide)`);
     // select binds the FLOOR, not the plain rung — the binding mutation. Reverting to `size.md.height`
     // resolves the control to 36px on a compact brand (the fact below), below the enhanced target.
     ok(select.tokens!['min-height'] === 'size.md.min-height',
       `#1437 select's control binds size.md.min-height (the floor), not size.md.height (got ${select.tokens!['min-height']})`);
     ok(aMd.height.$extensions.prism3.px < AAA_TARGET_PX,
       `#1437 MUTATION basis: reverting select's binding to size.md.height would resolve ${aMd.height.$extensions.prism3.px}px on a compact brand — below the ${AAA_TARGET_PX}px target, the regression the floor binding prevents`);
+  }
+
+  // ---- #1215: COMPACT STAYS EXERCISED after aurora moved to comfortable (owner-decided 2026-09-26) ----
+  // Aurora was the corpus's only compact brand; the studio boots it, and its 36px medium control read as
+  // the engine's default. It is comfortable now, and `MINIMAL_COMPACT_BRAND` (token-contract.ts) carries
+  // compact instead: a test-only fixture, not an example brand. Every compact arm in this file builds
+  // from it, so this block pins the property they all lean on: EXPECTED is compact's window transcribed
+  // here (the ladder slides one rung down, so md is comfortable's sm = 36), independent of `SIZE_RUNGS`;
+  // ACTUAL is the fixture's emitted px. Delete the fixture's `density` line and md reads 44: this fails.
+  {
+    const mdPx = (t: Theme): number | undefined => {
+      const tree = buildTree(t).tree as any;
+      return tree[Object.keys(tree)[0]].size?.md?.height?.$extensions?.prism3?.px;
+    };
+    const fixtureMd = mdPx(brandTheme(MINIMAL_COMPACT_BRAND));
+    ok(fixtureMd === 36,
+      `#1215 the compact fixture's md control is 36px (compact's window) — the compact-density arms are exercising compact (got ${fixtureMd})`);
+    ok(corpus().some(({ id }) => id.startsWith(`${MINIMAL_COMPACT_BRAND.id} `)),
+      '#1215 the compact fixture is a token-contract corpus member, so compact stays a corpus density (theme.ts grid feed relies on it)');
+    // TEST-ONLY: never an example brand, so never in the studio's brand list or in `out/`.
+    const examples = JSON.parse(readFileSync(resolve(HERE, 'schema/example-brands.json'), 'utf8'));
+    const exampleIds = Object.keys(examples.brands ?? examples);
+    // Every path under out/, not one file name — a partial emission (a `.base`, an `.ai.json`, a
+    // `figma/<id>/` tree) must fail this as surely as the main tokens file.
+    const outHits: string[] = [];
+    const walkOut = (dir: string): void => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const p = `${dir}/${e.name}`;
+        if (e.name.includes(MINIMAL_COMPACT_BRAND.id)) outHits.push(p.slice(HERE.length + 1));
+        if (e.isDirectory()) walkOut(p);
+      }
+    };
+    walkOut(resolve(HERE, 'out'));
+    ok(!exampleIds.includes(MINIMAL_COMPACT_BRAND.id) && outHits.length === 0,
+      `#1215 the compact fixture is test-only — not in schema/example-brands.json (${exampleIds.join(', ')}) and nothing under out/ is named for it (${outHits.join(', ') || 'none'})`);
+    // And the decision itself: the brand the studio boots shows the default 44px medium control.
+    const auroraMd = mdPx(brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input));
+    ok(auroraMd === 44, `#1215 aurora (the studio's boot brand) is comfortable: its md control is 44px (got ${auroraMd})`);
   }
 
   // ---- #1517: warning/success swap the SELECT border too (Prism 2 parity, mirrors text-field) ----
@@ -17488,7 +17532,11 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // EIGHT since #1632, which added `minimal-weights` — the sparse input WITH narrowed weight sets. It
   // separates SPARSE from the DEFAULT SETS on the weight axis: without it the default sets' `strong`
   // composites would read as guaranteed purely because no member declined a weight.
-  ok(live.corpus.length === 8, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, the minimal input with a two-breakpoint layout, and the minimal input with narrowed weight sets (${live.corpus.length} brands)`);
+  // NINE since #1215, which added `minimal-compact` — the sparse input at compact density, a test-only
+  // fixture. Aurora was the corpus's compact member until the owner moved it to comfortable; without a
+  // replacement, compact would sit outside the corpus and a compact-only removal of a guaranteed path
+  // would go unseen (theme.ts's grid feed relies on compact being a corpus density).
+  ok(live.corpus.length === 9, `contract: the corpus spans both dialects, the legacy fixture, the minimal input, the minimal input with the suppressing levers pulled, the minimal input with a two-breakpoint layout, the minimal input with narrowed weight sets, and the minimal input at compact density (${live.corpus.length} brands)`);
   for (const { id, theme } of corpus()) {
     const paths = pathsOf(theme);
     const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
@@ -18809,7 +18857,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // gives every variable a synthetic value, so the number 16 is not checkable there. It is checkable
   // here, and it has to be, because the def's whole argument for `icon.size.xs` is that it is 16 in
   // EVERY brand: it aliases `dimension.16` on the fixed grid rather than riding a density-scaled ladder,
-  // which `control.size.*` does (aurora resolves 12/16/20 against nb's 16/20/24 — see #900 above). A def
+  // which `control.size.*` does (the compact fixture resolves 12/16/20 against nb's 16/20/24 — see #900 above). A def
   // repointed at `icon.size.sm` would then silently be 20, and 20 in aurora too, so a brand-invariance
   // check alone would not catch it. Read via `tokens['glyph-size']` rather than the literal string, so
   // the assertion follows the def if the ref moves instead of grepping for a name that still matches.
@@ -18822,7 +18870,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
       return { brand: id.split(' ')[0], px: ext };
     });
-    ok(px.length === 8 && px.every((b) => b.px === 16),
+    ok(px.length === 9 && px.every((b) => b.px === 16),
       `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
   }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),

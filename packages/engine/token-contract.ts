@@ -15,13 +15,14 @@
  * ways an input can vary:
  *
  *   nb            — the hand-built legacy system, `nbds.*` dialect, rgb() colour format
- *   aurora        — engine-native brief, extra brand colour, compact density, 3:1 icon contrast
+ *   aurora        — engine-native brief, extra brand colour, 3:1 icon contrast
  *   harbor        — engine-native brief, a different lever combination
  *   wendys        — STANDARD dialect (flat `colors:` map classified into anchors), a different typeface
  *   minimal       — the three required fields and nothing else: the sparsest input the engine accepts
  *   minimal-levers— the sparsest input WITH two suppressing levers pulled (#957, see below)
  *   minimal-bp2   — the sparsest input WITH a two-breakpoint layout, demoting the upper tiers (#1479)
  *   minimal-weights— the sparsest input WITH narrowed weight sets, demoting the declined roles (#1632)
+ *   minimal-compact— the sparsest input AT compact density: the corpus's only compact member (#1215)
  *
  * Paths are compared BELOW the configurable root, because the root is itself a lever (`nbds` vs
  * `prism`) — comparing with it included yields an empty intersection, which is how this was nearly
@@ -66,6 +67,16 @@
  * Components don't bind a weight role by name where a brand can decline it: `field-label` resolves its
  * weight by intent (#1601/#1602), and `lint-lever-sweep` arm (b) checks nb-redesign's bindings against
  * its own emission.
+ *
+ * `minimal-compact` is a TEST-ONLY fixture, not an example brand (#1215). Aurora carried compact density
+ * until the owner moved it to the default `comfortable`, because the studio boots it and its 36px medium
+ * control read as the engine's default. Compact must stay exercised (it caught the collapsed-rung defect
+ * #900's window mechanism fixed), and it must stay inside the corpus: `theme.ts` feeds only the spacious
+ * grid extra px on the argument that compact is a corpus density, so a compact-only removal of a
+ * guaranteed path is caught here. The member is built off `MINIMAL_BRAND` so density is the only thing
+ * that varies. It is never emitted to `out/` and never listed in the studio: it lives in this file, not
+ * under `examples/`. `test.ts` asserts its medium control is 36 (compact's window), so a member that
+ * silently stopped being compact fails by name.
  *
  * WHY THIS IS NOT PART OF `regen.ts`. The baseline must not be able to regenerate itself. `regen`
  * rewrites every generated artifact and `regen --check` proves the committed copies match; run that
@@ -153,6 +164,17 @@ export const MINIMAL_WEIGHTS_BRAND: BrandInput = {
   typography: { weights: { display: ['subtle'], title: ['subtle'], body: ['default', 'emphasis'], caption: ['default', 'emphasis'] } },
 } as BrandInput;
 
+/**
+ * The same sparse input at COMPACT density (#1215) — the corpus's only compact member, and a test-only
+ * fixture rather than an example brand. See the header. Every compact-density check in `test.ts` builds
+ * from this, so it is not a copy of any brand a designer sees.
+ */
+export const MINIMAL_COMPACT_BRAND: BrandInput = {
+  ...MINIMAL_BRAND,
+  id: 'minimal-compact',
+  density: 'compact',
+} as BrandInput;
+
 /** The corpus, in a fixed order so the emitted `corpus` list is deterministic. */
 export const corpus = (): Array<{ id: string; theme: Theme }> => {
   const std = parseStandardDesignMd(readFileSync(resolve(here, 'examples', 'wendys.design.md'), 'utf8'));
@@ -165,6 +187,7 @@ export const corpus = (): Array<{ id: string; theme: Theme }> => {
     { id: 'minimal-levers (outlineInteraction none, displayCeiling sm)', theme: brandTheme(MINIMAL_LEVERS_BRAND) },
     { id: 'minimal-bp2 (two-breakpoint layout, upper tiers demoted)', theme: brandTheme(MINIMAL_BP2_BRAND) },
     { id: 'minimal-weights (narrowed weight sets, declined roles demoted)', theme: brandTheme(MINIMAL_WEIGHTS_BRAND) },
+    { id: 'minimal-compact (compact density, test-only fixture)', theme: brandTheme(MINIMAL_COMPACT_BRAND) },
   ];
 };
 

@@ -7,6 +7,24 @@
 
 ---
 
+## (2026-09-26) — Aurora moves to comfortable density; compact stays covered by a test fixture (#1215)
+
+**STATUS: PR open on `lane/aurora-comfortable`, labeled DO NOT MERGE.** Engine only. **ENGINE 0.164.0 → 0.165.0** (aurora's emitted values move); CONTRACT STANDS at 12.0.0 (`token-contract --check` level `none`; `--accept` rewrote only the informational `engineVersion` and `corpus` fields). `lint-component-surface` clean: 0 defs moved, nothing accepted.
+
+**The owner's decision (2026-09-26).** Aurora becomes `comfortable`. The studio keeps booting it; neither studio example should demo compact while there are only two. Compact stays covered by a test-only fixture, not an example brand.
+
+**What moved in `out/`, and why.** Only aurora's artifacts. Its size ladder `sm/md/lg` goes 28/36/44 → 36/44/56 (xs 24 → 28, xl 56 → 68), and its control ladder 12/16/20 → 16/20/24 (dots 6/8/10 → 8/10/12). Files: `aurora.tokens.json`, `aurora.base.tokens.json`, `aurora.ai.json` (the `$description` prose names the density), `figma/aurora/{size,control,core.dimension}.json`, `tokens.html`, `modes-report.md`, `schema/example-brands.json`. `core.dimension.30` joins aurora's grid: a comfortable control px compact never produced.
+
+**The fixture, and why it's a corpus member.** `MINIMAL_COMPACT_BRAND` in `token-contract.ts`: `MINIMAL_BRAND` plus `density: 'compact'`, so density is the only thing that varies. It lives beside the other `minimal-*` members, not under `examples/`, so it never reaches `out/` or the studio's brand list. It has to be in the corpus, not just in the tests. `theme.ts` feeds the comfortable px into the grid only at spacious, on the argument that compact is a corpus density and so can't remove a guaranteed path unseen. Measured without it, the guaranteed set GAINS `core.dimension.30` (aurora now emits it, nothing compact is left to decline it), a MINOR move with no real promise behind it. With it, the guaranteed and brand-dependent sets are byte-identical to `main`. The fixture also inherited aurora's old role as the only source of `core.dimension.5` in a compact grid (measured: dropping the `(height − dot) / 2` feed removes it).
+
+**Retargeted at the fixture** (found by grepping `compact` and `aurora` across tests and gates, then confirmed by the 8 arms that failed once aurora moved): #900 control ladder, #910 dot ladder and the per-def "moves with density" arm, #1437's non-vacuous floor arm and its mutation basis. #325's gap-aliasing arm passed after the move but had silently lost its compact case, so the fixture joined its brand list. The corpus-count pins (`contract: the corpus spans…`, #1010's 16px glyph) go 8 → 9. `lint-hit-target.ts` already builds its compact case off the lever, not a brand, so it needed nothing.
+
+**The new gate.** `test.ts` `#1215`: the fixture's `size.md.height` is 36 (compact's window, transcribed in the test, not read from `SIZE_RUNGS`); it is a corpus member; it is in neither `schema/example-brands.json` nor `out/`; and aurora's md is 44. Mutation from a committed `wip:` HEAD: delete the fixture's `density` line → `❌ #1215 the compact fixture's md control is 36px (compact's window) … (got 44)`, alongside the seven retargeted arms.
+
+**Left as is, flagged.** Aurora's prose body still says "the UI is dense", and `vocabulary.ts`'s `dense` personality quotes it. The prose isn't parsed, it already disagrees with the frontmatter (it describes a tinted page; aurora went white earlier), and brand copy is the owner's. Not changed here.
+
+---
+
 ## (2026-09-26) — the field family: a Filled state, two text layers, and a focus caret (#1674)
 
 **STATUS: PR #1674 open, labeled DO NOT MERGE; one question held for the owner (below).** Engine + plugin. Main merged in at 0.163.0 (#1669, #1671, #1673; #1673's `subtle-fill` hover washes kept as they landed). **ENGINE 0.163.0 → 0.164.0** (a new state, a schema key, a paint slot and three def surface moves → MINOR); CONTRACT STANDS at 12.0.0 (`token-contract --accept` level `none`: a TEXT property is not a token). `component-surface` and `paint-census` accepted for text-field, textarea and select and nothing else.

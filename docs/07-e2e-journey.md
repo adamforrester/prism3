@@ -211,7 +211,7 @@ yet parsed. (Alternatives considered and rejected: JSON frontmatter — uglier t
 | brandColors[] | present (accent) | **minimal / none** (bare-input path) |
 | surfaces | white/black defaults | **warm off-white surface override** (moves the contrast floor) |
 | status | synthesised | **measured status overrides** |
-| form factor | compact / soft (radius 2) | **comfortable / sharp (radius 1)** |
+| form factor | compact / soft (radius 2); comfortable since #1215 | **comfortable / sharp (radius 1)** |
 | type | expressive scale, variable display face | **compact/standard scale, system stack** |
 | gradients | on (linear + radial) | **off** (the field-default abstain) |
 

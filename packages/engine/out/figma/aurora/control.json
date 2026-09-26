@@ -8,11 +8,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Checkbox / radio box — 12px square",
-      "value": 12,
+      "description": "Checkbox / radio box — 16px square",
+      "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/12"
+        "name": "ads/core/dimension/16"
       }
     },
     {
@@ -21,11 +21,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Switch track width — 32px (twice the 16px track height)",
-      "value": 32,
+      "description": "Switch track width — 48px (twice the 24px track height)",
+      "value": 48,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/32"
+        "name": "ads/core/dimension/48"
       }
     },
     {
@@ -34,11 +34,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Radio dot — 6px (half the 12px box)",
-      "value": 6,
+      "description": "Radio dot — 8px (half the 16px box)",
+      "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/6"
+        "name": "ads/core/dimension/8"
       }
     },
     {
@@ -57,11 +57,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Switch thumb inset — 2px ((16px track − 12px thumb) ÷ 2). Switches only.",
-      "value": 2,
+      "description": "Switch thumb inset — 3px ((24px track − 18px thumb) ÷ 2). Switches only.",
+      "value": 3,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/2"
+        "name": "ads/core/dimension/3"
       }
     },
     {
@@ -70,7 +70,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "Checkbox/radio corner — 2px, clamped to the 12px box (does not follow the radius scale).",
+      "description": "Checkbox/radio corner — 2px, clamped to the 16px box (does not follow the radius scale).",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -83,11 +83,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Switch track height — 16px. Switches only.",
-      "value": 16,
+      "description": "Switch track height — 24px. Switches only.",
+      "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/16"
+        "name": "ads/core/dimension/24"
       }
     },
     {
@@ -96,11 +96,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Switch thumb — 12px (0.75 × the 16px track). Switches only.",
-      "value": 12,
+      "description": "Switch thumb — 18px (0.75 × the 24px track). Switches only.",
+      "value": 18,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/12"
+        "name": "ads/core/dimension/18"
       }
     },
     {
@@ -109,11 +109,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Checkbox / radio box — 16px square",
-      "value": 16,
+      "description": "Checkbox / radio box — 20px square",
+      "value": 20,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/16"
+        "name": "ads/core/dimension/20"
       }
     },
     {
@@ -122,11 +122,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Switch track width — 48px (twice the 24px track height)",
-      "value": 48,
+      "description": "Switch track width — 64px (twice the 32px track height)",
+      "value": 64,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/48"
+        "name": "ads/core/dimension/64"
       }
     },
     {
@@ -135,11 +135,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Radio dot — 8px (half the 16px box)",
-      "value": 8,
+      "description": "Radio dot — 10px (half the 20px box)",
+      "value": 10,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/8"
+        "name": "ads/core/dimension/10"
       }
     },
     {
@@ -158,11 +158,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Switch thumb inset — 3px ((24px track − 18px thumb) ÷ 2). Switches only.",
-      "value": 3,
+      "description": "Switch thumb inset — 4px ((32px track − 24px thumb) ÷ 2). Switches only.",
+      "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/3"
+        "name": "ads/core/dimension/4"
       }
     },
     {
@@ -171,7 +171,7 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "Checkbox/radio corner — 2px, clamped to the 16px box (does not follow the radius scale).",
+      "description": "Checkbox/radio corner — 2px, clamped to the 20px box (does not follow the radius scale).",
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -184,11 +184,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Switch track height — 24px. Switches only.",
-      "value": 24,
+      "description": "Switch track height — 32px. Switches only.",
+      "value": 32,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/24"
+        "name": "ads/core/dimension/32"
       }
     },
     {
@@ -197,11 +197,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Switch thumb — 18px (0.75 × the 24px track). Switches only.",
-      "value": 18,
+      "description": "Switch thumb — 24px (0.75 × the 32px track). Switches only.",
+      "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/18"
+        "name": "ads/core/dimension/24"
       }
     },
     {
@@ -210,11 +210,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Checkbox / radio box — 20px square",
-      "value": 20,
+      "description": "Checkbox / radio box — 24px square",
+      "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/20"
+        "name": "ads/core/dimension/24"
       }
     },
     {
@@ -223,11 +223,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Switch track width — 64px (twice the 32px track height)",
-      "value": 64,
+      "description": "Switch track width — 80px (twice the 40px track height)",
+      "value": 80,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/64"
+        "name": "ads/core/dimension/80"
       }
     },
     {
@@ -236,11 +236,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Radio dot — 10px (half the 20px box)",
-      "value": 10,
+      "description": "Radio dot — 12px (half the 24px box)",
+      "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/10"
+        "name": "ads/core/dimension/12"
       }
     },
     {
@@ -259,11 +259,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "Switch thumb inset — 4px ((32px track − 24px thumb) ÷ 2). Switches only.",
-      "value": 4,
+      "description": "Switch thumb inset — 5px ((40px track − 30px thumb) ÷ 2). Switches only.",
+      "value": 5,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/4"
+        "name": "ads/core/dimension/5"
       }
     },
     {
@@ -272,11 +272,11 @@
       "scopes": [
         "CORNER_RADIUS"
       ],
-      "description": "Checkbox/radio corner — 2px, clamped to the 20px box (does not follow the radius scale).",
-      "value": 2,
+      "description": "Checkbox/radio corner — 4px, clamped to the 24px box (does not follow the radius scale).",
+      "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/2"
+        "name": "ads/core/dimension/4"
       }
     },
     {
@@ -285,11 +285,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Switch track height — 32px. Switches only.",
-      "value": 32,
+      "description": "Switch track height — 40px. Switches only.",
+      "value": 40,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/32"
+        "name": "ads/core/dimension/40"
       }
     },
     {
@@ -298,11 +298,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "Switch thumb — 24px (0.75 × the 32px track). Switches only.",
-      "value": 24,
+      "description": "Switch thumb — 30px (0.75 × the 40px track). Switches only.",
+      "value": 30,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/dimension/24"
+        "name": "ads/core/dimension/30"
       }
     }
   ]

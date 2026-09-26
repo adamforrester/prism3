@@ -3,7 +3,7 @@
 # This file is the SINGLE SOURCE OF TRUTH for the aurora example: emit-dtcg.ts
 # reads it, so out/aurora.tokens.json is generated from it. The frontmatter
 # deliberately exercises the complementary corner of the input space to Harbor —
-# an accent-decoupled action, a tinted page, soft/compact form factor, a variable
+# an accent-decoupled action, a tinted page, a soft form factor, a variable
 # display face, softer shadows, and both gradient kinds.
 id: aurora
 
@@ -35,9 +35,12 @@ actionPalette: accent
 surfaces:
   light: { base: white }
 
-# Soft corners (radius scale 2) + compact density — exercise the dimension levers.
+# Soft corners (radius scale 2) — exercises the radius lever. Density is the default, stated (#1215):
+# aurora is the brand the studio boots, so its medium control is the 44px default rather than
+# compact's 36. Compact stays exercised by the test-only `MINIMAL_COMPACT_BRAND` corpus member
+# (token-contract.ts), which is not an example brand and never reaches `out/` or the studio.
 radiusScale: 2
-density: compact
+density: comfortable
 
 # Icons use the WCAG 1.4.11 non-text floor (3:1), so secondary/semantic icons run
 # lighter than the matching text.

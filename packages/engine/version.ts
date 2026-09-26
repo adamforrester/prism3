@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.165.0 — #1215 (owner-decided 2026-09-26): aurora moves from `compact` to the default `comfortable`
+ * density. The studio boots aurora, and its 36px medium control read as the engine's default; at
+ * comfortable its size ladder is 36/44/56 (was 28/36/44) and its control ladder 16/20/24 (was 12/16/20).
+ * Only aurora's `out/**` moves (tokens, ai.json, figma `size`/`control`/`core.dimension`, tokens.html,
+ * modes-report, example-brands). Compact stays exercised by a new TEST-ONLY corpus member,
+ * `minimal-compact` (token-contract.ts), which every compact-density arm in test.ts now builds from; it is
+ * not an example brand and never reaches `out/` or the studio. CONTRACT STANDS at 12.0.0: `--check` level
+ * `none`. Without the fixture the intersection would have gained `core.dimension.30` (aurora now emits it,
+ * the compact member does not), a MINOR; keeping compact in the corpus holds the guaranteed set exactly.
+ *
  * 0.164.0 — The field family gains a projected `filled` state (owner decision, 2026-09-25, Prism 2's
  * `Enabled (Empty) | Hovered | Filled | Focused | Disabled` on all three specs). `filled` joins the closed
  * `STATES` vocabulary and the projected state axis of text-field, textarea and select. The value text binds
@@ -3730,7 +3740,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.164.0';
+export const ENGINE_VERSION = '0.165.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
