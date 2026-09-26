@@ -182,7 +182,7 @@ export const checkboxControl: ComponentDef = {
 
     // ── THE CONTROL SQUARE (#951/#910). ONE key on BOTH axes, so the control is square by construction.
     // `control.size.*.height` and NOT `icon.size.*`: the control ladder shifts a whole rung with brand
-    // density (12/16/20 on aurora) where the glyph grid is fixed 16/20/24 in every brand.
+    // density (12/16/20 at compact density) where the glyph grid is fixed 16/20/24 in every brand.
     'size.small.control': 'control.size.sm.height',
     'size.medium.control': 'control.size.md.height',
     'size.large.control': 'control.size.lg.height',
