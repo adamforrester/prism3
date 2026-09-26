@@ -475,8 +475,9 @@ export type ComponentApplyResult = {
    *    `REF_BACKOFF_MS` — the window outlasted the back-off, so a later Build is the retry;
    *  - `lost`: during the back-off the member no longer had the part to write to; this can end after the first
    *    0.5 s pass, so it never had the full back-off and a retry has nothing to aim at;
-   *  - `discarded`: held on the written handle, then read back unset by the final fresh re-find — it had no
-   *    retry at all, so no claim about retries is made for it. */
+   *  - `discarded`: read back unset by the final fresh re-find after the host had accepted it — either held on
+   *    the written handle and never queued, or repaired by a back-off pass and then not kept. Retrying the
+   *    write is not what it lacks, so no claim about retries is made for it. */
   refsUnsetBy?: { refused: number; lost: number; discarded: number };
   /** Times the SET's own handle was found to have been replaced and was re-resolved off the destination
    *  page (#1574) — the set-level sibling of `refsRepaired`/`boundRepaired`, and the counter that says
@@ -2667,6 +2668,11 @@ const writeComponentSet = async (
     refsBackoff.push({ afterMs, retried: deferredRefs.length, repaired });
     deferredRefs = still;
   }
+  // #1679 review — the back-off is over, so the pill must stop saying `Retrying property links…`: the
+  // read-back below re-finds every reference fresh and can run for seconds on a large set. Posted only when a
+  // `retry` reading was, so a clean build's progress stream is unchanged.
+  if (refsBackoff.length)
+    onProgress?.({ phase: 'wire', done: toWire.length, total: toWire.length, chunkMs: 0, elapsedMs: Date.now() - phaseStart });
   // `lost` is its own kind: it can leave the queue after the first 0.5 s pass, so it did not get the back-off.
   // What is left in `deferredRefs` went through every pass and was still refused.
   for (const [kind, list] of [['lost', lost], ['refused', deferredRefs]] as const)

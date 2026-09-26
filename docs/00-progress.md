@@ -34,6 +34,13 @@
 
 **Traps.** (1) The shim's window accessor is installed at the *first* shim's combine and closes over that shim's options, so a second `makeShim` over the same page still sees the first window. The #1679 block relies on that and advances the shared clock instead of passing a new window. (2) `#1679d`/`#1679e` edit the shim tree from inside the injected `yieldTo`, which is the only hook between the pre-scan and the read-back; a change that stops the executor waiting when nothing is queued would move `#1679e`'s edit, and the floor arms say so by name. (3) This container's browsers are build 1194 and playwright wants 1234; `test:verdict` ran against a scratch `PLAYWRIGHT_BROWSERS_PATH` that mirrors the 1194 binaries under the 1234 layout (no `playwright install`).
 
+**Orchestrator net, round two (owner decisions and review fixes).** The owner kept the short pill `✓ N links repaired` inside the 24-char budget, with the full "N property links repaired" wording in the summary line. The owner also approved both new lines (`— layer not found`, `— not kept after writing`) as proposed. Review findings fixed in the net:
+- **The retry pill lingered.** Nothing was posted after the back-off, so `Retrying property links…` stayed on screen through the read-back. The executor now posts one final `wire` reading whenever a `retry` was posted. Mutation (drop that reading) → `✗ #1679 after the back-off the last progress reading is 'wire' again, not 'retry' (last: retry)`.
+- **The `discarded` docstring overclaimed "no retry at all".** A slot the back-off repaired and the read-back then found unset is also `discarded`.
+- **Two arms compared the executor with itself.** `#1679d` now takes the victim's slot count from the clean build's tree (`want`), and `#1679e` counts the fields the test cleared on the tree, not `refsUnset`.
+
+A pre-existing MCP progress-monotonicity issue in `tools/figma-bridge/server.ts` is filed separately.
+
 ---
 
 ## (2026-09-26) — Every type category keeps a weight; label keeps emphasis (#1639)

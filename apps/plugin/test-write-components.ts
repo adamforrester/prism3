@@ -4099,13 +4099,17 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       return Promise.resolve();
     };
     const progress: string[] = [];
+    let lastPhase = '';
     const rd = await run(grid, { ...fullFor(grid), page, refuseRefsWindow: { members: RUN, ms: 10 * 60_000, shape: 'throw', now: () => clock.t } },
-      { yieldTo, onProgress: (p) => { if (p.phase === 'retry') progress.push(`${p.done}/${p.total}`); } });
+      { yieldTo, onProgress: (p) => { lastPhase = p.phase; if (p.phase === 'retry') progress.push(`${p.done}/${p.total}`); } });
     const by = rd.refsUnsetBy ?? { refused: -1, lost: -1, discarded: -1 };
     const note = refsNote(rd.refsRelinked, rd.refsUnsetBy);
+    // EXPECTED from the TREE, not from the executor's own miss list (#1679 review): every reference the clean
+    // build holds on the victim is a slot the window refused and the rename then took away.
+    const victimSlots = [...want].filter((r) => r.startsWith(`${victim}/`)).length;
     const victimLines = rd.misses.filter((m) => m.startsWith(`ref ${victim}/`)).length;
-    ok(renamed > 0 && victimLines > 0 && by.lost === victimLines && by.refused === (rd.refsUnset ?? 0) - victimLines && by.discarded === 0,
-      `#1679d floor: renaming ${victim}'s layers mid back-off makes its ${victimLines} slot(s) 'lost' and the rest 'refused' (${JSON.stringify(by)}, refsUnset=${String(rd.refsUnset)})`);
+    ok(renamed > 0 && victimSlots > 0 && victimLines === victimSlots && by.lost === victimSlots && by.refused === (rd.refsUnset ?? 0) - victimSlots && by.discarded === 0,
+      `#1679d floor: renaming ${victim}'s layers mid back-off makes all ${victimSlots} of its slot(s) 'lost' and the rest 'refused' (${JSON.stringify(by)}, ${victimLines} victim line(s), refsUnset=${String(rd.refsUnset)})`);
     ok(note.includes(`${by.lost} property link${by.lost === 1 ? '' : 's'} missing — layer not found`)
       && (note.match(/build again to retry/g) ?? []).length === 1
       && note.includes(`${by.refused} property links still missing — build again to retry`),
@@ -4113,6 +4117,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     // THE PILL PHASE: one `retry` reading before each wait, numbered against the schedule written here.
     ok(JSON.stringify(progress) === JSON.stringify(['1/6', '2/6', '3/6', '4/6', '5/6', '6/6']),
       `#1679 the executor posts a 'retry' progress reading before each of the 6 back-off waits (${progress.join(', ') || 'none'})`);
+    // …and takes the pill back off `Retrying property links…` once the waits are over, so the read-back that
+    // follows is not shown as a retry (#1679 review).
+    ok(lastPhase === 'wire',
+      `#1679 after the back-off the last progress reading is 'wire' again, not 'retry' (last: ${lastPhase || 'none'})`);
   }
 
   // (e) READ-BACK DISCARD: a 3 s window heals every refused slot inside the back-off. During the first wait
@@ -4123,21 +4131,23 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const clock = { t: 0 };
     const page: Page = { children: [] };
     let cleared = '';
+    let clearedFields = 0;
     const yieldTo = (ms = 0) => {
       if (ms > 0 && !cleared) {
         const m = ((page.children[0] as Node | undefined)?.children as Node[] | undefined)?.find((c) => !RUN.includes(String(c.name)));
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-side edit of the shim tree
         const find = (x: any): any => { for (const c of x?.children ?? []) { if (Object.keys(c.componentPropertyReferences ?? {}).length) return c; const f = find(c); if (f) return f; } return undefined; };
         const n = find(m);
-        if (n) { cleared = `${String(m?.name)}/${String(n.name)}`; n.componentPropertyReferences = {}; }
+        if (n) { cleared = `${String(m?.name)}/${String(n.name)}`; clearedFields = Object.keys(n.componentPropertyReferences).length; n.componentPropertyReferences = {}; }
       }
       clock.t += ms;
       return Promise.resolve();
     };
     const re = await run(grid, { ...fullFor(grid), page, refuseRefsWindow: { members: RUN, ms: 3000, shape: 'throw', now: () => clock.t } }, { yieldTo });
     const note = refsNote(re.refsRelinked, re.refsUnsetBy);
-    ok(cleared !== '' && re.refsUnsetBy?.discarded === re.refsUnset && (re.refsUnset ?? 0) > 0 && re.refsUnsetBy.refused === 0 && re.refsUnsetBy.lost === 0,
-      `#1679e a reference cleared after the pre-scan is 'discarded', not 'refused' (${cleared}: ${JSON.stringify(re.refsUnsetBy)})`);
+    // EXPECTED is the number of fields the test cleared on the tree, never the executor's own `refsUnset`.
+    ok(cleared !== '' && clearedFields > 0 && re.refsUnsetBy?.discarded === clearedFields && re.refsUnset === clearedFields && re.refsUnsetBy.refused === 0 && re.refsUnsetBy.lost === 0,
+      `#1679e the ${clearedFields} reference(s) cleared after the pre-scan are 'discarded', not 'refused' (${cleared}: ${JSON.stringify(re.refsUnsetBy)}, refsUnset=${String(re.refsUnset)})`);
     ok(/property links? missing — not kept after writing/.test(note) && !/build again|retr/i.test(note),
       `#1679e a read-back discard is reported without a retry remedy or retry claim (${JSON.stringify(note)})`);
   }
