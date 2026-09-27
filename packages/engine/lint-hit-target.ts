@@ -12,8 +12,9 @@
  * the same distinction). It governs the COMFORTABLE and SPACIOUS densities. There are TWO permanent,
  * owner-decided exceptions and NOTHING else:
  *
- *   1. SMALL BUTTON — a small button knowingly sits below the floor; choosing it is choosing the
- *      smaller target.
+ *   1. SMALL SIZE — a small button, or a small tag (owner, 2026-09-27: "compact and small as named
+ *      exceptions, as for Button"), knowingly sits below the floor; choosing it is choosing the smaller
+ *      target.
  *   2. COMPACT DENSITY — a compact-density brand is a deliberate dense/desktop mode, allowed below the
  *      floor. The exception is scoped to compact ALONE: comfortable and spacious are NOT exempt.
  *
@@ -123,11 +124,14 @@ const INTERACTIVE: Record<string, Binding> = {
   'switch-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled switch row floor' },
   'checkbox-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled checkbox row floor' },
   'radio-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled radio row floor' },
+  // Owner decision 4 (2026-09-27): a tag's default (medium) target clears 44, on Button's own height rung.
+  'tag': { key: (s) => `size.${s}.height`, why: 'the tag box height' },
 };
 
-/** The one family carved out as a size-level exception (owner, #1443): a small button sits below the
- *  floor on purpose. Kept as data so the walk asserts it is ACTUALLY below the floor. */
-const SMALL_BUTTON = new Set(['button', 'button-destructive', 'button-neutral']);
+/** The defs carved out as a size-level exception: a small button (owner, #1443) and a small tag (owner,
+ *  2026-09-27, "as for Button") sit below the floor on purpose. Kept as data so the walk asserts each is
+ *  ACTUALLY below the floor. */
+const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'tag']);
 
 // ── EXCLUDED: represented, with a stated reason (docs/34 — a hand-enumerated legitimate exclusion) ──
 const EXCLUDED: Record<string, string> = {
@@ -199,7 +203,7 @@ for (const d of componentDefs) {
 }
 for (const id of Object.keys(INTERACTIVE)) if (!defIds.has(id)) failures.push(`INTERACTIVE names '${id}', which is not a def in componentDefs — a stale entry measures nothing.`);
 for (const id of Object.keys(EXCLUDED)) if (!defIds.has(id)) failures.push(`EXCLUDED names '${id}', which is not a def in componentDefs — a stale exclusion.`);
-for (const id of SMALL_BUTTON) if (!(id in INTERACTIVE)) failures.push(`SMALL_BUTTON names '${id}', which is not an INTERACTIVE control — a stale exception entry.`);
+for (const id of SMALL_SIZE) if (!(id in INTERACTIVE)) failures.push(`SMALL_SIZE names '${id}', which is not an INTERACTIVE control — a stale exception entry.`);
 
 /** A control's DEFAULT size — the `size` prop's default, or `single` for the no-size-axis control. */
 const defaultSizeOf = (def: ComponentDef): string | undefined =>
@@ -248,16 +252,16 @@ for (const def of componentDefs) {
   if (bad) failures.push(`${def.id}/${size} (${binding.why}, ${tokenPath}) ${bad} on a ${measured.find((m) => m.px === minPx)!.density} brand — a control's default tap target must meet the floor on comfortable and spacious.`);
 }
 
-// ── EXCEPTION 1: small button — asserted ACTUALLY below the floor on comfortable (self-justified) ──
+// ── EXCEPTION 1: small size — asserted ACTUALLY below the floor on comfortable (self-justified) ──
 const comfortable = floorBuilds.find((b) => b.density === 'comfortable')!;
-for (const id of SMALL_BUTTON) {
+for (const id of SMALL_SIZE) {
   const def = componentDefs.find((d) => d.id === id)!;
   const path = (def.tokens as Record<string, string>)['size.small.height'];
   const px = path ? resolvePx(comfortable.tree, comfortable.root, path) : undefined;
-  if (px === undefined) { failures.push(`${id}/small: cannot measure size.small.height on the comfortable build — the small-button exception is unverifiable.`); continue; }
+  if (px === undefined) { failures.push(`${id}/small: cannot measure size.small.height on the comfortable build — the small-size exception is unverifiable.`); continue; }
   const bad = violation(px, 'exception');
-  rows.push(`${id}/small → ${path} = ${px}px (comfortable) [PERMANENT exception: small button]${bad ? '  ✗' : ''}`);
-  if (bad) failures.push(`${id}/small (small button) ${bad} — the small-button exception exists because it is BELOW the floor; if it now meets it, drop the exception.`);
+  rows.push(`${id}/small → ${path} = ${px}px (comfortable) [PERMANENT exception: small size]${bad ? '  ✗' : ''}`);
+  if (bad) failures.push(`${id}/small (small size) ${bad} — the small-size exception exists because it is BELOW the floor; if it now meets it, drop the exception.`);
 }
 
 // ── EXCEPTION 2: compact density — exempt from the floor, and self-justified as genuinely below it ──
@@ -278,13 +282,13 @@ if (floorCount === 0 && !failures.length)
   failures.push(`no interactive control was measured against the floor — the gate asserts nothing.`);
 
 // ── REPORT ────────────────────────────────────────────────────────────────────────────────────────
-console.log(`Hit-target floor — floor ${FLOOR_PX}px (WCAG 2.5.5) at each control's DEFAULT size over the ${FLOOR_DENSITIES.join(' + ')} densities; ${floorCount} control(s) held to the floor, 2 permanent exceptions (small button; compact density), ${Object.keys(EXCLUDED).length} def(s) excluded.`);
+console.log(`Hit-target floor — floor ${FLOOR_PX}px (WCAG 2.5.5) at each control's DEFAULT size over the ${FLOOR_DENSITIES.join(' + ')} densities; ${floorCount} control(s) held to the floor, 2 permanent exceptions (small button or tag; compact density), ${Object.keys(EXCLUDED).length} def(s) excluded.`);
 for (const r of rows) console.log(`    ${r}`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} hit-target failure(s):`);
   for (const f of failures) console.error(`  · ${f}`);
   console.error(`\nInteractive controls adopt a ${FLOOR_PX}px hit-target floor (WCAG 2.2 SC 2.5.5) on comfortable and`);
-  console.error(`spacious densities — the TOUCH area, not the visual size. Two permanent exceptions: small button,`);
+  console.error(`spacious densities — the TOUCH area, not the visual size. Two permanent exceptions: small button or tag,`);
   console.error(`and compact density (a deliberate dense mode). See docs/28 and docs/34.`);
   process.exit(1);
 }

@@ -312,9 +312,23 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'why this costs less than `tone`\'s overlap below despite looking like the bigger break.',
   },
   {
+    axis: 'selection',
+    values: ['unselected', 'selected'],
+    defs: ['tag'],
+    relation: 'disjoint',
+    reason:
+      'A selectable tag\'s two values, in the words the Tag brief uses (§4, §15) — `selected` is what a filter '
+      + 'or choice tag IS, and no one ARIA word fits it: its state rides aria-pressed on a button, aria-checked on '
+      + 'a role="checkbox", or aria-selected on a listbox option, depending on the role its GROUP takes. Borrowing '
+      + 'checkbox\'s `[unchecked, checked]` would claim the checkbox\'s ARIA state for every filter tag, which is '
+      + 'the one of the three the brief lists last. Disjoint, the loud kind: a consumer lining the sets up sees at '
+      + 'once they do not match. `unselected` leads because it is the rest coordinate. The spelling is an '
+      + 'axis-value choice held for the owner in the Tag PR (2026-09-27).',
+  },
+  {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '

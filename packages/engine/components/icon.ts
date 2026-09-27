@@ -324,7 +324,7 @@ export const icon: ComponentDef = {
       'As an interactive element. An icon-only action is a Button (or IconButton) with an accessible name and a hit target of at least 24×24 (44×44 on touch), containing an unnamed glyph — reaching for Icon there puts the affordance on a node with no focus management, no keyboard listeners and no touch target. Also avoid it as an illustration (larger, narrative, its own component), a logo, or a thumbnail; and avoid naming a glyph that sits beside its own text.',
     // The hosts whose slots usually carry an icon, plus `field-message`, whose `icon` prop overrides its
     // status glyph in code. A reverse list, so it lives here (#1700).
-    commonPartners: ['button', 'icon-button', 'text-field', 'field-message', 'select'],
+    commonPartners: ['button', 'icon-button', 'text-field', 'field-message', 'select', 'tag'],
     triggerKeywords: ['icon', 'glyph', 'symbol', 'svg', 'chevron', 'arrow', 'search icon', 'close icon'],
     generationPriority: 2,
   },
@@ -334,9 +334,9 @@ export const icon: ComponentDef = {
     composesWith: [],
     alternativeTo: [],
     replacesPatterns: ['legacy icon fonts', 'ad-hoc inline SVGs outside the set'],
-    // `avatar` and `tag` from brief §12 (an icon is Avatar's image-load fallback; Tag pairs a small icon
-    // with its text).
-    planned: ['link', 'menu', 'illustration', 'logo', 'thumbnail', 'emoji', 'avatar', 'tag'],
+    // `avatar` from brief §12 (an icon is Avatar's image-load fallback). `tag` left for `ai.commonPartners`
+    // when it was built (2026-09-27): its leading slot carries an icon.
+    planned: ['link', 'menu', 'illustration', 'logo', 'thumbnail', 'emoji', 'avatar'],
   },
 
   // Brief §8.

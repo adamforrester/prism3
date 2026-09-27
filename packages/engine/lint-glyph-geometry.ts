@@ -127,7 +127,7 @@ import type { ComponentDef } from './component-schema';
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip', 'spinner.ring'];
+const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip', 'spinner.ring', 'tag.check'];
 
 /**
  * COMPOSED GLYPHS (#1670) — a vector part whose glyph is not in the icon set and draws several filled
@@ -252,6 +252,14 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     glyph: 'check',
     at: { selection: ['on'] },
     why: "the on mark in the thumb (#1354) — a check, the same shape checkbox's checked box draws. Prism 2's `checkLine`. Present only at `selection=on` (`presentWhen`), so a fixed glyph is the right record: there is no `on` glyph to template on",
+  },
+  // TAG'S SELECTED MARK (2026-09-27) — the checkbox mark's shape on a selectable tag, gated to
+  // `selection=selected`. Fixed for checkbox's reason: the vocabulary holds no `unselected` glyph, and the
+  // shape is what "selected" looks like, not a coordinate a designer picks.
+  'tag.check': {
+    glyph: 'check',
+    at: { selection: ['selected'] },
+    why: "the selected indicator before a selectable tag's label — the same check a checked checkbox draws, so selection reads alike across the selection family and never rests on the fill color alone. Present only at `selection=selected` (`presentWhen`); there is no glyph for `unselected`",
   },
   'textarea.grip': {
     glyph: 'resize-grip',

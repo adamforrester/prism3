@@ -88,6 +88,9 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Veil', defs: ['veil'] },
         // Badge — placed under Components pending the owner's call (held in the Badge PR).
         { page: 'Badge', defs: ['badge'] },
+        // Tag — placed under Components beside Badge, pending the owner's call (held in the Tag PR). It nests
+        // IconButton.Neutral, whose page is earlier in this list, so the nest resolves when the file is built in order.
+        { page: 'Tag', defs: ['tag'] },
       ],
     },
     {

@@ -757,6 +757,42 @@
           "Bold tone fills for the count, where a subtle tint over a busy host may not stand out."
         ]
       }
+    },
+    "tag": {
+      "codeOnly": [
+        "read-only — a real state (readOnly), deliberately NOT a Figma variant: a read-only tag keeps the rest paint at full weight and only refuses interaction, so a member would be byte-identical to rest. It is not dimmed and is not disabled; it keeps its place in the tab order so its label stays reachable.",
+        "The interaction switch — `interaction` (clickable | selectable | removable) is a code prop, not a variant axis: no name in the closed axis vocabulary expresses an interaction archetype, and a new name is an owner decision. In Figma a clickable tag is the default member, a selectable tag is the selection axis, and a removable tag is the remove button switch. In code each interaction takes its own role: clickable is a native <button>; selectable is a <button> with aria-pressed, or a role=\"checkbox\" or listbox option inside a group; removable is a row in a grid.",
+        "The group contract (the tag group is not built yet) — the group owns the selection model (multiple: a listbox with aria-multiselectable, or pressed buttons; single: a radiogroup), and it lays tags out as a wrapping flex row with the `group-gap` binding (space.100, 8px) between tags on both axes. A removable group is role=\"grid\": each tag is a row, its label a gridcell and its remove button a second gridcell; the row and gridcell wrappers take display: contents so the tags wrap in the flex layout. One tab stop enters the group, Left and Right arrows move between tags (Up and Down across wrapped lines), and Delete or Backspace removes the focused tag. Never a listbox for removable tags: ARIA does not allow an interactive child inside role=\"option\".",
+        "Focus after removal — capture the removed tag's index before it goes; after the list updates, focus the next tag, else the previous one, else the group or the input that owns it. Never let focus fall to <body>.",
+        "The remove button — a real <button>, named \"Remove\" followed by the label (or aria-label=\"Remove\" with aria-labelledby pointing at the label). Its hit area grows with padding on the button, never margin, and its click stops propagation so a removal does not also fire the tag's action. A tag that is both clickable and removable cannot be a <button> containing a <button>: use the grid, or a non-button container holding two real buttons. In Figma the nested IconButton.Neutral shows the file's default icon; swap it to `close` on the instance.",
+        "Overflow — a group that must stay on one line measures the available width against the tags (a ResizeObserver) and ends in a computed \"+N more\" tag that opens a popover of the rest. The measurement moves when web fonts load. The default is to wrap.",
+        "Combobox composition — a multi-select combobox renders its values as a group of removable tags inside the field. At an empty caret, Backspace focuses the last tag and a second Backspace removes it.",
+        "RTL — logical properties (padding-inline, gap) mirror the row, so the leading icon moves to the right edge and the remove button to the left. No physical directions, and no script.",
+        "text expansion — the tag has no fixed width: it sizes to its content up to a max-width, then truncates with an ellipsis (overflow: hidden, white-space: nowrap), always paired with a title or tooltip carrying the full text. Translations run 30–50% longer. Figma holds one line of placeholder text.",
+        "The hit-target expansion — a small tag is 36px tall on comfortable density and 28px at compact, and a medium tag is 36px at compact. Reaching 44px there is a code-side hit area larger than the visible box, which Figma cannot hold."
+      ],
+      "notes": {
+        "contested": [
+          "One component switched by `interaction` (owner, 2026-09-27) against the brief's practice default (§3, §10), which derives the archetype from callbacks (onClick / onRemove / selected). An enum makes the three exclusive, so the brief's dual-action tag (select the body, remove with the ×, §2) is not expressible here. Held for the owner: an enum value for it, or a separate boolean.",
+          "The selection axis values `[unselected, selected]` (brief §4 and §15 words) against checkbox's `[unchecked, checked]`. A filter tag's ARIA state is aria-pressed, aria-checked or aria-selected depending on the group's role, so no one ARIA word fits; recorded as `disjoint` in `lint-axis-values.ts` and held for the owner.",
+          "Tone (§4, §15: neutral + info/success/warning/error) is NOT built. The owner requires the interactive family, which has no status hues, and the brief itself warns against status vocabulary in a tag (§7). A status-encoding tag is held for the owner.",
+          "Fill (filled / outlined / subtle, §4) is not an axis: unselected is outlined and selected is filled, which is the brief's own selected treatment (\"a high-contrast fill + checkmark\"). Held with the visual choices.",
+          "The focus ring wraps the whole tag. The brief (§4) says a split-target removable tag lights only the × when the remove action has keyboard focus; the nested remove button exposes its own `state`, so a designer can show that, but no member does it by default.",
+          "`removing` (§4, the transient state) is not a state: it is motion only, and `STATES` has no such name. `unselected` is the selection axis value, not a state.",
+          "The remove button is the small IconButton at every tag size, so a large tag carries the same small-rung remove button as a small one, and it sits inside the full label-side inset (no remove-aware trailing inset — that would need a variant axis, as Button's #326 inset does).",
+          "Tag group: held for the owner — a second def (like checkbox-group) or code-only. This PR carries it code-only and binds the owner's ≥ 8px spacing as `group-gap`."
+        ],
+        "unverified": [
+          "The remove part is a boolean-toggled `nest` that is also `nest-exposed` on the nested state. `select` toggles a nested message and `checkbox-row` exposes a nested state, but no def did both on one part before; the offline shim builds it, a real Figma host has not been checked.",
+          "The nested IconButton.Neutral shows the file's default (placeholder) icon, not a ×, because a nest cannot set the nested instance's swap. Nothing measures what a designer sees there.",
+          "A medium tag is 44px tall on comfortable density, a medium Button's height (owner decision 4). Whether a pill that tall still reads as a tag beside buttons of the same height is a visual question no gate asks."
+        ],
+        "evolution": [
+          "Badge's hook, answered point by point. (1) Tag binds `color.interactive.*` only (plus disabled and the focus ring). (2) Tag has hover, pressed, focus-visible and disabled members, and selection as an axis. (3) Tag is in `lint-hit-target.ts` INTERACTIVE, 44px at medium. (4) An unselected tag is outlined and a selected one filled with a check mark; Badge is a borderless tone fill. (5) The remove control nests IconButton.Neutral. `test.ts` holds (1) and (4) against Badge's projected rest paint.",
+          "The brief's `Token` alias is not carried as a bare alias: in this repo \"token\" means a design token, and an agent asked for one would land here. \"recipient token\" is kept as a trigger phrase.",
+          "A leading icon rung one smaller than the control rung (Button's #1350 offset) would suit a text-bearing tag; it is an owner exception in `lint-rung-names.ts`, so the 1:1 rung ships and the offset is held."
+        ]
+      }
     }
   }
 }

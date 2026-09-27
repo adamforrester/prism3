@@ -84,7 +84,8 @@ None — not interactive.
 
 ## Composition
 
-- **Planned:** `tag`, `avatar`, `tabs`, `toast`, `banner`
+- **Alternative to:** `tag`
+- **Planned:** `avatar`, `tabs`, `toast`, `banner`
 - **Replaces:**
   - a hand-drawn colored pill
   - a red circle with a number drawn over an icon

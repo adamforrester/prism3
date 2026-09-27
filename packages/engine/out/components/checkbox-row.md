@@ -96,7 +96,7 @@ The label states what becomes true when checked. Group errors read "Select at le
 
 - **Composes with:** `checkbox-control`
 - **Alternative to:** `switch-row`, `radio-row`
-- **Planned:** `form`, `toggle-button`, `combobox`, `listbox`, `chip`
+- **Planned:** `form`, `toggle-button`, `combobox`, `listbox`
 - **Replaces:**
   - a bare \<input type="checkbox"> with no label wiring
   - a role="checkbox" div where a styled native input would do

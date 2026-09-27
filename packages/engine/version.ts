@@ -2926,6 +2926,15 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.188.0 — a new component def, `tag` (owner decisions, 2026-09-27): the interactive token a user clicks,
+ * toggles or removes, one component switched by an `interaction` prop (clickable | selectable | removable).
+ * Its Figma set is selection (unselected | selected) × size × five states = 30 members, with the leading icon
+ * and the nested IconButton.Neutral remove button as node-visibility booleans. It binds the interactive color
+ * family only. `badge`, `icon`, `button` and `checkbox-row` move their `composition`/`ai` lists (a planned
+ * `tag`/`chip` is built now), so their pages move too. A new def moves the projected surface and adds one
+ * payload artifact (`out/components/tag.md`) → ENGINE MINOR. CONTRACT STANDS at 13.1.0 (no token name
+ * moves; the def binds existing roles only).
+ *
  * 0.187.0 — a new component def, `badge` (owner decisions, 2026-09-27): a static status label, count or
  * dot, one component switched by a `genre` prop, with no states and no interactive binding. Its Figma set
  * projects the status label across five `tone` members (neutral / info / success / warning / danger); the
@@ -3997,7 +4006,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.187.0';
+export const ENGINE_VERSION = '0.188.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -66,7 +66,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -4800,6 +4800,128 @@ for (const b of brands) {
     }
     ok(measured > 0 && low.length === 0,
       `badge contrast (${tone}): ${ink} on ${fill} clears 4.5:1 in all ${measured} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+  }
+}
+
+// ---- TAG — the owner's decisions of 2026-09-27, held here with literal expectations --------------------------
+// Written from the decisions, not read back from the def: interactive only (the five projected states), one
+// component switched by an `interaction` prop with the literal values clickable | selectable | removable, the
+// remove control a nested IconButton.Neutral named "Remove <label>", the group spacing bound to `space.100` and
+// measured at >= 8px, and every color ref in the interactive family (plus disabled and the focus ring).
+{
+  const tagDef = componentDefs.find((d) => d.id === 'tag')!;
+  ok(!!tagDef, 'tag: the def is registered');
+  const colorRefs = Object.entries(tagDef.tokens).filter(([, r]) => r.startsWith('color.'));
+  const TAG_COLOR_FAMILIES = ['interactive', 'disabled'];
+  const offFamily = colorRefs.filter(([k, r]) => !TAG_COLOR_FAMILIES.includes(r.split('.')[1]) && !(k === 'focus-ring' && r === 'color.border.focus'));
+  ok(offFamily.length === 0 && colorRefs.filter(([, r]) => r.startsWith('color.interactive.')).length >= 5,
+    `tag binds the interactive family: every color ref is interactive.* or disabled.* (plus the focus ring)${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
+  const projected = tagDef.figmaProperties?.stateAxis?.values ?? [];
+  ok(['rest', 'hover', 'pressed', 'focus-visible', 'disabled'].every((st) => projected.includes(st)),
+    `tag is interactive: the projected state axis carries rest, hover, pressed, focus-visible and disabled (${JSON.stringify(projected)})`);
+  const interaction = tagDef.props.find((p) => p.name === 'interaction');
+  ok(JSON.stringify(interaction?.values) === JSON.stringify(['clickable', 'selectable', 'removable']) && interaction?.default === 'clickable',
+    `tag interaction: the values are clickable | selectable | removable, default clickable (${JSON.stringify(interaction?.values)}, ${interaction?.default})`);
+  const words = [...tagDef.aliases, ...tagDef.ai.triggerKeywords];
+  const missingWords = ['chip', 'filter tag', 'input tag', 'removable tag'].filter((w) => !words.includes(w));
+  ok(tagDef.name === 'Tag' && tagDef.aliases[0] === 'chip' && missingWords.length === 0,
+    `tag naming: named Tag with chip as its first alias, and "filter tag", "input tag", "removable tag" carried${missingWords.length ? ` — missing ${missingWords.join(', ')}` : ''}`);
+  const remove = tagDef.anatomy!.parts.remove;
+  ok(remove?.kind === 'nest' && remove.nests === 'icon-button-neutral',
+    `tag: the remove control nests IconButton.Neutral, a button of its own (${remove?.kind} → ${remove?.nests})`);
+  const aria = tagDef.accessibility.aria;
+  ok(/Name the remove button "Remove" followed by the label \("Remove Marketing"\)/.test(aria) && /Never a bare "Remove" or "×"/.test(aria),
+    'tag aria: the remove button is named "Remove" followed by the label, never a bare "Remove" or "×"');
+  // THE GROUP SPACING (owner decision 5): at least 8px, bound to a spacing token. Measured, not read: every
+  // corpus brand at its own density, and harbor at all three densities, since the space scale moves with it.
+  ok(tagDef.tokens['group-gap'] === 'space.100',
+    `tag group spacing binds space.100 (${tagDef.tokens['group-gap']})`);
+  const gapBuilds: [string, any][] = [
+    ['nb', nbTheme()],
+    ...(['aurora', 'harbor', 'prism3'] as const).map((b) => [b, brandTheme(exampleBrands()[b] as BrandInput)] as [string, any]),
+    ...(['compact', 'comfortable', 'spacious'] as const).map((d) => [`harbor@${d}`, brandTheme({ ...(exampleBrands()['harbor'] as BrandInput), density: d } as BrandInput)] as [string, any]),
+  ];
+  const gapPx = gapBuilds.map(([b, th]) => {
+    const built = buildTree(th).tree;
+    const root = Object.keys(built)[0];
+    let node: any = built[root];
+    for (const seg of tagDef.tokens['group-gap'].split('.')) node = node?.[seg];
+    return [b, node?.$extensions?.prism3?.px] as [string, number | undefined];
+  });
+  const narrow = gapPx.filter(([, px]) => px === undefined || px < 8);
+  ok(gapPx.length === 7 && narrow.length === 0,
+    `tag group spacing is at least 8px in all ${gapPx.length} builds${narrow.length ? ` — ${narrow.map(([b, px]) => `${b} ${px ?? 'unresolved'}`).join('; ')}` : ''}`);
+
+  // THE CROSS-COMPONENT ARM (owner decision 3): at rest, for every Badge tone against every Tag selection, the
+  // two paint differently on the stated properties. Both sides are read from the PROJECTED rest members — what
+  // a designer sees — and each is held to its own literal table first, so neither side is the other's oracle.
+  const paintsOf = (plan: AnatomyPlan) => {
+    const refs: string[] = [];
+    const walk = (n: any) => {
+      for (const v of [n.paints?.fills, n.paints?.strokes, n.descendantFills]) if (v && n.visible !== false) refs.push(v);
+      for (const c of n.children ?? []) walk(c);
+    };
+    walk(plan.root);
+    return { fill: plan.root.paints?.fills, stroke: plan.root.paints?.strokes, refs, names: planPartNames(plan.root) };
+  };
+  const TAG_REST: Record<string, { fill?: string; stroke?: string; label: string; check: boolean }> = {
+    unselected: { stroke: 'color/interactive/neutral/border/rest', label: 'color/interactive/neutral/text/rest', check: false },
+    selected: { fill: 'color/interactive/primary/fill/rest', label: 'color/interactive/primary/on-fill', check: true },
+  };
+  const BADGE_REST: Record<string, string> = {
+    neutral: 'color/foreground/secondary', info: 'color/foreground/info-subtle', success: 'color/foreground/success-subtle',
+    warning: 'color/foreground/warning-subtle', danger: 'color/foreground/danger-subtle',
+  };
+  const badgeDef = componentDefs.find((d) => d.id === 'badge')!;
+  const tagAt = (selection: string) => paintsOf(figmaAnatomyPlan(tagDef, 'medium', { selection, state: 'rest' } as never));
+  const badgeAt = (tone: string) => paintsOf(figmaAnatomyPlan(badgeDef, undefined, { tone } as never));
+  for (const [sel, want] of Object.entries(TAG_REST)) {
+    const got = tagAt(sel);
+    const label = figmaAnatomyPlan(tagDef, 'medium', { selection: sel, state: 'rest' } as never).root.children?.find((c: any) => c.name === 'label')?.paints?.fills;
+    ok(got.fill === want.fill && got.stroke === want.stroke && label === want.label && got.names.includes('check') === want.check,
+      `tag rest (${sel}): fill ${want.fill ?? 'none'}, edge ${want.stroke ?? 'none'}, label ${want.label}, check mark ${want.check ? 'shown' : 'absent'} (got fill ${got.fill ?? 'none'}, edge ${got.stroke ?? 'none'}, label ${label}, check ${got.names.includes('check')})`);
+  }
+  for (const [tone, fill] of Object.entries(BADGE_REST)) {
+    const b = badgeAt(tone);
+    ok(b.fill === fill && b.stroke === undefined,
+      `badge rest (${tone}): the tone fill ${fill} and no edge (got fill ${b.fill}, edge ${b.stroke ?? 'none'})`);
+    for (const sel of Object.keys(TAG_REST)) {
+      const t = tagAt(sel);
+      const tagInteractive = t.refs.length > 0 && t.refs.every((r) => r.startsWith('color/interactive/'));
+      const badgeInteractive = b.refs.some((r) => r.startsWith('color/interactive/'));
+      const tagCue = t.stroke !== undefined || t.names.includes('check');
+      const badgeCue = b.stroke !== undefined || b.names.includes('check');
+      ok(tagInteractive && !badgeInteractive && tagCue && !badgeCue && t.fill !== b.fill,
+        `tag vs badge at rest (${sel} tag, ${tone} badge): the tag paints only the interactive family and shows an edge or a check mark; the badge paints neither (tag ${JSON.stringify(t.refs)}, cue ${tagCue}; badge ${JSON.stringify(b.refs)}, cue ${badgeCue})`);
+    }
+  }
+
+  // CONTRAST, measured on the def's own pairs in every corpus brand and mode: the selected label on its fill
+  // (text, 4.5:1), and the unselected label and edge on the page (4.5:1 and 3:1).
+  const themes: [string, any][] = [
+    ['nb', nbTheme()],
+    ['aurora', brandTheme(exampleBrands()['aurora'] as BrandInput)],
+    ['harbor', brandTheme(exampleBrands()['harbor'] as BrandInput)],
+  ];
+  const PAIRS: [string, string, string, number][] = [
+    ['selected label on its fill', 'selected.label', 'selected.fill', 4.5],
+    ['unselected label on the page', 'unselected.label', 'page', 4.5],
+    ['unselected edge on the page', 'unselected.border', 'page', 3],
+  ];
+  for (const [what, inkKey, groundKey, floor] of PAIRS) {
+    const ink = tagDef.tokens[inkKey].replace(/^color\./, '');
+    const ground = groundKey === 'page' ? 'background.primary' : tagDef.tokens[groundKey].replace(/^color\./, '');
+    const low: string[] = [];
+    let measured = 0;
+    for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
+      const a = m.roles[ink], g = m.roles[ground];
+      if (!a?.hex || !g?.hex) { low.push(`${brand}/${m.mode}: missing ${!a?.hex ? ink : ground}`); continue; }
+      const r = contrast(hexToRgb(a.hex), hexToRgb(g.hex));
+      measured++;
+      if (r < floor) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
+    }
+    ok(measured > 0 && low.length === 0,
+      `tag contrast (${what}): ${ink} on ${ground} clears ${floor}:1 in all ${measured} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
 }
 
@@ -12693,7 +12815,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const KB_BRIEF_CATEGORY: Record<string, string> = {
       'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
       'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations',
-      'switch.md': 'form', 'text-field.md': 'form', 'textarea.md': 'form',
+      'switch.md': 'form', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
     };
     const defDir = resolve(HERE, './components');
     const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
@@ -12950,8 +13072,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
     // THE REACH: every def that binds the wash is rewritten — named, so a fifth binder must be added here.
     const binders = componentDefs.filter((d) => applyOutlineInteraction(d, 'none') !== d).map((d) => d.id).sort();
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'select', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, select, text-field, textarea (${binders.join(', ')})`);
+    // `tag` joins (2026-09-27): an unselected tag's hover and pressed are the neutral overlay wash on its outline,
+    // Button's outline grammar, so a solid-tint or no-hover brand reaches it exactly as it reaches a button.
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw. The wrap is what makes the gate above green.
@@ -13287,6 +13411,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // a shorter ladder, which is why the authored number is the right oracle and "one per declared
       // value" would have read this as a pass and button's real gap as one too.
       { def: switchRow, part: 'label', axes: { size: 2 } },
+      // `tag` (2026-09-27) binds Button's three label rungs, so three sizes discriminate into three styles.
+      { def: tag, part: 'label', axes: { size: 3 } },
       // The two text nodes of `field-label`, the only bindings in the corpus that cross two axes.
       { def: fieldLabel, part: 'text', axes: { size: 3, weight: 2 } },
       { def: fieldLabel, part: 'indicator', axes: { size: 3, weight: 2 } },
@@ -20045,7 +20171,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // layers, and text-field and textarea their focus caret, on the reserved `state` key. The arm below
   // supplies that key as the projected STATE, spelled here as a literal so the oracle is not the schema's
   // own constant.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select'];
+  // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'tag'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -21434,6 +21561,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // host's own caret placement. The fixed control height is the mechanical half of the same fact.
     'text-field.entry':
       "text-field's entry row shows the single-line placeholder or value ellipsized to one line, so it does not wrap — the first line IS the block, and the caret, one line box tall, centred against it sits where a native caret sits. The control's fixed single-line height is the mechanical half of the same fact (as select.content).",
+    // `tag` (2026-09-27) pairs its check mark, leading icon and remove button with the label.
+    'tag.container':
+      "a tag's label is one line, truncated with an ellipsis past its maximum width, so it does not wrap — the first line IS the block and centring the check mark, icon and remove button against it cannot float them mid-paragraph. The tag's fixed height is the mechanical half of the same fact (as button.container).",
   };
   let pairedRows = 0;
   const centred: string[] = [];

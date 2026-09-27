@@ -216,6 +216,18 @@
     "badge": {
       "members": 5,
       "sha256": "4d04e35532b5ed99ee3b9c14a70ad1a7f089e2e9818d1d8d0d5d9acb8f3bc94f"
+    },
+    "tag": {
+      "members": 30,
+      "sha256": "8ff2f34e65198a45c2bc7db53059f8184cd13c7d3aec787acdc497ef42af6ee2"
+    },
+    "tag@outline-solid-tint": {
+      "members": 30,
+      "sha256": "c8becd9a4cf34ccc25fafd3f4ec47c884d331eb61c5b652b53a3cfafc7a019be"
+    },
+    "tag@outline-none": {
+      "members": 30,
+      "sha256": "2d0e2cb266ad9a66b2298f6a7f6da55d8e01cb6cee73c102b81b8eda9b448b61"
     }
   }
 }
