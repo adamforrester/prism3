@@ -36,6 +36,8 @@ import type { ComponentProgress, CompPageTarget, CompNode } from './write-compon
 import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
 import { buildFileComponents } from './file-components';
 import { TAXONOMY } from './file-taxonomy';
+import { ensurePageHeader, pageHeaderCopy, pageHeaderNote } from './page-header';
+import type { PageHeaderOutcome, HeaderPage } from './page-header';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleCounts } from './list-fonts';
@@ -563,6 +565,17 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       if (!plans) planCache.set(target.id, plans = figmaAnatomySet(materializeForBrand(target, brandInput), { swapTarget: SWAP_TARGET }));
       return plans;
     };
+    // THE PAGE HEADER (2026-09-27) — one `_Section-header` instance per component page, placed after the
+    // set lands so it can be measured against the content (`page-header.ts`). One entry per page this run
+    // built onto, dependencies included, so a skip (no `_Section-header` in the file) reaches the verdict.
+    const headers: PageHeaderOutcome[] = [];
+    const placeHeader = async (page: HeaderPage, defId: string): Promise<void> => {
+      const copy = pageHeaderCopy(defId, componentDefs);
+      if (!copy) return;
+      // CAUGHT HERE, never rethrown: the set is already built, and a header is labeling, not the build.
+      try { headers.push(await ensurePageHeader(figma, page, copy)); }
+      catch (e) { headers.push({ page: page.name, status: 'failed', message: (e as Error)?.message ?? String(e) }); }
+    };
     const buildOne = async (target: ComponentDef, reports: ComponentProgress[]) => {
       const page = await resolveComponentPage(figma, target.id);
       let targetPage: CompPageTarget | undefined;
@@ -576,7 +589,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         await figma.setCurrentPageAsync(page as unknown as PageNode);
         targetPage = page as unknown as CompPageTarget;
       }
-      return applyComponentPlan(project(target), figma, {
+      const built = await applyComponentPlan(project(target), figma, {
         // #1554: the resolved section page, or undefined → `currentPage` (unmapped def / pre-#1554 default).
         targetPage,
         // #1012: `icon` materializes as separate `icon/<glyph>` components, not one set. Read off the def
@@ -605,6 +618,9 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
           sink.post({ type: 'component-progress', phase: p.phase, done: p.done, total: p.total, chunkMs: p.chunkMs });
         },
       });
+      // The real `PageNode` (same #1561 reasoning as `targetPage` above), which satisfies `HeaderPage`.
+      if (page) await placeHeader(page as unknown as PageNode, target.id);
+      return built;
     };
     // NESTED COMPONENTS FIRST (#1633) — every def this one nests or swaps to that the file does not hold yet
     // is built before it, deepest first (`build-deps.ts`). One that is already in the file is left alone:
@@ -661,7 +677,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         type: 'component-result',
         ok: r.set !== null && r.misses.length === r.skipped,
         headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale, r.refsRelinked),
-        summary: summary + alsoBuiltNote(alsoBuilt),
+        summary: summary + alsoBuiltNote(alsoBuilt) + pageHeaderNote(headers),
       }, sink);
       verdictPosted = true;
     });
@@ -720,7 +736,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     for (const line of telemetry) console.log(line);
     // The report behind the verdict, whole (the agent link; `uiSink` drops it): the miss list uncapped,
     // the #701 / #866 / #1279 / #1574 counters the console lines above print, and the telemetry block.
-    sink.data({ build: { def: def.id, alsoBuilt, settleMs, telemetry, report: r, progress: reports } });
+    sink.data({ build: { def: def.id, alsoBuilt, pageHeaders: headers, settleMs, telemetry, report: r, progress: reports } });
   } catch (e) {
     // `planSetLayout` throws on a set that could not be assembled coherently — before anything reaches
     // the file. That is a def-tier or scope-tier error, and its message names the cause.
