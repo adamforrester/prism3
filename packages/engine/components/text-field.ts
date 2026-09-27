@@ -113,7 +113,7 @@ export const textField: ComponentDef = {
   ],
 
   // The interactive state set. read-only and disabled are distinct rows — the component's live edge —
-  // and both PROJECT (read-only is the distinctive field state select lacks). `pending`, not `loading`
+  // and both PROJECT (read-only, which select also projects since #1699). `pending`, not `loading`
   // (#843): button and icon-button say `pending`, and #487 §0.4 forbids codifying the legacy sheet's
   // `loading` name. `pending` and `empty` stay in `states` (the paint model carries them — `label.empty`
   // re-points the value ink to the placeholder role, and a spinner replaces an adornment while pending)
@@ -473,7 +473,7 @@ export const textField: ComponentDef = {
   },
 
   // How this projects into Figma (#1494). `status` is the one variant axis; `state` projects the five
-  // interactive states (read-only INCLUDED — the field state select lacks) plus `filled`, the member holding a
+  // interactive states (read-only INCLUDED — select gained it in #1699) plus `filled`, the member holding a
   // value. The leading and trailing glyphs' PRESENCE and the message's are node-visibility BOOLEANS, NOT variant
   // axes, so none multiplies the set: status(4) × state(6) = 24 members. `pending` and `empty` are real states (see `states` and the codeOnly
   // entries leading with those names) but are deliberately absent from this projected axis.
@@ -580,7 +580,7 @@ export const textField: ComponentDef = {
       'warning as a distinct state (brief §4 calls it optional; many systems fold it into helper/error). Settled here as a STATUS, not a state: `warning` is a value of the `status` axis with its own border (`color.border.warning`, #1517) and its own message status, so the field signals it on both.',
       'pressed — the brief lists it as a runtime state (§4, touch-down feedback before the virtual keyboard rises), largely a mobile concern. Not declared: `pressed` is not a field state here (see `tokens`), so a touch-down carries no skin of its own. The alternative is a `pressed` state with its own skin, which no field role emits today (`color.field.border.pressed` does not exist).',
       'density [comfortable, compact, fluid] — the brief\'s second variant axis (§4, §15). Not declared: the engine\'s density is a brand lever that moves every control\'s rungs, and `size` covers per-field scale. Carbon\'s borderless `fluid` field is a separate treatment, not built.',
-      'prefix / suffix as TEXT affixes vs merged away (#1699 decision 3, owner-delegated: one prop per slot). They were glyph-or-action slots duplicating `leadingIcon` / `trailingIcon`. Chosen: keep the brief\'s names for the text affixes (a currency symbol, a unit — brief §9\'s locale placement), with the glyphs on the two icon slots and the clear action on `clearable`. The alternative, dropping `prefix` / `suffix` entirely, loses the text affix a currency or unit field needs.',
+      'prefix / suffix as TEXT affixes vs merged away (#1699 decision 3, owner-delegated: one prop per slot). They were glyph-or-action slots duplicating `leadingIcon` / `trailingIcon`. Chosen: keep the names for the text affixes (a currency symbol, a unit — brief §9\'s locale placement). In the brief, `prefix` / `suffix` name the adornment slots (§2, §15) and §10 maps `leadingVisual` / `trailingVisual` onto them; here the glyph adornments are the two icon slots, so the names are reused for the text affixes, with the glyphs on the two icon slots and the clear action on `clearable`. The alternative, dropping `prefix` / `suffix` entirely, loses the text affix a currency or unit field needs.',
     ],
     unverified: [
       'Polaris migration to framework-agnostic Web Components (<s-text-field>, Shadow DOM) — needs _source-text backing, shared with the Button brief (brief §11, §14).',

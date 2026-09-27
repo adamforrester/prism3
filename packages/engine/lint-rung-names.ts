@@ -80,8 +80,8 @@
  * VALUE change reached by a NAMING argument, and #756 is right that it wants a stated rule rather than
  * a per-def judgment. The rule, and it was found in the corpus rather than invented:
  *
- *   **A def's default size resolves to the tier's `md` rung — PER TIER FAMILY, with one sanctioned
- *   exception.**
+ *   **A def's default size resolves to the tier's `md` rung — PER TIER FAMILY, with two sanctioned
+ *   exceptions (the icon offset, and HOST_DEFAULT_DEFS).**
  *
  * It holds across every def with a size axis today: `icon` defaults `md`, and `button`, `icon-button`
  * and `text-field` all default `medium`, whose GEOMETRY and TYPE bindings reach `size.md.*` /
