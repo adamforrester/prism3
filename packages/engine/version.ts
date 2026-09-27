@@ -2926,6 +2926,19 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.185.0 — #1296/#1718: the default theme gains its accent, gradients and extras, and the numeric weight
+ * tier always carries the contract's standard weights. (1) ENGINE: `weightsRef` now unions the four
+ * contract-guaranteed numerics (300/400/700/900, a literal `CONTRACT_WEIGHTS` list, deliberately not
+ * derived from the default roles) onto the numerics a brand's weight roles use. A brand that remaps a role
+ * no longer drops a guaranteed `core.font.weight.*` path (#1718, the always-emit option); every brand at
+ * the default roles already emitted all four, so nb, aurora, harbor and wendys move only their version
+ * stamps. (2) prism3: a violet `accent` brand color (#7A3CFF), a linear `brand` gradient (primary.600 →
+ * accent.500, 135°) and a radial `glow` (accent.400 → primary.700), paired italics on body
+ * (`italics: [body]`, beside `italicDefault: [display, title]`), shadows tinted toward the primary hue
+ * (amount 0.35), and a brand-specific status set (success 155, warning 70, danger 25, info 230). prism3
+ * gains `core.font.weight.700`. Emission moves → ENGINE MINOR. CONTRACT STANDS at 13.1.0 — no guaranteed
+ * name moves; prism3 now emits every guaranteed path.
+ *
  * 0.184.0 — #1296: the canonical default theme, `prism3` at root `pds3`, and italic as a category's
  * DEFAULT cut. (1) A new lever, `typography.italicDefault: TypeGroup[]` (the shape of `italics`/`links`):
  * a listed category's bare composites are the italic cut — `$value.fontStyle: 'italic'` under the
@@ -3959,7 +3972,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.184.0';
+export const ENGINE_VERSION = '0.185.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

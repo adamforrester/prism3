@@ -820,6 +820,386 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "pds3/core/palette/accent/025",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 025 — Highlight band (near-white tints, steps 025–050)",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9647058844566345,
+        "b": 1,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/050",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 050 — Highlight band (near-white tints, steps 025–050)",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.9058823585510254,
+        "b": 0.9803921580314636,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/100",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 100 — Quarter-Tone band (light tints, steps 100–350)",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.843137264251709,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/150",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 150 — Quarter-Tone band (light tints, steps 100–350)",
+      "value": {
+        "r": 0.800000011920929,
+        "g": 0.7803921699523926,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/200",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 200 — Quarter-Tone band (light tints, steps 100–350)",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7176470756530762,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/250",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 250 — Quarter-Tone band (light tints, steps 100–350)",
+      "value": {
+        "r": 0.6941176652908325,
+        "g": 0.6549019813537598,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/300",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 300 — Quarter-Tone band (light tints, steps 100–350)",
+      "value": {
+        "r": 0.6431372761726379,
+        "g": 0.5843137502670288,
+        "b": 0.9764705896377563,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/350",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 350 — Quarter-Tone band (light tints, steps 100–350)",
+      "value": {
+        "r": 0.5960784554481506,
+        "g": 0.5137255191802979,
+        "b": 0.9803921580314636,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/400",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 400 — Mid-Tone band (mid tones, steps 400–600)",
+      "value": {
+        "r": 0.5529412031173706,
+        "g": 0.43529412150382996,
+        "b": 0.9882352948188782,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/450",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 450 — Mid-Tone band (mid tones, steps 400–600)",
+      "value": {
+        "r": 0.5137255191802979,
+        "g": 0.3490196168422699,
+        "b": 0.9921568632125854,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/500",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 500 — Mid-Tone band (mid tones, steps 400–600)",
+      "value": {
+        "r": 0.47843137383461,
+        "g": 0.23529411852359772,
+        "b": 1,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/550",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 550 — Mid-Tone band (mid tones, steps 400–600)",
+      "value": {
+        "r": 0.4274509847164154,
+        "g": 0.19607843458652496,
+        "b": 0.9058823585510254,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/600",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 600 — Mid-Tone band (mid tones, steps 400–600)",
+      "value": {
+        "r": 0.3764705955982208,
+        "g": 0.1568627506494522,
+        "b": 0.8156862854957581,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/650",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "value": {
+        "r": 0.3294117748737335,
+        "g": 0.12156862765550613,
+        "b": 0.7215686440467834,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/700",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "value": {
+        "r": 0.2823529541492462,
+        "g": 0.0784313753247261,
+        "b": 0.6352941393852234,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/750",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "value": {
+        "r": 0.23529411852359772,
+        "g": 0.03529411926865578,
+        "b": 0.5490196347236633,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/800",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "value": {
+        "r": 0.1921568661928177,
+        "g": 0,
+        "b": 0.46666666865348816,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/850",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "value": {
+        "r": 0.14509804546833038,
+        "g": 0,
+        "b": 0.3686274588108063,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/900",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "value": {
+        "r": 0.10196078568696976,
+        "g": 0,
+        "b": 0.27843138575553894,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "pds3/core/palette/accent/950",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Brand (accent) 950 — Shadow band (near-black shade, step 950)",
+      "value": {
+        "r": 0.062745101749897,
+        "g": 0,
+        "b": 0.1921568661928177,
+        "a": 1
+      },
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "pds3/core/palette/success/025",
       "resolvedType": "COLOR",
       "scopes": [
@@ -830,9 +1210,9 @@
       ],
       "description": "Success 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
-        "r": 0.95686274766922,
+        "r": 0.9529411792755127,
         "g": 0.9725490212440491,
-        "b": 0.95686274766922,
+        "b": 0.9607843160629272,
         "a": 1
       },
       "alias": null,
@@ -849,9 +1229,9 @@
       ],
       "description": "Success 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
-        "r": 0.8352941274642944,
-        "g": 0.9490196108818054,
-        "b": 0.8313725590705872,
+        "r": 0.8117647171020508,
+        "g": 0.95686274766922,
+        "b": 0.8549019694328308,
         "a": 1
       },
       "alias": null,
@@ -868,9 +1248,9 @@
       ],
       "description": "Success 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.6705882549285889,
-        "g": 0.9372549057006836,
-        "b": 0.6745098233222961,
+        "r": 0.6039215922355652,
+        "g": 0.9490196108818054,
+        "b": 0.7254902124404907,
         "a": 1
       },
       "alias": null,
@@ -887,9 +1267,9 @@
       ],
       "description": "Success 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.5490196347236633,
-        "g": 0.9058823585510254,
-        "b": 0.5647059082984924,
+        "r": 0.45490196347236633,
+        "g": 0.9137254953384399,
+        "b": 0.6352941393852234,
         "a": 1
       },
       "alias": null,
@@ -906,9 +1286,9 @@
       ],
       "description": "Success 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.5058823823928833,
-        "g": 0.8470588326454163,
-        "b": 0.5215686559677124,
+        "r": 0.4117647111415863,
+        "g": 0.8549019694328308,
+        "b": 0.5882353186607361,
         "a": 1
       },
       "alias": null,
@@ -925,9 +1305,9 @@
       ],
       "description": "Success 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.4627451002597809,
-        "g": 0.7882353067398071,
-        "b": 0.47843137383461,
+        "r": 0.37254902720451355,
+        "g": 0.7960784435272217,
+        "b": 0.545098066329956,
         "a": 1
       },
       "alias": null,
@@ -944,9 +1324,9 @@
       ],
       "description": "Success 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.42352941632270813,
-        "g": 0.7333333492279053,
-        "b": 0.43529412150382996,
+        "r": 0.3333333432674408,
+        "g": 0.7411764860153198,
+        "b": 0.49803921580314636,
         "a": 1
       },
       "alias": null,
@@ -963,9 +1343,9 @@
       ],
       "description": "Success 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.3803921639919281,
-        "g": 0.6784313917160034,
-        "b": 0.3960784375667572,
+        "r": 0.29411765933036804,
+        "g": 0.6823529601097107,
+        "b": 0.45490196347236633,
         "a": 1
       },
       "alias": null,
@@ -982,9 +1362,9 @@
       ],
       "description": "Success 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.34117648005485535,
-        "g": 0.6235294342041016,
-        "b": 0.35686275362968445,
+        "r": 0.2549019753932953,
+        "g": 0.6274510025978088,
+        "b": 0.4117647111415863,
         "a": 1
       },
       "alias": null,
@@ -1001,9 +1381,9 @@
       ],
       "description": "Success 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.3019607961177826,
-        "g": 0.5686274766921997,
-        "b": 0.3176470696926117,
+        "r": 0.21960784494876862,
+        "g": 0.572549045085907,
+        "b": 0.3686274588108063,
         "a": 1
       },
       "alias": null,
@@ -1020,9 +1400,9 @@
       ],
       "description": "Success 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.18039216101169586,
+        "g": 0.5215686559677124,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": null,
@@ -1039,9 +1419,9 @@
       ],
       "description": "Success 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.2235294133424759,
-        "g": 0.4627451002597809,
-        "b": 0.239215686917305,
+        "r": 0.1411764770746231,
+        "g": 0.46666666865348816,
+        "b": 0.2862745225429535,
         "a": 1
       },
       "alias": null,
@@ -1058,9 +1438,9 @@
       ],
       "description": "Success 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.18431372940540314,
-        "g": 0.40784314274787903,
-        "b": 0.20000000298023224,
+        "r": 0.09803921729326248,
+        "g": 0.4117647111415863,
+        "b": 0.24705882370471954,
         "a": 1
       },
       "alias": null,
@@ -1077,9 +1457,9 @@
       ],
       "description": "Success 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.14509804546833038,
-        "g": 0.35686275362968445,
-        "b": 0.16078431904315948,
+        "r": 0.05098039284348488,
+        "g": 0.3607843220233917,
+        "b": 0.20392157137393951,
         "a": 1
       },
       "alias": null,
@@ -1096,9 +1476,9 @@
       ],
       "description": "Success 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.10588235408067703,
-        "g": 0.30588236451148987,
-        "b": 0.125490203499794,
+        "r": 0.003921568859368563,
+        "g": 0.30980393290519714,
+        "b": 0.16862745583057404,
         "a": 1
       },
       "alias": null,
@@ -1115,9 +1495,9 @@
       ],
       "description": "Success 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.07058823853731155,
+        "r": 0,
         "g": 0.25882354378700256,
-        "b": 0.09019608050584793,
+        "b": 0.13333334028720856,
         "a": 1
       },
       "alias": null,
@@ -1134,9 +1514,9 @@
       ],
       "description": "Success 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.027450980618596077,
-        "g": 0.21176470816135406,
-        "b": 0.054901961237192154,
+        "r": 0,
+        "g": 0.2078431397676468,
+        "b": 0.10588235408067703,
         "a": 1
       },
       "alias": null,
@@ -1154,8 +1534,8 @@
       "description": "Success 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
-        "g": 0.16470588743686676,
-        "b": 0.019607843831181526,
+        "g": 0.16078431904315948,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": null,
@@ -1173,8 +1553,8 @@
       "description": "Success 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
-        "g": 0.11764705926179886,
-        "b": 0.0117647061124444,
+        "g": 0.11372549086809158,
+        "b": 0.0470588244497776,
         "a": 1
       },
       "alias": null,
@@ -1192,8 +1572,8 @@
       "description": "Success 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0,
-        "g": 0.07450980693101883,
-        "b": 0.003921568859368563,
+        "g": 0.07058823853731155,
+        "b": 0.0235294122248888,
         "a": 1
       },
       "alias": null,
@@ -1229,7 +1609,7 @@
       ],
       "description": "Warning 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
-        "r": 0.9607843160629272,
+        "r": 0.9647058844566345,
         "g": 0.9058823585510254,
         "b": 0.8352941274642944,
         "a": 1
@@ -1248,9 +1628,9 @@
       ],
       "description": "Warning 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.95686274766922,
-        "g": 0.843137264251709,
-        "b": 0.6901960968971252,
+        "r": 0.9647058844566345,
+        "g": 0.8392156958580017,
+        "b": 0.6980392336845398,
         "a": 1
       },
       "alias": null,
@@ -1267,9 +1647,9 @@
       ],
       "description": "Warning 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.95686274766922,
-        "g": 0.7764706015586853,
-        "b": 0.5254902243614197,
+        "r": 0.9725490212440491,
+        "g": 0.7686274647712708,
+        "b": 0.5372549295425415,
         "a": 1
       },
       "alias": null,
@@ -1286,9 +1666,9 @@
       ],
       "description": "Warning 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.9607843160629272,
-        "g": 0.7058823704719543,
-        "b": 0.3137255012989044,
+        "r": 0.9803921580314636,
+        "g": 0.6980392336845398,
+        "b": 0.34117648005485535,
         "a": 1
       },
       "alias": null,
@@ -1305,9 +1685,9 @@
       ],
       "description": "Warning 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.9215686321258545,
-        "g": 0.6509804129600525,
-        "b": 0.20392157137393951,
+        "r": 0.95686274766922,
+        "g": 0.6313725709915161,
+        "b": 0.14901961386203766,
         "a": 1
       },
       "alias": null,
@@ -1324,9 +1704,9 @@
       ],
       "description": "Warning 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.6000000238418579,
-        "b": 0.16862745583057404,
+        "r": 0.8941176533699036,
+        "g": 0.5843137502670288,
+        "b": 0.10980392247438431,
         "a": 1
       },
       "alias": null,
@@ -1343,9 +1723,9 @@
       ],
       "description": "Warning 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.5529412031173706,
-        "b": 0.13333334028720856,
+        "r": 0.8352941274642944,
+        "g": 0.5372549295425415,
+        "b": 0.06666667014360428,
         "a": 1
       },
       "alias": null,
@@ -1362,9 +1742,9 @@
       ],
       "description": "Warning 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.7411764860153198,
-        "g": 0.5098039507865906,
-        "b": 0.0941176488995552,
+        "r": 0.772549033164978,
+        "g": 0.4941176474094391,
+        "b": 0.007843137718737125,
         "a": 1
       },
       "alias": null,
@@ -1381,9 +1761,9 @@
       ],
       "description": "Warning 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.6823529601097107,
-        "g": 0.4627451002597809,
-        "b": 0.05098039284348488,
+        "r": 0.7098039388656616,
+        "g": 0.45098039507865906,
+        "b": 0,
         "a": 1
       },
       "alias": null,
@@ -1400,8 +1780,8 @@
       ],
       "description": "Warning 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
+        "r": 0.6470588445663452,
+        "g": 0.4117647111415863,
         "b": 0,
         "a": 1
       },
@@ -1419,8 +1799,8 @@
       ],
       "description": "Warning 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.5568627715110779,
-        "g": 0.37254902720451355,
+        "r": 0.5803921818733215,
+        "g": 0.364705890417099,
         "b": 0,
         "a": 1
       },
@@ -1438,8 +1818,8 @@
       ],
       "description": "Warning 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.4941176474094391,
-        "g": 0.32549020648002625,
+        "r": 0.5098039507865906,
+        "g": 0.3176470696926117,
         "b": 0,
         "a": 1
       },
@@ -1457,8 +1837,8 @@
       ],
       "description": "Warning 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.4274509847164154,
-        "g": 0.2823529541492462,
+        "r": 0.4431372582912445,
+        "g": 0.27450981736183167,
         "b": 0,
         "a": 1
       },
@@ -1476,8 +1856,8 @@
       ],
       "description": "Warning 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.364705890417099,
-        "g": 0.239215686917305,
+        "r": 0.3803921639919281,
+        "g": 0.23137255012989044,
         "b": 0,
         "a": 1
       },
@@ -1495,8 +1875,8 @@
       ],
       "description": "Warning 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.30588236451148987,
-        "g": 0.19607843458652496,
+        "r": 0.3176470696926117,
+        "g": 0.1921568661928177,
         "b": 0,
         "a": 1
       },
@@ -1514,8 +1894,8 @@
       ],
       "description": "Warning 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.24705882370471954,
-        "g": 0.15294118225574493,
+        "r": 0.2549019753932953,
+        "g": 0.14901961386203766,
         "b": 0,
         "a": 1
       },
@@ -1533,8 +1913,8 @@
       ],
       "description": "Warning 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.1882352977991104,
-        "g": 0.11372549086809158,
+        "r": 0.19607843458652496,
+        "g": 0.10980392247438431,
         "b": 0,
         "a": 1
       },
@@ -1552,8 +1932,8 @@
       ],
       "description": "Warning 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.13725490868091583,
-        "g": 0.0784313753247261,
+        "r": 0.1411764770746231,
+        "g": 0.07450980693101883,
         "b": 0,
         "a": 1
       },
@@ -1571,8 +1951,8 @@
       ],
       "description": "Warning 950 — Shadow band (near-black shade, step 950)",
       "value": {
-        "r": 0.08627451211214066,
-        "g": 0.04313725605607033,
+        "r": 0.09019608050584793,
+        "g": 0.03921568766236305,
         "b": 0,
         "a": 1
       },
@@ -1591,8 +1971,8 @@
       "description": "Info 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
         "r": 0.9529411792755127,
-        "g": 0.9686274528503418,
-        "b": 0.9843137264251709,
+        "g": 0.9725490212440491,
+        "b": 0.9803921580314636,
         "a": 1
       },
       "alias": null,
@@ -1609,9 +1989,9 @@
       ],
       "description": "Info 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
-        "r": 0.8784313797950745,
-        "g": 0.9215686321258545,
-        "b": 0.95686274766922,
+        "r": 0.8588235378265381,
+        "g": 0.9254902005195618,
+        "b": 0.9607843160629272,
         "a": 1
       },
       "alias": null,
@@ -1628,9 +2008,9 @@
       ],
       "description": "Info 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.7960784435272217,
-        "g": 0.8705882430076599,
-        "b": 0.9372549057006836,
+        "r": 0.7529411911964417,
+        "g": 0.8823529481887817,
+        "b": 0.9490196108818054,
         "a": 1
       },
       "alias": null,
@@ -1647,9 +2027,9 @@
       ],
       "description": "Info 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.8235294222831726,
-        "b": 0.9254902005195618,
+        "r": 0.6274510025978088,
+        "g": 0.843137264251709,
+        "b": 0.9490196108818054,
         "a": 1
       },
       "alias": null,
@@ -1666,9 +2046,9 @@
       ],
       "description": "Info 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.615686297416687,
-        "g": 0.7764706015586853,
-        "b": 0.9176470637321472,
+        "r": 0.48627451062202454,
+        "g": 0.800000011920929,
+        "b": 0.9490196108818054,
         "a": 1
       },
       "alias": null,
@@ -1685,9 +2065,9 @@
       ],
       "description": "Info 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.5176470875740051,
-        "g": 0.729411780834198,
-        "b": 0.9098039269447327,
+        "r": 0.3019607961177826,
+        "g": 0.7568627595901489,
+        "b": 0.9529411792755127,
         "a": 1
       },
       "alias": null,
@@ -1704,9 +2084,9 @@
       ],
       "description": "Info 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.40784314274787903,
-        "g": 0.6823529601097107,
-        "b": 0.9058823585510254,
+        "r": 0.23137255012989044,
+        "g": 0.7058823704719543,
+        "b": 0.8980392217636108,
         "a": 1
       },
       "alias": null,
@@ -1723,9 +2103,9 @@
       ],
       "description": "Info 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.29411765933036804,
-        "g": 0.6313725709915161,
-        "b": 0.8941176533699036,
+        "r": 0.19607843458652496,
+        "g": 0.6509804129600525,
+        "b": 0.8352941274642944,
         "a": 1
       },
       "alias": null,
@@ -1742,9 +2122,9 @@
       ],
       "description": "Info 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.25882354378700256,
-        "g": 0.5803921818733215,
-        "b": 0.8274509906768799,
+        "r": 0.16078431904315948,
+        "g": 0.6000000238418579,
+        "b": 0.772549033164978,
         "a": 1
       },
       "alias": null,
@@ -1761,9 +2141,9 @@
       ],
       "description": "Info 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.22745098173618317,
-        "g": 0.529411792755127,
-        "b": 0.7647058963775635,
+        "r": 0.12156862765550613,
+        "g": 0.5490196347236633,
+        "b": 0.7098039388656616,
         "a": 1
       },
       "alias": null,
@@ -1780,9 +2160,9 @@
       ],
       "description": "Info 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.1921568661928177,
-        "g": 0.48235294222831726,
-        "b": 0.6980392336845398,
+        "r": 0.08235294371843338,
+        "g": 0.49803921580314636,
+        "b": 0.6509804129600525,
         "a": 1
       },
       "alias": null,
@@ -1799,9 +2179,9 @@
       ],
       "description": "Info 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.1568627506494522,
-        "g": 0.4274509847164154,
-        "b": 0.6313725709915161,
+        "r": 0.027450980618596077,
+        "g": 0.4431372582912445,
+        "b": 0.5882353186607361,
         "a": 1
       },
       "alias": null,
@@ -1818,9 +2198,9 @@
       ],
       "description": "Info 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.12156862765550613,
-        "g": 0.3764705955982208,
-        "b": 0.5647059082984924,
+        "r": 0,
+        "g": 0.3921568691730499,
+        "b": 0.5215686559677124,
         "a": 1
       },
       "alias": null,
@@ -1837,9 +2217,9 @@
       ],
       "description": "Info 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.08627451211214066,
-        "g": 0.32549020648002625,
-        "b": 0.49803921580314636,
+        "r": 0,
+        "g": 0.33725491166114807,
+        "b": 0.45490196347236633,
         "a": 1
       },
       "alias": null,
@@ -1856,9 +2236,9 @@
       ],
       "description": "Info 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.27843138575553894,
-        "b": 0.43529412150382996,
+        "r": 0,
+        "g": 0.2862745225429535,
+        "b": 0.38823530077934265,
         "a": 1
       },
       "alias": null,
@@ -1875,9 +2255,9 @@
       ],
       "description": "Info 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.0117647061124444,
-        "g": 0.22745098173618317,
-        "b": 0.37254902720451355,
+        "r": 0,
+        "g": 0.239215686917305,
+        "b": 0.32549020648002625,
         "a": 1
       },
       "alias": null,
@@ -1895,8 +2275,8 @@
       "description": "Info 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
-        "g": 0.18431372940540314,
-        "b": 0.30588236451148987,
+        "g": 0.1921568661928177,
+        "b": 0.26274511218070984,
         "a": 1
       },
       "alias": null,
@@ -1914,8 +2294,8 @@
       "description": "Info 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
-        "g": 0.13725490868091583,
-        "b": 0.239215686917305,
+        "g": 0.14509804546833038,
+        "b": 0.20392157137393951,
         "a": 1
       },
       "alias": null,
@@ -1933,8 +2313,8 @@
       "description": "Info 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0,
-        "g": 0.09803921729326248,
-        "b": 0.1764705926179886,
+        "g": 0.10196078568696976,
+        "b": 0.14901961386203766,
         "a": 1
       },
       "alias": null,
@@ -1952,8 +2332,8 @@
       "description": "Info 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0,
-        "g": 0.054901961237192154,
-        "b": 0.11764705926179886,
+        "g": 0.062745101749897,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": null,
@@ -1968,11 +2348,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 025 — generated red (the brand supplies none).",
+      "description": "Danger 025 — Highlight band (near-white tints, steps 025–050)",
       "value": {
-        "r": 0.9882352948188782,
-        "g": 0.9607843160629272,
-        "b": 0.95686274766922,
+        "r": 0.9921568632125854,
+        "g": 0.95686274766922,
+        "b": 0.9529411792755127,
         "a": 1
       },
       "alias": null,
@@ -1987,10 +2367,10 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 050 — generated red (the brand supplies none).",
+      "description": "Danger 050 — Highlight band (near-white tints, steps 025–050)",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9019607901573181,
+        "r": 0.9686274528503418,
+        "g": 0.8980392217636108,
         "b": 0.8901960849761963,
         "a": 1
       },
@@ -2006,11 +2386,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 100 — generated red (the brand supplies none).",
+      "description": "Danger 100 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.9490196108818054,
+        "r": 0.95686274766922,
         "g": 0.8352941274642944,
-        "b": 0.8235294222831726,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": null,
@@ -2025,10 +2405,10 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 150 — generated red (the brand supplies none).",
+      "description": "Danger 150 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.9333333373069763,
-        "g": 0.772549033164978,
+        "r": 0.9490196108818054,
+        "g": 0.7686274647712708,
         "b": 0.7490196228027344,
         "a": 1
       },
@@ -2044,10 +2424,10 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 200 — generated red (the brand supplies none).",
+      "description": "Danger 200 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.9254902005195618,
-        "g": 0.7058823704719543,
+        "r": 0.9411764740943909,
+        "g": 0.6980392336845398,
         "b": 0.6745098233222961,
         "a": 1
       },
@@ -2063,10 +2443,10 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 250 — generated red (the brand supplies none).",
+      "description": "Danger 250 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.6352941393852234,
+        "r": 0.9333333373069763,
+        "g": 0.6274510025978088,
         "b": 0.6000000238418579,
         "a": 1
       },
@@ -2082,11 +2462,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 300 — generated red (the brand supplies none).",
+      "description": "Danger 300 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.9019607901573181,
-        "g": 0.5647059082984924,
-        "b": 0.5254902243614197,
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
         "a": 1
       },
       "alias": null,
@@ -2101,11 +2481,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 350 — generated red (the brand supplies none).",
+      "description": "Danger 350 — Quarter-Tone band (light tints, steps 100–350)",
       "value": {
-        "r": 0.8901960849761963,
-        "g": 0.4901960790157318,
-        "b": 0.4470588266849518,
+        "r": 0.9176470637321472,
+        "g": 0.47058823704719543,
+        "b": 0.4431372582912445,
         "a": 1
       },
       "alias": null,
@@ -2120,11 +2500,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 400 — generated red (the brand supplies none).",
+      "description": "Danger 400 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.8784313797950745,
-        "g": 0.4117647111415863,
-        "b": 0.3686274588108063,
+        "r": 0.9098039269447327,
+        "g": 0.3843137323856354,
+        "b": 0.364705890417099,
         "a": 1
       },
       "alias": null,
@@ -2139,11 +2519,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 450 — generated red (the brand supplies none).",
+      "description": "Danger 450 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.8509804010391235,
-        "g": 0.3333333432674408,
-        "b": 0.2980392277240753,
+        "r": 0.8901960849761963,
+        "g": 0.29411765933036804,
+        "b": 0.2862745225429535,
         "a": 1
       },
       "alias": null,
@@ -2158,11 +2538,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 500 — generated red (the brand supplies none).",
+      "description": "Danger 500 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
         "a": 1
       },
       "alias": null,
@@ -2177,11 +2557,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 550 — generated red (the brand supplies none).",
+      "description": "Danger 550 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.2549019753932953,
-        "b": 0.22745098173618317,
+        "r": 0.7411764860153198,
+        "g": 0.21960784494876862,
+        "b": 0.21960784494876862,
         "a": 1
       },
       "alias": null,
@@ -2196,11 +2576,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 600 — generated red (the brand supplies none).",
+      "description": "Danger 600 — Mid-Tone band (mid tones, steps 400–600)",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0.21568627655506134,
-        "b": 0.1921568661928177,
+        "r": 0.658823549747467,
+        "g": 0.18039216101169586,
+        "b": 0.18039216101169586,
         "a": 1
       },
       "alias": null,
@@ -2215,11 +2595,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 650 — generated red (the brand supplies none).",
+      "description": "Danger 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.5568627715110779,
-        "g": 0.1764705926179886,
-        "b": 0.15294118225574493,
+        "r": 0.5803921818733215,
+        "g": 0.1411764770746231,
+        "b": 0.14509804546833038,
         "a": 1
       },
       "alias": null,
@@ -2234,11 +2614,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 700 — generated red (the brand supplies none).",
+      "description": "Danger 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.5058823823928833,
+        "g": 0.10196078568696976,
+        "b": 0.11372549086809158,
         "a": 1
       },
       "alias": null,
@@ -2253,11 +2633,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 750 — generated red (the brand supplies none).",
+      "description": "Danger 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.4117647111415863,
-        "g": 0.09803921729326248,
-        "b": 0.08627451211214066,
+        "r": 0.4313725531101227,
+        "g": 0.05882352963089943,
+        "b": 0.0784313753247261,
         "a": 1
       },
       "alias": null,
@@ -2272,11 +2652,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 800 — generated red (the brand supplies none).",
+      "description": "Danger 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.34117648005485535,
-        "g": 0.05882352963089943,
-        "b": 0.05098039284348488,
+        "r": 0.3607843220233917,
+        "g": 0.019607843831181526,
+        "b": 0.04313725605607033,
         "a": 1
       },
       "alias": null,
@@ -2291,11 +2671,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 850 — generated red (the brand supplies none).",
+      "description": "Danger 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
-        "r": 0.27450981736183167,
-        "g": 0.019607843831181526,
-        "b": 0.0235294122248888,
+        "r": 0.2862745225429535,
+        "g": 0,
+        "b": 0.019607843831181526,
         "a": 1
       },
       "alias": null,
@@ -2310,11 +2690,11 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 900 — generated red (the brand supplies none).",
+      "description": "Danger 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "value": {
         "r": 0.2078431397676468,
         "g": 0,
-        "b": 0.003921568859368563,
+        "b": 0.0117647061124444,
         "a": 1
       },
       "alias": null,
@@ -2329,7 +2709,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Danger 950 — generated red (the brand supplies none).",
+      "description": "Danger 950 — Shadow band (near-black shade, step 950)",
       "value": {
         "r": 0.13725490868091583,
         "g": 0,

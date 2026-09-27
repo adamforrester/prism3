@@ -161,7 +161,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.success.700",
-              "contrast": 8.02,
+              "contrast": 8.03,
               "against": "neutral.050",
               "min": 7
             }
@@ -209,7 +209,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.info.700",
-              "contrast": 8.05,
+              "contrast": 8.11,
               "against": "neutral.050",
               "min": 7
             }
@@ -233,7 +233,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.danger.700",
-              "contrast": 8.23,
+              "contrast": 8.24,
               "against": "neutral.050",
               "min": 7
             }
@@ -355,7 +355,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.success.700",
-              "contrast": 8.02,
+              "contrast": 8.03,
               "against": "neutral.050",
               "min": 7
             }
@@ -403,7 +403,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.danger.700",
-              "contrast": 8.23,
+              "contrast": 8.24,
               "against": "neutral.050",
               "min": 7
             }
@@ -427,7 +427,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.info.700",
-              "contrast": 8.05,
+              "contrast": 8.11,
               "against": "neutral.050",
               "min": 7
             }
@@ -475,7 +475,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.success.500",
-              "contrast": 4.59,
+              "contrast": 4.57,
               "against": "background.primary",
               "min": 4.5
             }
@@ -499,7 +499,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.warning.500",
-              "contrast": 4.59,
+              "contrast": 4.54,
               "against": "background.primary",
               "min": 4.5
             }
@@ -523,7 +523,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.danger.500",
-              "contrast": 4.56,
+              "contrast": 4.57,
               "against": "background.primary",
               "min": 4.5
             }
@@ -547,7 +547,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.info.500",
-              "contrast": 4.56,
+              "contrast": 4.55,
               "against": "background.primary",
               "min": 4.5
             }
@@ -791,7 +791,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.success.700",
-              "contrast": 8.02,
+              "contrast": 8.03,
               "against": "neutral.050",
               "min": 7
             }
@@ -839,7 +839,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.danger.700",
-              "contrast": 8.23,
+              "contrast": 8.24,
               "against": "neutral.050",
               "min": 7
             }
@@ -863,7 +863,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.info.700",
-              "contrast": 8.05,
+              "contrast": 8.11,
               "against": "neutral.050",
               "min": 7
             }
@@ -911,7 +911,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.success.500",
-              "contrast": 4.59,
+              "contrast": 4.57,
               "against": "background.primary",
               "min": 4.5
             }
@@ -935,7 +935,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.warning.500",
-              "contrast": 4.59,
+              "contrast": 4.54,
               "against": "background.primary",
               "min": 4.5
             }
@@ -959,7 +959,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.danger.500",
-              "contrast": 4.56,
+              "contrast": 4.57,
               "against": "background.primary",
               "min": 4.5
             }
@@ -983,7 +983,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.info.500",
-              "contrast": 4.56,
+              "contrast": 4.55,
               "against": "background.primary",
               "min": 4.5
             }
@@ -1257,7 +1257,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.700",
-                  "contrast": 8.23,
+                  "contrast": 8.24,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1281,7 +1281,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.800",
-                  "contrast": 11.69,
+                  "contrast": 11.67,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1305,7 +1305,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.900",
-                  "contrast": 15.02,
+                  "contrast": 15.01,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1329,7 +1329,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.800",
-                  "contrast": 11.69,
+                  "contrast": 11.67,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1353,7 +1353,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.900",
-                  "contrast": 15.02,
+                  "contrast": 15.01,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1379,7 +1379,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.650",
-                  "contrast": 8.22,
+                  "contrast": 8.27,
                   "against": "background.tertiary",
                   "min": 7
                 }
@@ -1403,7 +1403,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.750",
-                  "contrast": 11.99,
+                  "contrast": 12.06,
                   "against": "background.tertiary",
                   "min": 7
                 }
@@ -1427,7 +1427,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.850",
-                  "contrast": 16.35,
+                  "contrast": 16.34,
                   "against": "background.tertiary",
                   "min": 7
                 }
@@ -1453,7 +1453,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.650",
-                  "contrast": 8.22,
+                  "contrast": 8.27,
                   "against": "background.tertiary",
                   "min": 7
                 }
@@ -1477,7 +1477,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.750",
-                  "contrast": 11.99,
+                  "contrast": 12.06,
                   "against": "background.tertiary",
                   "min": 7
                 }
@@ -1501,7 +1501,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.850",
-                  "contrast": 16.35,
+                  "contrast": 16.34,
                   "against": "background.tertiary",
                   "min": 7
                 }
@@ -1527,7 +1527,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.650",
-                  "contrast": 8.22,
+                  "contrast": 8.27,
                   "against": "background.tertiary",
                   "min": 4.5
                 }
@@ -1551,7 +1551,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.750",
-                  "contrast": 11.99,
+                  "contrast": 12.06,
                   "against": "background.tertiary",
                   "min": 4.5
                 }
@@ -1575,7 +1575,7 @@
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
                   "aliasOf": "pds3.core.palette.danger.850",
-                  "contrast": 16.35,
+                  "contrast": 16.34,
                   "against": "background.tertiary",
                   "min": 4.5
                 }
@@ -2018,7 +2018,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.success.500",
-              "contrast": 4.59,
+              "contrast": 4.57,
               "against": "background.primary",
               "min": 4.5
             }
@@ -2042,7 +2042,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.warning.500",
-              "contrast": 4.59,
+              "contrast": 4.54,
               "against": "background.primary",
               "min": 4.5
             }
@@ -2066,7 +2066,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.danger.500",
-              "contrast": 4.56,
+              "contrast": 4.57,
               "against": "background.primary",
               "min": 4.5
             }
@@ -2090,7 +2090,7 @@
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
               "aliasOf": "pds3.core.palette.info.500",
-              "contrast": 4.56,
+              "contrast": 4.55,
               "against": "background.primary",
               "min": 4.5
             }
@@ -2406,7 +2406,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.success.350",
-                "contrast": 7.67,
+                "contrast": 7.61,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -2430,7 +2430,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.warning.350",
-                "contrast": 7.4,
+                "contrast": 7.42,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -2454,7 +2454,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.danger.350",
-                "contrast": 7.44,
+                "contrast": 7.42,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -2478,7 +2478,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.info.350",
-                "contrast": 7.52,
+                "contrast": 7.55,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -2852,7 +2852,7 @@
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
                     "aliasOf": "pds3.core.palette.danger.350",
-                    "contrast": 7.44,
+                    "contrast": 7.42,
                     "against": "inverse.background.tertiary",
                     "min": 7
                   }
@@ -2876,7 +2876,7 @@
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
                     "aliasOf": "pds3.core.palette.danger.250",
-                    "contrast": 10.09,
+                    "contrast": 10.12,
                     "against": "inverse.background.tertiary",
                     "min": 7
                   }
@@ -2900,7 +2900,7 @@
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
                     "aliasOf": "pds3.core.palette.danger.150",
-                    "contrast": 13.37,
+                    "contrast": 13.42,
                     "against": "inverse.background.tertiary",
                     "min": 7
                   }
@@ -2926,7 +2926,7 @@
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
                     "aliasOf": "pds3.core.palette.danger.350",
-                    "contrast": 7.44,
+                    "contrast": 7.42,
                     "against": "inverse.background.tertiary",
                     "min": 7
                   }
@@ -2950,7 +2950,7 @@
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
                     "aliasOf": "pds3.core.palette.danger.250",
-                    "contrast": 10.09,
+                    "contrast": 10.12,
                     "against": "inverse.background.tertiary",
                     "min": 7
                   }
@@ -2974,7 +2974,7 @@
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
                     "aliasOf": "pds3.core.palette.danger.150",
-                    "contrast": 13.37,
+                    "contrast": 13.42,
                     "against": "inverse.background.tertiary",
                     "min": 7
                   }
@@ -3122,7 +3122,7 @@
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
                     "aliasOf": "pds3.core.palette.danger.350",
-                    "contrast": 7.44,
+                    "contrast": 7.42,
                     "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
@@ -3146,7 +3146,7 @@
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
                     "aliasOf": "pds3.core.palette.danger.250",
-                    "contrast": 10.09,
+                    "contrast": 10.12,
                     "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
@@ -3170,7 +3170,7 @@
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
                     "aliasOf": "pds3.core.palette.danger.150",
-                    "contrast": 13.37,
+                    "contrast": 13.42,
                     "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
@@ -3692,7 +3692,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.success.300",
-                "contrast": 8.98,
+                "contrast": 8.97,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -3716,7 +3716,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.warning.300",
-                "contrast": 8.6,
+                "contrast": 8.61,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -3740,7 +3740,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.danger.300",
-                "contrast": 8.7,
+                "contrast": 8.75,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -3764,7 +3764,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.info.300",
-                "contrast": 8.8,
+                "contrast": 8.85,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -3812,7 +3812,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.success.500",
-                "contrast": 4.58,
+                "contrast": 4.6,
                 "against": "inverse.background.primary",
                 "min": 4.5
               }
@@ -3836,7 +3836,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.warning.500",
-                "contrast": 4.58,
+                "contrast": 4.62,
                 "against": "inverse.background.primary",
                 "min": 4.5
               }
@@ -3884,7 +3884,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.info.500",
-                "contrast": 4.61,
+                "contrast": 4.62,
                 "against": "inverse.background.primary",
                 "min": 4.5
               }
@@ -4128,7 +4128,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.success.300",
-                "contrast": 8.98,
+                "contrast": 8.97,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -4152,7 +4152,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.warning.300",
-                "contrast": 8.6,
+                "contrast": 8.61,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -4176,7 +4176,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.danger.300",
-                "contrast": 8.7,
+                "contrast": 8.75,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -4200,7 +4200,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.info.300",
-                "contrast": 8.8,
+                "contrast": 8.85,
                 "against": "inverse.background.secondary",
                 "min": 7
               }
@@ -4248,7 +4248,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.success.500",
-                "contrast": 4.58,
+                "contrast": 4.6,
                 "against": "inverse.background.primary",
                 "min": 4.5
               }
@@ -4272,7 +4272,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.warning.500",
-                "contrast": 4.58,
+                "contrast": 4.62,
                 "against": "inverse.background.primary",
                 "min": 4.5
               }
@@ -4320,7 +4320,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.info.500",
-                "contrast": 4.61,
+                "contrast": 4.62,
                 "against": "inverse.background.primary",
                 "min": 4.5
               }
@@ -4561,7 +4561,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.success.500",
-                "contrast": 4.58,
+                "contrast": 4.6,
                 "against": "inverse.background.primary",
                 "min": 4.5
               }
@@ -4585,7 +4585,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.warning.500",
-                "contrast": 4.58,
+                "contrast": 4.62,
                 "against": "inverse.background.primary",
                 "min": 4.5
               }
@@ -4633,7 +4633,7 @@
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
                 "aliasOf": "pds3.core.palette.info.500",
-                "contrast": 4.61,
+                "contrast": 4.62,
                 "against": "inverse.background.primary",
                 "min": 4.5
               }

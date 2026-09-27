@@ -20,11 +20,29 @@ primary: { l: 0.4709, c: 0.3001, h: 266.75 }
 neutral: { hue: 266.75, chroma: 0.005 }
 
 # action = primary (the default, no actionPalette): the bright blue IS the interactive color, as it is
-# on Prism 2's checkbox, radio and toggle. No extra brand colors.
+# on Prism 2's checkbox, radio and toggle.
+#
+# One extra brand color: a violet ACCENT, #7A3CFF, measured to OKLCH the same way as the primary
+# (l 0.557316, c 0.263468, h 289.323). Chroma rounds DOWN to 0.2634: 0.2635 sits past the sRGB
+# boundary and would ship clamped. The stated value round-trips to #7a3cff exactly. It is a brand
+# color, not the action color: it carries the gradients below, and the blue keeps every control.
+brandColors:
+  - name: accent
+    oklch: { l: 0.5573, c: 0.2634, h: 289.32 }
 
 # Pure white page: the clean product-tool starting point.
 surfaces:
   light: { base: white }
+
+# Status colors, chosen as a set to sit beside the blue and the violet rather than left to the engine
+# defaults. Each seeds its own accessible ramp from hue + chroma (the engine places the lightness), so
+# `l` is not pinned. Success is a cool emerald and info a cyan-leaning sky, 37° off the primary, so info
+# never reads as the brand blue. Warning is an amber and danger a clean red, both kept clear of the violet.
+status:
+  success: { l: 0.55, c: 0.15, h: 155, chroma: 0.15 }
+  warning: { l: 0.55, c: 0.16, h: 70, chroma: 0.16 }
+  danger: { l: 0.55, c: 0.19, h: 25, chroma: 0.19 }
+  info: { l: 0.55, c: 0.13, h: 230, chroma: 0.13 }
 
 # Default geometry and density, stated: comfortable (a 44px medium control) and the default corner.
 density: comfortable
@@ -35,6 +53,10 @@ iconContrast: text
 
 # Standard tempo: neither snappy (aurora) nor relaxed (harbor).
 motionPersonality: { tempo: standard }
+
+# Shadows tinted toward the primary hue, stronger than the engine's default 0.15 so the tint reads as
+# the blue, and still at the default softness, so the shadows stay crisp.
+shadow: { tint: { hue: 266.75, amount: 0.35 } }
 
 # ── TYPOGRAPHY ───────────────────────────────────────────────────────────────────────────
 # Display and title on Playfair Display, everything else on Inter, code on JetBrains Mono. All three
@@ -52,23 +74,47 @@ motionPersonality: { tempo: standard }
 # weight role therefore lands on two spellings of one weight in one file: Playfair spells 600
 # "SemiBold", Inter spells it "Semi Bold" — the plugin writes each family's own spelling.
 # Label and eyebrow ship `emphasis`, so their Inter text sets at 500 (Medium).
+#
+# The two italic methods, side by side. Headings use `italicDefault`: italic IS their cut. Body uses
+# `italics`: it stays upright and gains paired `-italic` variants (`type.body.md.default-italic`) for
+# emphasis in running copy. A category may be in only one of the two, and body is not a heading.
 typography:
   families: { display: Playfair Display, title: Playfair Display, body: Inter, label: Inter, caption: Inter, eyebrow: Inter, code: JetBrains Mono }
   weights: { display: [emphasis, strong], title: [emphasis, strong] }
   weightRoles: { emphasis: 500, strong: 600 }
   italicDefault: [display, title]
+  italics: [body]
   responsive: { fluid: true }
 
-# Gradients OFF (omitted): flat surfaces, so the blue and the headings carry the identity.
+# Gradients: a linear brand sweep from the blue to the violet, and a radial glow from the violet out
+# into the deep blue. Every stop names a palette step, so both follow any change to either color.
+gradients:
+  - name: brand
+    kind: linear
+    angle: 135
+    stops:
+      - { palette: primary, step: 600, position: 0 }
+      - { palette: accent, step: 500, position: 1 }
+  - name: glow
+    kind: radial
+    center: [0.5, 0.4]
+    shape: circle
+    stops:
+      - { palette: accent, step: 400, position: 0 }
+      - { palette: primary, step: 700, position: 1 }
 ---
 
 # Prism3 — the default theme
 
 Clean, precise, confident. Prism3 is a product tool, so the working UI stays quiet: white pages, cool
-near-neutral grays, comfortable controls and default corners. Two things carry the identity. The bright
-Prism 2 blue is the one interactive color: buttons, links, selection and focus all run on it. And every
-heading is set in Playfair Display italic, Medium for most headings and SemiBold for the heaviest,
-against an Inter UI.
+near-neutral grays, comfortable controls, default corners and shadows with a trace of the blue in them.
+Two things carry the identity. The bright Prism 2 blue is the one interactive color: buttons, links,
+selection and focus all run on it. And every heading is set in Playfair Display italic, Medium for most
+headings and SemiBold for the heaviest, against an Inter UI whose body copy has its own italics for
+emphasis.
+
+The violet is for brand moments, not controls: it meets the blue in the two gradients, a linear sweep
+and a radial glow.
 
 This is the theme the studio opens with, so every lever is stated rather than left to a default. Change
 any of them and the rest of the system re-derives and re-checks its contrast.

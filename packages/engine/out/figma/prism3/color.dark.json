@@ -144,9 +144,9 @@
       ],
       "description": "Bold success fill — 3:1 on background/secondary",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.18039216101169586,
+        "g": 0.5215686559677124,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
@@ -163,8 +163,8 @@
       ],
       "description": "Bold warning fill — 3:1 on background/secondary",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
+        "r": 0.6470588445663452,
+        "g": 0.4117647111415863,
         "b": 0,
         "a": 1
       },
@@ -182,9 +182,9 @@
       ],
       "description": "Bold info fill — 3:1 on background/secondary",
       "value": {
-        "r": 0.1921568661928177,
-        "g": 0.48235294222831726,
-        "b": 0.6980392336845398,
+        "r": 0.08235294371843338,
+        "g": 0.49803921580314636,
+        "b": 0.6509804129600525,
         "a": 1
       },
       "alias": {
@@ -221,8 +221,8 @@
       "description": "Subtle success tint — banners, badges, selected rows",
       "value": {
         "r": 0,
-        "g": 0.11764705926179886,
-        "b": 0.0117647061124444,
+        "g": 0.11372549086809158,
+        "b": 0.0470588244497776,
         "a": 1
       },
       "alias": {
@@ -239,8 +239,8 @@
       ],
       "description": "Subtle warning tint — banners, badges, selected rows",
       "value": {
-        "r": 0.13725490868091583,
-        "g": 0.0784313753247261,
+        "r": 0.1411764770746231,
+        "g": 0.07450980693101883,
         "b": 0,
         "a": 1
       },
@@ -260,7 +260,7 @@
       "value": {
         "r": 0.2078431397676468,
         "g": 0,
-        "b": 0.003921568859368563,
+        "b": 0.0117647061124444,
         "a": 1
       },
       "alias": {
@@ -278,8 +278,8 @@
       "description": "Subtle info tint — banners, badges, selected rows",
       "value": {
         "r": 0,
-        "g": 0.09803921729326248,
-        "b": 0.1764705926179886,
+        "g": 0.10196078568696976,
+        "b": 0.14901961386203766,
         "a": 1
       },
       "alias": {
@@ -296,9 +296,9 @@
       ],
       "description": "Bold danger fill — 3:1 on background/secondary",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
         "a": 1
       },
       "alias": {
@@ -386,9 +386,9 @@
       ],
       "description": "Success text — 4.5:1 on background/secondary and on its own tint",
       "value": {
-        "r": 0.3019607961177826,
-        "g": 0.5686274766921997,
-        "b": 0.3176470696926117,
+        "r": 0.21960784494876862,
+        "g": 0.572549045085907,
+        "b": 0.3686274588108063,
         "a": 1
       },
       "alias": {
@@ -404,9 +404,9 @@
       ],
       "description": "Warning text — 4.5:1 on background/secondary and on its own tint",
       "value": {
-        "r": 0.6823529601097107,
-        "g": 0.4627451002597809,
-        "b": 0.05098039284348488,
+        "r": 0.7098039388656616,
+        "g": 0.45098039507865906,
+        "b": 0,
         "a": 1
       },
       "alias": {
@@ -422,9 +422,9 @@
       ],
       "description": "Danger text — 4.5:1 on background/secondary and on its own tint",
       "value": {
-        "r": 0.8509804010391235,
-        "g": 0.3333333432674408,
-        "b": 0.2980392277240753,
+        "r": 0.8901960849761963,
+        "g": 0.29411765933036804,
+        "b": 0.2862745225429535,
         "a": 1
       },
       "alias": {
@@ -440,9 +440,9 @@
       ],
       "description": "Info text — 4.5:1 on background/secondary and on its own tint",
       "value": {
-        "r": 0.22745098173618317,
-        "g": 0.529411792755127,
-        "b": 0.7647058963775635,
+        "r": 0.12156862765550613,
+        "g": 0.5490196347236633,
+        "b": 0.7098039388656616,
         "a": 1
       },
       "alias": {
@@ -476,9 +476,9 @@
       ],
       "description": "Muted success text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
       "value": {
-        "r": 0.3803921639919281,
-        "g": 0.6784313917160034,
-        "b": 0.3960784375667572,
+        "r": 0.29411765933036804,
+        "g": 0.6823529601097107,
+        "b": 0.45490196347236633,
         "a": 1
       },
       "alias": {
@@ -494,9 +494,9 @@
       ],
       "description": "Muted warning text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.5529412031173706,
-        "b": 0.13333334028720856,
+        "r": 0.8352941274642944,
+        "g": 0.5372549295425415,
+        "b": 0.06666667014360428,
         "a": 1
       },
       "alias": {
@@ -512,9 +512,9 @@
       ],
       "description": "Muted danger text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
       "value": {
-        "r": 0.8901960849761963,
-        "g": 0.4901960790157318,
-        "b": 0.4470588266849518,
+        "r": 0.9176470637321472,
+        "g": 0.47058823704719543,
+        "b": 0.4431372582912445,
         "a": 1
       },
       "alias": {
@@ -530,9 +530,9 @@
       ],
       "description": "Muted info text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
       "value": {
-        "r": 0.29411765933036804,
-        "g": 0.6313725709915161,
-        "b": 0.8941176533699036,
+        "r": 0.19607843458652496,
+        "g": 0.6509804129600525,
+        "b": 0.8352941274642944,
         "a": 1
       },
       "alias": {
@@ -566,14 +566,14 @@
       ],
       "description": "Text on a solid success fill — 4.5:1 on foreground/success",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/white"
+        "name": "pds3/core/palette/black"
       }
     },
     {
@@ -584,14 +584,14 @@
       ],
       "description": "Text on a solid warning fill — 4.5:1 on foreground/warning",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/white"
+        "name": "pds3/core/palette/black"
       }
     },
     {
@@ -810,9 +810,9 @@
       ],
       "description": "Success icon — 4.5:1 on background/secondary and on its own tint",
       "value": {
-        "r": 0.3019607961177826,
-        "g": 0.5686274766921997,
-        "b": 0.3176470696926117,
+        "r": 0.21960784494876862,
+        "g": 0.572549045085907,
+        "b": 0.3686274588108063,
         "a": 1
       },
       "alias": {
@@ -830,9 +830,9 @@
       ],
       "description": "Warning icon — 4.5:1 on background/secondary and on its own tint",
       "value": {
-        "r": 0.6823529601097107,
-        "g": 0.4627451002597809,
-        "b": 0.05098039284348488,
+        "r": 0.7098039388656616,
+        "g": 0.45098039507865906,
+        "b": 0,
         "a": 1
       },
       "alias": {
@@ -850,9 +850,9 @@
       ],
       "description": "Danger icon — 4.5:1 on background/secondary and on its own tint",
       "value": {
-        "r": 0.8509804010391235,
-        "g": 0.3333333432674408,
-        "b": 0.2980392277240753,
+        "r": 0.8901960849761963,
+        "g": 0.29411765933036804,
+        "b": 0.2862745225429535,
         "a": 1
       },
       "alias": {
@@ -870,9 +870,9 @@
       ],
       "description": "Info icon — 4.5:1 on background/secondary and on its own tint",
       "value": {
-        "r": 0.22745098173618317,
-        "g": 0.529411792755127,
-        "b": 0.7647058963775635,
+        "r": 0.12156862765550613,
+        "g": 0.5490196347236633,
+        "b": 0.7098039388656616,
         "a": 1
       },
       "alias": {
@@ -910,9 +910,9 @@
       ],
       "description": "Muted success icon — 3:1 on background/primary",
       "value": {
-        "r": 0.3803921639919281,
-        "g": 0.6784313917160034,
-        "b": 0.3960784375667572,
+        "r": 0.29411765933036804,
+        "g": 0.6823529601097107,
+        "b": 0.45490196347236633,
         "a": 1
       },
       "alias": {
@@ -930,9 +930,9 @@
       ],
       "description": "Muted warning icon — 3:1 on background/primary",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.5529412031173706,
-        "b": 0.13333334028720856,
+        "r": 0.8352941274642944,
+        "g": 0.5372549295425415,
+        "b": 0.06666667014360428,
         "a": 1
       },
       "alias": {
@@ -950,9 +950,9 @@
       ],
       "description": "Muted danger icon — 3:1 on background/primary",
       "value": {
-        "r": 0.8901960849761963,
-        "g": 0.4901960790157318,
-        "b": 0.4470588266849518,
+        "r": 0.9176470637321472,
+        "g": 0.47058823704719543,
+        "b": 0.4431372582912445,
         "a": 1
       },
       "alias": {
@@ -970,9 +970,9 @@
       ],
       "description": "Muted info icon — 3:1 on background/primary",
       "value": {
-        "r": 0.29411765933036804,
-        "g": 0.6313725709915161,
-        "b": 0.8941176533699036,
+        "r": 0.19607843458652496,
+        "g": 0.6509804129600525,
+        "b": 0.8352941274642944,
         "a": 1
       },
       "alias": {
@@ -1010,14 +1010,14 @@
       ],
       "description": "Icon on a solid success fill — 4.5:1 on foreground/success",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/white"
+        "name": "pds3/core/palette/black"
       }
     },
     {
@@ -1030,14 +1030,14 @@
       ],
       "description": "Icon on a solid warning fill — 4.5:1 on foreground/warning",
       "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/white"
+        "name": "pds3/core/palette/black"
       }
     },
     {
@@ -1529,9 +1529,9 @@
       ],
       "description": "Destructive fill, rest — 3:1 on background/secondary",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
         "a": 1
       },
       "alias": {
@@ -1548,9 +1548,9 @@
       ],
       "description": "Destructive fill, hover — 3:1 on background/secondary",
       "value": {
-        "r": 0.8784313797950745,
-        "g": 0.4117647111415863,
-        "b": 0.3686274588108063,
+        "r": 0.9098039269447327,
+        "g": 0.3843137323856354,
+        "b": 0.364705890417099,
         "a": 1
       },
       "alias": {
@@ -1567,9 +1567,9 @@
       ],
       "description": "Destructive fill, pressed — 3:1 on background/secondary",
       "value": {
-        "r": 0.9019607901573181,
-        "g": 0.5647059082984924,
-        "b": 0.5254902243614197,
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
         "a": 1
       },
       "alias": {
@@ -1586,9 +1586,9 @@
       ],
       "description": "Destructive fill, focused — 3:1 on background/secondary",
       "value": {
-        "r": 0.8784313797950745,
-        "g": 0.4117647111415863,
-        "b": 0.3686274588108063,
+        "r": 0.9098039269447327,
+        "g": 0.3843137323856354,
+        "b": 0.364705890417099,
         "a": 1
       },
       "alias": {
@@ -1605,9 +1605,9 @@
       ],
       "description": "Destructive fill, selected — 3:1 on background/secondary",
       "value": {
-        "r": 0.9019607901573181,
-        "g": 0.5647059082984924,
-        "b": 0.5254902243614197,
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
         "a": 1
       },
       "alias": {
@@ -1643,9 +1643,9 @@
       ],
       "description": "Destructive label, rest — 4.5:1 on background/tertiary (outline, text)",
       "value": {
-        "r": 0.8784313797950745,
-        "g": 0.4117647111415863,
-        "b": 0.3686274588108063,
+        "r": 0.9098039269447327,
+        "g": 0.3843137323856354,
+        "b": 0.364705890417099,
         "a": 1
       },
       "alias": {
@@ -1661,9 +1661,9 @@
       ],
       "description": "Destructive label, hover — 4.5:1 on background/tertiary (outline, text)",
       "value": {
-        "r": 0.9019607901573181,
-        "g": 0.5647059082984924,
-        "b": 0.5254902243614197,
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
         "a": 1
       },
       "alias": {
@@ -1679,8 +1679,8 @@
       ],
       "description": "Destructive label, pressed — 4.5:1 on background/tertiary (outline, text)",
       "value": {
-        "r": 0.9254902005195618,
-        "g": 0.7058823704719543,
+        "r": 0.9411764740943909,
+        "g": 0.6980392336845398,
         "b": 0.6745098233222961,
         "a": 1
       },
@@ -1699,9 +1699,9 @@
       ],
       "description": "Destructive icon, rest — 4.5:1 on background/tertiary (outline, ghost, text)",
       "value": {
-        "r": 0.8784313797950745,
-        "g": 0.4117647111415863,
-        "b": 0.3686274588108063,
+        "r": 0.9098039269447327,
+        "g": 0.3843137323856354,
+        "b": 0.364705890417099,
         "a": 1
       },
       "alias": {
@@ -1719,9 +1719,9 @@
       ],
       "description": "Destructive icon, hover — 4.5:1 on background/tertiary (outline, ghost, text)",
       "value": {
-        "r": 0.9019607901573181,
-        "g": 0.5647059082984924,
-        "b": 0.5254902243614197,
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
         "a": 1
       },
       "alias": {
@@ -1739,8 +1739,8 @@
       ],
       "description": "Destructive icon, pressed — 4.5:1 on background/tertiary (outline, ghost, text)",
       "value": {
-        "r": 0.9254902005195618,
-        "g": 0.7058823704719543,
+        "r": 0.9411764740943909,
+        "g": 0.6980392336845398,
         "b": 0.6745098233222961,
         "a": 1
       },
@@ -1757,9 +1757,9 @@
       ],
       "description": "Destructive outline edge, rest — 3:1 on background/tertiary, follows the label",
       "value": {
-        "r": 0.8784313797950745,
-        "g": 0.4117647111415863,
-        "b": 0.3686274588108063,
+        "r": 0.9098039269447327,
+        "g": 0.3843137323856354,
+        "b": 0.364705890417099,
         "a": 1
       },
       "alias": {
@@ -1775,9 +1775,9 @@
       ],
       "description": "Destructive outline edge, hover — 3:1 on background/tertiary, follows the label",
       "value": {
-        "r": 0.9019607901573181,
-        "g": 0.5647059082984924,
-        "b": 0.5254902243614197,
+        "r": 0.929411768913269,
+        "g": 0.5529412031173706,
+        "b": 0.5215686559677124,
         "a": 1
       },
       "alias": {
@@ -1793,8 +1793,8 @@
       ],
       "description": "Destructive outline edge, pressed — 3:1 on background/tertiary, follows the label",
       "value": {
-        "r": 0.9254902005195618,
-        "g": 0.7058823704719543,
+        "r": 0.9411764740943909,
+        "g": 0.6980392336845398,
         "b": 0.6745098233222961,
         "a": 1
       },
@@ -2375,9 +2375,9 @@
       ],
       "description": "Success border — 3:1 on background/primary",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.18039216101169586,
+        "g": 0.5215686559677124,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
@@ -2393,8 +2393,8 @@
       ],
       "description": "Warning border — 3:1 on background/primary",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
+        "r": 0.6470588445663452,
+        "g": 0.4117647111415863,
         "b": 0,
         "a": 1
       },
@@ -2411,9 +2411,9 @@
       ],
       "description": "Danger border — 3:1 on background/primary",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
         "a": 1
       },
       "alias": {
@@ -2429,9 +2429,9 @@
       ],
       "description": "Info border — 3:1 on background/primary",
       "value": {
-        "r": 0.1921568661928177,
-        "g": 0.48235294222831726,
-        "b": 0.6980392336845398,
+        "r": 0.08235294371843338,
+        "g": 0.49803921580314636,
+        "b": 0.6509804129600525,
         "a": 1
       },
       "alias": {
@@ -2805,9 +2805,9 @@
       ],
       "description": "Bold success fill — 3:1 on inverse/background/secondary",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.18039216101169586,
+        "g": 0.5215686559677124,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
@@ -2824,8 +2824,8 @@
       ],
       "description": "Bold warning fill — 3:1 on inverse/background/secondary",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
+        "r": 0.6470588445663452,
+        "g": 0.4117647111415863,
         "b": 0,
         "a": 1
       },
@@ -2843,9 +2843,9 @@
       ],
       "description": "Bold danger fill — 3:1 on inverse/background/secondary",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
         "a": 1
       },
       "alias": {
@@ -2862,9 +2862,9 @@
       ],
       "description": "Bold info fill — 3:1 on inverse/background/secondary",
       "value": {
-        "r": 0.1921568661928177,
-        "g": 0.48235294222831726,
-        "b": 0.6980392336845398,
+        "r": 0.08235294371843338,
+        "g": 0.49803921580314636,
+        "b": 0.6509804129600525,
         "a": 1
       },
       "alias": {
@@ -2900,9 +2900,9 @@
       ],
       "description": "Subtle success tint — banners, badges, selected rows",
       "value": {
-        "r": 0.6705882549285889,
-        "g": 0.9372549057006836,
-        "b": 0.6745098233222961,
+        "r": 0.6039215922355652,
+        "g": 0.9490196108818054,
+        "b": 0.7254902124404907,
         "a": 1
       },
       "alias": {
@@ -2919,9 +2919,9 @@
       ],
       "description": "Subtle warning tint — banners, badges, selected rows",
       "value": {
-        "r": 0.95686274766922,
-        "g": 0.843137264251709,
-        "b": 0.6901960968971252,
+        "r": 0.9647058844566345,
+        "g": 0.8392156958580017,
+        "b": 0.6980392336845398,
         "a": 1
       },
       "alias": {
@@ -2938,9 +2938,9 @@
       ],
       "description": "Subtle danger tint — banners, badges, selected rows",
       "value": {
-        "r": 0.9490196108818054,
+        "r": 0.95686274766922,
         "g": 0.8352941274642944,
-        "b": 0.8235294222831726,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
@@ -2957,9 +2957,9 @@
       ],
       "description": "Subtle info tint — banners, badges, selected rows",
       "value": {
-        "r": 0.7960784435272217,
-        "g": 0.8705882430076599,
-        "b": 0.9372549057006836,
+        "r": 0.7529411911964417,
+        "g": 0.8823529481887817,
+        "b": 0.9490196108818054,
         "a": 1
       },
       "alias": {
@@ -3315,9 +3315,9 @@
       ],
       "description": "Destructive label, rest — 4.5:1 on inverse/background/tertiary (outline, text)",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0.21568627655506134,
-        "b": 0.1921568661928177,
+        "r": 0.658823549747467,
+        "g": 0.18039216101169586,
+        "b": 0.18039216101169586,
         "a": 1
       },
       "alias": {
@@ -3333,9 +3333,9 @@
       ],
       "description": "Destructive label, hover — 4.5:1 on inverse/background/tertiary (outline, text)",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.5058823823928833,
+        "g": 0.10196078568696976,
+        "b": 0.11372549086809158,
         "a": 1
       },
       "alias": {
@@ -3351,9 +3351,9 @@
       ],
       "description": "Destructive label, pressed — 4.5:1 on inverse/background/tertiary (outline, text)",
       "value": {
-        "r": 0.34117648005485535,
-        "g": 0.05882352963089943,
-        "b": 0.05098039284348488,
+        "r": 0.3607843220233917,
+        "g": 0.019607843831181526,
+        "b": 0.04313725605607033,
         "a": 1
       },
       "alias": {
@@ -3371,9 +3371,9 @@
       ],
       "description": "Destructive icon, rest — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0.21568627655506134,
-        "b": 0.1921568661928177,
+        "r": 0.658823549747467,
+        "g": 0.18039216101169586,
+        "b": 0.18039216101169586,
         "a": 1
       },
       "alias": {
@@ -3391,9 +3391,9 @@
       ],
       "description": "Destructive icon, hover — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.5058823823928833,
+        "g": 0.10196078568696976,
+        "b": 0.11372549086809158,
         "a": 1
       },
       "alias": {
@@ -3411,9 +3411,9 @@
       ],
       "description": "Destructive icon, pressed — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
       "value": {
-        "r": 0.34117648005485535,
-        "g": 0.05882352963089943,
-        "b": 0.05098039284348488,
+        "r": 0.3607843220233917,
+        "g": 0.019607843831181526,
+        "b": 0.04313725605607033,
         "a": 1
       },
       "alias": {
@@ -3526,9 +3526,9 @@
       ],
       "description": "Label on the destructive inverse fill — 4.5:1 at rest only",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
         "a": 1
       },
       "alias": {
@@ -3544,9 +3544,9 @@
       ],
       "description": "Destructive outline edge, rest — 3:1 on inverse/background/tertiary, follows the label",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0.21568627655506134,
-        "b": 0.1921568661928177,
+        "r": 0.658823549747467,
+        "g": 0.18039216101169586,
+        "b": 0.18039216101169586,
         "a": 1
       },
       "alias": {
@@ -3562,9 +3562,9 @@
       ],
       "description": "Destructive outline edge, hover — 3:1 on inverse/background/tertiary, follows the label",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.5058823823928833,
+        "g": 0.10196078568696976,
+        "b": 0.11372549086809158,
         "a": 1
       },
       "alias": {
@@ -3580,9 +3580,9 @@
       ],
       "description": "Destructive outline edge, pressed — 3:1 on inverse/background/tertiary, follows the label",
       "value": {
-        "r": 0.34117648005485535,
-        "g": 0.05882352963089943,
-        "b": 0.05098039284348488,
+        "r": 0.3607843220233917,
+        "g": 0.019607843831181526,
+        "b": 0.04313725605607033,
         "a": 1
       },
       "alias": {
@@ -4235,9 +4235,9 @@
       ],
       "description": "Success text — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
-        "r": 0.18431372940540314,
-        "g": 0.40784314274787903,
-        "b": 0.20000000298023224,
+        "r": 0.09803921729326248,
+        "g": 0.4117647111415863,
+        "b": 0.24705882370471954,
         "a": 1
       },
       "alias": {
@@ -4253,8 +4253,8 @@
       ],
       "description": "Warning text — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
-        "r": 0.4941176474094391,
-        "g": 0.32549020648002625,
+        "r": 0.5098039507865906,
+        "g": 0.3176470696926117,
         "b": 0,
         "a": 1
       },
@@ -4271,9 +4271,9 @@
       ],
       "description": "Danger text — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0.21568627655506134,
-        "b": 0.1921568661928177,
+        "r": 0.658823549747467,
+        "g": 0.18039216101169586,
+        "b": 0.18039216101169586,
         "a": 1
       },
       "alias": {
@@ -4289,9 +4289,9 @@
       ],
       "description": "Info text — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
-        "r": 0.12156862765550613,
-        "g": 0.3764705955982208,
-        "b": 0.5647059082984924,
+        "r": 0,
+        "g": 0.3921568691730499,
+        "b": 0.5215686559677124,
         "a": 1
       },
       "alias": {
@@ -4325,9 +4325,9 @@
       ],
       "description": "Muted success text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
       "value": {
-        "r": 0.14509804546833038,
-        "g": 0.35686275362968445,
-        "b": 0.16078431904315948,
+        "r": 0.05098039284348488,
+        "g": 0.3607843220233917,
+        "b": 0.20392157137393951,
         "a": 1
       },
       "alias": {
@@ -4343,8 +4343,8 @@
       ],
       "description": "Muted warning text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
       "value": {
-        "r": 0.4274509847164154,
-        "g": 0.2823529541492462,
+        "r": 0.4431372582912445,
+        "g": 0.27450981736183167,
         "b": 0,
         "a": 1
       },
@@ -4361,9 +4361,9 @@
       ],
       "description": "Muted danger text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
       "value": {
-        "r": 0.5568627715110779,
-        "g": 0.1764705926179886,
-        "b": 0.15294118225574493,
+        "r": 0.5803921818733215,
+        "g": 0.1411764770746231,
+        "b": 0.14509804546833038,
         "a": 1
       },
       "alias": {
@@ -4379,9 +4379,9 @@
       ],
       "description": "Muted info text — 3:1; large text (≥24px, or ≥18.66px bold) or non-essential text only.",
       "value": {
-        "r": 0.08627451211214066,
-        "g": 0.32549020648002625,
-        "b": 0.49803921580314636,
+        "r": 0,
+        "g": 0.33725491166114807,
+        "b": 0.45490196347236633,
         "a": 1
       },
       "alias": {
@@ -4569,9 +4569,9 @@
       ],
       "description": "Success icon — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
-        "r": 0.18431372940540314,
-        "g": 0.40784314274787903,
-        "b": 0.20000000298023224,
+        "r": 0.09803921729326248,
+        "g": 0.4117647111415863,
+        "b": 0.24705882370471954,
         "a": 1
       },
       "alias": {
@@ -4589,8 +4589,8 @@
       ],
       "description": "Warning icon — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
-        "r": 0.4941176474094391,
-        "g": 0.32549020648002625,
+        "r": 0.5098039507865906,
+        "g": 0.3176470696926117,
         "b": 0,
         "a": 1
       },
@@ -4609,9 +4609,9 @@
       ],
       "description": "Danger icon — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0.21568627655506134,
-        "b": 0.1921568661928177,
+        "r": 0.658823549747467,
+        "g": 0.18039216101169586,
+        "b": 0.18039216101169586,
         "a": 1
       },
       "alias": {
@@ -4629,9 +4629,9 @@
       ],
       "description": "Info icon — 4.5:1 on inverse/background/secondary and on its own tint",
       "value": {
-        "r": 0.12156862765550613,
-        "g": 0.3764705955982208,
-        "b": 0.5647059082984924,
+        "r": 0,
+        "g": 0.3921568691730499,
+        "b": 0.5215686559677124,
         "a": 1
       },
       "alias": {
@@ -4669,9 +4669,9 @@
       ],
       "description": "Muted success icon — 3:1 on inverse/background/primary",
       "value": {
-        "r": 0.14509804546833038,
-        "g": 0.35686275362968445,
-        "b": 0.16078431904315948,
+        "r": 0.05098039284348488,
+        "g": 0.3607843220233917,
+        "b": 0.20392157137393951,
         "a": 1
       },
       "alias": {
@@ -4689,8 +4689,8 @@
       ],
       "description": "Muted warning icon — 3:1 on inverse/background/primary",
       "value": {
-        "r": 0.4274509847164154,
-        "g": 0.2823529541492462,
+        "r": 0.4431372582912445,
+        "g": 0.27450981736183167,
         "b": 0,
         "a": 1
       },
@@ -4709,9 +4709,9 @@
       ],
       "description": "Muted danger icon — 3:1 on inverse/background/primary",
       "value": {
-        "r": 0.5568627715110779,
-        "g": 0.1764705926179886,
-        "b": 0.15294118225574493,
+        "r": 0.5803921818733215,
+        "g": 0.1411764770746231,
+        "b": 0.14509804546833038,
         "a": 1
       },
       "alias": {
@@ -4729,9 +4729,9 @@
       ],
       "description": "Muted info icon — 3:1 on inverse/background/primary",
       "value": {
-        "r": 0.08627451211214066,
-        "g": 0.32549020648002625,
-        "b": 0.49803921580314636,
+        "r": 0,
+        "g": 0.33725491166114807,
+        "b": 0.45490196347236633,
         "a": 1
       },
       "alias": {
@@ -4919,9 +4919,9 @@
       ],
       "description": "Success border — 3:1 on inverse/background/primary",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.18039216101169586,
+        "g": 0.5215686559677124,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
@@ -4937,8 +4937,8 @@
       ],
       "description": "Warning border — 3:1 on inverse/background/primary",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
+        "r": 0.6470588445663452,
+        "g": 0.4117647111415863,
         "b": 0,
         "a": 1
       },
@@ -4955,9 +4955,9 @@
       ],
       "description": "Danger border — 3:1 on inverse/background/primary",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
         "a": 1
       },
       "alias": {
@@ -4973,9 +4973,9 @@
       ],
       "description": "Info border — 3:1 on inverse/background/primary",
       "value": {
-        "r": 0.1921568661928177,
-        "g": 0.48235294222831726,
-        "b": 0.6980392336845398,
+        "r": 0.08235294371843338,
+        "g": 0.49803921580314636,
+        "b": 0.6509804129600525,
         "a": 1
       },
       "alias": {

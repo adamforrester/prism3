@@ -539,12 +539,11 @@ const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
   const paths = pathsOf(p3);
   const guaranteed = Object.keys(readBaseline().guaranteed);
   const missing = guaranteed.filter((p) => !paths.has(p));
-  // ONE KNOWN GAP, PINNED (#1718): prism3 remaps `strong` to 600 (owner decision), and the numeric
-  // reference tier emits only the numerics a brand's roles use, so `core.font.weight.700` — guaranteed
-  // because no corpus member ever remapped `strong` — is absent. Pinned EXACTLY: a second missing path
-  // fails, and so does the fix (the gap closing), which is when this line should become `=== 0`.
-  ok(guaranteed.length > 400 && missing.join(',') === 'core.font.weight.700',
-    `#1296 prism3 emits every guaranteed contract path except the one pinned by #1718 (${guaranteed.length - missing.length}/${guaranteed.length}; missing ${missing.join(', ') || 'NONE — #1718 is resolved, make this === 0'})`);
+  // #1718 RESOLVED: prism3 remaps `strong` to 600 (owner decision), which used to drop
+  // `core.font.weight.700` from a numeric tier minted only from the roles. The engine now always mints
+  // the contract's four standard numerics, so the default theme misses NOTHING the baseline guarantees.
+  ok(guaranteed.length > 400 && missing.length === 0,
+    `#1296/#1718 prism3 emits every guaranteed contract path (${guaranteed.length - missing.length}/${guaranteed.length}; missing ${missing.join(', ') || 'none'})`);
   const tree = buildTree(p3).tree as any;
   const data = tree[Object.keys(tree)[0]];
   const typeRefs = previewTokenRefs().filter((r) => r.startsWith('type.'));

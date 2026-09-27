@@ -83,12 +83,12 @@ const discoverBrands = () =>
 /**
  * The profiles this gate PROMISES to cover, and what each one exercises that the others do not.
  * Asserted by name below. Discovery alone is not enough: if `aurora` stopped being emitted, a
- * count-based check would happily report "3 brands, all green" and the only brand with gradients
- * would have left the corpus unnoticed.
+ * count-based check would happily report "3 brands, all green" and the only brand with a decoupled
+ * action palette would have left the corpus unnoticed.
  */
 const PROMISED = {
   nb: 'the legacy nbds.* dialect and hand-authored regression target',
-  prism3: 'the canonical default theme (#1296): an italic-default heading category, one weight on two family spellings',
+  prism3: 'the canonical default theme (#1296): an italic-default heading category, one weight on two family spellings, gradients on a primary-action brand',
   aurora: 'gradients (Paint Styles) + a decoupled action palette',
   harbor: 'a third input profile',
   wendys: 'the standard-dialect front door (parseStandard + classifier)',
@@ -221,7 +221,8 @@ for (const [name, why] of Object.entries(PROMISED)) {
  * Widening either number to make a failure go away is the same move as adding a preprocessor: it ends
  * the measurement.
  */
-const CONSUMER_GAP = { nb: 0, prism3: 0, aurora: 2, harbor: 0, wendys: 0 };
+// prism3 and aurora each ship two gradients (#1296 gave prism3 `brand` + `glow`), one gap each.
+const CONSUMER_GAP = { nb: 0, prism3: 2, aurora: 2, harbor: 0, wendys: 0 };
 
 for (const brand of brands) {
   const src = readSource(brand);

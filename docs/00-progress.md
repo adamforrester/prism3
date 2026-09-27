@@ -9,7 +9,7 @@
 
 ## (2026-09-27) — Prism3: the canonical default theme at `pds3`, and italic as a category's default cut (#1296)
 
-**STATUS: PR open from `lane/prism3-default-theme`, labeled DO NOT MERGE** (the owner reviews the preview first). **ENGINE → 0.184.0 (MINOR); CONTRACT STANDS at 13.1.0.** The orchestrator renumbers if another lane lands first.
+**STATUS: PR open from `lane/prism3-default-theme`, labeled DO NOT MERGE** (the owner reviews the preview first). **ENGINE → 0.185.0 (MINOR: 0.184.0 for the theme, 0.185.0 for the second pass below); CONTRACT STANDS at 13.1.0.** The orchestrator renumbers if another lane lands first.
 
 **What shipped.** A new brand, `examples/prism3.design.md` (id `prism3`, root `pds3`), emitted to `out/` and `out/figma/prism3/`, first in `EXAMPLE_IDS`, and the brand the studio and plugin boot on (`BOOT_BRAND` in `apps/studio/src/main.ts`). Primary is Prism 2's `brand.primary.650`, `rgb(30, 30, 255)` = #1E1EFF, converted with the engine's own `rgbToOklch` to `{ l: 0.4709, c: 0.3001, h: 266.75 }`, which round-trips to `#1e1eff` (unrounded: l 0.470917, c 0.300127, h 266.746). The engine pins it at step 600. Type: Playfair Display on display/title, Inter on body/label/caption/eyebrow, JetBrains Mono on code.
 
@@ -27,13 +27,22 @@
 **Decided here (technical).**
 - **Reservation.** `test.ts` `#1283` gains `RESERVED_ROOT_OK`, in the `ZERO_OK`/`LEAF_OK` shape: `prism3 → pds3` with its reason. It admits only `pds3` (never the `prism` fallback), at most one brand, and a stale admission fails.
 - **Fallback.** `input.root ?? 'prism'` is unchanged, with the ~235 fixtures pinning the historical default. Recorded on #1296 as a follow-up.
-- **Not a corpus member.** The corpus spans input VARIATION, and each member's demotion is attributable to one lever (`token-contract.ts` header). A rich brand adds nothing attributable. Instead, `test.ts` asserts prism3 emits the guaranteed surface against the COMMITTED baseline. That found #1718: `core.font.weight.700` is guaranteed only because no corpus member ever remapped `strong`, and prism3 (600) lacks it. This is pinned exactly, and held for the owner as a contract decision.
+- **Not a corpus member.** The corpus spans input VARIATION, and each member's demotion is attributable to one lever (`token-contract.ts` header). A rich brand adds nothing attributable. Instead, `test.ts` asserts prism3 emits the guaranteed surface against the COMMITTED baseline. That found #1718: `core.font.weight.700` is guaranteed only because no corpus member ever remapped `strong`, and prism3 (600) lacked it. The owner decided it in the second pass (below), and the check now requires zero missing paths.
 - **Display ships `strong` too.** The preview spec binds `type.display.lg.strong` and `type.title.*.strong` by name, and a brand without them resolves to 0px sans-serif in `resolvePreview` (#1720, latent). `test.ts` asserts prism3 emits every type style the preview binds.
 - **Figma emission committed.** The boot theme should be materializable, and committing it puts it under `regen --check` and every figma gate.
 
 **Traps for whoever re-verifies.** (1) Byte-identity is proven in two steps: regen BEFORE the ENGINE bump moved zero committed bytes, and after it only the `generator.version` stamps move. (2) The MCP `tools/list` ceiling (60,000 chars) had 45 chars of headroom. The new lever fits only because the `italics` and `links` schema descriptions were compressed (59,955 → 59,942). (3) `resolvedCuts` counts per (variable, mode). prism3 has one font mode, so it is 2: Playfair's two 600 cuts.
 
-**Held for the owner (in the PR):** every lever beyond the ones decided, and #1718.
+**Second pass: owner decisions of 2026-09-27.**
+- **#1718, always emit.** `theme.ts` `weightsRef` unions a literal `CONTRACT_WEIGHTS = [300, 400, 700, 900]` onto the numerics the weight roles use. It is written out, not derived from `WEIGHT_ROLE_DEFAULT`, because it is the contract's promise and the default roles moving must not move it. The owner's brief called this "option A"; in the issue's own lettering it is option B (A is demote, CONTRACT MAJOR). The behavior built is the one the brief describes. prism3 gains `core.font.weight.700`, an unused hidden primitive. The `#1296` check in `test.ts` now requires zero missing guaranteed paths. Mutating the union away fails `#1296/#1718 prism3 emits every guaranteed contract path (580/581; missing core.font.weight.700)` by name.
+- **Accent.** A violet `accent` brand color, #7A3CFF. `rgbToOklch` gives l 0.557316, c 0.263468, h 289.323. The obvious rounding, c 0.2635, is past the sRGB boundary (the engine warns it will clamp), so the chroma rounds DOWN to `{ l: 0.5573, c: 0.2634, h: 289.32 }`, which round-trips to `#7a3cff`. It anchors at step 500. Action stays on the primary.
+- **Gradients.** `brand`, linear at 135°, primary.600 → accent.500: the two exact brand swatches, #1E1EFF → #7A3CFF. `glow`, radial (circle, center 0.5/0.4), accent.400 → primary.700. Both follow aurora's shape. `check-consumability.mjs` `CONSUMER_GAP.prism3` moves 0 → 2, one per gradient, the same as aurora.
+- **Paired italics on body.** `italics: [body]` beside `italicDefault: [display, title]`. Body stays upright and gains `-italic` twins (`type.body.md.default-italic`, `strong-italic` and their `-link` forms). Body is in only one of the two levers, so the #1296 conflict refusal does not trip.
+- **Tinted shadows.** `shadow: { tint: { hue: 266.75, amount: 0.35 } }`. The engine default already tinted toward the neutral hue (also 266.75) at 0.15, so the lever needed a larger amount to read as the blue. The shadow base is now #0a1228.
+- **Status.** success h155 c0.15, warning h70 c0.16, danger h25 c0.19, info h230 c0.13. Only hue and chroma seed a status ramp (the engine places the lightness), so the 500 steps land at #2e8554, #a56900, #d24241, #157fa6. Contrast: 876/876 mode contracts pass.
+- **Byte-identity, re-proven.** Regen before the bump moved zero bytes in `out/{nb,aurora,harbor,wendys}*` and their Figma trees. After the bump, the only lines that move are the eight `generator.version` stamps.
+
+**Held for the owner (in the PR):** every lever beyond the ones decided, and the second-pass values (status set, shadow amount, the radial's stops).
 
 ---
 

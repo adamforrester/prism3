@@ -1077,6 +1077,10 @@ const LETTER_SPACINGS: { key: LetterSpacingKey; em: number }[] = [
   { key: 'wide', em: 0.02 }, { key: 'wider', em: 0.05 },
 ];
 const WEIGHT_ROLE_DEFAULT: Record<WeightRoleName, number> = { subtle: 300, default: 400, emphasis: 600, strong: 700, max: 900 };
+// The numeric weights the token contract guarantees whatever the roles say (#1718). Deliberately a
+// literal list, NOT derived from WEIGHT_ROLE_DEFAULT: it is the contract's promise, and the default
+// roles moving must not quietly move it.
+const CONTRACT_WEIGHTS = [300, 400, 700, 900] as const;
 
 // Curated rem ladder: text [10–18] in 1–2px steps; ¼rem (4px) 20→40; ½rem (8px)
 // 48→80; 1rem (16px) 96→160. 22 steps, all clean rem values (matches Prism2).
@@ -1868,8 +1872,11 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
     // weight ROLE actually points at. Every `weight-role.<role>` aliases `font.weight.<n>`,
     // so the role values ARE the complete set of referenced numerics — anything else was a
     // dead leaf (default roles use 5 of 9). Per-mode weights union onto this below, which is
-    // what keeps a mode's deviating numeric resolvable.
-    weightsRef: [...new Set(WEIGHT_ROLE_ORDER.map((role) => wr[role]))].sort((a, b) => a - b),
+    // what keeps a mode's deviating numeric resolvable. The token contract's four standard
+    // numerics (300/400/700/900) are ALWAYS minted on top (#1718): the contract guarantees them,
+    // and a brand that remaps a role (prism3's `strong: 600`) would otherwise drop one. A brand
+    // at the default roles already emits all four, so this moves no existing emission.
+    weightsRef: [...new Set([...CONTRACT_WEIGHTS, ...WEIGHT_ROLE_ORDER.map((role) => wr[role])])].sort((a, b) => a - b),
     weightRoles: WEIGHT_ROLE_ORDER.map((role) => ({ role, value: wr[role] })),
     lineHeights: brandLineHeights(t),
     letterSpacings: brandLetterSpacings(t),

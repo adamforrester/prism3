@@ -366,6 +366,17 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "pds3/core/font/weight/700",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_WEIGHT"
+      ],
+      "description": "Font weight 700",
+      "value": 700,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "pds3/core/font/weight/900",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -492,6 +503,16 @@
       "alias": null
     },
     {
+      "name": "pds3/core/font/style/body/default-italic",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for body default italic text styles",
+      "value": "Italic",
+      "alias": null
+    },
+    {
       "name": "pds3/core/font/style/body/strong",
       "resolvedType": "STRING",
       "scopes": [
@@ -499,6 +520,16 @@
       ],
       "description": "Font style for body strong text styles",
       "value": "Semi Bold",
+      "alias": null
+    },
+    {
+      "name": "pds3/core/font/style/body/strong-italic",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_STYLE"
+      ],
+      "description": "Font style for body strong italic text styles",
+      "value": "Semi Bold Italic",
       "alias": null
     },
     {

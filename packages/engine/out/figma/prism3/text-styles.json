@@ -1302,6 +1302,106 @@
       }
     },
     {
+      "name": "body/lg/default-italic",
+      "description": "body lg default italic — 18px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default-italic",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/lg/default-italic-link",
+      "description": "body lg default italic link — 18px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default-italic",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
       "name": "body/lg/strong",
       "description": "body lg strong — 18px Inter, normal line-height, for running text.",
       "properties": {
@@ -1364,6 +1464,106 @@
         "fontStyle": {
           "bound": true,
           "variable": "pds3/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "body/lg/strong-italic",
+      "description": "body lg strong italic — 18px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong-italic",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/18",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/lg/strong-italic-link",
+      "description": "body lg strong italic link — 18px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong-italic",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1502,6 +1702,106 @@
       }
     },
     {
+      "name": "body/md/default-italic",
+      "description": "body md default italic — 16px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default-italic",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/16",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/md/default-italic-link",
+      "description": "body md default italic link — 16px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default-italic",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/16",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
       "name": "body/md/strong",
       "description": "body md strong — 16px Inter, normal line-height, for running text.",
       "properties": {
@@ -1564,6 +1864,106 @@
         "fontStyle": {
           "bound": true,
           "variable": "pds3/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/16",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "body/md/strong-italic",
+      "description": "body md strong italic — 16px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong-italic",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/16",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/md/strong-italic-link",
+      "description": "body md strong italic link — 16px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong-italic",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1702,6 +2102,106 @@
       }
     },
     {
+      "name": "body/sm/default-italic",
+      "description": "body sm default italic — 14px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default-italic",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/sm/default-italic-link",
+      "description": "body sm default italic link — 14px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/default-italic",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
       "name": "body/sm/strong",
       "description": "body sm strong — 14px Inter, normal line-height, for running text.",
       "properties": {
@@ -1764,6 +2264,106 @@
         "fontStyle": {
           "bound": true,
           "variable": "pds3/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "body/sm/strong-italic",
+      "description": "body sm strong italic — 14px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong-italic",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "pds3/core/font/size/14",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 600
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/sm/strong-italic-link",
+      "description": "body sm strong italic link — 14px Inter, normal line-height, for running text.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "pds3/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "pds3/core/font/style/body/strong-italic",
           "collection": "core",
           "resolvedType": "STRING"
         },
