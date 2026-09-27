@@ -3081,14 +3081,22 @@ const __exposeNow=(member)=>{
 // white box and \`combineAsVariants()\` a dressed set, so every property no plan claimed survived as a Figma
 // default; this path had no such pass and left the white on every unclaimed or unresolvable fill. Runs LAST
 // in \`build\`, so a declared value is never clobbered; the PLAN decides "claimed", never the live node.
-// \`n\` is null for the SET, whose border and radius are claimed by PRESERVING the host's framing (#1430).
+// \`n\` is null for the SET, whose border and radius are claimed as the variant-set frame (#1430): WRITTEN
+// from \`SET_BORDER\` when the set comes back with no stroke paint, KEPT when the host already stroked it.
 // Each write is guarded and reports rather than throws, so a refused default costs a miss, not the member.
+// FIGMA'S OWN COMPONENT-SET BORDER, written because the API does not supply its paint. Probed live
+// (2026-09-27): \`combineAsVariants\` returns strokes [], weight 1, INSIDE, dashPattern [10,5], radius 5,
+// fills [] — a dash with nothing to draw. Twin of \`SET_BORDER\` in the plugin's write-components.ts.
+const SET_BORDER={r:0x97/255,g:0x47/255,b:1,weight:1,align:'INSIDE',dash:[10,5],radius:5};
 const claimDefaults=(node,n,mode,layerOp)=>{
   const t=node.type,isSet=!n,m=n||{},P=m.paints||{},B=m.bound||{},where=n?n.name:'set';
   // An INSTANCE is claimed by its nomination and a COMPONENT by the frame it was made from.
   if(t==='INSTANCE'||t==='COMPONENT')return;
   const set=(k,v)=>{try{node[k]=v;}catch(err){misses.push(where+'.'+k+' -> UNCLAIMED and could not be neutralized ('+err.message+"); it keeps Figma's default — #865");}};
   const keep=(k,f)=>{const c=node[k];set(k,c===undefined?f:Array.isArray(c)?c.slice():c);};
+  // Decided ONCE, before any write, so the ink and corner branches agree: a set the host returns with NO
+  // stroke paint gets \`SET_BORDER\` written; a set it returns already stroked keeps its own (\`keep\`).
+  const S=SET_BORDER,bareSet=isSet&&!(node.strokes||[]).length,w=(k,v,f)=>bareSet?set(k,v):keep(k,f);
   set('visible',m.visible!=null?m.visible:true);
   // An IMPORTED glyph layer's opacity is declared by \`glyphSvg\` (#1670: the spinner's track is a layer at 0.2),
   // like its fills — so it is claimed by the document, and writing 1 here would erase it.
@@ -3097,7 +3105,7 @@ const claimDefaults=(node,n,mode,layerOp)=>{
   set('blendMode','PASS_THROUGH');set('rotation',0);set('layoutAlign','INHERIT');set('layoutGrow',m.layoutGrow||0);
   if(mode==='created'){
     set('constraints',{horizontal:'MIN',vertical:'MIN'});
-    if(isSet){set('fills',[]);keep('strokes',[]);keep('strokeWeight',1);keep('strokeAlign','INSIDE');keep('dashPattern',[]);}
+    if(isSet){set('fills',[]);w('strokes',[{type:'SOLID',color:{r:S.r,g:S.g,b:S.b}}],[]);w('strokeWeight',S.weight,1);w('strokeAlign',S.align,'INSIDE');w('dashPattern',S.dash.slice(),[]);}
     else{
       // A TEXT fill has no neutral value — \`[]\` is invisible text — so an unpainted label is REPORTED.
       if(!P.fills){if(t==='TEXT')misses.push(where+'.fills -> UNCLAIMED on a TEXT node (reported, not neutralized: [] is invisible text; the def must declare a text paint) — #865');else set('fills',[]);}
@@ -3107,7 +3115,7 @@ const claimDefaults=(node,n,mode,layerOp)=>{
     }
   }
   if(t==='FRAME'||t==='COMPONENT_SET'){
-    for(const k of ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'])if(isSet)keep(k,0);else if(!(k in B))set(k,0);
+    for(const k of ['topLeftRadius','topRightRadius','bottomLeftRadius','bottomRightRadius'])if(isSet)w(k,S.radius,0);else if(!(k in B))set(k,0);
     set('clipsContent',!!m.clipsContent);
     // Parent-side auto-layout properties apply only on an auto-layout frame, and Figma THROWS on
     // \`strokesIncludedInLayout\` elsewhere — so gated on the PLAN's \`layoutMode\`.
@@ -4014,7 +4022,7 @@ built.forEach((c,i)=>{const {row,col}=PLANS[i];c.x=at(colW,col);c.y=at(rowH,row)
 // caller's first sign of trouble — by then twenty-one loose components are already in the file.
 const set=figma.combineAsVariants(built,figma.currentPage);
 set.name=${JSON.stringify(plans[0].component)};
-// #1393 — THE SET'S DEFAULTS, claimed as the plugin executor claims them (\`n\` null: framing preserved).
+// #1393 — THE SET'S DEFAULTS, claimed as the plugin executor claims them (\`n\` null: the variant-set border, #1430).
 claimDefaults(set,null,'created');
 ${PAYLOAD_DECLARE_PROPS}
 ${PAYLOAD_WIRE_REFS}
