@@ -3,6 +3,9 @@
  * here). A neutral fill, a centered `image` glyph as the "no image" marker, and — the elegant core of
  * this def — an aspect-ratio LOCK that keeps the frame's proportion while its actual size flexes.
  *
+ * KB brief: `components/image.md` — the empty, unfilled state of the brief's Image, whose box the layout
+ * reasons about before the file has loaded. Category `foundations`, the brief's.
+ *
  * ── WHAT IT IS ──────────────────────────────────────────────────────────────────────────────────
  *
  * A rectangle sized to one of three ratios (`1:1`, `4:3`, `16:9`) that reads as "an image goes here".
@@ -25,7 +28,7 @@
  * parses the member's own `ratio` value (`16:9` → 16/9) onto the plan, and both executors resize the
  * frame to that proportion and call `lockAspectRatio()`, so Figma DERIVES the height from the width. The
  * ratio is never a DTCG token and never touches TokenPress — ecosystem impact is nil, and
- * `CONTRACT_VERSION` stands at 10.0.0 (this def binds only existing roles).
+ * `CONTRACT_VERSION` did not move for it (10.0.0 when the def landed): this def binds only existing roles.
  *
  * ── THE ONE THING THE OFFLINE BUILD CANNOT PROVE (the paste-time-derive risk) ────────────────────
  *
@@ -61,7 +64,8 @@ export const imagePlaceholder: ComponentDef = {
   id: 'image-placeholder',
   name: 'ImagePlaceholder',
   aliases: ['media-frame', 'image-frame', 'photo-placeholder', 'empty-image', 'image-slot'],
-  category: 'media',
+  // `foundations`, image.md's category (#1700). `media` is not one of the KB's seven.
+  category: 'foundations',
   status: 'draft',
   summary: 'Empty media frame locked to 1:1, 4:3 or 16:9. Drop an image fill onto it.',
   description:
@@ -91,7 +95,7 @@ export const imagePlaceholder: ComponentDef = {
 
   tokens: {
     // THE NEUTRAL SURFACE FILL — one step off the page, so the empty frame reads as filled rather than a
-    // hole. An existing semantic role, so no new token and CONTRACT stays 10.0.0.
+    // hole. An existing semantic role, so no new token and no CONTRACT move.
     fill: 'color.background.secondary',
     // THE MUTED "NO IMAGE" MARKER — the most de-emphasized icon ink, signaling absence.
     icon: 'color.icon.tertiary',
@@ -182,14 +186,14 @@ export const imagePlaceholder: ComponentDef = {
   },
 
   accessibility: {
-    role: 'img once it holds an image, with an accessible name describing what the image is; the empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.',
+    role: 'img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (`alt=""`) when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.',
     wcag: [
-      '1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it; the empty-state marker is decorative and is hidden from assistive tech',
+      '1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it, or an empty `alt=""` when the image is decorative (image.md §6: an omitted alt and an empty one behave oppositely); the empty-state marker is decorative and is hidden from assistive tech',
       '1.4.11 Non-text Contrast — where the frame edge is a meaningful boundary, verify it against the surface behind it; the neutral fill is a background, not a UI boundary carrying meaning',
       '1.4.1 Use of Color — the marker signals "no image" by shape and position, not by color alone',
     ],
     focus: 'None of its own — the frame is not focusable as an empty placeholder. If it becomes an interactive media element (a button that opens a picker), that control carries its own focus; the placeholder frame does not invent one.',
-    aria: 'Give the frame an img role and a descriptive accessible name once it holds a real image. Mark the "no image" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image.',
+    aria: 'Once the frame holds a real image, decide whether the image is informative or decorative. Informative: an img role and an accessible name that describes its function, not the picture. Decorative: an empty alt (`alt=""`), never an omitted one — some screen readers announce the file name when alt is missing. Mark the "no image" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image.',
   },
 
   content: {
@@ -197,11 +201,11 @@ export const imagePlaceholder: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card\'s media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for avatars and square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill — a native Figma action. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.',
+    usage: 'Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card\'s media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill — a native Figma action. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.',
     do: [
       'Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes',
       'Drop the photograph on as an image fill — the frame is the container, not a swappable slot',
-      'Give a real image an accessible name; keep the empty-state marker decorative and aria-hidden',
+      'Give an informative image an accessible name and a decorative one an empty alt; keep the empty-state marker decorative and aria-hidden',
       'Let the frame clip — a photo cropped to the ratio reads better than one that overflows the layout',
     ],
     dont: [
@@ -217,13 +221,15 @@ export const imagePlaceholder: ComponentDef = {
     primaryPurpose: 'Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.',
     whenToUse: 'A layout needs a media slot at a known proportion before the image is chosen — a card\'s photo area, a hero, a gallery cell. Pick 1:1, 4:3 or 16:9 from the media it will hold; the frame keeps that ratio as it resizes and clips whatever image is dropped onto it.',
     avoidWhen: 'The surface is a decorative wash over an existing photo (that is the `veil` component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).',
+    // `veil` sits over an image this frame holds; it is not nested, so it is a partner, not a part (#1700).
     commonPartners: ['icon', 'veil'],
     triggerKeywords: ['image placeholder', 'media frame', 'photo frame', 'aspect ratio', '16:9', '4:3', 'square image', 'empty image', 'image slot', 'no image', 'media slot'],
     generationPriority: 3,
   },
 
   composition: {
-    composesWith: ['icon'],
+    // Nests nothing (#1700): the marker is a raw glyph from the set (a `vector` part), not a nested `icon`.
+    composesWith: [],
     alternativeTo: [],
     replacesPatterns: [
       'a hand-drawn rectangle with a fixed width and height standing in for an image, which breaks its ratio the moment it is resized',

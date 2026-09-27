@@ -5,6 +5,8 @@
  * `switch-control`. A fix to this disc — its border weight (#1228), its round radius, its dot geometry
  * (#910) — now propagates to the Row by single-sourcing rather than by a copy kept in step by hand.
  *
+ * KB brief: `components/radio.md` — Radio.Control, the nestable primitive the brief inherits from checkbox's decomposition.
+ *
  * ── THE COMPOSITION CHECK #1348 REQUIRED, ANSWERED FROM THE REGISTRY ───────────────────────────────
  *
  * The owner's precondition (2026-09-10): build the nest-exposed split ONLY if something actually NESTS a

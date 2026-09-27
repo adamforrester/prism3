@@ -1,7 +1,7 @@
 /**
  * Select — the NATIVE-FIRST, COMPOSED field, and the first def that nests the two shared field parts
- * (`field-label` and `field-message`) rather than sitting beside them (KB select brief, which inherits the
- * text-field substrate; the Prism2 `select` component spec). A control for choosing ONE value from a known,
+ * (`field-label` and `field-message`) rather than sitting beside them (KB brief: `components/select.md`, which inherits
+ * the text-field substrate; the Prism2 `select` component spec). A control for choosing ONE value from a known,
  * bounded set. SINGLE-CHOICE by decision (#1699, owner-delegated): the brief's `multiple` is recorded in
  * `notes.contested`, and a multi-value choice goes to `checkbox-group` or a future multi-select.
  *
@@ -599,7 +599,8 @@ export const select: ComponentDef = {
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'focus-ring', 'icon'],
+    // What the anatomy nests (#1700). The leading glyph and the chevron are partners, not parts.
+    composesWith: ['field-label', 'field-message', 'focus-ring'],
     alternativeTo: ['text-field', 'radio-group', 'checkbox-group'],
     replacesPatterns: ['a bare <select> with no label wiring', 'placeholder-as-label'],
     // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by

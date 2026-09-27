@@ -72,7 +72,7 @@ import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, ic
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -10596,7 +10596,16 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // anatomy yet (textarea) has no `nests` to read, so this arm cannot see it; its list is kept by hand
     // until its anatomy lands. BY-NAME MUTATION: drop 'focus-ring' from `button`'s `composesWith` → this
     // arm fails, naming button and its two variants.
+    //
+    // #1700 MADE IT AN EQUALITY. `composesWith` has one meaning — the components this def nests, whether in
+    // flow (`nest`), out of flow (`absolute`) or swapped in whole (an `overlay` with `nests`) — so the
+    // converse holds too: every listed id must be one the anatomy nests. Before, reverse lists (focus-ring
+    // naming its hosts), "sits beside" lists (veil naming the button on it) and slot content (button naming
+    // `icon`) all passed, because the arm only asked the one direction. A def with no anatomy has nothing
+    // to nest, so its list must be empty. BY-NAME MUTATION (converse): put 'icon' back into `button`'s
+    // `composesWith` → the second assertion fails, naming button and its two siblings.
     let nestsRead = 0;
+    let listedRead = 0;
     for (const def of componentDefs) {
       const cw = new Set(def.composition?.composesWith ?? []);
       const nested = new Set(Object.values(def.anatomy?.parts ?? {}).map((p) => (p as { nests?: string }).nests).filter((n): n is string => !!n));
@@ -10604,8 +10613,25 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         nestsRead++;
         ok(cw.has(n), `component-refs: ${def.id} nests '${n}' in its anatomy but its composition.composesWith leaves it out — a nested component is one it composes with (#1238)`);
       }
+      for (const c of cw) {
+        listedRead++;
+        ok(nested.has(c), `component-refs: ${def.id} composition.composesWith names '${c}', which its anatomy does not nest — composesWith holds only what a def nests; a host, a neighbor or a slot's usual content goes in ai.commonPartners (#1700)`);
+      }
     }
     ok(nestsRead >= 15, `component-refs: the nests side is live (${nestsRead} nested parts read) — an arm over no nests asserts nothing`);
+    ok(listedRead >= 15, `component-refs: the composesWith side is live (${listedRead} listed ids read) — the converse over empty lists asserts nothing (#1700)`);
+
+    // (a3) #1700 — `inherits` names a REGISTERED def. The oracle is the registry, as in (a) above: a reader
+    // told "the rest is in X" must be able to find X. BY-NAME MUTATION: `checkbox-row`'s `inherits` →
+    // 'text-feild' fails this, naming the def and the id.
+    let inheritsRead = 0;
+    for (const def of componentDefs) {
+      if (def.inherits === undefined) continue;
+      inheritsRead++;
+      ok(ids.has(def.inherits) && def.inherits !== def.id,
+        `component-refs: ${def.id} inherits '${def.inherits}', which is not another registered def id — inherits names the def a reader goes to for the substrate (#1700)`);
+    }
+    ok(inheritsRead >= 5, `component-refs: the inherits side is live (${inheritsRead} defs inherit) — an arm over no inherits asserts nothing`);
 
     const retired = new Map<string, string>();
     for (const d of componentDefs) for (const a of d.aliases ?? []) if (d.id.startsWith(`${a}-`) && !ids.has(a)) retired.set(a, d.id);
@@ -11424,7 +11450,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(validateComponentDef(glyphPxOnBox as ComponentDef).errors.some((e) => /declares 'glyphPx'/.test(e) && /kind 'box'/.test(e) && /only a 'vector'/.test(e)),
       "#1340 glyphPx on a NON-vector part is refused BY NAME — only a vector is a glyph frame the executor resizes, so on any other kind it validates clean, is ignored, and leaves the author believing the part was sized");
     // (c) glyphPx on the ROOT vector — a root glyph's size is the instancing host's, so a literal fixes a size the host is meant to give.
-    const rootGlyphDef = { id: 'x', name: 'X', category: 'media', status: 'draft', description: 'x', props: [], states: [], variants: {}, paintKeys: ['{slot}'], tokens: {}, anatomy: { root: 'g', parts: { g: { kind: 'vector' as const, role: 'target' as const, glyph: 'image', glyphPx: 180 } } }, figmaProperties: { variantAxes: [], booleans: {} }, accessibility: { role: 'img', wcag: [], focus: 'n', aria: 'n' }, content: { labelPattern: 'n' }, docs: { usage: 'n', do: [], dont: [], contentGuidelines: 'n' }, ai: { primaryPurpose: 'n', whenToUse: 'n', avoidWhen: 'n', commonPartners: [], triggerKeywords: [], generationPriority: 3 }, composition: { composesWith: [], alternativeTo: [], supersedes: [], supersededBy: [] } };
+    const rootGlyphDef = { id: 'x', name: 'X', category: 'foundations', status: 'draft', description: 'x', props: [], states: [], variants: {}, paintKeys: ['{slot}'], tokens: {}, anatomy: { root: 'g', parts: { g: { kind: 'vector' as const, role: 'target' as const, glyph: 'image', glyphPx: 180 } } }, figmaProperties: { variantAxes: [], booleans: {} }, accessibility: { role: 'img', wcag: [], focus: 'n', aria: 'n' }, content: { labelPattern: 'n' }, docs: { usage: 'n', do: [], dont: [], contentGuidelines: 'n' }, ai: { primaryPurpose: 'n', whenToUse: 'n', avoidWhen: 'n', commonPartners: [], triggerKeywords: [], generationPriority: 3 }, composition: { composesWith: [], alternativeTo: [], supersedes: [], supersededBy: [] } };
     ok(validateComponentDef(rootGlyphDef as unknown as ComponentDef).errors.some((e) => /declares 'glyphPx' and is the anatomy ROOT/.test(e)),
       "#1340 glyphPx on the ROOT vector is refused BY NAME — a root glyph's rendered size comes from the host that instances it, so a literal here fixes a size the host is meant to give");
     // (d) glyphPx NON-POSITIVE — the frame is resized to this square, so a 0 or negative literal builds a
@@ -12431,13 +12457,76 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // (E) COMPOSITION — field-label names the defs that NEST it (read off every def's anatomy, not its own
     //     lists) in both of its lists, and switch-row no longer claims the field parts it does not nest.
     const nesters = componentDefs.filter((d) => Object.values((d.anatomy?.parts ?? {}) as Record<string, { nests?: string }>).some((p) => p.nests === 'field-label')).map((d) => d.id).sort();
-    const flCompose = (fieldLabel.composition?.composesWith ?? []).filter((x) => x !== 'field-message').sort();
+    // #1700 moved the reverse list out of `composesWith` (which now holds only what a def nests — field-label
+    // nests nothing), so the nesters are named once, in `commonPartners`, and `composesWith` is empty.
+    const flCompose = (fieldLabel.composition?.composesWith ?? []).slice().sort();
     const flPartners = (fieldLabel.ai.commonPartners ?? []).filter((x) => x !== 'field-message').sort();
-    ok(JSON.stringify(flCompose) === JSON.stringify(nesters) && JSON.stringify(flPartners) === JSON.stringify(nesters),
-      `#1699 field-label's composesWith and commonPartners both name exactly the defs that nest it ([${nesters.join(', ')}]; composesWith [${flCompose.join(', ')}], commonPartners [${flPartners.join(', ')}])`);
+    ok(flCompose.length === 0 && JSON.stringify(flPartners) === JSON.stringify(nesters),
+      `#1699 field-label's commonPartners names exactly the defs that nest it, and its composesWith is empty (#1700) ([${nesters.join(', ')}]; composesWith [${flCompose.join(', ')}], commonPartners [${flPartners.join(', ')}])`);
     const swFieldParts = [...(switchRow.composition?.composesWith ?? []), ...(switchRow.ai.commonPartners ?? [])].filter((x) => x === 'field-label' || x === 'field-message');
     ok(swFieldParts.length === 0,
       `#1699 switch-row does not claim field-label / field-message, which it does not nest (found: [${swFieldParts.join(', ')}])`);
+  }
+
+  // ---- #1700: the schema-wide vocabulary — category, aliases, notes, and the brief each def cites ----
+  {
+    // (A) THE VALIDATOR'S THREE NEW REFUSALS, driven through `validateComponentDef` with literal inputs. The
+    //     registry loop above already runs every real def through it; these arms prove each refusal FIRES,
+    //     on an input known to be wrong, so a check that stopped matching cannot pass by the corpus being clean.
+    const errs = (d: unknown) => validateComponentDef(d as ComponentDef).errors;
+    ok(errs({ ...spinner, category: 'media' }).some((e) => /category 'media' is not one of the KB's seven/.test(e)),
+      "#1700 validateComponentDef refuses a category outside the KB's seven ('media', the value two defs carried)");
+    ok(errs({ ...spinner, aliases: ['loading indicator'] }).some((e) => /alias 'loading indicator' is not kebab-case/.test(e)),
+      "#1700 validateComponentDef refuses an alias with a space ('loading indicator', the spinner's old alias)");
+    // The motivating shape: the question first, "Settled" in the SECOND sentence (focus-ring's three entries).
+    ok(errs({ ...focusRing, notes: { contested: ['Where the ring is drawn — on the border or outside it. Settled here as the offset sibling.'] } }).some((e) => /notes\.contested\[0\] has a sentence opening 'Settled'/.test(e)),
+      '#1700 validateComponentDef refuses a contested entry whose SECOND sentence opens "Settled" — the focus-ring shape a first-word check misses');
+    ok(errs({ ...focusRing, notes: { unverified: ['RESOLVED (#1): the thing is measured now.'] } }).some((e) => /notes\.unverified\[0\] has a sentence opening 'RESOLVED'/.test(e)),
+      '#1700 validateComponentDef refuses an unverified entry opening "RESOLVED"');
+    // The converse: the word inside a sentence is prose, not a verdict, and must stay legal.
+    ok(!errs({ ...focusRing, notes: { contested: ['Legacy icon fonts are settled as dead; the font model is not.'] } }).some((e) => /notes\./.test(e)),
+      '#1700 a contested entry that uses "settled" mid-sentence is NOT refused — only a sentence that opens with the verdict is');
+
+    // (B) THE BRIEF CITATION, read off each def file's HEADER (the leading `/** … */`), per the focus-ring
+    //     header arm's lesson: a whole-file scan is satisfied by any passing mention. Each header names its
+    //     brief exactly once as "KB brief: `components/<name>.md`", or says "No KB brief" and states its
+    //     category choice beside it. EXPECTED for the category is this TABLE, authored from the KB's own
+    //     frontmatter (knowledge-base `components/<name>.md`, `category:`, read 2026-09-27) — never from a
+    //     def — so a def whose category drifts from its brief's fails here by name. A def that cites a brief
+    //     missing from the table fails too: add the row with the brief's category, read from the KB.
+    const KB_BRIEF_CATEGORY: Record<string, string> = {
+      'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
+      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations',
+      'switch.md': 'form', 'text-field.md': 'form', 'textarea.md': 'form',
+    };
+    const defDir = resolve(HERE, './components');
+    const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
+    const fileOf = new Map<string, string>();
+    for (const f of defFiles) {
+      const src = readFileSync(join(defDir, f), 'utf8');
+      const header = src.startsWith('/**') ? src.slice(0, src.indexOf('*/') + 2) : '';
+      const cites = [...new Set([...header.matchAll(/KB brief: `components\/([a-z-]+\.md)`/g)].map((m) => m[1]))];
+      const noBrief = /\bNo KB brief\b/.test(header);
+      ok(header.length > 0 && (cites.length === 1) !== noBrief && cites.length <= 1,
+        `#1700 ${f}: the header names its KB brief exactly once as "KB brief: \`components/<name>.md\`", or states "No KB brief" — got [${cites.join(', ')}]${noBrief ? ' + "No KB brief"' : ''}`);
+      const mod = await import(pathToFileURL(join(defDir, f)).href) as Record<string, unknown>;
+      const defs = Object.values(mod).filter((v): v is ComponentDef => !!v && typeof v === 'object' && typeof (v as ComponentDef).id === 'string' && Array.isArray((v as ComponentDef).props));
+      ok(defs.length > 0, `#1700 ${f}: exports at least one def — a def file the citation scan could not attach to a def would be read and then ignored`);
+      for (const d of defs) {
+        fileOf.set(d.id, f);
+        if (cites.length === 1) {
+          const want = KB_BRIEF_CATEGORY[cites[0]];
+          ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which is not in the test's KB-brief table — add the row with the brief's own category`);
+          ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
+        } else if (noBrief) {
+          const stated = header.match(/No KB brief[\s\S]{0,400}?Category[\s*]+`([a-z]+)`/)?.[1];
+          ok(stated === d.category, `#1700 ${d.id}: has no KB brief, so its header states the category choice ("Category \`${d.category}\`") beside the "No KB brief" line — got ${stated ?? 'none'}`);
+        }
+      }
+    }
+    const unplaced = componentDefs.filter((d) => !fileOf.has(d.id)).map((d) => d.id);
+    ok(unplaced.length === 0 && fileOf.size === componentDefs.length,
+      `#1700 every registered def was found in a def file and its header read (${fileOf.size} of ${componentDefs.length}; unplaced: [${unplaced.join(', ')}])`);
   }
 
   // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
@@ -19485,7 +19574,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const ringHeader = ringSrc.slice(0, ringSrc.indexOf('*/') + 2);
   ok(ringHeader.length > 500 && ringHeader.startsWith('/**'),
     `focus-ring: the source opens with a header block for the grounding to live in (got ${ringHeader.length} chars)`);
-  for (const cite of ['button.md:34', 'docs/32', ':592', ':731'])
+  // #1700 — the line numbers `:592` / `:731` had gone stale (the two findings now sit hundreds of lines
+  // further down `docs/32`), so the header cites them by SECTION TITLE, which is what a reader can find.
+  for (const cite of ['button.md:34', 'docs/32', 'The focus ring is an ABSOLUTE sibling', 'The focus ring wants to be a shared nested component'])
     ok(ringHeader.includes(cite),
       `focus-ring: the HEADER cites '${cite}' — there is no focus-ring.md, so the grounding is stated where a reader meets the def, not merely mentioned somewhere in the file`);
 

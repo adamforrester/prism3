@@ -6,6 +6,8 @@
  * travel, its glyph) now propagates to the Row by single-sourcing rather than by a copy kept in step
  * by hand.
  *
+ * KB brief: `components/switch.md` — the control and atomic primitive of the brief's decomposition.
+ *
  * ── THE COMPOSITION CHECK #1354 REQUIRED, ANSWERED FROM THE REGISTRY ───────────────────────────────
  *
  * The owner's precondition: build the nest-exposed split ONLY if something actually NESTS a

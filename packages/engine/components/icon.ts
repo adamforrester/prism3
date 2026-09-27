@@ -1,5 +1,5 @@
 /**
- * Icon — the glyph primitive (KB `components/icon.md`, docs/38 Arc 2 step 1).
+ * Icon — the glyph primitive (KB brief: `components/icon.md`; docs/38 Arc 2 step 1).
  *
  * The first of the two dependency-A primitives (#741). It exists because Button and IconButton
  * already NOMINATE a component called `icon` as a swap target, and until now the only thing that
@@ -9,7 +9,7 @@
  *
  * WHAT AN ICON IS NOT, because it is the brief's central trap and it decides two fields here (§5,
  * §6): an Icon is never the interactive element. An icon-only control is a BUTTON with an
- * `aria-label` and a 44×44 target, and the glyph inside it is `aria-hidden`. So `states` is `[]`
+ * `aria-label` and a target of at least 24×24 (44×44 on touch), and the glyph inside it is `aria-hidden`. So `states` is `[]`
  * — hover/pressed/disabled belong to the host control — and `label` is the only a11y surface,
  * because naming both the wrapper and the glyph is the failure mode, not a redundancy.
  *
@@ -160,7 +160,7 @@ export const icon: ComponentDef = {
 
   tokens: {
     // The two vocabularies meeting on four lines (#844) — the CONSUMER's word on the left, the ENGINE's
-    // rung on the right, which is the shape the other four defs have always had and `icon` now does too.
+    // rung on the right, which is the shape every other sized def has always had and `icon` now does too.
     // The rungs did not move: `medium` still reaches `icon.size.md` = 24, so #756's default rule holds
     // unchanged. Only the word a consumer types changed.
     'size.x-small': 'icon.size.xs',
@@ -216,7 +216,7 @@ export const icon: ComponentDef = {
         // because the two readings diverge here for the first time: every def so far has been a
         // control, where the paint owner and the hit-area owner are the same node. `role: 'target'`
         // on a glyph claims the former only. The a11y consequence of the latter is carried by the
-        // `touch-target` codeOnly entry, which puts the 44×44 floor on the wrapper where it belongs.
+        // `touch-target` codeOnly entry, which puts the target-size floor on the wrapper where it belongs.
         role: 'target',
         // WHICH glyph, by name in the set's vocabulary, resolved at the member's own coordinate. Never
         // path data — see `PartDef.glyph`: the name is the contract surface `icon.name` already types,
@@ -231,11 +231,11 @@ export const icon: ComponentDef = {
       // admitted by an entry that STARTS with the axis name, because a passing mention inside an
       // entry about something else is a gate satisfied by unrelated prose (the #563 finding).
       'tone — the ink axis, declared in `variants` and deliberately not a Figma variant, and as of #795 the reason is ONE reason rather than three. The surviving one is the interesting one and always was: `inherit` (`currentColor`) is the DEFAULT and Figma has no equivalent — a Figma node\'s fill is a value, never an inheritance from its host. #1211 SHARPENS that rather than softening it, and the sharpening matters because the old wording is now half wrong. It said the most common tone "has no coordinate to occupy"; it has one, because `paintKeys` now ends on a `{slot}` floor and a coordinate at `inherit` resolves the primary ink like any other tone-less one. What Figma still cannot carry is the MEANING: a projected `tone=inherit` member would paint that floor and be pixel-identical to `tone=primary`, so the axis would offer a value whose entire job — defer to the host — the projection silently drops while looking complete. A duplicate member that lies is worse than an absent one, which is why the axis stays in code. The other two reasons are gone, and both were OURS rather than Figma\'s. STRUCTURAL: this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size (`PROJECTABLE_VARIANT_AXES`) and throws rather than enumerating around it — #795 deleted that list, so the projector would carry `tone` today if this def asked, and the def does not ask. PAINT: `paintOf` used to key every lookup as `{intent}.{appearance}.{slot}`, so a def whose paint axis is `tone` resolved nothing; #758 replaced that with this def\'s own `paintKeys` and the tone ink resolves at every tone — verified in `test.ts`, which plans this def at `{tone: danger}` and asserts the `color/icon/danger` binding. So the set projects over `name` and paints along `tone`, which is the shape #795\'s `variantAxes` doc comment cites as the field\'s original meaning.',
-      'glyph fill vs stroke — the set ships FILLED outlines (`fill="currentColor"` on a closed path, verified across every source in the set), so a materializer paints the vector and never strokes it. A stroked-icon set is the other half of the field (Feather, Lucide) and would need a stroke weight plus a cap/join treatment, none of which `PartDef` can carry — the same wall the `stroke weight` entry below describes, met from the geometry side. Stated here because the def now DOES declare the geometry (#864) and this is the part of it that still cannot be declared.',
+      'glyph fill vs stroke — the set ships FILLED outlines (`fill="currentColor"` on a closed path, verified across every source in the set), so a materializer paints the vector and never strokes it. A stroked-icon set is the other half of the field (Feather, Lucide) and would need a stroke weight plus a cap/join treatment. `PartDef.strokeWidth` exists since #1266, but it binds the stroke a `box` draws (the focus ring\'s) and is refused on a `vector`, and there is no cap or join field at all — so a stroked glyph still has no way to be declared, which is the `stroke weight` entry below met from the geometry side. Stated here because the def now DOES declare the geometry (#864) and this is the part of it that still cannot be declared.',
       'optical baseline shift — a glyph\'s bounding box is rarely its visual center of mass, so an inline icon needs an optical shift (Material Symbols moves ~11.5% of the text size down, aligning the glyph center to the x-height rather than the box). That is a relationship between a glyph and the TEXT beside it, resolved at render; Figma centers a node in its parent frame and has nowhere to state it. The recurring polish bug the brief names — an icon sitting a pixel low beside its label — lives entirely in this gap.',
-      'stroke weight — a constant tuned to the typeface rather than a per-icon value (Atlassian\'s 1.5px matches its 1.5px typeface stroke by the squint test; Material\'s baseline is 2dp). It is a property of the SET, so no single glyph component can carry it, and `PartDef` has no stroke-weight field to carry it with — the same wall `focus-ring` meets from the other side.',
+      'stroke weight — a constant tuned to the typeface rather than a per-icon value (Atlassian\'s 1.5px matches its 1.5px typeface stroke by the squint test; Material\'s baseline is 2dp). It is a property of the SET, so no single glyph component can carry it. `PartDef.strokeWidth` (#1266) is the field a box\'s stroke binds, and `validateComponentDef` refuses it on a `vector`: this set\'s glyphs are filled outlines, so their weight is drawn into the path and a bound stroke would reach no node.',
       'label routing — the whole a11y contract is a DOM shape: present makes `role="img"` + `aria-label`, absent makes `aria-hidden="true"` (§6). Figma has no accessibility tree, so the one prop that decides whether this component is announced at all is invisible to the Figma leg. It is not a variant either — the meaningful/decorative split is semantic, not visual, and the two cells are pixel-identical.',
-      'touch-target — the 44×44 (48 Android) floor for an icon-only control is the WRAPPER\'s, not the glyph\'s (2.5.8). A 16px glyph cannot be its own target, and this component must not grow to pretend otherwise; the Button supplies the padding while the glyph stays visually tight. Stated here because the temptation is to fix the target size where the small thing is.',
+      'touch-target — the target-size floor for an icon-only control is the WRAPPER\'s, not the glyph\'s: at least 24×24 (SC 2.5.8, AA), and 44×44 on touch (SC 2.5.5, AAA; 48 on Android). A 16px glyph cannot be its own target, and this component must not grow to pretend otherwise; the Button supplies the padding while the glyph stays visually tight. Stated here because the temptation is to fix the target size where the small thing is.',
       'RTL mirroring — directional glyphs mirror under `dir="rtl"` (back/forward, send, undo, list indentation) and non-directional ones must not (a clock stays a clock). The robust mechanism is per-glyph `isMirroredInRTL` metadata so the component automates the transform, which makes it a fact about each member of the set rather than about this def — and Figma carries no such flag.',
       'delivery — inline SVG vs sprite vs variable WOFF2 is a genuine engineering trade with accessibility, bundle and rendering consequences (§11), and it is downstream of the design language rather than of this def: a locked fixed-stroke system ships tree-shaken inline SVG, a multi-axis one ships a variable font. The Figma leg is indifferent to all of it, and so is the token tier.',
     ],
@@ -322,16 +322,28 @@ export const icon: ComponentDef = {
     whenToUse: 'Beside a label to reinforce meaning, or standalone with a `label` when the glyph itself carries the meaning.',
     avoidWhen:
       'As an interactive element. An icon-only action is a Button (or IconButton) with an accessible name and a hit target of at least 24×24 (44×44 on touch), containing an unnamed glyph — reaching for Icon there puts the affordance on a node with no focus management, no keyboard listeners and no touch target. Also avoid it as an illustration (larger, narrative, its own component), a logo, or a thumbnail; and avoid naming a glyph that sits beside its own text.',
+    // The hosts whose slots usually carry an icon, plus `field-message`, whose `icon` prop overrides its
+    // status glyph in code. A reverse list, so it lives here (#1700).
     commonPartners: ['button', 'icon-button', 'text-field', 'field-message', 'select'],
     triggerKeywords: ['icon', 'glyph', 'symbol', 'svg', 'chevron', 'arrow', 'search icon', 'close icon'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['button', 'icon-button', 'text-field', 'field-message', 'select'],
+    // Nests nothing (#1700). The hosts that swap it into a slot are in `ai.commonPartners`.
+    composesWith: [],
     alternativeTo: [],
     replacesPatterns: ['legacy icon fonts', 'ad-hoc inline SVGs outside the set'],
-    planned: ['link', 'menu', 'badge', 'illustration', 'logo', 'thumbnail', 'emoji'],
+    // `avatar` and `tag` from brief §12 (an icon is Avatar's image-load fallback; Tag pairs a small icon
+    // with its text).
+    planned: ['link', 'menu', 'badge', 'illustration', 'logo', 'thumbnail', 'emoji', 'avatar', 'tag'],
+  },
+
+  // Brief §8.
+  motion: {
+    enter: 'none',
+    exit: 'none',
+    reduceMotion: 'Static — an icon has no motion of its own. A glyph moves only as part of its host\'s state transition (a chevron rotating on expand, an outlined glyph cross-fading to filled), and the host owns that motion and its reduced-motion behavior.',
   },
 
   notes: {
@@ -342,6 +354,11 @@ export const icon: ComponentDef = {
     ],
     unverified: [
       'The brief flags an externally-supplied figure that font glyphs render materially faster than inline SVG in high-frame-rate tests, pending source backing. Nothing in this def depends on it.',
+    ],
+    // Brief §13, the pendulum the practice adopts.
+    evolution: [
+      'Delivery has swung between network and rendering optimization. Under HTTP/1.1, connection limits favored CSS sprites and legacy icon fonts to cut requests. HTTP/2 multiplexing removed that bottleneck, and the field moved to tree-shaken inline SVG to fix the accessibility and flash-of-unstyled-content failures of font hacks. Now inline-SVG DOM weight is the bottleneck in dense interfaces, and parametric design (optical sizing, responsive weight, smooth micro-motion) pulls toward a hybrid: variable WOFF2 fonts for flexibility and a small DOM, beside ever-better tree-shaking for SVG.',
+      'Multi-tone and variable fill became a state pair (outlined and filled) rather than two unrelated glyphs, and the set-as-versioned-API discipline hardened into alias maps, deprecation entry points and rename codemods. The consensus the practice adopts: the delivery mechanism is secondary to a strict, declarative, correctly labeled accessible API.',
     ],
   },
 };

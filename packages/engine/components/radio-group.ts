@@ -7,6 +7,8 @@
  * radio's single-select semantics force a difference, which this header enumerates so the differences read
  * as required rather than invented.
  *
+ * KB brief: `components/radio.md` — the group the brief makes mandatory.
+ *
  * The group is what `radio-row.ts` calls MANDATORY: *"a lone radio is meaningless — it only means 'one of
  * these', and needs siblings and a shared `name` to mean anything at all."* Where `checkbox-group` owns a
  * contract a single row cannot, this group owns the contract a single radio structurally CANNOT and without
