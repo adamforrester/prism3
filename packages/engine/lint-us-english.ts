@@ -282,6 +282,9 @@ const gated: string[] = [
   // The agent-metadata JSON Schema (#1623 sign-off) — authored, kept out of `regen`, and every field in
   // it carries a `description` an agent reads to learn the sidecar, so it is shipped prose.
   join(repo, 'packages/engine/schema/ai-metadata.schema.json'),
+  // The component-docs JSON Schema (#1701) — authored, kept out of `regen` for the same reason, and every
+  // field in it carries a `description` an agent reads to learn `out/components/components.ai.json`.
+  join(repo, 'packages/engine/schema/component-docs.schema.json'),
   // Shipped skills (#492). Prose an agent reads and follows, so it ships in the same sense `out/**`
   // does — and like the token contract above it is named by hand, because skills are not a `regen`
   // artifact and so inherit none of that list's coverage.

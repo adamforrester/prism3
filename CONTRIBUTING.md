@@ -923,6 +923,17 @@ npx tsx packages/engine/lint-advisory-expiry.ts     # a stated advisory window, 
                                                     # directions with an injected clock
                                                     # (PRISM3_TODAY), never by editing the dates in
                                                     # the files — that would test a different program.
+npx tsx packages/engine/lint-component-docs.ts      # every registered component def reaches BOTH forms
+                                                    # of its documentation (#1701): the JSON
+                                                    # out/components/components.ai.json and one page
+                                                    # per def. Reads the committed files, never the
+                                                    # projector. Every def in both forms, both ways,
+                                                    # floor 24; the JSON validates against the AUTHORED
+                                                    # schema/component-docs.schema.json and every field
+                                                    # it declares is carried by some component; every
+                                                    # def doc leaf round-trips to its JSON path and
+                                                    # every string onto the page; no Prism 2 in either
+                                                    # form, withheld entries counted from the def.
                                                     # LIMIT: a claim phrased with neither `advis...`
                                                     # nor `continue-on-error` is not seen, and the run
                                                     # prints the whole census so a count that drops

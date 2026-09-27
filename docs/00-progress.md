@@ -7,6 +7,44 @@
 
 ---
 
+## (2026-09-27) — Component docs are projected: a JSON file and a markdown page per component (#1701)
+
+**STATUS: PR open from `lane/component-docs-projection`, labeled DO NOT MERGE.** Owner chose option (c) on #1701: one projector, two forms, from the same def data. The Figma description stays the one-line `summary`. ENGINE 0.175.0 → **0.176.0** (a new emitted surface, MINOR). CONTRACT stands at 13.1.0; no token name moves.
+
+**What ships.** `emit-component-docs.ts` (a `regen.ts` step) writes:
+- `out/components/components.ai.json`: every registered def in one brand-independent file. It validates against the authored `schema/component-docs.schema.json` (`$id` `prism3-component-docs/1.0`, every object closed).
+- `out/components/<id>.md`: one page per def.
+
+Both are classified **payload** in `payload-manifest.json`. `regen --check` goes 111 → **136** artifacts, in `verify.ts` and `ci.yml` together.
+
+**Decisions a reviewer can disagree with.**
+- **One brand-independent file, not a `components` section in each `<brand>.ai.json`.** A def binds token *names*. Four per-brand copies would be four identical texts that could only agree with each other. Each brand's own sidecar already resolves the names.
+- **Field names mirror the def.** `docs.usage` is `docs.usage`. Only three paths differ: `notes` → `maintainer.notes`, `anatomy.codeOnly` → `codeOnly`, `variants.<axis>` → `variants.<axis>.values` (+ `kind` from `axisKindOf`). So the gate's path table is three lines it owns, not the projector's.
+- **`codeOnly` ships in both forms; `notes.*` ships in the JSON only**, under a `maintainer` section. Notes are the def's working record (open findings, resolved history, issue numbers). Under voice-standard §4 that is not usage guidance, and a person reading a component page should not have to sort one from the other.
+- **Prism 2: withheld, never rewritten.** 34 `codeOnly`/`notes` entries across 11 defs name it. They are left out of both forms, and each component's `maintainer.withheld` says how many. Rewording them is a def edit, filed as **#1703**. Some are guidance a code author needs (checkbox-group and radio-group group-level validation, row count, orientation), so those pages are thinner until #1703 lands.
+- **Not projected:** `tokens`, `paintKeys`, `anatomy.parts`, `figmaProperties`, `weightIntent`. They are the plan's input, not documentation.
+
+**Diagnosis worth keeping: shipping maintainer prose surfaced gate findings the def files had been carrying.** The first run of the prose gates over the new output failed on 1 en-GB spelling (`modelled`), 3 × `simply` and 2 × normative `MUST`, all in `codeOnly`/`notes`. Those fields had shipped nowhere since #1623 stripped them from the plugin bundle, so no gate had read them as shipped text. Fixed at the source (`focus-ring`, `radio-row`, `text-field`, `textarea`), with the meaning unchanged. A projected plan carries its def's `codeOnly`, so the respellings move `focus-ring`'s and `text-field`'s plan digests. `component-surface.json` is re-accepted for those two, with member counts unchanged. Expect the same after #1703 rewords its 34 entries: they join shipped text and meet both gates for the first time.
+
+**The gate: `lint-component-docs.ts`.** Wired into CI, `verify.ts` and the three checklists. It reads the committed files and never imports the projector.
+- **A. Representation.** Every registered def is in both forms, checked both ways. Floor: 24 defs.
+- **B. Schema.** The JSON validates. Every field the schema declares on a component, nested fields included, is carried non-empty by at least one component. This arm found `composition.supersedes`/`supersededBy` unused anywhere in the corpus. Both are exempt by name, and the exemption fails once either is used.
+- **C. Round-trip.** A generic walk over each def's doc fields. 2,951 leaves are checked at their JSON path, and 2,562 strings are checked on the page after un-escaping `\|`/`\<`.
+- **D. Prism 2.** Neither form contains it. `withheld` equals the matching entries counted from the def. A self-check fails if nothing matches.
+
+**Mutations, each failing by name:**
+- M1: `select` dropped from the projection → `MISSING FROM JSON` + `MISSING PAGE: def \`select\``.
+- M2: `accessibility.keyboard` dropped from the mapping → `FIELD NOT REPRESENTED: … accessibility.keyboard` + a `ROUND-TRIP (json)` line per def.
+- M3: the Prism 2 filter removed → `PRISM 2:` naming the JSON and each page.
+- M4: keyboard dropped from the page only → `ROUND-TRIP (page)` per def.
+
+**Traps for whoever re-verifies.**
+- The gate reads the *committed* output. After editing a def, run `regen.ts` first, or arm C reports the old text as a round-trip miss.
+- Markdown escaping: `<` outside code spans and `|` everywhere become `\<` and `\|`, so `<button>` renders as text and table cells stay intact. Arm C un-escapes before comparing. A new escape added to `mdEscape` without the matching un-escape in the gate reads as a page miss on every string that carries the character.
+- The page footer stamps `ENGINE_VERSION`, so every version bump moves all 24 pages. That is the stamp, not drift.
+
+---
+
 ## (2026-09-27) — Component alignment: the button and icon-button families (#1697)
 
 **STATUS: PR open from `lane/align-buttons`, labeled DO NOT MERGE.** `components/button.ts`, `components/icon-button.ts`, `test.ts`, `version.ts`, the two accepted baselines (`schema/component-surface.json`, `schema/paint-census.json`), and `out/**` by the version stamp. **ENGINE 0.174.0 → 0.175.0** (the orchestrator renumbers if another alignment lane lands first). **CONTRACT stands at 13.1.0**: no token name moves.

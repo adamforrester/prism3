@@ -322,6 +322,9 @@ const gated: string[] = [
   // The agent-metadata JSON Schema (#1623 sign-off) — authored, kept out of `regen`, and every field in
   // it carries a `description` an agent reads to learn the sidecar, so it is shipped prose.
   join(repo, 'packages/engine/schema/ai-metadata.schema.json'),
+  // The component-docs JSON Schema (#1701) — authored, kept out of `regen` for the same reason, and every
+  // field in it carries a `description` an agent reads to learn `out/components/components.ai.json`.
+  join(repo, 'packages/engine/schema/component-docs.schema.json'),
   // Shipped skills — prose an agent reads and follows, named by hand for the same reason.
   ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
 ];

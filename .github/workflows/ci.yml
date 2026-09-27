@@ -326,8 +326,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "111 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 111. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "136 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 136. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
@@ -858,6 +858,16 @@ jobs:
       # so a closed window recorded there is correct prose forever.
       - name: A stated advisory window has not expired
         run: npx --yes tsx@4 packages/engine/lint-advisory-expiry.ts
+
+      # #1701 — every registered component def reaches both documentation forms the projector writes
+      # (out/components/components.ai.json and one out/components/<id>.md per def). Reads the COMMITTED
+      # files, never the projector: EXPECTED is the def registry plus the authored
+      # schema/component-docs.schema.json, ACTUAL is disk. Arms: every def in both forms (both
+      # directions, floor 24); the JSON validates and every declared field is carried by some component;
+      # every def doc leaf round-trips to the JSON path and every string onto the page; no Prism 2 in
+      # either form, and each def's withheld count matches the entries counted from the def.
+      - name: Every component def is documented in both forms (#1701)
+        run: npx --yes tsx@4 packages/engine/lint-component-docs.ts
 
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because

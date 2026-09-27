@@ -41,6 +41,8 @@ const STEPS: Array<{ label: string; args: string[] }> = [
   { label: 'emit-preview   (preview-spec)', args: ['packages/engine/emit-preview.ts'] },
   { label: 'emit-brandinput(example-brands)', args: ['packages/engine/emit-brandinput.ts'] },
   { label: 'emit-icons     (icon-glyphs.ts)', args: ['packages/engine/emit-icons.ts'] },
+  // #1701 — the component docs projection. Reads the def registry only, so it has no ordering dependency.
+  { label: 'emit-component-docs (out/components/**)', args: ['packages/engine/emit-component-docs.ts'] },
 ];
 
 // Committed generated artifacts that live at the ENGINE ROOT rather than under `out/`. Both were

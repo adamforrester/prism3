@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "prism3-component-docs/1.0",
+  "$comment": "AUTHORED, NOT GENERATED, and deliberately not a `regen.ts` artifact: a schema regenerated from the projector would agree with whatever the projector wrote. Gated by `packages/engine/lint-component-docs.ts`, which validates `out/components/components.ai.json` against it with `json-schema-lite.ts`. Every object closes `additionalProperties`, so a field the projector adds, drops or renames fails until this schema and its `$id` version move with it.",
+  "title": "Prism3 component documentation (components.ai.json)",
+  "description": "Documentation for every registered component, projected from its definition. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema, so `docs.usage` here is `docs.usage` in the definition.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "generated", "engineVersion", "note", "components"],
+  "properties": {
+    "$schema": { "const": "prism3-component-docs/1.0", "description": "The schema version this file follows. Equal to this schema's `$id`." },
+    "generated": { "const": true, "description": "Always true: every field is projected from a component definition, none is typed here." },
+    "engineVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$", "description": "The engine version that wrote this file." },
+    "note": { "type": "string", "minLength": 1, "description": "A one-paragraph guide to the file, for a reader without this schema." },
+    "components": {
+      "type": "object",
+      "description": "One entry per registered component, keyed by its id.",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/component" } }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "A component id: kebab-case, as registered." },
+    "text": { "type": "string", "minLength": 1, "description": "Prose, one or more sentences." },
+    "texts": { "type": "array", "items": { "$ref": "#/$defs/text" }, "description": "A list of prose entries. Empty when the definition carries none." },
+    "ids": { "type": "array", "items": { "$ref": "#/$defs/id" }, "uniqueItems": true, "description": "A list of component ids. Empty when the definition carries none." },
+    "prop": {
+      "type": "object",
+      "description": "One prop of the component's code API.",
+      "additionalProperties": false,
+      "required": ["name", "type", "required", "description"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "The prop name, as a code API spells it." },
+        "type": { "$ref": "#/$defs/text", "description": "The prop's type, as prose (`boolean`, `enum: 'a' | 'b'`, `node`)." },
+        "default": { "type": ["string", "boolean", "number"], "description": "The default value. Absent when the prop has none." },
+        "required": { "type": "boolean", "description": "Whether a consumer must set it. False when the definition does not say." },
+        "values": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "The allowed values, for an enum prop." },
+        "deprecated": { "type": "boolean", "description": "Present and true when the prop is deprecated." },
+        "description": { "$ref": "#/$defs/text", "description": "What the prop does." }
+      }
+    },
+    "axis": {
+      "type": "object",
+      "description": "One variant axis.",
+      "additionalProperties": false,
+      "required": ["values", "kind"],
+      "properties": {
+        "values": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true, "description": "The axis values, in the definition's order." },
+        "kind": { "enum": ["runtime", "authoring"], "description": "`runtime` when a live instance switches between the values; `authoring` when one is picked once and stays." }
+      }
+    },
+    "component": {
+      "type": "object",
+      "description": "One component's documentation.",
+      "additionalProperties": false,
+      "required": ["id", "name", "aliases", "category", "status", "summary", "description", "props", "states", "variants", "accessibility", "docs", "ai", "composition", "codeOnly", "maintainer"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id", "description": "The component id. Equal to this entry's key." },
+        "name": { "$ref": "#/$defs/text", "description": "The display name." },
+        "aliases": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Other names the component goes by, for search." },
+        "category": { "type": "string", "minLength": 1, "description": "The grouping by purpose (action, form, feedback, …)." },
+        "status": { "enum": ["draft", "stable", "deprecated"], "description": "The definition's maturity." },
+        "summary": { "$ref": "#/$defs/text", "description": "The one-line summary, also written as the Figma component description." },
+        "description": { "$ref": "#/$defs/text", "description": "What the component is and where it stops." },
+        "inherits": { "$ref": "#/$defs/id", "description": "The component this one builds on. Absent when it stands alone." },
+        "props": { "type": "array", "items": { "$ref": "#/$defs/prop" }, "description": "The code API, in the definition's order." },
+        "states": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "Interaction states. Empty for a non-interactive component." },
+        "variants": {
+          "type": "object",
+          "description": "Variant axes, keyed by axis name.",
+          "additionalProperties": false,
+          "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/axis" } }
+        },
+        "accessibility": {
+          "type": "object",
+          "description": "The accessibility contract.",
+          "additionalProperties": false,
+          "properties": {
+            "role": { "$ref": "#/$defs/text", "description": "The ARIA role or native element, and how it is labeled." },
+            "wcag": { "$ref": "#/$defs/texts", "description": "The WCAG success criteria it addresses, each with the reason it applies." },
+            "keyboard": { "$ref": "#/$defs/text", "description": "Keyboard interaction." },
+            "focus": { "$ref": "#/$defs/text", "description": "Focus behavior and its visible indicator." },
+            "aria": { "$ref": "#/$defs/text", "description": "ARIA state attributes, and any live-region announcement." }
+          }
+        },
+        "content": {
+          "type": "object",
+          "description": "Copy guidance for a writer, per pattern. Absent when the definition carries none.",
+          "additionalProperties": false,
+          "properties": {
+            "labelPattern": { "$ref": "#/$defs/text", "description": "How to write the label." },
+            "errorPattern": { "$ref": "#/$defs/text", "description": "How to write an error message." },
+            "emptyPattern": { "$ref": "#/$defs/text", "description": "How to write an empty state." },
+            "dialogPattern": { "$ref": "#/$defs/text", "description": "How to word the action that confirms a dialog." },
+            "metaphorRules": { "$ref": "#/$defs/text", "description": "When a visual metaphor fits, and when it misleads." }
+          }
+        },
+        "docs": {
+          "type": "object",
+          "description": "Usage guidance.",
+          "additionalProperties": false,
+          "required": ["usage", "do", "dont"],
+          "properties": {
+            "usage": { "$ref": "#/$defs/text", "description": "When and how to use the component." },
+            "do": { "$ref": "#/$defs/texts", "description": "Practices to follow." },
+            "dont": { "$ref": "#/$defs/texts", "description": "Practices to avoid, each with its reason." },
+            "contentGuidelines": { "$ref": "#/$defs/text", "description": "Guidance for the text inside the component." }
+          }
+        },
+        "ai": {
+          "type": "object",
+          "description": "The decision surface: whether this component fits a request.",
+          "additionalProperties": false,
+          "required": ["primaryPurpose", "whenToUse", "avoidWhen", "commonPartners", "triggerKeywords"],
+          "properties": {
+            "primaryPurpose": { "$ref": "#/$defs/text", "description": "What the component is for, in one sentence." },
+            "whenToUse": { "$ref": "#/$defs/text", "description": "The situations it fits." },
+            "avoidWhen": { "$ref": "#/$defs/text", "description": "The situations it does not fit, and what fits instead." },
+            "commonPartners": { "$ref": "#/$defs/ids", "description": "Components it is often used with." },
+            "triggerKeywords": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Words in a request that point to this component." },
+            "generationPriority": { "type": "integer", "minimum": 0, "description": "The tiebreaker when several components could serve a request; higher wins." }
+          }
+        },
+        "motion": {
+          "type": "object",
+          "description": "Motion behavior. Absent when the definition carries none.",
+          "additionalProperties": false,
+          "properties": {
+            "enter": { "$ref": "#/$defs/text", "description": "How it appears." },
+            "exit": { "$ref": "#/$defs/text", "description": "How it leaves." },
+            "reduceMotion": { "$ref": "#/$defs/text", "description": "What changes under a reduced-motion preference." }
+          }
+        },
+        "composition": {
+          "type": "object",
+          "description": "How the component relates to others. Every id list names registered components; `planned` names ones not built yet.",
+          "additionalProperties": false,
+          "required": ["composesWith", "alternativeTo", "supersedes", "supersededBy", "planned", "replacesPatterns"],
+          "properties": {
+            "composesWith": { "$ref": "#/$defs/ids", "description": "Components it contains or sits beside." },
+            "alternativeTo": { "$ref": "#/$defs/ids", "description": "Components that solve a neighboring problem." },
+            "supersedes": { "$ref": "#/$defs/ids", "description": "Components it replaces." },
+            "supersededBy": { "$ref": "#/$defs/ids", "description": "Components that replace it." },
+            "planned": { "$ref": "#/$defs/ids", "description": "Related components not built yet, by the id they would take." },
+            "replacesPatterns": { "$ref": "#/$defs/texts", "description": "Hand-built or native patterns it replaces, as prose." }
+          }
+        },
+        "codeOnly": { "$ref": "#/$defs/texts", "description": "Structure and behavior the Figma component cannot carry, which code implements." },
+        "maintainer": {
+          "type": "object",
+          "description": "The definition's working record, for whoever maintains it. Not usage guidance.",
+          "additionalProperties": false,
+          "required": ["notes", "withheld"],
+          "properties": {
+            "notes": {
+              "type": "object",
+              "description": "Research notes carried beside the definition.",
+              "additionalProperties": false,
+              "required": ["contested", "unverified", "evolution"],
+              "properties": {
+                "contested": { "$ref": "#/$defs/texts", "description": "Points where practice disagrees." },
+                "unverified": { "$ref": "#/$defs/texts", "description": "Claims stated but not yet checked by a gate." },
+                "evolution": { "$ref": "#/$defs/texts", "description": "Findings a later revision resolved, kept to explain the current shape." }
+              }
+            },
+            "withheld": { "type": "integer", "minimum": 0, "description": "How many `codeOnly` and `notes` entries were left out because they cite an external reference system." }
+          }
+        }
+      }
+    }
+  }
+}

@@ -2926,6 +2926,17 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.176.0 — #1701: component docs are projected. A new emitter, `emit-component-docs.ts`, writes every
+ * registered def's documentation twice from the same data: `out/components/components.ai.json` (one
+ * brand-independent file, field names mirroring the def, validated against the authored
+ * `schema/component-docs.schema.json`) and `out/components/<id>.md` (one page per def). `anatomy.codeOnly`
+ * ships in both; `notes.*` ships in the JSON only, under `maintainer`; any `codeOnly`/`notes` entry naming
+ * Prism 2 is withheld and counted. Five def strings (`focus-ring`, `radio-row`, `text-field`, `textarea`)
+ * are respelled or reworded so the newly shipped prose passes the US-English and voice gates; no meaning
+ * moves. A projected plan carries its def's `codeOnly`, so `focus-ring`'s and `text-field`'s plans move and
+ * `component-surface.json` is re-accepted for those two (member counts unchanged). A new emitted surface → MINOR. CONTRACT STANDS at 13.1.0: no token name moves
+ * (`token-contract --check` level `none`).
+ *
  * 0.175.0 — #1697: the button and icon-button families aligned to the KB button brief. Three projected
  * moves, all on the component surface (`out/**` moves by the version stamp only):
  *   (1) ICON-BUTTON'S DISABLED EDGE rebinds `color.disabled.border` → `color.disabled.icon`, the rebind #1349
@@ -3850,7 +3861,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.175.0';
+export const ENGINE_VERSION = '0.176.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
