@@ -4602,6 +4602,23 @@ for (const b of brands) {
         `#1670 ${def.id} (${label}): all ${pend.length} pending members swap in the spinner member at the icon slot's px, linked to no swap property${wrong.length ? ` — ${wrong.slice(0, 3).join('; ')}` : ''}`);
     }
   }
+  // #1697 DECISION 3 — THE ICON-BUTTON FAMILY'S PENDING MEMBERS NEST THE SPINNER too, in the icon's own cell
+  // at icon-button's 1:1 rung (small 20 / medium 24 / large 32 — written here, not read from the def), with
+  // the icon gone from that member (one node in the cell, not a spinner beside a glyph).
+  const IB_SLOT_PX: Record<string, number> = { small: 20, medium: 24, large: 32 };
+  for (const def of [iconButton, iconButtonDestructive, iconButtonNeutral]) {
+    const pend = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' }).filter((pl) => pl.coord.state === 'pending');
+    const wrong: string[] = [];
+    for (const pl of pend) {
+      const nodes = walkNodes(pl.root);
+      const spin = nodes.find((n) => n.name === 'spinner');
+      const member = String(spin?.swapTarget ?? '').replace(/^spinner\//, '');
+      if (!spin || !String(spin.swapTarget).startsWith('spinner/') || LADDER[member] !== IB_SLOT_PX[pl.size!] || spin.propertyRef !== undefined || nodes.some((n) => n.name === 'icon'))
+        wrong.push(`${planComponentName(pl)} → ${spin?.swapTarget ?? '(no spinner)'}`);
+    }
+    ok(pend.length > 0 && wrong.length === 0,
+      `#1697 ${def.id}: all ${pend.length} pending members swap the icon for spinner/* at the icon's px, linked to no swap property${wrong.length ? ` — ${wrong.slice(0, 3).join('; ')}` : ''}`);
+  }
   // THE MOTION. Both tokens in every corpus brand at every tempo, fixed rather than scaled, the reduced turn
   // SLOWER (never 0), and aliasing value-keyed primitives.
   for (const tempo of ['snappy', 'standard', 'relaxed'] as const) {
@@ -11863,10 +11880,39 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // shared binding edited on one and not the others fails BY NAME rather than shipping three quietly-
   // diverged buttons. This is the guard that makes the factory safe to author once.
   const FAMILY_RE = /^color\.interactive\.(primary|neutral|destructive)\./;
-  for (const field of ['anatomy', 'props', 'states', 'variants', 'paintKeys', 'figmaProperties', 'accessibility', 'content', 'motion', 'composition', 'docs'] as const) {
-    const ref = JSON.stringify(button[field]);
-    const diverged = buttonFamily.filter((d) => JSON.stringify(d[field]) !== ref).map((d) => d.id);
+  // #1697 — the SELECTION fields are per-sibling now (`ai.triggerKeywords` / `avoidWhen` /
+  // `generationPriority`, the `docs.do` tail, and `composition.alternativeTo`, which names each sibling's
+  // own icon-button), so they are masked out of the identity check and pinned separately below. Masked
+  // field by field rather than dropping `ai` / `docs` / `composition` whole: the shared remainder of each
+  // (usage, dont, primaryPurpose, composesWith, …) must still stay byte-identical.
+  const sharedPart = (d: ComponentDef, field: string): unknown => {
+    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, ...rest } = d.ai; return rest; }
+    if (field === 'docs') return { ...d.docs, do: undefined };
+    if (field === 'composition') return { ...d.composition, alternativeTo: undefined };
+    return (d as Record<string, unknown>)[field];
+  };
+  for (const field of ['anatomy', 'props', 'states', 'variants', 'paintKeys', 'figmaProperties', 'accessibility', 'content', 'motion', 'composition', 'docs', 'ai'] as const) {
+    const ref = JSON.stringify(sharedPart(button, field));
+    const diverged = buttonFamily.filter((d) => JSON.stringify(sharedPart(d, field)) !== ref).map((d) => d.id);
     ok(diverged.length === 0, `#1223 the three button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // #1697 DECISION 2 — THE SIBLINGS ARE DISTINGUISHABLE. An agent choosing between the three reads their
+  // `triggerKeywords`; three identical lists give it nothing to choose by. Each list is compared as a SET
+  // against each other sibling's, and the per-family facts the brief fixes are asserted literally:
+  // destructive carries §10's `danger` / `destructive` aliases, and neutral carries neither "delete" nor
+  // "primary action" (each of those names a different sibling).
+  const kwSet = (d: ComponentDef) => JSON.stringify([...(d.ai.triggerKeywords ?? [])].sort());
+  for (const [a, b] of [[button, buttonDestructive], [button, buttonNeutral], [buttonDestructive, buttonNeutral]])
+    ok(kwSet(a) !== kwSet(b), `#1697 sibling triggerKeywords differ: ${a.id} vs ${b.id} (${kwSet(a)} / ${kwSet(b)})`);
+  ok(['danger', 'destructive'].every((k) => buttonDestructive.ai.triggerKeywords?.includes(k)),
+    `#1697 button-destructive carries the brief §10 aliases danger / destructive (${JSON.stringify(buttonDestructive.ai.triggerKeywords)})`);
+  ok(!buttonNeutral.ai.triggerKeywords?.some((k) => /delete|primary action/i.test(k)),
+    `#1697 button-neutral advertises neither "delete" nor "primary action" (${JSON.stringify(buttonNeutral.ai.triggerKeywords)})`);
+  ok(buttonDestructive.docs.do!.some((l) => /Cancel|Keep/.test(l) && /escape/i.test(l)) && !button.docs.do!.some((l) => /neutral escape/i.test(l)),
+    '#1697 the destructive-pairing rule (brief §5) is in button-destructive\'s docs.do, and only there');
+  for (const d of buttonFamily) {
+    const want = d.id === 'button' ? 'icon-button' : d.id.replace(/^button-/, 'icon-button-');
+    ok(d.composition?.alternativeTo?.[0] === want, `#1697 ${d.id} names its own family's icon-only alternative (${want}; got ${d.composition?.alternativeTo?.[0]})`);
   }
   // NON-colour tokens (radius, per-size geometry incl. #326 padding, gap, height, icon, type, and the
   // cross-cutting disabled.*) identical across all three, byte-for-byte.
@@ -11971,10 +12017,33 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // deliberately NOT in the guarded list — each sibling records its delta from the Button of its own family
   // (`button` / `button-destructive` / `button-neutral`), so the three legitimately name different parents.
   const IB_FAMILY_RE = /^color\.interactive\.(primary|neutral|destructive)\./;
-  for (const field of ['anatomy', 'props', 'states', 'variants', 'paintKeys', 'figmaProperties', 'accessibility', 'content', 'ai', 'composition', 'docs'] as const) {
-    const ref = JSON.stringify(iconButton[field]);
-    const diverged = iconButtonFamily.filter((d) => JSON.stringify(d[field]) !== ref).map((d) => d.id);
+  // #1697 — the same per-sibling mask as the button family (see `sharedPart` above).
+  for (const field of ['anatomy', 'props', 'states', 'variants', 'paintKeys', 'figmaProperties', 'accessibility', 'content', 'ai', 'composition', 'docs', 'motion'] as const) {
+    const ref = JSON.stringify(sharedPart(iconButton, field));
+    const diverged = iconButtonFamily.filter((d) => JSON.stringify(sharedPart(d, field)) !== ref).map((d) => d.id);
     ok(diverged.length === 0, `#1225 the three icon-button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // #1697 DECISION 2, icon-only half.
+  for (const [a, b] of [[iconButton, iconButtonDestructive], [iconButton, iconButtonNeutral], [iconButtonDestructive, iconButtonNeutral]])
+    ok(kwSet(a) !== kwSet(b), `#1697 sibling triggerKeywords differ: ${a.id} vs ${b.id} (${kwSet(a)} / ${kwSet(b)})`);
+  for (const d of iconButtonFamily)
+    ok(d.composition?.alternativeTo?.[0] === d.inherits, `#1697 ${d.id} names its own family's labeled alternative (${d.inherits}; got ${d.composition?.alternativeTo?.[0]})`);
+  // #1702 net — the icon-only siblings carry the same per-family facts the button family is held to, written
+  // here (not read from the button arms): destructive carries `danger` / `destructive`, neutral advertises
+  // neither "delete" nor "primary action", and the confirmation rule lives on the destructive sibling only.
+  ok(['danger', 'destructive'].every((k) => (iconButtonDestructive.ai.triggerKeywords ?? []).some((t) => t.includes(k))),
+    `#1697 icon-button-destructive carries danger / destructive (${JSON.stringify(iconButtonDestructive.ai.triggerKeywords)})`);
+  ok(!iconButtonNeutral.ai.triggerKeywords?.some((k) => /delete|primary action/i.test(k)),
+    `#1697 icon-button-neutral advertises neither "delete" nor "primary action" (${JSON.stringify(iconButtonNeutral.ai.triggerKeywords)})`);
+  ok(iconButtonDestructive.docs.do!.some((l) => /escape/i.test(l)) && !iconButton.docs.do!.some((l) => /neutral escape/i.test(l)),
+    '#1697 the confirmation rule is in icon-button-destructive\'s docs.do, and only there');
+  // #1697 DECISION 4 — the inherited API it depends on is RESTATED, because `inherits` is read by nothing:
+  // `onClick`, and `type` defaulting to 'button' (the submit trap), matching Button's own declaration.
+  const bType = button.props.find((p) => p.name === 'type');
+  for (const d of iconButtonFamily) {
+    const t = d.props.find((p) => p.name === 'type');
+    ok(!!d.props.find((p) => p.name === 'onClick') && t?.default === 'button' && JSON.stringify(t?.values) === JSON.stringify(bType?.values),
+      `#1697 ${d.id} restates onClick and type (default 'button', values as Button's) rather than relying on inherits (type=${JSON.stringify(t)})`);
   }
   // NON-colour tokens (radius, border-width, square sizing, glyph rung, and the cross-cutting disabled.*)
   // identical across all three, byte-for-byte.
@@ -13078,6 +13147,26 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       }
     }
     ok(checkedRatios >= EXAMPLE_IDS.length, `#1349 disabled edge: the 3:1 sweep actually ran (measured ${checkedRatios} brand×mode ratios, not an empty set)`);
+
+    // #1697 DECISION 1 — THE ICON-BUTTON DISABLED EDGE, rebound as #1349 rebound Button's. The ratio is read
+    // PER SIBLING off that sibling's own `disabled.border` binding and measured by `resolveAllModes`, which
+    // never sees the def — so a revert to `color.disabled.border` (1.48–1.80:1 against the page, gated
+    // `min: 0`) resolves a role under 3 and fails the named assertion below, independently of the equality pin.
+    let ibChecked = 0;
+    for (const def of [iconButton, iconButtonDestructive, iconButtonNeutral]) {
+      ok(def.tokens['disabled.border'] === def.tokens['disabled.icon'],
+        `#1697 disabled edge: ${def.id} border role (${def.tokens['disabled.border']}) tracks the disabled icon ink (${def.tokens['disabled.icon']})`);
+      const edgeRole = def.tokens['disabled.border'].replace(/^color\./, '');
+      for (const id of EXAMPLE_IDS) {
+        for (const M of resolveAllModes(brandTheme(exampleBrands()[id] as BrandInput))) {
+          const role = (M.roles as Record<string, { ratio?: number } | undefined>)[edgeRole];
+          ok(!!role && typeof role.ratio === 'number' && role.ratio >= 3,
+            `#1697 disabled edge: ${def.id} ${id}/${M.mode} border (${edgeRole}) clears 3:1 against the page (ratio ${role?.ratio})`);
+          ibChecked++;
+        }
+      }
+    }
+    ok(ibChecked >= 3 * EXAMPLE_IDS.length, `#1697 disabled edge: the icon-button 3:1 sweep actually ran (${ibChecked} sibling×brand×mode ratios)`);
 
     // Paints resolve against the SAME variable namespace as `bound`, so they must ride
     // `planBoundVars` — anything else silently exempts every paint from the emit cross-check above.
@@ -16398,13 +16487,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // wrong box, and that has to be written down where they will look.
       ok(iba.codeOnly.some((c) => /^touch-target-expansion/.test(c)),
         'anatomy/icon-button: touch-target expansion leads a codeOnly entry — the ONE component where the optical box is smaller than the required hit box at every brand');
-      // The pending spinner is the one ceiling genuinely WORSE here than on Button, and the admission has
-      // to say so rather than reuse Button's wording: Button swaps its leading visual and keeps the label,
-      // where an IconButton has one cell and it IS the icon. Asserted as a leading `pending` entry for the
-      // same reason `figmaPropertyErrors` requires it — a state dropped from the axis needs an admission
-      // that leads with the state, not a sentence elsewhere that happens to mention it.
-      ok(iba.codeOnly.some((c) => /^pending —/.test(c) && /one cell/.test(c)),
-        'anatomy/icon-button: the pending spinner is admitted as code-tier with ITS reason (one cell, and the cell is the icon) — not Button\'s reason reused');
+      // #1697 — THE PENDING SPINNER PROJECTS NOW, so the old leading `pending — the SPINNER…` admission is
+      // gone, and with it this def's instance of #867: that entry led with `pending`, so `admits()` read it
+      // as licensing `pending`'s omission from the state axis. Asserted both ways — no codeOnly entry leads
+      // with the state, and dropping `pending` from the projected axis is now REFUSED, as it is on Button.
+      ok(!iba.codeOnly.some((c) => /^pending\b/.test(c)),
+        'anatomy/icon-button: #1697 no codeOnly entry leads with `pending` — the spinner projects, so there is no ceiling to admit');
+      const ibNoPending = { ...iconButton, figmaProperties: { ...iconButton.figmaProperties!, stateAxis: { name: 'state', values: iconButton.figmaProperties!.stateAxis!.values.filter((v) => v !== 'pending') } } };
+      ok(figmaPropertyErrors(ibNoPending as ComponentDef).some((e) => /pending/.test(e)),
+        'anatomy/icon-button: #1697 dropping `pending` from the projected state axis is refused — nothing admits it any more (#867 no longer applies to this def)');
 
       // ---- the derivation, predicted offline then gated ------------------------------------------
       // 54 = 3 appearance × 3 size × 6 state, since #1225 split `intent` out into sibling components (was
