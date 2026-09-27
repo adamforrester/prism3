@@ -243,14 +243,14 @@
     },
     "select": {
       "set": {
-        "members": 20,
-        "assignments": 100,
-        "sha256": "e43119dffa79e1724d95895ee7f1c8925c7fa76581dfa930386cbf6a68ac641a"
-      },
-      "grid": {
         "members": 24,
         "assignments": 120,
-        "sha256": "ae16a3236ad9445ab88ccdd8f3dc9d76bb01587cfc0acd5d9925549ed736bdab"
+        "sha256": "ddc062f87bb5df873fe67d778d144e58f53842621e9f2e31001675338670af51"
+      },
+      "grid": {
+        "members": 32,
+        "assignments": 160,
+        "sha256": "ac4d6033433a296598cd89734fe1484420192820cb3b97b1ec8e0e8b74e4ccc0"
       }
     },
     "veil": {

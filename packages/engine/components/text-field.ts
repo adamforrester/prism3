@@ -83,19 +83,23 @@ export const textField: ComponentDef = {
     { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component\'s live edge.' },
     { name: 'autoComplete', type: 'string (WHATWG token)', required: false, description: 'Satisfies SC 1.3.5 Identify Input Purpose — an accessibility obligation, not a convenience.' },
     { name: 'inputMode', type: "enum: 'text' | 'numeric' | 'decimal' | 'tel' | 'email' | 'url' | 'search'", values: ['text', 'numeric', 'decimal', 'tel', 'email', 'url', 'search'], required: false, description: 'Selects the mobile virtual keyboard.' },
-    { name: 'prefix', type: 'slot (adornment)', required: false, description: 'Leading adornment — a decorative/purpose glyph (currency, search), aria-hidden. Signals the field\'s PURPOSE; validation never mutates it.' },
-    { name: 'suffix', type: 'slot (adornment | action)', required: false, description: 'Trailing adornment. May be decorative (aria-hidden) OR a real labeled action (clear / reveal) — a focusable button, not decoration. The decorative-vs-interactive split is load-bearing.' },
-    // #1494 — the Figma-projected presence + swap of the LEADING glyph (the `prefix` adornment above),
+    // ONE PROP PER SLOT (#1699 decision 3, owner-delegated). `prefix` / `suffix` used to be glyph-or-action
+    // slots that duplicated `leadingIcon` / `trailingIcon`; they are now the TEXT affixes (a currency symbol, a
+    // unit), and the glyphs are the two icon slots below. The alternative (merging them away) is in
+    // `notes.contested`. API only: neither text affix projects to Figma (see `anatomy.codeOnly`).
+    { name: 'prefix', type: 'string', required: false, description: 'A leading TEXT affix inside the field, before the value — a currency symbol or a unit ("$", "€"). Not part of the value and aria-hidden, so the label or helper text carries what it means. Follows the locale\'s placement (a symbol before or after the number). A glyph is `leadingIcon`, not this.' },
+    { name: 'suffix', type: 'string', required: false, description: 'A trailing TEXT affix inside the field, after the value — a unit or a domain ("kg", ".com"). Not part of the value and aria-hidden, so the label or helper text carries what it means. A glyph or a clear / reveal action is `trailingIcon` / `clearable`, not this.' },
+    // #1494 — the Figma-projected presence + swap of the LEADING glyph,
     // mirroring select's `leadingIcon`. A node-visibility boolean (#1331/#1412) whose glyph the file
     // nominates: the leadingVisual node is emitted at every member hidden, and the `leading icon` switch flips
     // it in place, so presence does not multiply the projected set. Signals the field's purpose; validation
     // never mutates it.
-    { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value (a purpose or category mark), aria-hidden. Hidden by default; the file nominates the swap target. The Figma-projected form of the `prefix` adornment (its presence boolean + content swap).' },
+    { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value (a purpose or category mark, such as search), aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target. Signals the field\'s purpose; validation never mutates it.' },
     // #1494 — the TRAILING affix slot select does not have: the clear-button / password-reveal edge control.
-    // In CODE this is an INTERACTIVE control (its own tab stop + accessible name — see `suffix` / `clearable`
+    // In CODE this is an INTERACTIVE control (its own tab stop + accessible name — see `clearable`
     // and the a11y block); Figma projects only its GLYPH (a presence boolean + swap on an optional trailing
     // slot, exactly as `leadingIcon` models the leading glyph). See `anatomy.codeOnly`.
-    { name: 'trailingIcon', type: 'slot', required: false, description: 'An optional trailing affix at the field\'s trailing edge (the glyph of a clear / reveal action, or a decorative mark), aria-hidden as a glyph. Hidden by default; the file nominates the swap target. The Figma-projected glyph of the `suffix` / `clearable` action, whose interactive behavior Figma cannot carry.' },
+    { name: 'trailingIcon', type: 'slot', required: false, description: 'An optional trailing glyph at the field\'s trailing edge — a decorative mark (aria-hidden), or the glyph of a clear / reveal action, which in code is a focusable button with its own accessible name. The decorative-vs-interactive split is load-bearing. Hidden by default; the file nominates the swap target. Figma carries the glyph, not the action\'s behavior.' },
     { name: 'clearable', type: 'boolean', default: false, required: false, description: 'Adds a labeled Clear button that announces the cleared state and RETURNS FOCUS to the input (the recurring trap is stranding focus).' },
     // `isPending`, not `loading` — the same concept Button's `isPending` names, spelled the same way
     // (#843). Button's own prop description already recorded the preference ("Preferred over `loading`")
@@ -109,7 +113,7 @@ export const textField: ComponentDef = {
   ],
 
   // The interactive state set. read-only and disabled are distinct rows — the component's live edge —
-  // and both PROJECT (read-only is the distinctive field state select lacks). `pending`, not `loading`
+  // and both PROJECT (read-only, which select also projects since #1699). `pending`, not `loading`
   // (#843): button and icon-button say `pending`, and #487 §0.4 forbids codifying the legacy sheet's
   // `loading` name. `pending` and `empty` stay in `states` (the paint model carries them — `label.empty`
   // re-points the value ink to the placeholder role, and a spinner replaces an adornment while pending)
@@ -460,7 +464,8 @@ export const textField: ComponentDef = {
       'pending — a real STATE (a spinner replaces an adornment while async validation/value resolves, and the field sets aria-busy), deliberately NOT a Figma variant. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix — the pending member would differ from `rest` only by a node Figma cannot animate — so it stays in `states` (the code tier carries it) and is admitted OUT of the projected `stateAxis`.',
       'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving status(4) × state(6) = 24 members over rest / hover / filled / focus-visible / disabled / read-only. In code the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
       'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
-      'the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `suffix` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host\'s.',
+      'the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `trailingIcon` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host\'s.',
+      'prefix / suffix — the TEXT affixes (a currency symbol, a unit) are code-API props with no Figma part. The field projects the two glyph slots (`leadingIcon` / `trailingIcon`); a text affix is a string beside the value in the same row, and adding it to the projection is a separate anatomy decision (#1699).',
       'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
       'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not the field\'s, so it cannot be followed by value. In code a disabled field dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
       'the KEYBOARD MODEL — native text editing, Escape-to-clear when clearable, and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
@@ -468,7 +473,7 @@ export const textField: ComponentDef = {
   },
 
   // How this projects into Figma (#1494). `status` is the one variant axis; `state` projects the five
-  // interactive states (read-only INCLUDED — the field state select lacks) plus `filled`, the member holding a
+  // interactive states (read-only INCLUDED — select gained it in #1699) plus `filled`, the member holding a
   // value. The leading and trailing glyphs' PRESENCE and the message's are node-visibility BOOLEANS, NOT variant
   // axes, so none multiplies the set: status(4) × state(6) = 24 members. `pending` and `empty` are real states (see `states` and the codeOnly
   // entries leading with those names) but are deliberately absent from this projected axis.
@@ -513,11 +518,11 @@ export const textField: ComponentDef = {
       '3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion',
       '1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1) / 2.4.13 Focus Appearance',
       '4.1.2 Name/Role/Value / 2.5.8 Target Size',
-      '3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (login/checkout fields, WCAG 2.2)',
+      '3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste',
     ],
     keyboard: 'Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are SEPARATE tab stops with their own accessible names. Escape clears when clearable.',
     focus: ':focus-visible ring, boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the <input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.',
-    aria: 'The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is NOT the accessible name. While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.',
+    aria: 'The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is NOT the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.',
   },
 
   content: {
@@ -532,7 +537,8 @@ export const textField: ComponentDef = {
       'Always render a visible, associated label (FieldLabel) — visually-hidden only for search',
       'Distinguish readOnly (copyable, submitted, full-contrast) from disabled (silent, exempt)',
       'Emit a real <input name> so it works uncontrolled, in a native form, with Server Actions',
-      'Separate a decorative prefix (aria-hidden) from an interactive suffix action (a labeled button)',
+      'Separate a decorative glyph (aria-hidden) from an interactive trailing action (a labeled button)',
+      'Follow the error-timing contract: validate on blur, re-validate on input after the first error, move focus to the first invalid field on submit, and show an error summary on a long form (the form library runs it; the field renders it)',
     ],
     dont: [
       'Use the placeholder as the label, or put load-bearing text in it',
@@ -559,18 +565,36 @@ export const textField: ComponentDef = {
     planned: ['form', 'tooltip', 'combobox', 'number-field', 'search-field', 'date-picker', 'password-field'],
   },
 
+  // KB text-field brief §8.
+  motion: {
+    enter: 'none (present on mount)',
+    exit: 'none',
+    reduceMotion: 'State transitions — the border color on focus or status, the helper-to-validation message swap — are short, token-driven and eased out, ~100–150ms. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion these resolve to an instant color or position change so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless.',
+  },
+
   notes: {
     contested: [
       'Bundled props vs composed slots — ship both: props for the 90% vertical-form case, composed FieldLabel/FieldMessage slots for the 10% custom layout (brief §3).',
       'How far to split the typed family — NumberField separate; SearchField/PasswordField thin specializations; email/url/tel stay as type+attributes (brief §3).',
       'Validation ownership/timing — presentational default; the form library owns timing (brief §3, §6).',
-      'warning as a distinct state — optional; many systems fold it into helper/error (brief §4).',
+      'warning as a distinct state (brief §4 calls it optional; many systems fold it into helper/error). Settled here as a STATUS, not a state: `warning` is a value of the `status` axis with its own border (`color.border.warning`, #1517) and its own message status, so the field signals it on both.',
+      'pressed — the brief lists it as a runtime state (§4, touch-down feedback before the virtual keyboard rises), largely a mobile concern. Not declared: `pressed` is not a field state here (see `tokens`), so a touch-down carries no skin of its own. The alternative is a `pressed` state with its own skin, which no field role emits today (`color.field.border.pressed` does not exist).',
+      'density [comfortable, compact, fluid] — the brief\'s second variant axis (§4, §15). Not declared: the engine\'s density is a brand lever that moves every control\'s rungs, and `size` covers per-field scale. Carbon\'s borderless `fluid` field is a separate treatment, not built.',
+      'prefix / suffix as TEXT affixes vs merged away (#1699 decision 3, owner-delegated: one prop per slot). They were glyph-or-action slots duplicating `leadingIcon` / `trailingIcon`. Chosen: keep the names for the text affixes (a currency symbol, a unit — brief §9\'s locale placement). In the brief, `prefix` / `suffix` name the adornment slots (§2, §15) and §10 maps `leadingVisual` / `trailingVisual` onto them; here the glyph adornments are the two icon slots, so the names are reused for the text affixes, with the glyphs on the two icon slots and the clear action on `clearable`. The alternative, dropping `prefix` / `suffix` entirely, loses the text affix a currency or unit field needs.',
     ],
     unverified: [
       'Polaris migration to framework-agnostic Web Components (<s-text-field>, Shadow DOM) — needs _source-text backing, shared with the Button brief (brief §11, §14).',
       'The control now carries a `minWidth: 320` floor (#1518, owner: select parity), so the field reads at a comfortable 320 and flexes above it, exactly as select does (#1345). The nested label and message, however, are NOT yet set to FILL that width (`crossAxisFill` → `layoutAlign: STRETCH`, the #1503 capability select adopted): a `nest` cannot bind sizing (#1299), so they hug their content and sit narrower than the 320 control — the same pre-fill state select was in before #1503. Closing that (label/message `crossAxisFill`, mirroring select) is the remaining half of the width follow-up #1503 held for the owner; #1518 settled only the floor.',
       'The value text does not ellipsize in the Figma projection — `maxLines` / `textOverflow` have no PartDef expression — so a long placeholder in a narrow member overflows rather than truncating. The ellipsis is a code-side behavior.',
       'The leading and trailing glyphs are node-visibility BOOLEANS (#1331/#1494): each node is built hidden and shown by its switch. In Figma auto-layout a `visible:false` child is excluded from the flow, so a hidden glyph should add no gap — but whether a real host reflows `content` / the control when a switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where a hidden glyph sits, or the trailing affix not pinning tight when off.',
+    ],
+    // KB text-field brief §13.
+    evolution: [
+      'FLOATING LABELS OUT OF FAVOR. Static top-aligned labels are now the assumed default for accessibility, i18n and density; Material 3 keeps floating as an option (KB text-field brief §13). This field composes the static FieldLabel.',
+      'PLACEHOLDER-AS-LABEL is universally an anti-pattern — settled, though legacy code persists.',
+      'THE TYPED FAMILY IS SPLITTING into discrete components (a number field) for tree-shaking and localized behavior; the practice holds email / url / tel as `type` + attributes on this field (brief §3).',
+      'ACCESSIBILITY WIRING MOVED INTO CONTEXT. Generated ids and the aria-describedby chain are stitched by the component, removing the most frequent manual-ARIA error from the consumer.',
+      'VALIDATION TIMING CONVERGED on validate-on-blur, re-validate after the first error, focus-first-invalid and an error summary for long forms; autocomplete hardened into an SC 1.3.5 obligation, and WCAG 2.2 raised the bar on login and checkout fields (3.3.7, 3.3.8).',
     ],
   },
 };

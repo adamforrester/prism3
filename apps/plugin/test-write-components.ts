@@ -3523,8 +3523,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `message-row seed: with no floor, a ${SHORT}px caption row measures ${SHORT} in the default message and ${GLYPH} beside the glyph (default ${bareFm.get('status=default')?.h}, error ${bareFm.get('status=error')?.h})`);
 
   // The live report's counts, hand-copied: 15 on text-field (3 statuses x 5 states), 12 on select (3 x 4).
-  // One more state column since the field family's `filled` (2026-09-25): 3 x 6 and 3 x 5.
-  const LIVE_MISSES: Record<string, number> = { 'text-field': 18, select: 15 };
+  // One more state column since the field family's `filled` (2026-09-25): 3 x 6 and 3 x 5. And select's
+  // `read-only` column since #1699: 3 x 6 on both.
+  const LIVE_MISSES: Record<string, number> = { 'text-field': 18, select: 18 };
   for (const id of ['text-field', 'select']) {
     const shipped = await buildFile(byDef(id), SHORT);
     const fm = shipped.boxes('field-message');
@@ -3827,7 +3828,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const INK: Record<string, Record<string, [Layer, string]>> = {
     'text-field': { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
     textarea: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
-    select: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED] },
+    // select's `read-only` (#1699 decision 2, text-field's state set) shows the value, as on text-field.
+    select: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
   };
   // Which defs draw the caret, and at which states. select is typed empty on purpose (see above).
   const CARET_AT: Record<string, string[]> = { 'text-field': ['focus-visible'], textarea: ['focus-visible'], select: [] };
