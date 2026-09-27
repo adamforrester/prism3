@@ -1,16 +1,17 @@
 /**
  * Select — the NATIVE-FIRST, COMPOSED field, and the first def that nests the two shared field parts
- * (`field-label` and `field-message`) rather than sitting beside them (KB text-field brief §2, the
- * Prism2 `select` component spec). A control for choosing ONE value from a known, bounded set.
+ * (`field-label` and `field-message`) rather than sitting beside them (KB select brief, which inherits the
+ * text-field substrate; the Prism2 `select` component spec). A control for choosing ONE value from a known,
+ * bounded set. SINGLE-CHOICE by decision (#1699, owner-delegated): the brief's `multiple` is recorded in
+ * `notes.contested`, and a multi-value choice goes to `checkbox-group` or a future multi-select.
  *
  * ── ONE UNIFIED COMPONENT, NOT A DECOMPOSITION (owner-decided) ───────────────────────────────────
  *
  * Checkbox splits into Row + Control + Group because the same control appears at three granularities.
  * Select does NOT: it is one component that COMPOSES the field parts. So this def's anatomy is a root
  * column holding a nested `field-label`, the control box, and a nested `field-message` — the label and
- * message color/type live in THEIR defs and are reused here, exactly as `text-field` composes them,
- * except that `text-field` has no anatomy and names them only in `composition`, while this def actually
- * NESTS them as in-flow instances (`kind: 'nest'`, #1226).
+ * message color/type live in THEIR defs and are reused here, NESTED as in-flow instances (`kind: 'nest'`,
+ * #1226). `text-field` and `textarea` adopted this exact column when they gained an anatomy (#1494).
  *
  * NATIVE-FIRST: this models the CLOSED control only. The open popup — the listbox of options — is the
  * platform's (a native `<select>`'s menu is OS-drawn and un-styleable, and even a custom listbox is a
@@ -40,6 +41,7 @@
  *   rest          → `field.border.rest`      (the bare `border` key — the rest fallback)
  *   hover         → `field.border.hover`     (`border.hover`)
  *   focus-visible → `border.focus`           (`border.focus-visible`)
+ *   read-only     → `border.secondary`       (`border.read-only` — text-field's quieter boundary, #1699)
  *   error         → `border.danger`          (`error.border.{state}` — a status-led, border-ONLY swap)
  *   warning       → `border.warning`         (`warning.border.{state}`)
  *   success       → `border.success`         (`success.border.{state}`)
@@ -122,12 +124,14 @@ import { ComponentDef } from '../component-schema';
 export const select: ComponentDef = {
   id: 'select',
   name: 'Select',
-  aliases: ['dropdown', 'combobox', 'picker', 'select-menu', 'listbox'],
+  // The KB select brief's aliases (§10, §15) plus the engine's `select-menu`. `combobox` is NOT one: brief §10
+  // calls it "the common mis-conflation, not a true alias" — a combobox is a different ARIA contract (#1699).
+  aliases: ['dropdown', 'picker', 'select-menu', 'listbox', 'select-panel', 'exposed-dropdown-menu'],
   category: 'form',
   status: 'draft',
   summary: 'Closed control for picking one value from a known set. The menu is the platform\'s.',
   description:
-    'A control for choosing ONE value from a known, bounded set — the closed, native-first field: label, a bordered control showing the current value or a placeholder with a trailing chevron, and a helper/validation message below. Composes the shared FieldLabel and FieldMessage. The open menu is the platform\'s (native or a separate listbox), not modeled here. Not free-form text (TextField), not any-number-from-a-set (Checkbox group), not a small always-visible set (Radio / SegmentedControl), not suggestion-backed typing (Combobox).',
+    'A control for choosing ONE value from a known, bounded set — the closed, native-first field: label, a bordered control showing the current value or a placeholder with a trailing chevron, and a helper/validation message below. Composes the shared FieldLabel and FieldMessage. The open menu is the platform\'s (native or a separate listbox), not modeled here. Single-choice only: a choice of several values is a Checkbox.Group, or a multi-select, not built yet. Not free-form text (TextField), not a small always-visible set (Radio.Group, or a segmented control, not built yet), not a set the user filters by typing (a combobox, not built yet).',
 
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'The visible, persistent label, rendered as the nested FieldLabel. Required — a select always carries a programmatic name. Never the placeholder.' },
@@ -135,8 +139,8 @@ export const select: ComponentDef = {
     // displayed text: the selected option's label, or the placeholder when nothing is chosen. The
     // controlled selection is wired in code via `onChange` and the option set. LOWERCASE per #1333.
     { name: 'value', type: 'string', required: false, description: 'The displayed text — the selected option\'s label, or the placeholder when nothing is chosen. Controlled: pair with onChange. When it holds the placeholder the ink is the muted placeholder role; a chosen value shows the full-contrast value ink — the same empty-vs-value polarity text-field uses. This is an internal, content-driven distinction, not a variant a designer picks.' },
-    { name: 'placeholder', type: 'string', required: false, description: 'The prompt shown before a choice is made ("Select an option"). Muted, and never load-bearing — it is not the label and it vanishes once a value is chosen.' },
-    { name: 'options', type: 'array', required: false, description: 'The bounded set of choices. Past roughly 7-10 options a filtering combobox (not built yet) scans better; below a handful an always-visible Radio.Group may read better.' },
+    { name: 'placeholder', type: 'string', required: false, description: 'The null state shown before a choice is made — plainly the thing to choose ("Country"), not an instruction ("Select a country from the list"), and omittable when the label suffices. Muted, and never load-bearing — it is not the label, not a real option, and it vanishes once a value is chosen.' },
+    { name: 'options', type: 'array', required: false, description: 'The bounded set of choices. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better.' },
     { name: 'onChange', type: 'function', required: false, description: 'Fires with the newly chosen value (also onBlur / onFocus). A controlled value with no onChange is read-only by accident.' },
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure.' },
     // The UI reads "Validation"; the Figma variant axis is `status` so it drives the nested message's own
@@ -152,6 +156,10 @@ export const select: ComponentDef = {
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value (a category or status mark), aria-hidden. Hidden by default; the file nominates the swap target. Signals the field\'s purpose; validation never mutates it.' },
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled — removed from tab order, not submitted, contrast-exempt. Reserve for a choice irrelevant in the current state.' },
+    // #1699 decision 2 (owner-delegated): read-only and pending, text-field's and textarea's two states, so the
+    // field family carries one state set. Native <select> has no `readonly` (brief §4), which the prop says.
+    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Distinct from disabled: focusable, submitted with the form, and at full contrast, with the value shown and not changeable. Native <select> has no readonly attribute, only disabled, so a read-only select is the custom control with aria-readonly, or a hidden input mirroring the value beside a non-interactive display.' },
+    { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Async options are loading — a spinner replaces the chevron and the control sets aria-busy. Not an empty state: the option list is still arriving. The same name Button and TextField use.' },
     { name: 'id', type: 'string', required: false, description: 'Wiring + form submission; auto-generated with useId if omitted, tying the label to the control and stitching the aria-describedby chain to the message.' },
     { name: 'name', type: 'string', required: false, description: 'A real control name so the field works uncontrolled, in a native form, and with Server Actions.' },
   ],
@@ -168,11 +176,17 @@ export const select: ComponentDef = {
   // paint key, not a state. No `expanded` (the open menu is the platform's, not modeled here). `filled` (owner
   // decision, 2026-09-25, Prism 2's `Filled` on `reference/Prism2/component-specs/select.json`) is the PROJECTED
   // member holding a chosen value; rest / hover / focus-visible show the placeholder.
-  states: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'empty'],
+  //
+  // `read-only` and `pending` (#1699 decision 2, owner-delegated) are text-field's and textarea's two states,
+  // added so the field family carries one state set. `read-only` PROJECTS (the value at full contrast behind
+  // text-field's quieter `border.secondary` boundary); `pending` does not (a spinner swap with no static skin,
+  // admitted in `codeOnly` exactly as text-field admits it).
+  states: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
 
   // ONE axis, `status`, and it IS `field-message`'s status axis by name and value — the alignment that lets
-  // the nested message follow it (see the header). Single-size: Prism2's select is single-size, so no
-  // `size` axis is invented.
+  // the nested message follow it (see the header). No `size` axis: the control binds the single `md` rung,
+  // as text-field and textarea project one. The brief's `size` and its other axes are recorded as undeclared
+  // in `notes.contested` (#1699 decision 2 keeps `size` deferred).
   variants: {
     status: ['default', 'error', 'warning', 'success'],
   },
@@ -189,7 +203,7 @@ export const select: ComponentDef = {
   // so a state-led `label.empty` fails the `{status}.{slot}` reading (`{status}='label'`) and a status-led
   // `error.border` fails the `{slot}.{state}` reading. Making the status template 3-segment keeps the two
   // vocabularies at different lengths. So each non-default status binds its border once PER non-disabled
-  // state (rest / hover / focus-visible / empty), which is what makes the swap persist through hover and
+  // state (rest / hover / focus-visible / filled / read-only / empty), which is what makes the swap persist through hover and
   // focus rather than yielding to the neutral interactive border — the status condition does not blink off
   // when the pointer moves. `default` binds no status-led border and falls through to the neutral state
   // border. `warning` / `success` swap the border alongside `error` since #1517 (Prism 2 parity).
@@ -204,8 +218,8 @@ export const select: ComponentDef = {
     // density. `size.md.height` is 44 on a comfortable brand but 36 on a compact one (the QA symptom),
     // which clears SC 2.5.8 (24) but not the enhanced target; `size.md.min-height` = max(md, 44) lifts the
     // sub-44 densities and leaves a spacious 56 alone. A field control IS the tap target, so it takes the
-    // floor; small buttons stay the knowing exception below it (owner). text-field keeps `size.md.height`
-    // for now — the family generalization is tracked in #1437.
+    // floor; small buttons stay the knowing exception below it (owner). text-field binds the same floor
+    // since #1494, so the single-line fields share it.
     'min-height': 'size.md.min-height',
     'pad-x': 'size.md.padding-x',
     'pad-y': 'size.md.padding-y',
@@ -241,6 +255,8 @@ export const select: ComponentDef = {
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
+    // read-only's quieter boundary, with the full-contrast value ink above it — text-field's binding (#1699).
+    'border.read-only': 'color.border.secondary',
     // The status-led swaps, each bound per non-disabled state so it wins over the neutral progression above
     // and persists through hover and focus (the focus RING, a separate part, still carries the focus signal).
     // At `disabled` the cross-cutting `disabled.border` takes over. #1517 (owner-directed, Prism 2 parity):
@@ -254,16 +270,19 @@ export const select: ComponentDef = {
     'error.border.focus-visible': 'color.border.danger',
     'error.border.empty': 'color.border.danger',
     'error.border.filled': 'color.border.danger',
+    'error.border.read-only': 'color.border.danger',
     'warning.border.rest': 'color.border.warning',
     'warning.border.hover': 'color.border.warning',
     'warning.border.focus-visible': 'color.border.warning',
     'warning.border.empty': 'color.border.warning',
     'warning.border.filled': 'color.border.warning',
+    'warning.border.read-only': 'color.border.warning',
     'success.border.rest': 'color.border.success',
     'success.border.hover': 'color.border.success',
     'success.border.focus-visible': 'color.border.success',
     'success.border.empty': 'color.border.success',
     'success.border.filled': 'color.border.success',
+    'success.border.read-only': 'color.border.success',
 
     // ── VALUE INK — full-contrast value by default, the muted placeholder ink at the `empty` state.
     // Text-field's exact polarity (`label.empty` is the placeholder, the bare `label` is the value). Both
@@ -422,8 +441,8 @@ export const select: ComponentDef = {
       value: {
         kind: 'text',
         type: 'type',
-        presentWhen: { state: ['filled'] },
-        note: 'The chosen option\'s label, in the value ink. Shown on the filled control. One line, ellipsized in code.',
+        presentWhen: { state: ['filled', 'read-only', 'pending'] },
+        note: 'The chosen option\'s label, in the value ink. Shown on the filled and read-only control. One line, ellipsized in code.',
       },
       // THE TRAILING CHEVRON — a fixed `vector`, glyph `chevron-down` (the engine name; the Prism2 spec's
       // `arrow-down-s-line` is the source file's name, not ours). Its ink is the `icon` slot.
@@ -473,22 +492,24 @@ export const select: ComponentDef = {
     codeOnly: [
       'the OPEN MENU / listbox — the whole option list is the platform\'s (a native `<select>`\'s popup is OS-drawn; a custom one is a separate listbox/popover surface). This def models the CLOSED control only, so there is no `expanded` state and no option-list anatomy. A designer building the open menu reaches for a menu/listbox component, not a variant of this one.',
       'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the control, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the control and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit). aria-expanded / aria-haspopup describe the popup this def does not model.',
-      'empty — a real STATE in code (nothing is chosen, so the control shows the placeholder), NOT a Figma variant (#1344): in Figma the empty control IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left unchosen" coordinate) and is held out of the projected `stateAxis`, leaving status(4) × state(5) = 20 members. In code the prompt and the chosen label are one control\'s content, never two elements.',
-      'the nested LABEL\'s disabled dimming — select fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not select\'s (rest / hover / focus-visible / disabled / empty), so it cannot be followed by value. In code a disabled select dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
+      'empty — a real STATE in code (nothing is chosen, so the control shows the placeholder), NOT a Figma variant (#1344): in Figma the empty control IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left unchosen" coordinate) and is held out of the projected `stateAxis`, leaving status(4) × state(6) = 24 members with read-only. In code the prompt and the chosen label are one control\'s content, never two elements.',
+      'the nested LABEL\'s disabled dimming — select fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not select\'s (rest / hover / filled / focus-visible / disabled / read-only / pending / empty), so it cannot be followed by value. In code a disabled select dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
+      'pending — a real STATE (async options are loading: a spinner replaces the chevron and the control sets aria-busy), deliberately NOT a Figma variant, text-field\'s posture. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, so it stays in `states` and is held out of the projected `stateAxis`, leaving status(4) × state(6) = 24 members.',
+      'the NATIVE <select> has no readonly attribute, only disabled (KB select brief §4, §11). The projected read-only member shows the value at full contrast behind the quieter boundary; in code that member is the custom control with aria-readonly, or a hidden input mirroring the value for form submission.',
       'the KEYBOARD MODEL — typeahead to a matching option, arrow keys to move within the open list, Enter/Space to open and commit, Escape to close. All of it belongs to the interaction the closed control opens INTO, which is not modeled here.',
     ],
   },
 
   // How this projects into Figma. `status` is the one variant axis; `state` projects as the state axis. The
   // leading glyph's PRESENCE is a node-visibility BOOLEAN (`booleans` below), NOT a variant axis, so it does
-  // NOT multiply the set: status(4) × state(5) = 20 members (16 before `filled`; 32 while `leading` was a slot ×2 axis —
-  // the #1331 conversion). `empty` is a real state (see `states` and the `codeOnly` entry leading with
-  // `empty`) but is deliberately absent from this projected axis (#1344) — a content-driven ink distinction
-  // the code carries, not a variant a designer picks; that is why `state` lists five values while `states`
-  // lists six.
+  // NOT multiply the set: status(4) × state(6) = 24 members (20 before `read-only`, #1699; 16 before `filled`;
+  // 32 while `leading` was a slot ×2 axis — the #1331 conversion). `empty` and `pending` are real states (see
+  // `states` and the `codeOnly` entries leading with those names) but are deliberately absent from this
+  // projected axis (#1344) — the code carries them, a designer does not pick them; that is why `state` lists
+  // six values while `states` lists eight.
   figmaProperties: {
     variantAxes: ['status'],
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'disabled'] },
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only'] },
     // NO slot axis. The leading glyph's presence was a `leading` slot ×2 variant axis until #1331; it is now
     // a node-visibility BOOLEAN (`booleans` below). A select's glyph sits INSIDE `content`, not against the
     // box edge, so it takes NO #326 slot-aware padding asymmetry — which is exactly why a boolean can drive
@@ -504,7 +525,7 @@ export const select: ComponentDef = {
       value: { part: 'value', default: 'Selected option' },
     },
     // TWO NODE-VISIBILITY BOOLEANS (#1331/#1426), neither a variant axis — both toggle a part's `visible`
-    // in place, so neither multiplies the set (still 20 members).
+    // in place, so neither multiplies the set (still 24 members).
     //   · `leadingIcon` (#1331): `leadingVisual` is emitted at every member with `visible: false` (hidden by
     //     default, matching the prop's "Hidden by default"), and the `leading icon` switch toggles it. Panel
     //     label `leading icon` (the #1380 canon, preserved from the retired slot axis); the code prop stays
@@ -527,14 +548,19 @@ export const select: ComponentDef = {
   },
 
   accessibility: {
-    role: 'combobox / listbox (native <select>, or a custom control with aria-expanded + aria-haspopup="listbox")',
+    // The TRIGGER's role and the POPUP's, split (#1699): the def models the trigger; the popup is the platform's.
+    role: 'Trigger: a native <select>, or a custom button or role="combobox" (ARIA 1.2) with aria-haspopup="listbox", aria-expanded and aria-controls. Popup: role="listbox" with role="option" children carrying aria-selected — the platform\'s or a listbox component\'s, not modeled here.',
+    // 1.4.13 Content on Hover or Focus and 2.1.1 Keyboard are the brief's two OVERLAY criteria (§6). They are
+    // not claimed here because this def models the CLOSED control; the open list that must meet them is the
+    // platform's or a listbox component's. See `keyboard`.
     wcag: [
+      '1.3.5 Identify Input Purpose (autocomplete on a select collecting user information, such as a country)',
       '1.3.1 Info and Relationships (label + describedby association)',
       '3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion',
       '1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (control boundary ≥3:1) / 2.4.13 Focus Appearance',
       '4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size',
     ],
-    keyboard: 'The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control.',
+    keyboard: 'The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.',
     focus: ':focus-visible ring on the control, boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.',
     aria: 'The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is NOT the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native <select> where its OS menu is acceptable, because it is correct for free.',
   },
@@ -545,7 +571,7 @@ export const select: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. Past roughly 7-10 options a filtering combobox (not built yet) scans better; below a handful an always-visible Radio.Group may read better.',
+    usage: 'Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group.',
     do: [
       'Render a visible, associated label (FieldLabel) above the control',
       'Show a muted placeholder as a prompt, never as the label or a real option',
@@ -558,21 +584,23 @@ export const select: ComponentDef = {
       'Signal a status with the border color alone — the nested message carries the text + icon',
       'Reach for a select when the user types to filter (a combobox, not built yet) or the set is two mutually-exclusive options (Radio.Group)',
     ],
-    contentGuidelines: 'Label = noun phrase, sentence case, no trailing colon. Placeholder = a prompt ("Select an option"). Error says what + how to fix, never "Invalid".',
+    contentGuidelines: 'Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain null state ("Country"), not an instruction, and omittable when the label suffices. Error says what + how to fix, never "Invalid".',
   },
 
   ai: {
     primaryPurpose: 'Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.',
     whenToUse: 'One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.',
-    avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), any number may be chosen (Checkbox.Group), the set is small and worth showing at once (Radio.Group, or a segmented control, not built yet), or the choice is a binary that takes effect instantly (Switch.Row).',
+    avoidWhen: 'The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or a segmented control, not built yet), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).',
     commonPartners: ['field-label', 'field-message', 'focus-ring', 'icon'],
-    triggerKeywords: ['select', 'dropdown', 'picker', 'combobox', 'menu', 'choose', 'option list'],
+    // No `combobox` (brief §10: the mis-conflation, a different component) and no `menu` (a menu performs an
+    // action, a select sets a value — brief §12; it is an alternative, not this) (#1699).
+    triggerKeywords: ['select', 'dropdown', 'picker', 'choose', 'option list'],
     generationPriority: 2,
   },
 
   composition: {
     composesWith: ['field-label', 'field-message', 'focus-ring', 'icon'],
-    alternativeTo: ['text-field', 'radio-row', 'checkbox-group'],
+    alternativeTo: ['text-field', 'radio-group', 'checkbox-group'],
     replacesPatterns: ['a bare <select> with no label wiring', 'placeholder-as-label'],
     // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by
     // intent and scale, not replacements.
@@ -580,15 +608,31 @@ export const select: ComponentDef = {
     planned: ['form', 'menu', 'combobox', 'segmented-control'],
   },
 
+  // KB select brief §8. The signature motion is the open list's, which this def does not model; what the closed
+  // control owns is its border/state transition and the chevron's rotation on open.
+  motion: {
+    enter: 'The open list (the platform\'s or a listbox component\'s): ~100–150ms opacity fade with a small vertical translate (translateY(-4px) → 0), anchored to the control. The chevron rotates on open under the same rule.',
+    exit: 'The open list closes faster than it opens — ~75ms, a fade without translate — so dismissal reads as instant.',
+    reduceMotion: 'Under prefers-reduced-motion, drop the translate and scale and keep an accelerated opacity fade (~50ms); the chevron rotation follows the same rule. The closed control\'s border and state changes are short token-driven transitions, text-field\'s ~100–150ms, and resolve to an instant color change under reduced motion.',
+  },
+
   notes: {
     contested: [
       'Native <select> vs a custom listbox — this def models the closed control both share and leaves the open menu to the platform (native-first). A fully custom, styleable menu is a separate listbox/popover surface, chosen when the native menu\'s look is unacceptable and the extra ARIA cost is accepted.',
+      'SINGLE vs MULTIPLE choice — the brief carries a `multiple` prop (§3, §15: value becomes an array, Space toggles and keeps the list open, a token or count summary, leading checkboxes). This def is single-choice by decision (#1699, owner-delegated): a choice of several values goes to Checkbox.Group, or to a multi-select, not built yet. The alternative is `multiple` here, which changes the keyboard contract and the value type, so it is a second component\'s worth of behavior behind one flag.',
+      'THE BRIEF\'S OTHER VARIANT AXES, NOT DECLARED (brief §4, §15). `size` [small, medium, large] is deferred (#1699 decision 2): the control binds the single `md` rung, and adding the ladder is text-field\'s `props.size` + `size.*` shape, a separate decision. `density` [comfortable, compact] follows the brand\'s density lever rather than a per-component axis. `selection` [single, multiple] and `multi-summary` [count, tokens] are the single-choice decision above. `rendering` [native, custom] is the native-first call in the first entry: this def models the closed control both share. `mode: creatable` blurs toward a combobox (brief §4) and belongs with that component, not built yet. None is in `VARIANT_AXES` today, which is closed (#847).',
       'error as a border swap vs a full validation border set — settled as text-field settles it. Until #1517 error was the ONLY status that colored the border; #1517 (owner-directed, Prism 2 parity) extended the swap to warning and success, which the token tier already emits as `border.warning`/`border.success`, so every non-default status now colors its own boundary AND carries the message.',
     ],
     unverified: [
       'The nested label and message now FILL the field\'s width (#1503, `crossAxisFill` → `layoutAlign: STRETCH`), spanning the 320 control rather than hugging narrower — the gap this note used to record (a `nest` cannot bind sizing, #1299, so it once sat at its natural width) is closed. The control is floored at 320 (`minWidth`) and the column hugs to it, so the field reads at 320 and the two nested parts stretch to match; `test:roundtrip` reads `layoutAlign: STRETCH` back off the offline host, but whether a real host keeps the stretch on a nested INSTANCE is the standing offline-arm caveat (below).',
       'The value text does not ellipsize in the Figma projection — `maxLines` / `textOverflow` have no PartDef expression — so a long placeholder in a narrow member overflows rather than truncating. The ellipsis is a code-side behavior.',
       'The leading glyph is a node-visibility BOOLEAN (#1331): the node is built at every member with `visible:false` and shown by the `leading icon` switch. In Figma auto-layout a `visible:false` child is EXCLUDED from the flow — it takes no space or gap — so a hidden glyph should add no gap to `content`, exactly as the absent slot did. The offline shims gate the boolean property, the built `visible=false` and the `componentPropertyReferences.visible` wiring, but NOT auto-layout\'s exclusion of invisible children: whether a real host reflows `content` when the switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where the hidden glyph sits, or the field not tightening when leading is off.',
+    ],
+    // KB select brief §13, the three-phase through-line the brief adopts as its framing.
+    evolution: [
+      'STYLING ERA (~2015–2020): custom <div> listboxes to escape the unstyleable native element, at the cost of industry-wide accessibility regressions (KB select brief §13).',
+      'ACCESSIBILITY ERA (~2020–2024): headless libraries (React Aria, Radix) codify the ARIA 1.2 listbox and combobox patterns correctly, with JavaScript positioning and focus management dominating the payload.',
+      'PLATFORM ERA (2025–present): the Popover API, CSS Anchor Positioning and `appearance: base-select` let a native <select> carry custom styling and rich option content, collapsing the native-versus-custom trade. Directional and unverified in the brief — the reason this def stays native-first and models only the closed control.',
     ],
   },
 };

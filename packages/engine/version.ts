@@ -2926,6 +2926,18 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.175.0 — #1699: the field family and the switch align to their KB briefs (owner-delegated decisions).
+ * Two projected-surface moves: (1) `select` gains `read-only` and `pending` (text-field's state set);
+ * `read-only` projects, so the set grows status(4) × state(5) = 20 → 24, and the new column binds
+ * text-field's `border.secondary` boundary plus the status-led `{error,warning,success}.border.read-only`.
+ * (2) `field-label`'s defaults follow its hosts — `required: false`, `size: small`, `emphasis: secondary` —
+ * so the `emphasis` values reorder to [secondary, primary] (the set's first member, Figma's default
+ * variant, is now small / secondary / regular / rest) and the `required` marker builds hidden. Every host
+ * that nests the label moves with it (the nested instance's built marker). The rest is def prose and
+ * metadata that no projection reads: select's aliases and trigger keywords, text-field's prefix/suffix as
+ * text affixes (API only), `motion` and `notes.evolution` on all six defs. MINOR by the running convention.
+ * CONTRACT STANDS at 13.1.0: every binding is an existing role, so no guaranteed token name moves.
+ *
  * 0.174.0 — #1685: personality-trait citations are checked against the briefs they quote. Four `why`
  * strings in `vocabulary.ts` change, and each one ships: it is the bracketed text of the note `brandTheme`
  * returns when a `personality` trait fills a lever, and it is inlined into the studio bundle. `dense` now
@@ -3836,7 +3848,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.174.0';
+export const ENGINE_VERSION = '0.175.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

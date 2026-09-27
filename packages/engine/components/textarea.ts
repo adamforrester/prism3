@@ -124,7 +124,7 @@ export const textarea: ComponentDef = {
     { name: 'maxLength', type: 'number', required: false, description: 'Character limit, counted by GRAPHEME (Intl.Segmenter) rather than UTF-16 code unit — a flag emoji costs 4 units and a ZWJ family up to 11, so a .length limit hits non-Latin and emoji users artificially early. Enforce SOFT: allow the overflow, set aria-invalid, show the counter in error, block submit. Never the native hard maxlength, which silently truncates pasted overflow with no signal to anyone, AT users included.' },
     { name: 'showCount', type: 'boolean', default: false, required: false, description: 'The character counter — first-class here, unlike on TextField. Only ever with a real limit: a counter on an unlimited field implies a cap that does not exist.' },
     { name: 'spellCheck', type: 'boolean', required: false, description: 'Native passthrough; worth surfacing because structured input often wants it off.' },
-    { name: 'submitOnEnter', type: 'boolean', default: false, required: false, description: 'Composer opt-in: Enter submits, Shift+Enter inserts a newline. NOT the base default — Enter inserting a newline is the platform contract a multi-line field advertises via aria-multiline, and hijacking it silently can lose a screen-reader user a drafted message. Whenever true, pair it with a real visible submit button and a visible "Shift+Enter for a new line" hint (SC 3.3.2).' },
+    { name: 'submitOnEnter', type: 'boolean', default: false, required: false, description: 'Composer opt-in: Enter submits, Shift+Enter inserts a newline. NOT the base default — Enter inserting a newline is the platform contract a multi-line field advertises via aria-multiline, and hijacking it silently can lose a screen-reader user a drafted message. Whenever true, pair it with a real visible submit button and a visible "Shift+Enter for a new line" hint (SC 3.3.2). A composer that submits on Enter by default is its own specialization, named MessageComposer or ChatInput (brief §3, §10), not this base field.' },
     { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. Each non-default status swaps the field border to its own boundary (border-only — `error` → danger, `warning` → warning, `success` → success) and sets the composed message to the matching status; `default` is neutral. `error` also sets aria-invalid. The same prop, with the same values, as TextField and Select.' },
     { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong AND how to fix it, with the number when it is a length limit (SC 3.3.3), never "Invalid".' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales type and padding ONLY — height belongs to rows / auto-grow, so the substrate\'s height tiers do not transfer.' },
@@ -233,7 +233,7 @@ export const textarea: ComponentDef = {
     'success.border.empty': 'color.border.success',
     'success.border.filled': 'color.border.success',
     // Focus ring — the field offset, as on the substrate. Brief §4 argues a textarea is a LARGE
-    // surface and a saturated ring around a 600×400 box is noise, favouring an inset indicator. The
+    // surface and a saturated ring around a 600×400 box is noise, favoring an inset indicator. The
     // engine emits one field-ring offset and no large-surface variant, so this binds what exists and
     // the argument is recorded rather than acted on (`notes.contested`) — inventing a token here
     // would be a def authoring engine surface. The ring is the nested `focus-ring`, which owns its own
@@ -441,7 +441,7 @@ export const textarea: ComponentDef = {
       'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
       'rows / minRows / maxRows and auto-grow — Figma has no numeric component property, so `rows` is not a Figma property: the value text reserves the `rows` prop\'s DEFAULT line count (3) of its own line height, frozen at paste. A designer wanting more rows types more lines (the box grows) or resizes the instance; `minRows` / `maxRows` and the auto-grow measurement are runtime behavior.',
       'the RESIZE HANDLE\'s behavior (`resize`) — Figma draws a decorative grip behind the `resize handle` boolean, on by default because `resize` defaults to `vertical`. In code the handle is the browser\'s own, drawn at the inline-end corner (bottom-left in a right-to-left layout); Figma members are drawn left to right, so the grip sits bottom-right. `auto` and `none` draw no handle in code; in Figma, switch the boolean off.',
-      'the CHARACTER COUNTER\'s live value (`maxLength` / `showCount`) — Figma draws a static "0 / 200" caption trailing the message, behind the `character count` boolean, off by default like `showCount`. Code counts graphemes, sets tabular numerals (`font-variant-numeric: tabular-nums`, which the type tokens do not carry, so Figma uses the caption style as it is) and paints the counter in the error role past the limit. In Figma, as in code, the counter and the message switch independently.',
+      'the CHARACTER COUNTER\'s live value (`maxLength` / `showCount`) — Figma draws a static "0 / 200" caption trailing the message, behind the `character count` boolean, off by default like `showCount`. Code counts graphemes, sets tabular numerals (`font-variant-numeric: tabular-nums`, which the type tokens do not carry, so Figma uses the caption style as it is) and paints the counter in the error role past the limit. In Figma, as in code, the counter and the message switch independently. In a right-to-left layout the counter anchors to the inline end, the LEFT, with the resize handle (brief §9); Figma members are drawn left to right.',
       'the label / describedby WIRING and the counter\'s two-node live region — the host generates ids, ties the FieldLabel to the textarea, stitches the FieldMessage and the counter into aria-describedby, and sets aria-invalid. Figma has no accessibility tree, so the nested parts are associated by proximity alone.',
       'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` (its state vocabulary is not the field\'s), so in Figma the nested label reads at rest regardless. A projection limit, not a design choice.',
       'the KEYBOARD MODEL — native multi-line editing, the Enter key (a newline unless submitOnEnter), IME composition guards and the resize drag. All of it is runtime interaction the closed static member cannot carry.',
@@ -486,7 +486,7 @@ export const textarea: ComponentDef = {
       '1.3.5 Identify Input Purpose / 1.3.1 Info and Relationships (inherited substrate wiring)',
       '3.3.1 Error Identification / 3.3.3 Error Suggestion (over-limit states the overage and how to fix it)',
       '1.4.3 Contrast / 1.4.11 Non-text Contrast / 2.4.13 Focus Appearance / 4.1.2 Name Role Value',
-      '2.5.8 Target Size (the resize handle is a target)',
+      '2.5.8 Target Size — intent: the resize handle is the browser\'s own control, sized by the browser, so this def does not set its target. The 16px grip drawn in Figma is decorative, not the target',
     ],
     keyboard: 'Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.',
     focus: ':focus-visible with the field ring (`focus.ring.offset-field`, 0 offset). An inset indicator for large surfaces is not built. forwardRef must reach the <textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on PROGRAMMATIC value changes (a reset, or AI-inserted text), which is the common auto-grow bug.',
@@ -506,6 +506,8 @@ export const textarea: ComponentDef = {
       'Enforce a character limit softly (allow over, flag invalid, block submit) and count by grapheme, not by string length',
       'Announce the over-limit through the live region and aria-invalid — color alone is not a signal',
       'Normalize \\r\\n to \\n on paste before counting or storing, and resize once per paste rather than once per inserted line',
+      'Keep a read-only textarea scrollable and selectable, so the whole value stays reachable — far more text is hidden here than in a single-line field',
+      'Reserve space in the footer for the validation message and the counter, so an over-limit error does not push the resize handle',
     ],
     dont: [
       'Offer horizontal or both resize — it shatters grid and flex layouts and breaks responsive viewports',
@@ -537,6 +539,13 @@ export const textarea: ComponentDef = {
     planned: ['form', 'rich-text-editor', 'combobox', 'code-editor'],
   },
 
+  // KB textarea brief §8.
+  motion: {
+    enter: 'none (present on mount)',
+    exit: 'none',
+    reduceMotion: 'State transitions follow text-field\'s ~100–150ms token-driven contract. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under 100ms and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.',
+  },
+
   notes: {
     contested: [
       'resize as a VARIANT AXIS vs a prop — brief §15 lists `resize: [none, vertical, auto]` under `variants`, and §4 calls it "more like an author-chosen variant than a runtime state". Declared here as a prop ONLY. Two reasons: `VARIANT_AXES` is closed (#847) and does not contain `resize`, and adding it would duplicate a member already carried by the prop — the exact criticism `modifiers` carries in the vocabulary\'s own header (#845). The named alternative is to admit `resize` to `VARIANT_AXES` with a stated reason, which is the right move IF the drag handle turns out to need a projected Figma member. It did not: the grip is pinned out of the flow, so it moves no box and a `resize handle` boolean carries it (2026-09-25).',
@@ -550,11 +559,20 @@ export const textarea: ComponentDef = {
       'CSS `field-sizing: content` as the auto-grow mechanism — the brief calls it the biggest near-term implementation shift and prioritizes it behind an @supports query with the ghost-sizer JS polyfill as fallback. It also says explicitly not to treat its own version numbers (Chromium 123+, "Firefox following") as settled. NOT verified in this pass, which was authoring rather than research; verify before any implementation reads it as current.',
       'The Polaris unbounded-growth bug cited in brief §3 and §13 as the evidence for always setting maxRows — attributed to the external research pass, no `_source-text` backing in the vault. The RULE stands on its own reasoning; the citation is what is unverified.',
       'The error stroke belongs on the CONTAINER, not the input, so a Windows scrollbar docks inside the error boundary rather than breaking it (brief §4). The Figma anatomy strokes the `control` box that wraps the text, which is that reading; the code-side node split (a wrapper carrying the border around the native <textarea>) is not expressed by anything a gate reads.',
-      'The reserved rows are the value text\'s `minHeight` (rows × its line height), written by the executor after the text is appended to the auto-layout control. That Figma accepts and keeps a `minHeight` on a TEXT child of an auto-layout frame, with `textAutoResize: HEIGHT`, is modelled offline (the shim and the read-back) and not yet confirmed on a live host. Symptom if it is not kept: a `minHeight -> DISCARDED` miss, and a one-line-tall control.',
+      'The reserved rows are the value text\'s `minHeight` (rows × its line height), written by the executor after the text is appended to the auto-layout control. That Figma accepts and keeps a `minHeight` on a TEXT child of an auto-layout frame, with `textAutoResize: HEIGHT`, is modeled offline (the shim and the read-back) and not yet confirmed on a live host. Symptom if it is not kept: a `minHeight -> DISCARDED` miss, and a one-line-tall control.',
       'With both the `message` and `character count` switches off, the message row is an auto-layout frame with no visible child, and the field relies on the host collapsing it to zero height (it has no padding of its own; the space above each part lives in that part\'s cell). Modeled offline, not yet confirmed on a live host. Symptom if it does not collapse: a sliver below the control.',
       'The resize grip is an ABSOLUTE child of the auto-layout control, placed at the control\'s built size and constrained `MAX`/`MAX`. That the host keeps it in the corner when the value text grows the control after paste (a designer typing more lines) is modeled offline, not yet confirmed on a live host. Symptom if it does not: a grip left at the old corner, inside the grown box.',
-      'Brief §4 says `size` scales "typography and padding only", and this def binds padding but NO type token — because the substrate binds none either, so there is no type role for a field value to narrow. The padding half is expressed and the typography half is not, in both defs. Whether the field family should bind a type role is a substrate question, not a Textarea one — filed as #862 rather than decided here, because a child def is the wrong place to make the family\'s type call.',
+      'Brief §4 says `size` scales "typography and padding only". The projected `md` rung expresses both halves: this def and text-field each bind `type.body.md.default` for the value text (#1494). The code-API ladder does not: `size.{small,medium,large}.*` binds padding only, so a small or large textarea changes its padding and keeps the `md` type. Whether the field family binds a type role per size is a substrate question, filed as #862 rather than decided in a child def.',
       'rows / minRows / maxRows are in LINES and therefore resolve against the computed line-height, which brief §9 warns must be the RENDERED line box rather than an assumed Latin one (Arabic, Thai and Devanagari grow differently). No token expresses a line-height for this def to bind, so the constraint lives in prose only and nothing checks it.',
+    ],
+    // KB textarea brief §13.
+    evolution: [
+      'AUTO-GROW IS BECOMING THE COMPOSER DEFAULT, with maxRows-plus-scroll as the safety valve, learned after early systems shipped unbounded growth (KB textarea brief §13).',
+      'CSS `field-sizing: content` IS RETIRING JAVASCRIPT AUTO-GROW, moving the measurement off the main thread into the browser engine — the largest near-term implementation change, with support still to verify (see `notes.unverified`).',
+      'SOFT LIMITS OVER HARD maxlength: allow the overflow, flag it, block submit, rather than truncating silently.',
+      'THE CHARACTER COUNTER MATURED from an afterthought into an audited sub-component: an aria-hidden visual counter plus a threshold-based polite live region.',
+      'AI CO-AUTHORING IS THE EMERGING FRONTIER: content streamed into the field makes `pending` (aria-busy) newly relevant. A signal to watch, not a practice default.',
+      'THE VARIANT-PROP vs DISTINCT-COMPONENT SPLIT PERSISTS; the practice ships a distinct Textarea (see `notes.contested`).',
     ],
   },
 };

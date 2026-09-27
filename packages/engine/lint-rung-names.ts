@@ -83,9 +83,9 @@
  *   **A def's default size resolves to the tier's `md` rung — PER TIER FAMILY, with one sanctioned
  *   exception.**
  *
- * It holds across every def with a size axis today: `icon` defaults `md`, and `button`, `icon-button`,
- * `field-label` and `text-field` all default `medium`, whose GEOMETRY and TYPE bindings reach `size.md.*`
- * / `type.label.md.*`. So it is a property of the corpus, not a description of one def, which is what
+ * It holds across every def with a size axis today: `icon` defaults `md`, and `button`, `icon-button`
+ * and `text-field` all default `medium`, whose GEOMETRY and TYPE bindings reach `size.md.*` /
+ * `type.label.md.*`. (`field-label` defaulted `medium` too until #1699 — see HOST_DEFAULT_DEFS.) So it is a property of the corpus, not a description of one def, which is what
  * makes it assertable for defs that do not exist yet. The check is now PER TIER FAMILY rather than over
  * a def's flattened rung set, because that is what the exception below requires — and because it is
  * strictly sharper anyway (a def defaulting `md` on geometry and `lg` on type would have passed the old
@@ -217,9 +217,26 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
  */
 const OFFSET_DEFAULT_RUNG = RUNG_ORDER[RUNG_ORDER.indexOf(DEFAULT_RUNG) - 1];
 
+/**
+ * THE OWNER-SANCTIONED HOST-ALIGNED DEFAULT (#1699 decision 4, owner-delegated 2026-09-27). A NESTED PART
+ * whose default follows the configuration every host nests it at, rather than `md`. `field-label` is the
+ * one instance: select, text-field and textarea each nest the `small` label, so its code default is
+ * `small` and the set's first member (the Figma default) is the small one. Keyed by def id → the reason;
+ * EVERY tier family on a listed def is expected at `OFFSET_DEFAULT_RUNG` (one rung below `md`), because
+ * the label's only sized families are its two type weights and both move with the size.
+ *
+ * Same shape as ICON_OFFSET_DEFS, and the same guarantees: the expectation is the RULE (`md` minus one),
+ * never the def's own binding, so a revert to `medium` (→ `md`) and a slip to any other rung both fail
+ * BY NAME; and the admission is checked both directions below (a listed def must exist and must bind at
+ * its default).
+ */
+const HOST_DEFAULT_DEFS: Record<string, string> = {
+  'field-label': 'a nested field part: every host nests the small label (select, text-field and textarea project one size and nest `small`), so the default follows the hosts (#1699 decision 4)',
+};
+
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
 const expectedDefaultRung = (defId: string, family: string): string =>
-  ICON_OFFSET_DEFS[defId] === family ? OFFSET_DEFAULT_RUNG : DEFAULT_RUNG;
+  ICON_OFFSET_DEFS[defId] === family || defId in HOST_DEFAULT_DEFS ? OFFSET_DEFAULT_RUNG : DEFAULT_RUNG;
 
 /**
  * DEFS WITH NO SIZE AXIS, admitted by name with the reason. Checked in BOTH directions: a def here
@@ -231,7 +248,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'field-message': 'validation copy takes one type role; its axis is `status`, and size follows the field it belongs to',
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
   'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a def-local literal (`glyphPx`, #1340), not a rung; there is no size ladder to compare against the tier (#1316)',
-  'select': 'Prism2\'s select is single-size, so there is no size axis and no `size.{size}.*` ladder — the control binds the `md` rung of the field geometry FLATLY (`min-height` → size.md.height, `pad-x`/`pad-y`, `gap`, `icon-size`), one value each rather than an enum, so there is no rung set to compare against the tier',
+  'select': 'the size ladder is deferred (#1699 decision 2; the brief\'s `size` is recorded in `notes.contested`), so there is no size axis and no `size.{size}.*` ladder — the control binds the `md` rung of the field geometry FLATLY (`min-height` → size.md.min-height, `pad-x`/`pad-y`, `gap`), one value each rather than an enum, so there is no rung set to compare against the tier',
 };
 
 /**
@@ -490,7 +507,10 @@ for (const def of componentDefs) {
       const wrong = [...rungs].filter((r) => r !== want);
       if (!wrong.length) continue;
       const sanctioned = ICON_OFFSET_DEFS[def.id] === family;
-      failures.push(sanctioned
+      const hostAligned = def.id in HOST_DEFAULT_DEFS;
+      failures.push(hostAligned
+        ? `${def.id}: size defaults to '${dflt}', whose family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the #1699 host-aligned default is '${want}', one rung below '${DEFAULT_RUNG}', because every host nests this part at that rung (${HOST_DEFAULT_DEFS[def.id]}). A revert to '${DEFAULT_RUNG}' puts the code default and the Figma default back out of step with every host.`
+        : sanctioned
         ? `${def.id}: size defaults to '${dflt}', whose OWNER-SANCTIONED icon family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the #1350 offset is that the button family's icon resolves to '${want}', exactly one rung below '${DEFAULT_RUNG}'. A revert to '${DEFAULT_RUNG}' or any other rung breaks the offset invariant: it resolves and typechecks, so only this gate sees it.`
         : `${def.id}: size defaults to '${dflt}', whose family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the rule (#756, docs/28 §5.2) is that a default resolves to '${DEFAULT_RUNG}'. A default one rung off is the #756 offset itself: it resolves, it typechecks, and the same icon renders one size standalone and another inside a default-size control.`);
     }
@@ -526,6 +546,18 @@ for (const [id, family] of Object.entries(ICON_OFFSET_DEFS)) {
   const seen = defaultFamiliesByDef.get(id);
   if (!seen || !seen.has(family))
     failures.push(`STALE ADMISSION: ICON_OFFSET_DEFS sanctions '${id}' offsetting family '${family}' at its default, but that family is not bound at the default size '${enumOf(def).default}'. The #1350 offset has nothing to apply to — remove the admission or restore the binding.`);
+}
+
+// The #1699 host-aligned admission, both directions (docs/34): a listed def must exist and must bind at
+// its default, or the sanction has nothing to apply to.
+for (const id of Object.keys(HOST_DEFAULT_DEFS)) {
+  const def = componentDefs.find((d) => d.id === id);
+  if (!def) {
+    failures.push(`STALE ADMISSION: HOST_DEFAULT_DEFS names '${id}', which is not a def any more. Remove it — the #1699 default is recorded for a def that does not exist.`);
+    continue;
+  }
+  if (!defaultFamiliesByDef.get(id)?.size)
+    failures.push(`STALE ADMISSION: HOST_DEFAULT_DEFS sanctions '${id}' defaulting one rung below '${DEFAULT_RUNG}', but no binding is reached at its default size '${enumOf(def).default}'. Remove the admission or restore the binding.`);
 }
 
 console.log(`Rung names — ${covered.size} def(s) with a size axis, ${arm1Checks} enum→path check(s) across ${brands.length} brand(s) (${brands.join(', ')}), ${arm2Families} tier family(ies) ordered.`);

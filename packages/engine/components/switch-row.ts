@@ -85,7 +85,7 @@ export const switchRow: ComponentDef = {
   // THE DELTA ONLY. The field substrate reaches this def through `checkbox` and is not restated.
   props: [
     { name: 'checked', type: 'boolean', required: false, description: 'The binary, with `defaultChecked` for the uncontrolled form — native naming. `onChange` is expected to apply the effect IMMEDIATELY: that expectation is the component\'s contract, and a switch whose change is committed by a later Save button is a Checkbox.Row. For an async effect the controlled value is the SERVER-CONFIRMED source of truth with optimistic local state layered over it.' },
-    { name: 'label', type: 'node', required: false, description: 'Rich content, and part of the hit target — the Checkbox.Row label model, inherited. Names the SETTING as a stable noun or adjective phrase ("Airplane Mode"), never the state ("Airplane Mode is On") and never an action ("Turn on Airplane Mode"). It does NOT change on toggle: a label that flips Enable/Disable is disorienting and is a common bug.' },
+    { name: 'label', type: 'node', required: false, description: 'Rich content, and part of the hit target — the Checkbox.Row label model, inherited. Names the SETTING as a stable noun or adjective phrase in sentence case ("Airplane mode"), never the state ("Airplane mode is on") and never an action ("Turn on airplane mode"). It does NOT change on toggle: a label that flips Enable/Disable is disorienting and is a common bug.' },
     { name: 'description', type: 'node', required: false, description: 'Helper beneath the label, describedby-wired. Where the consequence of the setting goes — what turning it on will actually do.' },
     { name: 'labelPosition', type: "enum: 'leading' | 'trailing'", values: ['leading', 'trailing'], default: 'leading', required: false, description: 'Where Switch.Row differs structurally from Checkbox.Row and Radio.Row, whose control always leads. Defaults to label-leading because a switch\'s habitat is the settings row, with the toggle at the row\'s trailing edge where the eye expects it; flip to control-leading when a switch sits inline among other form controls. A PROP and not a variants axis: it changes a row\'s direction and no ink at any coordinate, so it is an anatomy concern (see the header).' },
     { name: 'isPending', type: 'boolean', required: false, default: false, description: 'A first-class state here, because an immediate change can still wait on the network. Locks input, swaps the thumb for a spinner and announces `aria-busy`. The practice ships optimistic-by-default — flip instantly, revert and message on failure — with this as the alternative for high-latency or critical toggles where an inconsistent intermediate is genuinely harmful.' },
@@ -271,16 +271,16 @@ export const switchRow: ComponentDef = {
       '4.1.2 Name Role Value (the switch role and aria-checked doing the work)',
       '1.4.1 Use of Color (thumb POSITION distinguishes on from off, never track color alone; the thumb glyph is a legibility aid on top of that)',
       '1.4.11 Non-text Contrast (the off-state track must be distinguishable from the background) / 2.4.13 Focus Appearance',
-      '2.5.8 Target Size (the whole row, as in Checkbox.Row)',
+      '2.5.8 Target Size — intent: the whole row is the target, as in Checkbox.Row. No padding is bound, so the 24×24 minimum is met by the consumer\'s layout, not by a number this def carries',
       '4.1.3 Status Messages (the async outcome or error of an immediate change)',
     ],
     keyboard: 'Each switch is its own tab stop — like Checkbox.Row, unlike Radio.Row, and there is no group to traverse. SPACE toggles, which is the canonical W3C activation; some systems also accept Enter. Nothing else: no arrow keys, because a switch is never one of a mutually-related set.',
     focus: ':focus-visible ring on the TRACK, never the thumb — the thumb moves, and a ring that travels with it reads as two indicators. Offset, at least 3:1, keyboard traversal only. A read-only switch STAYS in the tab order and stays focusable; a disabled one is removed from it.',
-    aria: 'Three roles are easily confused: checkbox is role="checkbox" (announced "checked"), switch is role="switch" (announced "ON"/"OFF"), and a toggle button is role="button" + aria-pressed (announced "pressed"). Putting aria-pressed on a switch is a recurring and severe error that CORRUPTS the announcement. Prefer the styled native input — <input type="checkbox" role="switch"> keeps focus, activation and the a11y tree for free. ANNOUNCE THE IMMEDIATE EFFECT: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3). The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. TWO IMPLEMENTATION TRAPS: the IA2 quirk, where both aria-pressed buttons and role="switch" map internally to IA2_ROLE_TOGGLE_BUTTON — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native <label> does NOT associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly.',
+    aria: 'Three roles are easily confused: checkbox is role="checkbox" (announced "checked"), switch is role="switch" (announced "on"/"off"), and a toggle button is role="button" + aria-pressed (announced "pressed"). Putting aria-pressed on a switch is a recurring and severe error that CORRUPTS the announcement. Prefer the styled native input — <input type="checkbox" role="switch"> keeps focus, activation and the a11y tree for free. ANNOUNCE THE IMMEDIATE EFFECT: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3). If the toggle changes the page layout (it reveals or removes content), announce that change through an aria-live region. The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. TWO IMPLEMENTATION TRAPS: the IA2 quirk, where both aria-pressed buttons and role="switch" map internally to IA2_ROLE_TOGGLE_BUTTON — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native <label> does NOT associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly.',
   },
 
   content: {
-    labelPattern: 'Names the SETTING, not the state and not the action — "Airplane Mode", "Location Services"; not "Airplane Mode is On" and not "Turn on Airplane Mode". A stable noun or adjective phrase that does NOT change on toggle: a label flipping between Enable and Disable is disorienting and is a common bug. Positive framing is mandatory — the on state is the affirmative, so off never means a double negative. Sentence case, no terminal punctuation. Long labels wrap; the fixed-width track does not shrink. AND REJECT HARDCODED ADJACENT "On"/"Off" TEXT, which is the label rule this control has and its siblings do not: it competes with the track state, produces duplicative screen-reader output, and does not localize. The track plus the role="switch" announcement already carries it; where legibility genuinely demands more, use the thumb glyph affordance (`showStateLabel`) rather than words.',
+    labelPattern: 'Names the SETTING, not the state and not the action — "Airplane mode", "Location services"; not "Airplane mode is on" and not "Turn on airplane mode". A stable noun or adjective phrase that does NOT change on toggle: a label flipping between Enable and Disable is disorienting and is a common bug. Positive framing is mandatory — the on state is the affirmative, so off never means a double negative. Sentence case, no terminal punctuation. Long labels wrap; the fixed-width track does not shrink. AND REJECT HARDCODED ADJACENT "On"/"Off" TEXT, which is the label rule this control has and its siblings do not: it competes with the track state, produces duplicative screen-reader output, and does not localize. The track plus the role="switch" announcement already carries it; where legibility genuinely demands more, use the thumb glyph affordance (`showStateLabel`) rather than words.',
     errorPattern: 'An OUTCOME failure, not a validation failure: say what did not happen and that it reverted — "Couldn\'t turn on notifications. Try again." Near the control, as a status message rather than a field error. Never "Invalid input"; there was no input to invalidate.',
   },
 
@@ -303,6 +303,8 @@ export const switchRow: ComponentDef = {
       'Hardcode "On"/"Off" text beside the label — use the thumb glyph affordance instead',
       'Add a third or indeterminate state — role="switch" coerces aria-checked="mixed" to false',
       'Put the focus ring on the thumb — it moves, so the indicator would travel with it',
+      'Use a switch for a consequential or destructive change — its immediacy is wrong for a costly or hard-to-reverse effect; pair it with a confirmation, or use a Checkbox.Row with an explicit Save',
+      'Use a switch where the user cannot observe the result — immediacy is the contract, so an effect nobody can perceive is a reason to reconsider the control',
     ],
     contentGuidelines: 'The label names the setting and never changes. The description says what turning it on will do. Async failures say what did not happen and that it reverted.',
   },
@@ -311,13 +313,15 @@ export const switchRow: ComponentDef = {
     primaryPurpose: 'Set a binary on/off value that takes effect immediately, with no save step, via a labeled row that nests the track-and-thumb control.',
     whenToUse: 'A single independent setting that applies the moment it is flipped — a notification preference, dark mode, a feature flag — usually in a settings row or list with the label leading.',
     avoidWhen: 'The change is staged and committed by a Save or Submit button (Checkbox.Row — the presence of that button anywhere in the flow is the tell), the toggle reveals a sub-form that must be completed for the data to be valid (Checkbox.Row again; the most common misuse), it is a single consent or agreement (Checkbox.Row), it performs an action or sets a view mode rather than holding a setting (a toggle button with aria-pressed, not built yet), it is a one-of-two exclusive labeled choice (Radio.Group, or a segmented control, not built yet), or a third indeterminate state is needed (Checkbox.Row). Also do not reach for this def expecting a group: there is no Switch.Group by decision.',
-    commonPartners: ['switch-control', 'field-label', 'field-message', 'focus-ring'],
+    commonPartners: ['switch-control', 'focus-ring'],
     triggerKeywords: ['switch', 'toggle', 'toggle switch', 'on off', 'on/off', 'enable', 'setting', 'immediate', 'feature flag', 'dark mode'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['switch-control', 'field-label', 'field-message', 'focus-ring'],
+    // What the Row actually nests: `switch-control` (which nests `focus-ring`). The label is the Row's own
+    // text part, not a `field-label`, and an outcome error is a status message, not a `field-message` (#1699).
+    composesWith: ['switch-control', 'focus-ring'],
     alternativeTo: ['checkbox-row', 'radio-row'],
     replacesPatterns: [
       'a checkbox misused for an immediate-effect setting',
@@ -326,6 +330,13 @@ export const switchRow: ComponentDef = {
     ],
     supersededBy: [],
     planned: ['card', 'toggle-button', 'segmented-control'],
+  },
+
+  // KB switch brief §8. The thumb slide itself is `switch-control`'s motion; the Row's is the async outcome.
+  motion: {
+    enter: 'none (present on mount)',
+    exit: 'none',
+    reduceMotion: 'The nested control carries the thumb slide (~150–200ms, ease-in-out, snapping to 0ms under prefers-reduced-motion). The Row\'s motion is the async outcome: on an optimistic toggle the thumb snaps to the new state and a spinner cross-fades onto it while pending; on failure the thumb slides back, the track flashes the error color, and a message says what did not happen, so the reversal is explained. Under prefers-reduced-motion the slide back snaps too; the message still appears.',
   },
 
   notes: {
@@ -339,10 +350,19 @@ export const switchRow: ComponentDef = {
     ],
     unverified: [
       'THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`\'s was: the nested control instance must pin its own HEIGHT (the track height) rather than stretch to the `control-box` line box, and whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. The control is non-square, so the Row pins HEIGHT only and the width is the control\'s own 2:1 — a narrower pin than checkbox\'s square.',
-      'THE THUMB GLYPH IN A HALF-HEIGHT THUMB IS UNBUILT AND MAY NOT READ (the thumb is half the track height by the tier\'s shared ratio; at `small` the glyph is ~5.7px after its optical inset). The measurement and the reason it is not this def\'s to override are in `switch-control.ts`.',
+      'THE THUMB GLYPH IS UNVERIFIED ON A REAL HOST for legibility at its smallest size. Since #1425 the thumb is 0.75 × the track (`control.size.*.thumb`), 18px at `small` and 24px at `medium` in every corpus brand, so the glyph is ~12.7px and ~17px after its optical inset; the smallest case is compact density `small`, a 12px thumb and a ~8.5px glyph. The measurement is in `switch-control.ts`.',
       'THE LABEL SIDE HAS ONE EXPRESSION AND `labelPosition` STILL HAS NONE. The anatomy states the DEFAULT (`row.children` is `[label, trackBox]`, label-leading); the flipped order the prop selects is not expressible, because a prop is not a coordinate. RTL is the sharper half and inverts twice over (the row mirrors AND the thumb travel flips).',
       'THE TRAVEL\'S TWO ENDPOINTS ARE EXPRESSED AND THE MOTION BETWEEN THEM IS NOT — on `switch-control` now. The ~150–200ms ease-in-out slide with the synchronized track-color crossfade (dropping to 0ms under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in the schema.',
-      'THE WHOLE-ROW HIT TARGET NOW HAS A NODE AND STILL HAS NO NUMBER. `row` is the part it lands on; the padding that would expand it to SC 2.5.8\'s 24×24 is a per-consumer decision about the surrounding layout, so no value is bound. It is sharper here than on the siblings because the row is label-leading (the control sits at the trailing edge, furthest from the label) and the track is only 16px tall at `small`.',
+      'THE role="switch" ANNOUNCEMENT INSIDE A SHADOW ROOT on older Safari with VoiceOver, where no explicit aria-label or aria-labelledby is set (KB switch brief §15, from Material 3\'s notes). The `aria` block already tells a web-component host to set the name explicitly; whether older Safari announces the role and state correctly across the shadow boundary is not checked by anything here.',
+      'THE WHOLE-ROW HIT TARGET NOW HAS A NODE AND STILL HAS NO NUMBER. `row` is the part it lands on; the padding that would expand it to SC 2.5.8\'s 24×24 is a per-consumer decision about the surrounding layout, so no value is bound. It is sharper here than on the siblings because the row is label-leading (the control sits at the trailing edge, furthest from the label) and the track is 24px tall at `small` in every corpus brand, 16px at compact density.',
+    ],
+    // KB switch brief §13, carried whole: the Row is the component the brief describes.
+    evolution: [
+      'FROM AESTHETIC TO SEMANTIC. Switch-versus-checkbox was once treated as a styling choice; `role="switch"` enforcement and Apple\'s App Store rejections made the immediate-effect contract the boundary, not a look (KB switch brief §13).',
+      '`role="switch"` MATURED from a newer role backed by checkbox fallbacks into the standard that distinguishes switch from checkbox in assistive tech.',
+      'ASYNC MOVED INTO THE COMPONENT CONTRACT. Components moved from presenting a boolean toward handling optimistic updates and pending state themselves (Primer\'s `loading`, Fluent\'s async triggers) — the reason `isPending` is first-class here.',
+      'THE ON/OFF AFFORDANCE SIMPLIFIED. Material dropped its in-thumb icon emphasis; position and color carry the state, and hardcoded On/Off text is rejected. The thumb glyph (`showStateLabel`) is off by default for that reason.',
+      'SWITCH SEPARATED FROM TOGGLE BUTTON (`role="switch"` + aria-checked against `aria-pressed`), where older systems conflated them.',
     ],
   },
 };
