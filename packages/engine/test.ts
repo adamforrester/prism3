@@ -13566,7 +13566,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } } };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[] };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -14210,10 +14210,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         combineAsVariants: (members: Record<string, unknown>[]) => {
           const set = mkNode('COMPONENT_SET');
           set.children = members;
-          // #1430 / #1393 — the set comes back DRESSED, as `component-shim.ts` models it: a purple dashed
-          // border and a 5px radius. Without it the paste `claimDefaults` KEEPING that framing and BLANKING it
-          // read the same off a bare `mkNode` set, and the #1393 lockstep row for the set could not see which.
-          set.strokes = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0x97 / 255, g: 0x47 / 255, b: 1 } }];
+          // #1430 / #1393 — the set comes back as the live host returns it (probed 2026-09-27), as
+          // `component-shim.ts` models it: the dash rhythm and 5px radius of a variant-set frame, and NO
+          // stroke paint. This stub used to pre-dress the set with a #9747FF stroke, which let the paste
+          // `claimDefaults` pass by keeping the stub's own paint while the real host had none to keep (docs/34).
+          // `opts.setStrokes` (#1430 left-alone arm) models a host that DOES hand back a paint.
+          set.strokes = opts.setStrokes ? opts.setStrokes.map((p) => ({ ...p })) : [];
+          set.fills = [];
           set.strokeWeight = 1;
           set.strokeAlign = 'INSIDE';
           set.dashPattern = [10, 5];
@@ -15683,14 +15686,19 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
         // #1393 — THE CHUNKED SET IS CLAIMED TOO. Chunk 1 combines, so it is the chunked path's own copy of the
         // set-level `claimDefaults` call, separate from the single-shot one the lockstep parity reads. Hand-named
-        // expectations, not a comparison against either executor: the set's opaque fill cleared, its framing
-        // (the stub's dressed border and 5px radius) KEPT, and a neutral the stub never seeds (`blendMode`)
-        // written — the one that tells "claimed" from "left alone".
+        // expectations, not a comparison against either executor: the set's fill transparent, its framing
+        // (the #1430 border — WRITTEN, since the stub returns the set unpainted as the live host does — and
+        // the 5px radius) present, and a neutral the stub never seeds (`blendMode`) written — the one that
+        // tells "claimed" from "left alone". The stroke is compared as 8-bit hex so the purple is authored
+        // here as `#9747FF`, not read from the paste script's `SET_BORDER`.
         {
           const cset = page.children.find((c) => c.type === 'COMPONENT_SET');
-          const row = cset && { blendMode: cset.blendMode, rotation: cset.rotation, fills: cset.fills, dashPattern: cset.dashPattern, topLeftRadius: cset.topLeftRadius };
-          ok(JSON.stringify(row) === JSON.stringify({ blendMode: 'PASS_THROUGH', rotation: 0, fills: [], dashPattern: [10, 5], topLeftRadius: 5 }),
-            `#1393 chunked: the set chunk 1 combines is claimed like the single-shot one — neutrals written, fill cleared, #1430 framing kept (${JSON.stringify(row)})`);
+          const hex = (v: number) => Math.round(v * 255).toString(16).toUpperCase().padStart(2, '0');
+          const stroke = ((cset?.strokes as { type?: string; color?: { r: number; g: number; b: number } }[] | undefined) ?? [])
+            .map((p) => `${p.type} #${p.color ? hex(p.color.r) + hex(p.color.g) + hex(p.color.b) : '?'}`).join(',');
+          const row = cset && { blendMode: cset.blendMode, rotation: cset.rotation, fills: cset.fills, stroke, dashPattern: cset.dashPattern, topLeftRadius: cset.topLeftRadius };
+          ok(JSON.stringify(row) === JSON.stringify({ blendMode: 'PASS_THROUGH', rotation: 0, fills: [], stroke: 'SOLID #9747FF', dashPattern: [10, 5], topLeftRadius: 5 }),
+            `#1393 chunked: the set chunk 1 combines is claimed like the single-shot one — neutrals written, fill cleared, #1430 purple border written (${JSON.stringify(row)})`);
         }
 
         // MUTATION-TESTED. Same discipline as the single-shot path, and the same reason: every claim
@@ -16100,6 +16108,42 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           const diff = claimDiff(plugClaims, pasteClaims);
           ok(plugClaims.length === pasteClaims.length && diff.length === 0,
             `#1393 lockstep: both executors leave every #865 default IDENTICAL on every node, the set included — plugin vs paste differ on ${diff.length}: ${diff.slice(0, 2).join(' | ').slice(0, 600)}`);
+        }
+
+        // #1430 — THE SET'S BORDER IS PRESENT, ON EACH PATH, NOT ONLY EQUAL ACROSS THEM. The lockstep above
+        // compares the two executors with each other, so a border BOTH forget reads identical and passes —
+        // and until 2026-09-27 both "kept" a paint only the stub supplied. Probed live, the host returns the
+        // set with `strokes: []` (the stub now models that), so a purple stroke here was WRITTEN by the
+        // executor. Hand-named expectation — #9747FF in 8-bit channels, SOLID, 1px INSIDE, a 10/5 dash, 5px
+        // corners — authored here, never read from either executor's `SET_BORDER`.
+        {
+          const SET_FRAME = { stroke: 'SOLID #9747FF', strokeWeight: 1, strokeAlign: 'INSIDE', dashPattern: [10, 5], corners: [5, 5, 5, 5] };
+          const setFrame = (page: StubPage) => {
+            const s = page.children.find((c) => c.type === 'COMPONENT_SET');
+            const ps = (s?.strokes as { type?: string; visible?: boolean; color?: { r: number; g: number; b: number } }[] | undefined) ?? [];
+            const hex = (v: number) => Math.round(v * 255).toString(16).toUpperCase().padStart(2, '0');
+            return {
+              stroke: ps.filter((p) => p.visible !== false && p.color).map((p) => `${p.type} #${hex(p.color!.r)}${hex(p.color!.g)}${hex(p.color!.b)}`).join(',') || 'none',
+              strokeWeight: s?.strokeWeight, strokeAlign: s?.strokeAlign, dashPattern: s?.dashPattern,
+              corners: ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].map((k) => s?.[k]),
+            };
+          };
+          for (const [label, pg] of [['plugin', plugPage], ['paste', pastePage]] as const)
+            ok(JSON.stringify(setFrame(pg)) === JSON.stringify(SET_FRAME),
+              `#1430 ${label}: the built set carries Figma's variant-set border — a SOLID #9747FF 1px INSIDE stroke, a 10/5 dash and 5px corners — written onto the set the host returns unpainted (${JSON.stringify(setFrame(pg))})`);
+
+          // LEFT ALONE: a host that returns the set ALREADY stroked keeps that stroke on both paths. A green,
+          // so "kept" and "overwritten with the purple" read differently.
+          const HOST_PAINT = { type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0, g: 0.5, b: 0 } };
+          const keptPaste: StubPage = { children: [] };
+          const keptPlug: StubPage = { children: [] };
+          await runPayload(planSetToPluginJs(grid), { ...fullSet, page: keptPaste, setStrokes: [HOST_PAINT] });
+          await plugRun(grid, { ...fullSet, page: keptPlug, setStrokes: [HOST_PAINT] });
+          for (const [label, pg] of [['plugin', keptPlug], ['paste', keptPaste]] as const) {
+            const s = pg.children.find((c) => c.type === 'COMPONENT_SET');
+            ok(JSON.stringify(s?.strokes) === JSON.stringify([HOST_PAINT]),
+              `#1430 ${label} left alone: a set the host returns already stroked keeps its own stroke (${JSON.stringify(s?.strokes)})`);
+          }
         }
 
         // #1514/#1567 — THE STYLE SURVIVES BOTH PATHS, EACH FOR ITS OWN REASON, AND THEY STILL AGREE.

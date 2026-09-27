@@ -865,7 +865,8 @@ const findOwnPart = (member: CompNode | undefined, name: string): CompNode | und
 //
 // Every write above this point sets what a plan DECLARES. Nothing set what a plan is silent about, and a
 // Figma node is never silent: `createFrame()` hands back an opaque white box, `combineAsVariants()` hands
-// back a set with a 5px radius and a purple dashed border, and a text node starts top-left aligned. So
+// back a set with a 5px radius and a 10/5 dash rhythm (with no stroke paint — the purple border is ours
+// to write, see `SET_BORDER`), and a text node starts top-left aligned. So
 // every property no def mentioned survived as a Figma default wearing our name — and no read-back could
 // see it, because a read-back verifies that a write was retained and there was no write.
 //
@@ -899,6 +900,22 @@ const findOwnPart = (member: CompNode | undefined, name: string): CompNode | und
 // itself has. This comment exists because the duplication looks exactly like something to tidy up.
 type ClaimMode = 'created' | 'imported';
 
+// FIGMA'S OWN COMPONENT-SET BORDER, WRITTEN rather than preserved — because the API does not supply its
+// paint. Probed live (2026-09-27, a scratch file and the owner's master file agree): `combineAsVariants`
+// returns a set with `strokes: []`, `strokeWeight: 1`, `strokeAlign: 'INSIDE'`, `dashPattern: [10, 5]`,
+// `cornerRadius: 5`, `fills: []`. The dash rhythm is there and the paint is not, so the set draws NO
+// border — the editor's purple outline is something the editor paints on a set IT creates, not something
+// the Plugin API hands back. #1430's `keep` preserved exactly that empty array. These are the editor's
+// values (#9747FF, 1px, inside, a 10/5 dash, a 5px radius), named once here so the set a build emits reads
+// as a native one. Paste twin: `SET_BORDER` in `PAYLOAD_BUILD` (`packages/engine/anatomy-figma.ts`).
+const SET_BORDER = {
+  color: { r: 0x97 / 255, g: 0x47 / 255, b: 1 },
+  strokeWeight: 1,
+  strokeAlign: 'INSIDE',
+  dashPattern: [10, 5],
+  radius: 5,
+} as const;
+
 /** Write Figma's default EXPLICITLY for every visually-significant property this node's plan did not
  *  claim. Runs LAST, after every plan-driven write, so a declared value is never clobbered — and the
  *  plan is what decides "claimed", never the live node, because a node cannot tell a value we chose
@@ -927,23 +944,26 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   const t = node.type;
   if (t === 'INSTANCE' || t === 'COMPONENT') return;
 
-  // #1430 — THE SET KEEPS ITS OWN FRAME. `combineAsVariants` returns a container Figma dresses as a
-  // variant set: a 5px radius, a purple dashed border and a fill. That dashed outline is how a designer
-  // PICKS THE SET OUT on a canvas full of ordinary frames — and #865 neutralized it to a bare box, so an
-  // emitted set read as a plain group, indistinguishable from anything else on the canvas (#1430). For
-  // the SET, and ONLY the set (`claimDefaults` is called with `n === null` on nothing else — every member
-  // node carries a plan), the framing properties are still CLAIMED per #865, but claimed by PRESERVING
-  // what the host gave a set rather than by blanking it. Preserve rather than re-write a literal because
-  // the exact values (the purple, the dash rhythm) are Figma's own and are recorded nowhere offline to
-  // re-assert — echoing the host is what keeps an emitted set pixel-identical to a native one, which is
-  // the whole of the ask. Every OTHER default below still neutralizes normally. `keep` falls back to the
-  // old neutral value when the host gave none, so a set with no framing degrades to the pre-#1430 bare
-  // box rather than ever writing `undefined` onto the node.
+  // #1430 — THE SET CARRIES THE VARIANT-SET FRAME. A purple dashed outline with a 5px radius is how a
+  // designer PICKS THE SET OUT on a canvas full of ordinary frames — and #865 neutralized the set to a bare
+  // box, so an emitted set read as a plain group (#1430). For the SET, and ONLY the set (`claimDefaults` is
+  // called with `n === null` on nothing else — every member node carries a plan), the framing properties
+  // are still CLAIMED per #865, but claimed as that frame rather than blanked.
+  //
+  // WRITTEN, NOT ONLY PRESERVED (2026-09-27). #1430 preserved what `combineAsVariants` returned, on the
+  // belief that the host dresses the set. It does not: the live set comes back with the dash rhythm and
+  // the radius but `strokes: []` (see `SET_BORDER` above), so preserving it preserved no border. So a set
+  // that comes back with NO stroke paint gets `SET_BORDER` written in full; a set that comes back WITH a
+  // paint keeps its framing as the host gave it (`keep`), which is the #1430 posture for a host that does
+  // supply one. Decided ONCE, before any write below, so the ink and corner branches agree. `keep` falls
+  // back to the neutral value when the host gave none, so it never writes `undefined` onto the node.
   const isSet = n === null;
   const keep = (prop: keyof CompNode, fallback: unknown): void => {
     const cur = (node as Record<string, unknown>)[prop as string];
     set(prop, cur === undefined ? fallback : Array.isArray(cur) ? [...cur] : cur);
   };
+  const hostStrokes = isSet ? (node as Record<string, unknown>).strokes : undefined;
+  const setIsBare = isSet && !(Array.isArray(hostStrokes) && hostStrokes.length > 0);
 
   // Universal — every node type Figma lets us create carries all five, on SceneNodeMixin, BlendMixin
   // and LayoutMixin. `n.visible` is `false` only for a NODE-VISIBILITY BOOLEAN part built hidden-by-default
@@ -977,21 +997,27 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   // as the `created` node of its GLYPH plan.
   if (mode === 'created') {
     if (isSet) {
-      // #1430: the set's dashed BORDER and its weight/align/dash rhythm, CLAIMED by preserving
-      // combineAsVariants' own values (see the note above the `keep` helper). Blanking these — which is
-      // what #865 did — is exactly what stripped the dashed outline that marks a set on the canvas. Forked
-      // off the member path below because that path NEUTRALIZES these to a bare box; the set keeps its own.
+      // #1430: the set's dashed BORDER and its weight/align/dash rhythm (see the note above the `keep`
+      // helper). Blanking these — which is what #865 did — is exactly what stripped the dashed outline that
+      // marks a set on the canvas. Forked off the member path below because that path NEUTRALIZES these to
+      // a bare box. A bare set gets `SET_BORDER`; a set the host already stroked keeps what it has.
       //
-      // THE FILL STAYS NEUTRAL (transparent), NOT preserved. `combineAsVariants` hands the set an OPAQUE
-      // fill, and keeping that would (a) put a solid box behind whatever a designer arranges around the set
-      // and (b) trip #1387's "no built node keeps an opaque white default" rule. The identifying mark of a
-      // set on the canvas is the dashed PURPLE BORDER, not a fill — a transparent set framed by that border
-      // reads exactly as a native one — so only the border/radius are preserved and the fill is cleared.
+      // THE FILL IS WRITTEN TRANSPARENT. Live, the set already comes back with `fills: []`, so this changes
+      // no pixel today; it is written so the value has an address (#865), and so a host that ever hands back
+      // an opaque fill cannot put a solid box behind the set or trip #1387's "no built node keeps an opaque
+      // white default" rule. The identifying mark of a set on the canvas is the dashed PURPLE BORDER.
       set('fills', []);
-      keep('strokes', []);
-      keep('strokeWeight', 1);
-      keep('strokeAlign', 'INSIDE');
-      keep('dashPattern', []);
+      if (setIsBare) {
+        set('strokes', [{ type: 'SOLID', color: { ...SET_BORDER.color } }]);
+        set('strokeWeight', SET_BORDER.strokeWeight);
+        set('strokeAlign', SET_BORDER.strokeAlign);
+        set('dashPattern', [...SET_BORDER.dashPattern]);
+      } else {
+        keep('strokes', []);
+        keep('strokeWeight', 1);
+        keep('strokeAlign', 'INSIDE');
+        keep('dashPattern', []);
+      }
     } else {
       if (t === 'TEXT') {
         // NO NEUTRAL VALUE EXISTS for a text fill: `[]` is invisible text, which is a worse defect than
@@ -1022,14 +1048,16 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   // extends BaseFrameMixin`, which carries GeometryMixin, CornerMixin, BlendMixin and AutoLayoutMixin,
   // so a set has every one of these and `combineAsVariants` sets three of them to values nobody chose.
   // #1430: on the SET those values ARE the choice — the 5px radius is part of the variant-set frame — so
-  // its corners are CLAIMED by preservation, not zeroed. Only a member FRAME neutralizes to 0.
+  // its corners are CLAIMED as that frame, not zeroed: written with `SET_BORDER` on a bare set, kept on a
+  // set the host already stroked. Only a member FRAME neutralizes to 0.
   if (t === 'FRAME' || t === 'COMPONENT_SET') {
     // The four corners individually rather than `cornerRadius`, because that is what the plan binds and
     // the two must be compared on the same footing: a def binding `topLeftRadius` has claimed the
     // corner, and neutralizing the shorthand would undo it.
     const bound = n?.bound ?? {};
     for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const)
-      if (isSet) keep(corner as keyof CompNode, 0);
+      if (setIsBare) set(corner as keyof CompNode, SET_BORDER.radius);
+      else if (isSet) keep(corner as keyof CompNode, 0);
       else if (!(corner in bound)) set(corner as keyof CompNode, 0);
     // THREADED FROM THE PLAN (#1316), default false. Still a `set` — the value is DECIDED by this
     // executor either way, so `lint-unclaimed-defaults`'s `clipsContent` row stays satisfied; what
@@ -2220,13 +2248,13 @@ const writeComponentSet = async (
     wr(set).name = component;
     if (opts.description) wr(set).description = opts.description;
     // #865 ON THE SET, which is the half a per-node fix cannot reach. `combineAsVariants` returns a
-    // container Figma dresses as a variant set — a 5px corner radius, a purple dashed border and an opaque
-    // fill, none of which any def mentions. `null` — there is no plan node for a set. #865 originally
-    // BLANKED all of it to a bare frame; #1430 corrected that for the BORDER (dashed stroke + radius): it is
-    // still CLAIMED per #865, but by PRESERVING what a set is dressed with, because that dashed outline is
-    // precisely how a designer picks the emitted set out of the canvas (`claimDefaults`, the `isSet`
-    // branches). The opaque fill stays cleared (a set's identity is its border, not a solid box); every
-    // other non-framing default on the set is still neutralized.
+    // container carrying a 5px corner radius and a 10/5 dash rhythm but NO stroke paint (probed live
+    // 2026-09-27 — see `SET_BORDER`), none of which any def mentions. `null` — there is no plan node for a
+    // set. #865 originally BLANKED all of it to a bare frame; #1430 corrected that for the BORDER: it is
+    // still CLAIMED per #865, but as the variant-set frame — `SET_BORDER` written on a set that comes back
+    // with no paint — because that dashed purple outline is precisely how a designer picks the emitted set
+    // out of the canvas (`claimDefaults`, the `isSet` branches). The fill is written transparent (a set's
+    // identity is its border, not a solid box); every other non-framing default on the set is neutralized.
     //
     // ONLY THE FRESH SET. The `else` branch below appends into a set the FILE already had, and that one
     // is the designer's: its fill and its radius are their decisions, and touching them would be this
