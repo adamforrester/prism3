@@ -55,8 +55,8 @@ code comment only; no shipped field names Prism 2 (see *What ships* below).
 
 **The header cites the brief exactly once**, in the def file's leading `/** … */` block, as
 ``KB brief: `components/<name>.md` ``. `packages/engine/test.ts` reads each header and fails by name
-on a second citation, or on a header with neither a citation nor the no-brief line below. It also checks the def's `category` against `KB_BRIEF_CATEGORY`, an
-authored table of each brief's own `category:` frontmatter: a def citing a brief that has no row
+on a second citation, on a header with neither a citation nor the no-brief line below, and on a
+header with both. It also checks the def's `category` against `KB_BRIEF_CATEGORY`, an authored table of each brief's own `category:` frontmatter: a def citing a brief that has no row
 fails until you add the row, lower-cased from the brief. With no brief, the header says
 `No KB brief` and states the choice beside it (`Category \`foundations\`` and why), as
 `packages/engine/components/veil.ts` does.
@@ -123,8 +123,9 @@ maintainer channels, a part's `note` included, is also in the plugin bundle a de
 
 `packages/engine/test.ts` (`component-refs`, `component-names`, `component-prose`), `lint-us-english`
 and `lint-voice` catch Prism 2, dangling names, en-GB spellings and banned words. Nothing yet gates
-"brief §N", "def" or all-caps emphasis on the docs pages (#1717 is open on the entries that remain),
-so those three are yours to hold.
+"brief §N", "def", all-caps emphasis or issue numbers in a component's shipped fields:
+`lint-figma-descriptions` refuses `#NNNN` in token descriptions only. So those four are yours to hold
+(#1717 is open on the entries that remain).
 
 ### Identity and relations — the #1700 rules
 
@@ -223,9 +224,10 @@ fact about the design (the def declares it). Three kinds:
   `selection` + `state` and `follow`ing its own `size`, which collapses the Row's Figma set to 3
   members.
 
-`absolute`, `nest` and `overlay` name their component in `nests`. An `absolute` sits beside the flow
-and is always `nest-fixed` (a focus ring, one shared component every host points at); a `nest` takes a
-cell and is `nest-fixed` or `nest-exposed`. `lint-nesting` fails by name on a `nests` id no def has, and
+`absolute`, `nest` and `overlay` name their component in `nests`. An `absolute` sits beside the flow and
+a `nest` takes a cell; both materialize as an instance, so both are `nest-fixed` or `nest-exposed` and
+the validator refuses `swap` on either. Every absolute in the corpus is a focus ring, `nest-fixed`: one
+shared component every host points at. `lint-nesting` fails by name on a `nests` id no def has, and
 on a cycle.
 
 **Overlays.** An overlay declares the state that shows it (`when`) and what it `replaces` — an
@@ -307,6 +309,14 @@ reintroduce them. And disabled is not always a prop: field-label dims through it
 state alone (#1339), so a component whose disabled look comes from its host takes the state and
 no duplicating prop.
 
+**Axis and state names are closed vocabularies.** `VARIANT_AXES` in
+`packages/engine/component-schema.ts` closes the axis names (the validator refuses any other, and
+`lint-axis-values` holds its register to them), and `STATES` closes the state names — it has no
+`selected`, for example. Axis values stay open. A component that seems to need a new name (a tooltip
+`placement` axis, a `selected` state for a tag or a segmented control) is asking for a schema change,
+which is an owner decision: flag it in the PR with the case for it, and never add it to either list
+to clear a validator error.
+
 **Selection-axis vocabulary (#1326 decision 1).** Switch spells its axis `[off, on]`;
 checkbox and radio spell theirs `[unchecked, checked]`, checkbox adding `indeterminate`. The
 switch spelling is a decision taken, not a default inherited — a def whose axis reads
@@ -361,8 +371,10 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 | `lint-standalone-floor` | a def that projects a Figma set in `MUST_PROJECT`. |
 | `lint-paint-placement` | a def with an anatomy in `EXPECT_ANATOMY`; one whose box declares `paintSlots` in `EXPECT_PAINTERS`. Both are closed sets. |
 | `lint-glyph-geometry` | each `vector` part as `<id>.<part>` in `MUST_COVER`; a fixed (non-templated) glyph in `FIXED_GLYPH`, a `glyphScale` in `SCALED_GLYPH`. |
+| `lint-glyph-geometry`, composed or colliding glyphs | a `vector` part whose glyph is not in the icon set (drawn in layers, like the spinner's ring) in `COMPOSED_GLYPH`; a glyph template whose members draw one shape under two names in `DUPLICATE_SHAPES`, with the reason. |
 | `lint-absolute-inset` | a nested focus ring as `<id>.focusRing` in `MUST_COVER` and `MUST_CLEAR_STROKE`. |
-| `packages/engine/test.ts` | the brief's row in `KB_BRIEF_CATEGORY`, if the brief is new to the corpus. |
+| `lint-paint` admissions | a paint key whose ref legitimately does not carry its axis value in `PROVENANCE_EXCEPTIONS`; an axis whose values are not color families in `NON_FAMILY_AXES`; a bound paint key no projected coordinate reaches in `UNREACHED_EXPLAINED`. Each needs a reason and fails as stale when it stops applying. |
+| `packages/engine/test.ts` | the brief's row in `KB_BRIEF_CATEGORY`, if the brief is new to the corpus. A def with a `presentWhen` part in `GATED_EXPECTED`, and a def binding a `size.<size>.control`, `dot` or `track` key in `CONTROL_DEFS`: both are exact-equality lists. |
 | `apps/plugin/src/file-taxonomy.ts` | the def on a page in `TAXONOMY` (§3). |
 
 `lint-component-docs` needs no entry: it reads the registry, so after `packages/engine/regen.ts` a
@@ -371,7 +383,7 @@ the gate fails by name. Its `DEF_FLOOR` is a floor to raise as the catalog grows
 more committed artifact, so the count `packages/engine/regen.ts --check` expects moves too:
 `EXPECTED_ARTIFACTS` in `verify.ts` and the same number in the CI workflow, together.
 
-Two baselines move with any new or changed projection and are rewritten only by an explicit
+Two baselines also move with any new or changed projection and are rewritten only by an explicit
 `--accept`: `lint-component-surface` (member count and plan digest per def) and `lint-paint` (the
 paint census). Read the diff each prints before accepting it.
 
@@ -408,14 +420,23 @@ component page, titled from the page's primary def's name and described by its `
 
 `ENGINE_VERSION` answers *"what code produced this?"* and bumps on any observable change,
 including the projected component surface (#1252): a designer who meets a new variant axis, or
-864 members where there were 432, has met a different engine. `lint-emission-version` is
-structurally blind to the projection — component payloads are not committed under `out/` — so
-`lint-component-surface` is what forces the bump, and its `--accept` refuses until `ENGINE_VERSION`
-has already moved forward. A new def is a moved surface (no set → N members), so it takes a MINOR
-bump in `packages/engine/version.ts` with its reason. `planStamp` hashes the whole plan, and every
-plan carries the def's `codeOnly` list, so editing one `codeOnly` entry moves every member's digest at
-the same count and needs the bump too; diff the plans before reading a whole-def move as a layout or
-paint change. After the bump, `npx tsx packages/engine/regen.ts` restamps `out/**`, and
+864 members where there were 432, has met a different engine. Two gates force the bump, and each
+sees a different part of a def:
+
+- **`lint-emission-version`** watches everything under `packages/engine/out`, and the docs
+  projection commits `out/components/**` there. So a new def's page, and any edit to a shipped
+  documentation field (`summary`, `description`, `props`, `docs`, `accessibility`, `ai`, and the
+  rest), moves `out/components/*` and forces the bump.
+- **`lint-component-surface`** reads the projected plans, and its `--accept` refuses until
+  `ENGINE_VERSION` has moved forward. A new def is a moved surface (no set → N members). `planStamp`
+  hashes the whole plan, and every plan carries the def's `codeOnly` list, so one `codeOnly` edit
+  moves every member's digest at the same count; diff the plans before reading a whole-def move as a
+  layout or paint change.
+- **Nothing forces a bump for `notes` or a part's `note`.** The maintainer record is in
+  `MAINTAINER_ARTIFACTS`, outside the watched set, and no plan carries a part `note`.
+
+A new def therefore takes a MINOR bump in `packages/engine/version.ts` with its reason. After the
+bump, `npx tsx packages/engine/regen.ts` restamps `out/**`, and
 `npx tsx packages/engine/token-contract.ts --check` then asks for a stamp-only `--accept`. A
 skill-only change like this file bumps nothing.
 
