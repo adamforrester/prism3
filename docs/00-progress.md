@@ -32,6 +32,8 @@
 
 **Held for the owner, not picked:** whether a read-only select keeps its chevron (it does, mirroring text-field's trailing slot); whether the text affixes should project to Figma; `crossAxisFill` for text-field's label / message (#1503, already held). #1367 / #1385 untouched.
 
+**Net (orchestrator).** The independent review found the one blocking consequence of decision 4. `checkbox-group` and `radio-group` nest field-label without overriding `required`, so once FieldLabel defaulted off, both groups built a hidden marker while their own code `required` still defaulted `true`. The groups now default `false`, which is the brief's §15 default. Their `notes.contested` entry, which said a change to FieldLabel's default would reopen it, moves to `evolution` as resolved. A new arm (`#1699 <group>'s required default is false … and agrees with the nested field-label's marker default`) pins the agreement; mutating checkbox-group back to `true` fails it by name. The read-only border contrast finding on `background.secondary` is filed as #1710.
+
 ---
 
 ## (2026-09-27) — the checkbox and radio families aligned to their briefs (#1698)
