@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.177.0 — the spinner carries its KB brief forward to the def standard, with the owner's decisions of
+ * 2026-09-27. Two shipped behavior changes: (1) the DEFAULT ANNOUNCEMENT — `label` defaults to "Loading" and a
+ * standalone spinner is a polite `role="status"`; a host that announces its own busy state (Button /
+ * IconButton `isPending`) opts out with `aria-hidden="true"`, which both hosts' `accessibility.aria` now state;
+ * (2) the ENTER FADE — `motion.enter` is a quick opacity fade on the existing `motion.duration.fast`, kept under
+ * reduced motion. One projected move: the four `spinner/<size>` members carry the revised `codeOnly` list (the
+ * fixed arc, RTL force-clockwise, the fade, the anti-flash figures, the announcement). No other def's plan moves
+ * (Button / IconButton change only `accessibility.aria` and a part note, neither in the plan). No token name
+ * moves, so CONTRACT STANDS at 13.1.0 (`token-contract --check` level `none`); `out/**` moves by the stamp only.
+ *
  * 0.176.0 — #1662 follow-up (owner decision 2026-09-27): the plugin's boot read-back compares the modes the
  * saved brand DECLARES with the modes the file's `color` collection HOLDS. `verifyReadback` takes the declared
  * set as a required second argument (`{ modes }`, or `{ skipped: <reason> }` when the file stores no brand or
@@ -3866,7 +3876,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.176.0';
+export const ENGINE_VERSION = '0.177.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

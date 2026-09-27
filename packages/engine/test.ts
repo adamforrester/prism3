@@ -4670,8 +4670,38 @@ for (const b of brands) {
   const codeOnly = spinner.anatomy!.codeOnly.join('\n');
   ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && /\b800ms\b/.test(spinner.motion?.reduceMotion ?? '') && /\b2600ms\b/.test(spinner.motion?.reduceMotion ?? ''),
     '#1670 spinner: the motion field names both turn tokens and their values');
-  ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly) && /aria-hidden="true"/.test(codeOnly),
-    '#1670 spinner: the code rule spins linear and infinite, slows under prefers-reduced-motion, and is aria-hidden by default');
+  ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly),
+    '#1670 spinner: the code rule spins linear and infinite and slows under prefers-reduced-motion');
+
+  // ---- THE OWNER'S DECISIONS OF 2026-09-27 (the brief carry-forward) ----------------------------------------
+  // Expectations written here, from the decisions, not read back from the def: the label defaults to the literal
+  // "Loading"; a standalone spinner is a polite status that never carries a value; the embedding hosts hide it
+  // with the standard attribute; the enter fade names `motion.duration.fast`, which must exist in a built tree.
+  // No 2.2.2 / 2.3.3 claim (owner, 2026-09-26): the reduced-motion turn is slowed, not stopped, so neither is claimed.
+  ok(!(spinner.accessibility.wcag ?? []).some((w) => /^2\.2\.2\b|^2\.3\.3\b/.test(w)),
+    `spinner 2026-09-26: accessibility.wcag claims neither 2.2.2 nor 2.3.3 (${JSON.stringify((spinner.accessibility.wcag ?? []).map((w) => w.split(' ')[0]))})`);
+  const labelProp = spinner.props.find((p) => p.name === 'label');
+  ok(labelProp?.default === 'Loading' && /role="status"/.test(labelProp.description) && /aria-hidden="true"/.test(labelProp.description),
+    `spinner 2026-09-27: the label defaults to "Loading" on the role="status" wrapper, and a host opts out with aria-hidden="true" (${JSON.stringify(labelProp?.default)})`);
+  const aria = spinner.accessibility.aria ?? '';
+  ok(/aria-live="polite"/.test(aria) && /Never `aria-valuenow` and never `role="progressbar"`/.test(aria) && /aria-hidden="true"/.test(aria),
+    'spinner 2026-09-27: accessibility.aria states the polite status, the host opt-out, and the no-value contract (never aria-valuenow, never role=progressbar)');
+  ok(/aria-hidden="true"/.test(codeOnly) && /role="status"/.test(codeOnly) && /"Loading" by default/.test(codeOnly),
+    'spinner 2026-09-27: the code rule is a role="status" wrapper named "Loading" by default, hidden by an announcing host with aria-hidden="true"');
+  for (const def of [button, iconButton]) {
+    ok(/aria-hidden="true" on the embedded spinner/.test(def.accessibility.aria ?? ''),
+      `spinner 2026-09-27: ${def.id}'s accessibility.aria hides its embedded spinner (aria-hidden="true"), so isPending announces once`);
+  }
+  const enterRole = /`motion\.duration\.([a-z-]+)`/.exec(spinner.motion?.enter ?? '')?.[1];
+  const builtMotion = buildTree(brandTheme({ id: 'spinfade', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as unknown as BrandInput)).tree.prism.motion;
+  ok(enterRole === 'fast' && builtMotion.duration.fast !== undefined && builtMotion['duration-reduced'].fast !== undefined && /motion\.duration-reduced\.fast/.test(spinner.motion?.reduceMotion ?? ''),
+    `spinner 2026-09-27: motion.enter is a fade on the existing motion.duration.fast, kept under reduced motion on its reduced twin (enter binds ${enterRole ?? 'nothing'})`);
+  const contested = (spinner.notes?.contested ?? []).join('\n');
+  const deferred = ['labelPosition', 'staticColor', 'OVERLAY / MASK', '`spinning` PROP'].filter((k) => !contested.split('\n').some((line) => line.includes(k) && line.includes('deferred by owner (2026-09-27)')));
+  ok(deferred.length === 0 && /END STATE — declined by owner \(2026-09-27\)/.test(contested),
+    `spinner 2026-09-27: each deferred item is a contested entry marked deferred by owner, and the end state declined${deferred.length ? ` — missing: ${deferred.join(', ')}` : ''}`);
+  ok(!spinner.props.some((p) => ['labelPosition', 'staticColor', 'spinning', 'delay'].includes(p.name)),
+    'spinner 2026-09-27: none of the deferred or host-owned props (labelPosition, staticColor, spinning, delay) is declared');
 }
 
 {

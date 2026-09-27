@@ -355,7 +355,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
         replaces: ['icon'],
         when: 'pending',
         size: 'size.{size}.icon',
-        note: 'Takes the icon\'s own cell while pending, at the icon\'s size, so the square keeps its size. The accessible name stays on the control (aria-label), and the busy state is announced through a polite live region, since the spinner is hidden from assistive tech.',
+        note: 'Takes the icon\'s own cell while pending, at the icon\'s size, so the square keeps its size. The accessible name stays on the control (aria-label), and the busy state is announced through a polite live region, with `aria-hidden="true"` on the spinner so it does not announce its own "Loading" as well.',
       },
       focusRing: {
         kind: 'absolute',
@@ -523,7 +523,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     ],
     keyboard: 'Native <button> — Enter on keydown, Space on keyup. Identical to Button.',
     focus: 'Same offset :focus-visible ring as Button; retained through pending/inactive.',
-    aria: 'aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region ("Saving…"), since the spinner is invisible to assistive tech. Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron).',
+    aria: 'aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement). Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron).',
   },
 
   content: {
