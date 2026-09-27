@@ -9,7 +9,7 @@
 
 ## (2026-09-27) — Component docs are projected: a JSON file and a markdown page per component, and a maintainer record that does not ship (#1701)
 
-**STATUS: PR #1705 open from `lane/component-docs-projection`, labeled DO NOT MERGE.** Owner chose option (c) on #1701: one projector, two forms, from the same def data. The Figma description stays the one-line `summary`. Netted to the owner's decision of 2026-09-27, which splits what ships from what is maintainer-only. ENGINE → **0.181.0** (a new emitted surface, MINOR; the orchestrator renumbers at merge). CONTRACT stands at 13.1.0; no token name moves.
+**STATUS: PR #1705 open from `lane/component-docs-projection`, labeled DO NOT MERGE.** Owner chose option (c) on #1701: one projector, two forms, from the same def data. The Figma description stays the one-line `summary`. Netted to the owner's decision of 2026-09-27, which splits what ships from what is maintainer-only. ENGINE → **0.182.0** (a new emitted surface, MINOR; the orchestrator renumbers at merge). CONTRACT stands at 13.1.0; no token name moves.
 
 **What `emit-component-docs.ts` writes** (a `regen.ts` step):
 - `out/components/components.ai.json` — PAYLOAD. Every registered def in one brand-independent file, validated against the authored `schema/component-docs.schema.json` (`$id` `prism3-component-docs/1.0`, every object closed). It carries the shipped fields only: identity, the code API (`props`, `states`, `variants` with each axis's `kind`), `summary`, `description`, `docs`, `accessibility`, `content`, `motion`, `composition` and `ai`.
@@ -53,6 +53,47 @@
 - Markdown escaping: `<` outside code spans and `|` everywhere become `\<` and `\|`. Arm C un-escapes before comparing and splits table cells on unescaped pipes only. A new escape added to `mdEscape` without the matching un-escape in the gate reads as a miss on every string that carries the character.
 - A new page heading, or a renamed one, needs its line in the gate's `SECTION` map; a doc field with no entry fails as `NO SECTION`, and a missing heading as `SECTION MISSING`.
 - `--all` lists every failure; the default stops at 60, so a mutation whose named line falls past 60 needs it.
+## (2026-09-27) — component sets: write Figma's purple dashed border (the API returns none)
+
+**STATUS: PR open from `lane/set-dashed-border`, labeled DO NOT MERGE.** Owner-approved fix. Files: `apps/plugin/src/write-components.ts`, `packages/engine/anatomy-figma.ts`, `apps/plugin/component-shim.ts`, `apps/plugin/test-roundtrip.ts`, `packages/engine/test.ts`, the two `deflt` notes in `apps/plugin/lint-unclaimed-defaults.ts`, `version.ts`, plus `out/**` and `schema/token-contract.json`, which move by the engine stamp only. **ENGINE 0.180.0 → 0.181.0** (MINOR; the orchestrator renumbers). **CONTRACT STANDS at 13.1.0.**
+
+**The live probe (orchestrator, 2026-09-27).** `figma.combineAsVariants` returns a COMPONENT_SET with `strokes: []`, `strokeWeight: 1`, `strokeAlign: 'INSIDE'`, `dashPattern: [10, 5]`, `cornerRadius: 5`, `fills: []`, `layoutMode: 'NONE'`. The probe ran in a scratch file, and the owner's master file agrees: its built `button` set has 0 strokes. The dash and radius are there, but there is no paint, so no border draws. The purple outline appears on sets that the *editor* creates. The Plugin API does not return it.
+
+**Why #1430 missed it.** #1430 claimed the set's border by *preserving* what the host returned (`keep('strokes', [])` and friends), because it believed the host dresses the set. Both build paths did this: the plugin's `claimDefaults(wr(set), null, …)` and the paste twin in `PAYLOAD_BUILD`. The host returns an empty stroke array, so both paths preserved an empty array.
+
+**The independence gap.** Both stand-ins pre-dressed the set with a #9747FF stroke: `component-shim.ts`'s `combineAsVariants`, and `test.ts`'s `makeFigmaStub` `combineAsVariants`, which the #1393 parity and lockstep arms share. So the #1430 round-trip arm read back the *shim's* paint, and the #1393 rows compared a paint that neither executor wrote. Everything was green while no real set had a border (docs/34: the stand-in supplied the value the gate was checking). The #1393 lockstep has a second blind spot, and it is structural. It compares plugin with paste, so if both paths drop the border they still agree. Mutation M3 below measures this.
+
+**The fix.**
+- Both paths now name `SET_BORDER` once: SOLID #9747FF (`0x97/255, 0x47/255, 1`), weight 1, `INSIDE`, dash `[10, 5]`, radius 5. Each carries a comment citing the probe.
+- The bare-or-not decision is made **once, before any write**, so the ink branch and the corner branch agree. A set that comes back with no stroke paint gets the whole border written. A set that comes back already stroked keeps what it has (`keep`, the #1430 posture).
+- Both paths call `claimDefaults` on a **freshly combined** set only. A set the file already had (the plugin's append branch, or a later paste chunk) is not touched, as before. A set built before this fix therefore stays borderless until it is rebuilt.
+- The set's fill is still written `[]`. The probe shows the host already returns `[]`, so this changes no pixel, and the stale "opaque fill" comments are corrected.
+
+**The stand-ins are now BARE, as probed.** Both `combineAsVariants` stand-ins return `strokes: []`, `fills: []`, weight 1, INSIDE, `[10, 5]`, corners 5. The `test.ts` stub gains `opts.setStrokes` to model a host that does return a paint.
+
+**The arms.**
+- `test-roundtrip.ts` #1430 now requires a visible SOLID #9747FF stroke. It compares 8-bit channels, so a float32 read-back cannot fail it, and the hex is authored in the test. Before, it accepted any non-empty stroke.
+- A new negative arm checks that a black stroke is reported.
+- A new left-alone arm wraps the shim's combine to return a green stroke, and asserts the green is kept.
+- `test.ts` adds `#1430 plugin` / `#1430 paste` rows: each path's built set, read on its own, carries the full border. There are also plugin and paste left-alone arms.
+- The chunked #1393 row now reads the stroke as hex.
+
+**Mutations, committed first, each failing by name:**
+- **M1**, plugin write removed (`setIsBare = false`): `#1430 plugin: the built set carries Figma's variant-set border…`, `#1393 lockstep` (and the GLYPH lockstep), and round-trip `#1430: every emitted set reads back … carrying its variant-set frame` (STRIPPED: every set). This is the pre-fix state, so the old arm also fails against the bare shim.
+- **M2**, paste write removed: `#1430 paste…`, `#1393 chunked…`, and both lockstep rows. The round-trip stays green, correctly: it drives the plugin only.
+- **M3**, both writes removed: `#1430 plugin`, `#1430 paste`, `#1393 chunked`, and the round-trip `#1430`. **The lockstep stays green here**, which is the blind spot the per-path rows close.
+- **M4**, the stroked-set guard removed on both paths (always write): `#1430 plugin left alone`, `#1430 paste left alone`, and round-trip `#1430 left alone`.
+- **M5**, a wrong channel (plugin g `0x48`; paste radius 4): `#1430 plugin` (reads `#9748FF`), `#1430 paste` (corners), `#1393 chunked`, both lockstep rows, and round-trip `#1430`.
+
+**Agent link.** The agent link's `build-components` command goes through `ACTIONS.buildComponents` in `main.ts`, the same handler the panel button calls (`createDispatcher({ actions: ACTIONS })`), and from there to `applyComponentPlan` and `claimDefaults`. It shares the plugin path and gets the fix with no separate change. `test-agent-link.ts` already pins that routing by spying on `ACTIONS`.
+
+**Found, not fixed (one concern).** `apps/plugin/src/file-components.ts` builds `_Section-header` and `_Headings` with its own `combineAsVariants` and no `claimDefaults`, so those two template sets are also borderless. Whether they should carry the variant-set border is a design call, filed as #1713.
+
+**Traps for whoever re-verifies.**
+- **Paste budget.** The paste twin is budget-bound. `planSetChunks` packs to `SET_CHUNK_BYTES` (42,000), and the `#536 item 6` probe grid must stay one chunk. This change takes that grid from 41,678 to 41,940 bytes. A first, more readable draft reached 42,114 and split the grid, which is why the paste code routes every set write through one `w(k, v, f)` helper. **About 60 bytes of headroom remain**; the next payload addition will likely need a trim or a budget decision.
+- **Keep the stand-ins bare.** Stroke paint cannot be checked offline. If the host ever does start returning a paint, the `keep` branch takes over and nothing changes visibly. But a stand-in that pre-dresses the set would again hide a missing write, so keep the stand-ins bare.
+
+---
 
 ## (2026-09-27) — Plugin: a section header at the top of each component page
 
