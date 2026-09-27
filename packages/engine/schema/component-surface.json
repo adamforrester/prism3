@@ -212,6 +212,10 @@
     "spinner": {
       "members": 4,
       "sha256": "892045fee900bb85e90ebb536bce7385bd882c6b16044edd2ad0017e6ee6bbb9"
+    },
+    "badge": {
+      "members": 5,
+      "sha256": "4d04e35532b5ed99ee3b9c14a70ad1a7f089e2e9818d1d8d0d5d9acb8f3bc94f"
     }
   }
 }

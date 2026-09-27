@@ -64,6 +64,7 @@ import { select } from './select';
 import { veil } from './veil';
 import { imagePlaceholder } from './image-placeholder';
 import { spinner } from './spinner';
+import { badge } from './badge';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -71,7 +72,7 @@ import { spinner } from './spinner';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -161,4 +162,5 @@ export const componentDefs: readonly ComponentDef[] = [
   // `spinner` (#1670) — the indeterminate loading indicator. Nests nothing; the button's pending state swaps
   // it into the icon slot by name, like the `icon` it sits beside in the slot.
   spinner,
+  badge,
 ];

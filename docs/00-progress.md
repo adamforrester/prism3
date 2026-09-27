@@ -7,6 +7,38 @@
 
 ---
 
+## (2026-09-27) — Component: Badge — a static status label, count or dot, with no states and no interactive binding
+
+**STATUS: PR open from `lane/component-badge`, labeled DO NOT MERGE.** New def `components/badge.ts` from the KB brief `components/badge.md`, built to the owner's four decisions of 2026-09-27. ENGINE 0.186.0 → **0.187.0** (MINOR, a new projected def; renumbered in the net after #1733, #1731 and #1726); CONTRACT stands at 13.1.0 (stamp-only accept). Regen artifacts 169 → **170** (`out/components/badge.md`), moved in `verify.ts` and both `ci.yml` literals.
+
+**What it is.** One component switched by a `genre` prop (`status | count | dot`, default `status`), with both accessibility contracts in `accessibility.aria`: a count or dot is `aria-hidden` and its meaning goes in the host's accessible name, and a status label announces its own text. `states: []`. The Figma set is the status label across five `tone` members (neutral / info / success / warning / danger). The count and dot exist only in code (`anatomy.codeOnly`) until a genre axis is admitted.
+
+**The diagnosis that shaped the projection.** No name in the closed `VARIANT_AXES` expresses a genre. `appearance` is an emphasis ladder, `style` a stroke treatment and `shape` a silhouette, while a genre changes the content model, the placement and the a11y contract together. So `genre` is a held axis name, and the one genre that needs no host is the only one projected. `tone` is the existing axis and fits it: which semantic role the pill paints from, the same distinction `icon`'s `tone` makes. Its values are the token tier's words (`danger`, not the brief's `error`).
+
+**Bindings.** A tone is `text.<t>` on `foreground.<t>-subtle`, the pair `modes.ts` already contracts at 4.5:1 and the preview's badge binds. Neutral is `text.primary` on `foreground.secondary`. The engine does NOT gate that pair, so `test.ts` measures every label/fill pair of the def across nb, aurora and harbor × all four modes. No `color.interactive.*`, and the surface paints a fill only, so no fill-and-stroke pairing reads as a control. `notes.contested` names the five properties Tag must differ on.
+
+**Gate registrations.** `lint-hit-target` EXCLUDED (owner decision 4). `lint-paint` gets six per-key provenance exceptions. `foreground.<t>-subtle` carries the tone as a prefix of a segment rather than a whole segment, so arm 1 reads it as absent, and neutral has no same-named role in either family. The census is accepted for badge only. There are also entries in `lint-paint-placement` (both lists), `lint-standalone-floor`, `lint-rung-names` NO_SIZE_AXIS and `lint-axis-values`, plus `DEF_FLOOR` 24 → 25, `KB_BRIEF_CATEGORY`, and a Components → "Badge" taxonomy page.
+
+**Traps.**
+- `icon`'s `composition.planned` listed `badge`, and `test.ts` fails once a planned id is registered. Badge nests no icon yet, so it was removed from planned, not moved to `composesWith`.
+- `test.ts` passed while `npm run verify` failed `lint-axis-values`. A second set on an axis needs exactly one `canonical`, so `icon`'s `tone` went `sole` → `canonical` and badge's set is `overlapping` against it.
+- The neutral pair has teeth: rebinding its ink to `text.tertiary` measures about 2.8:1 in every light/dark cell.
+
+**Mutations, committed before each, restored from HEAD, each failing by name.**
+- `info.fill` → `color.interactive.primary.fill.rest` → `badge binds no interactive role` (and `badge contrast (info)`).
+- `states: ['rest','hover']` → `badge is static: no states`.
+- genre values `default|count|dot` → `badge genre: the values are status | count | dot`.
+- aria "aria-hidden" removed → `badge aria`.
+- `neutral.label` → `text.tertiary` → `badge contrast (neutral)`.
+- surface `paintSlots` + `border` → `badge paints a fill and nothing else`.
+- hit-target EXCLUDED entry removed → `lint-hit-target` `badge: is neither measured nor excluded`.
+- tone `danger` → `error` → `lint-axis-values` `1 axis value set(s) no register entry declares`.
+- `badge|info.fill` exception removed → `lint-paint` `provenance: badge|info.fill`.
+
+**Held for owner** (in the PR body): the `genre` axis name; subtle vs bold tone fills; the taxonomy page; the tone value set; `generationPriority: 3`; the generic `label` alias; leading icon and size deferred.
+
+---
+
 ## (2026-09-27) — Prism3: the canonical default theme at `pds3`, and italic as a category's default cut (#1296)
 
 **STATUS: PR open from `lane/prism3-default-theme`, labeled DO NOT MERGE** (the owner reviews the preview first). **ENGINE → 0.186.0 (renumbered in the net after #1733 and #1731) (MINOR: 0.184.0 for the theme, 0.185.0 for the second pass below); CONTRACT STANDS at 13.1.0.** The orchestrator renumbers if another lane lands first.

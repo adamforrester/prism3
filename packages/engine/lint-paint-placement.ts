@@ -273,12 +273,12 @@ const EXPECT_ANATOMY = [
   'icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
   'icon-button-neutral', 'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row',
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
-  'image-placeholder', 'spinner',
+  'image-placeholder', 'spinner', 'badge',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
   'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'veil',
-  'image-placeholder',
+  'image-placeholder', 'badge',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
   for (const id of expected.filter((x) => !live.includes(x))) {

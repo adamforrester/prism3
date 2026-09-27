@@ -2926,6 +2926,13 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.187.0 — a new component def, `badge` (owner decisions, 2026-09-27): a static status label, count or
+ * dot, one component switched by a `genre` prop, with no states and no interactive binding. Its Figma set
+ * projects the status label across five `tone` members (neutral / info / success / warning / danger); the
+ * count and dot are code-only until a genre axis is admitted. A new def moves the projected surface and
+ * adds one payload artifact (`out/components/badge.md`) → ENGINE MINOR. CONTRACT STANDS at 13.1.0 (no
+ * token name moves; the def binds existing roles only).
+ *
  * 0.186.0 — #1296/#1718: the default theme gains its accent, gradients and extras, and the numeric weight
  * tier always carries the contract's standard weights. (1) ENGINE: `weightsRef` now unions the four
  * contract-guaranteed numerics (300/400/700/900, a literal `CONTRACT_WEIGHTS` list, deliberately not
@@ -3990,7 +3997,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.186.0';
+export const ENGINE_VERSION = '0.187.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

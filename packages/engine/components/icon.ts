@@ -336,7 +336,7 @@ export const icon: ComponentDef = {
     replacesPatterns: ['legacy icon fonts', 'ad-hoc inline SVGs outside the set'],
     // `avatar` and `tag` from brief §12 (an icon is Avatar's image-load fallback; Tag pairs a small icon
     // with its text).
-    planned: ['link', 'menu', 'badge', 'illustration', 'logo', 'thumbnail', 'emoji', 'avatar', 'tag'],
+    planned: ['link', 'menu', 'illustration', 'logo', 'thumbnail', 'emoji', 'avatar', 'tag'],
   },
 
   // Brief §8.

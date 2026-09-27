@@ -398,17 +398,32 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'tone',
+    values: ['neutral', 'info', 'success', 'warning', 'danger'],
+    defs: ['badge'],
+    relation: 'overlapping',
+    reason:
+      'Which semantic role a badge paints from — the same kind of distinction as `icon`\'s ink `tone`, which is why '
+      + 'it takes that name rather than a new one. OVERLAPPING, the relation this register calls dangerous, and '
+      + 'named as such on purpose: the four shared values (`info`, `success`, `warning`, `danger`) are spelled '
+      + 'as the token tier spells them in BOTH sets, so a shared value means the same role in each. The divergence '
+      + 'is at the ends: `neutral` leads here (the default, a gray label on a gray surface), where `icon` has '
+      + '`inherit` (no pinned ink) and the rank words `primary`/`secondary`/`tertiary`/`brand`. A badge paints a '
+      + 'surface as well as ink, so `inherit` has no meaning for it, and a rank word would name a text role for a '
+      + 'fill. The brief spells the failure tone `error`; it is `danger` here so it matches `icon` and the ref.',
+  },
+  {
+    axis: 'tone',
     values: [
       'inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info',
     ],
     defs: ['icon'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
-      'The semantic-ink vocabulary — `icon`\'s only axis, and the ONLY use of `tone` in the corpus since '
-      + '#1334 split the overloaded name (field-message/select\'s validation set → `status`, field-label\'s '
-      + '→ `emphasis`). Its values ARE the token names they resolve to (`danger` → `color.icon.danger`), '
-      + 'so this was the `canonical` set the two now-renamed axes were described against; with those gone '
-      + 'it stands `sole`. `inherit` leads and binds NOTHING — `currentColor` is the absence of a pinned '
+      'The semantic-ink vocabulary — `icon`\'s only axis. #1334 split the overloaded name (field-message/'
+      + 'select\'s validation set → `status`, field-label\'s → `emphasis`), which left this set `sole`; it is '
+      + '`canonical` again now `badge` describes its tone set against it. Its values ARE the token names they '
+      + 'resolve to (`danger` → `color.icon.danger`), which is why it is the one the others are read against. '
+      + '`inherit` leads and binds NOTHING — `currentColor` is the absence of a pinned '
       + 'ink, and it is the default, which is why this axis is not projected to Figma at all.',
   },
   {

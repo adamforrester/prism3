@@ -4746,6 +4746,63 @@ for (const b of brands) {
 // `$extensions.prism3.modes.<mode>` to the `motion.duration.<role>` / `duration-reduced.<role>` /
 // `stagger` PRIMITIVE; composite transitions inherit via the duration alias, so the transition SET is
 // untouched. Motion is DTCG + web only (not a Figma variable), so buildFigmaFont is unaffected.
+// ---- BADGE — the owner's decisions of 2026-09-27, held here with literal expectations -----------------------
+// Written from the decisions, not read back from the def: static (no states), one component switched by a
+// `genre` prop with the literal values status | count | dot, both accessibility contracts stated, and NO
+// interactive binding — every color ref is in the literal family list below, and the surface paints no stroke.
+// The contrast arm measures the def's OWN label/fill pairs in every corpus brand and mode against 4.5:1,
+// because the neutral pair is not one the engine's own contract gates.
+{
+  const badgeDef = componentDefs.find((d) => d.id === 'badge')!;
+  ok(!!badgeDef, 'badge: the def is registered');
+  const colorRefs = Object.entries(badgeDef.tokens).filter(([, r]) => r.startsWith('color.'));
+  const interactive = Object.entries(badgeDef.tokens).filter(([, r]) => /(^|\.)interactive(\.|$)/.test(r));
+  const BADGE_COLOR_FAMILIES = ['foreground', 'text'];
+  const offFamily = colorRefs.filter(([, r]) => !BADGE_COLOR_FAMILIES.includes(r.split('.')[1]));
+  ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 10,
+    `badge binds no interactive role: all 10 color refs are foreground.* or text.*${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
+  // Each tone's fill is ITS OWN tone's subtle tint, and neutral's is the secondary foreground (#1730 net): the
+  // lint-paint provenance exceptions skip these keys, so without this arm a fill rebound to another tone passes.
+  const FILL_OF: Record<string, string> = {
+    neutral: 'color.foreground.secondary', info: 'color.foreground.info-subtle', success: 'color.foreground.success-subtle',
+    warning: 'color.foreground.warning-subtle', danger: 'color.foreground.danger-subtle',
+  };
+  const wrongFill = Object.entries(FILL_OF).filter(([t, want]) => badgeDef.tokens[`${t}.fill`] !== want);
+  ok(wrongFill.length === 0,
+    `badge: each tone's fill is its own tone's role${wrongFill.length ? ` — ${wrongFill.map(([t]) => `${t}.fill → ${badgeDef.tokens[`${t}.fill`]}`).join('; ')}` : ''}`);
+  const slots = Object.values(badgeDef.anatomy!.parts).flatMap((p: any) => p.paintSlots ?? []);
+  ok(JSON.stringify(slots) === JSON.stringify(['fill']),
+    `badge paints a fill and nothing else — no border or overlay pairing that reads as interactive (${JSON.stringify(slots)})`);
+  ok(JSON.stringify(badgeDef.states) === '[]',
+    `badge is static: no states (${JSON.stringify(badgeDef.states)})`);
+  const genre = badgeDef.props.find((p) => p.name === 'genre');
+  ok(JSON.stringify(genre?.values) === JSON.stringify(['status', 'count', 'dot']) && genre?.default === 'status',
+    `badge genre: the values are status | count | dot, default status (${JSON.stringify(genre?.values)}, ${genre?.default})`);
+  const aria = badgeDef.accessibility.aria;
+  ok(/Status label: not aria-hidden/.test(aria) && /Count and dot: aria-hidden="true"/.test(aria) && /host composes the meaning into its accessible name/.test(aria),
+    'badge aria: a status label announces itself; a count or dot is aria-hidden and its meaning is in the host name');
+  const themes: [string, any][] = [
+    ['nb', nbTheme()],
+    ['aurora', brandTheme(exampleBrands()['aurora'] as BrandInput)],
+    ['harbor', brandTheme(exampleBrands()['harbor'] as BrandInput)],
+  ];
+  for (const tone of ['neutral', 'info', 'success', 'warning', 'danger']) {
+    const ink = badgeDef.tokens[`${tone}.label`].replace(/^color\./, '');
+    const fill = badgeDef.tokens[`${tone}.fill`].replace(/^color\./, '');
+    const low: string[] = [];
+    let measured = 0;
+    for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
+      const a = m.roles[ink], b = m.roles[fill];
+      if (!a?.hex || !b?.hex) { low.push(`${brand}/${m.mode}: missing ${!a?.hex ? ink : fill}`); continue; }
+      const r = contrast(hexToRgb(a.hex), hexToRgb(b.hex));
+      measured++;
+      if (r < 4.5) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
+    }
+    ok(measured > 0 && low.length === 0,
+      `badge contrast (${tone}): ${ink} on ${fill} clears 4.5:1 in all ${measured} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+  }
+}
+
 // ---- #1670: THE SPINNER — the button's pending state nests it, and its motion is two tokens ----------------
 // Expectations are the OWNER'S (2026-09-26), written here rather than read from the def or the geometry
 // module: the icon ladder 16 / 20 / 24 / 32, a button slot one rung below its size (#1350), 0.8s per turn
@@ -12634,7 +12691,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     //     def — so a def whose category drifts from its brief's fails here by name. A def that cites a brief
     //     missing from the table fails too: add the row with the brief's category, read from the KB.
     const KB_BRIEF_CATEGORY: Record<string, string> = {
-      'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
+      'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
       'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations',
       'switch.md': 'form', 'text-field.md': 'form', 'textarea.md': 'form',
     };
