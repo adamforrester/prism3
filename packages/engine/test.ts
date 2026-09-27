@@ -72,7 +72,7 @@ import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, ic
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -10727,7 +10727,16 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // anatomy yet (textarea) has no `nests` to read, so this arm cannot see it; its list is kept by hand
     // until its anatomy lands. BY-NAME MUTATION: drop 'focus-ring' from `button`'s `composesWith` → this
     // arm fails, naming button and its two variants.
+    //
+    // #1700 MADE IT AN EQUALITY. `composesWith` has one meaning — the components this def nests, whether in
+    // flow (`nest`), out of flow (`absolute`) or swapped in whole (an `overlay` with `nests`) — so the
+    // converse holds too: every listed id must be one the anatomy nests. Before, reverse lists (focus-ring
+    // naming its hosts), "sits beside" lists (veil naming the button on it) and slot content (button naming
+    // `icon`) all passed, because the arm only asked the one direction. A def with no anatomy has nothing
+    // to nest, so its list must be empty. BY-NAME MUTATION (converse): put 'icon' back into `button`'s
+    // `composesWith` → the second assertion fails, naming button and its two siblings.
     let nestsRead = 0;
+    let listedRead = 0;
     for (const def of componentDefs) {
       const cw = new Set(def.composition?.composesWith ?? []);
       const nested = new Set(Object.values(def.anatomy?.parts ?? {}).map((p) => (p as { nests?: string }).nests).filter((n): n is string => !!n));
@@ -10735,8 +10744,25 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         nestsRead++;
         ok(cw.has(n), `component-refs: ${def.id} nests '${n}' in its anatomy but its composition.composesWith leaves it out — a nested component is one it composes with (#1238)`);
       }
+      for (const c of cw) {
+        listedRead++;
+        ok(nested.has(c), `component-refs: ${def.id} composition.composesWith names '${c}', which its anatomy does not nest — composesWith holds only what a def nests; a host, a neighbor or a slot's usual content goes in ai.commonPartners (#1700)`);
+      }
     }
     ok(nestsRead >= 15, `component-refs: the nests side is live (${nestsRead} nested parts read) — an arm over no nests asserts nothing`);
+    ok(listedRead >= 15, `component-refs: the composesWith side is live (${listedRead} listed ids read) — the converse over empty lists asserts nothing (#1700)`);
+
+    // (a3) #1700 — `inherits` names a REGISTERED def. The oracle is the registry, as in (a) above: a reader
+    // told "the rest is in X" must be able to find X. BY-NAME MUTATION: `checkbox-row`'s `inherits` →
+    // 'text-feild' fails this, naming the def and the id.
+    let inheritsRead = 0;
+    for (const def of componentDefs) {
+      if (def.inherits === undefined) continue;
+      inheritsRead++;
+      ok(ids.has(def.inherits) && def.inherits !== def.id,
+        `component-refs: ${def.id} inherits '${def.inherits}', which is not another registered def id — inherits names the def a reader goes to for the substrate (#1700)`);
+    }
+    ok(inheritsRead >= 5, `component-refs: the inherits side is live (${inheritsRead} defs inherit) — an arm over no inherits asserts nothing`);
 
     const retired = new Map<string, string>();
     for (const d of componentDefs) for (const a of d.aliases ?? []) if (d.id.startsWith(`${a}-`) && !ids.has(a)) retired.set(a, d.id);
@@ -11555,7 +11581,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(validateComponentDef(glyphPxOnBox as ComponentDef).errors.some((e) => /declares 'glyphPx'/.test(e) && /kind 'box'/.test(e) && /only a 'vector'/.test(e)),
       "#1340 glyphPx on a NON-vector part is refused BY NAME — only a vector is a glyph frame the executor resizes, so on any other kind it validates clean, is ignored, and leaves the author believing the part was sized");
     // (c) glyphPx on the ROOT vector — a root glyph's size is the instancing host's, so a literal fixes a size the host is meant to give.
-    const rootGlyphDef = { id: 'x', name: 'X', category: 'media', status: 'draft', description: 'x', props: [], states: [], variants: {}, paintKeys: ['{slot}'], tokens: {}, anatomy: { root: 'g', parts: { g: { kind: 'vector' as const, role: 'target' as const, glyph: 'image', glyphPx: 180 } } }, figmaProperties: { variantAxes: [], booleans: {} }, accessibility: { role: 'img', wcag: [], focus: 'n', aria: 'n' }, content: { labelPattern: 'n' }, docs: { usage: 'n', do: [], dont: [], contentGuidelines: 'n' }, ai: { primaryPurpose: 'n', whenToUse: 'n', avoidWhen: 'n', commonPartners: [], triggerKeywords: [], generationPriority: 3 }, composition: { composesWith: [], alternativeTo: [], supersedes: [], supersededBy: [] } };
+    const rootGlyphDef = { id: 'x', name: 'X', category: 'foundations', status: 'draft', description: 'x', props: [], states: [], variants: {}, paintKeys: ['{slot}'], tokens: {}, anatomy: { root: 'g', parts: { g: { kind: 'vector' as const, role: 'target' as const, glyph: 'image', glyphPx: 180 } } }, figmaProperties: { variantAxes: [], booleans: {} }, accessibility: { role: 'img', wcag: [], focus: 'n', aria: 'n' }, content: { labelPattern: 'n' }, docs: { usage: 'n', do: [], dont: [], contentGuidelines: 'n' }, ai: { primaryPurpose: 'n', whenToUse: 'n', avoidWhen: 'n', commonPartners: [], triggerKeywords: [], generationPriority: 3 }, composition: { composesWith: [], alternativeTo: [], supersedes: [], supersededBy: [] } };
     ok(validateComponentDef(rootGlyphDef as unknown as ComponentDef).errors.some((e) => /declares 'glyphPx' and is the anatomy ROOT/.test(e)),
       "#1340 glyphPx on the ROOT vector is refused BY NAME — a root glyph's rendered size comes from the host that instances it, so a literal here fixes a size the host is meant to give");
     // (d) glyphPx NON-POSITIVE — the frame is resized to this square, so a 0 or negative literal builds a
@@ -12562,13 +12588,77 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // (E) COMPOSITION — field-label names the defs that NEST it (read off every def's anatomy, not its own
     //     lists) in both of its lists, and switch-row no longer claims the field parts it does not nest.
     const nesters = componentDefs.filter((d) => Object.values((d.anatomy?.parts ?? {}) as Record<string, { nests?: string }>).some((p) => p.nests === 'field-label')).map((d) => d.id).sort();
-    const flCompose = (fieldLabel.composition?.composesWith ?? []).filter((x) => x !== 'field-message').sort();
+    // #1700 moved the reverse list out of `composesWith` (which now holds only what a def nests — field-label
+    // nests nothing), so the nesters are named once, in `commonPartners`, and `composesWith` is empty.
+    const flCompose = (fieldLabel.composition?.composesWith ?? []).slice().sort();
     const flPartners = (fieldLabel.ai.commonPartners ?? []).filter((x) => x !== 'field-message').sort();
-    ok(JSON.stringify(flCompose) === JSON.stringify(nesters) && JSON.stringify(flPartners) === JSON.stringify(nesters),
-      `#1699 field-label's composesWith and commonPartners both name exactly the defs that nest it ([${nesters.join(', ')}]; composesWith [${flCompose.join(', ')}], commonPartners [${flPartners.join(', ')}])`);
+    ok(flCompose.length === 0 && JSON.stringify(flPartners) === JSON.stringify(nesters),
+      `#1699 field-label's commonPartners names exactly the defs that nest it, and its composesWith is empty (#1700) ([${nesters.join(', ')}]; composesWith [${flCompose.join(', ')}], commonPartners [${flPartners.join(', ')}])`);
     const swFieldParts = [...(switchRow.composition?.composesWith ?? []), ...(switchRow.ai.commonPartners ?? [])].filter((x) => x === 'field-label' || x === 'field-message');
     ok(swFieldParts.length === 0,
       `#1699 switch-row does not claim field-label / field-message, which it does not nest (found: [${swFieldParts.join(', ')}])`);
+  }
+
+  // ---- #1700: the schema-wide vocabulary — category, aliases, notes, and the brief each def cites ----
+  {
+    // (A) THE VALIDATOR'S THREE NEW REFUSALS, driven through `validateComponentDef` with literal inputs. The
+    //     registry loop above already runs every real def through it; these arms prove each refusal FIRES,
+    //     on an input known to be wrong, so a check that stopped matching cannot pass by the corpus being clean.
+    const errs = (d: unknown) => validateComponentDef(d as ComponentDef).errors;
+    ok(errs({ ...spinner, category: 'media' }).some((e) => /category 'media' is not one of the KB's seven/.test(e)),
+      "#1700 validateComponentDef refuses a category outside the KB's seven ('media', the value two defs carried)");
+    ok(errs({ ...spinner, aliases: ['loading indicator'] }).some((e) => /alias 'loading indicator' is not kebab-case/.test(e)),
+      "#1700 validateComponentDef refuses an alias with a space ('loading indicator', the spinner's old alias)");
+    // The motivating shape: the question first, "Settled" in the SECOND sentence (focus-ring's three entries).
+    ok(errs({ ...focusRing, notes: { contested: ['Where the ring is drawn — on the border or outside it. Settled here as the offset sibling.'] } }).some((e) => /notes\.contested\[0\] has a sentence opening 'Settled'/.test(e)),
+      '#1700 validateComponentDef refuses a contested entry whose SECOND sentence opens "Settled" — the focus-ring shape a first-word check misses');
+    ok(errs({ ...focusRing, notes: { unverified: ['RESOLVED (#1): the thing is measured now.'] } }).some((e) => /notes\.unverified\[0\] has a sentence opening 'RESOLVED'/.test(e)),
+      '#1700 validateComponentDef refuses an unverified entry opening "RESOLVED"');
+    // The converse: the word inside a sentence is prose, not a verdict, and must stay legal.
+    ok(!errs({ ...focusRing, notes: { contested: ['Legacy icon fonts are settled as dead; the font model is not.'] } }).some((e) => /notes\./.test(e)),
+      '#1700 a contested entry that uses "settled" mid-sentence is NOT refused — only a sentence that opens with the verdict is');
+
+    // (B) THE BRIEF CITATION, read off each def file's HEADER (the leading `/** … */`), per the focus-ring
+    //     header arm's lesson: a whole-file scan is satisfied by any passing mention. Each header names its
+    //     brief exactly once as "KB brief: `components/<name>.md`", or says "No KB brief" and states its
+    //     category choice beside it. EXPECTED for the category is this TABLE, authored from the KB's own
+    //     frontmatter (knowledge-base `components/<name>.md`, `category:`, read 2026-09-27) — never from a
+    //     def — so a def whose category drifts from its brief's fails here by name. A def that cites a brief
+    //     missing from the table fails too: add the row with the brief's category, read from the KB.
+    const KB_BRIEF_CATEGORY: Record<string, string> = {
+      'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
+      'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations',
+      'switch.md': 'form', 'text-field.md': 'form', 'textarea.md': 'form',
+    };
+    const defDir = resolve(HERE, './components');
+    const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
+    const fileOf = new Map<string, string>();
+    for (const f of defFiles) {
+      const src = readFileSync(join(defDir, f), 'utf8');
+      const header = src.startsWith('/**') ? src.slice(0, src.indexOf('*/') + 2) : '';
+      // Every citation counted, repeats included (#1715 net): a Set collapsed the same brief cited twice to one.
+      const cites = [...header.matchAll(/KB brief: `components\/([a-z-]+\.md)`/g)].map((m) => m[1]);
+      const noBrief = /\bNo KB brief\b/.test(header);
+      ok(header.length > 0 && (cites.length === 1) !== noBrief && cites.length <= 1,
+        `#1700 ${f}: the header names its KB brief exactly once as "KB brief: \`components/<name>.md\`", or states "No KB brief" — got [${cites.join(', ')}]${noBrief ? ' + "No KB brief"' : ''}`);
+      const mod = await import(pathToFileURL(join(defDir, f)).href) as Record<string, unknown>;
+      const defs = Object.values(mod).filter((v): v is ComponentDef => !!v && typeof v === 'object' && typeof (v as ComponentDef).id === 'string' && Array.isArray((v as ComponentDef).props));
+      ok(defs.length > 0, `#1700 ${f}: exports at least one def — a def file the citation scan could not attach to a def would be read and then ignored`);
+      for (const d of defs) {
+        fileOf.set(d.id, f);
+        if (cites.length === 1) {
+          const want = KB_BRIEF_CATEGORY[cites[0]];
+          ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which is not in the test's KB-brief table — add the row with the brief's own category`);
+          ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
+        } else if (noBrief) {
+          const stated = header.match(/No KB brief[\s\S]{0,400}?Category[\s*]+`([a-z]+)`/)?.[1];
+          ok(stated === d.category, `#1700 ${d.id}: has no KB brief, so its header states the category choice ("Category \`${d.category}\`") beside the "No KB brief" line — got ${stated ?? 'none'}`);
+        }
+      }
+    }
+    const unplaced = componentDefs.filter((d) => !fileOf.has(d.id)).map((d) => d.id);
+    ok(unplaced.length === 0 && fileOf.size === componentDefs.length,
+      `#1700 every registered def was found in a def file and its header read (${fileOf.size} of ${componentDefs.length}; unplaced: [${unplaced.join(', ')}])`);
   }
 
   // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
@@ -13697,7 +13787,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
      *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
      *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
      *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } } };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; varValues?: Record<string, number>; fileNodes?: StubFileNode[]; nestedInstanceParts?: string[]; effectStyles?: string[]; textMetrics?: { fontSize: number; lineHeight: { unit: string; value: number } }; setStrokes?: Record<string, unknown>[] };
     /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
      *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
      *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
@@ -14341,10 +14431,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         combineAsVariants: (members: Record<string, unknown>[]) => {
           const set = mkNode('COMPONENT_SET');
           set.children = members;
-          // #1430 / #1393 — the set comes back DRESSED, as `component-shim.ts` models it: a purple dashed
-          // border and a 5px radius. Without it the paste `claimDefaults` KEEPING that framing and BLANKING it
-          // read the same off a bare `mkNode` set, and the #1393 lockstep row for the set could not see which.
-          set.strokes = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0x97 / 255, g: 0x47 / 255, b: 1 } }];
+          // #1430 / #1393 — the set comes back as the live host returns it (probed 2026-09-27), as
+          // `component-shim.ts` models it: the dash rhythm and 5px radius of a variant-set frame, and NO
+          // stroke paint. This stub used to pre-dress the set with a #9747FF stroke, which let the paste
+          // `claimDefaults` pass by keeping the stub's own paint while the real host had none to keep (docs/34).
+          // `opts.setStrokes` (#1430 left-alone arm) models a host that DOES hand back a paint.
+          set.strokes = opts.setStrokes ? opts.setStrokes.map((p) => ({ ...p })) : [];
+          set.fills = [];
           set.strokeWeight = 1;
           set.strokeAlign = 'INSIDE';
           set.dashPattern = [10, 5];
@@ -15814,14 +15907,19 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
         // #1393 — THE CHUNKED SET IS CLAIMED TOO. Chunk 1 combines, so it is the chunked path's own copy of the
         // set-level `claimDefaults` call, separate from the single-shot one the lockstep parity reads. Hand-named
-        // expectations, not a comparison against either executor: the set's opaque fill cleared, its framing
-        // (the stub's dressed border and 5px radius) KEPT, and a neutral the stub never seeds (`blendMode`)
-        // written — the one that tells "claimed" from "left alone".
+        // expectations, not a comparison against either executor: the set's fill transparent, its framing
+        // (the #1430 border — WRITTEN, since the stub returns the set unpainted as the live host does — and
+        // the 5px radius) present, and a neutral the stub never seeds (`blendMode`) written — the one that
+        // tells "claimed" from "left alone". The stroke is compared as 8-bit hex so the purple is authored
+        // here as `#9747FF`, not read from the paste script's `SET_BORDER`.
         {
           const cset = page.children.find((c) => c.type === 'COMPONENT_SET');
-          const row = cset && { blendMode: cset.blendMode, rotation: cset.rotation, fills: cset.fills, dashPattern: cset.dashPattern, topLeftRadius: cset.topLeftRadius };
-          ok(JSON.stringify(row) === JSON.stringify({ blendMode: 'PASS_THROUGH', rotation: 0, fills: [], dashPattern: [10, 5], topLeftRadius: 5 }),
-            `#1393 chunked: the set chunk 1 combines is claimed like the single-shot one — neutrals written, fill cleared, #1430 framing kept (${JSON.stringify(row)})`);
+          const hex = (v: number) => Math.round(v * 255).toString(16).toUpperCase().padStart(2, '0');
+          const stroke = ((cset?.strokes as { type?: string; color?: { r: number; g: number; b: number } }[] | undefined) ?? [])
+            .map((p) => `${p.type} #${p.color ? hex(p.color.r) + hex(p.color.g) + hex(p.color.b) : '?'}`).join(',');
+          const row = cset && { blendMode: cset.blendMode, rotation: cset.rotation, fills: cset.fills, stroke, dashPattern: cset.dashPattern, topLeftRadius: cset.topLeftRadius };
+          ok(JSON.stringify(row) === JSON.stringify({ blendMode: 'PASS_THROUGH', rotation: 0, fills: [], stroke: 'SOLID #9747FF', dashPattern: [10, 5], topLeftRadius: 5 }),
+            `#1393 chunked: the set chunk 1 combines is claimed like the single-shot one — neutrals written, fill cleared, #1430 purple border written (${JSON.stringify(row)})`);
         }
 
         // MUTATION-TESTED. Same discipline as the single-shot path, and the same reason: every claim
@@ -16231,6 +16329,42 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           const diff = claimDiff(plugClaims, pasteClaims);
           ok(plugClaims.length === pasteClaims.length && diff.length === 0,
             `#1393 lockstep: both executors leave every #865 default IDENTICAL on every node, the set included — plugin vs paste differ on ${diff.length}: ${diff.slice(0, 2).join(' | ').slice(0, 600)}`);
+        }
+
+        // #1430 — THE SET'S BORDER IS PRESENT, ON EACH PATH, NOT ONLY EQUAL ACROSS THEM. The lockstep above
+        // compares the two executors with each other, so a border BOTH forget reads identical and passes —
+        // and until 2026-09-27 both "kept" a paint only the stub supplied. Probed live, the host returns the
+        // set with `strokes: []` (the stub now models that), so a purple stroke here was WRITTEN by the
+        // executor. Hand-named expectation — #9747FF in 8-bit channels, SOLID, 1px INSIDE, a 10/5 dash, 5px
+        // corners — authored here, never read from either executor's `SET_BORDER`.
+        {
+          const SET_FRAME = { stroke: 'SOLID #9747FF', strokeWeight: 1, strokeAlign: 'INSIDE', dashPattern: [10, 5], corners: [5, 5, 5, 5] };
+          const setFrame = (page: StubPage) => {
+            const s = page.children.find((c) => c.type === 'COMPONENT_SET');
+            const ps = (s?.strokes as { type?: string; visible?: boolean; color?: { r: number; g: number; b: number } }[] | undefined) ?? [];
+            const hex = (v: number) => Math.round(v * 255).toString(16).toUpperCase().padStart(2, '0');
+            return {
+              stroke: ps.filter((p) => p.visible !== false && p.color).map((p) => `${p.type} #${hex(p.color!.r)}${hex(p.color!.g)}${hex(p.color!.b)}`).join(',') || 'none',
+              strokeWeight: s?.strokeWeight, strokeAlign: s?.strokeAlign, dashPattern: s?.dashPattern,
+              corners: ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].map((k) => s?.[k]),
+            };
+          };
+          for (const [label, pg] of [['plugin', plugPage], ['paste', pastePage]] as const)
+            ok(JSON.stringify(setFrame(pg)) === JSON.stringify(SET_FRAME),
+              `#1430 ${label}: the built set carries Figma's variant-set border — a SOLID #9747FF 1px INSIDE stroke, a 10/5 dash and 5px corners — written onto the set the host returns unpainted (${JSON.stringify(setFrame(pg))})`);
+
+          // LEFT ALONE: a host that returns the set ALREADY stroked keeps that stroke on both paths. A green,
+          // so "kept" and "overwritten with the purple" read differently.
+          const HOST_PAINT = { type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0, g: 0.5, b: 0 } };
+          const keptPaste: StubPage = { children: [] };
+          const keptPlug: StubPage = { children: [] };
+          await runPayload(planSetToPluginJs(grid), { ...fullSet, page: keptPaste, setStrokes: [HOST_PAINT] });
+          await plugRun(grid, { ...fullSet, page: keptPlug, setStrokes: [HOST_PAINT] });
+          for (const [label, pg] of [['plugin', keptPlug], ['paste', keptPaste]] as const) {
+            const s = pg.children.find((c) => c.type === 'COMPONENT_SET');
+            ok(JSON.stringify(s?.strokes) === JSON.stringify([HOST_PAINT]),
+              `#1430 ${label} left alone: a set the host returns already stroked keeps its own stroke (${JSON.stringify(s?.strokes)})`);
+          }
         }
 
         // #1514/#1567 — THE STYLE SURVIVES BOTH PATHS, EACH FOR ITS OWN REASON, AND THEY STILL AGREE.
@@ -19616,7 +19750,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const ringHeader = ringSrc.slice(0, ringSrc.indexOf('*/') + 2);
   ok(ringHeader.length > 500 && ringHeader.startsWith('/**'),
     `focus-ring: the source opens with a header block for the grounding to live in (got ${ringHeader.length} chars)`);
-  for (const cite of ['button.md:34', 'docs/32', ':592', ':731'])
+  // #1700 — the line numbers `:592` / `:731` had gone stale (the two findings now sit hundreds of lines
+  // further down `docs/32`), so the header cites them by SECTION TITLE, which is what a reader can find.
+  for (const cite of ['button.md:34', 'docs/32', 'The focus ring is an ABSOLUTE sibling', 'The focus ring wants to be a shared nested component'])
     ok(ringHeader.includes(cite),
       `focus-ring: the HEADER cites '${cite}' — there is no focus-ring.md, so the grounding is stated where a reader meets the def, not merely mentioned somewhere in the file`);
 

@@ -923,6 +923,20 @@ npx tsx packages/engine/lint-advisory-expiry.ts     # a stated advisory window, 
                                                     # directions with an injected clock
                                                     # (PRISM3_TODAY), never by editing the dates in
                                                     # the files — that would test a different program.
+npx tsx packages/engine/lint-component-docs.ts      # every registered component def reaches its docs
+                                                    # (#1701): the JSON out/components/components.ai.json,
+                                                    # one page per def, and the NON-payload maintainer
+                                                    # record schema/component-maintainer.json. Reads the
+                                                    # committed files, never the projector. Every def in
+                                                    # all three, both ways, floor 24; the JSON validates
+                                                    # against the AUTHORED component-docs.schema.json
+                                                    # and every field it declares is carried; each def
+                                                    # doc value round-trips to its JSON path and into
+                                                    # its OWN page section or table cell (a page-wide
+                                                    # search cannot see `small` leave the Variants
+                                                    # table), axis kinds included; codeOnly/notes are in
+                                                    # the maintainer record and in neither payload form;
+                                                    # no Prism 2 in the payload.
                                                     # LIMIT: a claim phrased with neither `advis...`
                                                     # nor `continue-on-error` is not seen, and the run
                                                     # prints the whole census so a count that drops

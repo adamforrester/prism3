@@ -1217,16 +1217,16 @@ export const makeShim = (opts: ShimOpts = {}) => {
       const set = mkNode('COMPONENT_SET');
       set.id = 'SET:1';
       set.children = members;
-      // #1430 — HOST TRUTH: `combineAsVariants` returns a set Figma has already DRESSED as a variant set —
-      // a purple dashed border and a 5px radius, the outline a designer uses to pick the set out on the
-      // canvas. `mkNode` hands back a BARE `COMPONENT_SET` (strokes `[]`, corners 0), so a shim that stopped
-      // there could not tell the executor KEEPING that border (the #1430 fix) from BLANKING it (the #865
-      // defect this corrects) — docs/34 shape 4: model the axis or the gate cannot see it. Seeded verbatim
-      // as Figma's own (the border is `#9747FF`, the variant-set purple) so the round-trip's assertion reads
-      // a real border back and the pre-#1430 blank fails it by name. The set's OPAQUE default FILL is NOT
-      // modelled: the executor clears it to transparent on purpose (#1430 note in `write-components.ts` —
-      // it would obscure content and trip #1387), so there is nothing there for a gate to preserve.
-      set.strokes = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0x97 / 255, g: 0x47 / 255, b: 1 } }];
+      // #1430 — HOST TRUTH, AS PROBED LIVE (2026-09-27, a scratch file and the owner's master file agree):
+      // `combineAsVariants` returns a set with the dash rhythm and the radius of a variant-set frame but NO
+      // stroke paint — `strokes: []`, `strokeWeight: 1`, `strokeAlign: 'INSIDE'`, `dashPattern: [10, 5]`,
+      // corners 5, `fills: []`. Modelled EXACTLY that way, bare. This shim used to PRE-DRESS the set with a
+      // #9747FF stroke, on the belief that the host supplies one, and that was the independence gap
+      // (docs/34): with the paint arriving from the stand-in, the round-trip's border arm read back the
+      // shim's own paint and passed whether or not the executor wrote one, while every real set had no
+      // border. Bare, the paint the round-trip reads can only have come from the executor (`SET_BORDER`).
+      set.strokes = [];
+      set.fills = [];
       set.strokeWeight = 1;
       set.strokeAlign = 'INSIDE';
       set.dashPattern = [10, 5];

@@ -326,8 +326,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "143 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 143. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "169 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 169. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
@@ -858,6 +858,16 @@ jobs:
       # so a closed window recorded there is correct prose forever.
       - name: A stated advisory window has not expired
         run: npx --yes tsx@4 packages/engine/lint-advisory-expiry.ts
+
+      # #1701 — every registered component def reaches its documentation, and its maintainer record reaches
+      # nothing that ships. Reads the COMMITTED out/components/** and schema/component-maintainer.json,
+      # never the projector: EXPECTED is the def registry, the authored schema/component-docs.schema.json
+      # and payload-manifest.json. Arms: every def in all three files (both directions, floor 24); the
+      # JSON validates and every declared field is carried; each def doc value round-trips to its JSON
+      # path and into its OWN page section or table cell, axis kinds included; codeOnly/notes sit in the
+      # maintainer record and in neither payload form; no Prism 2 in the payload.
+      - name: Every component def is documented in both forms (#1701)
+        run: npx --yes tsx@4 packages/engine/lint-component-docs.ts
 
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because

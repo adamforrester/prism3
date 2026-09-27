@@ -1,5 +1,5 @@
 /**
- * Textarea — the calibration def for the INHERITED SUBSTRATE (KB `components/textarea.md`,
+ * Textarea — the calibration def for the INHERITED SUBSTRATE (KB brief: `components/textarea.md`,
  * `docs/40` §3). A control for free-form text expected to wrap across multiple lines.
  *
  * The brief's own framing: ~80% of this component IS `text-field`, and the interesting 20% is the
@@ -523,13 +523,14 @@ export const textarea: ComponentDef = {
     primaryPurpose: 'Capture multi-line free-form text with an associated label, an optional soft character limit, and a stated sizing model.',
     whenToUse: 'Comments, descriptions, messages, feedback, notes, commit-message bodies, a multi-line address — any input that predictably runs past the ~40–60 characters a single-line field shows comfortably, or that legitimately needs user-authored line breaks.',
     avoidWhen: 'The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a <textarea> holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select, or a combobox, not built yet). Also avoid reaching for it as a general "big box of text" when the content is genuinely structured — that is the rich-text signal.',
-    commonPartners: ['field-label', 'field-message', 'button', 'icon'],
+    commonPartners: ['field-label', 'field-message', 'button', 'icon', 'spinner'],
     triggerKeywords: ['textarea', 'text area', 'multiline', 'multi-line input', 'comment box', 'message box', 'description field', 'composer'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'focus-ring', 'button', 'icon', 'spinner'],
+    // What the anatomy nests (#1700). The rest are partners in `ai.commonPartners`.
+    composesWith: ['field-label', 'field-message', 'focus-ring'],
     // ALTERNATIVE TO text-field, not a superseder — they are siblings a designer picks between by
     // input shape. The brief flags that its external research pass typed this as
     // `supersedes: text-field` and corrects it against the prose; carried here so the corrected

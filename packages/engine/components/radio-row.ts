@@ -4,6 +4,8 @@
  * The painted circle-and-dot moved to `radio-control`; this def is the labeled row that nests one
  * instance of it in flow, `nest-exposed`, and paints the label.
  *
+ * KB brief: `components/radio.md`.
+ *
  * The brief's framing, and it is the whole shape of this def: *"a lone checkbox is a valid control
  * (a consent box); a lone radio is meaningless — it only means 'one of these', and needs siblings and
  * a shared `name` to mean anything at all."* Everything below follows from that one sentence.
@@ -410,7 +412,7 @@ export const radioRow: ComponentDef = {
     ],
     unverified: [
       'THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`\'s and `switch-control`\'s were: the nested control instance must pin its own SQUARE (the control edge) rather than stretch to the `control-box` line box, and whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. Radio\'s control is SQUARE, so the Row pins via `size` (both axes), the same as checkbox.',
-      'THE FOCUS RING MUST APPEAR INSTANTLY (brief §6, §8) — a fade lags rapid arrow navigation through a group, which is a radio-specific constraint that checkbox does not have. It is stated in `motion` and `accessibility.focus`, and nothing checks it: `motion` is prose, and no gate reads a ring\'s transition. The ring\'s SHAPE, by contrast, is handled: F2 (#1388) derives it concentrically, so a full-round control yields a circular ring (`radio-control.ts`).',
+      'THE FOCUS RING must appear INSTANTLY (brief §6, §8) — a fade lags rapid arrow navigation through a group, which is a radio-specific constraint that checkbox does not have. It is stated in `motion` and `accessibility.focus`, and nothing checks it: `motion` is prose, and no gate reads a ring\'s transition. The ring\'s SHAPE, by contrast, is handled: F2 (#1388) derives it concentrically, so a full-round control yields a circular ring (`radio-control.ts`).',
       'The whole-row hit target is expressed as `size.*.min-height`, the row\'s floor, and `anatomy.parts.row` is the node the expanding padding would land on. What is still unstated is the VALUE: the row clears SC 2.5.8\'s 24x24 at `medium` and not at `small`, and how much padding to add is a decision about the surrounding layout rather than a property of this component. Admitted in `anatomy.codeOnly` rather than guessed at — which is why `accessibility.wcag` states 2.5.8 as intent (#1698).',
     ],
     evolution: [

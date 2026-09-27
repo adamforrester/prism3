@@ -83,7 +83,9 @@
  * rule · a rule matching nothing · a new brand emitted but undeclared · a declared brand removed ·
  * a declared brand emitting nothing · two rules claiming one file.
  *
- * SCOPE — every COMMITTED GENERATED artifact: `out/**`, `ENGINE_ARTIFACTS`, `SCHEMA_ARTIFACTS`.
+ * SCOPE — every COMMITTED GENERATED artifact: `out/**`, `ENGINE_ARTIFACTS`, `SCHEMA_ARTIFACTS`, and
+ * `MAINTAINER_ARTIFACTS` (#1701 — generated, and kept apart from `SCHEMA_ARTIFACTS` so the prose gates do
+ * not read it; still an emitted file, so it still needs a declared class here).
  * Hand-authored files under `schema/` (`theme-schema.json`, `token-contract.json`) are out of
  * scope: the question this file answers is "which of the things the engine EMITS travel?". Covering
  * only `out/` would leave the other two regions undeclared and recreate the gap one level over.
@@ -91,7 +93,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
+import { ENGINE_ARTIFACTS, MAINTAINER_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, 'out');
@@ -121,6 +123,7 @@ const actual = [
   ...walk(outDir, 'out/'),
   ...ENGINE_ARTIFACTS,
   ...SCHEMA_ARTIFACTS.map((f) => `schema/${f}`),
+  ...MAINTAINER_ARTIFACTS.map((f) => `schema/${f}`),
 ].sort();
 
 // ---- CLAIMED: what the authored manifest says --------------------------------------------------

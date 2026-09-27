@@ -1,6 +1,6 @@
 /**
  * TextField — the calibration brief for ENCAPSULATION BOUNDARY and ACCESSIBILITY WIRING
- * (KB text-field brief; Button is the calibration for intent×appearance, this is for where the
+ * (KB brief: `components/text-field.md`; Button is the calibration for intent×appearance, this is for where the
  * field ends and the form begins). A single-line control for free-form, non-enumerable text.
  *
  * The composition call (brief §2, §3, §12): TextField is the HOST that composes the two shared
@@ -553,13 +553,15 @@ export const textField: ComponentDef = {
     primaryPurpose: 'Capture a single line of free-form, non-enumerable text with an associated label and helper/validation message.',
     whenToUse: 'Names, emails, titles, SKUs, identifiers, short queries — any single-line text the system cannot offer as a fixed set.',
     avoidWhen: 'The value comes from a known set (Select, Radio.Group, or a combobox), spans multiple lines (Textarea), is numeric-formatted (a number field), is boolean (Checkbox.Row or Switch.Row), is a date (a date picker), or needs suggestions (a combobox — the moment a suggestion list attaches you are in combobox territory with a different ARIA contract).',
-    commonPartners: ['field-label', 'field-message', 'icon', 'button'],
+    commonPartners: ['field-label', 'field-message', 'icon', 'button', 'spinner'],
     triggerKeywords: ['text field', 'text input', 'input', 'form field', 'textbox', 'email field', 'search field'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'focus-ring', 'icon', 'button', 'spinner'],
+    // What the anatomy nests (#1700). The glyph, clear button and pending spinner fill slots or swap in at
+    // runtime, so they are partners in `ai.commonPartners`, not parts.
+    composesWith: ['field-label', 'field-message', 'focus-ring'],
     alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row'],
     replacesPatterns: ['bare input without label wiring', 'placeholder-as-label', 'type=number for formatted numeric'],
     planned: ['form', 'tooltip', 'combobox', 'number-field', 'search-field', 'date-picker', 'password-field'],
@@ -577,7 +579,6 @@ export const textField: ComponentDef = {
       'Bundled props vs composed slots — ship both: props for the 90% vertical-form case, composed FieldLabel/FieldMessage slots for the 10% custom layout (brief §3).',
       'How far to split the typed family — NumberField separate; SearchField/PasswordField thin specializations; email/url/tel stay as type+attributes (brief §3).',
       'Validation ownership/timing — presentational default; the form library owns timing (brief §3, §6).',
-      'warning as a distinct state (brief §4 calls it optional; many systems fold it into helper/error). Settled here as a STATUS, not a state: `warning` is a value of the `status` axis with its own border (`color.border.warning`, #1517) and its own message status, so the field signals it on both.',
       'pressed — the brief lists it as a runtime state (§4, touch-down feedback before the virtual keyboard rises), largely a mobile concern. Not declared: `pressed` is not a field state here (see `tokens`), so a touch-down carries no skin of its own. The alternative is a `pressed` state with its own skin, which no field role emits today (`color.field.border.pressed` does not exist).',
       'density [comfortable, compact, fluid] — the brief\'s second variant axis (§4, §15). Not declared: the engine\'s density is a brand lever that moves every control\'s rungs, and `size` covers per-field scale. Carbon\'s borderless `fluid` field is a separate treatment, not built.',
       'prefix / suffix as TEXT affixes vs merged away (#1699 decision 3, owner-delegated: one prop per slot). They were glyph-or-action slots duplicating `leadingIcon` / `trailingIcon`. Chosen: keep the names for the text affixes (a currency symbol, a unit — brief §9\'s locale placement). In the brief, `prefix` / `suffix` name the adornment slots (§2, §15) and §10 maps `leadingVisual` / `trailingVisual` onto them; here the glyph adornments are the two icon slots, so the names are reused for the text affixes, with the glyphs on the two icon slots and the clear action on `clearable`. The alternative, dropping `prefix` / `suffix` entirely, loses the text affix a currency or unit field needs.',
@@ -590,6 +591,8 @@ export const textField: ComponentDef = {
     ],
     // KB text-field brief §13.
     evolution: [
+      // Moved from `contested` (#1700): decided here (a status, not a state), so it is evolution.
+      'warning as a distinct state (brief §4 calls it optional; many systems fold it into helper/error). Settled here as a STATUS, not a state: `warning` is a value of the `status` axis with its own border (`color.border.warning`, #1517) and its own message status, so the field signals it on both.',
       'FLOATING LABELS OUT OF FAVOR. Static top-aligned labels are now the assumed default for accessibility, i18n and density; Material 3 keeps floating as an option (KB text-field brief §13). This field composes the static FieldLabel.',
       'PLACEHOLDER-AS-LABEL is universally an anti-pattern — settled, though legacy code persists.',
       'THE TYPED FAMILY IS SPLITTING into discrete components (a number field) for tree-shaking and localized behavior; the practice holds email / url / tel as `type` + attributes on this field (brief §3).',

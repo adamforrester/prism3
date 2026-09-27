@@ -6,6 +6,8 @@
  * atom (`checkbox-control`), the labeled row (`checkbox-row`) and this set — and the one that owns the
  * contract a single row structurally cannot (the value ARRAY, group-level required and ALL validation).
  *
+ * KB brief: `components/checkbox.md` — the group of the brief's decomposition, which owns the value array and validation.
+ *
  * ── WHAT PRISM 2 SETTLES, AND WHAT IT DOES NOT (the fork map) ────────────────────────────────────────
  *
  * Prism 2's `checkbox-group` is a single `COMPONENT` (not a `COMPONENT_SET`): a VERTICAL container

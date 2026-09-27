@@ -47,6 +47,16 @@
       "kind": "icon-glyphs",
       "pattern": "icon-glyphs.ts",
       "why": "The glyph vocabulary and its path data, generated from `icons/*.svg` through `icon-set.ts` (#833). PAYLOAD because any component projection that renders an icon carries this data with it — a client's ejected button needs the caret. It is a generated MODULE rather than an `out/` tree because `components/icon.ts` imports it and the plugin bundles that import into a sandbox with no filesystem, so it could not be read from disk at runtime. The SVGs beside it are authoring input and are outside this manifest, the same way a brand's design brief is. License and provenance: `icons/NOTICE.md` — the set is Remix Icon under its own v1.0 license, held as a swappable placeholder core, which is what keeps our use inside the license's `design systems where Icons are a minor component` clause."
+    },
+    {
+      "kind": "component-docs-data",
+      "pattern": "out/components/components.ai.json",
+      "why": "Every registered component's documentation, projected from its def (#1701): usage, props, states, variants, accessibility, content, motion, composition and the `ai` decision surface. PAYLOAD because a client's coded component is built from it, and an ejected repo has no def files to read. It carries the fields the plugin already ships and nothing #1623 ruled maintainer-only. Brand-independent — one file, not one per brand — because a def binds token names and each brand's own sidecar resolves them."
+    },
+    {
+      "kind": "component-docs-page",
+      "pattern": "out/components/{file}.md",
+      "why": "The same documentation as one human-readable page per component (#1701), for the people building the component and as the seed for the per-brand payload skills (#668). Payload for the same reason as the data file it mirrors. Written for people, so it leaves out the agent-only search and priority metadata the data file keeps."
     }
   ],
   "ours": [
@@ -84,6 +94,11 @@
       "kind": "preview-spec",
       "pattern": "schema/preview-spec.json",
       "why": "Drives our preview surfaces. Ours."
+    },
+    {
+      "kind": "component-maintainer",
+      "pattern": "schema/component-maintainer.json",
+      "why": "Each component def's `anatomy.codeOnly` and `notes.*`, projected beside the docs (#1701). Ours, because #1623 ruled both maintainer-only: they are the def's working record, with issue numbers and research references, and the plugin already strips them. It is kept out of `SCHEMA_ARTIFACTS` so the shipped-prose gates do not read it."
     },
     {
       "kind": "example-brands",

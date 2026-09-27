@@ -4,6 +4,8 @@
  * input and the execution command. The painted track-and-thumb moved to `switch-control`; this def is
  * the labeled row that nests one instance of it in flow, `nest-exposed`, and paints the label.
  *
+ * KB brief: `components/switch.md`.
+ *
  * The boundary with checkbox is TOPOLOGICAL rather than visual: if a Save/Submit button sits anywhere
  * in the flow the change is staged and it is a Checkbox; if the change is live the instant you toggle,
  * it is this.
@@ -319,9 +321,10 @@ export const switchRow: ComponentDef = {
   },
 
   composition: {
-    // What the Row actually nests: `switch-control` (which nests `focus-ring`). The label is the Row's own
-    // text part, not a `field-label`, and an outcome error is a status message, not a `field-message` (#1699).
-    composesWith: ['switch-control', 'focus-ring'],
+    // What the Row actually nests: `switch-control`, and only that (#1700) — the ring is the control's, one
+    // level down. The label is the Row's own text part, not a `field-label`, and an outcome error is a status
+    // message, not a `field-message` (#1699).
+    composesWith: ['switch-control'],
     alternativeTo: ['checkbox-row', 'radio-row'],
     replacesPatterns: [
       'a checkbox misused for an immediate-effect setting',

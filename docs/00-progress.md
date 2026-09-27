@@ -7,6 +7,136 @@
 
 ---
 
+## (2026-09-27) — Component docs are projected: a JSON file and a markdown page per component, and a maintainer record that does not ship (#1701)
+
+**STATUS: PR #1705 open from `lane/component-docs-projection`, labeled DO NOT MERGE.** Owner chose option (c) on #1701: one projector, two forms, from the same def data. The Figma description stays the one-line `summary`. Netted to the owner's decision of 2026-09-27, which splits what ships from what is maintainer-only. ENGINE → **0.183.0** (a new emitted surface, MINOR; the orchestrator renumbers at merge). CONTRACT stands at 13.1.0; no token name moves.
+
+**What `emit-component-docs.ts` writes** (a `regen.ts` step):
+- `out/components/components.ai.json` — PAYLOAD. Every registered def in one brand-independent file, validated against the authored `schema/component-docs.schema.json` (`$id` `prism3-component-docs/1.0`, every object closed). It carries the shipped fields only: identity, the code API (`props`, `states`, `variants` with each axis's `kind`), `summary`, `description`, `docs`, `accessibility`, `content`, `motion`, `composition` and `ai`.
+- `out/components/<id>.md` — PAYLOAD. One page per def, written for people: the same fields minus `ai`'s agent-only `triggerKeywords` and `generationPriority`, which stay in the JSON.
+- `schema/component-maintainer.json` — NOT payload. Each def's `anatomy.codeOnly` and `notes.*`, which #1623 ruled maintainer-only. Classified `ours` in `payload-manifest.json`.
+
+`regen --check` goes 111 → **137** artifacts, in `verify.ts` and `ci.yml` together.
+
+**Decisions a reviewer can disagree with.**
+- **The maintainer record lives in `schema/`, in a new `regen.ts` list, `MAINTAINER_ARTIFACTS`.** Not in `out/`: `lint-us-english.ts` and `lint-voice.ts` walk all of `out/`, so keeping it unscanned there would mean narrowing their scan. Not in `SCHEMA_ARTIFACTS` either: every reader of that list treats membership as "this ships" — both prose gates scan it and `lint-emission-version.ts` demands an ENGINE bump when it moves. The new list is drift-checked by `regen --check`, classified by `lint-payload-manifest.ts`, and accepted by `lint-schema-classification.ts` as a fourth class (generated, maintainer-only, not prose-gated), mutually exclusive with the other three. So a notes-only def edit moves the maintainer record and needs no ENGINE bump.
+- **No Prism 2 withholding anywhere.** The payload carries no `codeOnly` or `notes` field, so there is nothing to withhold there, and arm E still fails the payload on any Prism 2. The maintainer record keeps its 37 entries that name Prism 2: it does not ship, and withholding would make it disagree with the defs it records. #1703 (rewording those entries so they can ship) has lost its reason; held for the owner to close or repurpose.
+- **The version stamp is the JSON's top-level `engineVersion` only.** Pages carry no stamp and the maintainer record none, so an engine bump rewrites one file here, not 25. Nothing needed the per-page stamp: the round-trip arm reads def values, and `regen --check` owns freshness.
+- **The page keeps "Choosing it"** — `ai`'s purpose, when to use, when to avoid and common partners — and drops only keywords and priority. The owner's note read "`ai` in the JSON only" and "drop agent-only metadata from the page"; these four are the decision half a person uses to pick a component. Held for the owner if the intent was to drop the whole block.
+- **Def edits reverted.** The first pass reworded `focus-ring`, `text-field` and `textarea` `codeOnly`/`notes` strings because they shipped. They no longer do, so those three defs are back to `main` and `component-surface.json` is `main`'s. `radio-row`'s focus-ring note keeps #1708's content with `MUST` written as `must`.
+- **Not projected:** `tokens`, `paintKeys`, `anatomy.parts`, `figmaProperties`, `weightIntent`. They are the plan's input, not documentation.
+
+**Diagnosis worth keeping: a page-wide search could not see a short value leave its table.** The first gate checked each def string with `page.includes(v)`. Replacing every page's Variants `Values` cell with `x` removes 183 values; with the scoping neutralized to a page-wide search, 179 of them still passed, including `small` and `filled` on `button` (each appears in the Props table's type prose). docs/34 shape 13: the promise names a table, the predicate took the file. Arm C now reads each page as sections (a heading's own body, up to the next heading of any level) and tables (row by the first column's code span, column by header), and the section map is written in the gate, not read from the projector.
+
+**The gate: `lint-component-docs.ts`.** Reads the committed files; imports neither the projector nor `axisKindOf`.
+- **A. Representation** — every def in all three files, both ways. Floor: 24 defs.
+- **B. Schema** — the JSON validates; every declared field is carried by some component. `composition.supersededBy` is now carried (`radio-row` → `select`, from #1708), so only `supersedes` stays exempt.
+- **C. Round-trip** — 2,832 def leaves at their JSON path; 1,334 strings in their own page section; 1,309 values in their own table cell; 52 axis kinds in the JSON and the Variants `Changes` cell, from the def's `axisKinds` read in the gate; 440 maintainer entries by index in the record.
+- **D. Maintainer prose does not ship** — none of the 440 entries' tail halves is in either payload form (one `switch-row` note restates its own prop description verbatim, counted as shared); the page carries no agent-only label; the manifest lists the record under `ours`, by literal path.
+- **E. No Prism 2** in either payload form, with the detector self-checked on literal samples.
+
+**Mutations, each failing by name** (harness asserts the diff landed and restores in `finally`):
+- M1 `select` dropped from all three files → `MISSING FROM JSON` / `MISSING PAGE` / `MISSING FROM MAINTAINER RECORD: def \`select\``.
+- M2 `accessibility.keyboard` dropped from the JSON mapping → `FIELD NOT REPRESENTED … accessibility.keyboard` + `ROUND-TRIP (json)` per def.
+- M3 every Variants `Values` cell → `x` → 183 × `ROUND-TRIP (page cell)`, one per variant value, `button` `small` and `filled` among them. Neutralized to a page-wide search, 4 fire.
+- M4 every axis projected `runtime` → `KIND (json)` + `KIND (page)` per authoring axis.
+- M5 `codeOnly` rendered back on the page → `MAINTAINER PROSE SHIPPED (page)`; `notes.contested` appended to the JSON `description` → `MAINTAINER PROSE SHIPPED (json)`.
+- M6 "Prism 2" in the JSON note and a page footer → `PRISM 2:` for both.
+- M7 the Keywords line back on the page → `AGENT-ONLY ON PAGE`.
+- M8 the maintainer rule moved to `payload` in the manifest → `MAINTAINER RECORD CLASS` (`lint-payload-manifest.ts` stays green, its documented limit).
+- M9 the record drops each def's first `codeOnly` → `ROUND-TRIP (maintainer)`.
+- M10 Do and Don't headings swapped → `ROUND-TRIP (page) … is not in the ### Do section`.
+- Classification: `MAINTAINER_ARTIFACTS` emptied → `UNCLASSIFIED` (and the manifest's `STALE RULE`); the file added to `SCHEMA_ARTIFACTS` as well → `classified more than once`.
+
+**Traps for whoever re-verifies.**
+- The gate reads the *committed* output. After editing a def, run `regen.ts` first, or arm C reports the old text as a round-trip miss.
+- Markdown escaping: `<` outside code spans and `|` everywhere become `\<` and `\|`. Arm C un-escapes before comparing and splits table cells on unescaped pipes only. A new escape added to `mdEscape` without the matching un-escape in the gate reads as a miss on every string that carries the character.
+- A new page heading, or a renamed one, needs its line in the gate's `SECTION` map; a doc field with no entry fails as `NO SECTION`, and a missing heading as `SECTION MISSING`.
+- `--all` lists every failure; the default stops at 60, so a mutation whose named line falls past 60 needs it.
+
+**Second review, four fixes (each with a by-name mutation).**
+- **Superstrings passed the section-scoped arm.** A cell or section was matched with `includes`, so a size row reading `xsmall`, `xmedium`, `xlarge` satisfied `small`, `medium`, `large`, and a States span `hover-ish` satisfied `hover`. Every place the page writes code spans (ID, Builds on, States, the Variants `Values` and Props `Default` cells, Often used with, the composition id lists) is now matched span for span, and a span the def lacks fails as `EXTRA VALUE (page)`. The previous gate passed both mutations; the new one fails them as `ROUND-TRIP (page cell)` / `(page token)` + `EXTRA VALUE`.
+- **A leaked first half of a note passed.** The leak probe searched a note's second half only — `codeOnly`'s rule, where the head is the admitted name. A note's head is its most internal part, so both halves are searched now; a half a shipped field of the same def carries verbatim is skipped on its own, not with its sibling. The first half of `button` `notes.contested[0]` pasted into Usage fails as `MAINTAINER PROSE SHIPPED (page) … (its first half)`; the previous gate passed it.
+- **Class 4 was taken on trust.** Listing a file in `MAINTAINER_ARTIFACTS` takes it out of both prose gates and the emission-version gate at once. `lint-schema-classification.ts` now requires each entry to be (i) named in an authored `MAINTAINER_ONLY` list with a reason, (ii) `ours` and not `payload` in the manifest, and (iii) named by no tracked file under `apps/` or `mcp.ts`. **Measured: moving `lever-manifest.json` into the list passes (ii) and (iii)** — it is `ours`, and no surface names the JSON file (they import `levers.ts`) — and fails only on (i), as `CLASS 4 NOT ARGUED`. So (i) is the arm that catches the reviewer's case; (ii) and (iii) catch a shipped file.
+- **Schema prose #1700 makes false.** `category` is an enum of the knowledge base's seven, `composesWith` is described as what the anatomy nests, and `commonPartners` as the broad either-direction relation. Before #1715's defs landed, the enum failed by name on `veil` and `image-placeholder` (`SCHEMA: /components/veil/category: "media" is not one of […]`), which is this fix's mutation, run against real data.
+
+## (2026-09-27) — Component alignment: support defs + schema-wide vocabulary and gates (#1700)
+
+**STATUS: PR open from `lane/align-support-vocabulary`, labeled DO NOT MERGE.** The last of the four alignment issues. `component-schema.ts`, every def under `components/` (headers; the support defs in substance), `test.ts`, `version.ts`, the two accepted baselines, and `out/**` by the version stamp. **ENGINE 0.181.0 → 0.182.0 (behind the page-header PR, which took 0.180.0)** (the orchestrator renumbers). **CONTRACT stands at 13.1.0** (`token-contract --check` level `none`, stamp-only accept). `lint-component-surface` re-accepted for icon, focus-ring and field-message only: diffed plan against plan, the only paths that moved are `codeOnly` entries (icon 1/3/5, focus-ring 2, field-message 1–3), at the same member counts.
+
+**Schema-wide, as the issue decided.**
+1. **`category`** is the KB's seven (`COMPONENT_CATEGORIES`), a closed union, validated in `validateComponentDef`. field-message → `feedback` (inline-message.md); image-placeholder `media` → `foundations` (image.md); veil `media` → `foundations`, a stated choice in its header (no brief; `overlay` in the KB is the floating layers).
+2. **`composesWith` means "parts this def nests"**, gated as an equality in `test.ts` component-refs arm a2, both directions. Reverse lists (focus-ring, field-message, icon, spinner, field-label) and "sits beside" lists (veil, image-placeholder) are empty now, and their ids are in `ai.commonPartners`. focus-ring's partners are the 12 defs that nest it.
+3. **`notes.contested` holds only open or argued items**, linted in `validateComponentDef`. The three focus-ring entries moved to `evolution` with their line refs replaced by `docs/32` section titles.
+4. **`status`**: the convention is recorded on the field (engine status is independent of the brief's research status); every def stays `draft`.
+5. **`inherits`** must be a registered id (new arm a3). `checkbox-row`'s `inherits: 'text-field'` is kept, with brief §15 as the stated reason beside it.
+6. **Header citations are gated**: each def header says `KB brief: \`components/<name>.md\`` once, or `No KB brief` with its category choice. A new `test.ts` #1700 block reads each def file's header, imports the file to find its defs, and checks the category against an authored table of the briefs' own KB categories.
+7. **Aliases are kebab-case**, validated. Spinner's `loading indicator` / `activity indicator` / `busy indicator` are hyphenated; the spaced phrases stay in `triggerKeywords`.
+8. **Fields with no reader** are #1701 (filed from the same audit, and the subject of PR #1705).
+
+**The diagnosis that made the equality gate small, and the reading it rests on.** `composesWith` could only be an equality if both sides came from the anatomy, and one side almost did not. The issue says "nest and swap edges". A `nest` / `absolute` part names its component in `nests`, and so does an `overlay` that swaps one in whole (the pending spinner). A `slot` names none: which component fills a slot is a fact about the file, not the def (#513, `figmaAnatomySet`'s header). So a button's usual `icon` is slot content, not a part, and it moved to `commonPartners` on button, icon-button, text-field, textarea and select. The alternative reading, that "swap edges" includes slots, has no authored data to read, so it could not be gated.
+
+**Where the lint goes past the issue's wording, and why.** The issue says "a `contested` entry beginning Settled / RESOLVED". The three focus-ring entries it names begin with the question and settle it in the second sentence, so a first-word check passes every case the rule was written for (`docs/34` shape 14). The lint therefore reads every sentence, and it adds `CLOSED`. That flagged five more entries across the corpus, all self-described as decided, and all moved to `evolution`: button's ghost-vs-plain (×3 by the factory), text-field's warning-as-status, checkbox-control's separate atom, and checkbox-row's paint grammar, selection axis and box corner. A lower-case "settled" inside a sentence stays legal, and an arm pins that.
+
+**The support defs.** field-message: cites inline-message.md; `wcag` gains 3.3.2, 1.4.11 (the glyph ink, gated at 3:1), 1.3.1/4.1.2 and 4.1.3; `aria` carries the visually hidden, translatable "Error:" prefix; `planned` `inline-alert` → `inline-message`; `textarea` added to partners; `motion` from §8 and `docs.contentGuidelines` from §7; the stale `tone` wording, "cannot project" and "prop is `Message`" fixed. focus-ring: 2.4.11 restated as the page's concern (a focused control hidden by author content), with the clipping point moved to 2.4.7; 2.4.13 stated as intent; "simply" gone (PR #1705 no longer makes this edit, since that text does not ship there; whichever lands second regenerates); the stale edge and host counts replaced with "every". icon: the stroke entries name `PartDef.strokeWidth` (#1266) and why it does not apply to a filled-outline vector; the touch-target entry says 24×24 for 2.5.8 and 44×44 for 2.5.5; `motion` (static) and `notes.evolution` from §13; `avatar` and `tag` planned. image-placeholder: an empty `alt` for a decorative image (image.md §6), no "1:1 for avatars", the CONTRACT figure un-pinned. veil: "No KB brief", no "brief's call", "honor". checkbox-row: 3.3.1 / 3.3.3 stated as intent, as radio-row's are since #1708.
+
+**Mutations, each committed before and restored from HEAD, failing by name.** In every one, nothing outside the new check failed, so each new check is the reason the run went red, not only among the reasons.
+- Category union: veil back to `media` → `component: Veil def is structurally valid — category 'media' is not one of the KB's seven …` (and the two binding arms that print the same validator errors), plus `#1700 veil: has no KB brief, so its header states the category choice …`.
+- Category per brief: field-message back to `form` (a valid category) → `#1700 field-message: category is 'form', and its brief \`components/inline-message.md\` files it under 'feedback' …`, alone.
+- `inherits` id: checkbox-row → `text-feild` → `component-refs: checkbox-row inherits 'text-feild', which is not another registered def id …`, alone.
+- Kebab aliases: spinner's `loading indicator` restored → `component: Spinner def is structurally valid — alias 'loading indicator' is not kebab-case …`.
+- `composesWith` equality (the new converse): `icon` back in button's list → `component-refs: button composition.composesWith names 'icon', which its anatomy does not nest …` ×3 (the factory's siblings), alone.
+- Notes lint: focus-ring's pre-#1700 "Where the ring is drawn — … Settled here as the offset sibling" back in `contested` → `component: FocusRing def is structurally valid — notes.contested[0] has a sentence opening 'Settled' …`.
+- Brief citation: select's header back to "KB select brief" → `#1700 select.ts: the header names its KB brief exactly once …`, alone.
+
+**Held for the owner, not picked.** field-message's `accessibility.aria`, `codeOnly` and `docs.dont` still tell the host to wrap a dynamic message in a polite live region, while inline-message.md §6 says the settled model is `aria-describedby` + `aria-invalid` + focus management, with no field-level live region (the double-announce bug). That changes a11y guidance the issue did not list, so it is filed as #1712 rather than changed. Veil's `foundations` is a stated choice with no brief behind it.
+
+**Traps for whoever re-verifies.** `planStamp` hashes `codeOnly`, so a `codeOnly` edit moves every member of a def on `lint-component-surface.ts`; the three accepted moves are that and nothing else. And the brief-citation arm imports each def file by URL: a def file that exports no def is itself a failure, by name, rather than a file the scan reads and ignores.
+
+---
+
+## (2026-09-27) — component sets: write Figma's purple dashed border (the API returns none)
+
+**STATUS: PR open from `lane/set-dashed-border`, labeled DO NOT MERGE.** Owner-approved fix. Files: `apps/plugin/src/write-components.ts`, `packages/engine/anatomy-figma.ts`, `apps/plugin/component-shim.ts`, `apps/plugin/test-roundtrip.ts`, `packages/engine/test.ts`, the two `deflt` notes in `apps/plugin/lint-unclaimed-defaults.ts`, `version.ts`, plus `out/**` and `schema/token-contract.json`, which move by the engine stamp only. **ENGINE 0.180.0 → 0.181.0** (MINOR; the orchestrator renumbers). **CONTRACT STANDS at 13.1.0.**
+
+**The live probe (orchestrator, 2026-09-27).** `figma.combineAsVariants` returns a COMPONENT_SET with `strokes: []`, `strokeWeight: 1`, `strokeAlign: 'INSIDE'`, `dashPattern: [10, 5]`, `cornerRadius: 5`, `fills: []`, `layoutMode: 'NONE'`. The probe ran in a scratch file, and the owner's master file agrees: its built `button` set has 0 strokes. The dash and radius are there, but there is no paint, so no border draws. The purple outline appears on sets that the *editor* creates. The Plugin API does not return it.
+
+**Why #1430 missed it.** #1430 claimed the set's border by *preserving* what the host returned (`keep('strokes', [])` and friends), because it believed the host dresses the set. Both build paths did this: the plugin's `claimDefaults(wr(set), null, …)` and the paste twin in `PAYLOAD_BUILD`. The host returns an empty stroke array, so both paths preserved an empty array.
+
+**The independence gap.** Both stand-ins pre-dressed the set with a #9747FF stroke: `component-shim.ts`'s `combineAsVariants`, and `test.ts`'s `makeFigmaStub` `combineAsVariants`, which the #1393 parity and lockstep arms share. So the #1430 round-trip arm read back the *shim's* paint, and the #1393 rows compared a paint that neither executor wrote. Everything was green while no real set had a border (docs/34: the stand-in supplied the value the gate was checking). The #1393 lockstep has a second blind spot, and it is structural. It compares plugin with paste, so if both paths drop the border they still agree. Mutation M3 below measures this.
+
+**The fix.**
+- Both paths now name `SET_BORDER` once: SOLID #9747FF (`0x97/255, 0x47/255, 1`), weight 1, `INSIDE`, dash `[10, 5]`, radius 5. Each carries a comment citing the probe.
+- The bare-or-not decision is made **once, before any write**, so the ink branch and the corner branch agree. A set that comes back with no stroke paint gets the whole border written. A set that comes back already stroked keeps what it has (`keep`, the #1430 posture).
+- Both paths call `claimDefaults` on a **freshly combined** set only. A set the file already had (the plugin's append branch, or a later paste chunk) is not touched, as before. A set built before this fix therefore stays borderless until it is rebuilt.
+- The set's fill is still written `[]`. The probe shows the host already returns `[]`, so this changes no pixel, and the stale "opaque fill" comments are corrected.
+
+**The stand-ins are now BARE, as probed.** Both `combineAsVariants` stand-ins return `strokes: []`, `fills: []`, weight 1, INSIDE, `[10, 5]`, corners 5. The `test.ts` stub gains `opts.setStrokes` to model a host that does return a paint.
+
+**The arms.**
+- `test-roundtrip.ts` #1430 now requires a visible SOLID #9747FF stroke. It compares 8-bit channels, so a float32 read-back cannot fail it, and the hex is authored in the test. Before, it accepted any non-empty stroke.
+- A new negative arm checks that a black stroke is reported.
+- A new left-alone arm wraps the shim's combine to return a green stroke, and asserts the green is kept.
+- `test.ts` adds `#1430 plugin` / `#1430 paste` rows: each path's built set, read on its own, carries the full border. There are also plugin and paste left-alone arms.
+- The chunked #1393 row now reads the stroke as hex.
+
+**Mutations, committed first, each failing by name:**
+- **M1**, plugin write removed (`setIsBare = false`): `#1430 plugin: the built set carries Figma's variant-set border…`, `#1393 lockstep` (and the GLYPH lockstep), and round-trip `#1430: every emitted set reads back … carrying its variant-set frame` (STRIPPED: every set). This is the pre-fix state, so the old arm also fails against the bare shim.
+- **M2**, paste write removed: `#1430 paste…`, `#1393 chunked…`, and both lockstep rows. The round-trip stays green, correctly: it drives the plugin only.
+- **M3**, both writes removed: `#1430 plugin`, `#1430 paste`, `#1393 chunked`, and the round-trip `#1430`. **The lockstep stays green here**, which is the blind spot the per-path rows close.
+- **M4**, the stroked-set guard removed on both paths (always write): `#1430 plugin left alone`, `#1430 paste left alone`, and round-trip `#1430 left alone`.
+- **M5**, a wrong channel (plugin g `0x48`; paste radius 4): `#1430 plugin` (reads `#9748FF`), `#1430 paste` (corners), `#1393 chunked`, both lockstep rows, and round-trip `#1430`.
+
+**Agent link.** The agent link's `build-components` command goes through `ACTIONS.buildComponents` in `main.ts`, the same handler the panel button calls (`createDispatcher({ actions: ACTIONS })`), and from there to `applyComponentPlan` and `claimDefaults`. It shares the plugin path and gets the fix with no separate change. `test-agent-link.ts` already pins that routing by spying on `ACTIONS`.
+
+**Found, not fixed (one concern).** `apps/plugin/src/file-components.ts` builds `_Section-header` and `_Headings` with its own `combineAsVariants` and no `claimDefaults`, so those two template sets are also borderless. Whether they should carry the variant-set border is a design call, filed as #1713.
+
+**Traps for whoever re-verifies.**
+- **Paste budget.** The paste twin is budget-bound. `planSetChunks` packs to `SET_CHUNK_BYTES` (42,000), and the `#536 item 6` probe grid must stay one chunk. This change takes that grid from 41,678 to 41,940 bytes. A first, more readable draft reached 42,114 and split the grid, which is why the paste code routes every set write through one `w(k, v, f)` helper. **About 60 bytes of headroom remain**; the next payload addition will likely need a trim or a budget decision.
+- **Keep the stand-ins bare.** Stroke paint cannot be checked offline. If the host ever does start returning a paint, the `keep` branch takes over and nothing changes visibly. But a stand-in that pre-dresses the set would again hide a missing write, so keep the stand-ins bare.
+
+---
+
 ## (2026-09-27) — Plugin: a section header at the top of each component page
 
 **STATUS: PR open from `lane/page-section-header`, labeled DO NOT MERGE.** New `apps/plugin/src/page-header.ts` and `apps/plugin/test-page-header.ts` (wired into the plugin `test` script), `main.ts` wiring, plugin README, `version.ts`. **ENGINE 0.179.0 → 0.180.0 (plugin behavior, MINOR); CONTRACT STANDS at 13.1.0** (stamp-only `--accept`). The orchestrator renumbers if another lane lands first.
@@ -618,6 +748,7 @@ Whether any of them become work is for the owner to decide once the concepts com
 - **`materialise-to-figma.ts` (the legacy CLI payload) was not taught the new shape.** It reads committed `out/figma/<brand>/`, and no committed brand has a wash. Filed as #1672 rather than widened here.
 
 **Gates (docs/34), with mutations run from `wip:` commits:** listed in the PR body, each failing by name.
+
 ## (2026-09-25) — button brand settings: icon placement, derived minimum width, medium content size (#1667)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets, verifies live through the agent link, and merges).** Engine + plugin + studio + skills. **ENGINE 0.161.0 → 0.162.0** (main reached 0.161.0 via #1669 while this was open; merged in) (the projected component surface moves → MINOR); **CONTRACT STANDS at 12.0.0**. No token is emitted or renamed: the three levers live in brand input and reach only the button defs, before projection. `token-contract --accept` moved only the informational `engineVersion`, level `none`. `schema/component-surface.json` `--accept`ed. `button`, `button-destructive` and `button-neutral` moved their default rows (their edited `codeOnly` prose rides every plan), and each gained `@button-default`, `@button-edges` and `@button-smaller` rows. `icon-button` did not move.
@@ -650,6 +781,7 @@ A both-executors arm pastes and plugin-builds a medium trailing-only edges membe
 - M6, drop the reserved padding: in the plan, `#1667 edges: … the padding reserves the icon` and (a)/(b)/(c) fail; in the plugin executor, `#1667 plugin leg` and `test-roundtrip` (`paddingPx` 324× per def); in the paste payload, `#1667 paste leg`; and with the paste default pass unguarded (zeroing the reserve), `#1667 paste leg` (reserve 0, pin at −28px).
 
 **Known limit.** The floor is a literal from the baseline density; a mode with its own `modeLevers.density` keeps the baseline floor (recorded in the def's `codeOnly`). No example brand uses a per-mode density today. The reserve and the inset are literals too: a mode whose density moves padding keeps the baseline numbers. **Not verified live**: that Figma moves a MAX-constrained absolute child when a HUG auto-layout frame grows from a longer label (on an instance edit). The shim does not model constraint-driven moves; the closest live precedent is the focus ring, an absolute child with STRETCH constraints in the same hugging frame. The orchestrator's live pass covers it.
+
 ## (2026-09-25) — the textarea's resize grip and character counter in Figma (owner decisions (c) and (d))
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets, verifies live through the agent link, and merges).** Engine + plugin. **ENGINE 0.160.0 → 0.161.0** (a new glyph, three new schema fields, a new plan field, a def surface move → MINOR; main took 0.160.0 with #1668 while this was open, so the lane moved up one on the merge); CONTRACT STANDS at 12.0.0 (`token-contract --accept` refreshed only the informational `engineVersion`, level `none`). `schema/component-surface.json` accepted: `icon` (43 → 44 members) and `textarea` (and its two interaction-model variants) only — **field-message, text-field and select are byte-identical.** `schema/paint-census.json` accepted for the same two.
@@ -878,6 +1010,7 @@ A genuinely dropped or wrong floor misses by whole lines, so the tolerance hides
 **#1276** — four new `ibBroke` arms. Mutating all six rules showed `inset` and `verticalAlign` were **already** caught by name by other arms, so the issue's "six" is really four. **#1192** — prose only: the "never demands a non-ramp" safety belongs to the window, not the anchor. Re-measured: a fresh `PANEL_KEYS` → `panel.${k}` still comes back UNCLASSIFIED. The optional prefix tightening is not done. **#1200** — `provenanceOf` deep-freezes what it returns, and `test-provenance.ts` asserts that `Object.assign`, an origin edit and a baseline edit all throw. The plain `provenance.origin = …` the issue describes was **already** a `tsc` error (`readonly`); the gap was every route around it.
 
 **Local environment trap:** this container's Playwright wants chromium build 1234 and only 1194 is installed. The smoke suite ran by pointing `PLAYWRIGHT_BROWSERS_PATH` at a scratch directory of symlinks to the 1194 headless shell. Nothing was downloaded, and CI is unaffected.
+
 ## (2026-09-25) — the paste executor claims Figma's defaults; three offline-model fixes; two latent gate holes closed (#1393, #1302, #1007, #1220, #1227)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.151.0 (MINOR: the payload a consumer pastes changes behavior; `out/**` is stamp-only because no artifact carries the payload); CONTRACT stands at 12.0.0 (no token name or projected member moves). One lane, five decision-free issues.
@@ -897,6 +1030,7 @@ A genuinely dropped or wrong floor misses by whole lines, so the tolerance hides
 **#1227 — arm 1 of `lint-paint` matches positionally.** The satisfied check was `ref.split('.').includes(lead)`, which scored `text.label → color.interactive.primary.text.rest` as satisfied on the `text` SLOT. Measured: all 42 genuinely satisfied bindings carry the lead at index 2 (`color.<category>.<family>`), and the only other matches were those 9 slot collisions, which now count under the appearance exemption (114 → 123). A **family tripwire** keeps that exemption from swallowing the one case it is contingently wrong about: an exempt axis's value that is also a live family (`appearance=text` binding `color.text.*`) fails by name instead of being counted as exempt. The reason prose dropped its false "`color.text.*` must not exist" clause. The `lint-axis-values` size reason had drifted again ("ten" beside a list of 14) and now names its exclusions instead of counting.
 
 **Mutations (each against a committed tree, each failing by name):** stub setter flattened (engine + plugin) → `#1302`; payload/plugin effect apply deleted and stub no-op restored → `#1007`; member claim deleted → both `#1393` fills runs; unresolvable neutralize deleted → `#1393 DECLARED-BUT-UNRESOLVABLE`; stub white removed → `#1393 positive control`; paste style re-apply disabled → `#1514 parity`; `rotation`/`textTruncation` dropped, single-shot set claim dropped, set radius/dash blanked → `#1393 lockstep`; glyph imported claim dropped → `#1393 lockstep (GLYPH)`; chunked set claim dropped → `#1393 chunked`; line-box guard disabled → `#1220`; a status ref with its lead off the family position, and `text.label → color.text.primary` → `lint-paint` provenance by key (the pre-change rule is silent on both).
+
 ## (2026-09-25) — Studio previews use the inverse roles on an inverse ground (#1629); live Examples marker (#1075)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Studio only: `apps/studio/src/outline-roles.ts` (**NEW**, pure helper), `apps/studio/src/main.ts` (the style guide's Outline row, the brand menu's Examples list), `apps/studio/test-outline-roles.ts` (**NEW**, wired into `npm test`), `apps/studio/test-smoke.mjs` (scenario 5C + section 5b), `apps/studio/package.json`. **No engine change, no `out/**`, no version bump.** Closes #1629, #1075. **#1215 held**, since it is a product call (details below).
@@ -914,6 +1048,7 @@ A genuinely dropped or wrong floor misses by whole lines, so the tolerance hides
 - The patch is replaced by a `renderBar()` re-render → smoke fails `#1075 typing a name keeps the same, focused Name input (no menu re-render)`. This guards the caret constraint the issue set.
 
 **Trap for whoever re-verifies.** `test:smoke` needs the Chromium revision the installed `playwright-core` pins. In this container `/opt/pw-browsers` had an older revision, so it was installed with `PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright npx playwright install chromium` (a cache outside `node_modules`, which CLAUDE.md permits). `verify` was run with that variable exported.
+
 ## (2026-09-25) — `lint-us-english` catches the en-GB spellings it was blind to (#991, #1463)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.150.0 (shipped prose respelled); CONTRACT stands (no token name moves). Files: `packages/engine/prose-rules.ts` (the rule), `lint-us-english.ts` (SELF_CHECK samples + header trap 7), the respelled sources (`components/radio-row.ts`, `emit-icons.ts`, `schema/payload-manifest.json`, `README.md`, `skills/prism3-consume/SKILL.md`, `apps/studio/src/main.ts`, `styles.css`), `version.ts`, regenerated `out/**` + `icon-glyphs.ts`.
@@ -927,6 +1062,7 @@ A genuinely dropped or wrong floor misses by whole lines, so the tolerance hides
 **Mutations, by name.** Subject side: planting each of `brand-coloured`, `catalogue`, `licence`, `artefact`, `analysed`, `skilful` in the gated engine README fails the gate naming the word (exit 1); the same words give 0 hits under `origin/main`'s `enGb`. Rule side: stripping the `-our` inflections, dropping `EN_GB_WORDS`, `YSE` or `SINGLE_L` from `enGb`'s loop, or removing `contoured` or `analyses` from `NOT_EN_GB` each fails SELF_CHECK naming the sample.
 
 **Trap for re-verifiers.** `PATTERN` needs 3+ letters before `our`, so `poured`/`toured`/`scoured` can never match. A first draft listed them in `NOT_EN_GB`. The mutation that removed `poured` stayed green, which showed the entries were dead, so they were dropped. An exemption whose removal changes nothing is not an exemption.
+
 ## (2026-09-25) — Stale-issue sweep: five issues closed as already fixed, six fixed here
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** ENGINE 0.149.0 (MINOR: def strings in the plugin bundle and `.ai.json` move); CONTRACT stands at 12.0.0 (no token name moves).
@@ -978,6 +1114,7 @@ A genuinely dropped or wrong floor misses by whole lines, so the tolerance hides
 **Traps.** (1) `modes.ts` now resolves the inverse ink BEFORE the fill-state loop, so each state can state its measured drop. It still `put`s the ink after the loop, so emission order is unchanged. Don't "tidy" the put upward: Figma creation order follows it. (2) The prune recognizer matches the current AND legacy style words. A client file applied before this still holds the old words, and a stranded one is exactly what prune exists for. The legacy regexes are frozen literals, and `test-prune.ts` holds them against frozen strings, not generated ones. (3) The claims gate's new shapes key on their own words ("The label on it drops to about", "below the … body floor"). Rewording those sentences silently turns them back into ordinary floor claims against `against`. Most would still pass, for the wrong reason.
 
 **Open for the owner (in the PR body):** the destructive inverse label (the strict setting doesn't cover it) and focused/selected (not transient, so no exemption is claimed; this is #1626's gap). Also: two small deviations from the approved wording, `on an inverse surface` and resolving role names instead of "the page".
+
 ## (2026-09-24) — the `.ai.json` sidecar is built for machine readers (#1623 sign-off)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/ai-metadata.ts`, `out/*.ai.json`, `schema/ai-metadata.schema.json` (**NEW**, hand-named in both prose gates), `json-schema-lite.ts` (**NEW**), `lint-voice.ts` (the payload channel), `lint-us-english.ts` + `lint-skills.ts` (scope and vocabulary), `test.ts`, `theme.ts` (one note), `skills/prism3-consume/SKILL.md`, `README.md`, `docs/voice-standard.md` §4, `docs/29` §4.1, `version.ts` (ENGINE 0.142.0; CONTRACT stands).
@@ -989,6 +1126,7 @@ A genuinely dropped or wrong floor misses by whole lines, so the tolerance hides
 **Gates, and what each mutation proved (commit before each; all fail by name).** `test.ts` sidecar arms: requirement not its own check → "states its requirement as the check…"; `usage_limit` dropped → "sidecar fields: … usage_limit"; "INVERSE" back → "capitals for emphasis"; motion tier dropped → "has no sidecar entry"; scrim → inverse → "relates the scrim to an inverse role"; border's text in `sits_on` → "is not a ground or … not an ink"; `on-fill` on non-rest fills → "on-fill related to a non-rest fill"; an undeclared field → "sidecar schema: … is not allowed". `lint-voice.ts`: a `MUST` in `avoid_when` → `[normative]`.
 
 **Traps for whoever re-verifies.** (1) The relation arm no longer has a "tracking" escape: a `sits_on`/`carries` with no floor is a failure, so anything that is not a legibility claim belongs in `tracks`. (2) The validator throws on a JSON Schema keyword it does not implement — implement it; do not delete the keyword. (3) Grid columns, `focus.ring.style` and control `line-box` moved from `primitives` to `layout`: they are roles with literal values. (4) The `normative` rule found a live `MUST` in a `theme.ts` decisions-log note (it reaches the studio bundle); it now reads "links need an underline".
+
 ## (2026-09-24) — component metadata per the #1623 sign-off: Figma descriptions, one naming convention, no internal notes shipped
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: every `packages/engine/components/*.ts` def (prose, names, composition lists, the new `summary`); `component-schema.ts` (`summary`, `SUMMARY_MAX`, `composition.planned`, `composition.replacesPatterns`); `apps/plugin/src/write-components.ts` + `main.ts` (the description write); `apps/plugin/strip-maintainer-prose.mjs` (**NEW**) wired into `build.mjs`; `apps/plugin/lint-bundle-prose.ts` (**NEW** gate, wired into `verify.ts` + `ci.yml` + `CONTRIBUTING.md` §3 + the PR template + `CLAUDE.md` §4); `test.ts` (`component-refs` arm (a) rewritten, `component-names` / `component-prose` new); `docs/28` §5.3 + `docs/42` row + `schema/decisions-index.json`; `skills/prism3-build-component`; `version.ts` (ENGINE 0.145.0, stamp-only regen). CONTRACT STANDS; the projected component surface does not move.
@@ -1002,6 +1140,7 @@ A genuinely dropped or wrong floor misses by whole lines, so the tolerance hides
 **Mutations, by name (committed before each):** a Prism 2 summary → `component-prose: veil summary names "Prism 2"`; an over-long summary → `summary is 112 characters — at most 100`; `link` in a real list → `component-refs: image-placeholder composition.composesWith names 'link', which is not a registered def id`; `icon` in `planned` → `…is a registered def now`; `CheckboxGroup` → `component-names: checkbox-group is in the Checkbox family`; `RadioGroup` in prose → `component-prose: radio-row docs.usage says 'RadioGroup'`; the strip removed from `build.mjs`'s main entry → `lint-bundle-prose` arm A, 280 problems naming each notes/codeOnly string; a Prism 2 part note → arm B, naming the `veil.ts` region in both bundles; the set-description write removed → `#1623 a fresh set carries the def's summary`.
 
 **Traps for whoever re-verifies.** (1) esbuild `onLoad` filters are Go regular expressions, with no lookahead, so the registry file is excluded in the callback. (2) Bundle strings are JS-escaped (`\u2014`), so the gate decodes before comparing. (3) A note can repeat a sentence a shipped prop also carries (switch-row's read-only rationale does), so arm A probes the last 40-character window no shipped field contains, and reports any string with no such window as `shared`. (4) The existing-set rule: the plugin writes the description on a set it creates, and on a set the file already had only while that set's description is empty, so a designer's own text survives a rebuild. (5) `composition.planned` holds the relocated names as they were (`form`, `card`, `emoji` among them). Whether each is real roadmap is a later call; the gate only makes sure none of them resolves.
+
 ## (2026-09-24) — the footprint check compares runtime axes and holds authoring ones (#1611)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/component-schema.ts` (new `ComponentDef.axisKinds`, `AXIS_KINDS`, `axisKindOf`, validator arm), `packages/engine/anatomy-figma.ts` (`AnatomyPlan.axisKinds`; `heldAxes` feeds both cohort derivations), `axisKinds` added to all 19 def files (classification only, no other def edit), `apps/plugin/component-shim.ts` (opt-in `textAdvance`), `apps/plugin/test-write-components.ts` + `packages/engine/test.ts` (#1611 arms), `version.ts` (ENGINE 0.144.0), `schema/component-surface.json` (`--accept`).
@@ -1093,6 +1232,7 @@ A genuinely dropped or wrong floor misses by whole lines, so the tolerance hides
 - The (b) self-check projects the unmaterialized button, so M2 does not silence it.
 
 **Traps for whoever re-verifies.** The composition in arm (b) is restated, not imported from `apps/plugin/src/brand-def.ts`, so the engine does not depend on a surface. The gate therefore can't see the plugin dropping a wrap; `test-write-components.ts` owns that. #957 suggested folding `test.ts`'s inverse-vocabulary (a2) sweep into this gate. It's left in place: removing an assertion wasn't needed to land the gate, and it's a separate cleanup.
+
 ## (2026-09-24) — the plugin builds a component's missing nested components first (#1633)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `apps/plugin/src/build-deps.ts` (**NEW**: the dependency resolver and pre-build loop), `apps/plugin/src/main.ts` (`buildComponents` builds through one `buildOne` and runs the pre-build first), `apps/plugin/component-shim.ts` (opt-in `liveRoot`), `apps/plugin/test-write-components.ts` (#1633 arm). Plugin-only, so no ENGINE bump.
@@ -1106,6 +1246,7 @@ A genuinely dropped or wrong floor misses by whole lines, so the tolerance hides
 **Gate.** The #1633 arm in `test-write-components.ts` runs the real executor in ONE shim whose root sees what the run built (`liveRoot`; off by default, so every other case keeps its frozen file). Every expected list is hand-named. Reachability: `button` alone reproduces the 72 `focusRing` misses exactly. The arm covers five more cases: a fresh file builds `icon, focus-ring`, then `button` with 0 `focusRing` and 0 swap misses; a re-run builds nothing and leaves the page untouched; an existing `focus-ring` set is never rebuilt; the `checkbox-group` chain builds `field-label, focus-ring, checkbox-control, checkbox-row` in that order and then the group with 0 nest misses; a dependency that throws, and a synthetic `a → b → a` cycle, both fail by name. There is also a source check that `main.ts` pre-builds before `buildOne(def, reports)`. Mutations, committed first: `prebuildDependencies` returning `[]` → 7 #1633 arms fail, including the 0-miss arm quoting `focusRing.nestTarget -> focus-ring`. Dropping the `main.ts` call → the source-order arm fails by name.
 
 **Trap for whoever re-verifies.** The stock shim's `root` searches answer only `comps`/`fileNodes`: a file frozen at the start of the run. A multi-def test without `liveRoot` would build `focus-ring` and then still miss it in `button`, which looks like a resolver bug and is not.
+
 ## (2026-09-24) — the plugin's apply pre-flight: no partial writes, no adopting what Prism3 didn't make (#506, safety floor)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Plugin-only; the engine is untouched, so no ENGINE bump. Files: `apps/plugin/src/preflight.ts` (**NEW**: `preflightApply`, `guardApply`, `preflightPlanOf`, `conflictSummary`), `apps/plugin/src/main.ts` (`applyTheme` hands its whole write sequence to `guardApply`), `apps/plugin/src/apply-summary.ts` (`conflictHeadline`), `apps/plugin/test-write-preflight.ts` (**NEW**, wired into the plugin `test` script), `apps/plugin/test-apply-summary.ts` (the new headline's 24-char probe). The onboarding UX that case (c) will eventually need is the owner's call, so the PR body proposes it and this entry doesn't build it.
@@ -1133,6 +1274,7 @@ Each mutation failed by name:
 - **The `main.ts` wiring itself.** `main.ts` can't be imported (it calls `figma.showUI` at module scope), so the test drives `guardApply` rather than `applyTheme`. The destructure `guarded.result` is what forces the executors' results to come out of the guard.
 - **Variables the rename pass migrates.** They are type-checked under their current names only. A rename moves the engine's own names inside a collection that has already been cleared, and it doesn't change a type.
 - **A host's mode-count cap.** Figma's API can't report the limit before `addMode` hits it.
+
 ## (2026-09-24) — `solid-tint` is the category's existing fill at an existing opacity step (#1614, #1621)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Owner decision on #1614 (the "revised" comment plus its "amendment"). It supersedes PR #1622 (closed unmerged) and resolves #1621. Files: `packages/engine/modes.ts` (**NEW** `settleSolidTint`, `OPACITY_STEPS`, `TINT_NOMINAL`, `ResolvedRole.tint`; the in-mode `solid-tint` branch is deleted), `tree.ts`, `emit-figma-color.ts`, `anatomy-figma.ts` (`applyOutlineInteraction`, plan `paintOpacity`, the paste payload), `component-schema.ts` (`ComponentDef.paintOpacity`), `anatomy-readback.ts`, `apps/plugin/src/{write-components,brand-def}.ts`, the studio copy, `levers.ts`, and the tests. ENGINE 0.137.0; CONTRACT stands at 11.3.0.
@@ -1176,6 +1318,7 @@ Each mutation failed by name:
 - Up-step disabled: the #1621 and visibility arms fail.
 
 ---
+
 ## (2026-09-24) — the `.ai.json` sidecar says only what the token data supports (#1623 batch B)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/ai-metadata.ts`, `packages/engine/mcp.ts`, `packages/engine/test.ts` (three new sidecar-gate arms, plus an MCP size guard), `packages/engine/version.ts` (ENGINE 0.139.0), regenerated `out/*.ai.json`, stamp-only `out/*.tokens.json`, and the `token-contract.json` `engineVersion` field (`--accept`, no surface change; CONTRACT stands at 11.3.0). Fixes AI/A-1…A-10, A-13…A-17, A-19, A-21, A-22, B-2, B-3, D-4, M-1. Deliberately untouched: C-1 (`avoid_when_level: MUST`, owner), A-11/A-12 (IN FLUX under #1614), and A-18/A-20/B-1 (batch A, `tree.ts`).
@@ -1204,6 +1347,7 @@ Each mutation failed by name:
 - `core.` strip undone → "sidecar fields"
 - inverse prose remap made the identity → "sidecar paths" + "sidecar pairings"
 - MCP description reverted to 537,000/287,000 → the MCP size guard
+
 ## (2026-09-24) — token description prose holds in every mode, and says nothing internal (#1623 batch A)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: `packages/engine/{tree,modes,theme,ai-metadata,emit-dtcg-overlay,emit-figma-color,emit-figma-dims}.ts`, **NEW** `packages/engine/lint-description-claims.ts` (wired into `verify.ts`, `ci.yml`, CONTRIBUTING §3, the PR template and CLAUDE.md §4), `packages/engine/test.ts` (overlay membership arms), `apps/plugin/test-prune.ts` (committed-bytes arm), `packages/engine/version.ts` (ENGINE 0.138.0), regenerated `out/**`, and the `token-contract.json` `engineVersion` stamp (`--accept`, no surface change; CONTRACT stands at 11.3.0).
@@ -1226,6 +1370,7 @@ Each mutation failed by name:
 - T-15's focus-ring-width rewrite overlaps FG/F-17, which the audit classes as owner sign-off. T-15's wording was applied as scoped: it drops the "3px" value claim and does not add the AAA framing F-17 proposes.
 - The container-narrow "ch" figure was dropped rather than restated, because a character count depends on the brand's face and body size, and the engine does not compute it.
 - `.ai.json`'s own generated prose (e.g. `field.fill` "TRANSPARENT") is batch B's.
+
 ## (2026-09-24) — component-def prose: stale facts fixed, a gate for dangling component names (#1623 batch C)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Files: 19 defs in `packages/engine/components/*.ts`, `apps/studio/src/main.ts` (Components page), `packages/engine/prose-rules.ts` + `lint-us-english.ts` (two new en-GB shapes), `packages/engine/mcp.ts` (one respelling the widened gate found), `packages/engine/test.ts` (**component-refs** arm), `packages/engine/version.ts` (ENGINE 0.137.0), stamp-only `out/**`, `schema/token-contract.json` `engineVersion` (`--accept`, no surface change; CONTRACT stands at 11.3.0) and `schema/component-surface.json` (`--accept`, see below).
@@ -1259,6 +1404,7 @@ Each mutation failed by name:
 **Gate.** IT-01 in `test.ts` covers four things: a page and an inverse `text.rest` override land on `icon.rest` (EXPECTED is the pinned ramp step's hex, and the ratio is recomputed with `contrast` against the icon's own `against`); an explicit icon override wins in either key order; and a border override leaves the icon derived. Mutations, committed before each one: `withIconTwins` returning its input → 3 IT-01 arms fail by name; dropping the explicit-wins check → both explicit-wins arms fail by name. No corpus brand overrides these roles, so `regen --check` moves only the version stamp.
 
 ---
+
 ## (2026-09-24) — `solid-tint` emits the inverse `subtle-fill` twin; the #1608 hold is gone (#1613)
 
 **STATUS: PR open, labeled DO NOT MERGE (the orchestrator nets + merges).** Owner decision (a) on #1613: "solid tint" means the same thing on both grounds. Files: `packages/engine/modes.ts` (the `solid-tint` branch becomes one `emitTints(prefix, fam, ground, describe)` called per ground), `packages/engine/test.ts` (new #1613 arms; #1608 hold removed), `apps/plugin/test-write-components.ts` (hold removed; inverse members hand-named), `anatomy-figma.ts` (the "NOT HANDLED, and held" note), `version.ts` (ENGINE 0.134.0 → 0.135.0; CONTRACT stands at 11.3.0, `--accept` of the informational stamp only).
@@ -1338,6 +1484,7 @@ Behavior + public-input surface both move → **ENGINE 0.130.0 → 0.133.0** (re
 ── THE MCP CEILING (#1368, same claw-back as #1593/#1510) ────────────────────────────────────────────────
 
 Main's `tools/list` sits at 59,927 chars against a 60,000 ceiling (the #1593 compression left ~73 chars of headroom). The `sizeOverrides` schema had to fit by COMPRESSION, not by raising the limit: the field uses **open keys** (the `faces` #1368 pattern — `additionalProperties`, heading-only enforced by `brandTheme`'s by-name throw, not by enumerated schema properties) + a terse `viewportSizeOverride` leaf, and sibling typography/per-mode prose was trimmed (`typography.sizes`/`modeLevers.typeSizes` — the size-override family; `typefaceLibrary`; the near-duplicate per-mode `families`/`letterSpacings`/`easings` re-point descriptions, every load-bearing fact kept, the full rationale still in the `theme.ts` types). Landed at **59,757** — ~243 chars of headroom, HEALTHIER than the baseline it started from. `lint-us-english`/`lint-voice` run after the web build and cover the schema + built bundle, so the new UI labels and schema prose are in scope.
+
 ## (2026-09-23) — components resolve weight by INTENT against a brand's roles; the surface-ref gate (#1602 + #1601)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Engine projection — `packages/engine/theme.ts` (`TYPE_WEIGHTS_DEFAULT` exported; new `weightAvailability(typography)` reads per-category roles off the emitted composites), `packages/engine/anatomy-figma.ts` (`WeightAvailability`, `DEFAULT_WEIGHT_AVAILABILITY`, `resolveWeightIntent`, `applyWeightIntent` — the sibling of `applyControlShape`), `packages/engine/component-schema.ts` (`weightIntent?: {axis, group}` field + `WEIGHT_INTENTS` vocabulary + relational validation), `packages/engine/components/field-label.ts` (`weightIntent: {axis:'weight', group:'body'}` + prose), `packages/engine/test.ts` (the #1602/#1601 net), `packages/engine/lint-component-surface.ts` (per-brand `<id>@<scenario>` rows), `packages/engine/version.ts` (ENGINE 0.130.0 → **0.132.0**, changelog), `packages/engine/schema/component-surface.json` (`--accept`: two new field-label rows), `packages/engine/schema/token-contract.json` (stamp-only re-accept), `out/**` (generator-stamp only), and this entry. Gate count **STANDS at 61** — #1601 is arms of the existing engine `test`, not a new gate (so no `ci.yml`/CONTRIBUTING/PR-template/doc-gates churn). **ENGINE bumps (behavior); CONTRACT STANDS at 11.3.0** — no token NAME moves (field-label binds the same `type.body.*` names; the brand resolves which role). Closes #1602 and #1601. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `apps/plugin/`, `apps/tokenpress/`, `tools/`.
@@ -1369,6 +1516,7 @@ A brand-conditional projection can't be pinned by a brand-independent baseline. 
 ── DELIBERATELY OUT OF SCOPE (guardrail: `apps/plugin/` untouched) — FILED ────────────────────────────────
 
 The plugin's `build-components` calls `figmaAnatomySet(applyControlShape(def, controlShape), …)` but does **not** yet call `applyWeightIntent`, so at plugin RUNTIME field-label still projects the default-brand role for NB. Wiring the plugin to pass `weightAvailability(brandTheme(restoreInput(…)).typography)` into an `applyWeightIntent` at that call site is the runtime half of the fix; it is out of this lane's scope (the guardrail forbids touching `apps/plugin/`), so the engine mechanism + gates land here and the plugin wiring is **filed as a follow-up (#1605)**. Until then the fix is proven at the engine tier (test.ts across the corpus), not at paste time.
+
 ## (2026-09-23) — file-component scaffold stacks its variants instead of overlapping them (#1600)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** PLUGIN-ONLY — `apps/plugin/src/file-components.ts` (the `FNode` port gains `layoutPositioning`; a new `stackVariants` helper; called after both `combineAsVariants` sites), `apps/plugin/test-file-components.ts` (the #1600 stacking arm extends the #1563 structural gate), and this entry. **NO engine version bump, NO token-contract change, NO `out/**`** — this touches no engine surface. Gate count **STANDS at 61** — the new assertions are arms of the existing plugin `test` (`test-file-components.ts`), not a new gate. Closes #1600. **NOT TOUCHED:** `packages/engine/**`, `write-components.ts` (its `layoutPositioning='ABSOLUTE'` at :1651/:1687 is the intentional overlay-child positioning of #1503 — left alone), `apps/tokenpress/`, `tools/`.
@@ -1386,6 +1534,7 @@ Owner-found building NB (screenshot): in `_Section-header`, three of the four si
 ── THE NET (docs/34) ─────────────────────────────────────────────────────────────────────────────────────
 
 New stacking block in `test-file-components.ts`, INDEPENDENT of the #1563 structural arms (it reads the SET's `layoutMode` and each member's `layoutPositioning`, which no other arm touches): for each set it asserts `layoutMode === 'VERTICAL'` and every variant child `layoutPositioning === 'AUTO'`. Expected values are the Figma Plugin-API constants for in-flow vertical stacking, hand-named — never read off the subject's `SECTION_SIZES`/`HEADINGS` tables. **By-name mutations, each from a known-good `wip:` HEAD, restored:** drop the `layoutPositioning='AUTO'` loop → the two "every variant child is in-flow" arms fail by name (set layout stays green, isolating that half); drop the `autoLayout(set, …)` call → the two "stacks variants VERTICALLY" arms fail by name (`layoutMode` reads `undefined`). Full `npm run verify` run to 61/61 PASS, 0 SKIP.
+
 ## (2026-09-23) — component writer never discards text for want of a loaded font (#1599)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Plugin-only — `apps/plugin/src/write-components.ts` (the font floor + `CompNode.fontName` port field), `apps/plugin/component-shim.ts` (the font-loaded model for `characters` writes: `DEFAULT_FONT`, a `figma.mixed` sentinel, `mixedTextFonts` opt, a throwing TEXT `characters` setter, `setTextStyleIdAsync` sets the node's font, twins carry `fontName`, `loadFontAsync` refuses a non-`FontName`), `apps/plugin/test-write-components.ts` (the by-name arms), and this entry. **NO `out/**` change, NO version bump** — this is the plugin executor, not the engine (`lint-emission-version` 0 artifacts, `regen --check`/`drift` clean). Gate count **STANDS at 61** — the new assertions are arms of the existing `plugin-test`. Closes #1599. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `packages/engine/`, `apps/tokenpress/`, `tools/`, `apps/plugin/src/write-figma.ts`/`file-components.ts`.
@@ -1409,6 +1558,7 @@ Arm runs the real `field-label` def against a file with NO text styles (`styles:
 ── HOST VERIFICATION (owner's click-through, #1573/#1578 pattern) ─────────────────────────────────────────
 
 This is shim-testable robustness; the live NB case — a brand face not installed, text falling back to Inter (#113) — is the owner's host verification. The floor makes text *appear*; the correct *font* still needs the face available in the file.
+
 ## (2026-09-23) — Figma color palette variables emit in numeric-key order (#1597)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** The #1594 fix, ported to the palette. Engine emission ORDER only — `packages/engine/emit-figma-color.ts` (a local `byNumericKey` mirror of #1594's helper + an optional `orderKeys` param on the shared `leaves()` walk, defaulting to identity; the palette emit passes `byNumericKey`), the regenerated `out/**` (three `core.palette.json` reorder — nb · aurora · wendys — + the engine-stamp bump on the DTCG trees), `packages/engine/version.ts` (ENGINE 0.130.0 → **0.131.0**, changelog newest-first), `packages/engine/schema/token-contract.json` (`engineVersion` re-stamp only, CONTRACT STANDS at 11.3.0), `packages/engine/test.ts` (the by-name ordering arm), and this entry. **ENGINE bump, CONTRACT stands.** Gate count **STANDS at 61** — the new assertion is an arm of the existing engine `test`. Closes #1597. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `apps/plugin/`, `apps/tokenpress/`, `tools/`, `scale.ts` — no token name, value, scope or alias moved.
@@ -1436,6 +1586,7 @@ Gutter and margin were DERIVED from fixed arrays indexed by breakpoint (`GUTTER_
 ── THE NET (docs/34) ─────────────────────────────────────────────────────────────────────────────────────
 
 New engine gate block (19f, `test.ts`): EXPECTED hand-authored from the documented ladders ([16,16,24,24,32]/[16,24,24,32,48]) + the snap rule + the space key for 4px read from the SCALE; ACTUAL read from the EMITTED Figma Grid Styles (px) AND the DTCG grid node's alias `$value` (the space token) — never from `buildLayout`/`resolveGap`. **By-name mutations, each from a known-good `wip:` HEAD, restored:** (M1) `buildLayout` ignores the gutter override → the APPLY arm ("wins over the 16px ladder — got 16") and the ALIAS arm ("emits as an ALIAS to space/050 — got `{prism.space.200}`") fail by name; (M2) drop `resolveGap`'s on-ladder guard → the off-ladder gutter (5px) and margin (7px) THROW arms fail by name, while APPLY/ALIAS stay green (isolating the guard). **MCP ceiling (#1368):** the two new schema fields pushed `tools/list` over 60,000; clawed back under (59,927) by compressing sibling schema prose (`surfaceMode.inverseBase`, `modeLevers`, `typography.sizes`, `modeLevers.typeSizes` — redundancy trimmed, every load-bearing fact kept), the same move #1510 made. `lint-us-english`/`lint-voice` run after the web build and cover the built bundle + schema, so the new UI labels and schema prose are in scope.
+
 ## (2026-09-23) — Figma dimension variables emit in numeric-key order (#1594)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Engine emission ORDER only — `packages/engine/emit-figma-dims.ts` (one new pure helper `byNumericKey`, applied at the seven dimension `Object.keys` sites), the regenerated `out/**` (three `space.json` reorder + the engine-stamp bump on the DTCG trees), `packages/engine/version.ts` (ENGINE 0.128.0 → **0.129.0**, changelog newest-first), `packages/engine/schema/token-contract.json` (`engineVersion` re-stamp only, CONTRACT STANDS at 11.3.0), `packages/engine/test.ts` (the by-name ordering arm), and this entry. **ENGINE bump, CONTRACT stands.** Gate count **STANDS at 61** — the new assertion is an arm of the existing engine `test`. Closes #1594. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `apps/plugin/`, `apps/tokenpress/`, `tools/`, `scale.ts` — no token name, value, scope or alias moved.
@@ -1483,6 +1634,7 @@ The lane guardrail said "touch only `main.ts` + a test". The helper is a **new m
 ── THE NET (docs/34) ─────────────────────────────────────────────────────────────────────────────────────
 
 `test-em-percent.ts` asserts `emToPercentLabel` over **every** `LETTER_SPACING_LADDER` step — the exact set the UI renders — against **independently transcribed** expected labels (a `Record` typed by hand, NOT computed from the helper: deriving the oracle from the subject is shape 1/2 and cannot fail), plus a floor that every ladder step has an expected entry so a step added upstream fails loudly rather than passing unmeasured, plus the two step-independent promises (trailing-zero strip, real minus sign). **By-name mutation, restored from a known-good HEAD:** breaking the ×100 to ×10 in `em-percent.ts` fails the named `emToPercentLabel(...)` assertions (e.g. `−2%` → got `−0.2%`) across both the issue-value arm and the full-ladder sweep; restored, `npm test` for `@prism3/studio` is green again. Because the helper is display-only, the engine/version/regen gates stand untouched, which is itself the check that the change never leaked into emission.
+
 ## (2026-09-23) — the size table's base column is a base, not an appearance mode (#1586)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Studio only — `apps/studio/src/main.ts` (the `renderSizeTable` header loop), a new pure module `apps/studio/src/size-labels.ts`, its test `apps/studio/test-size-labels.ts` wired into `@prism3/studio`'s `test` script, and this entry. **No `out/**` change, NO version bump, NO engine/emit change** — `lint-emission-version` sees 0 artifacts and `regen --check` stays clean; nothing here is emission. Gate count **STANDS at 61** — the new assertions are arms of the studio `test` gate. Closes #1586. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `packages/engine/`, `apps/plugin/`, `apps/tokenpress/`, `tools/`.
@@ -1500,6 +1652,7 @@ The base column now reads **"Base"** with a hover explanation — *"One base siz
 ── THE NET (docs/34) ─────────────────────────────────────────────────────────────────────────────────────
 
 **Independence:** the gate's load-bearing assertion is written against a LITERAL rule — the base column's visible text (label + suffix) must carry no appearance-mode word (`/\b(light|dark|baseline|…)\b/i`) — NOT against the module's own `SIZE_BASE_LABEL` constant, which would be `x === x` and pass whatever the label became (shape 2). A positive arm confirms it names a base and explains the mobile↔desktop scaling, so the fix is not merely deleting the word. **By-name mutation, restored to a known-good HEAD (a `wip:` commit first, `--amend`ed once green):** reverting the base branch to `{ text: modeLabel, suffix: ' baseline' }` fails the named assertion *"the base column text carries NO appearance-mode word"* (4 arms red, exit 1); after restore, 14/14 pass. `lint-us-english.ts`/`lint-voice.ts` run after the web build (verify handles ordering), so the "Base" label and tooltip in the built bundle are in scope.
+
 ## (2026-09-23) — the prune preview names the variables it would delete, not just count them (#1585)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Plugin RUNTIME only — `apps/plugin/src/prune-figma.ts` (a new `varNote` composed beside the existing `modeNote`/`styleNote`) plus `apps/plugin/test-prune.ts` (two new arms). **No `out/**` change, NO version bump** — ENGINE STANDS, CONTRACT STANDS: nothing here is emission. Gate count **STANDS at 61** — both new assertions are arms of `plugin-test`. Closes #1585. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `tools/`, `packages/engine/`, TokenPress, `apps/plugin/src/main.ts` (the wiring already carries `p.variables` groups with `{ collection, names }`, so no read-side change was needed).
@@ -1517,6 +1670,7 @@ Capped at `VAR_NOTE_CAP` (8) names per collection with the remainder reported as
 ── THE NET (docs/34) ─────────────────────────────────────────────────────────────────────────────────────
 
 Two new arms, each proved by a restored mutation (tree clean at a known-good HEAD before every one, per the CLAUDE.md mutation-battery rule): **(a)** the offered variable renders BY NAME under its collection — `The variables are color → nbds/color/text/legacy` — and dropping the `varNote` append fails it by name (no other note produces `color → nbds/…`; `modeNote` is `layout → …`, `styleNote` is a kind). **(b)** a fixture with 13 in-namespace orphans in one collection caps at 8 names and reads `… +5 more`, with the beyond-cap `ghost-12` NOT named; dropping the cap (show all 13) fails it by name — the `+5 more` disappears and `ghost-12` appears. Both mutations confirmed to fail exactly their arm, then restored, then re-confirmed green.
+
 ## (2026-09-23) — the conformance scan learns to fix, for two categories only (#1553 P2)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** `tools/` only — new `tools/conformance-scan/fix.ts` and `fixtures/fix-manifest.json`, ten new arms in `mutations.sh`, the run-loop + apply snippet in the README, one binding added to the three fixtures, and the section in `tools/CLAUDE.md` that described the harness as report-only. **No `out/**` change, NO version bump** — ENGINE STANDS, CONTRACT STANDS: nothing here is emission, and `lint-emission-version` reporting a single artifact would have meant it had leaked into one. Gate count **STANDS at 61**, `ci.yml` untouched — a tool answers a question and exits 0 (`tools/CLAUDE.md`), and this one's own self-checks are the author's, like `diff.ts --selftest` before it. Refs #1553 (P2). **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `apps/plugin/`, `apps/tokenpress/`, `packages/engine/`, the manifest's `main` (the deferred bridge, decision #4).
@@ -1576,6 +1730,7 @@ A style already carries its own provenance: the engine writes a `description` on
 **Independence:** the recognizer's regexes are hand-written in `prune-figma.ts`; the tests' ACTUAL descriptions come from the REAL plan builders over three brands (aurora/harbor/nb) — all **176 planned styles recognized from their own descriptions**, zero cross-kind matches, against 9 hand-typed negatives each carrying its `why`. Importing the emitter's template into the recognizer would be `docs/34` shape 2 and would delete the gate silently. **Paired negatives** in both arms (strip the descriptions → the renamed style is spared; drop the stamp → the hand-added mode is offered again), so each guard proves it is the thing doing the work. **Four by-name mutations, each restored (tree clean at a known-good HEAD before every one):** (1) grid signature → exact values fails the `style provenance TRAP` and all three `#1577 renamed` arms plus the 176-style sweep; (2) `stampOwnedModes` keep-last fails `#1581 APPEND-ONLY: the four modes the shrink stranded…`; (3) dropping the ∈-owned filter fails `mode provenance: a hand-added \`print\` mode is NOT offered…`; (4) dropping the seed fails both `SEED` arms. **Host recheck:** the real `isEngineDescription` run over the census read off the live "Prism3 test file" recognizes all 13 engine styles including the renamed `Grid/xs`, and spares the hand-typed scratch `Grid/wide`. All scratch nodes removed in a `finally`; 0 left behind.
 
 **For the owner:** the live `layout` collection still holds two modes named `sm` (`1:13`, `1:14`) — #1570's damage is un-pruned in your file. Running the prune there is a separate action, and the stamp's seed is what keeps `1:14` offerable once you do.
+
 ## (2026-09-23) — the build's own report, left on the set: #1574's two states, told apart (#1579)
 
 **STATUS: PR open, do NOT merge (the orchestrator verifies + reviews + merges under the net).** Touches `apps/plugin/src/write-components.ts` (the report + two write sites), `apps/plugin/src/main.ts` (one console line pointing at it), `apps/plugin/component-shim.ts` (a new `abortAfterCombine` mode), `apps/plugin/test-write-components.ts` (seven new assertions) and `packages/engine/anatomy-figma.ts` (**a TS doc comment only** — see the asymmetry below). **No `out/**` change, NO version bump** — ENGINE STANDS at **0.128.0**, CONTRACT STANDS at **11.3.0**. Gate count **STANDS at 61** — every new assertion is an arm of `plugin-test`. Closes #1579. **NOT TOUCHED:** #1367/#1385, `.claude/settings.json`, `tools/conformance-scan/` (#1569, the owner's lane), TokenPress, `apps/plugin/src/write-figma.ts` / `test-prune.ts` (Lane 1's files).
@@ -1963,6 +2118,7 @@ New `setFixedWidthHugHeight(node, width)` helper sets sizing on the real-world a
 ── DESIGN QUESTION LEFT OPEN (owner, #1563) ────────────────────────────────────────────────────────────
 
 The components stay STATIC literal-color assets per the JSON (annotation chrome, not token-bound product components). Whether to bind them to Prism3 tokens so they theme is the owner's call and out of scope here.
+
 ## (2026-09-21) — conformance-scan: the style INTERIOR, and what a file borrows is not the file's to get wrong (#1553 P1)
 
 **STATUS: LANDED. TOOLS-ONLY (`tools/conformance-scan/`) — no engine code, def, gate, baseline, or emitted `out/**` artifact changed; ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed**, `regen --check` clean (111 artifacts byte-match), `version.ts` and `ci.yml` untouched. Still a measurement harness, NOT a gate — gate count **STANDS at 61**. Read-only against Figma, report-only. Findings target #1552. Refs #1553.**
@@ -2063,6 +2219,7 @@ Two mutation-shape traps, both written into that script's header after the first
 **STATED GAPS (in the README, not stubbed — a half-modelled surface in the join key makes the arms report on something they cannot see).** Style DEFINITIONS are out: a node's BINDING to a text/effect style is checked and is the second-largest binding namespace, but a style's interior (size, weight, line height; a shadow's offset and blur) is none of the eight categories. Library-consumed variables and styles read as absent, since both reads use `getLocal*Async`. Geometry the engine does not bind is invisible. Order is normalized on both sides, because Figma's order is not the emitter's and that is not a defect.
 
 **GATES.** Full `npm run verify`: 61/61 gates reached a verdict, all PASS (61, not the 60 the #1511 entry below records — #1123 wired the CLAUDE.md-freshness battery in as a gate on 2026-09-20). No gate added or moved.
+
 ## (2026-09-21) — file setup: the first page-creation code, a page-aware build, and two template assets (#1554)
 
 **STATUS: LANDED (this lane).** Plugin-executor feature — the first page scaffolding in the repo. **No engine change, no `out/**` change, NO version bump** — ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0**. Evidence: `lint-emission-version` **0 artifacts changed vs base**, `lint-component-surface` **0 defs moved**, `regen.ts --check` clean (111 artifacts byte-match). Page placement is host-side; nothing the engine emits moved. Gate count **STANDS at 61** — the witness is a new harness (`test-file-setup.ts`) added to the existing plugin `test` gate's chain, not a new CI gate. Closes #1554. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope.
@@ -2158,6 +2315,7 @@ Both verified with a `wip:` checkpoint before each mutation (CLAUDE.md — `git 
 ── THE VERSION DECISION + EVIDENCE ───────────────────────────────────────────────────────────────────
 
 Executor-only, following the #1513/#1516/#1514 precedent — **NO ENGINE bump**. Evidence: `lint-emission-version` reports **0 artifacts changed vs base** and `lint-component-surface` reports **0 defs moved**; `regen.ts` then `git status` is clean (the payload JS is generated on demand for `figma_execute`, baked into no committed artifact, and `write-components.ts` is plugin code the engine does not emit). ENGINE STANDS at 0.127.0, CONTRACT STANDS at 11.3.0 (no token NAME moves). One consequence worth recording: the re-assert code grows the shared payload shell every chunk carries, so the icon-button chunk-count pin in `test.ts` moved **10 → 11** (~20 members/chunk; every chunk stays under the 42,000-byte budget). That pin's own comment sanctions re-pinning on a payload change — it is the first SHELL-byte move of that number rather than a member-count one. **Full net:** `npm run verify` = **60/60 PASS, 0 SKIP, 0 FAIL**.
+
 ## (2026-09-20) — `test-smoke.mjs` stated measured corpus sizes as literals in its labels/comments, and they drifted against main silently (#1232)
 
 **STATUS: LANDED (this lane).** Studio-test hygiene fix. **No engine change, no `out/**` change, NO version bump** — the only file touched is `apps/studio/test-smoke.mjs` (comments + one assertion-label string; no `ok()` added or removed): ENGINE STANDS at **0.127.0**, CONTRACT STANDS at **11.3.0** (`lint-emission-version` 0 artifacts, `regen --check` clean). Gate count **STANDS at 60** — no CI gate added or removed; this is prose inside the existing studio-smoke gate. `npm run verify` all PASS, 0 SKIP, 0 FAIL. Smoke suite executes **1452** assertions, all pass. Closes #1232. **NOT TOUCHED:** #1367 and #1385 are out of this lane's scope.
@@ -2210,6 +2368,7 @@ A `SKILL.md` is a shipped artifact an agent trusts; `lint-skills` keeps its *nam
 ── THE TRAP FOR WHOEVER RE-VERIFIES ───────────────────────────────────────────────────────────────
 
 `lint-skills` scan-3 checks any `*.ts` token in the prose for existence via `resolve(repo, <match>)`, so a bare `` `button.ts` `` resolves to `<repo>/button.ts` and FAILS — every engine-file citation must be the full `packages/engine/components/…` path. `figmaProperties.booleans` and camelCase props (`leadingIcon`) are safe: the DOTTED/SNAKE regexes are lowercase-only, so an interior capital exempts them. `.json` filenames and any backtick token containing `/` or spaces are skipped by scans 1–2. `lint-us-english` / `lint-voice` scan the built bundles, so they only pass after the web + plugin builds — run the full `npm run verify`, not the skills gate alone.
+
 ## (2026-09-20) — a `linkPalette` lever, so links can choose their palette independently of actions (#1496)
 
 **STATUS: LANDED (this lane).** Owner-requested feature (owner-confirmed 2026-09-17). **No emitted colour VALUE moves for any existing brand, but the emitted `lever-manifest.json` gains the new lever, so ENGINE bumps 0.126.0 → 0.127.0** (a lever add cannot leave the manifest byte-identical; `lint-emission-version` compares the emission against origin/main, so principle 5 requires the bump — the first draft claimed "no bump, byte-identical" by reading only the corpus token trees and CI caught it). CONTRACT STANDS at **11.3.0** (`regen --check` clean after the restamp, `nb-regression` clean, `token-contract --check` level `none` — the link role NAMES are unchanged, only opt-in brands' resolved VALUES move). Gate count **STANDS at 60** — L-07 is a new ARM inside the existing `test.ts` gate, not a new gate file. Closes #1496.
@@ -2361,6 +2520,7 @@ run in CI perfectly well (local `file://` git, no network); wiring it is a separ
 site) is **#1122**, its own concern — not folded in here.
 
 ---
+
 ## (2026-09-19) — `review-pr.md` cites the artifact-count site instead of restating a stale numeral (#1116)
 
 **STATUS: LANDED. Prose-only, one file (`.claude/commands/review-pr.md`), no code/gate/version change (ENGINE 0.126.0 / CONTRACT 11.3.0 stand).** The stale `104 artifacts` figure survived on `main` at two sites (`:45` "report **104** artifacts … `ci.yml` asserts that number" and `:157` "~104 artifacts byte-match") — a confident wrong number in the file every reviewing lane loads, which risks a false drift finding against a correct PR or waving through a real count change. Applies #1114's CLAUDE.md remedy: name the site (`verify.ts` `EXPECTED_ARTIFACTS`, `ci.yml` asserts the same), restate no numeral, so the sentence is true at every ref. The two excluded copies #1116 flagged (`apps/studio/test-export-settings.ts` coverage aside; `lint-paint.ts`'s dated quotation of #758's criterion) are deliberately left — a numeral inside a quotation is evidence, not a site. Recovers the intent of the stale PR #1122. Closes #1116.
@@ -2388,6 +2548,7 @@ site) is **#1122**, its own concern — not folded in here.
 **GATES.** Full `npm run verify`: 60/60 PASS, 0 SKIP (drift green after the regenerated `out/**` is committed). Studio built before the smoke; smoke runs after the build.
 
 **NOT TOUCHED.** #1367 and #1385 are out of this lane's scope.
+
 ## (2026-09-19) — studio exposes `facePin`: a brand can bind a condensed (or any verbatim) font cut from the UI (#1467)
 
 **STATUS: LANDED. ENGINE STANDS at 0.125.0; CONTRACT STANDS at 11.3.0 — studio-side only, writes brand input, no engine code touched. `regen --check` clean (0 artifact drift), `lint-emission-version` 0 artifacts, `lint-component-surface` 0 defs. Closes #1467.**
@@ -2409,6 +2570,7 @@ site) is **#1122**, its own concern — not folded in here.
 ---
 
 ## (2026-09-19) — links become independently customizable: global rung lever + PER-MODE ABSOLUTE overrides, all four families editable, with a link floor guard (#1510)
+
 ## (2026-09-19) — reconcile.ts coverage: non-INSTANCE glyph-container ink, loose-icon coordinates, and the group-set conclusion (#1523)
 
 **STATUS: LANDED. ENGINE STANDS at 0.124.0; CONTRACT STANDS at 11.3.0 — `tools/` only, no emitted artifact and no projected surface moved (`lint-emission-version` 0 artifacts, `regen --check` clean, `lint-component-surface` untouched). Closes #1523. Follows #1522 (root-normalization).**
@@ -2424,6 +2586,7 @@ site) is **#1122**, its own concern — not folded in here.
 **SELFTEST (docs/34 — oracle authored IN the selftest).** `reconcile.ts --selftest` gains one arm per gap, each synthesized from the live ledger so none goes stale, and each fails **by name** when its fix is reverted (verified): reverting `foldDescendantInk` fails `(#1523 gap 1) … MATCH, not skipped + UNKNOWN-NODE` (and, since the loose icon needs the fold too, gap 2); reverting `mapLooseComponents` fails `(#1523 gap 2) … maps to name=<slug> → MATCH, not UNKNOWN-NODE` alone (gap 1's arm uses a non-icon component, so it stays green — clean isolation). Gap 3's arm pins the conclusion both ways — the group ledgers are empty AND the roles a live group carries MATCH under the atom/row sets while scoring UNKNOWN-NODE under the group; injecting a paint binding into the group ledger (simulating an engine projection change) trips it by name. Selftest: 10/10 arms PASS.
 
 **SCOPE — no bump.** `reconcile.ts`, `README.md`, `tools/CLAUDE.md`, this entry — all under `tools/` and `docs/`. No def, no `out/**`, no projected-surface digest moved, so `ENGINE_VERSION` and `CONTRACT_VERSION` both STAND. The reconciler is off the CI path (a live file is not in CI); the gate count stays 60. Full `npm run verify` 60/60 PASS, 0 SKIP.
+
 ## (2026-09-19) — gate the uniform inverse fill + the neutral border that follows its ink, so a `modes.ts` edit can't silently regress the two #1231 desk-QA fixes (#1234)
 
 **STATUS: LANDED. ENGINE STANDS at 0.125.0; CONTRACT STANDS at 11.3.0 — test-only, reads committed artifacts, no emitter change (`lint-emission-version` 0 artifacts changed, `regen --check` byte-clean). Gate count STANDS at 60: these are ARMS inside the existing `test.ts` gate, not a new CI step, so `verify.ts` / `ci.yml` / CLAUDE.md §4 / CONTRIBUTING §3 / the PR template are UNTOUCHED and `lint-doc-gates` is unaffected. Closes #1234. Recovers the intent of the stale PR #1239 (written in the 52-gate / ENGINE-0.5x era), implemented fresh against current main because the gated derivation has moved since — do NOT resurrect #1239's branch.**
@@ -2491,6 +2654,7 @@ site) is **#1122**, its own concern — not folded in here.
 **PARITY, AND THE PASTE-PATH FOLLOW-UP.** The re-assert fires on `button` labels (unlike #1513's, which was inert on the non-`byVariant` parity grid), so the plugin↔paste parity gate flagged the plugin executor doing something the paste executor (`planToPluginJs`) does not. Per the #1513/#1516 executor-only precedent, this fix stays plugin-only; the parity host stub (`test.ts`) now faithfully RETAINS `textStyleId` (its `setTextStyleIdAsync` was a no-op) so the re-assert's read-back is satisfiable, and — because that stub models no reset-on-bind detach — both executors agree there. The paste executor genuinely lacks BOTH the #1513 caption and the #1514 style re-asserts; filed as **#1536** rather than fixed here (one concern per PR).
 
 **SCOPE — no bump.** Entirely plugin executor + test shim + parity stub + gate + one engine `package.json` export (`emit-figma-font`, so the gate can reach the emitter oracle). `figmaAnatomySet` (what the surface digest hashes) and `out/**` are untouched — `lint-component-surface` 0 defs, `lint-emission-version` 0 artifacts — so no `ENGINE_VERSION` change, the #1513/#1516 executor-only precedent. CONTRACT stands (no guaranteed token name moves). Full `npm run verify` 60/60 PASS, 0 SKIP.
+
 ## (2026-09-19) — icon SWAP sits DIRECTLY UNDER its presence BOOLEAN in the Figma panel (#1519)
 
 **STATUS: LANDED. ENGINE 0.123.0 → 0.124.0; CONTRACT STANDS at 11.3.0. Owner-directed (owner QA 2026-09-18): each icon swap must sit directly beneath the boolean that turns that icon on, so the panel reads `leading icon` → `↳ swap leading icon` → `trailing icon` → `↳ swap trailing icon`, not the two toggles grouped then the two swaps grouped detached. Closes #1519.**
@@ -2536,6 +2700,7 @@ site) is **#1122**, its own concern — not folded in here.
 **FILES.** Defs: `components/text-field.ts` (`control.minWidth: 320`, `label.empty` re-point, stale unverified note updated), `components/select.ts` (`label.empty` re-point, header roles-reused line). `version.ts` (ENGINE 0.123.0 + changelog). Gates: `apps/plugin/test-roundtrip.ts` (#1518 block), `packages/engine/test.ts` (#1518 ink pins; the #1344 select assertion updated to the new binding). Regenerated `out/**` + `--accept`ed `schema/component-surface.json`, `schema/paint-census.json`, `schema/token-contract.json`.
 
 ---
+
 ## (2026-09-18) — a wire-phase member settle leaves NO property-reference miss: `liveMember` reads `set.children` FRESH (#1516)
 
 **STATUS: LANDED. ENGINE STANDS at 0.122.0; CONTRACT STANDS at 11.3.0 — plugin-write-path only. No def, no emitted artifact, no projected-surface digest moved (`lint-emission-version` 0 artifacts, `lint-component-surface` 0 defs). Closes #1516.**
@@ -2575,6 +2740,7 @@ site) is **#1122**, its own concern — not folded in here.
 **SCOPE — ENGINE, NOT CONTRACT.** `layoutAlign` is a component auto-layout fact, not a guaranteed DTCG token PATH, and 320 is a projection literal (mints no token name), so `token-contract --check` is level `none` — CONTRACT STANDS at 11.3.0. The projected auto-layout of `checkbox-group`/`radio-group`/`select` moves → ENGINE 0.121.0 → 0.122.0 (rebased); `schema/component-surface.json` is `--accept`ed after the forward bump (exactly those three defs DRIFTED — same member counts, different plan digests, every other def byte-identical). `schema/paint-census.json` is UNCHANGED (no `--accept` needed — the groups paint nothing and select's paint is untouched; `layoutAlign`/`minWidth` are geometry, not paint). `schema/token-contract.json` is `--accept`ed stamp-only (`--check` level `none`, guaranteed 598 unchanged; the inverse-overlay CONDITIONAL churn in that diff is PRE-EXISTING, the #1469/#1476 precedent). `out/**` restamps only `$extensions.generator.version`.
 
 **FILES.** Engine: `component-schema.ts` (`PartDef.crossAxisFill` + `anatomyErrors` guard), `anatomy-figma.ts` (`FigmaNodePlan.layoutAlign`, projector emission, paste-executor child-loop write), `anatomy-readback.ts` (`layoutAlign` predicate), `version.ts`. Plugin: `apps/plugin/src/write-components.ts` (parent child-loop write), `apps/plugin/test-roundtrip.ts` (the gate block). Defs: `checkbox-group.ts`, `radio-group.ts`, `select.ts`. Regenerated `out/**` + `--accept`ed `schema/component-surface.json`, `schema/paint-census.json`, `schema/token-contract.json` (stamp-only).
+
 ## (2026-09-18) — fluid `type-sets` collection defaults to DESKTOP, not mobile (#1520)
 
 **STATUS: LANDED. ENGINE 0.120.0 → 0.121.0 (rebased); CONTRACT STANDS at 11.3.0 (`token-contract --check` level `none`). Owner-directed during NB QA (2026-09-18).**
@@ -2590,6 +2756,7 @@ site) is **#1122**, its own concern — not folded in here.
 **SCOPE.** `token-contract --check` level `none` — mode order is not a guaranteed token-name path. `schema/token-contract.json` `--accept`ed as a stamp-only `engineVersion` sync (0.120.0 → 0.121.0; contract stays 11.3.0) — the same `informationalOnly`-branch precedent as #1469/#1470/#1476, and the pre-existing inverse-overlay conditional churn in that diff is independent of this change. Files: `emit-figma-font.ts`, `materialise-to-figma.ts`, `test.ts` (order assertion), `version.ts`, `out/**` (stamp), `schema/token-contract.json` (stamp).
 
 **GATES + BY-NAME MUTATION (docs/34).** Full `npm run verify`: 60/60 gates reached a verdict, all PASS. By-name mutation: reverting `FONT_FLUID_MODES` to `['mobile','desktop']` fails the engine `test.ts` assertion BY NAME — *"font-plan: type-sets is FLOAT with desktop/mobile modes — desktop is the default"* (`typeSets.modes.join(',') === 'desktop,mobile'`). That assertion is the single independent check keyed to the mode ORDER, so a reorder regression cannot pass green.
+
 ## (2026-09-18) — text-field + select: warning/success swap the field BORDER too, mirroring error (#1517)
 
 **STATUS: LANDED. ENGINE 0.119.0 → 0.120.0 (rebased); CONTRACT STANDS at 11.3.0. Owner-directed (owner QA 2026-09-18), Prism 2 parity ("like it is in Prism 2").**
@@ -2603,6 +2770,7 @@ site) is **#1122**, its own concern — not folded in here.
 **ENGINE and not CONTRACT (#1252 shape).** A projected-surface + paint change with no emitted token name moving: the warning/success projected members (same COUNT — status(4)×state, unchanged) gain a border binding, so their plans move. `lint-component-surface` re-`--accept`ed (text-field 20 members, select 16 — plans move, count holds) and `lint-paint` census re-`--accept`ed (the paint grids gain the new keys; provenance stayed green throughout, confirming no exception was needed). No committed `out/**` VALUE moved — component payloads are not committed under `out/`, and the def binds existing roles — so `regen --check` moved only each artifact's generator stamp (0.119.0 → 0.120.0).
 
 **MUTATION (docs/34, by-name).** Repointing `text-field|warning.border.rest` from `color.border.warning` to `color.border.success` (a role that RESOLVES) fails `lint-paint.ts` arm 1 BY NAME — `provenance: text-field|warning.border.rest — status='warning' is absent from 'color.border.success'` — and arm 2 (the text-field paint hash moves); restored. `test.ts` additionally pins each status's border swap at its coordinates for both defs (a dropped key or wrong-role repoint fails by name), and the reworked "no per-status MESSAGE inks" assertion now checks every status-led key is a `.border.` key (so a stray `warning.label` re-declaration fails, while the legitimate border swaps pass).
+
 ## (2026-09-18) — `image-placeholder`: `footprintVaries: ['ratio']` clears two false footprint misses (#1515)
 
 **STATUS: LANDED. ENGINE 0.118.0 → 0.119.0; CONTRACT STANDS at 11.3.0. Bug fix (false-positive QA miss) found in owner QA 2026-09-18 — same class as #1474/field-message.**
@@ -2638,6 +2806,7 @@ site) is **#1122**, its own concern — not folded in here.
 **SAFETY NET (docs/34, by name).** New `#1513` block in `test-roundtrip.ts` builds field-message through the shared shim + real `applyComponentPlan` and reads the four captions back off the host. The oracle is the four Set A strings authored IN THE TEST, not read off the def, so reverting a caption in `field-message.ts` diverges by name. Two non-vacuity floors: (1) the set-level TEXT property default IS the fallback, and (2) reset-on-bind is LIVE — re-binding a caption reference collapses the node to that fallback in-test — so a green positive arm is the fix defeating a REAL reset, not a shim that never resets. **Mutation confirmed:** neutralizing the `write-components.ts` re-assert collapses all four captions to the fallback, failing the new `#1513` positive assertion AND the pre-existing `#1018/#1474` caption assertion in `test-write-components.ts` by name; restored green. Full `npm run verify`: 60/60 PASS.
 
 **Files.** `apps/plugin/src/write-components.ts` (the per-member caption index + the re-assert in the ref read-back loop), `apps/plugin/component-shim.ts` (`guardRefs` `propLookup` + reset-on-bind model, three call sites), `apps/plugin/test-roundtrip.ts` (the `#1513` host-truth block).
+
 ## (2026-09-18) — OPT-IN PRUNE: a plugin button that deletes the styles/variables a config change dropped (#1521)
 
 **STATUS: LANDED. PLUGIN + SHARED-UI, no engine code, def, gate, baseline, or emitted `out/**` artifact changed; ENGINE and CONTRACT both STAND. Gate count stays 60. Owner chose Option 1 (opt-in prune button, not the report variant).**
@@ -2660,6 +2829,7 @@ site) is **#1122**, its own concern — not folded in here.
 **SCOPE — no contract, no engine, no emitted artifact.** `version.ts` untouched; `token-contract --check` stays level `none`. New: `apps/plugin/src/prune-figma.ts`, `apps/plugin/test-prune.ts`. Edited: `apps/plugin/src/{messages.ts, main.ts}`, `apps/plugin/tsconfig.main.json` (include the new module), `apps/plugin/package.json` (test script), `apps/studio/src/{write-adapter.ts, main.ts}`. Editing `apps/studio/src` is how the plugin gets UI — the iframe IS the shared studio app (one UI, no fork), the same path Apply and the component build take.
 
 **GATES.** Full `npm run verify`: 60/60 gates reached a verdict, all PASS. No gate added or moved — a delete the designer triggers is an action, not an assertion; `test-prune.ts` rides the existing `plugin-test` gate.
+
 ## (2026-09-18) — reconcile.ts: normalize the brand ROOT before comparing — clean file was 100% false WRONG-TOKEN (#1522)
 
 **STATUS: LANDED. TOOLS-ONLY (`tools/binding-audit/reconcile.ts`) — no engine code, def, gate, baseline, or emitted `out/**` artifact changed; ENGINE and CONTRACT both STAND. Measurement harness, NOT a gate — gate count stays 60. Follow-up of #1511.**
@@ -2731,6 +2901,7 @@ site) is **#1122**, its own concern — not folded in here.
 **NOT TOUCHED.** #1367 and #1385 are out of this lane's scope.
 
 ---
+
 ## (2026-09-18) — Studio surfaces the global link role + its states on the Interactive page (#1487)
 
 **STATUS: LANDED. STUDIO-ONLY — no engine code, def, gate baseline, or committed `out/` artifact changed; ENGINE and CONTRACT both STAND. Read-only preview, not an editor (see the held decision below).**
@@ -2748,6 +2919,7 @@ site) is **#1122**, its own concern — not folded in here.
 **NOT TOUCHED.** #1367 and #1385 are out of this lane's scope. #1467 (facePin studio control) is the sibling gap and stays its own issue.
 
 ---
+
 ## (2026-09-18) — `field-message` per-status defaults → four distinct scaffolds (#1474)
 
 **STATUS: LANDED. ENGINE 0.116.0 → 0.117.0 (rebased past #1468/#1499); CONTRACT STANDS at 11.3.0. Owner-directed from QA; the four strings are owner-CHOSEN (Set A).**
@@ -2812,6 +2984,7 @@ Each status now reads distinctly, in the spirit of #1470's `switch` "Toggle labe
 **NOT TOUCHED.** #1367 and #1385 are out of this lane's scope. The `radio-group` the issue mentions is tracked separately (#901-family) and is not authored here.
 
 ---
+
 ## (2026-09-18) — Auto-layout parity audit: projected components vs Prism 2 (#1475)
 
 **STATUS: LANDED (docs-only). ENGINE STANDS at 0.115.0; CONTRACT STANDS at 11.3.0 — no engine code, def, gate, or committed artifact changed. Two follow-up issues filed (#1502, #1503).**
@@ -2829,6 +3002,7 @@ Each status now reads distinctly, in the spirit of #1470's `switch` "Toggle labe
 **GATES.** Docs-only under `docs/` — outside the scan scope of every engine gate (`lint-us-english`/`lint-voice` measure 0 `docs/` files by design). Ran `lint-us-english` + `lint-voice` after the studio + plugin builds anyway (per #1475): PASS, and the diff touches no gate subject. No `npm run verify` version churn — nothing under `out/**`, `schema/**`, or `version.ts` moved.
 
 **Files.** `docs/superpowers/qa-2026-09-18-autolayout-audit.md` (new), `docs/00-progress.md` (this entry). No code.
+
 ## (2026-09-18) — `switch` default label "Toggle label" → "Switch label" (#1470)
 
 **STATUS: LANDED. ENGINE 0.114.0 → 0.115.0 (rebased past #1494); CONTRACT STANDS at 11.3.0. Owner-decided (QA 2026-09-17), reversing the specific wording #1434 gave this one placeholder.**
@@ -3060,6 +3234,7 @@ Each status now reads distinctly, in the spirit of #1470's `switch` "Toggle labe
 **Safety net (docs/34, by name).** `SELF_CHECK` gains seven samples driving the shared `enGb`: four positive (`travelling`, `unlabelled`/`cancelled`, `centred`, `kilometres` — the last because only a substring scan sees a compound) and three negative (`controlled`/`compelled`/`caller`, `cancellation`/`totally`/`equally`, `diameter`/`parameter`/`centered`). **Mutations, each restored from a `wip:` commit:** (A) `travelling` appended to `packages/engine/README.md`, `labelled` to the root `README.md`, `centre` to `skills/prism3-theme/SKILL.md` → gate exits 1 naming all three by file, line and word. (B) `DOUBLE_L` removed from the `enGb` loop → `❌ the gate's detection is broken` naming the two doubled-L samples, before any file is scanned. (C) `RE_ENDINGS` removed → the same, naming `centred` and `kilometres`. Neither neutering goes quiet.
 
 **Traps for re-verifiers.** (1) A mechanical `centre → center` rewrite turns `centred` into `centerd`; the first regen on this branch shipped that into `out/**` for a few minutes before the word-diff review caught it. Respell `centred → centered` as its own rule, and read the word-level diff (`git diff --word-diff`) before trusting a sed. (2) The 506 count is the FIRST run's total across `out/**` + both bundles; `out/**` alone accounts for ~330 of it because every brand repeats the same source strings. (3) `test.ts` and the `lint-*.ts` headers still say `centred`/`labelled` in their `ok()` messages and comments — not shipped, not gated, left alone (surgical). (4) Not covered by this issue and STILL blind, measured on the same corpus after this pass: `catalogue` ×8, `licence` ×3, `artefact` ×1 (plus `-yse`: `analyse`/`paralyse`, and the reverse single-L class `skilful`/`fulfil`/`enrol`, none currently shipping). Filed as #1463 rather than folded in — one concern per PR.
+
 ## (2026-09-17) — #1451: the #1429 gate's comment said "12 per icon-button family"; the gate measures 48
 
 **STATUS: PR open on branch `fix/1451-icon-button-wash-count`, do NOT merge (orchestrator verifies + merges). Comment-only correctness fix — NO ENGINE bump (0.103.0 stands), CONTRACT 10.3.0, no emitted artifact moves, no gate behavior moves.**
@@ -3071,6 +3246,7 @@ Each status now reads distinctly, in the spirit of #1470's `switch` "Toggle labe
 **Scope.** One comment edited; the new wording carries the derivation so the next axis change has a formula to re-check against rather than a bare number, and points at assertion (1) as the live figure. The dated #1429 entry below (2026-09-16) still says 12 — it is a record of what was measured at 0.93.0 and is left as history. Nothing else in `apps/plugin/` or `packages/engine/` carries the stale count (grepped for the "12 per icon-button" shape repo-wide; this comment was the sole instance). Full `npm run verify` FOREGROUND: **59/59 PASS**.
 
 **Trap for re-verifiers.** The number in that comment will go stale AGAIN the next time an icon-button axis is added or removed (it is a product of the def's axis sizes, and nothing gates a comment). Whoever changes the axes: re-run `test:roundtrip`, read the `#1429 … every named family (… icon-button=N …)` line, and update the comment's count and formula in the same PR.
+
 ## (2026-09-17) — the `glyphScale` range refusal gets its own by-name mutation test (#1409)
 
 **STATUS: test-only PR on branch `1409-glyphscale-refusal-test` — do NOT merge (orchestrator verifies + merges). No ENGINE bump, CONTRACT 10.3.0, `regen --check` byte-identical, no emission change.**
@@ -3269,6 +3445,7 @@ Emitted-artifact prose under `docs/voice-standard.md` — the **recessive** attr
 **FOLLOW-UP TO FILE (flagged for the orchestrator, not opened here).** The knowledge-base has **no POV on the default field fill** (recorded on #1341). A `from:prism3` intake issue + a `09-gaps` note in the knowledge-base is warranted now that transparent has shipped as the engine's answer — per the KB's own routing. Also latent: applying the hover wash to `text-field`/`textarea` needs those defs to gain anatomy (they are code-only today); tracked adjacent to #1342, not folded in here (surgical).
 
 ---
+
 ## (2026-09-16) — the 44px interactive hit-target floor, codified as policy + a by-name gate (#1443)
 
 **STATUS: PR #1454 open, do NOT merge (orchestrator verifies + merges). Branch `claude/fix-1443-hittarget-floor-gate` off main (ENGINE 0.96.0 / CONTRACT 10.2.0).** **NO ENGINE bump — docs + a new gate only; `lint-emission-version` reports 0 artifacts changed vs base, so no bump is owed (the #1396 executor/test-only precedent). CONTRACT stands at 10.2.0.** #1443 (owner-decided, from #1437): interactive controls adopt a 44px hit-target floor (WCAG 2.2 SC 2.5.5 Enhanced), about the TOUCH/hit area rather than the visual size.
@@ -3372,6 +3549,7 @@ So the wash binds and resolves wherever the brand uses it. The 96/24 QA misses c
 **FOLLOW-UP FILED — the Row's #1201 alignment box vs. a taller toggle.** The switch Row centres the nested control in a `trackBox` one label-line-box tall (`control.size.*.line-box`, ~24 at `md`). A Prism 2-sized switch track (32) is now TALLER than that line, so the control centres-and-overflows the line-box by ~4px each side. In the CODE projection the row's `min-height` (≥44) contains it and `plugin-roundtrip` passes (structurally sound); the only exposure is dense Figma settings-list mockups where hug-height rows could visually overlap by a few px. Out of scope for #1425 (switch-control sizing only, the Row "inherits"), and how a toggle taller than its label line should align is a genuine layout/design call — **filed as #1439** rather than smuggled into this PR. `checkbox`/`radio` controls stay shorter than the line-box, so they are unaffected.
 
 **Traps for re-verifiers.** (1) The version bump is REQUIRED — emitted dimensions and the projected switch surface move, so `lint-emission-version` + `lint-component-surface` both demand the ENGINE bump; a no-bump would be wrong here (contrast the recent gate-only lanes). (2) If `regen --check` disagrees, look for an untracked file under `packages/engine/out/` before assuming drift. (3) The `core.dimension.5` feed in `buildDims` LOOKS like a stray line — it is load-bearing; deleting it re-introduces the MAJOR demotion + the materialization block (comment says so in place). (4) Smoke needs `npx playwright install chromium chromium-headless-shell` in a fresh container before `verify`. (5) SERIALIZATION: branched off `main` at ENGINE 0.87.0 / CONTRACT 10.0.0, then rebased (merge) onto post-#1426 main (ENGINE 0.92.0 / CONTRACT 10.1.0 — #1347 checkbox-row, #1371 control-shape, #1368 face-pin, #1426 select). Took the next-free ENGINE integer **0.93.0** and layered the MINOR contract addition onto main's 10.1.0 → **10.2.0** (main's `size.md.min-height` kept; no name moved). Resolution: code files auto-merged (both sides present), version.ts hand-merged (both changelogs), `out/**` + `token-contract.json` + `component-surface.json` regenerated / re-`--accept`ed onto the merged tree, and the #1425 by-name mutations (SWITCH_THUMB_RATIO, SWITCH_TRACK_RUNGS) re-run green after the merge.
+
 ## (2026-09-15) — `select` QA: caret pinned right, hideable message, 44px hit-target floor, expose FieldLabel — all four (#1426)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** **ENGINE 0.87.0 → 0.92.0; CONTRACT 10.0.0 → 10.1.0** (one new guaranteed path, +1 → 578). `#1426` filed four `select` fixes from the Figma-plugin-import QA. Two were decision-free and shipped in the first pass; the other two carried genuine design forks that were **held for the owner** — and the owner then decided both (2026-09-15): adopt a 44px interactive floor (#1437), and YES expose the composed FieldLabel (#1438). All four now land in one lane. **Serialization:** rebased onto main behind the lanes that landed first — #1347 (0.89.0, checkbox-row rename + group), #1371 (0.90.0, control-shape off-ramps), #1368 (0.91.0, face pin) — so this takes the next-free integer, 0.92.0. `out/**` moves the `size.md.min-height` value (a real new token, not just the stamp) plus the version stamp; component payloads are not committed under `out/`, so the projected-surface moves are visible to `lint-component-surface` (accepted) and `test-roundtrip`.
@@ -4758,6 +4936,7 @@ tail (24,601 bytes) rather than a packing failure.
 why the "no visual change" half is asserted from the **emitted trees** (the rung measures 1px per brand)
 rather than from the def that names it — the def naming a rung and the rung measuring 1px are two
 independently-sourced halves, and neither can move the other.
+
 ## (2026-09-05) — a nest's `height` was ACCEPTED and dropped; the third posture on a non-box part (#1299, #1226 PR-B)
 
 **STATUS: shipped. `ENGINE_VERSION` 0.52.0 → 0.53.0; `CONTRACT_VERSION` stands at 9.4.0.** Second of the two
@@ -7247,6 +7426,7 @@ untouched. `CompNode` gains a typed `id` (same precedent as `textAlignVertical`:
 field cannot read it back). Low-noise signal: `refsRepaired` in the result, logged as `[prism3 #866]` in
 `main.ts` **only when non-zero**, so a quiet run stays quiet and a live reproduction announces itself — which
 is exactly the trigger `#1218` verifies against.
+
 ## (2026-09-02) — the outline border COLOR is authorable in the studio; the WEIGHT half is deferred (#576)
 
 **STATUS: shipped (color half).** Studio-only — **no engine change, no `out/**` change, no version bump.**
@@ -7493,6 +7673,7 @@ section's header now states the gap rather than implying coverage.
    `on-fill`, `border`), where the row supplies the context. The app was right. Two rows can therefore
    carry the same short label, which is deliberate context-dependence rather than elision ambiguity, and is
    why the collision check compares only pills whose titles differ.
+
 ## (2026-09-02) — two exemption entries were dead, and the comment saying that could not happen argued against the check that catches it (#1221)
 
 **STATUS: shipped.** `packages/engine/component-schema.ts` only — the `NESTED_WITHOUT_ANATOMY` table, a
@@ -13925,6 +14106,7 @@ words in this def's own COMMENTS — `honour` and `colour` — reached `apps/plu
 `ui.html`, because esbuild keeps them and the plugin bundles the def files. That is exactly the argument
 CLAUDE.md gives for the `apps/studio/src` carve-out ("which comments esbuild keeps is an implementation
 detail"), arriving from a second surface nobody had listed. Fixed in the def, not by narrowing the scan.
+
 ## (2026-08-23) — CLAUDE.md's US-English paragraph shrunk, and its false premise corrected (#928, #968)
 
 **Two jobs, and #968 mattered more than the byte count.** #928 asked whether the US-English
@@ -14442,6 +14624,7 @@ would have caught it.
 restoring the post-pass ordering makes `lint-ratio-truth` fail **by name** on 43 roles, while the
 pre-existing contract check stays green — which is the whole claim of the PR, demonstrated rather than
 asserted.
+
 ## (2026-08-23) — CLAUDE.md's worktree paragraph shrinks to a pointer; the checkout hook is answered "no" (#926)
 
 **STATUS: shipped, hook not built.** Third of the five `docs/43` grooming issues. Two halves, and the
@@ -14618,6 +14801,7 @@ two dispositions exist, so its allowlist can carry real reasons instead of place
 **Docs.** `docs/20` §9.4 records the decision; the §10 lever list and the §3a role list are corrected.
 `docs/42` gains the row and loses its "#895 is deliberately not indexed" gap bullet — replaced by the
 same posture for the two levers the sweep surfaced, which are now the open ones.
+
 ## (2026-08-23) — #900: `control.size.*` is a group from the start, and the density check that proves it is not the glyph ladder
 
 **STATUS: in review.** The token family only — checkbox, radio and switch are **not** bound to it here
@@ -15639,6 +15823,7 @@ available for a non-family axis, and what minimum binding count makes one meanin
 revert silently restored `HEAD` instead of the edit under test, and the whole change was gone by the
 fourth mutation. `git add` before the first mutation, always. The tell was a mutation printing a
 *clean* result it had no business printing.
+
 ## (2026-08-21) — `radio`: the mandatory group, and the first test of the open value vocabulary
 
 **STATUS: merged-ready, stacked on the `checkbox` branch.** Def 3 of `docs/40` tranche 1, authored from
@@ -16921,6 +17106,7 @@ offset **prose** exists, because a gate over comment text asserts wording rather
 the second distinct number. Prose only, no gate reads it, and renumbering is not free — §5.x is cited by
 number, so an insert silently repoints existing citations, which is why `lint-shape-index.ts`'s
 `--accept` appends only. Filed rather than folded in.
+
 ## (2026-08-14) — A package manager run inside a worktree emptied 12 scoped directories in the shared tree
 
 **STATUS: shipped (docs only).** No code, no gate, no emitted artifact — the third direction of the
@@ -24307,6 +24493,7 @@ contributor-facing steps in `ci.yml` after this PR, up from 18 — and removing 
 assumed. `check:consumability` reports 14 `[object Object]` values here because this branch is off
 `origin/main`. #671 (#642) merged mid-work and takes it to 2; this branch is rebased onto it, so on the
 final tree the figure is **2**.
+
 ## (2026-08-08) — Scored against the field's AI-readiness audit (docs/36, new)
 
 **STATUS: docs only.** No engine change, no emitted artifact, no gate touched. New
@@ -35499,6 +35686,7 @@ DTCG 911/911 aliases + 432/432 contracts, US-English clean over **91** files —
 freshly built bundle, which is the #387 coverage gap showing its face in the count.
 
 ---
+
 ## (2026-08-03) — A mode can move one category to a different family role (#390)
 
 **STATUS: engine.** `out/*` **unchanged** — NB sets no per-mode `familyMap`, so every committed artifact
@@ -35549,6 +35737,7 @@ covered by unit tests. This is the second time the "read the schema, assume it v
 shipped an inert contract (#367 was the first) — the rule that caught both is *run the validator*.
 
 ---
+
 ## (2026-08-02) — The leading/tracking fields bind to the ladder, and errors stop hiding (#388)
 
 **STATUS: web.** #384 locked the leading/tracking ladders in the engine. The dashboard was never told.
@@ -35651,6 +35840,7 @@ every value clearing **4.5:1 on `--paper`** — the worse of the two light surfa
 - **Does not close #285.** The chrome portion is done; the generated-color question stays open there.
 
 ---
+
 ## (2026-08-02) — Leading & tracking get their semantic tier (#377, PR 3b)
 
 **STATUS: engine.** The architectural half. Leading and tracking now carry the same two tiers every other
@@ -35785,6 +35975,7 @@ eyebrow  tracking  5 tighter … default     (no "wider" — already at the wide
   browser-checked across all seven categories on both axes, no page errors.
 
 ---
+
 ## (2026-08-02) — Display leading gets size bands (#377, PR 1 of 3)
 
 **STATUS: engine.** `lineHeightFor` sent **every** display size to `tight` (1.05) — 48px through 160px, a
@@ -35911,6 +36102,7 @@ withdrawn as a reversal of a recorded decision (#379), item 4 here.
 aliases + 432/432 contracts, US-English clean.
 
 ---
+
 ## (2026-08-02) — bold fills relax to the non-text bar; NB divergence enumerated, not re-baselined (#352, item 2 completed)
 
 **STATUS: engine.** This finishes item 2. #375 did only the interactive fill *state contracts* and
@@ -35986,6 +36178,7 @@ call site so it is not later "fixed" as a bug.
 899/900/897 resolve + 432/432 mode contracts, US-English clean.
 
 ---
+
 ## (2026-08-02) — the iconContrast default is pinned, and #352 item 3 is withdrawn (#352, item 3 reframed)
 
 **STATUS: engine.** No behavior change, no token moves. The only artifact diff is the lever
@@ -38727,6 +38920,7 @@ reworks were split into GH issues (see below).
   (SG first + default, no UI tab), the token list (uppercase heads, left-aligned values, `Inter · 400 · 16px
   · 1.5 lh · 0em` composite), and the Disabled example updating live on both the strategy select and the floor
   slider (+ floor de-indented, hidden when conventional).
+
 ## (2026-07-29) — Typography: tier split + two new type levers (engine + web)
 
 **STATUS: engine + dashboard.** Owner review of the Typography page turned into an architectural
