@@ -7,6 +7,25 @@
 
 ---
 
+## (2026-09-26) — Vocabulary: trait citations are checked against the briefs they quote (#1685)
+
+**STATUS: PR open from `lane/trait-citations`, labeled DO NOT MERGE.** Engine only. **ENGINE 0.173.0 → 0.174.0** (renumbered in the net after #1686, #1690, #1691, #1692) (four shipped `why` strings change); **CONTRACT STANDS at 13.1.0** (`token-contract --check` level `none`; `--accept` rewrote only the informational `engineVersion`). `out/**` moves by the version stamp only: no corpus brand sets `personality`.
+
+**Owner direction (2026-09-26): keep `dense`, no new example brand.** Its `why` now says outright that no example brief asks for density and that it stands as the opposite pole of `generous`; harbor's "not a dense dashboard" stays, verbatim, described as the brief rejecting density rather than asking for it.
+
+**The gate.** `test.ts` checked each `why` by `why.length > 20`, which any sentence passes (docs/34: a check on the subject's shape, not its meaning). The new arm reads every `examples/*.design.md` off disk; each double-quoted span in a `why` must occur in the brief named most recently before it, after collapsing whitespace and case only (a brief wraps its prose across lines). A `…` inside a quote marks an elision, and its fragments must occur in order. A `why` with no quote, or a quote under no brief name, fails by the trait's name. A floor arm fails if fewer than nine traits or four briefs are in scope.
+
+**What the stricter check found beyond `dense`.** Three more `why` strings were not verbatim, and none of them could have been caught before:
+- `sharp` quoted no brief at all. nb-redesign says "Corners are sharp", so it now cites that; the opposite-pole wording stays after it. This goes one step past the owner's direction, which spoke only of `dense`, and is flagged in the PR. **Owner confirmed 2026-09-27:** keep the nb-redesign citation.
+- `premium` quoted `"premium restraint → tighter tracking"`, but aurora keeps the arrow outside its quote marks. Now it quotes "premium restraint" and says the brief maps it to tighter tracking.
+- `bold` quoted across wendys' markdown bold (`**Bold, not loud** — …`). Now it's two quotes. Stripping markdown in the gate was the other option; the owner's rule was whitespace and case only, so the `why` moved rather than the gate.
+
+**Mutations, each failing by name.** One character in the `dense` quote (`dashbaord`) → `trait 'dense' … not verbatim in harbor.design.md`. The quoted words edited in harbor's brief instead → the same arm, from the other side. `restrained` re-attributed to aurora → `trait 'restrained' … not verbatim in aurora.design.md`. `sharp`'s citation removed → `trait 'sharp' … no quoted brief text`. `sharp` deleted outright → the floor arm (`found 8 traits`), alongside the existing schema-enum arm. An EMPTY `TRAITS` crashes the suite earlier, in arms that resolve `personality: ['soft']`, so it goes red but not through this arm; the eight-trait mutation is what proves the floor.
+
+**Trap for whoever re-verifies.** The attribution is "the nearest brief name before the quote, outside quotes", so a `why` whose prose mentions a second brief between the citation and its quote would re-attribute the quote. Today every `why` is written `<brief>: "…"` or `<brief> … "…"`; keep it that way.
+
+---
+
 ## (2026-09-26) — the spinner's SVG import, verified on a real host (notes only)
 
 **STATUS: notes + docs only; no version bump.** `components/spinner.ts` shipped (#1677) with two `notes.unverified` items: that Figma's importer maps a `<path opacity>` to layer opacity, and that it reads the elliptical-arc (`A`) commands. Both were measured live on 2026-09-26 in the NB Approved MCP Testing File. The probe ran `figma.createNodeFromSvg` on the exact spinner document, read it back, and removed it, leaving nothing in the file. The two items move to a `notes.evolution` record.
