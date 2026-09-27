@@ -7,6 +7,28 @@
 
 ---
 
+## (2026-09-27) — Plugin: find the file-component sets whatever their name's case
+
+**STATUS: PR open from `lane/file-component-name-case`, labeled DO NOT MERGE.** ENGINE 0.183.0 → **0.184.0** (a plugin behavior change, MINOR by the running convention; `out/**` restamps only). CONTRACT stands at 13.1.0.
+
+**The live measurement (2026-09-27, engine 0.183.0, via the agent link).** In both of the owner's NB files — the MCP Testing File and the master file — the header set on `↳ File Components` is named **`_section-header`**, lowercase s. The plugin matched `_Section-header` exactly, in three places:
+- **The page header (#1711).** `ensurePageHeader` searched for the set with `n.name === SECTION_HEADER_SET`, so every build in those files reported "No header on ↳ Veil: this file has no _Section-header component, and Set up file adds it". No header was ever placed, and the message was false: the file has one.
+- **`isHeaderMain`** compared the parent set's name exactly too, so a header instanced from a lowercase duplicate of the set would not count as present.
+- **File setup (#1554).** `main.ts` checked for existing sets with `n.name === '_Section-header' || n.name === '_Headings'`, so running Set up file in those files would have built a second `_Section-header` beside the owner's.
+
+**The fix.** One match, `isTemplateSet(name, set)` in `apps/plugin/src/file-components.ts`, compares lowercased names, and every lookup of either set calls it: the page header's set search, `isHeaderMain`, the detached-header FRAME check (already case-insensitive, now through the same helper), and file setup. File setup's check moved out of `main.ts` into `ensureFileComponents` beside the builder, because inside `main.ts` it read the `figma` global and no test could drive it. `main.ts` now calls `ensureFileComponents(figma, page)`. The builder names a new set `_Section-header` / `_Headings` as before, and nothing renames an existing set. The "no header component" message is unchanged and now fires only when no set exists in any case. The other exact-name lookups in the plugin (`mcp-steps.ts`'s read-back and cleanup) match names from a caller's manifest, not these two sets, so they are out of scope.
+
+**Tests, each literal and independent of the helper.** `test-page-header.ts` §6: a file whose set is `_section-header` gets status `placed` and a result with no "No header"; a rebuild in a file holding both `_Section-header` and a `_section-header` duplicate finds the header instanced from the duplicate and adds none. The shim's own `headersOn` lowercases a literal rather than calling `isTemplateSet`. `test-file-components.ts`: a page holding `_section-header` + `_headings`, one holding only `_section-header`, and one holding only `_headings` each build no set; an empty page and a page holding only `Button` build both, so the arms can fail. The single-set arms exist so that restoring the exact match on either half of the check fails an arm of its own.
+
+**Mutations, committed before each and restored from HEAD, each failing by name.**
+- `ensurePageHeader`'s set search back to `n.name === SECTION_HEADER_SET` → "6: a `_section-header` set gets a header placed" (got `skipped / no-set`), "6: exactly one header on the page" and "6: the result says nothing about a missing header" fail — the last one printing the exact false message measured live.
+- `isHeaderMain`'s parent check back to `main.parent.name === SECTION_HEADER_SET` → "6: a header from a `_section-header` duplicate counts as present; none added" fails.
+- `ensureFileComponents` back to `n.name === '_Section-header' || n.name === '_Headings'` → the three "file setup: a page holding … gets NO second set" arms fail.
+
+**Trap for whoever re-verifies this.** A mutation on `isTemplateSet` itself turns every arm red at once, which reads as proof and proves nothing about any one call site (docs/34 corollary 1). Mutate each call site.
+
+---
+
 ## (2026-09-27) — Build-component skill: brief-first authoring, the full def surface, and the current gates
 
 **STATUS: PR open from `lane/build-component-skill`, labeled DO NOT MERGE.** One file, `skills/prism3-build-component/SKILL.md`, plus this entry. **No version bump:** the skill is not an emitted artifact and moves no projected surface, the precedent is #1495 (a skill-only correction, no bump), and the skill's own §8 says so; `lint-emission-version` and `lint-component-surface` agree. Merged `origin/main` at c58f17d (#1705) mid-lane, no rebase.
