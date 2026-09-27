@@ -9,7 +9,7 @@
 
 ## (2026-09-27) — Component alignment: field family + switch (#1699)
 
-**STATUS: PR open from `lane/align-fields-switch-b`, labeled DO NOT MERGE.** ENGINE 0.174.0 → 0.175.0 (MINOR); CONTRACT stands at 13.1.0 (every binding is an existing role; `token-contract --check` level `none`, stamp-only accept). `lint-component-surface` re-accepted for select (20 → 24 members), field-label, text-field, textarea (their nested label moved, and their `codeOnly` prose is on every plan) and switch-control (its `codeOnly` hit-target entry). `lint-paint` census re-accepted for select only.
+**STATUS: PR open from `lane/align-fields-switch-b`, labeled DO NOT MERGE.** ENGINE 0.178.0 → 0.179.0 (MINOR); CONTRACT stands at 13.1.0 (every binding is an existing role; `token-contract --check` level `none`, stamp-only accept). `lint-component-surface` re-accepted for select (20 → 24 members), field-label, text-field, textarea (their nested label moved, and their `codeOnly` prose is on every plan) and switch-control (its `codeOnly` hit-target entry). `lint-paint` census re-accepted for select only.
 
 **The four owner-delegated decisions, as applied.**
 1. **select stays single-choice.** The brief's `multiple` is a `notes.contested` entry; `description` and `avoidWhen` say a multi-value choice is a Checkbox.Group or a multi-select, not built yet.
@@ -31,6 +31,148 @@
 - text-field `prefix` back to a slot → `#1699 text-field's prefix/suffix are text affixes …` and `#1699 text-field's only slot props …`.
 
 **Held for the owner, not picked:** whether a read-only select keeps its chevron (it does, mirroring text-field's trailing slot); whether the text affixes should project to Figma; `crossAxisFill` for text-field's label / message (#1503, already held). #1367 / #1385 untouched.
+
+---
+
+## (2026-09-27) — the checkbox and radio families aligned to their briefs (#1698)
+
+**STATUS: PR open from `lane/align-checkbox-radio-b`, labeled DO NOT MERGE.** Six defs (`checkbox-control`, `checkbox-row`, `checkbox-group`, `radio-control`, `radio-row`, `radio-group`), `test.ts`, `apps/plugin/test-write-components.ts`, `version.ts`, the two re-accepted baselines. **ENGINE 0.177.0 → 0.178.0 (rebased behind #1702, which took 0.175.0); CONTRACT STANDS at 13.1.0** (`token-contract --check` level `none`, stamp-only `--accept`). Another alignment lane may land first; the orchestrator renumbers.
+
+**Decisions applied (owner-delegated in the issue; each can be vetoed).**
+1. **`radio-control` drops per-option error.** No `error` state, no `unchecked.border.error` / `checked.border.error`, no error column: 36 → 30 members. `radio-row` stops declaring `error` too. Its Figma set is size-only, so this moves only its code-projection grid (21 → 18 coordinates in the paint census). **This reverses #1433a's radio half.** #1433a (owner, 2026-09-16) put error on the ring of both controls. The `test.ts` #1433a loop now covers checkbox only, and the new #1698 block pins both halves: radio has no per-option error, and checkbox keeps its ring (the brief lets an isolated checkbox recolor its own boundary).
+2. **`radio-group`'s `name` is `required: true`,** per brief §15 and the prop's own text.
+3. **The group `description` prop is deferred** and recorded in `notes.contested` on both groups. It would compose the same part as the held group error.
+
+**Mechanical fixes, all six.**
+- `motion` from brief §8: the check draw, the dot scale-in, the sibling-dot exit, and the reduced-motion snap.
+- `notes.evolution` from brief §13.
+- The stale claims that the schema has no motion field are reworded. So are the retired `radio` / `switch` ids and "RadioGroup deferred (#901)" (both now resolve to built defs).
+- Resolved `unverified` entries (the groups' gap and width/fill) moved to `evolution`.
+- 2.5.8 on both rows, and 3.3.1 / 3.3.3 on both groups, are reworded as intent. The row's 2.5.8 now names what *is* gated: `lint-hit-target` holds the default (medium) row's `min-height` to 44px on comfortable and spacious density; `small` is not measured.
+- Group terms (`checkbox-list`, `multiselect`, `choice-list`; `radio group`, `single select`, `exactly one`) moved from the rows to the groups.
+- `composesWith` lists only what a def nests (the #1700 rule): rows name their control, groups name their label and rows.
+- `checkbox-group` gains 1.4.11 / 2.4.13. `checkbox-row` gains the brief's `description` prop (code-only, as on `radio-row`).
+- `checkbox-row`'s `alternativeTo` drops `select`; `listbox` and `chip` go to `planned`. `radio-row`'s `supersededBy` is `select` (a segmented control stays in `planned`).
+- `checkbox-control`'s `docs.usage` / `do` / `dont` / `ai.whenToUse` carry the brief §2 nesting guidance.
+- The groups record the `required: true` default (brief: `false`) and the omitted `orientation` / `density` in `contested`. `radio-group` also carries the options-array-versus-composition entry.
+- `radio-row`'s "Note that…" is gone. Its `label` prop now matches `labelPattern` (centered within the first line-box, #1201).
+
+**Where i18n went.** `ComponentDef` has no i18n field. The brief §9 content (the check glyph does not mirror in RTL; text expansion; radio's vertical-for-expansion rule) is carried as `codeOnly` entries that lead with `RTL —` / `text expansion —`, following `switch-row`'s RTL precedent. `codeOnly` is stripped from the bundle, so this is maintainer-facing only. Whether i18n should be a schema field is held for the owner.
+
+**Also fixed in passing, same defs.** Aurora moved to comfortable density (#1215), so the "12/16/20 on aurora" and "6 on aurora" claims now say compact density (the `minimal-compact` fixture). `checkbox-row`'s "ALL FOUR brands" vs "5 brands" is reconciled: four shipped brands, and the 5 was the brands measured at the time. `checkbox-control`'s "never built in Figma" now says the row has been built in the owner's import QA but no read-back measures the nested sizing.
+
+**Baselines.** `component-surface.json`: `radio-control` 36 → 30. The five other defs move plan digest at the same count: `planStamp` hashes the whole plan, `codeOnly` and part notes included, and every one of the six changed its `codeOnly` (the RTL / text-expansion / motion entries) or a part note. `paint-census.json`: `radio-control` set/grid 36 → 30 (54 → 45 assignments, the dropped error ring) and `radio-row` grid 21 → 18. Nothing else moved.
+
+**Mutations, committed first, each failing by name.**
+- `radio-control` with `unchecked.border.error` restored → `#1698 radio-control has NO per-option error …` (plus the structural-validity arms, since nothing supplies `error` any more).
+- `radio-control` back to its full pre-#1698 shape (the `error` state, the state-axis value, both `*.border.error` keys) → `#1698 radio-control has NO per-option error …` and `#1348 radio-control carries the 30 …`. Nothing else fails, so the old shape is still a valid def and only the decision's pins catch it.
+- The same full pre-#1698 shape in the plugin suite (`test-write-components.ts`, the built set read back off the shim) → `#1698 radio-control builds no per-option error — no \`error\` member and no danger ring on any option`, plus the member-count pins (36/30). That arm replaced the #1348 arm that asserted the danger rim on radio's ring.
+- `radio-row` with `error` restored to `states` → `#1698 radio-row declares no error state …`.
+- `radio-group` `name` back to `required: false` → `#1698 radio-group's name prop is required …`.
+
+**Traps for whoever re-verifies.** Every member digest of these six moved, and only `radio-control`'s count did. A `codeOnly` or part-note edit moves a def's digest (the `planStamp` over-sensitivity `version.ts` documents), so diff the plans before reading the move as a layout or paint change. Also, `motion` is shipped prose (it is in the bundle, unlike `notes` / `codeOnly`), so it passes the voice and US-English gates and names no Prism 2.
+
+---
+
+## (2026-09-27) — Spinner: its KB brief carried forward to the def standard
+
+**STATUS: PR open from `lane/spinner-brief-carryforward-b`, labeled DO NOT MERGE.** `components/spinner.ts`, `components/button.ts` and `components/icon-button.ts` (`accessibility.aria`, and icon-button's spinner part note), `test.ts`, `version.ts`, the accepted baselines (`schema/component-surface.json`, `schema/token-contract.json` by its engine stamp), and `out/**` by the version stamp. **ENGINE 0.176.0 → 0.177.0** (the orchestrator renumbers if another lane lands first). **CONTRACT stands at 13.1.0**: no token name moves.
+
+**What the def carries now, against `components/spinner.md`, to the `textarea.ts` / `button.ts` standard.** The no-value contract and the polite status in `accessibility.aria`; the pending-host focus rule (`aria-disabled`, not `disabled`, USWDS) in `accessibility.focus`; the fixed arc (`disableShrink` by construction), RTL force-clockwise and the anti-flash figures (about 200–500ms delay, about 500ms minimum display, the host's) in `anatomy.codeOnly`; the §7 label rules in `content.labelPattern` and `docs.contentGuidelines`; the Material 3 time bands in `ai.whenToUse` / `avoidWhen`; `inline-loading` / `loading` / `spin` in `aliases` and `triggerKeywords`; `toast` in `composition.planned`; the brief's three contested points, three unverified points (the brief's two plus the def's own 1.4.11 entry) and five §13 field points in `notes`.
+
+**The owner's decisions of 2026-09-27, as applied.**
+- *Default announcement.* `label` defaults to "Loading", the `role="status"` wrapper's name. A host that announces its own busy state opts out with `aria-hidden="true"`. Button and IconButton did not say so: both said the spinner is "invisible to assistive tech", which was true only while the spinner was hidden by default. Each now says to set `aria-hidden="true"` on the embedded spinner, in `accessibility.aria` (and icon-button's spinner part note). Neither field is in the plan, so neither def's surface moved.
+- *Enter fade* on `motion.duration.fast`. `instant` (50ms) is shorter but is three frames at 60Hz and reads as a cut, so `fast` is the shortest role that reads as a fade. Under reduced motion it runs `motion.duration-reduced.fast`, which the ramp keeps at 100ms at the standard tempo. No new token.
+- *Deferred:* a visible label / `labelPosition`, `staticColor`, the overlay / mask, a `spinning` prop. *Declined:* a success / error end state. Each is a `notes.contested` entry with the brief's alternative.
+
+**Two judgment calls, recorded in the def.**
+- `category` moves `feedback` → `foundations`, to brief §15. Measured first: nothing reads the field beyond `validateComponentDef`'s required check. No emitter, plan or gate reads it, and the Figma page comes from the plugin's file taxonomy, keyed on the id.
+- `circular-progress` / `progress-circle` are not aliases. They are MUI's and Spectrum's names for the fold the practice rejects, and this repo's circular progress on record (`reference/Prism2/component-specs/circular-progress-indicator.json`) is determinate and feeds the planned Progress. Recorded as a contested entry.
+
+**What moved on the projected surface.** Only the four `spinner/<size>` members, and only their `codeOnly` list (diffed plan against plan: `.codeOnly[3..7]` and nothing else).
+
+**Mutations, each failing by name (committed before each, restored from HEAD):**
+- `label` default removed → `spinner 2026-09-27: the label defaults to "Loading" on the role="status" wrapper, …`.
+- `motion.enter` back to `none` → `spinner 2026-09-27: motion.enter is a fade on the existing motion.duration.fast, …`.
+- Button's `aria-hidden` sentence removed → `spinner 2026-09-27: button's accessibility.aria hides its embedded spinner …`.
+- The `never role="progressbar"` clause removed from `accessibility.aria` → `spinner 2026-09-27: accessibility.aria states the polite status, the host opt-out, and the no-value contract …`.
+- `staticColor`'s deferral mark removed → `spinner 2026-09-27: each deferred item is a contested entry marked deferred by owner … — missing: staticColor`.
+- A `codeOnly` entry edited without an accept → `lint-component-surface.ts`: `surface/spinner: plan digest …, baseline … — the same member COUNT, projecting different plans`.
+
+**Recorded rather than changed.**
+- `status: 'draft'` vs the brief's `stable`: #1700's convention, as #1702 left it.
+- `motion.exit` stays `none`. The brief fades both ways (§8); the owner's decision named the enter fade only.
+- The #1670 test's "aria-hidden by default" title was false after the decision. The assertion now checks the rotation rule only, and the new block asserts the announcement.
+
+**Traps for whoever re-verifies.**
+- Text Field and Switch Row also swap in a spinner while pending and set `aria-busy`, and neither `accessibility.aria` says to hide it. Text Field names no live region of its own, so its spinner's default "Loading" may be the only announcement it gets. Whether those hosts hide it is held for the owner, not changed here (neither projects a pending spinner in Figma yet).
+- `planStamp` hashes `codeOnly`, so any edit to a spinner `codeOnly` entry moves all four members on `lint-component-surface.ts`.
+
+---
+
+## (2026-09-27) — read-back: the saved brand's declared modes against the file's modes (#1662 follow-up)
+
+**STATUS: PR open from `lane/readback-declared-modes`, labeled DO NOT MERGE.** Engine (`read-back.ts`) + plugin (`seed-modes.ts`, `main.ts` `seedFromFile`). **ENGINE 0.176.0 → 0.177.0** (MINOR — the seed pill's verdict changes). CONTRACT stands; `out/**` restamps the generator version and nothing else. Owner decision 2026-09-27: yes, do it — the question #1662's net left held.
+
+**The gap.** #1662 made a single-mode file pass `modesDistinct`, and stated its limit: `verifyReadback` saw only the file, so a light/dark brand whose `dark` never landed (`addMode` refused on a plan tier's mode cap) read "contract holds ✓" with one mode. The declared set is a brand fact, and the brand is in the file (#131, `prism3/brandInput`).
+
+**The shape.** `verifyReadback(snap, declared)` — `declared` is **required**, `{ modes }` or `{ skipped: <reason> }`, so no caller skips the comparison by omission. The result is a tri-state `declaredModes` field **beside** `checks`, not inside it: a `checks` entry is a boolean, and a boolean cannot say "not checked". A missing declared mode fails `ok` and is named; an extra mode in the file is reported and never failed (it may be a designer's own); a skip carries its reason. The pure function still reads nothing from the file.
+
+**Where the declared set comes from.** `declaredModesOf(figma.root)` in `apps/plugin/src/seed-modes.ts` restores the persisted `BrandInput` and takes `brandTheme(input).modes` — the list `emit-figma-color.ts` iterates to name the `color` collection's modes. Re-deriving from `input.modes ?? ALL_MODES` plus `customModes` would restate the default set and the custom-mode append, and could drift from what Apply writes. Cost: one `brandTheme` at boot, ~13 ms for aurora in Node. Three skip reasons, each its own string, because a designer acts on each differently: no saved brand, a blob this build refuses (#480), a brand that no longer resolves.
+
+**The net's correction: a second check, on the file's own record of what the last apply planned.** An independent review, run twice, found that the case this entry opens with could not reach the brand comparison.
+- **Why the brand comparison misses it.** `write-figma.ts` `reconcileModes` calls `addMode` with no catch, so a capped `addMode` THROWS. `apply-theme.ts` persists the brand only after every executor returns (#131's deliberate "only after a real materialisation"). A capped apply therefore aborts with the PREVIOUS brand still stored, and against it the file reads a match. The lane's plugin test had persisted the four-mode brand straight into shared-data, a state no Apply produces.
+- **Why the first fix also missed it.** The net's first fix recorded the planned modes on the `color` collection only. The second review found that `apply-theme.ts` runs the FLOAT pass before color, and aurora's `layout` plans six breakpoints against color's four. Any cap below six is refused on `layout`, and color is never touched.
+- **The fix.** `reconcileModes`, the one function every executor and the MCP steps reach their modes through, stamps each collection's planned mode names on that collection (`prism3/modes:planned`, beside #1581's `modes:owned`) BEFORE its first `addMode`. `read-figma` carries every readable record as `snap.modesPlanned`. `verifyReadback` returns a tri-state `plannedModes`, a sibling of `declaredModes`: `fail` names each collection and its missing modes and fails `ok`; `none` means no record, from a file last written before this build. The brand comparison stays as the lane built it; it catches a mode removed by hand, and the MCP `runPersist` step run after a failed color step.
+- **Tests.** The new `test-readback.ts` block runs the capped apply in Apply's own order with a shim that stamps shared data and refuses modes past a cap:
+  - (A) a cap of four refuses `layout` in the float pass. The brand alone reads a match; `plannedModes` fails naming `layout` `xl/2xl`.
+  - (B) a cap of one refuses inside color, and the check names `color` `dark/hc-light/hc-dark`.
+  - (C) a clean apply passes; an unstamped shim reads `none`.
+- **Legacy CLI path.** `materialise-to-figma.ts` calls `addMode` directly and writes no record, so a capped CLI paste reads `none` there.
+- **Prune keeps the record honest (third review).** The prune plan is built from the knobs, which need not have been applied, so it can remove a mode the last apply planned. `applyPrunePlan` now drops each removed mode's name from that collection's record, and never writes a record onto a collection that had none; the `test-prune.ts` arm checks both. A mode deleted or renamed by hand still reads as missing, and the copy says only what the check knows: `layout is missing xl/2xl, planned by the last apply`.
+
+**Copy.** New pill text is appended to the existing detail line after ` · ` (the planned-modes note reads `layout is missing xl/2xl, planned by the last apply` — it states what the check knows, not why: an aborted apply and a mode deleted by hand read the same); the strings are in the PR under "Held for owner — copy". No studio change: the pill already renders the plugin's summary, and a failed comparison sets `ok: false`, which styles it `.bad` like any contract failure.
+
+**Tests (as the lane built them).** `test.ts` (#1662 block, literal expectations): declared light/dark over a light file fails naming `["dark"]` with every other check still passing; declared light passes; `{ skipped }` reports skipped with the reason; an extra `brand-x` is reported, not failed. `apps/plugin/test-readback.ts`: the real executor writes a light-only aurora file, the full aurora brand is persisted into a shared-data shim, and `declaredModesOf` + `seedSummary` produce the exact pill strings — missing `dark/hc-light/hc-dark`, match, extra `promo`, no brand, unreadable blob. **Mutations, by name:** the fail branch replaced with pass → `❌ read-back declared modes: declared light/dark, file holds light → FAILS naming dark`; a skip turned into a pass → `❌ read-back declared modes: no brand → SKIPPED with the reason stated, not passed`; `declaredModesOf` always skipping → four `✗ declared modes: …` arms in `test-readback.ts`.
+
+**Known limit.** The one line in `main.ts` that passes `declaredModesOf(figma.root)` is not driven by a test: the suites that import `main.ts` (`test-agent-link.ts`, `test-agent-bridge.ts`) run on a host with no color variables, so `seedFromFile` returns before verifying. Replacing that argument with a constant skip would pass every gate. The pill-text and resolution logic sit in `seed-modes.ts` so everything but that argument is covered.
+
+**Trap for re-verification.** The comparison is by mode NAME. It holds because the emitter names each `color` mode after the brand's mode; a designer renaming a mode in Figma now reads as one missing mode plus one extra, which is the correct report.
+
+---
+
+## (2026-09-27) — Component alignment: the button and icon-button families (#1697)
+
+**STATUS: PR open from `lane/align-buttons`, labeled DO NOT MERGE.** `components/button.ts`, `components/icon-button.ts`, `test.ts`, `version.ts`, the two accepted baselines (`schema/component-surface.json`, `schema/paint-census.json`), and `out/**` by the version stamp. **ENGINE 0.174.0 → 0.175.0** (the orchestrator renumbers if another alignment lane lands first). **CONTRACT stands at 13.1.0**: no token name moves.
+
+**What moved on the projected surface, measured by diffing every member's plan against `origin/main`:**
+- Icon-button, all three siblings: 6 outline-disabled members per sibling (and their inverse twins) change their stroke from `color/disabled/border` to `color/disabled/icon`; 36 pending members per sibling swap `icon` for `spinner/small|medium|large`; every member carries the revised `codeOnly` list. Nothing else.
+- Button, all three siblings: every member's `codeOnly` list grows by the four brief §9/§11 rules. Nothing else, so the part-note voice fixes do not reach the plan.
+
+**The four owner-delegated decisions, as applied.**
+1. *Icon-button's disabled edge* binds the disabled icon ink, as #1349 did for Button. The old role measured 1.48–1.80:1 against the page. The new one clears 3:1 in every example brand and mode.
+2. *Distinguishable siblings.* `makeButton` / `makeIconButton` take a per-sibling block (`triggerKeywords`, an avoid-when suffix naming the better-fitting sibling, `generationPriority`, a `docs.do` tail). Destructive carries brief §10's `danger` / `destructive` aliases and §5's pairing rule. Neutral no longer advertises "delete" or "primary action". Priorities: primary 1, neutral 2, destructive 2 (button) / 3 (icon-button). The brief sets no priority, so these numbers are a judgment call, flagged in the PR.
+3. *Icon-button's pending state* projects the real spinner. The old codeOnly ceiling argued that an overlay replacing the only part had no `overlaysWhenAbsent` floor. The schema needs a fallback only when every `replaces` target is optional, and `icon` is required, so none is declared.
+4. *Restated API.* Icon-button declares `onClick` and `type` (default `button`, the submit trap), because `inherits` has no reader.
+
+**The factory guard had to change shape, not loosen.** `test.ts`'s #1223/#1225 identity arms compared whole `ai` / `docs` / `composition` blocks. They now mask only the per-sibling keys (`sharedPart`) and still compare everything else byte for byte. Dropping the three fields whole would have let `docs.usage` or `composesWith` drift between siblings unseen. The button arm also gained `ai`, which it never compared before.
+
+**#867, one instance retired.** Icon-button's `pending — the SPINNER…` codeOnly entry led with a state name, so `admits()` licensed dropping `pending` from the axis. The entry is gone, and `test.ts` now asserts that the same mutation is refused. #867 itself (the leading-word rule) is untouched. The new codeOnly entries on both defs avoid leading with an axis or state name for the same reason.
+
+**Mutations, each failing by name (committed before each, restored from HEAD):**
+- Icon-button `disabled.border` back to `color.disabled.border` → `#1697 disabled edge: icon-button <brand>/<mode> border … clears 3:1 against the page (ratio 1.48…)` ×24, plus the equality pin.
+- Neutral's `triggerKeywords` copied from primary → `#1697 sibling triggerKeywords differ: button vs button-neutral` and `#1697 button-neutral advertises neither "delete" nor "primary action"`.
+- Icon-button's `spinner` part removed → `#1697 icon-button: all 36 pending members swap the icon for spinner/* …` on each sibling.
+- Icon-button's restated `type` removed → `#1697 icon-button restates onClick and type …` on each sibling.
+
+**Recorded rather than changed.**
+- `status: 'draft'` vs the brief's `stable`: the schema-wide convention is #1700's, not this lane's.
+- `motion.reduceMotion`'s ~100–150ms is now stated as a target with no bound motion token, and listed in `notes.unverified` on both defs. Binding a transition token would be a new token decision.
+- 2.5.5 is stated as intent. `lint-hit-target.ts` gates the 44px floor at the default size on comfortable and spacious densities, with the small size and compact density as named exceptions.
+
+**Traps for whoever re-verifies.**
+- `planStamp` hashes the whole plan, `codeOnly` included, so any codeOnly edit moves every member of a def on `lint-component-surface.ts`. Diff the plans before reading a whole-family move as a paint change.
+- The icon-button spinner rung is the icon's 1:1 rung (medium → `spinner/medium`), one member larger than a medium Button's (`spinner/small`, #1350). The test writes the px ladder literally rather than reading it from the def.
 
 ---
 

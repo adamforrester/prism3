@@ -125,7 +125,25 @@ const intentTokens = (family: IntentFamily): Record<string, string> => ({
  * disabled, focus, accessibility — is authored ONCE here and shared verbatim. The three exports at the
  * foot of the file are its outputs, not hand-maintained copies (docs/34 DRY), and `test.ts` pins that.
  */
-const makeButton = (id: string, name: string, summary: string, description: string, family: IntentFamily): ComponentDef => ({
+/**
+ * What each sibling says for ITSELF (#1697). Before this the factory shared `ai` and `docs` verbatim, so an
+ * agent choosing between the three read the same trigger keywords, the same avoid-when and the same
+ * priority on each, and the neutral button advertised "delete" and "primary action". These are the
+ * selection fields, and selection is the one question the three answer differently. The copy is carried
+ * from the brief: §10's `danger` / `destructive` aliases and §5's destructive-pairing rule for the
+ * destructive sibling. `test.ts` pins that the siblings' `triggerKeywords` differ, and that everything else
+ * the factory shares stays byte-identical.
+ */
+type ButtonSibling = {
+  triggerKeywords: string[];
+  /** Appended to the shared avoid-when: the sibling that fits better, named. */
+  avoidWhen: string;
+  generationPriority: number;
+  /** Appended to the shared `docs.do`. */
+  do: string[];
+};
+
+const makeButton = (id: string, name: string, summary: string, description: string, family: IntentFamily, sibling: ButtonSibling): ComponentDef => ({
   id,
   name,
   aliases: ['btn', 'cta'],
@@ -141,7 +159,10 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // that means nothing to a designer. The React `children` idiom is a code-side wrapper concern;
     // the def's declared API names the slot for what it IS — the label. LOWERCASE per #1333: every
     // Figma TEXT property name is lowercase, matching the already-lowercase swap and variant names.
-    { name: 'label', type: 'node (label)', required: true, description: 'Visible label; verb-first, sentence case, ≤3 words. (Not required for the icon-only case — that is a distinct icon-button.)' },
+    // #1697 — the description said the label was "not required for the icon-only case" beside
+    // `required: true`. The icon-only case is a different component (icon-button), so on THIS def the
+    // label is always required, and the prose now says so rather than contradicting the flag beside it.
+    { name: 'label', type: 'node (label)', required: true, description: 'Visible label; verb-first, sentence case, ≤3 words. Always required here — an icon-only control is the separate icon-button, which requires an accessible name instead.' },
     { name: 'onClick', type: 'function', required: false, description: 'Action handler. Suppressed while isPending or isInactive.' },
     // #1223 — no `intent` prop. Intent is now the COMPONENT (Button = primary; Destructive Button;
     // Neutral Button), not a prop on one component. EMPHASIS IS STILL THE APPEARANCE AXIS: a form with
@@ -153,11 +174,14 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     { name: 'type', type: "enum: 'button' | 'submit' | 'reset'", values: ['button', 'submit', 'reset'], default: 'button', required: false, description: "Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly." },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over `loading`.' },
     { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Focusable disabled — visually muted, retains tab order, surfaces the blockage reason on focus. Use for a control blocked by satisfiable app state (e.g. submit on an incomplete form).' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. RESERVED for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked.' },
     { name: 'leadingVisual', type: 'slot', required: false, description: 'Icon / avatar / counter / spinner before the label.' },
     { name: 'trailingVisual', type: 'slot', required: false, description: 'Icon / caret / indicator after the label.' },
     { name: 'href', type: 'string', required: false, description: 'Discouraged — prefer link-button. If set, the button renders an <a>, which drops type and disabled semantics.' },
-    { name: 'aria-label', type: 'string', required: false, description: 'Accessible name; only needed when there is no visible label. Must be a superset of any visible text (WCAG 2.5.3).' },
+    // #1697 — the old description ("only needed when there is no visible label") assumed a case this def
+    // cannot reach: `label` is required, so every Button has visible text. What `aria-label` does here is
+    // EXTEND that text, and 2.5.3 is the constraint on how.
+    { name: 'aria-label', type: 'string', required: false, description: 'Extends the visible label with context it does not carry ("Delete invoice 1042" on a "Delete" button). Start it with the visible text, so a voice-control user who speaks the label still activates the control (WCAG 2.5.3 Label in Name).' },
   ],
 
   states: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'inactive', 'disabled'],
@@ -345,7 +369,8 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // 3.16:1, harbor 3.32:1 (reduced, `disabledMin` floor 3), HC modes ≥4.5:1 — clears 3:1 in every mode by
     // construction (`disabled.icon`'s own `min` is ≥3, so nothing here can dip below the graphical-object bar).
     // The `color.disabled.border` ROLE is unchanged and still bound by the other bordered controls
-    // (icon-button, text-field, select, the *-control trio), so no token NAME moves and CONTRACT holds.
+    // (text-field, select, the *-control trio), so no token NAME moves and CONTRACT holds. Icon-button
+    // took the same rebind in #1697 (it painted 1.48–1.80:1 against the page on the old role).
     // `test.ts` pins the equality BY NAME (border role === icon role, ≠ the old `color.disabled.border`)
     // and re-measures the resolved ratio ≥3 across the corpus, so a revert to the darker binding fails
     // a named assertion rather than shipping the heavier edge again (docs/34).
@@ -414,7 +439,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       // def to fix — which is exactly what `swap` says.
       leadingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / avatar / counter / spinner before the label.' },
       label: { kind: 'text', optional: false, type: 'size.{size}.type', note: 'Its own node so truncation, wrap and line-height are controllable independently of the row.' },
-      trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / caret / indicator after the label. NOT split into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own slot — is already carried by leadingVisual + isPending.' },
+      trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / caret / indicator after the label. Not split into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own slot — is already carried by leadingVisual + isPending.' },
       spinner: {
         kind: 'overlay',
         // THE SPINNER COMPONENT (#1670), swapped in at the member on the slot's own icon rung (a medium
@@ -429,7 +454,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
         overlaysWhenAbsent: 'label',
         when: 'pending',
         size: 'size.{size}.icon',
-        note: 'Takes a visual cell when there is one (Primer: "the spinner replaces only that visual slot, and the button label remains visible") — width identical, because the cell was already the icon\'s size. With NO visual cell at all there is nothing to take, so it goes out of flow, centered on the label, and the label holds the width open at zero opacity (React Aria). GENERALIZED FROM "the leading visual" TO "a visual cell" BY #848, and the narrow reading was a real defect rather than a simplification: `replaces` named only `leadingVisual`, so `leading=false, trailing=true` — which HAS a visual cell — fell through to the label overlay and rendered as spinner + trailing visual with the label at zero opacity, i.e. two icons and no text. Found in a live Figma paste; every gate was green (see #848 and docs/34 shape 16). The older note before that ruled out the label\'s position on the grounds that replacing a centered label collapses the width, which conflated REPLACE with REMOVE: removing the label collapses the width, overlaying it does not, and that conflation ruled out the correct fix for the label-only case for as long as it stood (#612).',
+        note: 'Takes a visual cell when there is one (Primer: "the spinner replaces only that visual slot, and the button label remains visible") — width identical, because the cell was already the icon\'s size. With no visual cell at all there is nothing to take, so it goes out of flow, centered on the label, and the label holds the width open at zero opacity (React Aria). Generalized from "the leading visual" to "a visual cell" by #848, and the narrow reading was a real defect rather than a simplification: `replaces` named only `leadingVisual`, so `leading=false, trailing=true` — which has a visual cell — fell through to the label overlay and rendered as spinner + trailing visual with the label at zero opacity, i.e. two icons and no text. Found in a live Figma paste; every gate was green (see #848 and docs/34 shape 16). The older note before that ruled out the label\'s position on the grounds that replacing a centered label collapses the width, which conflated replacing with removing: removing the label collapses the width, overlaying it does not, and that conflation ruled out the correct fix for the label-only case for as long as it stood (#612).',
       },
       focusRing: {
         kind: 'absolute',
@@ -451,7 +476,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
         // Naming the variant is still #681 — the def CHOOSES rather than inheriting the ring set's first
         // child (creation-order, #656's error one layer out); `follow` only makes the choice per member.
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['surface'] },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component. Takes no cell in the row, so no geometry moves, and has its OWN stroke — which is what dissolves the collision rather than trading a loss: a ring drawn on the target would compete with `appearance=outline`\'s border for the single stroke a Figma node has, at three different palette steps (550 ring / 500 border / 550 rest fill). Shared rather than authored per host because the ring is nobody\'s component — `focus.ring.*` and `color.border.focus` are top-level families and `focus.ring.offset-field` already emits separately.',
+        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component. Takes no cell in the row, so no geometry moves, and has its own stroke — which is what dissolves the collision rather than trading a loss: a ring drawn on the target would compete with `appearance=outline`\'s border for the single stroke a Figma node has, at three different palette steps (550 ring / 500 border / 550 rest fill). Shared rather than authored per host because the ring is nobody\'s component — `focus.ring.*` and `color.border.focus` are top-level families and `focus.ring.offset-field` already emits separately.',
       },
     },
     derived: {
@@ -463,10 +488,17 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     codeOnly: [
       'touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame.',
       'focus-ring-offset — the ring GEOMETRY now projects (an absolute sibling nesting the shared `focus-ring`), but its position is FROZEN at paste: Figma\'s x/y accept no variable binding, so the payload resolves `focus.ring.offset` AND `focus.ring.width` to numbers, sums them, and writes the result (#801 — the ring\'s stroke is drawn INSIDE its own bounds, so the gap the brand asked for has to be widened by the stroke that eats it). Two names freeze exactly as one did. Every bound paint re-themes when a brand changes; an already-pasted ring does not move. AND A REBUILD DOES NOT MOVE IT EITHER, which is the half worth writing down: the executor finds the set by name on the current page and skips each member by name, reporting `✓ already built` without writing any geometry — so to pick up a corrected ring position you must DELETE the existing component set, or build onto a fresh page. This is not specific to the ring; it is true of any geometry, paint or constraint change to an already-pasted set, and it is tracked as #827 because name-based idempotence cannot tell "already built correctly" from "built by an older engine". The `:focus-visible` CONDITION remains unprojectable — Figma carries the ring as a variant coordinate a designer selects, not as a state a pointer triggers.',
-      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. `focus-ring`, `ring-width` and `ring-offset` are bound in `tokens`, and since #801 BOTH numbers reach a Figma node as this def\'s own absolute geometry: the host positions the part at -(offset + width), because the ring draws its stroke inside its own bounds and would otherwise consume the whole gap. Since #1266 the width reaches the RING\'s node too, as its bound `strokeWeight` — so the compensation and the stroke it compensates for are finally the same number, which for three releases they were not. So this def verifies that a ring is nominated and where it sits, including the compensation that makes "where" visible, and nothing more. Sharing the ring is still the right call — the ring is one shared thing (`focus.ring.*` and `color.border.focus` are top-level families) and authoring it N ways in N hosts would be worse. But the UNGATED PART IS NOT A CONSEQUENCE OF SHARING IT, which is what this entry once claimed: it is projector and schema gaps, neither of them a trade anybody made. ALL THREE are now CLOSED, and what took the third one\'s place is smaller than the third one was. PAINT (closed #758 → #784): `paintOf` once keyed every lookup as `{intent}.{appearance}.{slot}`, so a def whose axes are surface/tone resolved nothing; #758 replaced that with each def\'s own `paintKeys` and #784 corrected the ring\'s keys to the slot vocabulary the projector dispatches. STRUCTURE (closed #795): this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size and `planComponentName` always writes a `size=` coordinate the ring has no axis for, so a ring member could never match the coordinate this def nests by — #795 deleted the axis list and made `size=` conditional on the def declaring `size`, and `focus-ring` now projects two members named exactly `surface=default` / `surface=inverse`, which is what this def\'s `nesting: { variant: { surface: \'default\' }, follow: [\'surface\'] }` asks for (re-verified against `nestVariantMatch`). STROKE WIDTH (closed #1266): `PartDef` gained `strokeWidth`, `focus-ring`\'s `ring` part binds it, and every projected member carries a bound `strokeWeight`. Before it, both executors fell through to `if (!node.strokeWeight) … = 1` and the ring pasted at 1px in every brand — half its declared thickness, and 3px of visible gap where 2 was designed, because the compensation above had already assumed 2. What is LEFT is one keyword: `PartDef` has no field for a stroke\'s STYLE, and cannot usefully have one, because Figma expresses `solid`/`dashed` as a `dashPattern` of pixel runs rather than as a keyword — so `focus.ring.style` resolves against every brand and has nowhere to bind. A schema decision under #740. Read the remaining gap as "the ring pastes without its dash style", not as "the ring pastes without its stroke".',
+      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. `focus-ring`, `ring-width` and `ring-offset` are bound in `tokens`, and since #801 BOTH numbers reach a Figma node as this def\'s own absolute geometry: the host positions the part at -(offset + width), because the ring draws its stroke inside its own bounds and would otherwise consume the whole gap. Since #1266 the width reaches the RING\'s node too, as its bound `strokeWeight` — so the compensation and the stroke it compensates for are finally the same number, which for three releases they were not. So this def verifies that a ring is nominated and where it sits, including the compensation that makes "where" visible, and nothing more. Sharing the ring is still the right call — the ring is one shared thing (`focus.ring.*` and `color.border.focus` are top-level families) and authoring it N ways in N hosts would be worse. But the UNGATED PART IS NOT A CONSEQUENCE OF SHARING IT, which is what this entry once claimed: it is projector and schema gaps, neither of them a trade anybody made. ALL THREE are now CLOSED, and what took the third one\'s place is smaller than the third one was. PAINT (closed #758 → #784): `paintOf` once keyed every lookup as `{intent}.{appearance}.{slot}`, so a def whose axes are surface/tone resolved nothing; #758 replaced that with each def\'s own `paintKeys` and #784 corrected the ring\'s keys to the slot vocabulary the projector dispatches. STRUCTURE (closed #795): this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size and `planComponentName` always writes a `size=` coordinate the ring has no axis for, so a ring member could never match the coordinate this def nests by — #795 deleted the axis list and made `size=` conditional on the def declaring `size`, and `focus-ring` now projects two members named exactly `surface=default` / `surface=inverse`, which is what this def\'s `nesting: { variant: { surface: \'default\' }, follow: [\'surface\'] }` asks for (re-verified against `nestVariantMatch`). STROKE WIDTH (closed #1266): `PartDef` gained `strokeWidth`, `focus-ring`\'s `ring` part binds it, and every projected member carries a bound `strokeWeight`. Before it, both executors fell through to `if (!node.strokeWeight) … = 1` and the ring pasted at 1px in every brand — half its declared thickness, and 3px of visible gap where 2 was designed, because the compensation above had already assumed 2. What is LEFT is one keyword: `PartDef` has no field for a stroke\'s style, and cannot usefully have one, because Figma expresses `solid`/`dashed` as a `dashPattern` of pixel runs rather than as a keyword — so `focus.ring.style` resolves against every brand and has nowhere to bind. A schema decision under #740. Read the remaining gap as "the ring pastes without its dash style", not as "the ring pastes without its stroke".',
       'min-width derivation — a literal per size at build (#1667): height × multiplier, rounded up to 8px, from baseline-density heights. Frozen, not live; a per-mode density keeps the baseline floor.',
       'Locked to edges (#1667) — in code, padding plus absolutely positioned icons: the button keeps `inline-size: auto` above its `min-inline-size` floor, each icon side pads by `calc(padding-x-visual + icon + gap)`, and the icons sit `position: absolute` at `padding-x-visual` from their edge, vertically centered, so the label centers in the space beside them. Figma holds the same shape with the reserve and the inset as literal px per size (its padding binds one variable, not a sum), so a brand change reaches them only on a rebuild, as with the floor.',
       'width (auto | full) — declared as a variant axis but deliberately NOT projected into Figma (#487 §4). A designer resizes an auto-layout frame; a variant axis for it doubles the whole set to buy nothing a drag does not already do.',
+      // #1697 — brief §9 and §11, carried as code-tier rules. None of the four LEADS with an axis or state
+      // name: `admits()` reads the first word as an admission that the name is unprojected (#867), so a
+      // rule that opened with `pending` or `size` would license dropping it from the Figma projection.
+      'Label overflow (brief §9) — the label wraps to a second line rather than truncating, since an ellipsis hides the action. The button takes no fixed English width: `min-inline-size` plus padding, so a German or Finnish label widens it. Figma holds one line of placeholder text, so neither rule projects.',
+      'RTL mirroring (brief §9) — logical properties (`padding-inline`, `margin-inline`, flex `gap`) mirror the whole row, so the leading and trailing visuals swap sides on their own. Only directional glyphs (back and forward chevrons) flip, set per icon (`autoMirror`), never a blanket `scaleX(-1)` on the slot; search, settings and media-transport glyphs stay as drawn.',
+      'Press behavior (brief §11) — built on a headless press primitive (React Aria `usePress`, Atlassian `Pressable`) that normalizes mouse, touch, keyboard and pointer, with the visual tokens owned here. No `overrides` surface into internal nodes: strict token mapping and headless composition instead.',
+      'Form integration (brief §11) — inside a `<form action>`, `useFormStatus` sets `isPending` while the action is in flight. The component forwards `ref` and spreads rest props onto the underlying element, which tooltip and popover anchoring depend on.',
       // The `modifiers` admission is GONE, with the axis it admitted (#845). Two notes on why it is not
       // simply deleted-and-forgotten. FIRST, its closing sentence had already gone stale: it said slot
       // presence "needs its own variant axis … that axis does not exist in this def yet", and `slotAxes`
@@ -574,10 +606,23 @@ const makeButton = (id: string, name: string, summary: string, description: stri
 
   accessibility: {
     role: 'button (native <button>; never div[role=button] — it inherits Space/Enter activation, focus, and HC affordances for free)',
-    wcag: ['1.4.11 Non-text Contrast (the focus ring + boundary ≥ 3:1)', '2.4.7 Focus Visible', '2.4.13 Focus Appearance', '2.5.3 Label in Name', '2.5.5 / 2.5.8 Target Size', '4.1.2 Name/Role/Value'],
+    // #1697 — every entry carries its reason, and 2.5.5 is stated as intent: `lint-hit-target.ts` gates the
+    // 44px floor at the default size on comfortable and spacious densities, and names a small button and
+    // compact density as the two exceptions, so "meets 44×44" would be a claim the engine does not make.
+    // 1.4.13 is left out on purpose: the brief lists it "only if a tooltip is attached", and this def
+    // attaches none (see `notes.evolution`).
+    wcag: [
+      '1.4.11 Non-text Contrast (the focus ring and boundary at 3:1)',
+      '2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)',
+      '2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)',
+      '2.5.3 Label in Name (an aria-label starts with the visible label text)',
+      '2.5.8 Target Size (Minimum) (24×24 — small is 36px tall, 28px at compact density)',
+      '2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); reaching 44 elsewhere is a code-side hit-area expansion)',
+      '4.1.2 Name/Role/Value (native <button>: the label is the name, the role is button, and state rides aria-disabled, aria-busy and aria-pressed)',
+    ],
     keyboard: 'Native <button>: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating "button" must be a real link.)',
-    focus: 'A :focus-visible ring (color.border.focus) with an outline-offset so a sliver of background separates ring from border — it must NOT blend into the button\'s own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is RETAINED through pending and inactive (aria-disabled, not native disabled).',
-    aria: 'State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region ("Saving…") since a spinner is invisible to assistive tech; keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable.',
+    focus: 'A :focus-visible ring (color.border.focus) with an outline-offset so a sliver of background separates ring from border — it does not blend into the button\'s own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (aria-disabled, not native disabled).',
+    aria: 'State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization (brief §9): the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip.',
   },
 
   content: {
@@ -590,22 +635,25 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   // "which intent" guidance lives in each component's own `description`; what stays here is the appearance
   // hierarchy, labels, states and surface, which apply the same to Button / Destructive / Neutral.
   docs: {
-    usage: 'Use for an immediate action in the current context — submit/save/reset a form, trigger a UI state change (open modal, toggle drawer), or fire async work. Color is the COMPONENT (Button / Button.Destructive / Button.Neutral — pick by semantics); rank actions within a view by APPEARANCE (filled > outline > text), with exactly one FILLED per view/region as the constraint.',
+    usage: 'Use for an immediate action in the current context — submit/save/reset a form, trigger a UI state change (open modal, toggle drawer), or fire async work. Color is the component (Button / Button.Destructive / Button.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > text), with exactly one filled button per view or region.',
     do: [
       'Lead with a verb, name the object ("Publish post", not "Submit")',
-      'Keep exactly one FILLED button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing',
+      'Keep exactly one filled button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing',
       'Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground',
       // THE BRAND'S BUTTON SETTINGS (#1667), stated for the agent that builds this component in code: the
       // def is brand-agnostic, so the three settings travel as brand input (`buttonIcons`,
       // `buttonMinWidthMultiplier`, `buttonContentSize`) and these lines say what each one builds.
-      'Place the icons the way the brand\'s `buttonIcons` setting says: `attached` (Attached to label, the default) keeps them beside the label with the group centered; `edges` (Locked to edges) positions them absolutely at the visual padding from each edge, pads each icon side by that padding + the icon + the gap, and centers the label in the space left, so a button with only a trailing icon has its label slightly left of center and a long label still widens the button',
+      // #1697 — split from one ~400-character line: one item per setting value.
+      'Place the icons the way the brand\'s `buttonIcons` setting says; `attached` (Attached to label, the default) keeps them beside the label with the group centered',
+      'Under `buttonIcons: edges` (Locked to edges), position each icon absolutely at the visual padding from its edge, pad that side by the padding + the icon + the gap, and center the label in the space left — a button with only a trailing icon has its label slightly left of center, and a long label still widens the button',
       'Give every size a minimum width of its height × the brand\'s `buttonMinWidthMultiplier` (2.25 by default), rounded up to a multiple of 8px — 88, 104 and 128px at heights of 36, 44 and 56px — in both icon placements, so a short label never makes a stubby button',
       'On a brand whose `buttonContentSize` is `smaller` (One step smaller), give a medium button the small size\'s label style and icon size (`type.label.sm.emphasis`, `icon.size.xs`) at the medium height and padding; small and large buttons keep their own',
       'Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant',
+      ...sibling.do,
     ],
     dont: [
       'Use a button for navigation to a URL — use a link / link-button',
-      'Stack multiple FILLED buttons competing for attention — differentiate rank by appearance, not by adding fills',
+      'Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills',
       'Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)',
       'Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual\'s place, or overlays a label held at zero opacity',
     ],
@@ -615,15 +663,19 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   ai: {
     primaryPurpose: 'Trigger an action in place.',
     whenToUse: 'The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.',
-    avoidWhen: 'The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or a segmented control, not built yet). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level).',
-    commonPartners: ['icon'],
-    triggerKeywords: ['button', 'submit', 'cta', 'confirm', 'action', 'primary action', 'save', 'delete'],
-    generationPriority: 1,
+    avoidWhen: `The target is a different location/URL → use a link (or link-button if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or a segmented control, not built yet). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
+    // #1697 — `spinner` (the pending state swaps it in, #1670) and `focus-ring` (every focus-visible member
+    // nests it) are the two components this one always builds with, beside the icon in its slots.
+    commonPartners: ['icon', 'spinner', 'focus-ring'],
+    triggerKeywords: sibling.triggerKeywords,
+    generationPriority: sibling.generationPriority,
   },
 
   composition: {
     composesWith: ['icon', 'focus-ring', 'spinner'],
-    alternativeTo: ['icon-button', 'switch-row'],
+    // #1697 — each sibling points at the icon-button of its OWN family, so the destructive button's
+    // icon-only alternative is the destructive icon-button rather than the primary one.
+    alternativeTo: [family === 'primary' ? 'icon-button' : `icon-button-${family}`, 'switch-row'],
     planned: ['tooltip', 'button-group', 'menu', 'popover', 'link', 'link-button', 'toggle-button', 'split-button', 'chip'],
     replacesPatterns: ['input[type=button|submit]', 'div[role=button]'],
   },
@@ -631,7 +683,9 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'State transitions (bg/border/shadow) run ~100–150ms via motion tokens; a subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but KEEP the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
+    // #1697 — the brief's ~100–150ms is carried as the target, not as a fact: this def binds no motion
+    // token, so "runs via motion tokens" was a claim nothing made true. Recorded in `notes.unverified`.
+    reduceMotion: 'State transitions (background, border, shadow) are meant to run ~100–150ms through the brand\'s motion tokens; this component binds none yet, so the timing is code-side. A subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
   },
 
   notes: {
@@ -639,13 +693,26 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'native disabled vs focusable isInactive — the practice defaults to isInactive for relevant-but-blocked, but focusable aria-disabled is not yet the field-wide default (per-engagement decision).',
       'a low-emphasis destructive ("quiet Delete") is expressed as the Destructive Button at appearance=text rather than a fully orthogonal emphasis×tone split — tone is the component (#1223), emphasis is the appearance axis within it.',
       'outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608: the tinted-wash variable interactive.<color>.subtle-fill, the control\'s own fill at an opacity step (#1614, #1646) / no hover fill), on the inverse band too.',
+      // #1697 — brief §15 `notes.contested`, carried with how this def resolves each.
+      'polymorphism (brief §3) — a separate link-button over a generic `as` prop, and where polymorphism is unavoidable, infer `<a>` from `href`. This def keeps `href` as a discouraged escape hatch and lists link-button as planned.',
+      'ghost vs plain (brief §3) — the brief flagged `ghost` (an intent) and `plain` (an appearance) as overlapping at the low-emphasis end. Resolved by retiring `ghost` as a color: the quiet button is Button.Neutral at appearance=text (docs/20). Icon-button reuses the word as its appearance value (#1432), where there is no text to name.',
+      'the `modifiers` axis (brief §4, §15) — the brief lists leading-visual / trailing-visual / icon-only / pending as one modifiers axis. This def omits it (#845): the two visuals are slot-presence axes, pending is a state, and icon-only is the separate icon-button.',
     ],
     evolution: [
       'RESOLVED (was the v1 HIGH finding): interaction states existed only on the solid action/danger roles, so the default (neutral) button was hover-less. The interactive color system (docs/20) gives every color — primary/neutral/destructive — the full fill+states/on-fill/border/text/overlay shape, so the matrix is now uniform and the default button has proper hover/pressed. Disabled is the cross-cutting disabled.* family, no longer scattered per-color.',
+      // #1697 — moved from `unverified`, where it sat marked RESOLVED.
+      'RESOLVED (#1260): type.label.lg now exists (18px / emphasis) and size.large.type binds it, so a large button label is one rung above medium (14 → 18) rather than reusing type.label.md.',
+      // #1697 — brief §13, the three field shifts, with where each lands here.
+      'Field shift 1 (brief §13) — off native `disabled`, toward focusable inactive. Carried as the isPending / isInactive / disabled trio; still not the field-wide default, which is why it is also contested above.',
+      'Field shift 2 (brief §13) — behavior moves into headless press primitives (Atlassian `Pressable`, React Aria `usePress`). Carried as a codeOnly rule.',
+      'Field shift 3 (brief §13) — framework-agnostic delivery (Web Components + CSS variables). The brief holds its headline example, the Polaris Web Components move, as unverified; nothing here depends on it.',
+      '1.4.13 Content on Hover or Focus is left out of `accessibility.wcag` (#1697): the brief lists it "only if a tooltip is attached", and this def attaches none — tooltip is planned, and the criterion belongs to its def.',
     ],
     unverified: [
-      'RESOLVED (#1260): type.label.lg now exists (18px / emphasis) and size.large.type binds it, so a large button label is one rung above medium (14 → 18) rather than reusing type.label.md.',
-      'FINDING (engine): the focus-ring 3:1 non-text contrast (1.4.11) is asserted here but not yet engine-verified — a follow-up contract.',
+      // #1697 — narrowed. The ring's 3:1 against the PAGE is gated (focus-ring.ts wcag, per mode, 4.5:1 in
+      // high contrast); what stays open is its contrast against the host's own edge.
+      'FINDING (engine): the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts). Its contrast against the host\'s own edge or fill is not measured — the offset is what makes it achievable, not what proves it.',
+      'motion timing — the brief\'s ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.',
     ],
   },
 });
@@ -668,22 +735,45 @@ export const button: ComponentDef = makeButton(
   'button',
   'Button',
   'Triggers an action in place, in the brand color. For navigation, use a link.',
-  'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand (primary) color, the expected look of a button. NOT navigation (use link / link-button, even when it looks like a button), NOT a persistent binary (Switch.Row), NOT one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.',
+  'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand (primary) color, the expected look of a button. Not navigation (use link / link-button, even when it looks like a button), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.',
   'primary',
+  {
+    triggerKeywords: ['button', 'submit', 'cta', 'confirm', 'action', 'primary action', 'save'],
+    avoidWhen: 'The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.',
+    generationPriority: 1,
+    do: [],
+  },
 );
 
 export const buttonDestructive: ComponentDef = makeButton(
   'button-destructive',
   'Button.Destructive',
   'Triggers a destructive action — delete, remove — in the destructive color.',
-  'In-flow trigger for a DESTRUCTIVE action — delete, remove, discard, disconnect — in the destructive color, so the consequence reads before the click. Same anatomy as Button; the color is the whole difference. Pair it with an adjacent neutral escape ("Cancel" / "Keep"), and match the verb to the consequence ("Delete", not "Confirm"). For a quiet destructive action, use appearance=text on this component.',
+  'In-flow trigger for a destructive action — delete, remove, discard, disconnect — in the destructive color, so the consequence reads before the click. Same anatomy as Button; the color is the whole difference. Pair it with an adjacent neutral escape ("Cancel" / "Keep"), and match the verb to the consequence ("Delete", not "Confirm"). For a quiet destructive action, use appearance=text on this component.',
   'destructive',
+  {
+    // Brief §10: `danger` / `destructive` are the aliases consumers reach for; both map here.
+    triggerKeywords: ['destructive button', 'danger button', 'delete button', 'danger', 'destructive', 'delete', 'remove', 'discard'],
+    avoidWhen: 'The action is not destructive → use Button, or Button.Neutral for one with no brand emphasis. Color is a weak carrier on its own, so a destructive action also names its consequence in the label.',
+    generationPriority: 2,
+    // Brief §5, the destructive-pairing rule.
+    do: [
+      'Place it beside a neutral escape ("Cancel" / "Keep"), never alone; on a delete confirmation the safe choice is often the filled button and the destructive action sits at a lower appearance beside it',
+    ],
+  },
 );
 
 export const buttonNeutral: ComponentDef = makeButton(
   'button-neutral',
   'Button.Neutral',
   'Triggers an action with no brand emphasis — toolbars, dense rows.',
-  'In-flow trigger for an action that carries NO brand weight — a toolbar control, a dense table row, a low-stakes secondary action — in the neutral color. Reach for it when the control genuinely has no brand emphasis to carry, not merely because it is secondary in rank (rank is the appearance axis: a secondary primary action is the Button at appearance=outline). Same anatomy as Button.',
+  'In-flow trigger for an action that carries no brand weight — a toolbar control, a dense table row, a low-stakes secondary action — in the neutral color. Reach for it when the control genuinely has no brand emphasis to carry, not merely because it is secondary in rank (rank is the appearance axis: a secondary primary action is the Button at appearance=outline). Same anatomy as Button.',
   'neutral',
+  {
+    // #1697 — no "delete" (that is Button.Destructive) and no "primary action" (that is Button).
+    triggerKeywords: ['neutral button', 'toolbar button', 'cancel button', 'low-emphasis action', 'action'],
+    avoidWhen: 'The action is the view\'s main one or carries the brand → use Button. It deletes or removes something → use Button.Destructive.',
+    generationPriority: 2,
+    do: [],
+  },
 );

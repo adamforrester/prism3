@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.175.0 — #1699: the field family and the switch align to their KB briefs (owner-delegated decisions).
+ * 0.179.0 — #1699: the field family and the switch align to their KB briefs (owner-delegated decisions).
  * Two projected-surface moves: (1) `select` gains `read-only` and `pending` (text-field's state set);
  * `read-only` projects, so the set grows status(4) × state(5) = 20 → 24, and the new column binds
  * text-field's `border.secondary` boundary plus the status-led `{error,warning,success}.border.read-only`.
@@ -2937,6 +2937,58 @@
  * metadata that no projection reads: select's aliases and trigger keywords, text-field's prefix/suffix as
  * text affixes (API only), `motion` and `notes.evolution` on all six defs. MINOR by the running convention.
  * CONTRACT STANDS at 13.1.0: every binding is an existing role, so no guaranteed token name moves.
+ *
+ * 0.178.0 — #1698: the checkbox and radio families aligned to their briefs. The projected surface moves in
+ * two ways. `radio-control` drops its per-option error (owner-delegated decision 1): no `error` state, no
+ * `unchecked.border.error` / `checked.border.error`, so its set goes 36 → 30 members and `radio-row` stops
+ * declaring `error` (its code-projection grid 21 → 18). And all six defs changed `codeOnly` or a part note
+ * (the RTL / text-expansion entries; the glyph and dot notes now point at the new `motion` field), which
+ * moves the plan digest of the other five at the same member count. The rest
+ * is def metadata a consumer reads through the bundle: `motion` on all six, `radio-group`'s `name` now
+ * required (decision 2), `checkbox-row` gains the `description` prop, WCAG entries reworded as intent where
+ * the def does not meet them, group terms moved from rows to groups, `composesWith` listing only what a def
+ * nests. No emitted token moves, so `out/**` restamps only. CONTRACT STANDS at 13.1.0: a component id,
+ * prop or state is not a guaranteed token name (`token-contract --check` level `none`).
+ *
+ * 0.177.0 — the spinner carries its KB brief forward to the def standard, with the owner's decisions of
+ * 2026-09-27. Two shipped behavior changes: (1) the DEFAULT ANNOUNCEMENT — `label` defaults to "Loading" and a
+ * standalone spinner is a polite `role="status"`; a host that announces its own busy state (Button /
+ * IconButton `isPending`) opts out with `aria-hidden="true"`, which both hosts' `accessibility.aria` now state;
+ * (2) the ENTER FADE — `motion.enter` is a quick opacity fade on the existing `motion.duration.fast`, kept under
+ * reduced motion. One projected move: the four `spinner/<size>` members carry the revised `codeOnly` list (the
+ * fixed arc, RTL force-clockwise, the fade, the anti-flash figures, the announcement). No other def's plan moves
+ * (Button / IconButton change only `accessibility.aria` and a part note, neither in the plan). No token name
+ * moves, so CONTRACT STANDS at 13.1.0 (`token-contract --check` level `none`); `out/**` moves by the stamp only.
+ *
+ * 0.176.0 — #1662 follow-up (owner decision 2026-09-27): the plugin's boot read-back compares the modes the
+ * saved brand DECLARES with the modes the file's `color` collection HOLDS. `verifyReadback` takes the declared
+ * set as a required second argument (`{ modes }`, or `{ skipped: <reason> }` when the file stores no brand or
+ * the stored one cannot be read) and returns a tri-state `declaredModes` result beside `checks`: a declared
+ * mode missing from the file FAILS the verdict and is named; a mode in the file the brand does not declare is
+ * REPORTED, not failed (a designer's own mode); no saved brand SKIPS the comparison and the seed pill states
+ * why. Before this a multi-mode brand whose other modes never landed (`addMode` refused on a plan tier's mode
+ * cap) read "contract holds ✓" with one mode. PLANNED MODES (net review): a refused `addMode` throws and aborts
+ * the apply before the brand is persisted (#131 persists only on success), and the float pass runs before
+ * color, so a cap is usually refused on `layout`'s breakpoints with color untouched — the saved brand alone
+ * reads a match. `reconcileModes` therefore records each collection's planned mode names on the collection
+ * (`prism3/modes:planned`) BEFORE its first `addMode`; `read-figma` carries them as `snap.modesPlanned`, and
+ * `verifyReadback` returns a tri-state `plannedModes` (pass / fail naming collection + modes / none when no
+ * record) that also fails `ok`. A plugin behavior change (the seed pill's verdict) → MINOR. No
+ * token value or name moves — `out/**` restamps the generator version only; CONTRACT STANDS.
+ *
+ * 0.175.0 — #1697: the button and icon-button families aligned to the KB button brief. Three projected
+ * moves, all on the component surface (`out/**` moves by the version stamp only):
+ *   (1) ICON-BUTTON'S DISABLED EDGE rebinds `color.disabled.border` → `color.disabled.icon`, the rebind #1349
+ *       gave Button. The old role measured 1.48–1.80:1 against the page (fill-matched, gated `min: 0`); the
+ *       disabled icon ink clears 3:1 in every mode, so the edge now meets SC 1.4.11. Six outline-disabled
+ *       members per sibling move their stroke (and their inverse twins via the projector's rewrite).
+ *   (2) ICON-BUTTON'S PENDING MEMBERS swap in the real spinner (`spinner/small|medium|large` at the icon's
+ *       1:1 rung) in the icon's own cell, as Button's have since #1670. 36 members per sibling.
+ *   (3) Every member of all six defs carries its def's revised `codeOnly` list (brief §9/§11 rules added on
+ *       Button; the stale focus-ring and spinner-ceiling entries rewritten or retired on icon-button).
+ * Also: per-sibling `ai` (trigger keywords, avoid-when, priority) and `docs.do`, per-family
+ * `composition.alternativeTo`, restated `onClick`/`type` on icon-button, reasoned WCAG lists, and voice fixes
+ * in shipped prose. No token name moves, so CONTRACT STANDS at 13.1.0 (`token-contract --check` level `none`).
  *
  * 0.174.0 — #1685: personality-trait citations are checked against the briefs they quote. Four `why`
  * strings in `vocabulary.ts` change, and each one ships: it is the bracketed text of the note `brandTheme`
@@ -3848,7 +3900,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.175.0';
+export const ENGINE_VERSION = '0.179.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

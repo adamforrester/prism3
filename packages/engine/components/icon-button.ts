@@ -107,7 +107,21 @@ const iconButtonIntentTokens = (family: IntentFamily): Record<string, string> =>
  * disabled, accessibility — is authored ONCE here and shared verbatim. The three exports at the foot of the
  * file are its outputs, not hand-maintained copies (docs/34 DRY), and `test.ts` pins that.
  */
-const makeIconButton = (id: string, name: string, summary: string, description: string, family: IntentFamily, inheritsFrom: string): ComponentDef => ({
+/**
+ * What each sibling says for ITSELF (#1697) — the same split `makeButton` takes, for the same reason: the
+ * three shared one `ai` block, so an agent choosing between them read identical keywords and priority on
+ * each. There is no `icon-button.md` brief; the copy derives from `button.md` (§5 pairing, §10 aliases).
+ */
+type IconButtonSibling = {
+  triggerKeywords: string[];
+  /** Appended to the shared avoid-when: the sibling that fits better, named. */
+  avoidWhen: string;
+  generationPriority: number;
+  /** Appended to the shared `docs.do`. */
+  do: string[];
+};
+
+const makeIconButton = (id: string, name: string, summary: string, description: string, family: IntentFamily, inheritsFrom: string, sibling: IconButtonSibling): ComponentDef => ({
   id,
   name,
   aliases: ['icon-btn'],
@@ -123,14 +137,20 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   // Neutral IconButton), not a prop on one component.
   props: [
     { name: 'icon', type: 'slot', required: true, description: 'The single icon. Rendered aria-hidden — the IconButton owns the name.' },
-    { name: 'aria-label', type: 'string', required: true, description: 'Required accessible name (there is no visible text). A verb naming the action ("Close", "More actions"). Enforced at the TYPE LEVEL — a missing name is a compile error, not merely a runtime warning; that type-level requirement is the entire reason IconButton is a separate component.' },
-    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'ghost'", values: ['filled', 'outline', 'ghost'], default: 'ghost', required: false, description: 'Default ghost — icon-only actions usually sit in toolbars, not as filled CTAs. The tertiary appearance is `ghost` (a borderless, fill-less icon action) because an icon-only control has no text; Button keeps `text`. Emphasis is the appearance axis; the color is the COMPONENT (IconButton / IconButton.Destructive / IconButton.Neutral).' },
+    { name: 'aria-label', type: 'string', required: true, description: 'Required accessible name (there is no visible text). A verb naming the action ("Close", "More actions"). Enforced at the type level — a missing name is a compile error, not a runtime warning; that requirement is the reason IconButton is a separate component.' },
+    // #1697 — RESTATED, not inherited. `inherits` is read by nothing (see the anatomy note), so an API this
+    // def depends on and does not state is an API no reader of this def can see. `onClick` is the action;
+    // `type` carries Button's submit-trap default, which matters most here — an icon-only control inside a
+    // form (a clear-field ×, a row delete) is exactly the one nobody expects to submit it.
+    { name: 'onClick', type: 'function', required: false, description: 'Action handler. Suppressed while isPending or isInactive.' },
+    { name: 'type', type: "enum: 'button' | 'submit' | 'reset'", values: ['button', 'submit', 'reset'], default: 'button', required: false, description: "Defaults to 'button', as Button does — the platform default is 'submit', so an icon button inside a form (a clear-field ×, a row delete) would submit it. Set 'submit' explicitly." },
+    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'ghost'", values: ['filled', 'outline', 'ghost'], default: 'ghost', required: false, description: 'Default ghost — icon-only actions usually sit in toolbars, not as filled CTAs. The tertiary appearance is `ghost` (a borderless, fill-less icon action) because an icon-only control has no text; Button keeps `text`. Emphasis is the appearance axis; the color is the component (IconButton / IconButton.Destructive / IconButton.Neutral).' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Square control; height drives both dimensions.' },
-    { name: 'shape', type: "enum: 'square' | 'circular'", values: ['square', 'circular'], default: 'square', required: false, description: 'The corner silhouette — PURE GEOMETRY. `square` is the button\'s normal rounded rectangle (`radius.md`); `circular` is full-round (`radius.round`), the tap target read as a disc. NO color, state, or token difference between the two — only the corner radius — which is why it is a clean 2-value axis and not a component split (each intent, by contrast, carries a different `interactive.<family>` binding). Both stay square in dimension (height drives width); shape rounds the corners, it does not change the box.' },
-    { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the icon-button sits on, following Button 1:1. `default` for a normal page; `inverse` for a dark or brand-filled band, where the control binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon-button inherits the shared white-inverse model with the ICON as the ink: white fill + a per-family icon-ink derived to clear AA on white. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives.' },
-    { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Inherited — swap the icon for a spinner, keep focus, announce busy.' },
-    { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Inherited — focusable disabled for relevant-but-blocked actions.' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Inherited — native disabled, reserved for irrelevant controls.' },
+    { name: 'shape', type: "enum: 'square' | 'circular'", values: ['square', 'circular'], default: 'square', required: false, description: 'The corner silhouette, and geometry only. `square` is the button\'s normal rounded rectangle (`radius.md`); `circular` is full-round (`radius.round`), the tap target read as a disc. No color, state, or token difference between the two — only the corner radius — which is why it is a clean 2-value axis and not a component split (each intent, by contrast, carries a different `interactive.<family>` binding). Both stay square in dimension (height drives width); shape rounds the corners, it does not change the box.' },
+    { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the icon-button sits on, following Button 1:1. `default` for a normal page; `inverse` for a dark or brand-filled band, where the control binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon-button inherits the shared white-inverse model with the icon as the ink: white fill + a per-family icon-ink derived to clear AA on white. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives.' },
+    { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Swaps the icon for a spinner after a short delay, keeps focus (aria-disabled, not native disabled), suppresses re-fire, and announces busy through a polite live region. The square keeps its size.' },
+    { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Focusable disabled for relevant-but-blocked actions — retains tab order and surfaces the blockage reason on focus.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree.' },
   ],
 
   states: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'inactive', 'disabled'],
@@ -242,7 +262,15 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // components (that identity is why splitting the intents loses no coverage — #1225).
     'disabled.fill': 'color.disabled.fill',
     'disabled.icon': 'color.disabled.icon',
-    'disabled.border': 'color.disabled.border',
+    // THE DISABLED EDGE TRACKS THE DISABLED GLYPH (#1697), the rebind #1349 gave Button. It bound
+    // `color.disabled.border` — the muted neutral matched to `disabled.fill`, gated `min: 0` — which on the
+    // page measured 1.48–1.80:1, so a disabled outline icon-button's edge all but vanished around a glyph
+    // that clears 3:1. A border is a non-text graphical object, so its bar is SC 1.4.11's 3:1, and the role
+    // that already carries that contract against the page is the disabled icon ink two lines up. It paints
+    // only on `outline` (STRUCTURAL, no fill beneath), so the ground is `background.primary`, exactly what
+    // `disabled.icon` is gated against. `test.ts` pins the equality by name and re-measures the resolved
+    // ratio ≥3 per brand × mode for each sibling, so a revert fails a named assertion.
+    'disabled.border': 'color.disabled.icon',
   },
 
   // The STRUCTURAL layer. AUTHORED FLAT, and that is a decision rather than a shortcut: `inherits`
@@ -313,6 +341,22 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
         nesting: { kind: 'swap' },
         note: 'The single icon, and the entire content. Rendered aria-hidden — the IconButton owns the accessible name, so the glyph is decorative even though it is the only thing visible. Bound to the `icon.size.*` ladder (#324\'s 1:1 rule), so an IconButton\'s glyph matches a standalone `<Icon>` at the same size — the identity the text-bearing Button family deliberately gives up one rung of (owner-decided, #1350): a medium IconButton\'s glyph is 24 where a medium Button\'s leading visual is 20.',
       },
+      // THE PENDING SPINNER PROJECTS (#1697), as Button's has since #1677/#1670. Before this the def
+      // admitted it as a code-tier ceiling, on the reasoning that an overlay replacing the ONLY part had no
+      // floor for `overlaysWhenAbsent` — but that field is required only when EVERY `replaces` target is
+      // optional (`component-schema.ts`, the overlay checks). `icon` is required, so it is present at every
+      // coordinate, the overlay always lands in its cell, and no fallback is needed or declared. The
+      // spinner takes the icon's own cell at the icon's own rung (small → `spinner/small`, medium →
+      // `spinner/medium`, large → `spinner/large` — icon-button's 1:1 ladder), so the square does not move.
+      spinner: {
+        kind: 'overlay',
+        nests: 'spinner',
+        nesting: { kind: 'swap' },
+        replaces: ['icon'],
+        when: 'pending',
+        size: 'size.{size}.icon',
+        note: 'Takes the icon\'s own cell while pending, at the icon\'s size, so the square keeps its size. The accessible name stays on the control (aria-label), and the busy state is announced through a polite live region, with `aria-hidden="true"` on the spinner so it does not announce its own "Loading" as well.',
+      },
       focusRing: {
         kind: 'absolute',
         when: 'focus-visible',
@@ -356,7 +400,10 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       // prose from an import and is right not to try, since a check that parsed import syntax would miss
       // a builtin reached any other way. This comment observes the same rule it explains — the plugin
       // build does not minify, so a comment naming the literal would trip the check it documents.
-      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. So `focus-ring` and `ring-width` are bound in `tokens` and neither reaches a Figma node — the engine verifies that a ring is nominated, which variant, and where it sits, and nothing about its color or weight. Accepted on the same terms as Button, and for the same reason — the ring is one shared thing.',
+      // #1697 — REWRITTEN. The old entry said `ring-width` "reaches no Figma node", while the entry above
+      // it (and #801) sums the width into the ring's position, and #1266 binds it as the ring's own
+      // `strokeWeight`. The entry contradicted its neighbor and had been stale since #1266.
+      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. Both numbers reach the build: since #801 the host positions the ring at -(offset + width), and since #1266 the width is the ring\'s own bound `strokeWeight`, so the compensation and the stroke are one figure. What stays unbound is the stroke style (`focus.ring.style`), which Figma holds as a dash pattern rather than a keyword — the same remaining gap `button` records.',
       'aria-label — the REQUIRED accessible name, and the def\'s entire reason for existing (§10). A Figma component property could carry a string, but it would be a string with no relationship to anything Figma reads: no exported frame, no prototype, no handoff surface consumes it, and a TEXT property named `aria-label` sitting empty on every member would read as a name that had been provided. The requirement is a TYPE-LEVEL one in the code projection, which is where it can actually fail a build; Figma cannot hold "required" at all.',
       // The `modifiers` admission is GONE, with the axis it admitted (#845). Keeping it would have left
       // an entry admitting an axis this def no longer declares — an exemption with nothing to exempt,
@@ -364,10 +411,12 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       // as evidence the axis still exists. Deleting the axis and leaving its admission is the stale-
       // exemption shape `lint-paint.ts` checks BOTH directions for.
       //
-      // The `pending` entry below stays, and NOT because it explains this axis: it explains a spinner
-      // ceiling on a state that still ships and projects.
+      // The `pending` entry that used to sit below stayed through #845, and NOT because it explained this
+      // axis: it explained a spinner ceiling on a state that still ships and projects. #1697 retired it
+      // when the spinner began to project.
       //
-      // AND MEASURING THAT FOUND A PRE-EXISTING DEFECT, filed as #867 rather than fixed here.
+      // AND MEASURING THAT FOUND A PRE-EXISTING DEFECT, filed as #867 rather than fixed here (history —
+      // with #1697 the leading `pending` entry is gone, so this def no longer carries the instance).
       // Because `pending — the SPINNER…` LEADS with the state name, `admits()` reads it as an admission
       // that `pending` is unprojected — so dropping `pending` from this def's `stateAxis` is ALLOWED,
       // silently, where the identical mutation on `button` is refused. The entry is not an admission at
@@ -385,7 +434,12 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       // each other (the shared `disabled.*` block), which is the token tier being correct one level up.
       // There is no per-intent redundancy left to admit, so the entry retires — nothing declares `intent`.
       'inactive — a real state (isInactive), deliberately NOT a Figma variant, and the two reasons fail it independently. Its whole delta from `disabled` is behavioral (retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, surfaces the blockage reason on focus), so a variant has nothing to encode; and the emitter special-cases `state === \'disabled\'` only, so an `inactive` column would fall through to the `rest` paints and read as a normal enabled control.',
-      'pending — the SPINNER, and this is the one ceiling that is genuinely worse here than on Button. Button swaps its leading visual for a spinner and keeps the label, so the control neither grows nor loses its name. An IconButton has one cell and it is the icon, so a spinner must take the icon\'s own place — there is nothing else in the box. The def projects `state=pending` with the icon\'s slot unchanged, which means the Figma column shows a pending IconButton wearing its normal glyph: correct geometry, wrong content. Declaring an overlay would need it to replace the ONLY part, and `overlaysWhenAbsent` has no non-optional floor to fall back to that is not the part being replaced (the validator rejects naming the same part, correctly). So the pending spinner is a code-tier behavior here, admitted rather than half-projected.',
+      // #1697 — the `pending — the SPINNER…` ceiling is GONE: the spinner projects (see `parts.spinner`).
+      // Its removal also retires this def's instance of #867 — that entry LED with `pending`, so `admits()`
+      // read it as licensing `pending`'s omission from the state axis. The entries below lead with other
+      // words on purpose.
+      'Spinner delay — in code the spinner appears only after a short delay (brief §8), so a fast response does not flash one. Figma holds the swapped member alone.',
+      'RTL mirroring (button brief §9) — only a directional glyph flips under RTL (a back or forward chevron), set per icon (`autoMirror`); search, settings, close and media-transport glyphs stay as drawn. Figma draws the glyph once.',
     ],
   },
 
@@ -455,10 +509,21 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
 
   accessibility: {
     role: 'button (native <button>)',
-    wcag: ['4.1.2 Name/Role/Value (the mandatory accessible name)', '2.5.3 Label in Name', '1.4.11 Non-text Contrast (focus ring ≥ 3:1; AND the icon glyph itself ≥ 3:1 against its background)', '2.4.7 Focus Visible', '2.5.5 / 2.5.8 Target Size (icon-only buttons are the most likely to fail the 24×24 / 44×44 floor — expand the hit area beyond the optical size)'],
+    // #1697 — reasons on every entry, 2.4.13 added (Button carries it and the ring is the same one), 1.4.13
+    // scoped to a tooltip as the brief scopes it, and 2.5.5 stated as intent (see `button.ts`).
+    wcag: [
+      '4.1.2 Name/Role/Value (the mandatory accessible name)',
+      '2.5.3 Label in Name (a visible tooltip and the aria-label carry the same words)',
+      '1.4.11 Non-text Contrast (focus ring at 3:1, and the icon glyph itself at 3:1 against its background)',
+      '2.4.7 Focus Visible (a :focus-visible ring on every member, never suppressed, kept through pending and inactive)',
+      '2.4.13 Focus Appearance (AAA — the ring is offset from the edge, so a sliver of background separates it from the fill)',
+      '1.4.13 Content on Hover or Focus (only where a tooltip is attached: dismissible, hoverable and persistent)',
+      '2.5.8 Target Size (Minimum) (24×24 — the small square is 36px, 28px at compact density)',
+      '2.5.5 Target Size (Enhanced) (44×44, as intent — medium clears 44px at comfortable and spacious density and misses it at compact (36px); small clears it only at spacious (44px); icon-only controls are the likeliest to miss it, so reaching 44 elsewhere is a code-side hit-area expansion)',
+    ],
     keyboard: 'Native <button> — Enter on keydown, Space on keyup. Identical to Button.',
     focus: 'Same offset :focus-visible ring as Button; retained through pending/inactive.',
-    aria: 'aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy and keep it focusable. Do NOT put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable.',
+    aria: 'aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement). Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron).',
   },
 
   content: {
@@ -466,37 +531,63 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   },
 
   docs: {
-    usage: 'Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the COMPONENT (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by APPEARANCE (filled > outline > ghost). Always provide the accessible name; pair with a tooltip (not built yet) for the visible name on hover/focus.',
+    usage: 'Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the component (IconButton / IconButton.Destructive / IconButton.Neutral — pick by semantics); rank actions within a view by appearance (filled > outline > ghost). Always provide the accessible name; pair with a tooltip (not built yet) for the visible name on hover/focus.',
     do: [
       'Always give it an accessible name (a verb)',
       'Use recognizable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead',
       'Expand the hit area to meet target-size minimums even when the icon is visually small',
+      ...sibling.do,
     ],
     dont: [
       'Ship it without an accessible name ("button, unlabeled")',
       'Use it for an unfamiliar action a user cannot infer from the glyph — use a labeled Button',
       "Tooltip a natively-disabled icon button (the tooltip can't be reached) — use isInactive",
     ],
+    // #1697 — carried from `content.labelPattern`, which has no reader (see `ComponentDef.content`).
+    contentGuidelines: 'The accessible name is a verb naming the action ("Close", "More actions"), never the glyph\'s shape ("X", "three dots"). A tooltip, where one is attached, shows the same words as the accessible name.',
   },
 
   ai: {
     primaryPurpose: 'Trigger an action with an icon alone, no visible label.',
     whenToUse: 'A self-evident, conventional action in a space-constrained context (toolbar, table row, card header, close affordance).',
-    avoidWhen: 'The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name.',
-    commonPartners: ['icon'],
-    triggerKeywords: ['icon button', 'close button', 'more button', 'toolbar action', 'edit action', 'kebab menu'],
-    generationPriority: 2,
+    avoidWhen: `The action is not obvious from the icon (use a labeled Button) — or a visible label would fit and aid recognition. Never when you cannot supply an accessible name. ${sibling.avoidWhen}`,
+    commonPartners: ['icon', 'spinner', 'focus-ring'],
+    triggerKeywords: sibling.triggerKeywords,
+    generationPriority: sibling.generationPriority,
   },
 
   composition: {
-    composesWith: ['icon', 'focus-ring'],
-    alternativeTo: ['button'],
+    // #1697 — `spinner` joins: the pending member swaps it in. `alternativeTo` names the labeled Button of
+    // the SAME family, the one `inherits` already names.
+    composesWith: ['icon', 'focus-ring', 'spinner'],
+    alternativeTo: [inheritsFrom],
     planned: ['tooltip', 'button-group', 'menu', 'popover', 'link'],
+    replacesPatterns: ['div[role=button] wrapping an icon', 'a <button> holding only an <svg> and no accessible name'],
+  },
+
+  // #1697 — Button's reduce-motion rule (button brief §8), carried rather than inherited.
+  motion: {
+    enter: 'none (present on mount)',
+    exit: 'none',
+    reduceMotion: 'State transitions (background, border) are meant to run ~100–150ms through the brand\'s motion tokens; this component binds none yet, so the timing is code-side. Under prefers-reduced-motion, resolve scale/translate to none but keep the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
   },
 
   notes: {
     contested: [
-      'Whether IconButton is a distinct component or a mode of Button — the practice ships it distinct precisely so the accessible name is required at the type level (brief §10).',
+      'Whether IconButton is a distinct component or a mode of Button — the practice ships it distinct precisely so the accessible name is required at the type level (button brief §10).',
+      // #1697 — the assumption Button records, which holds here identically (same overlay keys).
+      'outline/ghost hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608), on the inverse band too.',
+    ],
+    evolution: [
+      'RESOLVED (#1432, owner-decided 2026-09-17): the tertiary appearance is `ghost`, not `text` — an icon-only control has no text. The paint still binds the `text`-family ink role (now its `icon` twin, #1471); only the axis value moved. Button keeps `text`.',
+      'RESOLVED (#1353, owner-decided 2026-09-10): a `shape` axis (square | circular), geometry only — the two values differ in the corner radius alone, which is why it is an axis and not a component split.',
+      'RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button\'s label does.',
+      'RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.',
+      'RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner.',
+    ],
+    unverified: [
+      'motion timing — the button brief\'s ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.',
+      'the focus ring clears 3:1 against the page in every mode (gated, focus-ring.ts); its contrast against the host\'s own edge or fill is not measured.',
     ],
   },
 });
@@ -516,22 +607,44 @@ export const iconButton: ComponentDef = makeIconButton(
   'A Button whose entire content is a single icon, with no visible text label, in the brand (primary) color. Use for space-constrained, self-evident actions (close, more, edit) in toolbars, table rows, and headers. Because there is no visible label, an accessible name is mandatory. For a destructive or a weightless icon action, use the IconButton.Destructive / IconButton.Neutral sibling components.',
   'primary',
   'button',
+  {
+    triggerKeywords: ['icon button', 'more button', 'toolbar action', 'edit action', 'kebab menu'],
+    avoidWhen: 'The action deletes or removes something → use IconButton.Destructive. It carries no brand emphasis (most toolbar and row actions, a close affordance) → use IconButton.Neutral.',
+    generationPriority: 2,
+    do: [],
+  },
 );
 
 export const iconButtonDestructive: ComponentDef = makeIconButton(
   'icon-button-destructive',
   'IconButton.Destructive',
   'Icon-only destructive action. Needs an accessible name.',
-  'An icon-only trigger for a DESTRUCTIVE action — delete, remove, discard — in the destructive color, so the consequence reads before the click. Same anatomy as IconButton; the color is the whole difference, and the accessible name is still mandatory (a bare trash glyph is not a name). For a quiet destructive icon action, use appearance=ghost on this component.',
+  'An icon-only trigger for a destructive action — delete, remove, discard — in the destructive color, so the consequence reads before the click. Same anatomy as IconButton; the color is the whole difference, and the accessible name is still mandatory (a bare trash glyph is not a name). For a quiet destructive icon action, use appearance=ghost on this component.',
   'destructive',
   'button-destructive',
+  {
+    // Button brief §10: `danger` / `destructive` are the aliases consumers reach for.
+    triggerKeywords: ['delete icon button', 'trash button', 'remove icon button', 'danger icon button', 'destructive icon button'],
+    avoidWhen: 'The action is not destructive → use IconButton, or IconButton.Neutral for one with no brand emphasis.',
+    generationPriority: 3,
+    // Button brief §5, the destructive-pairing rule, applied to a row action.
+    do: [
+      'Confirm a destructive icon action that cannot be undone — the confirmation carries a neutral escape ("Cancel" / "Keep"), since a lone trash glyph offers none',
+    ],
+  },
 );
 
 export const iconButtonNeutral: ComponentDef = makeIconButton(
   'icon-button-neutral',
   'IconButton.Neutral',
   'Icon-only action with no brand emphasis. Needs an accessible name.',
-  'An icon-only trigger that carries NO brand weight — a toolbar control, a dense table-row action, a close affordance — in the neutral color, which is where most icon-only actions sit. Reach for it when the control genuinely has no brand emphasis to carry, not merely because it is secondary in rank (rank is the appearance axis). Same anatomy as IconButton; the accessible name is still mandatory.',
+  'An icon-only trigger that carries no brand weight — a toolbar control, a dense table-row action, a close affordance — in the neutral color, which is where most icon-only actions sit. Reach for it when the control genuinely has no brand emphasis to carry, not merely because it is secondary in rank (rank is the appearance axis). Same anatomy as IconButton; the accessible name is still mandatory.',
   'neutral',
   'button-neutral',
+  {
+    triggerKeywords: ['close button', 'dismiss button', 'toolbar icon button', 'neutral icon button', 'row action'],
+    avoidWhen: 'The action carries the brand → use IconButton. It deletes or removes something → use IconButton.Destructive.',
+    generationPriority: 2,
+    do: [],
+  },
 );

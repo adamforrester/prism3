@@ -3070,7 +3070,7 @@ for (const b of brands) {
     })),
   });
 
-  const good = verifyReadback(snapFrom(plan.color.aliases));
+  const good = verifyReadback(snapFrom(plan.color.aliases), { skipped: 'not under test in this arm' });
   ok(good.ok, 'read-back: a faithful NB read passes every contract check' + (good.ok ? '' : ` — ${Object.entries(good.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
   ok(good.checks.modesDistinct, 'read-back: background/primary distinct per mode (collapse-guard holds)');
   ok(good.checks.aliasesResolve && good.details.danglingAliases.length === 0, 'read-back: every alias target resolves (0 dangling)');
@@ -3093,7 +3093,7 @@ for (const b of brands) {
   const collapsed = plan.color.aliases.map((r) =>
     r.name === nbVar('color/background/primary') ? { ...r, targetsByMode: r.targetsByMode.map(() => r.targetsByMode[0]) } : r,
   );
-  const bad = verifyReadback(snapFrom(collapsed));
+  const bad = verifyReadback(snapFrom(collapsed), { skipped: 'not under test in this arm' });
   ok(!bad.checks.modesDistinct && !bad.ok, 'read-back: collapsed background/primary FAILS modesDistinct (negative — the collapse guard bites)');
 }
 
@@ -3118,15 +3118,52 @@ for (const b of brands) {
       .filter((c) => !(dropProbe && tailOf(c.name) === 'color/background/primary')),
   });
   ok(plan.color.modes.length === 1, `read-back single-mode: the fixture really is single-mode (${plan.color.modes.join('/')})`);
-  const one = verifyReadback(snapOf(false));
+  const one = verifyReadback(snapOf(false), { skipped: 'not under test in this arm' });
   ok(one.checks.modesDistinct, 'read-back single-mode: modesDistinct PASSES — one mode has nothing to collapse (#1662)');
   ok(one.ok, 'read-back single-mode: a faithful single-mode read passes every contract check' + (one.ok ? '' : ` — ${Object.entries(one.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
-  const unbound = verifyReadback(snapOf(true));
+  const unbound = verifyReadback(snapOf(true), { skipped: 'not under test in this arm' });
   ok(!unbound.checks.modesDistinct, 'read-back single-mode: background/primary ABSENT still FAILS modesDistinct (the vacuous pass is not "unchecked")');
   // #1691 net — a LITERAL probe (color-create ran, color-aliases did not) is not bound to the palette. A
   // multi-mode file whose probe is literal in every mode fails; a single-mode one must fail too.
-  const literal = verifyReadback(snapOf(false, true));
+  const literal = verifyReadback(snapOf(false, true), { skipped: 'not under test in this arm' });
   ok(!literal.checks.modesDistinct, 'read-back single-mode: a LITERAL background/primary (aliases never pasted) still FAILS modesDistinct — bound means aliased');
+
+  // DECLARED MODES (#1662 follow-up, owner decision 2026-09-27). The single-mode check above verifies what the
+  // file holds; it cannot tell a `modes: ['light']` brand from a light/dark brand whose `dark` never landed
+  // (`addMode` refused on a plan tier's mode cap). The saved brand's declared set is the second input, and the
+  // expected values below are WRITTEN, not read off the plan or the snapshot — the file here holds `light`.
+  ok(JSON.stringify(plan.color.modes) === '["light"]', 'read-back declared modes: the fixture file holds exactly light');
+  const missingDark = verifyReadback(snapOf(false), { modes: ['light', 'dark'] });
+  ok(missingDark.declaredModes.status === 'fail' && JSON.stringify(missingDark.declaredModes.missing) === '["dark"]' && !missingDark.ok,
+    `read-back declared modes: declared light/dark, file holds light → FAILS naming dark (${JSON.stringify(missingDark.declaredModes)})`);
+  ok(Object.values(missingDark.checks).every(Boolean),
+    'read-back declared modes: ...and every other check still passes, so the failure is the mode comparison alone');
+  const lightOnly = verifyReadback(snapOf(false), { modes: ['light'] });
+  ok(lightOnly.declaredModes.status === 'pass' && lightOnly.ok,
+    `read-back declared modes: declared light, file holds light → passes (${JSON.stringify(lightOnly.declaredModes)})`);
+  const noBrand = verifyReadback(snapOf(false), { skipped: 'no saved brand in this file' });
+  ok(noBrand.declaredModes.status === 'skipped' && noBrand.declaredModes.reason === 'no saved brand in this file',
+    `read-back declared modes: no brand → SKIPPED with the reason stated, not passed (${JSON.stringify(noBrand.declaredModes)})`);
+  // An EXTRA mode in the file is reported, never failed: it may be one the designer added.
+  const withExtra = verifyReadback({ ...snapOf(false), collections: [{ name: 'core', modes: ['Default'] }, { name: 'color', modes: ['light', 'brand-x'] }] }, { modes: ['light'] });
+  ok(withExtra.declaredModes.status === 'pass' && JSON.stringify(withExtra.declaredModes.extra) === '["brand-x"]',
+    `read-back declared modes: a mode in the file the brand does not declare is REPORTED, not failed (${JSON.stringify(withExtra.declaredModes)})`);
+
+  // PLANNED MODES (#1704 net). The file's own per-collection record of what the last apply planned, against
+  // what each collection holds. The records below are WRITTEN; the file's modes are the fixture's `light`.
+  const withPlan = (modesPlanned: Record<string, string[]>) => verifyReadback({ ...snapOf(false), modesPlanned }, { skipped: 'not under test in this arm' });
+  const cappedLayout = withPlan({ color: ['light'], layout: ['xs', 'sm', 'md', 'lg', 'xl', '2xl'] });
+  ok(cappedLayout.plannedModes.status === 'fail' && JSON.stringify(cappedLayout.plannedModes.missing) === '[{"collection":"layout","modes":["xs","sm","md","lg","xl","2xl"]}]' && !cappedLayout.ok,
+    `read-back planned modes: a recorded collection the file lacks FAILS with every planned mode named (${JSON.stringify(cappedLayout.plannedModes)})`);
+  const cappedColor = withPlan({ color: ['light', 'dark'] });
+  ok(cappedColor.plannedModes.status === 'fail' && JSON.stringify(cappedColor.plannedModes.missing) === '[{"collection":"color","modes":["dark"]}]' && !cappedColor.ok,
+    `read-back planned modes: color planned light/dark, file holds light → FAILS naming color dark (${JSON.stringify(cappedColor.plannedModes)})`);
+  const landed = withPlan({ core: ['Default'], color: ['light'] });
+  ok(landed.plannedModes.status === 'pass' && landed.ok,
+    `read-back planned modes: every recorded plan landed → passes (${JSON.stringify(landed.plannedModes)})`);
+  const noRecord = verifyReadback(snapOf(false), { skipped: 'not under test in this arm' });
+  ok(noRecord.plannedModes.status === 'none' && noRecord.ok,
+    `read-back planned modes: no record → none, not pass (${JSON.stringify(noRecord.plannedModes)})`);
 }
 
 // BrandInput PERSISTENCE (#131, #480): the shared-data round-trip + version guard. A persisted
@@ -4602,6 +4639,23 @@ for (const b of brands) {
         `#1670 ${def.id} (${label}): all ${pend.length} pending members swap in the spinner member at the icon slot's px, linked to no swap property${wrong.length ? ` — ${wrong.slice(0, 3).join('; ')}` : ''}`);
     }
   }
+  // #1697 DECISION 3 — THE ICON-BUTTON FAMILY'S PENDING MEMBERS NEST THE SPINNER too, in the icon's own cell
+  // at icon-button's 1:1 rung (small 20 / medium 24 / large 32 — written here, not read from the def), with
+  // the icon gone from that member (one node in the cell, not a spinner beside a glyph).
+  const IB_SLOT_PX: Record<string, number> = { small: 20, medium: 24, large: 32 };
+  for (const def of [iconButton, iconButtonDestructive, iconButtonNeutral]) {
+    const pend = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' }).filter((pl) => pl.coord.state === 'pending');
+    const wrong: string[] = [];
+    for (const pl of pend) {
+      const nodes = walkNodes(pl.root);
+      const spin = nodes.find((n) => n.name === 'spinner');
+      const member = String(spin?.swapTarget ?? '').replace(/^spinner\//, '');
+      if (!spin || !String(spin.swapTarget).startsWith('spinner/') || LADDER[member] !== IB_SLOT_PX[pl.size!] || spin.propertyRef !== undefined || nodes.some((n) => n.name === 'icon'))
+        wrong.push(`${planComponentName(pl)} → ${spin?.swapTarget ?? '(no spinner)'}`);
+    }
+    ok(pend.length > 0 && wrong.length === 0,
+      `#1697 ${def.id}: all ${pend.length} pending members swap the icon for spinner/* at the icon's px, linked to no swap property${wrong.length ? ` — ${wrong.slice(0, 3).join('; ')}` : ''}`);
+  }
   // THE MOTION. Both tokens in every corpus brand at every tempo, fixed rather than scaled, the reduced turn
   // SLOWER (never 0), and aliasing value-keyed primitives.
   for (const tempo of ['snappy', 'standard', 'relaxed'] as const) {
@@ -4616,8 +4670,38 @@ for (const b of brands) {
   const codeOnly = spinner.anatomy!.codeOnly.join('\n');
   ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && /\b800ms\b/.test(spinner.motion?.reduceMotion ?? '') && /\b2600ms\b/.test(spinner.motion?.reduceMotion ?? ''),
     '#1670 spinner: the motion field names both turn tokens and their values');
-  ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly) && /aria-hidden="true"/.test(codeOnly),
-    '#1670 spinner: the code rule spins linear and infinite, slows under prefers-reduced-motion, and is aria-hidden by default');
+  ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly),
+    '#1670 spinner: the code rule spins linear and infinite and slows under prefers-reduced-motion');
+
+  // ---- THE OWNER'S DECISIONS OF 2026-09-27 (the brief carry-forward) ----------------------------------------
+  // Expectations written here, from the decisions, not read back from the def: the label defaults to the literal
+  // "Loading"; a standalone spinner is a polite status that never carries a value; the embedding hosts hide it
+  // with the standard attribute; the enter fade names `motion.duration.fast`, which must exist in a built tree.
+  // No 2.2.2 / 2.3.3 claim (owner, 2026-09-26): the reduced-motion turn is slowed, not stopped, so neither is claimed.
+  ok(!(spinner.accessibility.wcag ?? []).some((w) => /^2\.2\.2\b|^2\.3\.3\b/.test(w)),
+    `spinner 2026-09-26: accessibility.wcag claims neither 2.2.2 nor 2.3.3 (${JSON.stringify((spinner.accessibility.wcag ?? []).map((w) => w.split(' ')[0]))})`);
+  const labelProp = spinner.props.find((p) => p.name === 'label');
+  ok(labelProp?.default === 'Loading' && /role="status"/.test(labelProp.description) && /aria-hidden="true"/.test(labelProp.description),
+    `spinner 2026-09-27: the label defaults to "Loading" on the role="status" wrapper, and a host opts out with aria-hidden="true" (${JSON.stringify(labelProp?.default)})`);
+  const aria = spinner.accessibility.aria ?? '';
+  ok(/aria-live="polite"/.test(aria) && /Never `aria-valuenow` and never `role="progressbar"`/.test(aria) && /aria-hidden="true"/.test(aria),
+    'spinner 2026-09-27: accessibility.aria states the polite status, the host opt-out, and the no-value contract (never aria-valuenow, never role=progressbar)');
+  ok(/aria-hidden="true"/.test(codeOnly) && /role="status"/.test(codeOnly) && /"Loading" by default/.test(codeOnly),
+    'spinner 2026-09-27: the code rule is a role="status" wrapper named "Loading" by default, hidden by an announcing host with aria-hidden="true"');
+  for (const def of [button, iconButton]) {
+    ok(/aria-hidden="true" on the embedded spinner/.test(def.accessibility.aria ?? ''),
+      `spinner 2026-09-27: ${def.id}'s accessibility.aria hides its embedded spinner (aria-hidden="true"), so isPending announces once`);
+  }
+  const enterRole = /`motion\.duration\.([a-z-]+)`/.exec(spinner.motion?.enter ?? '')?.[1];
+  const builtMotion = buildTree(brandTheme({ id: 'spinfade', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as unknown as BrandInput)).tree.prism.motion;
+  ok(enterRole === 'fast' && builtMotion.duration.fast !== undefined && builtMotion['duration-reduced'].fast !== undefined && /motion\.duration-reduced\.fast/.test(spinner.motion?.reduceMotion ?? ''),
+    `spinner 2026-09-27: motion.enter is a fade on the existing motion.duration.fast, kept under reduced motion on its reduced twin (enter binds ${enterRole ?? 'nothing'})`);
+  const contested = (spinner.notes?.contested ?? []).join('\n');
+  const deferred = ['labelPosition', 'staticColor', 'OVERLAY / MASK', '`spinning` PROP'].filter((k) => !contested.split('\n').some((line) => line.includes(k) && line.includes('deferred by owner (2026-09-27)')));
+  ok(deferred.length === 0 && /END STATE — declined by owner \(2026-09-27\)/.test(contested),
+    `spinner 2026-09-27: each deferred item is a contested entry marked deferred by owner, and the end state declined${deferred.length ? ` — missing: ${deferred.join(', ')}` : ''}`);
+  ok(!spinner.props.some((p) => ['labelPosition', 'staticColor', 'spinning', 'delay'].includes(p.name)),
+    'spinner 2026-09-27: none of the deferred or host-owned props (labelPosition, staticColor, spinning, delay) is declared');
 }
 
 {
@@ -11505,8 +11589,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // satisfy this (no `checked.fill.error`/`checked.indicator.error` key, so error falls back to the
     // interactive `checked.fill`/`checked.indicator`); this block LOCKS it. EXPECTED is the owner's decision;
     // ACTUAL is read off the emitted plan (host-facing), and the mutation adds the red-fill key the decision
-    // forbids and confirms the assertion flips BY NAME (docs/34). The rows nest these atoms, so this is the
-    // error appearance of both the radio row and the checkbox row.
+    // forbids and confirms the assertion flips BY NAME (docs/34). The row nests this atom, so this is the
+    // error appearance of the checkbox row. RADIO LEFT THIS LOOP in #1698 (decision 1): radio error is
+    // group-level only, so `radio-control` has no error member to read — the #1698 block pins that absence.
     {
       const errFind = (n: FigmaNodePlan, name: string): FigmaNodePlan | undefined =>
         n.name === name ? n : (n.children ?? []).map((c) => errFind(c, name)).find(Boolean);
@@ -11518,7 +11603,6 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         // The checkbox's inner fill is the filled BOX (`control`, fill slot); the radio's is the inner DOT
         // (`dot`, indicator slot → `paints.fills`). The error border is the `control`'s stroke on both.
         { def: checkboxControl, fillPart: 'control', mutKey: 'checked.fill.error' },
-        { def: radioControl, fillPart: 'dot', mutKey: 'checked.indicator.error' },
       ] as { def: ComponentDef; fillPart: string; mutKey: string }[]) {
         const rest = memberAt(def, /selection=checked, size=medium, state=rest/);
         const error = memberAt(def, /selection=checked, size=medium, state=error/);
@@ -11863,10 +11947,39 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // shared binding edited on one and not the others fails BY NAME rather than shipping three quietly-
   // diverged buttons. This is the guard that makes the factory safe to author once.
   const FAMILY_RE = /^color\.interactive\.(primary|neutral|destructive)\./;
-  for (const field of ['anatomy', 'props', 'states', 'variants', 'paintKeys', 'figmaProperties', 'accessibility', 'content', 'motion', 'composition', 'docs'] as const) {
-    const ref = JSON.stringify(button[field]);
-    const diverged = buttonFamily.filter((d) => JSON.stringify(d[field]) !== ref).map((d) => d.id);
+  // #1697 — the SELECTION fields are per-sibling now (`ai.triggerKeywords` / `avoidWhen` /
+  // `generationPriority`, the `docs.do` tail, and `composition.alternativeTo`, which names each sibling's
+  // own icon-button), so they are masked out of the identity check and pinned separately below. Masked
+  // field by field rather than dropping `ai` / `docs` / `composition` whole: the shared remainder of each
+  // (usage, dont, primaryPurpose, composesWith, …) must still stay byte-identical.
+  const sharedPart = (d: ComponentDef, field: string): unknown => {
+    if (field === 'ai') { const { triggerKeywords, avoidWhen, generationPriority, ...rest } = d.ai; return rest; }
+    if (field === 'docs') return { ...d.docs, do: undefined };
+    if (field === 'composition') return { ...d.composition, alternativeTo: undefined };
+    return (d as Record<string, unknown>)[field];
+  };
+  for (const field of ['anatomy', 'props', 'states', 'variants', 'paintKeys', 'figmaProperties', 'accessibility', 'content', 'motion', 'composition', 'docs', 'ai'] as const) {
+    const ref = JSON.stringify(sharedPart(button, field));
+    const diverged = buttonFamily.filter((d) => JSON.stringify(sharedPart(d, field)) !== ref).map((d) => d.id);
     ok(diverged.length === 0, `#1223 the three button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // #1697 DECISION 2 — THE SIBLINGS ARE DISTINGUISHABLE. An agent choosing between the three reads their
+  // `triggerKeywords`; three identical lists give it nothing to choose by. Each list is compared as a SET
+  // against each other sibling's, and the per-family facts the brief fixes are asserted literally:
+  // destructive carries §10's `danger` / `destructive` aliases, and neutral carries neither "delete" nor
+  // "primary action" (each of those names a different sibling).
+  const kwSet = (d: ComponentDef) => JSON.stringify([...(d.ai.triggerKeywords ?? [])].sort());
+  for (const [a, b] of [[button, buttonDestructive], [button, buttonNeutral], [buttonDestructive, buttonNeutral]])
+    ok(kwSet(a) !== kwSet(b), `#1697 sibling triggerKeywords differ: ${a.id} vs ${b.id} (${kwSet(a)} / ${kwSet(b)})`);
+  ok(['danger', 'destructive'].every((k) => buttonDestructive.ai.triggerKeywords?.includes(k)),
+    `#1697 button-destructive carries the brief §10 aliases danger / destructive (${JSON.stringify(buttonDestructive.ai.triggerKeywords)})`);
+  ok(!buttonNeutral.ai.triggerKeywords?.some((k) => /delete|primary action/i.test(k)),
+    `#1697 button-neutral advertises neither "delete" nor "primary action" (${JSON.stringify(buttonNeutral.ai.triggerKeywords)})`);
+  ok(buttonDestructive.docs.do!.some((l) => /Cancel|Keep/.test(l) && /escape/i.test(l)) && !button.docs.do!.some((l) => /neutral escape/i.test(l)),
+    '#1697 the destructive-pairing rule (brief §5) is in button-destructive\'s docs.do, and only there');
+  for (const d of buttonFamily) {
+    const want = d.id === 'button' ? 'icon-button' : d.id.replace(/^button-/, 'icon-button-');
+    ok(d.composition?.alternativeTo?.[0] === want, `#1697 ${d.id} names its own family's icon-only alternative (${want}; got ${d.composition?.alternativeTo?.[0]})`);
   }
   // NON-colour tokens (radius, per-size geometry incl. #326 padding, gap, height, icon, type, and the
   // cross-cutting disabled.*) identical across all three, byte-for-byte.
@@ -11971,10 +12084,33 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // deliberately NOT in the guarded list — each sibling records its delta from the Button of its own family
   // (`button` / `button-destructive` / `button-neutral`), so the three legitimately name different parents.
   const IB_FAMILY_RE = /^color\.interactive\.(primary|neutral|destructive)\./;
-  for (const field of ['anatomy', 'props', 'states', 'variants', 'paintKeys', 'figmaProperties', 'accessibility', 'content', 'ai', 'composition', 'docs'] as const) {
-    const ref = JSON.stringify(iconButton[field]);
-    const diverged = iconButtonFamily.filter((d) => JSON.stringify(d[field]) !== ref).map((d) => d.id);
+  // #1697 — the same per-sibling mask as the button family (see `sharedPart` above).
+  for (const field of ['anatomy', 'props', 'states', 'variants', 'paintKeys', 'figmaProperties', 'accessibility', 'content', 'ai', 'composition', 'docs', 'motion'] as const) {
+    const ref = JSON.stringify(sharedPart(iconButton, field));
+    const diverged = iconButtonFamily.filter((d) => JSON.stringify(sharedPart(d, field)) !== ref).map((d) => d.id);
     ok(diverged.length === 0, `#1225 the three icon-button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // #1697 DECISION 2, icon-only half.
+  for (const [a, b] of [[iconButton, iconButtonDestructive], [iconButton, iconButtonNeutral], [iconButtonDestructive, iconButtonNeutral]])
+    ok(kwSet(a) !== kwSet(b), `#1697 sibling triggerKeywords differ: ${a.id} vs ${b.id} (${kwSet(a)} / ${kwSet(b)})`);
+  for (const d of iconButtonFamily)
+    ok(d.composition?.alternativeTo?.[0] === d.inherits, `#1697 ${d.id} names its own family's labeled alternative (${d.inherits}; got ${d.composition?.alternativeTo?.[0]})`);
+  // #1702 net — the icon-only siblings carry the same per-family facts the button family is held to, written
+  // here (not read from the button arms): destructive carries `danger` / `destructive`, neutral advertises
+  // neither "delete" nor "primary action", and the confirmation rule lives on the destructive sibling only.
+  ok(['danger', 'destructive'].every((k) => (iconButtonDestructive.ai.triggerKeywords ?? []).some((t) => t.includes(k))),
+    `#1697 icon-button-destructive carries danger / destructive (${JSON.stringify(iconButtonDestructive.ai.triggerKeywords)})`);
+  ok(!iconButtonNeutral.ai.triggerKeywords?.some((k) => /delete|primary action/i.test(k)),
+    `#1697 icon-button-neutral advertises neither "delete" nor "primary action" (${JSON.stringify(iconButtonNeutral.ai.triggerKeywords)})`);
+  ok(iconButtonDestructive.docs.do!.some((l) => /escape/i.test(l)) && !iconButton.docs.do!.some((l) => /neutral escape/i.test(l)),
+    '#1697 the confirmation rule is in icon-button-destructive\'s docs.do, and only there');
+  // #1697 DECISION 4 — the inherited API it depends on is RESTATED, because `inherits` is read by nothing:
+  // `onClick`, and `type` defaulting to 'button' (the submit trap), matching Button's own declaration.
+  const bType = button.props.find((p) => p.name === 'type');
+  for (const d of iconButtonFamily) {
+    const t = d.props.find((p) => p.name === 'type');
+    ok(!!d.props.find((p) => p.name === 'onClick') && t?.default === 'button' && JSON.stringify(t?.values) === JSON.stringify(bType?.values),
+      `#1697 ${d.id} restates onClick and type (default 'button', values as Button's) rather than relying on inherits (type=${JSON.stringify(t)})`);
   }
   // NON-colour tokens (radius, border-width, square sizing, glyph rung, and the cross-cutting disabled.*)
   // identical across all three, byte-for-byte.
@@ -13152,6 +13288,26 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       }
     }
     ok(checkedRatios >= EXAMPLE_IDS.length, `#1349 disabled edge: the 3:1 sweep actually ran (measured ${checkedRatios} brand×mode ratios, not an empty set)`);
+
+    // #1697 DECISION 1 — THE ICON-BUTTON DISABLED EDGE, rebound as #1349 rebound Button's. The ratio is read
+    // PER SIBLING off that sibling's own `disabled.border` binding and measured by `resolveAllModes`, which
+    // never sees the def — so a revert to `color.disabled.border` (1.48–1.80:1 against the page, gated
+    // `min: 0`) resolves a role under 3 and fails the named assertion below, independently of the equality pin.
+    let ibChecked = 0;
+    for (const def of [iconButton, iconButtonDestructive, iconButtonNeutral]) {
+      ok(def.tokens['disabled.border'] === def.tokens['disabled.icon'],
+        `#1697 disabled edge: ${def.id} border role (${def.tokens['disabled.border']}) tracks the disabled icon ink (${def.tokens['disabled.icon']})`);
+      const edgeRole = def.tokens['disabled.border'].replace(/^color\./, '');
+      for (const id of EXAMPLE_IDS) {
+        for (const M of resolveAllModes(brandTheme(exampleBrands()[id] as BrandInput))) {
+          const role = (M.roles as Record<string, { ratio?: number } | undefined>)[edgeRole];
+          ok(!!role && typeof role.ratio === 'number' && role.ratio >= 3,
+            `#1697 disabled edge: ${def.id} ${id}/${M.mode} border (${edgeRole}) clears 3:1 against the page (ratio ${role?.ratio})`);
+          ibChecked++;
+        }
+      }
+    }
+    ok(ibChecked >= 3 * EXAMPLE_IDS.length, `#1697 disabled edge: the icon-button 3:1 sweep actually ran (${ibChecked} sibling×brand×mode ratios)`);
 
     // Paints resolve against the SAME variable namespace as `bound`, so they must ride
     // `planBoundVars` — anything else silently exempts every paint from the emit cross-check above.
@@ -16472,13 +16628,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       // wrong box, and that has to be written down where they will look.
       ok(iba.codeOnly.some((c) => /^touch-target-expansion/.test(c)),
         'anatomy/icon-button: touch-target expansion leads a codeOnly entry — the ONE component where the optical box is smaller than the required hit box at every brand');
-      // The pending spinner is the one ceiling genuinely WORSE here than on Button, and the admission has
-      // to say so rather than reuse Button's wording: Button swaps its leading visual and keeps the label,
-      // where an IconButton has one cell and it IS the icon. Asserted as a leading `pending` entry for the
-      // same reason `figmaPropertyErrors` requires it — a state dropped from the axis needs an admission
-      // that leads with the state, not a sentence elsewhere that happens to mention it.
-      ok(iba.codeOnly.some((c) => /^pending —/.test(c) && /one cell/.test(c)),
-        'anatomy/icon-button: the pending spinner is admitted as code-tier with ITS reason (one cell, and the cell is the icon) — not Button\'s reason reused');
+      // #1697 — THE PENDING SPINNER PROJECTS NOW, so the old leading `pending — the SPINNER…` admission is
+      // gone, and with it this def's instance of #867: that entry led with `pending`, so `admits()` read it
+      // as licensing `pending`'s omission from the state axis. Asserted both ways — no codeOnly entry leads
+      // with the state, and dropping `pending` from the projected axis is now REFUSED, as it is on Button.
+      ok(!iba.codeOnly.some((c) => /^pending\b/.test(c)),
+        'anatomy/icon-button: #1697 no codeOnly entry leads with `pending` — the spinner projects, so there is no ceiling to admit');
+      const ibNoPending = { ...iconButton, figmaProperties: { ...iconButton.figmaProperties!, stateAxis: { name: 'state', values: iconButton.figmaProperties!.stateAxis!.values.filter((v) => v !== 'pending') } } };
+      ok(figmaPropertyErrors(ibNoPending as ComponentDef).some((e) => /pending/.test(e)),
+        'anatomy/icon-button: #1697 dropping `pending` from the projected state axis is refused — nothing admits it any more (#867 no longer applies to this def)');
 
       // ---- the derivation, predicted offline then gated ------------------------------------------
       // 54 = 3 appearance × 3 size × 6 state, since #1225 split `intent` out into sibling components (was
@@ -21145,14 +21303,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `#1348 the radio ROW nests radio-control nest-exposed, exposing selection+state and following size (kind=${ctrl?.kind}, nests=${ctrl?.nests}, rel=${rel?.kind}, expose=[${rel?.expose?.join(', ')}], follow=[${rel?.follow?.join(', ')}])`);
 
   // (2) THE MEMBER COLLAPSE, a multiply INDEPENDENT of the enumeration. The Row is size-only; the atom
-  // carries selection×size×state. 36 → 3.
+  // carries selection×size×state. 36 → 3 at #1348; the atom is 30 since #1698 dropped its error column.
   const rowN = figmaAnatomySet(radioRow).length;
   const ctlN = figmaAnatomySet(rc).length;
   const ctlProduct = rc.variants!.selection!.length * rc.variants!.size!.length * rc.figmaProperties!.stateAxis!.values.length;
   ok(rowN === radioRow.variants!.size!.length && rowN === 3,
-    `#1348 the radio ROW projects SIZE-ONLY — ${rowN} members (its one axis), the 36→3 collapse against the atom's set`);
-  ok(ctlN === ctlProduct && ctlProduct === 36,
-    `#1348 radio-control carries the 36 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
+    `#1348 the radio ROW projects SIZE-ONLY — ${rowN} members (its one axis), the collapse against the atom's set`);
+  ok(ctlN === ctlProduct && ctlProduct === 30,
+    `#1348 radio-control carries the 30 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN} (36 before #1698 dropped the error column)`);
 
   // (3) THE PRISM 2 VISUAL — CONSTANT-WEIGHT OUTLINED RING + INNER CIRCLE ON SELECT (#1348 point 2), read
   // four ways, each independent of the producer. Since #1423 the ring RECOLORS on select (constant WEIGHT,
@@ -21245,6 +21403,52 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(rc.tokens['radius'] === 'radius.round' && rc.anatomy!.parts.control.radius === 'radius'
      && rc.anatomy!.parts.focusRing?.nests === 'focus-ring',
     `#1348 radio-control's control is a FULL-ROUND host (radius→${rc.tokens['radius']}) nesting focus-ring, so F2/#1388 yields a CIRCULAR focus ring by construction — confirmed, not re-derived`);
+}
+
+// ---- #1698: CHECKBOX + RADIO ALIGNMENT — the two gateable decisions, pinned by literal ------------------
+//
+// Decision 1: radio error is GROUP-level only (brief §4: "error | group-level only, never per-option"), so
+// `radio-control` carries no `error` state, no error ring binding and no error member, and `radio-row`
+// declares no `error` state. Decision 2: `radio-group`'s `name` is required (brief §15: `{name: name, ...,
+// required: true}`). EXPECTED is written here from the brief, never read off a def (docs/34 shape 1); ACTUAL
+// is the def and the projected set. Each arm carries its own mutation, so the assertion is shown to fail by
+// name against a def that has the forbidden shape.
+{
+  const rc = componentDefs.find((d) => d.id === 'radio-control')!;
+  const rrow = componentDefs.find((d) => d.id === 'radio-row')!;
+  const rgrp = componentDefs.find((d) => d.id === 'radio-group')!;
+  const errorShape = (d: ComponentDef): string[] => [
+    ...(d.states ?? []).filter((st) => st === 'error').map(() => 'states has error'),
+    ...(d.figmaProperties?.stateAxis?.values ?? []).filter((v) => v === 'error').map(() => 'stateAxis has error'),
+    ...Object.keys(d.tokens ?? {}).filter((k) => k.split('.').includes('error')).map((k) => `token ${k}`),
+    ...figmaAnatomySet(d).map(planComponentName).filter((n) => /state=error/.test(n)).map((n) => `member ${n}`),
+  ];
+  // (1a) the atom has no per-option error in any of the four places it could live.
+  const rcErr = errorShape(rc);
+  ok(rcErr.length === 0,
+    `#1698 radio-control has NO per-option error — no error state, no error ring binding, no error member (found: ${rcErr.slice(0, 4).join('; ') || 'none'})`);
+  // (1b) the option row declares no error state either (its Figma set is size-only, so the state list is
+  // the code projection's — a row `error` here would promise a per-option error the control cannot draw).
+  ok(!(rrow.states ?? []).includes('error'),
+    `#1698 radio-row declares no error state — radio error is group-level (states: ${(rrow.states ?? []).join(', ')})`);
+  // (1c) the family difference is deliberate: an isolated checkbox recolors its own boundary (brief
+  // checkbox §4), so checkbox-control KEEPS its error ring. Guards against a sweep that drops both.
+  ok(checkboxControl.states.includes('error') && checkboxControl.tokens['unchecked.border.error'] === 'color.border.danger',
+    `#1698 checkbox-control keeps its error ring — only radio error is group-level (states: ${checkboxControl.states.join(', ')}, unchecked.border.error=${checkboxControl.tokens['unchecked.border.error']})`);
+  //   MUTATION (1a) — restore the pre-#1698 danger ring on the unchecked option.
+  const mutRc = { ...rc, tokens: { ...rc.tokens, 'unchecked.border.error': 'color.border.danger' } } as ComponentDef;
+  ok(errorShape(mutRc).includes('token unchecked.border.error'),
+    `#1698 MUTATION: a restored unchecked.border.error is found by the per-option error scan — arm (1a) reads the def's live tokens`);
+  //   MUTATION (1a) — restore the error state and its column.
+  const mutRcState = { ...rc, states: [...rc.states, 'error'],
+    figmaProperties: { ...rc.figmaProperties!, stateAxis: { ...rc.figmaProperties!.stateAxis!, values: [...rc.figmaProperties!.stateAxis!.values, 'error'] } } } as ComponentDef;
+  const mutStateErr = errorShape(mutRcState);
+  ok(mutStateErr.includes('states has error') && mutStateErr.some((e) => e.startsWith('member ')),
+    `#1698 MUTATION: a restored error state projects error members the scan finds (${mutStateErr.filter((e) => e.startsWith('member ')).length} members)`);
+  // (2) the group's shared name is required — the literal the brief states.
+  const nameProp = rgrp.props.find((pr) => pr.name === 'name');
+  ok(nameProp?.required === true,
+    `#1698 radio-group's name prop is required — it is what makes the set exclusive (required=${String(nameProp?.required)})`);
 }
 
 // ---- #1039: MATERIALIZATION RENAMES — check 2, and the table that proves check 1's shape ----------

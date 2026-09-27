@@ -221,7 +221,7 @@ export const checkboxControl: ComponentDef = {
         size: 'size.{size}.control',
         glyphScale: 0.8,
         presentWhen: { selection: ['checked'] },
-        note: 'The check, inset to 0.8 of the box (#1346) via a padded artboard rather than a shrunk frame. Its ink is `checked.icon` (`descendantFills`, never a fill on the artboard — #864), and its micro-motion has no expression in this schema (see `codeOnly`).',
+        note: 'The check, inset to 0.8 of the box (#1346) via a padded artboard rather than a shrunk frame. Its ink is `checked.icon` (`descendantFills`, never a fill on the artboard — #864). Its draw transition is stated in `motion`; the Figma members are static.',
       },
       // THE DASH. Same geometry and the same `glyphScale: 0.8` inset; only the outline differs, which is
       // the whole of what separates `indeterminate` from `checked` in this def's tokens. Prism 2 sizes
@@ -253,7 +253,8 @@ export const checkboxControl: ComponentDef = {
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
       'read-only — deliberately not a state of this atom. It is the field/row-level concern the brief calls "the awkward one" (static text over a styled locked control), so there is no box treatment to project and the state is absent rather than admitted-and-unbound. The Row and the Group decide it.',
-      'The check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). Neither the def schema nor a Figma variant carries motion, so the two glyph parts are static outlines at every coordinate.',
+      'motion — the check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). The def states it in `motion`; a Figma variant carries no motion, so the two glyph parts are static outlines at every coordinate.',
+      'RTL — the check and dash glyphs do NOT mirror: the check shape is recognized as drawn in every script, so the SVG keeps its standard stroke direction (brief §9). The row around this atom mirrors; the atom does not. Figma members are drawn left to right; for this atom that is also the right-to-left rendering.',
       'The whole-row hit target. A bare control square is a 12-24px box that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `checkbox-row` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
     ],
   },
@@ -287,23 +288,26 @@ export const checkboxControl: ComponentDef = {
   },
 
   docs: {
-    usage: 'Do not place this on its own. It is the box Checkbox.Row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring — the uncommon case with no labeled row.',
+    usage: 'Do not place this on its own as a form control. It is the box Checkbox.Row nests, so a fix to its corner, its border weight or its fill grammar reaches the row and the group without being copied. Build it before the row that nests it (the nest resolves by name against the live file). It is also the unit a host nests when the label is decoupled — a select-all in a table\'s first column, a card-select where the card is the accessible name, a list or menu row. Nested that way, the host names the control through aria-labelledby, the host owns the hit target (the whole row toggles, unless the row has its own primary action — then the control is a secondary affordance with its own name, such as "Select <item>"), and the enclosing collection is the group: it owns the selected ids and select-all, so no Checkbox.Group goes inside a list. Resolve every nested case to one model — the whole row is one control, or the control is a named secondary affordance — never a control inside a row that is itself a button or link with no clear click target.',
     do: [
       'Nest this from Checkbox.Row rather than redrawing the box per host',
       'Let the host row expose `selection` and `state` and `follow` its size, so the nested control tracks the row',
       'Supply an external aria-label only when using the control genuinely alone, with no labeled row to name it',
+      'Nest it in a table cell, card or list row when the label is decoupled — the host row supplies the name and the collection owns the selection',
     ],
     dont: [
       'Place a bare control square as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target',
       'Double-label a nested control — the host row already provides the accessible name',
       'Reach for this atom when you want the labeled case — that is Checkbox.Row',
+      'Nest a Checkbox.Group inside a selectable list — the collection is the group',
+      'Put the control inside a row that is itself a button or link with no clear model of which one a click hits',
     ],
     contentGuidelines: 'The atom has no copy of its own; all label, description and error text belongs to the row and the group that compose it.',
   },
 
   ai: {
     primaryPurpose: 'Render the atomic checkbox control — the painted square with its check or dash glyph and focus ring — for a host row to nest.',
-    whenToUse: 'Nested by the labeled Checkbox.Row (the common case), or standalone only for a control with an external label and its own aria wiring.',
+    whenToUse: 'Nested by the labeled Checkbox.Row (the common case), or by a host whose label is decoupled — a table select-all, a card-select, a selectable list row — where the host names the control and the collection owns the selection. Standalone only with an external label and its own aria wiring.',
     avoidWhen: 'You want the labeled case (that is Checkbox.Row), a mutually-exclusive one-of-many (Radio.Control), or an immediate-effect toggle (Switch.Control). Never place a bare control square as the clickable element — the hit target is the labeled row.',
     commonPartners: ['checkbox-row', 'focus-ring', 'checkbox-group'],
     triggerKeywords: ['checkbox control', 'checkbox box', 'check box atom', 'checkbox square'],
@@ -319,16 +323,27 @@ export const checkboxControl: ComponentDef = {
     supersededBy: [],
   },
 
+  // Brief §8 — the check-draw is this atom's, because the glyph is here.
+  motion: {
+    enter: 'On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, about 100-150ms, eased. Indeterminate to checked morphs the dash into the check.',
+    exit: 'On uncheck, the same glyph transition runs back and the fill crossfades out.',
+    reduceMotion: 'Under prefers-reduced-motion, the draw and any spatial animation are bypassed and the box flips instantly; a crossfade under 150ms may remain, since opacity does not trigger vestibular symptoms. No layout motion.',
+  },
+
   notes: {
     contested: [
       'THE ATOM IS A SEPARATE COMPONENT rather than kept inline in the row. Settled by #1226\'s composition model (owner): a shared piece is single-sourced so a fix propagates to every host that nests it. The rejected alternative — keeping the control inline and copying it into radio and switch — is exactly the per-def duplication #1011 found had shipped the identical fill/border pairing across three defs. The nest costs one indirection; the copy costs three chances to drift.',
       'THE NOMINAL `role: target`. A bare control square is not independently the hit target — SC 2.5.8 wants the whole labeled row — so `target` here is the interaction marker the schema requires exactly one of, not a claim the square is clickable. The same nominal marker `focus-ring`\'s `ring` part carries, and stated so a reader does not infer a 12-24px clickable square.',
     ],
     unverified: [
-      'NESTED-INSTANCE SIZING IS UNVERIFIED ON A REAL HOST. No def used `kind: nest` in flow before #1226 step 2, so an in-flow nested control has never been built in Figma. The control instance must HUG (sit at its own square) rather than FILL the row\'s line-box wrapper — it binds `size` on the nest part so its own square is pinned, and the wrapper centers it — but whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it.',
+      'NESTED-INSTANCE SIZING IS UNMEASURED ON A REAL HOST. No def used `kind: nest` in flow before #1226 step 2. The row has since been built in Figma (the owner\'s plugin-import QA rounds), but no recorded read-back measures the nested instance\'s sizing there. The control instance must HUG (sit at its own square) rather than FILL the row\'s line-box wrapper — it binds `size` on the nest part so its own square is pinned, and the wrapper centers it — but whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it.',
       'THE INHERITED FOCUS-RING BINDING, now two layers deep (#1280). The ring binds a nominal square side and an instance inherits its main component\'s bindings; #1280 left it open whether that nominal side survives `resize()` when inherited through an instance. After this split the ring is nested inside the control and the control inside the row, so an inherited dimension binding would have to be cleared twice. Batches with #1290. The symptom: a nested ring sitting at the md control height instead of hugging its host\'s box.',
-      'RADIO AND SWITCH ARE NOT SPLIT HERE. This is checkbox step 2 only; `radio-control` is the mirror (one `dot` box, no dash) and is filed as the next in the sequence. `switch` stays out of scope — its thumb moves between selection values, an unsolved positioning wall that splitting would inherit without addressing.',
       'THE PADDED-ARTBOARD GLYPH INSET IS UNVERIFIED ON A REAL HOST (#1346). `glyphScale: 0.8` emits the mark/dash on an artboard padded to `grid ÷ 0.8` with a NEGATIVE viewBox origin (`-3 -3 30 30`) so the same path centers in the larger canvas. The offline model asserts the document, the read-back box (`glyphViewBox` = the padded dims) and the ink-fit; what it cannot see is whether `figma.createNodeFromSvg` positions a negative-origin viewBox as centered and whether the imported vector holds 0.80 through the frame\'s subsequent resize to the box. Same posture as the nest-sizing note above. The symptom to look for: a check that renders full-bleed (the pad was ignored) or off-center toward the top-left (the negative origin was dropped).',
+    ],
+    evolution: [
+      'RADIO AND SWITCH SPLIT AFTER THIS ONE. This entry used to say they were not split here: this was checkbox step 2 only, with the radio atom filed next and switch out of scope over its moving thumb. Both followed — `radio-control` (#1348, one `dot` box, no dash) and `switch-control` (#1354).',
+      'Styling the native input won (brief §13): `appearance: none` plus a pseudo-element or SVG replaced both the `role=checkbox` div and the hidden-input-plus-fake-box hacks, keeping native semantics. That is the input this atom paints.',
+      'The `indeterminate` ref callback superseded `useLayoutEffect` for performance in large lists (brief §13) — the mixed state is a DOM property the host sets, which is why this atom only draws the dash.',
     ],
   },
 };
