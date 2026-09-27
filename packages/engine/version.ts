@@ -2926,6 +2926,20 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.183.0 — #1701: component docs are projected. A new emitter, `emit-component-docs.ts`, writes every
+ * registered def's documentation from the same data: `out/components/components.ai.json` (one
+ * brand-independent file, field names mirroring the def, validated against the authored
+ * `schema/component-docs.schema.json`) and `out/components/<id>.md` (one page per def), both PAYLOAD; and
+ * `schema/component-maintainer.json`, each def's `anatomy.codeOnly` and `notes.*`, which is NOT payload.
+ * The split follows #1623 (owner decision, 2026-09-27): the payload carries the fields the plugin already
+ * ships, and the page leaves out `ai`'s agent-only keywords and priority, which stay in the JSON. The
+ * maintainer record is a regen artifact in a new `regen.ts` list, `MAINTAINER_ARTIFACTS`, drift-checked
+ * but outside `SCHEMA_ARTIFACTS`, so the shipped-prose gates and this version's emission gate do not read
+ * it. No page and no maintainer entry carries the engine version; the JSON's top-level `engineVersion`
+ * is the one stamp. One def string moves (`radio-row`'s focus-ring note, `MUST` → `must`); no plan
+ * moves. A new emitted surface → MINOR. CONTRACT STANDS at 13.1.0: no token name moves
+ * (`token-contract --check` level `none`).
+ *
  * 0.182.0 — #1700: the support defs align to their KB briefs, and the schema's vocabulary is closed and gated.
  * Projected surface: only three defs' `codeOnly` lists move (icon, focus-ring, field-message — stale entries
  * reworded), so their plan digests move at the same member counts. Everything else is def metadata no
@@ -3930,7 +3944,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.182.0';
+export const ENGINE_VERSION = '0.183.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

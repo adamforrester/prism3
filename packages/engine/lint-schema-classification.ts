@@ -20,7 +20,7 @@
  *
  * So the fix is not to add the lines that were missing. That repairs the files that exist today and
  * leaves the next one to memory. This asserts that EVERY file in the directory is classified, in one
- * of exactly three ways, and fails naming any file that is in none of them.
+ * of exactly four ways, and fails naming any file that is in none of them.
  *
  * ── WHERE THE EXPECTATION COMES FROM (the trap, docs/34 shape 1) ────────────────────────────────
  *
@@ -46,6 +46,23 @@
  *                                          because both gates map over that same export.
  *   2. Hand-named in BOTH prose gates    — authored, kept out of regen, carries shipped prose.
  *   3. In `EXEMPT` below with a reason   — authored, kept out of regen, carries no shipped prose.
+ *   4. In `MAINTAINER_ARTIFACTS` (regen.ts) — generated and drift-checked, carries prose, and does NOT
+ *                                          ship (#1701): the component defs' `codeOnly` and `notes`, which
+ *                                          #1623 ruled maintainer-only. Deliberately outside both prose
+ *                                          gates, because they scan shipped prose; the list's own comment in
+ *                                          regen.ts says why, and `payload-manifest.json` classifies the
+ *                                          file `ours`. A file that ships does not belong in class 4.
+ *
+ * CLASS 4 IS ASSERTED, NOT TAKEN ON TRUST (review of #1705). Listing a file in `MAINTAINER_ARTIFACTS` is the
+ * one edit that removes it from both prose gates AND from `lint-emission-version.ts` at once, so membership
+ * cannot be the only evidence. Each entry must also be:
+ *   (i)   named in `MAINTAINER_ONLY` below, with a reason — authored here, so moving a file into the regen
+ *         list without a second, argued edit fails. MEASURED: moving `lever-manifest.json` from
+ *         `SCHEMA_ARTIFACTS` into `MAINTAINER_ARTIFACTS` passes (ii) and (iii) — it is `ours`, and nothing
+ *         under `apps/` names it — and fails only here, which is why this arm exists;
+ *   (ii)  classified `ours`, and not `payload`, in `payload-manifest.json`, by its literal `schema/` path;
+ *   (iii) named by NO tracked file under `apps/` (both surfaces and every bundle entry live there) and not
+ *         by `packages/engine/mcp.ts` — a file a shipped surface reads is a file that ships.
  *
  * Class 2 requires BOTH gates, and that is the point rather than a convenience: they share one scope
  * rule, so a file in one and not the other is a DIVERGENCE, and at most one side of it can be right.
@@ -97,7 +114,7 @@ import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SCHEMA_ARTIFACTS } from './regen';
+import { MAINTAINER_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -125,6 +142,22 @@ const EXEMPT: { file: string; why: string }[] = [
       'widening this reason.',
   },
 ];
+
+/**
+ * Class 4 — the files allowed in `MAINTAINER_ARTIFACTS`, each with the reason it does not ship. Checked
+ * both ways against that list, the same posture as `EXEMPT`.
+ */
+const MAINTAINER_ONLY: { file: string; why: string }[] = [
+  {
+    file: 'component-maintainer.json',
+    why:
+      'Each component def\'s `anatomy.codeOnly` and `notes.*`, which the #1623 sign-off ruled ' +
+      'maintainer-only (the plugin strips both from its bundles). The docs payload beside it ' +
+      '(`out/components/**`) carries the shipped fields; this is the working record.',
+  },
+];
+/** What class 4's (iii) reads: every tracked file under `apps/`, plus the MCP server. */
+const SHIPPED_READERS = ['apps', 'packages/engine/mcp.ts'];
 
 type Failure = string;
 const failures: Failure[] = [];
@@ -172,33 +205,40 @@ for (const gate of PROSE_GATES) {
 // the pattern above. The regen-covered ones are reached via SCHEMA_ARTIFACTS.map(...) and so are
 // deliberately NOT expected to appear as literals — that is what class 1 is.
 const regenCovered = new Set(SCHEMA_ARTIFACTS);
+const maintainerOnly = new Set(MAINTAINER_ARTIFACTS);
 const exemptByFile = new Map(EXEMPT.map((e) => [e.file, e]));
 
 // ---- Every file on disk is classified in exactly one of the three ways -----------------------
-const classified: Record<string, string[]> = { regen: [], 'both-gates': [], exempt: [] };
+const classified: Record<string, string[]> = { regen: [], 'both-gates': [], exempt: [], maintainer: [] };
 
 for (const file of onDisk) {
   const inRegen = regenCovered.has(file);
+  const inMaintainer = maintainerOnly.has(file);
   const gatesNaming = PROSE_GATES.filter((g) => namedIn.get(g)!.has(file));
   const exempt = exemptByFile.get(file);
 
   // Mutually exclusive: two classifications for one file means two people decided differently, or
   // one person decided twice. Either way nobody can tell which answer is live.
-  const claims = [inRegen && 'SCHEMA_ARTIFACTS', gatesNaming.length && 'a prose gate', exempt && 'EXEMPT']
+  const claims = [inRegen && 'SCHEMA_ARTIFACTS', inMaintainer && 'MAINTAINER_ARTIFACTS', gatesNaming.length && 'a prose gate', exempt && 'EXEMPT']
     .filter(Boolean)
     .map(String);
   if (claims.length > 1) {
     failures.push(
       `\`${file}\` is classified more than once — ${claims.join(' AND ')}. A file has one place: ` +
         `generated (SCHEMA_ARTIFACTS, covered automatically), authored-with-prose (hand-named in ` +
-        `BOTH prose gates), or authored-without-prose (EXEMPT with a reason). Pick one, in ` +
-        `packages/engine/lint-schema-classification.ts.`,
+        `BOTH prose gates), authored-without-prose (EXEMPT with a reason), or generated and ` +
+        `maintainer-only (MAINTAINER_ARTIFACTS). Pick one.`,
     );
     continue;
   }
 
   if (inRegen) {
     classified.regen.push(file);
+    continue;
+  }
+
+  if (inMaintainer) {
+    classified.maintainer.push(file);
     continue;
   }
 
@@ -231,7 +271,7 @@ for (const file of onDisk) {
   }
 
   failures.push(
-    `UNCLASSIFIED: \`${SCHEMA_DIR}/${file}\` is in neither \`SCHEMA_ARTIFACTS\` nor either prose ` +
+    `UNCLASSIFIED: \`${SCHEMA_DIR}/${file}\` is in neither \`SCHEMA_ARTIFACTS\`, \`MAINTAINER_ARTIFACTS\` nor either prose ` +
       `gate, and is not EXEMPT. Nothing distinguishes "deliberately not prose-gated" from "nobody ` +
       `looked", so a human has to decide (#807):\n` +
       `        · it carries shipped prose ($comment, description, note, a why) → hand-name it in ` +
@@ -239,7 +279,9 @@ for (const file of onDisk) {
       `        · it is pure data with no prose field → add it to EXEMPT in ` +
       `packages/engine/lint-schema-classification.ts with a reason\n` +
       `        · it is generated by regen.ts → add it to SCHEMA_ARTIFACTS, which covers it in both ` +
-      `gates automatically`,
+      `gates automatically\n` +
+      `        · it is generated and maintainer-only, and ships in no payload or bundle → add it to ` +
+      `MAINTAINER_ARTIFACTS in regen.ts, and classify it \`ours\` in payload-manifest.json`,
   );
 }
 
@@ -273,11 +315,56 @@ for (const file of SCHEMA_ARTIFACTS) {
     );
   }
 }
+for (const file of MAINTAINER_ARTIFACTS) {
+  if (!onDiskSet.has(file)) {
+    failures.push(
+      `STALE MAINTAINER_ARTIFACTS: regen.ts lists \`${file}\`, which does not exist in ${SCHEMA_DIR}.`,
+    );
+  }
+}
+
+// ---- Class 4 is asserted: authored, `ours`, and read by no shipped surface --------------------
+const maintainerOnlyByFile = new Map(MAINTAINER_ONLY.map((e) => [e.file, e]));
+const payloadManifest = JSON.parse(readFileSync(join(repo, SCHEMA_DIR, 'payload-manifest.json'), 'utf8')) as {
+  payload: { pattern: string }[]; ours: { pattern: string }[];
+};
+const readerFiles = execSync(`git ls-files ${SHIPPED_READERS.join(' ')}`, { cwd: repo, encoding: 'utf8' })
+  .trim().split('\n').filter(Boolean);
+if (readerFiles.length < 50) {
+  failures.push(`CLASS 4 READERS: only ${readerFiles.length} tracked file(s) under ${SHIPPED_READERS.join(', ')} — the reference scan is not reaching the surfaces, so it cannot vouch that nothing reads a maintainer file.`);
+}
+const readerText = readerFiles.map((f) => { try { return [f, readFileSync(join(repo, f), 'utf8')] as const; } catch { return [f, ''] as const; } });
+for (const file of MAINTAINER_ARTIFACTS) {
+  const entry = maintainerOnlyByFile.get(file);
+  if (!entry || !entry.why.trim()) {
+    failures.push(
+      `CLASS 4 NOT ARGUED: regen.ts lists \`${file}\` in MAINTAINER_ARTIFACTS, which takes it out of both ` +
+        `prose gates and the emission-version gate, but MAINTAINER_ONLY in this file does not name it with a ` +
+        `reason. A file that ships belongs in SCHEMA_ARTIFACTS; one that does not is named here, with why.`,
+    );
+  }
+  const path = `schema/${file}`;
+  const ours = payloadManifest.ours.some((r) => r.pattern === path);
+  const payload = payloadManifest.payload.some((r) => r.pattern === path);
+  if (!ours || payload) {
+    failures.push(`CLASS 4 NOT OURS: \`${path}\` is in MAINTAINER_ARTIFACTS but payload-manifest.json does not classify it \`ours\` alone (ours: ${ours}, payload: ${payload}).`);
+  }
+  const readers = readerText.filter(([, t]) => t.includes(file)).map(([f]) => f);
+  if (readers.length) {
+    failures.push(`CLASS 4 READ BY A SHIPPED SURFACE: \`${file}\` is in MAINTAINER_ARTIFACTS but ${readers.join(', ')} name(s) it — a file a surface reads is a file that ships.`);
+  }
+}
+for (const { file } of MAINTAINER_ONLY) {
+  if (!MAINTAINER_ARTIFACTS.includes(file)) {
+    failures.push(`STALE MAINTAINER_ONLY: \`${file}\` is named in MAINTAINER_ONLY but regen.ts does not list it in MAINTAINER_ARTIFACTS.`);
+  }
+}
 
 lines.push(`  ${onDisk.length} tracked file(s) in ${SCHEMA_DIR}, each classified once:`);
 lines.push(`    ${classified.regen.length} generated (SCHEMA_ARTIFACTS, both gates automatically): ${classified.regen.sort().join(' · ')}`);
 lines.push(`    ${classified['both-gates'].length} authored, prose-gated in both: ${classified['both-gates'].sort().join(' · ')}`);
 lines.push(`    ${classified.exempt.length} authored, exempt with a reason: ${classified.exempt.sort().join(' · ') || '(none)'}`);
+lines.push(`    ${classified.maintainer.length} generated, maintainer-only, not prose-gated (MAINTAINER_ARTIFACTS): ${classified.maintainer.sort().join(' · ') || '(none)'}`);
 
 console.log(`Schema-classification gate — ${SCHEMA_DIR}`);
 for (const l of lines) console.log(l);

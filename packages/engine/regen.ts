@@ -41,6 +41,8 @@ const STEPS: Array<{ label: string; args: string[] }> = [
   { label: 'emit-preview   (preview-spec)', args: ['packages/engine/emit-preview.ts'] },
   { label: 'emit-brandinput(example-brands)', args: ['packages/engine/emit-brandinput.ts'] },
   { label: 'emit-icons     (icon-glyphs.ts)', args: ['packages/engine/emit-icons.ts'] },
+  // #1701 — the component docs projection. Reads the def registry only, so it has no ordering dependency.
+  { label: 'emit-component-docs (out/components/** + component-maintainer)', args: ['packages/engine/emit-component-docs.ts'] },
 ];
 
 // Committed generated artifacts that live at the ENGINE ROOT rather than under `out/`. Both were
@@ -68,6 +70,16 @@ export const ENGINE_ARTIFACTS = ['modes-report.md', 'nb-regression-report.md', '
 // the same class of risk as the `out/` drift that prompted #281: committed, generated, and until
 // now unverified. They happen to be in sync today; the point is that nothing was keeping them so.
 export const SCHEMA_ARTIFACTS = ['lever-manifest.json', 'preview-spec.json', 'example-brands.json'];
+
+// The MAINTAINER RECORD (#1701): `schema/component-maintainer.json`, each component def's `anatomy.codeOnly`
+// and `notes.*`, which #1623 ruled maintainer-only. Generated and drift-checked here exactly like the list
+// above, and deliberately NOT in it, because every other reader of `SCHEMA_ARTIFACTS` takes membership to
+// mean "this ships": `lint-us-english.ts` and `lint-voice.ts` scan it as shipped prose, and
+// `lint-emission-version.ts` demands an ENGINE bump when it moves. None of that is true of a file no client
+// receives, so it gets its own list: `lint-payload-manifest.ts` classifies it (`ours`), and
+// `lint-schema-classification.ts` accepts it as a fourth class, generated and maintainer-only. Moving it
+// into `SCHEMA_ARTIFACTS` would put issue numbers and brief references under the shipped-prose gates.
+export const MAINTAINER_ARTIFACTS = ['component-maintainer.json'];
 
 // Every file under `out/`, repo-relative, sorted — the comparison universe. Walks rather than
 // globbing so `out/figma/<brand>/*.json` is covered without naming each brand.
@@ -109,7 +121,7 @@ const check = (): void => {
   try {
     cpSync(outDir, outSnap, { recursive: true });
     mkdirSync(schemaSnap, { recursive: true });
-    for (const f of SCHEMA_ARTIFACTS) cpSync(join(schemaDir, f), join(schemaSnap, f));
+    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaDir, f), join(schemaSnap, f));
     mkdirSync(engineSnap, { recursive: true });
     for (const f of ENGINE_ARTIFACTS) cpSync(join(here, f), join(engineSnap, f));
 
@@ -130,7 +142,7 @@ const check = (): void => {
     for (const rel of before.keys()) if (!after.has(rel)) removed.push(`packages/engine/out/${rel}`);
 
     // schema/ — only the named emitted files; the hand-authored contracts alongside them are not ours.
-    for (const f of SCHEMA_ARTIFACTS) {
+    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) {
       if (!readFileSync(join(schemaSnap, f)).equals(readFileSync(join(schemaDir, f)))) drifted.push(`packages/engine/schema/${f}`);
     }
     // engine root — the two committed reports.
@@ -141,10 +153,10 @@ const check = (): void => {
     // Restore the committed state either way — the gate reports, it never rewrites.
     rmSync(outDir, { recursive: true, force: true });
     cpSync(outSnap, outDir, { recursive: true });
-    for (const f of SCHEMA_ARTIFACTS) cpSync(join(schemaSnap, f), join(schemaDir, f));
+    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaSnap, f), join(schemaDir, f));
     for (const f of ENGINE_ARTIFACTS) cpSync(join(engineSnap, f), join(here, f));
 
-    const checked = after.size + SCHEMA_ARTIFACTS.length + ENGINE_ARTIFACTS.length;
+    const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length;
     if (!drifted.length && !added.length && !removed.length) {
       console.log(`\n✓ in sync — ${checked} committed artifacts byte-match what the engine emits.`);
       return;

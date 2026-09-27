@@ -323,7 +323,7 @@ export const environmentProblems = async (): Promise<string[]> => {
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 111;
+const EXPECTED_ARTIFACTS = 137;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -756,6 +756,13 @@ export const GATES: Gate[] = [
     id: 'lint-advisory-expiry',
     ciStep: 'A stated advisory window has not expired',
     cmd: engine('lint-advisory-expiry.ts'),
+  },
+  {
+    // #1701 — reads the COMMITTED out/components/**, so it needs no `after`: regen --check is what
+    // proves those files match the projector, and this proves they match the defs.
+    id: 'lint-component-docs',
+    ciStep: 'Every component def is documented in both forms (#1701)',
+    cmd: engine('lint-component-docs.ts'),
   },
   {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR
