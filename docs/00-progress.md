@@ -7,6 +7,11 @@
 
 ---
 
+## (2026-09-27) — UI exploration brief: one surface for progress, results and fixes (docs only)
+
+**STATUS: docs only.** The owner added a direction to the studio/plugin UI exploration: the product needs a more robust way to show progress, component-build status, errors and their resolution. A drawer that shows progress, then the final status and errors, with actions to fix them, was given as an example, not the answer. It is recorded as §7.1 of `docs/superpowers/specs/2026-09-26-ui-exploration-brief.md`. That section lists the failure causes known today with the fix each implies (Apply Theme first, Build again to repair links, Prune stale, rebuild a stale plugin, and so on). The ideation prompt's required moments gain one: a long build with an error and its resolving action.
+---
+
 ## (2026-09-26) — the spinner's SVG import, verified on a real host (notes only)
 
 **STATUS: notes + docs only; no version bump.** `components/spinner.ts` shipped (#1677) with two `notes.unverified` items: that Figma's importer maps a `<path opacity>` to layer opacity, and that it reads the elliptical-arc (`A`) commands. Both were measured live on 2026-09-26 in the NB Approved MCP Testing File. The probe ran `figma.createNodeFromSvg` on the exact spinner document, read it back, and removed it, leaving nothing in the file. The two items move to a `notes.evolution` record.
