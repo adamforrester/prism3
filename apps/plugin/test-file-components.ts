@@ -28,8 +28,16 @@
  *   - drop either half of `stackVariants` (#1600) — remove the `autoLayout(set, …)` call OR the
  *     `layoutPositioning = 'AUTO'` loop → the "stacks variants VERTICALLY" / "every variant child is
  *     in-flow" arms fail BY NAME.
+ *   - restore file setup's exact-name check (`n.name === '_Section-header' || n.name === '_Headings'` in
+ *     `ensureFileComponents`) → the three "file setup: … gets NO second set" arms fail BY NAME. Restoring
+ *     only one half fails only that half's arm, which is why each set also has an arm of its own.
+ *
+ * FILE SETUP'S IDEMPOTENT BUILD, IN ANY CASE (#1711 follow-up). Both of the owner's NB files carry the sets as
+ * `_section-header` and `_headings` (measured live, 2026-09-27). `ensureFileComponents` — the call file setup
+ * makes — must build nothing on a page that already holds either one, whatever its case. The set names on
+ * the shim page are literals written here, never `SECTION_HEADER_SET` / `HEADINGS_SET`.
  */
-import { buildFileComponents } from './src/file-components';
+import { buildFileComponents, ensureFileComponents } from './src/file-components';
 import type { FileComponentsApi, FNode } from './src/file-components';
 
 let failures = 0;
@@ -216,6 +224,36 @@ for (const name of ['_Section-header', '_Headings']) {
     set.children.every((c) => c.layoutPositioning === 'AUTO'),
     `${name}: every variant child is in-flow (layoutPositioning=AUTO, not ABSOLUTE)`,
   );
+}
+
+// ── File setup's idempotent build, in any case ───────────────────────────────────────────────────────
+console.log('file setup: existing sets in another case');
+{
+  // A `↳ File Components` page holding the given sets: `findOne` searches its children, like a PageNode's.
+  const pageHolding = (names: string[]) => {
+    const kids: { type: string; name: string }[] = names.map((name) => ({ type: 'COMPONENT_SET', name }));
+    return {
+      kids,
+      appendChild(c: unknown) { kids.push(c as { type: string; name: string }); },
+      findOne(pred: (n: unknown) => boolean) { return kids.find(pred) ?? null; },
+    };
+  };
+  for (const names of [['_section-header', '_headings'], ['_section-header'], ['_headings']]) {
+    const { api: fresh, sets: made } = makeApi();
+    const p = pageHolding(names);
+    const res = await ensureFileComponents(fresh, p);
+    ok(res.skipped === true && made.length === 0 && p.kids.length === names.length,
+      `file setup: a page holding ${names.join(' + ')} gets NO second set (skipped ${res.skipped}, ${made.length} sets built)`);
+  }
+  // The control: an empty page is built on, so the arms above can fail.
+  const { api: fresh, sets: made } = makeApi();
+  const empty = pageHolding([]);
+  const res = await ensureFileComponents(fresh, empty);
+  ok(res.skipped === false && made.length === 2, `file setup: an empty page gets both sets (skipped ${res.skipped}, ${made.length} sets built)`);
+  // A component set that is not a template set does not block the build.
+  const { api: fresh2, sets: made2 } = makeApi();
+  const res2 = await ensureFileComponents(fresh2, pageHolding(['Button']));
+  ok(res2.skipped === false && made2.length === 2, `file setup: a page holding only Button still gets both sets (${made2.length} sets built)`);
 }
 
 console.log(failures === 0 ? '\nfile-components: all assertions pass' : `\nfile-components: ${failures} FAILED`);
