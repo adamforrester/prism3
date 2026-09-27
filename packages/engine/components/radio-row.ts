@@ -4,6 +4,8 @@
  * The painted circle-and-dot moved to `radio-control`; this def is the labeled row that nests one
  * instance of it in flow, `nest-exposed`, and paints the label.
  *
+ * KB brief: `components/radio.md`.
+ *
  * The brief's framing, and it is the whole shape of this def: *"a lone checkbox is a valid control
  * (a consent box); a lone radio is meaningless — it only means 'one of these', and needs siblings and
  * a shared `name` to mean anything at all."* Everything below follows from that one sentence.

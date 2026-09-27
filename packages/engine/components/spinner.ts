@@ -1,5 +1,5 @@
 /**
- * Spinner — the indeterminate loading indicator (#1670; KB `components/spinner.md`, the Progress / Spinner /
+ * Spinner — the indeterminate loading indicator (#1670; KB brief: `components/spinner.md`, the Progress / Spinner /
  * Skeleton triad). A distinct primitive, not a glyph in the icon set: it carries behavior an icon cannot
  * (rotation, a reduced-motion substitute, a host-owned anti-flash delay and a busy announcement), and a static
  * loading glyph in the set would invite shipping the drawing without any of it. Indeterminate only — no value.
@@ -51,7 +51,8 @@ export const spinner: ComponentDef = {
   id: 'spinner',
   name: 'Spinner',
   // Brief §10's map, less `circular-progress` / `progress-circle` — they route to Progress (`notes.contested`).
-  aliases: ['loading indicator', 'activity indicator', 'loader', 'busy indicator', 'loading', 'inline-loading', 'spin'],
+  // Kebab-case like every other def's aliases (#1700); the spaced phrases stay in `ai.triggerKeywords`.
+  aliases: ['loading-indicator', 'activity-indicator', 'loader', 'busy-indicator', 'loading', 'inline-loading', 'spin'],
   // Brief §15 (`category: foundations`), beside `icon` and `focus-ring`. Measured before moving it off
   // `feedback`: `validateComponentDef` requires the field and nothing else reads it — no emitter, projection,
   // plan or gate — so the move is metadata only. The Figma page is the plugin's file taxonomy (Subcomponents,
@@ -177,7 +178,8 @@ export const spinner: ComponentDef = {
   },
 
   composition: {
-    composesWith: ['button'],
+    // Nests nothing (#1700: `composesWith` is what a def nests). The hosts that swap it in are partners.
+    composesWith: [],
     alternativeTo: [],
     // `toast` — brief §12: a background wait that ends in a success or failure toast closes the loop.
     planned: ['progress', 'skeleton', 'toast'],

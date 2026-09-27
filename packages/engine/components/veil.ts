@@ -3,6 +3,11 @@
  * stays legible (#1030, renamed #1317, built here). A standalone, full-bleed overlay, and the FIRST
  * component whose whole job is to bind the semantic `veil.*` roles into a component surface.
  *
+ * No KB brief: the catalogue has no veil or scrim brief, and nothing below cites one. Category
+ * `foundations` — a media surface beside `image-placeholder`, whose brief (`image.md`) is Foundations.
+ * Not `overlay`: in the KB that category is the floating layers (dialog, popover, tooltip), and a veil is
+ * a wash inside the layout, not a layer above it.
+ *
  * ── WHAT IT IS, AND THE ONE THING IT IS NOT ─────────────────────────────────────────────────────
  *
  * `veil` is the wash a designer CHOOSES per image — a dark wash under light text, a light wash under
@@ -21,8 +26,8 @@
  *
  * The fill for a (value, intensity) coordinate binds the matching role and nothing else. This
  * introduces NO new emitted token name — `veil.*` are appearance-invariant semantic color roles that
- * already ship — so `token-contract.ts --check` stays green and `CONTRACT_VERSION` does not move
- * (10.0.0). A prior build tried to bind the raw alpha PRIMITIVES (`black-alpha.*` / `white-alpha.*`)
+ * already ship — so `token-contract.ts --check` stays green and `CONTRACT_VERSION` did not move for it
+ * (10.0.0 when the def landed). A prior build tried to bind the raw alpha PRIMITIVES (`black-alpha.*` / `white-alpha.*`)
  * and hit the wall this repo's semantic-layer rule exists to raise; binding the semantic `veil.*`
  * roles is the accepted path — the same shape as `button` binding `color.field.*` rather than a
  * palette step.
@@ -31,7 +36,7 @@
  *
  * `value` and `intensity` are new entries in `VARIANT_AXES`, a list #756 deliberately closed. The
  * names are the owner's decision (the component's variant API is a design call); reopening the list to
- * honour them is the mechanical fallout, and each is held to that list's own bar — a distinct kind of
+ * honor them is the mechanical fallout, and each is held to that list's own bar — a distinct kind of
  * distinction no existing name expresses. `intensity` (a wash's magnitude) is nearest to `weight` (type
  * heaviness) and `appearance` (a control's emphasis/render strategy) and is neither: it is how STRONG
  * an overlay is, which no other axis names. `value` (a dark-vs-light lightness polarity) is nearest to
@@ -74,7 +79,8 @@ export const veil: ComponentDef = {
   id: 'veil',
   name: 'Veil',
   aliases: ['wash', 'photo-wash', 'image-overlay', 'image-scrim', 'media-wash', 'photo-overlay'],
-  category: 'media',
+  // `foundations` (#1700) — no brief, so a stated choice; the header gives the reason.
+  category: 'foundations',
   status: 'draft',
   summary: 'Wash over media so text stays legible. Intensity is a magnitude — verify contrast.',
   description:
@@ -107,7 +113,7 @@ export const veil: ComponentDef = {
   tokens: {
     // ── THE SIX WASH FILLS — each (value, intensity) coordinate binds the matching semantic veil role.
     // No new token name is introduced: these roles already ship (renamed by #1317), so CONTRACT_VERSION
-    // stays at 10.0.0. They are appearance-invariant alpha washes, identical in every mode, which is why
+    // does not move for them. They are appearance-invariant alpha washes, identical in every mode, which is why
     // there is no per-mode or per-state key here to resolve.
     'dark.subtle': 'color.veil.dark.subtle',
     'dark.medium': 'color.veil.dark.medium',
@@ -204,13 +210,16 @@ export const veil: ComponentDef = {
     primaryPurpose: 'Place a designer-selected wash over a photograph or video so text set on top of it stays legible, choosing the wash\'s polarity and magnitude per image.',
     whenToUse: 'Text or controls sit over a photograph or video and need to stay readable against a varied image. Pick a dark wash under light text or a light wash under dark text, then the intensity for how much the image needs muting, and verify contrast against the real photo.',
     avoidWhen: 'The overlay is the backdrop behind a modal or dialog (that is scrim.default, a mode-varying fill referenced directly, not this component), the surface behind the text is a solid color rather than an image (bind a semantic background or text role directly and the contrast is known), or a directional gradient wash is required (not built yet — only solid washes exist today).',
-    commonPartners: ['icon', 'button'],
+    // What sits ON a veil (text, an icon, a button) and what it sits over (`image-placeholder`'s frame).
+    // None is nested, so all are partners (#1700).
+    commonPartners: ['icon', 'button', 'image-placeholder'],
     triggerKeywords: ['veil', 'wash', 'photo wash', 'image overlay', 'image scrim', 'photo overlay', 'text over image', 'darken image', 'media wash'],
     generationPriority: 3,
   },
 
   composition: {
-    composesWith: ['icon', 'button'],
+    // Nests nothing (#1700): the veil is one box, and what sits on it is a sibling.
+    composesWith: [],
     alternativeTo: [],
     replacesPatterns: [
       'a hand-tuned semi-transparent rectangle over an image with an ad-hoc opacity',
@@ -223,7 +232,7 @@ export const veil: ComponentDef = {
 
   notes: {
     contested: [
-      'THE FILL SLOT IS `fill`, NOT `overlay`, and that is the brief\'s call rather than an oversight. A veil IS conceptually a tint over whatever is beneath it, which is what `BOX_PAINT_SLOTS`\' `overlay` slot names — and `lint-paint.ts` arm 4 excludes `overlay` from its redundant-edge measurement for exactly that reason (a tint\'s alpha would be mis-measured as opaque). The veil binds `fill` because the wash IS the box\'s whole paint here — there is no ground fill beneath it that the wash sits over WITHIN this component; the image it washes is a sibling behind the veil node, not a fill on it. `fill` and `overlay` would resolve the same variable and reach the same node; `fill` is the primary slot and the one a slot-free paint template answers, which keeps the grammar to a single template.',
+      'THE FILL SLOT IS `fill`, NOT `overlay`, and that is a call made in this def rather than an oversight (there is no brief to make it). A veil IS conceptually a tint over whatever is beneath it, which is what `BOX_PAINT_SLOTS`\' `overlay` slot names — and `lint-paint.ts` arm 4 excludes `overlay` from its redundant-edge measurement for exactly that reason (a tint\'s alpha would be mis-measured as opaque). The veil binds `fill` because the wash IS the box\'s whole paint here — there is no ground fill beneath it that the wash sits over WITHIN this component; the image it washes is a sibling behind the veil node, not a fill on it. `fill` and `overlay` would resolve the same variable and reach the same node; `fill` is the primary slot and the one a slot-free paint template answers, which keeps the grammar to a single template.',
       'THE `value` VALUES ARE LOWER-CASE `dark`/`light`, not the capitalized `Dark`/`Light` a UI shows, and that is forced by `lint-paint.ts` arm 1 rather than a style choice. Arm 1 splits a paint key\'s ref on `.` and checks the key\'s LEAD segment is a member — so a key led by `Dark` binding `color.veil.dark.*` would fail, because `dark` (the role segment) is not `Dark` (the lead). The corpus convention is lower-case axis values anyway (`unchecked`, `off`, `filled`, `regular`), with the capitalized form left to the UI label; `weight` makes the same split (`bold` → `type.body.*.strong`). So the KEY carries the lower-case axis value and the REF carries the matching lower-case role segment, and arm 1 covers every veil fill with no exemption. Spelling the values `Dark`/`Light` would need six `PROVENANCE_EXCEPTIONS` entries for no gain, which is fixing a false positive by narrowing a scan — the move this repo forbids.',
     ],
     unverified: [

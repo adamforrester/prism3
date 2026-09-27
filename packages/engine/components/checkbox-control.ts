@@ -5,6 +5,8 @@
  * (#1011) — now propagates to the Row, and later to the Group, by single-sourcing rather than by three
  * copies kept in step by hand.
  *
+ * KB brief: `components/checkbox.md` — the exposed atomic primitive of the brief's decomposition (§2).
+ *
  * ── WHAT MOVED HERE, AND WHY THE ROW STILL EXISTS ──────────────────────────────────────────────────
  *
  * `checkbox` WAS the labeled Row with the atom inlined: `row → controlBox → control → {mark, dash,
@@ -332,7 +334,6 @@ export const checkboxControl: ComponentDef = {
 
   notes: {
     contested: [
-      'THE ATOM IS A SEPARATE COMPONENT rather than kept inline in the row. Settled by #1226\'s composition model (owner): a shared piece is single-sourced so a fix propagates to every host that nests it. The rejected alternative — keeping the control inline and copying it into radio and switch — is exactly the per-def duplication #1011 found had shipped the identical fill/border pairing across three defs. The nest costs one indirection; the copy costs three chances to drift.',
       'THE NOMINAL `role: target`. A bare control square is not independently the hit target — SC 2.5.8 wants the whole labeled row — so `target` here is the interaction marker the schema requires exactly one of, not a claim the square is clickable. The same nominal marker `focus-ring`\'s `ring` part carries, and stated so a reader does not infer a 12-24px clickable square.',
     ],
     unverified: [
@@ -341,6 +342,8 @@ export const checkboxControl: ComponentDef = {
       'THE PADDED-ARTBOARD GLYPH INSET IS UNVERIFIED ON A REAL HOST (#1346). `glyphScale: 0.8` emits the mark/dash on an artboard padded to `grid ÷ 0.8` with a NEGATIVE viewBox origin (`-3 -3 30 30`) so the same path centers in the larger canvas. The offline model asserts the document, the read-back box (`glyphViewBox` = the padded dims) and the ink-fit; what it cannot see is whether `figma.createNodeFromSvg` positions a negative-origin viewBox as centered and whether the imported vector holds 0.80 through the frame\'s subsequent resize to the box. Same posture as the nest-sizing note above. The symptom to look for: a check that renders full-bleed (the pad was ignored) or off-center toward the top-left (the negative origin was dropped).',
     ],
     evolution: [
+      // Moved from `contested` (#1700): decided by #1226, so it is evolution.
+      'THE ATOM IS A SEPARATE COMPONENT rather than kept inline in the row. Settled by #1226\'s composition model (owner): a shared piece is single-sourced so a fix propagates to every host that nests it. The rejected alternative — keeping the control inline and copying it into radio and switch — is exactly the per-def duplication #1011 found had shipped the identical fill/border pairing across three defs. The nest costs one indirection; the copy costs three chances to drift.',
       'RADIO AND SWITCH SPLIT AFTER THIS ONE. This entry used to say they were not split here: this was checkbox step 2 only, with the radio atom filed next and switch out of scope over its moving thumb. Both followed — `radio-control` (#1348, one `dot` box, no dash) and `switch-control` (#1354).',
       'Styling the native input won (brief §13): `appearance: none` plus a pseudo-element or SVG replaced both the `role=checkbox` div and the hidden-input-plus-fake-box hacks, keeping native semantics. That is the input this atom paints.',
       'The `indeterminate` ref callback superseded `useLayoutEffect` for performance in large lists (brief §13) — the mixed state is a DOM property the host sets, which is why this atom only draws the dash.',

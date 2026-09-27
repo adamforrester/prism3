@@ -1,5 +1,6 @@
 /**
- * IconButton — the icon-only specialization of Button (KB brief §6, §10, §12).
+ * IconButton — the icon-only specialization of Button (KB brief: `components/button.md`, §6, §10, §12 —
+ * the Button brief's icon-only case; there is no separate icon-button brief).
  *
  * It exists as a DISTINCT component for one reason: an icon-only control has no visible
  * text, so its accessible name must be REQUIRED at the type level — "button, unlabeled" is
@@ -559,7 +560,9 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
   composition: {
     // #1697 — `spinner` joins: the pending member swaps it in. `alternativeTo` names the labeled Button of
     // the SAME family, the one `inherits` already names.
-    composesWith: ['icon', 'focus-ring', 'spinner'],
+    // #1700 — what the anatomy nests: the ring (absolute) and the pending spinner (an overlay swap). The
+    // `icon` the required slot carries is a partner, not a part — a slot names no component (#513).
+    composesWith: ['focus-ring', 'spinner'],
     alternativeTo: [inheritsFrom],
     planned: ['tooltip', 'button-group', 'menu', 'popover', 'link'],
     replacesPatterns: ['div[role=button] wrapping an icon', 'a <button> holding only an <svg> and no accessible name'],
@@ -597,7 +600,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
 // disabled / square sizing / required-icon slot / focus ring and differ ONLY in the `interactive.<family>`
 // bindings, so a future edit cannot silently desync them. `icon-button` keeps the id `icon-button` and is
 // the primary/brand component; `Destructive IconButton` and `Neutral IconButton` are its siblings. ACCENT
-// is deliberately not among them, on the split's own logic and by the same path Button records: the colour
+// is deliberately not among them, on the split's own logic and by the same path Button records: the color
 // family is a per-brand `interactive.accent.*` promotion, and the COMPONENT is a Figma duplicate-and-rebind
 // of the primary set, not a set the engine enumerates.
 export const iconButton: ComponentDef = makeIconButton(
