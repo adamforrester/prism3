@@ -339,6 +339,30 @@ The order matters: **Apply before Build**, because component sets bind variables
   Known gaps: agent-started work shows no progress in the panel, and there's no warning that Figma runs 20–300× slower when its window is in the background.
 - **Build identity**: which engine version and plugin build produced this. A stale plugin build is a real failure mode in practice.
 
+### 7.1 One place for activity, results and fixes (owner direction, 2026-09-27)
+
+Today's status for long operations is a row of short pills with an expandable text summary. That doesn't scale to what the plugin now does: multi-minute builds, dependencies built first, a reference back-off, repair runs and agent-started work. The redesign needs **one robust surface for progress, final status, errors and their resolution**. A drawer that opens during an operation, shows its progress, then its outcome and any errors, and offers actions to fix them is one example. It is not the required answer.
+
+What that surface must carry:
+- **Progress while it runs**, for every long operation (Apply Theme, Build, Prune, Set up file):
+  - the phase (for Build: building members, wiring references, retrying property links) and how far along it is;
+  - dependencies being built first, as their own lines.
+- **Work an agent started**, shown the same way as work you started. Today agent-started builds show no progress at all.
+- **A final status that a person can read**, not a log. What was built, what was skipped as already present, what is stale, and what is missing, each as a count with the detail one step away.
+- **Errors grouped by cause, each with its fix where one exists.** Known causes today, with the resolution each implies:
+  - variables a build needed are missing → run **Apply Theme** first;
+  - property links that didn't take → **Build again** (the repair run re-links them);
+  - a layer not found, or a link Figma didn't keep → report only; a rebuild doesn't fix it;
+  - members built from an older plan (**stale**) → delete those members and rebuild, or build into a fresh page;
+  - Apply Theme refused by a **pre-flight conflict** with non-Prism3 content of the same name → rename or remove the named item, then apply again;
+  - fonts unavailable → install the face or choose another, then apply again;
+  - **orphaned** or **stranded** items after an Apply → **Prune stale**, with its preview and confirm;
+  - a declared mode missing from the file → apply again (the read-back check is being built);
+  - the plugin build is older than the engine that shipped the fix → rebuild the plugin;
+  - the Figma window is in the background during a long build → bring it forward.
+- **History**: the last result of each operation stays reachable after the next one starts. Each component set already stores its last build report in the file, so the surface can show a set's last result even in a new session.
+- **Safe actions only**: a fix that deletes or rewrites something previews first, as Prune already does. An action that can't be undone never runs from a single click.
+
 ---
 
 ## 8. Rules and requirements
@@ -497,7 +521,7 @@ Full standard: `docs/voice-standard.md`.
 - The engine's **decisions log** is almost entirely invisible, although it explains *why* the system looks the way it does.
 - **No undo, no reset-to-origin, no compare-to-previous, no copy/share.**
 - The **Figma actions** are split between a top bar and an "internal" components page. Building components is treated as experimental, although designers now rely on it. There's no build-all, no status for what's already built, and no stale overview.
-- **Agent activity** is barely visible: a small chip and the ordinary status verdicts.
+- **Agent activity** is barely visible: a small chip and the ordinary status verdicts. See §7.1 for the direction on progress, results and fixes.
 - No guidance about **keeping Figma in the foreground** during long builds.
 - **Mode editing** is one mode at a time, via a strip. Some settings are edited as per-mode columns instead. The model is inconsistent.
 - The component-level settings (button) sit with size and radius, which suggests they belong to "shape". There's no home yet for component-level options as more components get them.

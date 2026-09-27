@@ -25,6 +25,7 @@ Produce **2 distinct concepts**, and make them genuinely different. For each con
      - finding and fixing a failing contrast pair;
      - exporting tokens with options;
      - the Figma flow: Apply → Build a component set → a partial/failed result → Prune with its preview/confirm → the Agent link on while an agent works;
+     - how progress, final status, errors and their fixes are shown for a long build, including one error with a resolving action (brief §7.1);
      - the same UI at the plugin's **minimum window size, 380×420**, as a separate frame or a toggle.
 4. **Tradeoffs.** What the concept makes easy, what it makes harder, and which rules in brief §8 it strains, if any.
 
