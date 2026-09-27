@@ -2926,6 +2926,20 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.175.0 — #1697: the button and icon-button families aligned to the KB button brief. Three projected
+ * moves, all on the component surface (`out/**` moves by the version stamp only):
+ *   (1) ICON-BUTTON'S DISABLED EDGE rebinds `color.disabled.border` → `color.disabled.icon`, the rebind #1349
+ *       gave Button. The old role measured 1.48–1.80:1 against the page (fill-matched, gated `min: 0`); the
+ *       disabled icon ink clears 3:1 in every mode, so the edge now meets SC 1.4.11. Six outline-disabled
+ *       members per sibling move their stroke (and their inverse twins via the projector's rewrite).
+ *   (2) ICON-BUTTON'S PENDING MEMBERS swap in the real spinner (`spinner/small|medium|large` at the icon's
+ *       1:1 rung) in the icon's own cell, as Button's have since #1670. 36 members per sibling.
+ *   (3) Every member of all six defs carries its def's revised `codeOnly` list (brief §9/§11 rules added on
+ *       Button; the stale focus-ring and spinner-ceiling entries rewritten or retired on icon-button).
+ * Also: per-sibling `ai` (trigger keywords, avoid-when, priority) and `docs.do`, per-family
+ * `composition.alternativeTo`, restated `onClick`/`type` on icon-button, reasoned WCAG lists, and voice fixes
+ * in shipped prose. No token name moves, so CONTRACT STANDS at 13.1.0 (`token-contract --check` level `none`).
+ *
  * 0.174.0 — #1685: personality-trait citations are checked against the briefs they quote. Four `why`
  * strings in `vocabulary.ts` change, and each one ships: it is the bracketed text of the note `brandTheme`
  * returns when a `personality` trait fills a lever, and it is inlined into the studio bundle. `dense` now
@@ -3836,7 +3850,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.174.0';
+export const ENGINE_VERSION = '0.175.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
