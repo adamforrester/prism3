@@ -86,6 +86,8 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Text field', defs: ['text-field'] },
         { page: 'Textarea', defs: ['textarea'] },
         { page: 'Veil', defs: ['veil'] },
+        // Badge — placed under Components pending the owner's call (held in the Badge PR).
+        { page: 'Badge', defs: ['badge'] },
       ],
     },
     {

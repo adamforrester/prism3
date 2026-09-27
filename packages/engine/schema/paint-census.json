@@ -288,6 +288,18 @@
         "assignments": 4,
         "sha256": "a177bcf24040e83f9fbe76a95b2c99fb0d5d8e4c5b74467500e5c00b44e51af6"
       }
+    },
+    "badge": {
+      "set": {
+        "members": 5,
+        "assignments": 10,
+        "sha256": "f78b439dc72c4daac62ffb10404063d4ac63e11e83ac141a969bcfcf2a6deb4f"
+      },
+      "grid": {
+        "members": 5,
+        "assignments": 10,
+        "sha256": "0657b9d9cf5130ef59ec9db23b422ea1881bbd319cc62694d2d5cbc94fc97895"
+      }
     }
   }
 }

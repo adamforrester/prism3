@@ -317,6 +317,23 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
   'textarea|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
+  // `badge`'s tone fills are the SUBTLE tint of the tone (owner decision, 2026-09-27): the role is
+  // `foreground.<tone>-subtle`, whose segment carries the tone as a prefix, not as a whole segment, so arm 1
+  // reads it as absent. The tone labels (`text.<tone>`) satisfy arm 1 and take no exception. `neutral` is the
+  // default badge, and the token tier has no role named `neutral` in either family: its pill is the second
+  // surface and its ink the primary text — the preview's neutral pairing, measured at 4.5:1 in `test.ts`.
+  'badge|neutral.fill':
+    'tone `neutral` maps to the second surface `foreground.secondary` — the token tier has no `foreground.neutral`',
+  'badge|neutral.label':
+    'tone `neutral` maps to the primary text role `text.primary` — the token tier has no `text.neutral`',
+  'badge|info.fill':
+    'tone `info` paints its subtle tint `foreground.info-subtle`, the surface `text.info` is contracted against',
+  'badge|success.fill':
+    'tone `success` paints its subtle tint `foreground.success-subtle`, the surface `text.success` is contracted against',
+  'badge|warning.fill':
+    'tone `warning` paints its subtle tint `foreground.warning-subtle`, the surface `text.warning` is contracted against',
+  'badge|danger.fill':
+    'tone `danger` paints its subtle tint `foreground.danger-subtle`, the surface `text.danger` is contracted against',
 };
 
 /**

@@ -2926,6 +2926,13 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.184.0 — a new component def, `badge` (owner decisions, 2026-09-27): a static status label, count or
+ * dot, one component switched by a `genre` prop, with no states and no interactive binding. Its Figma set
+ * projects the status label across five `tone` members (neutral / info / success / warning / danger); the
+ * count and dot are code-only until a genre axis is admitted. A new def moves the projected surface and
+ * adds one payload artifact (`out/components/badge.md`) → ENGINE MINOR. CONTRACT STANDS at 13.1.0 (no
+ * token name moves; the def binds existing roles only).
+ *
  * 0.183.0 — #1701: component docs are projected. A new emitter, `emit-component-docs.ts`, writes every
  * registered def's documentation from the same data: `out/components/components.ai.json` (one
  * brand-independent file, field names mirroring the def, validated against the authored
@@ -3944,7 +3951,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.183.0';
+export const ENGINE_VERSION = '0.184.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

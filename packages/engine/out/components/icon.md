@@ -79,7 +79,7 @@ None — not interactive.
 
 ## Composition
 
-- **Planned:** `link`, `menu`, `badge`, `illustration`, `logo`, `thumbnail`, `emoji`, `avatar`, `tag`
+- **Planned:** `link`, `menu`, `illustration`, `logo`, `thumbnail`, `emoji`, `avatar`, `tag`
 - **Replaces:**
   - legacy icon fonts
   - ad-hoc inline SVGs outside the set
