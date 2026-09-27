@@ -233,6 +233,16 @@ constructor (`src/file-components.ts`, direct Plugin-API node building), placed 
 Their exact per-variant typography is host-verified, not shim-verified — the same posture as
 `createNodeFromSvg` (a Node shim modelling the numbers back would check the file against itself).
 
+**The page header (owner decisions, 2026-09-27).** After `build-components` lands a set on its `↳ <family>`
+page, `src/page-header.ts` places ONE `_Section-header` instance on that page: Size=Medium, FIXED width at the
+content's width, HUG height, x on the content's left edge and its bottom 80px above the content's top (a
+literal — a page-level `y` is not a bindable field). The title is the family (the leaf's first def's `name`
+up to its first `.`: `Button`, `Checkbox`); the description is that def's `summary`. A rebuild finds the
+header by its main component and adds no second one; it never touches Size, width or position, and writes
+text only while it still reads the placeholder. A file with no `_Section-header` set skips the header and
+the build result says so. The agent link shares this handler; the `use_figma` paste path
+(`src/mcp-steps.ts`) does not place a header. Gated by `test-page-header.ts`.
+
 **Not yet wired:** a UI trigger for `file-setup` (the shared-UI button) is a follow-up — the owner deferred UI
 placement, and the message contract + main-thread handler are complete and ready for it.
 

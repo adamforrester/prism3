@@ -9,7 +9,7 @@
 
 ## (2026-09-27) — component sets: write Figma's purple dashed border (the API returns none)
 
-**STATUS: PR open from `lane/set-dashed-border`, labeled DO NOT MERGE.** Owner-approved fix. Files: `apps/plugin/src/write-components.ts`, `packages/engine/anatomy-figma.ts`, `apps/plugin/component-shim.ts`, `apps/plugin/test-roundtrip.ts`, `packages/engine/test.ts`, the two `deflt` notes in `apps/plugin/lint-unclaimed-defaults.ts`, `version.ts`, plus `out/**` and `schema/token-contract.json`, which move by the engine stamp only. **ENGINE 0.178.0 → 0.179.0** (MINOR; the orchestrator renumbers). **CONTRACT STANDS at 13.1.0.**
+**STATUS: PR open from `lane/set-dashed-border`, labeled DO NOT MERGE.** Owner-approved fix. Files: `apps/plugin/src/write-components.ts`, `packages/engine/anatomy-figma.ts`, `apps/plugin/component-shim.ts`, `apps/plugin/test-roundtrip.ts`, `packages/engine/test.ts`, the two `deflt` notes in `apps/plugin/lint-unclaimed-defaults.ts`, `version.ts`, plus `out/**` and `schema/token-contract.json`, which move by the engine stamp only. **ENGINE 0.180.0 → 0.181.0** (MINOR; the orchestrator renumbers). **CONTRACT STANDS at 13.1.0.**
 
 **The live probe (orchestrator, 2026-09-27).** `figma.combineAsVariants` returns a COMPONENT_SET with `strokes: []`, `strokeWeight: 1`, `strokeAlign: 'INSIDE'`, `dashPattern: [10, 5]`, `cornerRadius: 5`, `fills: []`, `layoutMode: 'NONE'`. The probe ran in a scratch file, and the owner's master file agrees: its built `button` set has 0 strokes. The dash and radius are there, but there is no paint, so no border draws. The purple outline appears on sets that the *editor* creates. The Plugin API does not return it.
 
@@ -46,6 +46,75 @@
 **Traps for whoever re-verifies.**
 - **Paste budget.** The paste twin is budget-bound. `planSetChunks` packs to `SET_CHUNK_BYTES` (42,000), and the `#536 item 6` probe grid must stay one chunk. This change takes that grid from 41,678 to 41,940 bytes. A first, more readable draft reached 42,114 and split the grid, which is why the paste code routes every set write through one `w(k, v, f)` helper. **About 60 bytes of headroom remain**; the next payload addition will likely need a trim or a budget decision.
 - **Keep the stand-ins bare.** Stroke paint cannot be checked offline. If the host ever does start returning a paint, the `keep` branch takes over and nothing changes visibly. But a stand-in that pre-dresses the set would again hide a missing write, so keep the stand-ins bare.
+
+---
+
+## (2026-09-27) — Plugin: a section header at the top of each component page
+
+**STATUS: PR open from `lane/page-section-header`, labeled DO NOT MERGE.** New `apps/plugin/src/page-header.ts` and `apps/plugin/test-page-header.ts` (wired into the plugin `test` script), `main.ts` wiring, plugin README, `version.ts`. **ENGINE 0.179.0 → 0.180.0 (plugin behavior, MINOR); CONTRACT STANDS at 13.1.0** (stamp-only `--accept`). The orchestrator renumbers if another lane lands first.
+
+**What it does (owner decisions, 2026-09-27).** After `build-components` lands a set on its `↳ <family>` page, the plugin places ONE instance of the `_Section-header` file component on that page: Size=Medium, FIXED width at the content's width, HUG height, x on the content's left edge, bottom 80px above the content's top. The title is the family, the description the primary def's `summary`, and the `Description` boolean is on. It runs inside `buildOne`, so a dependency built first (spinner, icon) gets its own page's header too.
+
+**Diagnosis that kept it small.** The page mapping already had the family. `file-taxonomy.ts` lists each leaf's defs in build order, so the primary def is `leaf.defs[0]`, and the family title is that def's `name` up to its first `.` (`Button`, `IconButton`, `Checkbox`, `Radio`, `Switch`). No second family list exists to drift. The measurement is the page's top-level nodes, taken before the header is added. Placement runs after the text write, because the text sets the hugged height the y arithmetic reads.
+
+**Deliberate choices.**
+- **Idempotency is by main component**, not by name. A rebuild looks for a top-level INSTANCE whose `getMainComponentAsync()` parent is the `_Section-header` set, by id or, for a header instanced from a duplicate, by the set's name. It never adds a second, and never touches Size, width or position. A designer's Size=Small stays Small because the check matches any member of the set.
+- **"Placeholder" means the main component's own text.** Text is written only while the instance's Title/Description equals its main component's. A header dropped in by hand, or one whose font failed on the first build, is filled on the next build. Anything a designer typed is kept.
+- **The gap is a literal 80.** A page-level `y` is not a bindable field (only an auto-layout gap is), and wrapping the page in a frame is not what the owner's hand-placed headers do.
+- **A missing set is a skip, never a throw.** `ensurePageHeader` returns `skipped: no-set`. The verdict gains "no header on ↳ Buttons — this file has no _Section-header component; Set up file adds it". A host throw mid-placement is caught in `main.ts` and reported the same way, because the set is already built and a header is labeling. `sink.data` carries `pageHeaders` for the agent link.
+
+**Both build paths.** The agent link's `build-components` calls `ACTIONS.buildComponents`, the same handler, so it is covered. The `use_figma` paste path (`src/mcp-steps.ts` `runComponentChunk`/`runComponentEmit`) runs the engine's payloads rather than this handler, and **does not place a header**. That is noted in the README and the PR, not built here.
+
+**Mutations, committed first, each failing by name.**
+- `HEADER_VARIANT` → `Size=XL` → `2: the header is Size=Medium`.
+- `inst.height` dropped from the y arithmetic → `2: header bottom sits 80px above the content top`.
+- The placeholder check removed → `3: the user-edited description is left alone`.
+- Every instance skipped in the existing-header search → `3: still exactly one header after a second build`.
+- `n.setProperties?.({ Size: 'Medium' })` added to the rebuild branch → `4: the header the user set to Small stays Small`.
+- The missing-set guard removed → `5: no set: skipped, not thrown`.
+
+**Traps for whoever re-verifies.** The shim cannot lay out, so it models HUG as a fixed height per variant (Medium 120). A live host must recompute an instance's hugged height synchronously after the text write for the y placement to be exact. That is host-verified only. The header is placed once, at the width of the content at that moment. A family page built one set at a time (Buttons) takes the first set's width, and later sets do not widen it, by design ("width is never touched on a rebuild").
+
+**Held for the owner.** (1) On Checkbox, Radio and Switch the first-listed def is the Control, so those pages carry the Control's summary ("…Nested by Checkbox.Row; no label."). A leaf field naming the primary def, or a reorder, would change that. (2) Titles are code names (`IconButton`, `TextField`, `FieldLabel`), not the page names (`Icon button`, `Text field`).
+
+
+**Net (orchestrator).** Review fixes applied, plus the owner's calls on copy:
+- **Primary def.** A page's primary def is the first that is not a bare `-control` atom. The Checkbox, Radio and Switch pages carry the Row's summary, not the nested Control's "no label".
+- **Titles.** Titles are sentence-case display names (`IconButton` → "Icon button").
+- **Finding headers.** Headers are found anywhere on the page, including inside a Section. A detached header, now a FRAME named `_Section-header`, counts as present, so no second one is added.
+- **Width.** Hidden top-level nodes no longer widen or move the header.
+- **Result text.** The notes start with a capital. A failed write reads "Figma refused the write" and no longer puts the raw host error into the UI.
+- **Tests.** The Description boolean arm could not fail, because the shim started it `true`; it now starts `false`.
+- **Coverage gap.** Nothing tests the `main.ts` wiring, which is the #1106 limitation.
+- **Mutation.** Dropping the `-control` skip fails `1: the Checkbox page carries the Row's summary …` by name.
+---
+
+## (2026-09-27) — Component alignment: field family + switch (#1699)
+
+**STATUS: PR open from `lane/align-fields-switch-b`, labeled DO NOT MERGE.** ENGINE 0.178.0 → 0.179.0 (MINOR); CONTRACT stands at 13.1.0 (every binding is an existing role; `token-contract --check` level `none`, stamp-only accept). `lint-component-surface` re-accepted for select (20 → 24 members), field-label, text-field, textarea (their nested label moved, and their `codeOnly` prose is on every plan) and switch-control (its `codeOnly` hit-target entry). `lint-paint` census re-accepted for select only.
+
+**The four owner-delegated decisions, as applied.**
+1. **select stays single-choice.** The brief's `multiple` is a `notes.contested` entry; `description` and `avoidWhen` say a multi-value choice is a Checkbox.Group or a multi-select, not built yet.
+2. **select gains `read-only` and `pending`**, text-field's state set. `read-only` projects (text-field's `border.secondary`, the value at full contrast, the status borders held through it); `pending` is admitted in `codeOnly`. `size` stays deferred and is recorded with the brief's other undeclared axes (density, selection, multi-summary, rendering, creatable).
+3. **text-field: one prop per slot.** `prefix` / `suffix` are now TEXT affixes (`string`, a currency symbol or unit — brief §9's locale placement); the glyphs are `leadingIcon` / `trailingIcon`, the clear action `clearable`. Chosen over merging them away because a currency or unit field needs a text affix. API only; a `codeOnly` entry records that the text affixes have no Figma part.
+4. **field-label defaults follow its hosts:** `required: false`, `size: small`, `emphasis: secondary`. The Figma default is the set's FIRST member, so the `emphasis` values reorder to `[secondary, primary]` (`lint-axis-values` register updated — its ARM A treats order as real), and the marker builds hidden.
+
+**The diagnosis that made decision 4 small, and the trap in it.** Figma has no "default variant" to set: `defaultVariant` is the set's first child, which is creation order, which is the first value of each axis in declaration order (`figmaAnatomySet`'s fold). So "the Figma default matches the code default" is an axis-ORDER change, not a property. And the `small` default breaks `lint-rung-names` arm 3 (#756: a default resolves to `md`), correctly: the rule is a corpus property and this is a deliberate exception. It is admitted by name in a new `HOST_DEFAULT_DEFS` (the #1350 `ICON_OFFSET_DEFS` shape): the expectation is the rule (`md` minus one), never the def's binding, and the admission is checked both ways.
+
+**Mechanical fixes.** All six defs gain `motion` and `notes.evolution` from brief §8 / §13 (field-label's from the text-field brief it was extracted from). switch-control: the hit-target `codeOnly` entry re-derived — tracks are 24/32px (thumbs 18/24) in all four corpus brands, since Aurora moved to comfortable density (#1676); the 16px track is compact `small` only, and "a bare track fails SC 2.5.8" was only true there, so the `dont` / `avoidWhen` say that. switch-row: the thumb-glyph and hit-target `unverified` entries re-derived the same way, the brief's Shadow-DOM VoiceOver item added, 2.5.8 reworded as intent, sentence-case examples ("Airplane mode"), `aria` "on"/"off", the brief's consequential-toggle, unobservable-result and `aria-live` guidance, and `field-label` / `field-message` dropped from `composesWith` / `commonPartners` (it nests neither). select: cites `select.md`; aliases per brief §10 (`combobox` out, `select-panel` / `exposed-dropdown-menu` in), `combobox` and `menu` out of the trigger keywords; the 5–15 band; the "Country" null-state placeholder; 1.3.5 added and the closed-control reason for leaving 1.4.13 / 2.1.1 to the open list; trigger and popup roles split; `alternativeTo` → `radio-group`; stale header comments fixed. text-field: the stale `warning` entry, `pressed` and `density` recorded, the brief §6 error-timing contract, 3.3.7 / 3.3.8 as page-level. textarea: the stale type entry (#1494), §8 motion, 2.5.8 reworded, "modeled" / "favoring", and the brief deltas (read-only stays scrollable, errors do not push the handle, RTL counter, MessageComposer / ChatInput). field-label: `composesWith` and `commonPartners` now both name exactly the five defs that nest it; the `size` wording no longer claims every host pairs sizes; `weight` no longer names Inter.
+
+**Gates.** A `test.ts` #1699 block holds each gateable decision against a literal from the brief or the issue, or against a second authored place (the hosts' nest coordinates for decision 4, every def's anatomy for field-label's lists). Existing select counts (20 → 24) and the #1338 marker-visibility arms were updated; the #1338 mutation now flips the default back to `true`. In the plugin suites, `test:roundtrip`'s two select member counts move to 24, the `field ink` owner's map gains select `read-only` → the value in `text.primary` (as text-field), and the message-row live-miss count for select moves 15 → 18 (3 statuses × 6 states).
+
+**Mutations (each committed before, restored after), failing by name:**
+- `combobox` back in select's aliases, `menu` in its keywords → `#1699 select carries every KB-brief alias and not \`combobox\`` and `#1699 select's trigger keywords name neither …`; dropping `select-panel` / `exposed-dropdown-menu` → the first, naming both as missing.
+- `read-only` out of select's `stateAxis` → `#1699 select projects read-only …`, `#1344 select projects … 24 members`, and the validate-clean arms (the state is then unadmitted). A `codeOnly` entry that LED with `read-only` had silently admitted it; it was reworded so the admission check stays live — the trap for anyone adding a note about a projected state.
+- select's `border.read-only` → `field.border.rest` → `#1699 select's read-only member draws the secondary border …`.
+- field-label `size` default back to `medium` → `lint-rung-names` (the #1699 host-aligned message, both type families) and `#1699 field-label defaults are …`; `emphasis` back to `[primary, secondary]` → `lint-axis-values` ARM A and `#1699 field-label's first member (the Figma default) …`; `required` default back to `true` → `#1338 every required marker node is HIDDEN by default …`.
+- text-field `prefix` back to a slot → `#1699 text-field's prefix/suffix are text affixes …` and `#1699 text-field's only slot props …`.
+
+**Held for the owner, not picked:** whether a read-only select keeps its chevron (it does, mirroring text-field's trailing slot); whether the text affixes should project to Figma; `crossAxisFill` for text-field's label / message (#1503, already held). #1367 / #1385 untouched.
+
+**Net (orchestrator).** The independent review found the one blocking consequence of decision 4. `checkbox-group` and `radio-group` nest field-label without overriding `required`, so once FieldLabel defaulted off, both groups built a hidden marker while their own code `required` still defaulted `true`. The groups now default `false`, which is the brief's §15 default. Their `notes.contested` entry, which said a change to FieldLabel's default would reopen it, moves to `evolution` as resolved. A new arm (`#1699 <group>'s required default is false … and agrees with the nested field-label's marker default`) pins the agreement; mutating checkbox-group back to `true` fails it by name. The read-only border contrast finding on `background.secondary` is filed as #1710.
 
 ---
 
