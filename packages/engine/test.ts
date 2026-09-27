@@ -12398,6 +12398,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const flDefault = (name: string) => fieldLabel.props.find((p) => p.name === name)?.default;
     ok(flDefault('required') === false && flDefault('size') === 'small' && flDefault('emphasis') === 'secondary',
       `#1699 field-label defaults are required=false, size=small, emphasis=secondary (got ${String(flDefault('required'))} / ${String(flDefault('size'))} / ${String(flDefault('emphasis'))})`);
+    // The two GROUPS nest field-label without overriding `required`, so their Figma marker IS field-label's
+    // default. Their own code `required` must agree with it — and with the brief (§15: `false`), the literal
+    // expected here. A group left at `true` builds a hidden marker under a code default that says required:
+    // the disagreement the #1699 net review found, which no arm caught.
+    for (const g of [checkboxGroup, radioGroup]) {
+      const gReq = g.props.find((p) => p.name === 'required')?.default;
+      ok(gReq === false && gReq === flDefault('required'),
+        `#1699 ${g.id}'s required default is false (brief §15) and agrees with the nested field-label's marker default (group ${String(gReq)}, label ${String(flDefault('required'))})`);
+    }
     const hostCoords = [select, textField, textarea].map((d) => {
       const lp = d.anatomy!.parts.label as { nesting?: { variant?: Record<string, string> } };
       return `${d.id}:${lp.nesting?.variant?.size}/${lp.nesting?.variant?.emphasis}`;

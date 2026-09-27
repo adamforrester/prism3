@@ -534,7 +534,7 @@ export const select: ComponentDef = {
     //     (which icon) beneath it, the canon nesting.
     //   · `showMessage` (#1426): the composed `message` nest is emitted at every member with `visible: true`
     //     (shown by default — the message is part of the field), and this switch hides the whole part. The
-    //     direction is the INVERSE of `leadingIcon` (default true, like field-label's `required`); the
+    //     direction is the INVERSE of `leadingIcon` (default true; field-label's `required` defaulted true too until #1699); the
     //     mechanism is identical. Panel label `message` (a presence toggle, parallel to `leading icon`); the
     //     code prop stays `showMessage`. FIRST use of the mechanism on a `nest` part.
     booleans: {
