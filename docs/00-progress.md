@@ -43,6 +43,11 @@ Full sweep: 16,954 text nodes, lowest exempt 2.54:1. No floor was lowered.
 - The brand chip's text is the emission's file stem (`aurora`, `harbor`). A chip renamed away from its example id fails the emission-load line by name.
 - The outline row carries no pair on purpose. Its fill is a translucent wash, and its ink is contracted against the page, not the fill. Pairing it needs the composited ground, which is a separate question.
 
+
+**Orchestrator net (review findings).**
+- **Hover.** Hover is no longer "unmapped": #1281 keeps it a UI contract, and `preview-spec.json` declares hover on-fill at `min: 3`. A hover specimen is now held to that `HOVER_MIN`, read from the spec the way `PRESSED_MIN` is. The lowest hover today is 3.30, so the run stays green, with 112 contracted, 48 exempt and 0 unmapped. Mutation (the declared hover min raised to 4) → `✗ <brand> / Preview / <mode>: every paired specimen meets the contract … inverse.interactive.primary.on-fill on ….fill.hover at 3.3:1 (hover keeps UI (#1281), declared min 4…)`.
+- **A missing emitted `min`** is now refused by name. Before, it made the bar NaN, which passes everything.
+- **Per-brand coverage is asserted**, so a brand that stops emitting markers can't hide behind the sweep-wide counts.
 ---
 
 ## (2026-09-26) — Vocabulary: trait citations are checked against the briefs they quote (#1685)

@@ -295,7 +295,8 @@ const barOf = (r) => (r.specimen ? CONTRAST_FLOOR : isLargeText(r) ? CHROME_LARG
  *    exemption leaves owed: the pressed contract `preview-spec.json` declares (0 today, so the smoke floor
  *    governs), and distinction from rest, the one invariant #1281 keeps gated. If the owner ever floors
  *    pressed, that number is read here and the node is held to it; nothing in this file has to move;
- *  - anything else (hover) is not mapped here and stays on `CONTRAST_FLOOR`, #779's open decision.
+ *  - hover is held to its declared hover min (#1281 keeps hover a UI contract; #1694 net); anything else stays
+ *    on `CONTRAST_FLOOR`, #779's open decision.
  *
  * A node is only classified once its claim is PROVEN: the ink is the fill family's own `on-fill`, the fill
  * is the state its column is labeled, and both rendered colors equal the emitted ones. A specimen that
@@ -308,6 +309,13 @@ const PREVIEW_SPEC = JSON.parse(await readFile(join(ROOT, '..', '..', 'packages'
 const PRESSED_MIN = (() => {
   const v = PREVIEW_SPEC.components.find((c) => c.id === 'button')?.variants.find((x) => x.name === 'pressed');
   const ct = v?.contracts?.find((k) => /\.fill\.pressed$/.test(k.bg) && /\.on-fill$/.test(k.fg));
+  return ct ? ct.min : null;
+})();
+/** The hover ink-on-fill contract, read the same way (#1694 net): #1281 keeps hover a UI contract ("Hover keeps
+ *  UI"), so a hover specimen is held to its declared min rather than to the 2.0 smoke floor. */
+const HOVER_MIN = (() => {
+  const v = PREVIEW_SPEC.components.find((c) => c.id === 'button')?.variants.find((x) => x.name === 'hover');
+  const ct = v?.contracts?.find((k) => /\.fill\.hover$/.test(k.bg) && /\.on-fill$/.test(k.fg));
   return ct ? ct.min : null;
 })();
 const EXEMPT_STATES = new Set(['pressed', 'selected']);   // #1281: categorical, a predicate on the STATE
@@ -354,8 +362,14 @@ const classifyPair = (p, emission, mode) => {
   if (!ink || !fill) return { problem: `${!ink ? inkKey : fillKey} does not resolve in the ${mode} emission` };
   if (hexOf(p.ink) !== ink.hex || hexOf(p.fill) !== fill.hex)
     return { problem: `renders ${hexOf(p.ink)} on ${hexOf(p.fill)}, but the engine emits ${inkKey} ${ink.hex} on ${fillKey} ${fill.hex}` };
-  if (fillKey === ink.against) return { cls: 'contracted', bar: Math.max(CONTRAST_FLOOR, ink.min), contract: `${inkKey} min ${ink.min} on ${ink.against}` };
+  if (fillKey === ink.against) {
+    // A missing `min` would make the bar NaN, and `ratio < NaN` is never true — refuse it by name instead.
+    if (typeof ink.min !== 'number') return { problem: `${inkKey} declares no numeric min against ${ink.against} in the ${mode} emission` };
+    return { cls: 'contracted', bar: Math.max(CONTRAST_FLOOR, ink.min), contract: `${inkKey} min ${ink.min} on ${ink.against}` };
+  }
   const restOf = ink.against?.replace(/\.rest$/, '');
+  if (restOf && fillKey.startsWith(`${restOf}.`) && fillState === 'hover' && HOVER_MIN !== null)
+    return { cls: 'contracted', bar: Math.max(CONTRAST_FLOOR, HOVER_MIN), contract: `hover keeps UI (#1281), declared min ${HOVER_MIN}` };
   if (restOf && fillKey.startsWith(`${restOf}.`) && EXEMPT_STATES.has(fillState) && PRESSED_MIN !== null)
     return { cls: 'exempt', bar: Math.max(CONTRAST_FLOOR, PRESSED_MIN), contract: `${fillState} exempt (#1281/#1456), declared min ${PRESSED_MIN}` };
   return { cls: 'unmapped', bar: CONTRAST_FLOOR, contract: 'unmapped (#779)' };
@@ -691,6 +705,11 @@ ok(specimensMeasured > 0 && nodesMeasured - specimensMeasured > 0,
 ok(PRESSED_MIN !== null, `preview-spec.json declares the button's pressed ink-on-fill contract — the exemption's source (#1281); read ${PRESSED_MIN}`);
 ok(pairedByClass.contracted > 0 && pairedByClass.exempt > 0,
   `the sweep held paired specimens in both mapped classes — ${pairedByClass.contracted} contracted, ${pairedByClass.exempt} exempt, ${pairedByClass.unmapped} unmapped (#1652)`);
+ok(HOVER_MIN !== null, `preview-spec.json declares the button's hover ink-on-fill contract (#1281, hover keeps UI); read ${HOVER_MIN}`);
+// PER BRAND, not only in total (#1694 net): a brand whose Preview stopped emitting markers would otherwise drop
+// out of \`modeCells\` silently while the other brand kept the sweep-wide counts green.
+ok(BRANDS.every((b) => [...modeCells].some((k) => k.startsWith(`${b}/`))),
+  `every brand previewed paired specimens (${BRANDS.filter((b) => ![...modeCells].some((k) => k.startsWith(`${b}/`))).join(', ') || 'all present'})`);
 ok(modeCells.size > 0 && [...modeCells].every((k) => exemptCells.has(k)),
   `every brand × mode that previewed paired specimens previewed an exempt pressed one (${exemptCells.size} of ${modeCells.size})${
     [...modeCells].filter((k) => !exemptCells.has(k)).length ? ` — none in ${[...modeCells].filter((k) => !exemptCells.has(k)).join(', ')}` : ''}`);
@@ -704,7 +723,7 @@ console.log(`  Lowest chrome text: ${worstChrome}:1 (bar ${CHROME_TEXT_MIN}:1, $
 console.log(`    ${worstChromeWhere}`);
 console.log(`  Lowest exempt pressed specimen: ${worstExempt}:1 (declared pressed min ${PRESSED_MIN}, smoke floor ${CONTRAST_FLOOR.toFixed(1)}:1 — #1281/#1456, not a finding)`);
 console.log(`    ${worstExemptWhere}`);
-console.log(`  Paired specimens: ${pairedByClass.contracted} contracted, ${pairedByClass.exempt} exempt, ${pairedByClass.unmapped} unmapped (hover — #779) across ${modeCells.size} brand × mode cells.`);
+console.log(`  Paired specimens: ${pairedByClass.contracted} contracted, ${pairedByClass.exempt} exempt, ${pairedByClass.unmapped} unmapped (#779) across ${modeCells.size} brand × mode cells.`);
 
 // =============================================================================================
 // 2. The controls — driven, not merely rendered
