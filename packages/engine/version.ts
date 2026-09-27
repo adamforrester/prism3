@@ -2926,7 +2926,7 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.181.0 — #1700: the support defs align to their KB briefs, and the schema's vocabulary is closed and gated.
+ * 0.182.0 — #1700: the support defs align to their KB briefs, and the schema's vocabulary is closed and gated.
  * Projected surface: only three defs' `codeOnly` lists move (icon, focus-ring, field-message — stale entries
  * reworded), so their plan digests move at the same member counts. Everything else is def metadata no
  * projection reads: `category` is now the KB's seven (a closed union, validated; field-message → feedback,
@@ -2935,6 +2935,16 @@
  * be a registered id, aliases are kebab-case (spinner's three spaced ones renamed), a `contested` entry that
  * settles itself is refused (the settled ones moved to `evolution`), and every def header cites its KB brief
  * or says it has none. MINOR by the running convention. CONTRACT STANDS at 13.1.0: no token name moves.
+ *
+ * 0.181.0 — component sets carry Figma's purple dashed border again, because both executors now WRITE it.
+ * Probed live 2026-09-27: `combineAsVariants` returns the set with `dashPattern: [10, 5]` and a 5px radius but
+ * `strokes: []`, so #1430's "preserve what the host gave the set" preserved no paint and every built set
+ * showed no border. The plugin's `claimDefaults` (`apps/plugin/src/write-components.ts`) and its paste twin
+ * in `PAYLOAD_BUILD` (`anatomy-figma.ts`) now write `SET_BORDER` — one SOLID #9747FF stroke, 1px, INSIDE,
+ * a 10/5 dash, 5px corners — onto a freshly combined set that comes back with no stroke paint; a set that
+ * comes back already stroked keeps its own. A plugin and paste-payload behavior change (what a designer sees
+ * on every built set) → MINOR. No plan, token value or name moves: `out/**` restamps only and the projected
+ * member digests hold. CONTRACT STANDS at 13.1.0 (`token-contract --check` level `none`).
  *
  * 0.180.0 — the plugin places a page header on each component page (owner decisions, 2026-09-27). After a
  * build lands on its `↳ <family>` page, the plugin adds ONE instance of the `_Section-header` file component
@@ -3920,7 +3930,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.181.0';
+export const ENGINE_VERSION = '0.182.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

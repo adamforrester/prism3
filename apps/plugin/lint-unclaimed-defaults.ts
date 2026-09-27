@@ -302,8 +302,8 @@ const VISUALLY_SIGNIFICANT: readonly Row[] = [
 
   // GeometryMixin + ConstraintMixin — the ink, and where the node sits when its parent resizes. Claimed
   // by `glyphSvg` on an imported node, whose outline `[]` would erase.
-  { prop: 'fills', types: ALL, deflt: 'one opaque white SOLID on a frame or a set', seen: 'an opaque white box behind the content — the defect QA found four times', claimedBy: ['fills'], arm: 'ink' },
-  { prop: 'strokes', types: ALL, deflt: '[] on a frame · a purple dashed stroke on a set from combineAsVariants', seen: 'the variant-set border', claimedBy: ['strokes'], arm: 'ink' },
+  { prop: 'fills', types: ALL, deflt: 'one opaque white SOLID on a frame · [] on a set (probed live 2026-09-27)', seen: 'an opaque white box behind the content — the defect QA found four times', claimedBy: ['fills'], arm: 'ink' },
+  { prop: 'strokes', types: ALL, deflt: '[] — on a set from combineAsVariants too: it sets the dash and radius, not the paint (probed live 2026-09-27)', seen: 'the variant-set border', claimedBy: ['strokes'], arm: 'ink' },
   { prop: 'strokeWeight', types: ALL, deflt: '1', seen: 'border thickness, once there is a stroke to draw', claimedBy: ['strokeWeight'], arm: 'ink' },
   { prop: 'strokeAlign', types: ALL, deflt: "'INSIDE'", seen: 'which side of the edge the border sits on', claimedBy: ['strokeAlign'], arm: 'ink' },
   { prop: 'dashPattern', types: ALL, deflt: '[] on a frame · dashed on a set', seen: 'the dash rhythm of that border', claimedBy: ['dashPattern'], arm: 'ink' },

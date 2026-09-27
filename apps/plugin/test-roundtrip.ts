@@ -638,20 +638,34 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // `combineAsVariants` creates them and the host reads them back as `type === 'COMPONENT_SET'` (asserted
 // below), so this is NOT a projection-model defect. What #865 then did was BLANK the fill, purple dashed
 // border and 5px radius Figma dresses a set with, so an emitted set read as a bare frame — the #1430
-// canvas-scanning defect. The fix PRESERVES the border (`write-components.ts`' `isSet` branches). The
-// shared shim now models the border `combineAsVariants` applies (`component-shim.ts`), so this reads it
-// back off the BUILT set and fails BY NAME if the executor blanked it.
+// canvas-scanning defect. The fix claims the set's border (`write-components.ts`' `isSet` branches) —
+// since 2026-09-27 by WRITING `SET_BORDER` on a set the host returns unpainted. The shared shim models the
+// set exactly as the live host returns it (`component-shim.ts`), so this reads the border back off the
+// BUILT set and fails BY NAME if the executor did not write it.
 //
-// The oracle — "a real ComponentSetNode carrying a non-empty dashed stroke and a set-shaped radius" — is
-// authored HERE, not derived from the executor (docs/34): revert either `isSet` branch to the #865 blank
-// and every emitted set trips the positive arm. The framing VALUES are Figma's and cannot be pinned
-// offline (there is no live host); what IS checkable offline — and what the defect was — is whether the
-// executor DESTROYS a border the host supplied. The negative arm proves the check is not vacuous.
+// The oracle — "a real ComponentSetNode carrying a visible SOLID #9747FF dashed stroke and a set-shaped
+// radius" — is authored HERE, not derived from the executor (docs/34): the purple is written below as
+// hex, never imported from `SET_BORDER`, and revert the executor's bare-set write and every emitted set
+// trips the positive arm.
+//
+// 2026-09-27 — THE HOST SUPPLIES NO PAINT. Probed live, `combineAsVariants` returns `strokes: []` with the
+// dash and radius set; the shim used to pre-dress the set with the purple stroke, so this arm read the
+// SHIM'S paint back and passed with no border on any real set. The shim is now bare, as the host is, so
+// the paint this reads can only have been WRITTEN by the executor — which is why the arm now asserts the
+// paint's type and color, not only that the array is non-empty.
 {
+  // #9747FF, compared in 8-bit channels so a host's float32 read-back cannot fail a correct paint.
+  const PURPLE = { r: 0x97, g: 0x47, b: 0xff };
+  const isPurple = (p: unknown): boolean => {
+    const q = p as { type?: unknown; visible?: unknown; opacity?: unknown; color?: { r: number; g: number; b: number } } | undefined;
+    if (q?.type !== 'SOLID' || q.visible === false || (typeof q.opacity === 'number' && q.opacity < 1) || !q.color) return false;
+    return Math.round(q.color.r * 255) === PURPLE.r && Math.round(q.color.g * 255) === PURPLE.g && Math.round(q.color.b * 255) === PURPLE.b;
+  };
   const framed = (set: Record<string, unknown> | undefined): string[] => {
     const problems: string[] = [];
     if (set?.type !== 'COMPONENT_SET') problems.push(`type=${String(set?.type)} (not a real ComponentSetNode)`);
     if (!((set?.strokes as unknown[])?.length > 0)) problems.push('no stroke (the variant-set border was blanked)');
+    else if (!(set?.strokes as unknown[]).some(isPurple)) problems.push(`stroke ${JSON.stringify(set?.strokes)} (not the visible SOLID #9747FF variant-set purple)`);
     if (!((set?.dashPattern as unknown[])?.length > 0)) problems.push('no dashPattern (the border is not dashed)');
     const corners = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].map((c) => Number(set?.[c] ?? 0));
     if (!corners.every((r) => r > 0)) problems.push(`radius ${JSON.stringify(corners)} (a set frame is rounded, not a hard square)`);
@@ -686,10 +700,32 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
   await applyComponentPlan(barePlans, makeShim({ ...fullFor(barePlans), page: barePage }) as any, {});
   const bareSet = barePage.children[0] as Record<string, unknown>;
+  const builtStrokes = bareSet.strokes;
   bareSet.strokes = []; bareSet.dashPattern = [];
   const bareProblems = framed(bareSet);
   ok(bareProblems.length > 0,
     `#1430 mutation: a set stripped of its stroke/dash is reported by name (${bareProblems.join('; ') || 'NOT REPORTED — the check went silent'})`);
+  // And a stroke that is PRESENT but is not the variant-set purple is reported too, so the paint arm reads
+  // the color rather than the array length (the pre-2026-09-27 arm accepted any non-empty stroke).
+  bareSet.strokes = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }]; bareSet.dashPattern = [10, 5];
+  const inkProblems = framed(bareSet);
+  ok(inkProblems.some((p) => /9747FF/.test(p)),
+    `#1430 mutation: a set stroked in a color other than #9747FF is reported by name (${inkProblems.join('; ') || 'NOT REPORTED — the paint check went silent'})`);
+  bareSet.strokes = builtStrokes;
+
+  // LEFT ALONE: a host that hands the set back ALREADY stroked keeps that stroke — the executor writes
+  // `SET_BORDER` only onto a set with no paint. Modelled by wrapping the shim's combine; the paint is a
+  // deliberately non-purple green so "kept" and "overwritten with the purple" read differently.
+  const HOST_PAINT = { type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0, g: 0.5, b: 0 } };
+  const keptPage: Page = { children: [] };
+  const keptShim = makeShim({ ...fullFor(barePlans), page: keptPage }) as unknown as Record<string, unknown>;
+  const combine = keptShim.combineAsVariants as (...a: unknown[]) => Record<string, unknown>;
+  keptShim.combineAsVariants = (...a: unknown[]) => { const s = combine(...a); s.strokes = [{ ...HOST_PAINT }]; return s; };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  await applyComponentPlan(barePlans, keptShim as any, {});
+  const keptSet = keptPage.children[0] as Record<string, unknown> | undefined;
+  ok(keptSet?.type === 'COMPONENT_SET' && JSON.stringify(keptSet.strokes) === JSON.stringify([HOST_PAINT]),
+    `#1430 left alone: a set the host returns already stroked keeps its own stroke — the executor writes the purple only onto a bare set (${JSON.stringify(keptSet?.strokes)})`);
 }
 
 // ── OVERLAY-WASH: BOUND ON container.fills AND RESOLVED BY THE EMITTED BRAND (#1429) ────────────
