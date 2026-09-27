@@ -924,39 +924,6 @@ export type TypeGroup = typeof TYPE_GROUPS[number];
  *  cut is still weight 300), so it stays truthful. */
 export type FacePin = { family: string; style: string };
 
-/** #1296 — the CSS `font-style` a pinned Figma STYLE NAME implies, or `undefined` for an upright cut.
- *
- *  A pin changes which face Figma binds, and before #1296 that was ALL it changed: `$value.fontStyle`
- *  followed only the composite's `italic` MODIFIER, so a slot pinned to "Medium Italic" rendered italic in
- *  Figma and upright in code — the Text Style and the CSS disagreeing about the same token. A pin that
- *  names a slanted cut now carries that slant into every emitted surface that states a font style.
- *
- *  THE RECOGNITION RULE: case-insensitive, the substring `italic` → `'italic'`, else `oblique` →
- *  `'oblique'`, else upright. Three reasons it is this and not a stricter token match:
- *    · Figma's style names come from the font's own subfamily names, and slanted cuts spell the slant in
- *      the name — "Italic", "Medium Italic", "Bold Italic", "Light Condensed Italic", and the joined
- *      "BoldItalic" some families ship. A whole-word rule would miss the joined form, and a miss is the
- *      exact defect this closes (an italic cut rendered upright in code).
- *    · It is the rule TokenPress applies when it reads the SAME Figma style name back out to DTCG
- *      (`typography-converter.ts` `extractFontStyle`). Transcribed, not imported — the two emitters stay
- *      independent — so a pinned cut gets one font-style from both of this repo's DTCG writers.
- *    · `oblique` stays `oblique` rather than folding into `italic`: CSS keeps them distinct values, and
- *      CSS font matching already falls back from one to the other, so the truthful value costs nothing.
- *  The numeric weight is untouched: "Medium Italic" still binds the slot's weight-role numeric (500). */
-export const cutFontStyle = (style: string): 'italic' | 'oblique' | undefined => {
-  const s = style.toLowerCase();
-  if (s.includes('italic')) return 'italic';
-  if (s.includes('oblique')) return 'oblique';
-  return undefined;
-};
-
-/** #1296 — the font style a composite RENDERS in: the `italic` modifier (`strong-italic`) first, which is
- *  byte-identical to before, then a face pin's own cut via `cutFontStyle`. `undefined` = upright, and the
- *  emitters omit the key, so every unpinned or upright-pinned composite (NB's "Light Condensed") emits
- *  exactly what it did. The one rule `tree.ts` ($value), `ai-metadata.ts` and the studio ramp all read. */
-export const compositeFontStyle = (c: { italic: boolean; facePin?: FacePin }): 'italic' | 'oblique' | undefined =>
-  c.italic ? 'italic' : c.facePin ? cutFontStyle(c.facePin.style) : undefined;
-
 // A semantic composite: a (group, variant) bundling family + size + weight role +
 // line-height + tracking. Two composites may share a size primitive (e.g. title.xs
 // and body.lg both at 18px) — they differ on family/line-height/weight/intent;

@@ -128,11 +128,7 @@ const collectCutSlots = (composites: Array<{ leaf: any }>): CutSlot[] => {
     const ext = leaf.$extensions?.prism3 ?? {};
     const category = familyCategoryFromAlias(v.fontFamily);
     const weightRole = weightRoleFromAlias(v.fontWeight);
-    // The cut SLOT is keyed on the italic MODIFIER only. Since #1296 a face pin naming an italic cut also
-    // puts `fontStyle: 'italic'` on $value, but that composite is still the bare weight's slot: its cut
-    // is the pin, verbatim, so Figma already binds the slanted face and the slot name stays the one the
-    // designer's file carries. (Before #1296 the two readings could not differ — tree.ts set both.)
-    const italic = !!ext.italic;
+    const italic = !!ext.italic || v.fontStyle === 'italic';
     const facePin = ext.facePin as { family: string; style: string } | undefined;
     const slug = cutSlug(category, weightRole, italic);
     if (!bySlug.has(slug)) bySlug.set(slug, { slug, category, weightRole, italic, facePin });
@@ -416,7 +412,7 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
     const familyCategory = familyCategoryFromAlias(v.fontFamily);
     const weightRole = weightRoleFromAlias(v.fontWeight);
     const numeric = numericWeightForRole(font, weightRole);
-    const italic = !!ext.italic;   // the MODIFIER — same slot rule as `collectCutSlots` above (#1296)
+    const italic = !!ext.italic || v.fontStyle === 'italic';
     // #1368 — a verbatim face pin bakes its Figma STYLE directly, OVERRIDING the numeric-weight →
     // style-name derivation (which can only reach weights, never a WIDTH cut like "Light Condensed").
     // fontFamily still binds the category's `font/family/*` variable, whose value equals the pin's

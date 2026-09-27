@@ -2926,17 +2926,6 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
- * 0.181.0 — #1296: a face pin naming a slanted cut is slanted in code too. A pin (#1368) changed only the
- * Figma style name, and `$value.fontStyle` followed the composite's `italic` MODIFIER alone, so a slot
- * pinned to "Medium Italic" rendered italic in Figma and upright in the DTCG tree, the conforming base
- * projection, the `.ai.json` `resolves_to` and the studio ramp. `compositeFontStyle` (theme.ts) is now the
- * one rule those surfaces read: the modifier first (byte-identical), then `cutFontStyle(pin.style)` —
- * case-insensitive `italic` → 'italic', else `oblique` → 'oblique', else upright (the rule TokenPress
- * applies to the same Figma style name, transcribed rather than imported). The numeric weight is untouched
- * and the Figma cut slot stays keyed on the modifier, so a pinned slot keeps its `font/style/<cat>/<role>`
- * name. No committed brand pins a slanted cut, so `out/**` restamps only (NB's upright "Light Condensed"
- * pins are byte-identical). ENGINE MINOR; CONTRACT STANDS at 13.1.0 (no name moves).
- *
  * 0.180.0 — the plugin places a page header on each component page (owner decisions, 2026-09-27). After a
  * build lands on its `↳ <family>` page, the plugin adds ONE instance of the `_Section-header` file component
  * (Size=Medium, FIXED width at the content's width, HUG height, its bottom 80px above the content's top) and
@@ -3921,7 +3910,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.181.0';
+export const ENGINE_VERSION = '0.180.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
