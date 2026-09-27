@@ -4622,6 +4622,15 @@ for (const b of brands) {
   const offFamily = colorRefs.filter(([, r]) => !BADGE_COLOR_FAMILIES.includes(r.split('.')[1]));
   ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 10,
     `badge binds no interactive role: all 10 color refs are foreground.* or text.*${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
+  // Each tone's fill is ITS OWN tone's subtle tint, and neutral's is the secondary foreground (#1730 net): the
+  // lint-paint provenance exceptions skip these keys, so without this arm a fill rebound to another tone passes.
+  const FILL_OF: Record<string, string> = {
+    neutral: 'color.foreground.secondary', info: 'color.foreground.info-subtle', success: 'color.foreground.success-subtle',
+    warning: 'color.foreground.warning-subtle', danger: 'color.foreground.danger-subtle',
+  };
+  const wrongFill = Object.entries(FILL_OF).filter(([t, want]) => badgeDef.tokens[`${t}.fill`] !== want);
+  ok(wrongFill.length === 0,
+    `badge: each tone's fill is its own tone's role${wrongFill.length ? ` — ${wrongFill.map(([t]) => `${t}.fill → ${badgeDef.tokens[`${t}.fill`]}`).join('; ')}` : ''}`);
   const slots = Object.values(badgeDef.anatomy!.parts).flatMap((p: any) => p.paintSlots ?? []);
   ok(JSON.stringify(slots) === JSON.stringify(['fill']),
     `badge paints a fill and nothing else — no border or overlay pairing that reads as interactive (${JSON.stringify(slots)})`);

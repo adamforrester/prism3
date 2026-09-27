@@ -317,7 +317,7 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
   'textarea|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
-  // `badge`'s tone fills are the SUBTLE tint of the tone (owner decision, 2026-09-27): the role is
+  // `badge`'s tone fills are the SUBTLE tint of the tone (the lane's call, HELD for the owner on #1730: subtle vs bold): the role is
   // `foreground.<tone>-subtle`, whose segment carries the tone as a prefix, not as a whole segment, so arm 1
   // reads it as absent. The tone labels (`text.<tone>`) satisfy arm 1 and take no exception. `neutral` is the
   // default badge, and the token tier has no role named `neutral` in either family: its pill is the second
