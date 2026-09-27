@@ -42,6 +42,12 @@
 
 ---
 
+## (2026-09-27) — UI exploration brief: one surface for progress, results and fixes (docs only)
+
+**STATUS: docs only.** The owner added a direction to the studio/plugin UI exploration: the product needs a more robust way to show progress, component-build status, errors and their resolution. A drawer that shows progress, then the final status and errors, with actions to fix them, was given as an example, not the answer. It is recorded as §7.1 of `docs/superpowers/specs/2026-09-26-ui-exploration-brief.md`. That section lists the failure causes known today with the fix each implies (Apply Theme first, Build again to repair links, Prune stale, rebuild a stale plugin, and so on). The ideation prompt's required moments gain one: a long build with an error and its resolving action.
+
+---
+
 ## (2026-09-27) — Preview's pressed button specimens are the engine's exempt pair, now held to it (#1652)
 
 **STATUS: PR open from `lane/pressed-specimen-contrast`, labeled DO NOT MERGE.** Studio only (`main.ts` render-site marker, `test-smoke.mjs`). **No version bump:** no emitted artifact or projected surface moves; `regen --check` stays in sync.
