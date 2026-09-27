@@ -1,20 +1,24 @@
 /**
  * Prism3 Figma plugin — the boot read-back's DECLARED-MODES input and the seed pill's text (#1662 follow-up).
  *
- * `verifyReadback` is pure, so the declared mode set is resolved here and passed in. It comes from the `color`
- * collection's record of what its last apply PLANNED (#1704) when the file has one, and otherwise from the
- * `BrandInput` the last successful apply persisted (#131), as `brandTheme(input).modes` — the same list
- * `emit-figma-color.ts` iterates to name the `color` collection's modes — rather than a second reading of
- * `input.modes`/`input.customModes`, which would have to restate the default set and the custom-mode append
- * and could drift from what Apply actually writes. See `declaredModesOf` for why the record comes first.
+ * `verifyReadback` is pure and does not read the file, so the brand's declared mode set is resolved here, from
+ * the `BrandInput` the last apply persisted (#131), and passed in. The declared set is `brandTheme(input).modes`
+ * — the same list `emit-figma-color.ts` iterates to name the `color` collection's modes — rather than a second
+ * reading of `input.modes`/`input.customModes`, which would have to restate the default set and the custom-mode
+ * append and could drift from what Apply actually writes.
  *
  * The three ways there is NO set to compare each carry their own reason, because the verdict states it and a
  * designer acts differently on each: nothing stored, a stored blob this build refuses (#480), a stored brand
  * that no longer resolves.
  *
+ * The pill also reports `plannedModes` (#1704): the file's own per-collection record of what the last apply
+ * planned, against what each collection holds. That one needs no input from here — it is file data, read by
+ * `read-figma` and checked inside `verifyReadback` — and it is the one that catches an apply a mode cap aborted,
+ * which the brand comparison cannot (the brand persists only after a successful apply, #131).
+ *
  * Compiled under `tsconfig.main.json` (reached through `main.ts`) — no `document`.
  */
-import type { DeclaredModesInput, ReadbackSnapshot, ReadbackVerdict } from '@prism3/engine/read-back';
+import type { DeclaredModesInput, ReadbackVerdict } from '@prism3/engine/read-back';
 import { brandTheme } from '@prism3/engine/theme';
 import { restoreInput } from './persist-figma';
 import type { SharedDataPort } from './persist-figma';
@@ -24,21 +28,8 @@ export const SKIP_NO_BRAND = 'no saved brand in this file';
 export const SKIP_UNREADABLE = 'the saved brand could not be read';
 export const SKIP_UNRESOLVED = 'the saved brand does not resolve';
 
-/**
- * Resolve the declared mode set, or the reason there is none. Two sources, in order:
- *
- *   1. The `color` collection's own record of what its last apply PLANNED (#1704, `snap.colorModesPlanned`),
- *      written before the first `addMode`. This is the one that catches the capped apply: a refused `addMode`
- *      throws, the apply aborts, and the brand blob below is never rewritten — so it still holds the PREVIOUS
- *      brand, and comparing against it reads a match.
- *   2. The persisted `BrandInput` (#131), for a file whose last apply predates the record. It is written only
- *      after a successful apply, so it can say nothing about an apply that failed.
- *
- * `snap` is REQUIRED for the same reason `verifyReadback`'s `declared` is: an omitted argument would drop
- * source 1 with no caller ever having decided to, and the capped case would read "contract holds" again.
- */
-export const declaredModesOf = (root: SharedDataPort, snap: Pick<ReadbackSnapshot, 'colorModesPlanned'>): DeclaredModesInput => {
-  if (snap.colorModesPlanned?.length) return { modes: snap.colorModesPlanned };
+/** Resolve the declared mode set from the file's persisted brand, or the reason there is none. */
+export const declaredModesOf = (root: SharedDataPort): DeclaredModesInput => {
   let input;
   try { input = restoreInput(root); } catch { return { skipped: SKIP_UNREADABLE }; }
   if (!input) return { skipped: SKIP_NO_BRAND };
@@ -49,6 +40,7 @@ export const declaredModesOf = (root: SharedDataPort, snap: Pick<ReadbackSnapsho
 export const failedChecks = (v: ReadbackVerdict): string[] => [
   ...Object.entries(v.checks).filter(([, ok]) => !ok).map(([k]) => k),
   ...(v.declaredModes.status === 'fail' ? ['declaredModes'] : []),
+  ...(v.plannedModes.status === 'fail' ? ['plannedModes'] : []),
 ];
 
 /** The seed pill's detail line. The mode comparison's outcome is appended after the contract verdict. */
@@ -56,10 +48,14 @@ export const seedSummary = (v: ReadbackVerdict): string => {
   const failed = failedChecks(v);
   const dm = v.declaredModes;
   const notes: string[] = [];
+  const pm = v.plannedModes;
+  if (pm.status === 'fail') {
+    notes.push(`the last apply did not finish — ${pm.missing.map((m) => `${m.collection} is missing ${m.modes.join('/')}`).join('; ')}`);
+  }
   if (dm.status === 'skipped') notes.push(`mode check skipped — ${dm.reason}`);
   else {
-    if (dm.status === 'fail') notes.push(`the last apply declared ${dm.missing.join('/')}, not in this file`);
-    if (dm.extra.length) notes.push(`${dm.extra.join('/')} in this file, not declared by the last apply`);
+    if (dm.status === 'fail') notes.push(`saved brand declares ${dm.missing.join('/')}, not in this file`);
+    if (dm.extra.length) notes.push(`${dm.extra.join('/')} in this file, not declared by the saved brand`);
   }
   return (
     `Existing theme: ${v.details.colorVars} color vars, modes ${v.details.modes.join('/') || '—'}` +

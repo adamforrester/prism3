@@ -59,11 +59,12 @@ export type ReadbackSnapshot = {
   palette: { name: string; scopes: string[]; hidden: boolean }[];
   /** semantic colour roles — per-mode alias target name (or literal). */
   color: { name: string; scopes: string[]; valuesByMode: Record<string, ReadValue> }[];
-  /** The mode names the `color` collection's most recent apply PLANNED (#1704), read off the collection's own
-   *  record, which the plugin writes BEFORE its first `addMode`. Absent when no stamped apply has touched the
-   *  file. Carried here so the caller can resolve the declared set from the file; `verifyReadback` itself
-   *  does not read it — the declared set is still an argument. */
-  colorModesPlanned?: string[];
+  /** Per collection NAME, the mode names that collection's most recent apply PLANNED (#1704) — the record the
+   *  plugin's `reconcileModes` writes on the collection BEFORE its first `addMode`, so an apply a refused
+   *  `addMode` aborts (a plan tier's mode cap) still leaves what it asked for. Only collections carrying a
+   *  readable record appear; absent entirely on a file no stamped apply has touched. This is FILE data, so
+   *  `verifyReadback` reads it directly — unlike the brand's declared set, which is an argument. */
+  modesPlanned?: Record<string, string[]>;
   /** FLOAT axes (#146) — the geometric/dimensional vars, keyed by AXIS
    *  (`core/dimension`/`space`/`radius`/`size`/`icon`/`border-width`/`focus`/`opacity`/`layout`). An axis
    *  key is a collection name, or `core/<group>` for one slice of the merged `core` collection — #1097
@@ -146,8 +147,7 @@ export type FloatReadbackVerdict = {
 const EXPECTED_FLOAT_AXES = ['core/dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity'];
 
 /** What the caller knows about the modes the saved brand declares (#1662 follow-up). The declared set is a BRAND
- *  fact and this module is pure, so the caller resolves it — from the `color` collection's record of what the
- *  last apply PLANNED (`colorModesPlanned`, #1704), else the `BrandInput` persisted in the file —
+ *  fact and this module is pure, so the caller resolves it — from the `BrandInput` persisted in the file —
  *  and passes it in. `{ skipped }` carries the reason there is no set to compare, so the verdict can state
  *  it: "no saved brand" and "the saved brand could not be read" are different facts to a designer. */
 export type DeclaredModesInput = { modes: readonly string[] } | { skipped: string };
@@ -160,11 +160,24 @@ export type DeclaredModesResult =
   | { status: 'fail'; declared: string[]; missing: string[]; extra: string[] }
   | { status: 'skipped'; reason: string };
 
+/** Did the last apply's planned modes land (#1704)? Read per collection from `snap.modesPlanned`: every mode a
+ *  collection's record names must be a mode that collection holds. `fail` names each collection and its
+ *  missing modes — the signature of an apply that aborted part-way, in WHICHEVER executor the refusal hit
+ *  (the float pass runs before color, so a mode cap is usually refused on `layout`'s breakpoints first).
+ *  `none` means the file carries no record: it was last written by a build before #1704, and
+ *  `declaredModes` is the only mode comparison available. Extra modes never fail here either. */
+export type PlannedModesResult =
+  | { status: 'pass'; collections: string[] }
+  | { status: 'fail'; missing: { collection: string; modes: string[] }[] }
+  | { status: 'none' };
+
 /** The verify verdict: an overall pass + the individual checks + supporting detail for the UI/log. */
 export type ReadbackVerdict = {
   ok: boolean;
   /** Outside `checks` on purpose: a `checks` entry is a boolean, and a boolean cannot say "not checked". */
   declaredModes: DeclaredModesResult;
+  /** Outside `checks` for the same reason: `none` is a third outcome. See `PlannedModesResult`. */
+  plannedModes: PlannedModesResult;
   checks: {
     modesDistinct: boolean;
     aliasesResolve: boolean;
@@ -278,6 +291,22 @@ export const verifyReadback = (snap: ReadbackSnapshot, declared: DeclaredModesIn
     return missing.length ? { status: 'fail', declared: want, missing, extra } : { status: 'pass', declared: want, extra };
   })();
 
+  // plannedModes (#1704) — the file's own record of what its last apply asked for, per collection, against what
+  // each collection holds. A collection the record names but the file lacks holds nothing, so all its planned
+  // modes are missing. Catches an aborted apply in any executor; `declaredModes` above cannot, because the
+  // brand is persisted only after a successful apply (#131) and so still describes the previous one.
+  const plannedModes: PlannedModesResult = (() => {
+    const planned = Object.entries(snap.modesPlanned ?? {});
+    if (!planned.length) return { status: 'none' };
+    const missing = planned
+      .map(([collection, want]) => {
+        const held = snap.collections.find((c) => c.name === collection)?.modes ?? [];
+        return { collection, modes: want.filter((m) => !held.includes(m)) };
+      })
+      .filter((x) => x.modes.length);
+    return missing.length ? { status: 'fail', missing } : { status: 'pass', collections: planned.map(([c]) => c) };
+  })();
+
   const checks = {
     modesDistinct,
     aliasesResolve,
@@ -290,8 +319,9 @@ export const verifyReadback = (snap: ReadbackSnapshot, declared: DeclaredModesIn
   };
 
   return {
-    ok: Object.values(checks).every(Boolean) && declaredModes.status !== 'fail',
+    ok: Object.values(checks).every(Boolean) && declaredModes.status !== 'fail' && plannedModes.status !== 'fail',
     declaredModes,
+    plannedModes,
     checks,
     details: {
       colorVars: snap.color.length,

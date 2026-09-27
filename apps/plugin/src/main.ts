@@ -814,12 +814,12 @@ const seedFromFile = async (sink: ActionSink): Promise<void> => {
     }
     // The saved brand's declared modes against the file's (#1662 follow-up): resolved here from the persisted
     // `BrandInput`, passed in so `verifyReadback` stays pure. No saved brand → skipped, with the reason stated.
-    const v = verifyReadback(snap, declaredModesOf(figma.root, snap));
+    const v = verifyReadback(snap, declaredModesOf(figma.root));
     const failed = failedChecks(v);
     const summary = seedSummary(v);
     // `present: true` regardless of `ok`: the variables ARE here, and whether the contract verified is
     // a separate fact. Collapsing the two would make a contract failure look like an unthemed file.
-    sink.data({ readback: { present: true, ok: v.ok, failed, checks: v.checks, declaredModes: v.declaredModes, details: v.details } });
+    sink.data({ readback: { present: true, ok: v.ok, failed, checks: v.checks, declaredModes: v.declaredModes, plannedModes: v.plannedModes, details: v.details } });
     sink.post({ type: 'seed-info', ok: v.ok, present: true, summary });
   } catch (e) {
     // The read itself failed, so presence is UNKNOWN — reported false, since the outcome is an error

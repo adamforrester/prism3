@@ -363,7 +363,7 @@ ok(stopsOf(runForeign).length > 0 && stopsOf(runForeign).every((n) => n.startsWi
   };
 
   // No saved brand → skipped, and the pill says why.
-  const none = verifyReadback(fileSnap, declaredModesOf(root, fileSnap));
+  const none = verifyReadback(fileSnap, declaredModesOf(root));
   ok(none.declaredModes.status === 'skipped' && none.ok
     && seedSummary(none) === `Existing theme: ${fileSnap.color.length} color vars, modes light — contract holds ✓ · mode check skipped — no saved brand in this file`,
     `declared modes: no saved brand → skipped, reason in the pill ("${seedSummary(none)}")`);
@@ -371,84 +371,126 @@ ok(stopsOf(runForeign).length > 0 && stopsOf(runForeign).every((n) => n.startsWi
 
   // A stored blob this build refuses (#480) → skipped with its own reason, not "no saved brand".
   root.setSharedPluginData('prism3', 'brandInput', '{"not":"a brand"}');
-  const unreadable = verifyReadback(fileSnap, declaredModesOf(root, fileSnap));
+  const unreadable = verifyReadback(fileSnap, declaredModesOf(root));
   ok(unreadable.declaredModes.status === 'skipped' && unreadable.declaredModes.reason === SKIP_UNREADABLE
     && SKIP_UNREADABLE === 'the saved brand could not be read',
     `declared modes: an unreadable saved brand → skipped, reason "${unreadable.declaredModes.status === 'skipped' ? unreadable.declaredModes.reason : '—'}"`);
 
   // The saved brand declares four modes; the file holds light → FAILS, naming the three that never landed.
   persistInput(root, auroraInput0());
-  const capped = verifyReadback(fileSnap, declaredModesOf(root, fileSnap));
+  const capped = verifyReadback(fileSnap, declaredModesOf(root));
   ok(capped.declaredModes.status === 'fail' && JSON.stringify(capped.declaredModes.missing) === '["dark","hc-light","hc-dark"]' && !capped.ok,
     `declared modes: saved brand declares light/dark/hc-light/hc-dark, file holds light → FAILS naming the missing modes (${JSON.stringify(capped.declaredModes)})`);
-  ok(seedSummary(capped) === `Existing theme: ${fileSnap.color.length} color vars, modes light — FAILED: declaredModes · the last apply declared dark/hc-light/hc-dark, not in this file`,
+  ok(seedSummary(capped) === `Existing theme: ${fileSnap.color.length} color vars, modes light — FAILED: declaredModes · saved brand declares dark/hc-light/hc-dark, not in this file`,
     `declared modes: the pill names the missing modes ("${seedSummary(capped)}")`);
 
   // The saved brand declares light only; the file holds light → passes.
   persistInput(root, { ...auroraInput0(), modes: ['light'] });
-  const match = verifyReadback(fileSnap, declaredModesOf(root, fileSnap));
+  const match = verifyReadback(fileSnap, declaredModesOf(root));
   ok(match.declaredModes.status === 'pass' && match.ok
     && seedSummary(match) === `Existing theme: ${fileSnap.color.length} color vars, modes light — contract holds ✓`,
     `declared modes: saved brand declares light, file holds light → passes ("${seedSummary(match)}")`);
 
   // An extra mode in the file is reported, not failed.
   const extraSnap = { ...fileSnap, collections: fileSnap.collections.map((c) => c.name === 'color' ? { ...c, modes: [...c.modes, 'promo'] } : c) };
-  const extra = verifyReadback(extraSnap, declaredModesOf(root, extraSnap));
-  ok(extra.declaredModes.status === 'pass' && seedSummary(extra).endsWith(' · promo in this file, not declared by the last apply'),
+  const extra = verifyReadback(extraSnap, declaredModesOf(root));
+  ok(extra.declaredModes.status === 'pass' && seedSummary(extra).endsWith(' · promo in this file, not declared by the saved brand'),
     `declared modes: an extra file mode is reported, not failed ("${seedSummary(extra)}")`);
 }
 
-// ═══ THE CAPPED APPLY, END TO END (#1704 net) ═══════════════════════════════════════════════════════════════
+// ═══ PLANNED MODES: THE CAPPED APPLY, IN APPLY'S OWN ORDER (#1704 net) ══════════════════════════════════════
 //
-// The block above persists a brand straight into shared-data; this one drives the path the owner's case takes.
-// A refused `addMode` THROWS out of the executor, so a real apply aborts before `persistInput` runs (#131 writes
-// the brand only after every executor returns) and the file keeps the PREVIOUS brand. Against that brand the
-// capped file reads a match — which is why the declared set comes first from the `color` collection's own
-// record of what the apply PLANNED, written before the first `addMode`. The shim collection here models the two
-// host behaviors that matter: shared plugin data on the collection, and an `addMode` refused past one mode.
+// The block above persists a brand straight into shared-data. This one drives what a real capped apply leaves.
+// A refused `addMode` THROWS out of the executor, so the apply aborts before `persistInput` runs (#131 persists
+// only after every executor returns) and the saved brand is still the PREVIOUS one — against which the file
+// reads a match. And `apply-theme.ts` runs the FLOAT pass before color, so a cap below `layout`'s breakpoint
+// count is refused there and color is never touched. What catches it is each collection's own record of what
+// the apply planned, written by `reconcileModes` BEFORE its first `addMode` and checked by `verifyReadback`.
+// The shim models the two host behaviors that matter: shared plugin data on a collection, and a mode cap.
 {
-  class CappedCollection extends ShimCollection {
-    private data = new Map<string, string>();
-    getSharedPluginData(ns: string, key: string): string { return this.data.get(`${ns}/${key}`) ?? ''; }
-    setSharedPluginData(ns: string, key: string, v: string): void { if (v) this.data.set(`${ns}/${key}`, v); else this.data.delete(`${ns}/${key}`); }
-    addMode(name: string): string { if (this.modes.length >= 1) throw new Error('in addMode: Limited to 1 modes only'); return super.addMode(name); }
-  }
-  class CappedVars extends VariablesShim {
-    private n = 0;
-    createVariableCollection(name: string): ShimCollection { const c = new CappedCollection(`k${++this.n}`, name); this.collections.push(c); return c; }
-  }
-  const vars = new CappedVars();
-  const store = new Map<string, string>();
-  const root = {
-    getSharedPluginData: (ns: string, key: string) => store.get(`${ns}/${key}`) ?? '',
-    setSharedPluginData: (ns: string, key: string, v: string) => { store.set(`${ns}/${key}`, v); },
+  const makeCapped = (cap: number) => {
+    class CappedCollection extends ShimCollection {
+      private data = new Map<string, string>();
+      getSharedPluginData(ns: string, key: string): string { return this.data.get(`${ns}/${key}`) ?? ''; }
+      setSharedPluginData(ns: string, key: string, v: string): void { if (v) this.data.set(`${ns}/${key}`, v); else this.data.delete(`${ns}/${key}`); }
+      addMode(name: string): string { if (this.modes.length >= cap) throw new Error(`in addMode: Limited to ${cap} modes only`); return super.addMode(name); }
+    }
+    class CappedVars extends VariablesShim {
+      private n = 0;
+      createVariableCollection(name: string): ShimCollection { const c = new CappedCollection(`k${++this.n}`, name); this.collections.push(c); return c; }
+    }
+    return new CappedVars();
   };
-  // Apply 1 — a light-only brand lands, and (as a successful apply does) is persisted.
+  const rootOf = () => {
+    const store = new Map<string, string>();
+    return {
+      getSharedPluginData: (ns: string, key: string) => store.get(`${ns}/${key}`) ?? '',
+      setSharedPluginData: (ns: string, key: string, v: string) => { store.set(`${ns}/${key}`, v); },
+    };
+  };
   const lightOnly: BrandInput = { ...auroraInput0(), modes: ['light'] };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await applyWritePlan(buildWritePlan(buildFigmaColor(brandTheme(lightOnly))), vars as any);
-  persistInput(root, lightOnly);
-  // Apply 2 — the four-mode brand. The cap refuses `dark`; the executor throws, so nothing is persisted.
-  let threw = '';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  try { await applyWritePlan(buildWritePlan(buildFigmaColor(brandTheme(auroraInput0()))), vars as any); } catch (e) { threw = (e as Error).message; }
-  ok(threw === 'in addMode: Limited to 1 modes only', `capped apply: the refused addMode aborts the executor ("${threw}")`);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const snap = await readFigmaVariables(vars as any);
-  ok(JSON.stringify(snap.collections.find((c) => c.name === 'color')?.modes) === '["light"]',
-    `capped apply: the file holds light only (${JSON.stringify(snap.collections.find((c) => c.name === 'color')?.modes)})`);
-  ok(JSON.stringify(snap.colorModesPlanned) === '["light","dark","hc-light","hc-dark"]',
-    `capped apply: the color collection records what the aborted apply planned (${JSON.stringify(snap.colorModesPlanned)})`);
-  // Why the record is needed: the brand alone — still the light-only one — reads a match.
-  const brandOnly = verifyReadback(snap, declaredModesOf(root, {}));
-  ok(brandOnly.declaredModes.status === 'pass',
-    `capped apply: the saved brand alone reads a match (${brandOnly.declaredModes.status}), which is why it is the fallback, not the source`);
-  // The boot read-back as `seedFromFile` calls it — FAILS, naming the three modes that never landed.
-  const v = verifyReadback(snap, declaredModesOf(root, snap));
-  ok(v.declaredModes.status === 'fail' && JSON.stringify(v.declaredModes.missing) === '["dark","hc-light","hc-dark"]' && !v.ok,
-    `capped apply: the boot read-back FAILS naming dark/hc-light/hc-dark (${JSON.stringify(v.declaredModes)})`);
-  ok(seedSummary(v) === `Existing theme: ${snap.color.length} color vars, modes light — FAILED: declaredModes · the last apply declared dark/hc-light/hc-dark, not in this file`,
-    `capped apply: the pill names the missing modes ("${seedSummary(v)}")`);
+
+  // (A) The cap is refused on `layout`, in the float pass, before color runs. Aurora's layout plans six
+  // breakpoints (xs/sm/md/lg/xl/2xl); a cap of four admits xs–lg and refuses xl.
+  {
+    const vars = makeCapped(4);
+    const root = rootOf();
+    // Apply 1 lands a light-only color collection and, as a successful apply does, persists its brand.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await applyWritePlan(buildWritePlan(buildFigmaColor(brandTheme(lightOnly))), vars as any);
+    persistInput(root, lightOnly);
+    // Apply 2, the four-mode brand, in `apply-theme.ts`'s order: FLOAT first. The cap throws there.
+    let threw = '';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    try { await applyFloatPlan(buildFloatWritePlan(brandTheme(auroraInput0())), vars as any); } catch (e) { threw = (e as Error).message; }
+    ok(threw === 'in addMode: Limited to 4 modes only', `planned modes (float cap): the refused addMode aborts the float pass ("${threw}")`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const snap = await readFigmaVariables(vars as any);
+    ok(JSON.stringify(snap.modesPlanned?.['layout']) === '["xs","sm","md","lg","xl","2xl"]' && JSON.stringify(snap.modesPlanned?.['color']) === '["light"]',
+      `planned modes (float cap): layout records the aborted plan, color keeps apply 1's (${JSON.stringify(snap.modesPlanned)})`);
+    const v = verifyReadback(snap, declaredModesOf(root));
+    ok(v.declaredModes.status === 'pass',
+      `planned modes (float cap): the saved brand alone reads a match (${v.declaredModes.status}) — the gap this check closes`);
+    ok(v.plannedModes.status === 'fail' && JSON.stringify(v.plannedModes.missing) === '[{"collection":"layout","modes":["xl","2xl"]}]' && !v.ok,
+      `planned modes (float cap): the boot read-back FAILS naming layout xl/2xl (${JSON.stringify(v.plannedModes)})`);
+    ok(seedSummary(v) === `Existing theme: ${snap.color.length} color vars, modes light — FAILED: plannedModes · the last apply did not finish — layout is missing xl/2xl`,
+      `planned modes (float cap): the pill names what did not land ("${seedSummary(v)}")`);
+  }
+
+  // (B) The cap is refused inside color itself (a cap of one: color's second mode).
+  {
+    const vars = makeCapped(1);
+    const root = rootOf();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await applyWritePlan(buildWritePlan(buildFigmaColor(brandTheme(lightOnly))), vars as any);
+    persistInput(root, lightOnly);
+    let threw = '';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    try { await applyWritePlan(buildWritePlan(buildFigmaColor(brandTheme(auroraInput0()))), vars as any); } catch (e) { threw = (e as Error).message; }
+    ok(threw === 'in addMode: Limited to 1 modes only', `planned modes (color cap): the refused addMode aborts the color pass ("${threw}")`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const snap = await readFigmaVariables(vars as any);
+    const v = verifyReadback(snap, declaredModesOf(root));
+    ok(v.plannedModes.status === 'fail' && JSON.stringify(v.plannedModes.missing) === '[{"collection":"color","modes":["dark","hc-light","hc-dark"]}]' && !v.ok,
+      `planned modes (color cap): the boot read-back FAILS naming color dark/hc-light/hc-dark (${JSON.stringify(v.plannedModes)})`);
+  }
+
+  // (C) A clean apply records its plan and passes; a file with no record reads `none`, never a pass.
+  {
+    const vars = makeCapped(10);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await applyWritePlan(buildWritePlan(buildFigmaColor(brandTheme(auroraInput0()))), vars as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const v = verifyReadback(await readFigmaVariables(vars as any), { skipped: 'not under test in this arm' });
+    ok(v.plannedModes.status === 'pass' && JSON.stringify(v.plannedModes.collections) === '["color"]',
+      `planned modes (clean apply): every recorded plan landed (${JSON.stringify(v.plannedModes)})`);
+    const unstamped = new VariablesShim();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await applyWritePlan(buildWritePlan(buildFigmaColor(brandTheme(auroraInput0()))), unstamped as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const u = verifyReadback(await readFigmaVariables(unstamped as any), { skipped: 'not under test in this arm' });
+    ok(u.plannedModes.status === 'none', `planned modes (no record): a file with no record reads none (${u.plannedModes.status})`);
+  }
 }
 
 console.log(`\nplugin read-back: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);

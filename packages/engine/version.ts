@@ -2933,12 +2933,13 @@
  * mode missing from the file FAILS the verdict and is named; a mode in the file the brand does not declare is
  * REPORTED, not failed (a designer's own mode); no saved brand SKIPS the comparison and the seed pill states
  * why. Before this a multi-mode brand whose other modes never landed (`addMode` refused on a plan tier's mode
- * cap) read "contract holds ✓" with one mode. THE DECLARED SET'S SOURCE (net review): a refused `addMode` throws
- * and aborts the apply before the brand is persisted (#131 persists only on success), so the saved brand alone
- * would still be the PREVIOUS one and read a match. `reconcileModes` therefore records the planned mode names
- * on the collection (`prism3/modes:planned`) BEFORE its first `addMode`; `read-figma` carries it as
- * `colorModesPlanned`, and the plugin prefers it over the saved brand, which stays the fallback for a file no
- * stamped apply has touched. A plugin behavior change (the seed pill's verdict) → MINOR. No
+ * cap) read "contract holds ✓" with one mode. PLANNED MODES (net review): a refused `addMode` throws and aborts
+ * the apply before the brand is persisted (#131 persists only on success), and the float pass runs before
+ * color, so a cap is usually refused on `layout`'s breakpoints with color untouched — the saved brand alone
+ * reads a match. `reconcileModes` therefore records each collection's planned mode names on the collection
+ * (`prism3/modes:planned`) BEFORE its first `addMode`; `read-figma` carries them as `snap.modesPlanned`, and
+ * `verifyReadback` returns a tri-state `plannedModes` (pass / fail naming collection + modes / none when no
+ * record) that also fails `ok`. A plugin behavior change (the seed pill's verdict) → MINOR. No
  * token value or name moves — `out/**` restamps the generator version only; CONTRACT STANDS.
  *
  * 0.175.0 — #1697: the button and icon-button families aligned to the KB button brief. Three projected

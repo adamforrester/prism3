@@ -3130,9 +3130,7 @@ for (const b of brands) {
 
   // DECLARED MODES (#1662 follow-up, owner decision 2026-09-27). The single-mode check above verifies what the
   // file holds; it cannot tell a `modes: ['light']` brand from a light/dark brand whose `dark` never landed
-  // (`addMode` refused on a plan tier's mode cap). The declared set is the second input — resolved by the plugin
-  // from the collection's planned-modes record, else the saved brand (`seed-modes.ts`; the capped apply runs
-  // end to end in `apps/plugin/test-readback.ts`) — and the
+  // (`addMode` refused on a plan tier's mode cap). The saved brand's declared set is the second input, and the
   // expected values below are WRITTEN, not read off the plan or the snapshot — the file here holds `light`.
   ok(JSON.stringify(plan.color.modes) === '["light"]', 'read-back declared modes: the fixture file holds exactly light');
   const missingDark = verifyReadback(snapOf(false), { modes: ['light', 'dark'] });
@@ -3150,6 +3148,22 @@ for (const b of brands) {
   const withExtra = verifyReadback({ ...snapOf(false), collections: [{ name: 'core', modes: ['Default'] }, { name: 'color', modes: ['light', 'brand-x'] }] }, { modes: ['light'] });
   ok(withExtra.declaredModes.status === 'pass' && JSON.stringify(withExtra.declaredModes.extra) === '["brand-x"]',
     `read-back declared modes: a mode in the file the brand does not declare is REPORTED, not failed (${JSON.stringify(withExtra.declaredModes)})`);
+
+  // PLANNED MODES (#1704 net). The file's own per-collection record of what the last apply planned, against
+  // what each collection holds. The records below are WRITTEN; the file's modes are the fixture's `light`.
+  const withPlan = (modesPlanned: Record<string, string[]>) => verifyReadback({ ...snapOf(false), modesPlanned }, { skipped: 'not under test in this arm' });
+  const cappedLayout = withPlan({ color: ['light'], layout: ['xs', 'sm', 'md', 'lg', 'xl', '2xl'] });
+  ok(cappedLayout.plannedModes.status === 'fail' && JSON.stringify(cappedLayout.plannedModes.missing) === '[{"collection":"layout","modes":["xs","sm","md","lg","xl","2xl"]}]' && !cappedLayout.ok,
+    `read-back planned modes: a recorded collection the file lacks FAILS with every planned mode named (${JSON.stringify(cappedLayout.plannedModes)})`);
+  const cappedColor = withPlan({ color: ['light', 'dark'] });
+  ok(cappedColor.plannedModes.status === 'fail' && JSON.stringify(cappedColor.plannedModes.missing) === '[{"collection":"color","modes":["dark"]}]' && !cappedColor.ok,
+    `read-back planned modes: color planned light/dark, file holds light → FAILS naming color dark (${JSON.stringify(cappedColor.plannedModes)})`);
+  const landed = withPlan({ core: ['Default'], color: ['light'] });
+  ok(landed.plannedModes.status === 'pass' && landed.ok,
+    `read-back planned modes: every recorded plan landed → passes (${JSON.stringify(landed.plannedModes)})`);
+  const noRecord = verifyReadback(snapOf(false), { skipped: 'not under test in this arm' });
+  ok(noRecord.plannedModes.status === 'none' && noRecord.ok,
+    `read-back planned modes: no record → none, not pass (${JSON.stringify(noRecord.plannedModes)})`);
 }
 
 // BrandInput PERSISTENCE (#131, #480): the shared-data round-trip + version guard. A persisted

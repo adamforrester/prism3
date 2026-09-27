@@ -180,12 +180,18 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
     if (styles.getLocalTextStylesAsync) textStyles = (await styles.getLocalTextStylesAsync()).map((s) => s.name);
   }
 
+  const modesPlanned: Record<string, string[]> = {};
+  for (const c of collections) {
+    const planned = plannedModeNames(c);
+    if (planned) modesPlanned[c.name] = planned;
+  }
+
   return {
     collections: collections.map((c) => ({ name: c.name, modes: c.modes.map((m) => m.name) })),
     palette,
     color,
-    // What the `color` collection's last apply PLANNED (#1704) — absent on a file no stamped apply has touched.
-    ...(colCol && plannedModeNames(colCol) ? { colorModesPlanned: plannedModeNames(colCol)! } : {}),
+    // What each collection's last apply PLANNED (#1704) — absent on a file no stamped apply has touched.
+    ...(Object.keys(modesPlanned).length ? { modesPlanned } : {}),
     ...(Object.keys(float).length ? { float } : {}),
     ...(Object.keys(font).length ? { font } : {}),
     ...(stylesSnap ? { styles: stylesSnap } : {}),
