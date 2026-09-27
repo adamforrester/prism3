@@ -12505,7 +12505,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     for (const f of defFiles) {
       const src = readFileSync(join(defDir, f), 'utf8');
       const header = src.startsWith('/**') ? src.slice(0, src.indexOf('*/') + 2) : '';
-      const cites = [...new Set([...header.matchAll(/KB brief: `components\/([a-z-]+\.md)`/g)].map((m) => m[1]))];
+      // Every citation counted, repeats included (#1715 net): a Set collapsed the same brief cited twice to one.
+      const cites = [...header.matchAll(/KB brief: `components\/([a-z-]+\.md)`/g)].map((m) => m[1]);
       const noBrief = /\bNo KB brief\b/.test(header);
       ok(header.length > 0 && (cites.length === 1) !== noBrief && cites.length <= 1,
         `#1700 ${f}: the header names its KB brief exactly once as "KB brief: \`components/<name>.md\`", or states "No KB brief" — got [${cites.join(', ')}]${noBrief ? ' + "No KB brief"' : ''}`);
