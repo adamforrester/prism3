@@ -12028,6 +12028,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(kwSet(a) !== kwSet(b), `#1697 sibling triggerKeywords differ: ${a.id} vs ${b.id} (${kwSet(a)} / ${kwSet(b)})`);
   for (const d of iconButtonFamily)
     ok(d.composition?.alternativeTo?.[0] === d.inherits, `#1697 ${d.id} names its own family's labeled alternative (${d.inherits}; got ${d.composition?.alternativeTo?.[0]})`);
+  // #1702 net — the icon-only siblings carry the same per-family facts the button family is held to, written
+  // here (not read from the button arms): destructive carries `danger` / `destructive`, neutral advertises
+  // neither "delete" nor "primary action", and the confirmation rule lives on the destructive sibling only.
+  ok(['danger', 'destructive'].every((k) => (iconButtonDestructive.ai.triggerKeywords ?? []).some((t) => t.includes(k))),
+    `#1697 icon-button-destructive carries danger / destructive (${JSON.stringify(iconButtonDestructive.ai.triggerKeywords)})`);
+  ok(!iconButtonNeutral.ai.triggerKeywords?.some((k) => /delete|primary action/i.test(k)),
+    `#1697 icon-button-neutral advertises neither "delete" nor "primary action" (${JSON.stringify(iconButtonNeutral.ai.triggerKeywords)})`);
+  ok(iconButtonDestructive.docs.do!.some((l) => /escape/i.test(l)) && !iconButton.docs.do!.some((l) => /neutral escape/i.test(l)),
+    '#1697 the confirmation rule is in icon-button-destructive\'s docs.do, and only there');
   // #1697 DECISION 4 — the inherited API it depends on is RESTATED, because `inherits` is read by nothing:
   // `onClick`, and `type` defaulting to 'button' (the submit trap), matching Button's own declaration.
   const bType = button.props.find((p) => p.name === 'type');
