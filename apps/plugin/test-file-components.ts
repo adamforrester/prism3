@@ -254,6 +254,12 @@ console.log('file setup: existing sets in another case');
   const { api: fresh2, sets: made2 } = makeApi();
   const res2 = await ensureFileComponents(fresh2, pageHolding(['Button']));
   ok(res2.skipped === false && made2.length === 2, `file setup: a page holding only Button still gets both sets (${made2.length} sets built)`);
+  // A FRAME that merely carries the name (e.g. a detached header) is not the component set (#1733 net).
+  const { api: fresh3, sets: made3 } = makeApi();
+  const framePage = pageHolding([]);
+  framePage.kids.push({ type: 'FRAME', name: '_section-header' });
+  const res3 = await ensureFileComponents(fresh3, framePage);
+  ok(res3.skipped === false && made3.length === 2, `file setup: a FRAME named _section-header does not block the build (${made3.length} sets built)`);
 }
 
 console.log(failures === 0 ? '\nfile-components: all assertions pass' : `\nfile-components: ${failures} FAILED`);

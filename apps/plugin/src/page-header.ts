@@ -176,8 +176,10 @@ export const ensurePageHeader = async (
   page: HeaderPage,
   copy: HeaderCopy,
 ): Promise<PageHeaderOutcome> => {
-  const set = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly HNode[])
-    .find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));
+  // Exact case first, then any case (#1733 net): a file holding both `_Section-header` and a user's
+  // `_section-header` keeps the plugin-built one, as before the case-insensitive match.
+  const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly HNode[];
+  const set = allSets.find((n) => n.name === SECTION_HEADER_SET) ?? allSets.find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));
   if (!set) return { page: page.name, status: 'skipped', reason: 'no-set' };
 
   const top = page.children as readonly HNode[];
