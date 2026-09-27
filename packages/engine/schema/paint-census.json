@@ -183,14 +183,14 @@
     },
     "radio-control": {
       "set": {
-        "members": 36,
-        "assignments": 54,
-        "sha256": "8946e888c0f5d803bd13639baeffe944282d3cb7efba08b08c513988fa99de78"
+        "members": 30,
+        "assignments": 45,
+        "sha256": "f3a795db7908dd18d1a5dbfe48fb1af0b9ee03d865bcc128c77c8bd06447248c"
       },
       "grid": {
-        "members": 36,
-        "assignments": 54,
-        "sha256": "75e60095ba2ce8e7a4a1873c8a76cc72c6883d5d86b61a848bb5d3dc0673d5e2"
+        "members": 30,
+        "assignments": 45,
+        "sha256": "67d227a6103f044f80d0e9d31c3549994fd0daf27e06859a52ea95cc8667ff41"
       }
     },
     "radio-row": {
@@ -200,9 +200,9 @@
         "sha256": "e2ccaf9c277316221e700c9a025ac415b50f46221e3d7f6945d6947408ee2541"
       },
       "grid": {
-        "members": 21,
-        "assignments": 21,
-        "sha256": "df79a42491e54e3dfc00a6c7e7ed0756a123362ab8c90a8fd626cbeaf46c02d2"
+        "members": 18,
+        "assignments": 18,
+        "sha256": "a5a1c66e8c365f113de771ca6a6212d3fb407c9bd3e66301e9133e8d826a5a35"
       }
     },
     "radio-group": {
@@ -243,14 +243,14 @@
     },
     "select": {
       "set": {
-        "members": 20,
-        "assignments": 100,
-        "sha256": "e43119dffa79e1724d95895ee7f1c8925c7fa76581dfa930386cbf6a68ac641a"
-      },
-      "grid": {
         "members": 24,
         "assignments": 120,
-        "sha256": "ae16a3236ad9445ab88ccdd8f3dc9d76bb01587cfc0acd5d9925549ed736bdab"
+        "sha256": "ddc062f87bb5df873fe67d778d144e58f53842621e9f2e31001675338670af51"
+      },
+      "grid": {
+        "members": 32,
+        "assignments": 160,
+        "sha256": "ac4d6033433a296598cd89734fe1484420192820cb3b97b1ec8e0e8b74e4ccc0"
       }
     },
     "veil": {

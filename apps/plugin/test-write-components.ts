@@ -2684,8 +2684,9 @@ const cb = await readBoxes(byId('checkbox-control')!, 'control');
 const rb = await readBoxes(byId('radio-control')!, 'control');
 const sw = await readBoxes(byId('switch-control')!, 'track');
 // PIN THE INPUT, same discipline as the Button block: every claim below is vacuously true over zero rows.
-ok(cb.rows.length === 54 && rb.rows.length === 36 && sw.rows.length === 24,
-  `#1011 reachable: the built boxes were found on every member (checkbox ${cb.rows.length}/54, radio ${rb.rows.length}/36, switch ${sw.rows.length}/24)`);
+// Radio is 30 since #1698 dropped its per-option error column (2 selections × 3 sizes × 5 states).
+ok(cb.rows.length === 54 && rb.rows.length === 30 && sw.rows.length === 24,
+  `#1011 reachable: the built boxes were found on every member (checkbox ${cb.rows.length}/54, radio ${rb.rows.length}/30, switch ${sw.rows.length}/24)`);
 ok(cb.misses.length === 0 && rb.misses.length === 0 && sw.misses.length === 0,
   `#1011 ...and all three sets built with no misses (${[...cb.misses, ...rb.misses, ...sw.misses].join('; ') || 'none'})`);
 
@@ -2694,8 +2695,9 @@ ok(cb.misses.length === 0 && rb.misses.length === 0 && sw.misses.length === 0,
 // binding it painted a box invisible against its own ground that nonetheless occluded whatever the
 // control sits on. The reference ships this transparent.
 const empty = [...cb.rows, ...rb.rows].filter((r) => r.selection === 'unchecked');
-// 18 + 18: each def has 3 sizes × 6 states at its one unselected coordinate.
-ok(empty.length === 18 + 18, `#1011 reachable: there are unselected members to inspect (${empty.length})`);
+// 18 + 15: checkbox has 3 sizes × 6 states at its one unselected coordinate, radio 3 sizes × 5 states
+// (no `error` since #1698).
+ok(empty.length === 18 + 15, `#1011 reachable: there are unselected members to inspect (${empty.length})`);
 ok(empty.every((r) => r.fill === null),
   `#1011 the unselected box binds NO fill on any member (${empty.filter((r) => r.fill !== null).map((r) => `${r.def} ${r.member} -> ${r.fill}`).join('; ') || 'none does'})`);
 ok(empty.every((r) => r.stroke !== null),
@@ -2731,11 +2733,11 @@ ok(errored.length > 0 && errored.every((r) => r.stroke === 'color/border/danger'
 // Prism 2 literally); the recolor is pinned in the selection loop just below. Reverting to the pre-split
 // filled disc (a `checked.fill`, no `checked.border`) fails these by name: a filled checked ring trips the
 // no-fill arm, and a checked ring with no border trips the constant-weight arm.
-ok(rb.rows.length === 36, `#1348 reachable: radio-control built every member (${rb.rows.length}/36)`);
+ok(rb.rows.length === 30, `#1348 reachable: radio-control built every member (${rb.rows.length}/30)`);
 ok(rb.rows.every((r) => r.fill === null),
   `#1348 radio's ring binds NO fill at any member — the Prism 2 outlined model, not a filled disc (${rb.rows.filter((r) => r.fill !== null).map((r) => `${r.member} -> ${r.fill}`).slice(0, 3).join('; ') || 'none does'})`);
-ok(rb.rows.filter((r) => r.state !== 'error').every((r) => r.stroke !== null && r.weight === 'border-width/thick'),
-  `#1348 radio's ring binds a CONSTANT 2px border (\`border-width/thick\`) at every non-error member, unchecked and checked alike — the border weight does not change on select (${rb.rows.filter((r) => r.state !== 'error' && r.weight !== 'border-width/thick').map((r) => `${r.member} -> ${r.weight}`).slice(0, 3).join('; ') || 'all thick'})`);
+ok(rb.rows.every((r) => r.stroke !== null && r.weight === 'border-width/thick'),
+  `#1348 radio's ring binds a CONSTANT 2px border (\`border-width/thick\`) at every member (radio has no error member since #1698), unchecked and checked alike — the border weight does not change on select (${rb.rows.filter((r) => r.weight !== 'border-width/thick').map((r) => `${r.member} -> ${r.weight}`).slice(0, 3).join('; ') || 'all thick'})`);
 // RECOLORS ACROSS SELECTION (#1423), read off the BUILT node — the sharpest form of the rebind: at each
 // interactive non-error state the UNCHECKED ring resolves the neutral field-border edge and the CHECKED
 // ring the interactive brand edge, so the two DIFFER. Only the stroke COLOR moves; the WEIGHT is constant
@@ -2759,9 +2761,12 @@ const disRows = rb.rows.filter((r) => r.state === 'disabled');
 const disStrokes = new Set(disRows.map((r) => r.stroke));
 ok(disRows.length > 0 && disStrokes.size === 1,
   `#1348 radio's ring is CONSTANT across selection at \`disabled\` — the shared disabled skin (${[...disStrokes].join(', ') || 'none'})`);
-const rErrored = rb.rows.filter((r) => r.state === 'error');
-ok(rErrored.length > 0 && rErrored.every((r) => r.stroke === 'color/border/danger'),
-  `#1348 ...and the danger rim survives at \`error\` on the unfilled ring (${rErrored.length} member(s))`);
+// #1698 (decision 1): radio error is GROUP-level only, so the built set has NO error member and no option
+// draws a danger ring — the reverse of the #1348/#1433a arm that stood here. Checkbox keeps its rim
+// (asserted in FINDING 3 above), so a sweep that dropped both would fail there.
+const rErrored = rb.rows.filter((r) => r.state === 'error' || r.stroke === 'color/border/danger');
+ok(rErrored.length === 0,
+  `#1698 radio-control builds no per-option error — no \`error\` member and no danger ring on any option (${rErrored.map((r) => r.member).slice(0, 3).join('; ') || 'none'})`);
 
 // THE ONE PLACE A SAME-FAMILY FILL AND BORDER LEGITIMATELY CO-OCCUR, asserted in BOTH directions so the
 // exception is exercised rather than merely tolerated. Switch's OFF track keeps its rim because no
@@ -3518,8 +3523,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `message-row seed: with no floor, a ${SHORT}px caption row measures ${SHORT} in the default message and ${GLYPH} beside the glyph (default ${bareFm.get('status=default')?.h}, error ${bareFm.get('status=error')?.h})`);
 
   // The live report's counts, hand-copied: 15 on text-field (3 statuses x 5 states), 12 on select (3 x 4).
-  // One more state column since the field family's `filled` (2026-09-25): 3 x 6 and 3 x 5.
-  const LIVE_MISSES: Record<string, number> = { 'text-field': 18, select: 15 };
+  // One more state column since the field family's `filled` (2026-09-25): 3 x 6 and 3 x 5. And select's
+  // `read-only` column since #1699: 3 x 6 on both.
+  const LIVE_MISSES: Record<string, number> = { 'text-field': 18, select: 18 };
   for (const id of ['text-field', 'select']) {
     const shipped = await buildFile(byDef(id), SHORT);
     const fm = shipped.boxes('field-message');
@@ -3822,7 +3828,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const INK: Record<string, Record<string, [Layer, string]>> = {
     'text-field': { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
     textarea: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
-    select: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED] },
+    // select's `read-only` (#1699 decision 2, text-field's state set) shows the value, as on text-field.
+    select: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
   };
   // Which defs draw the caret, and at which states. select is typed empty on purpose (see above).
   const CARET_AT: Record<string, string[]> = { 'text-field': ['focus-visible'], textarea: ['focus-visible'], select: [] };

@@ -3070,7 +3070,7 @@ for (const b of brands) {
     })),
   });
 
-  const good = verifyReadback(snapFrom(plan.color.aliases));
+  const good = verifyReadback(snapFrom(plan.color.aliases), { skipped: 'not under test in this arm' });
   ok(good.ok, 'read-back: a faithful NB read passes every contract check' + (good.ok ? '' : ` — ${Object.entries(good.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
   ok(good.checks.modesDistinct, 'read-back: background/primary distinct per mode (collapse-guard holds)');
   ok(good.checks.aliasesResolve && good.details.danglingAliases.length === 0, 'read-back: every alias target resolves (0 dangling)');
@@ -3093,7 +3093,7 @@ for (const b of brands) {
   const collapsed = plan.color.aliases.map((r) =>
     r.name === nbVar('color/background/primary') ? { ...r, targetsByMode: r.targetsByMode.map(() => r.targetsByMode[0]) } : r,
   );
-  const bad = verifyReadback(snapFrom(collapsed));
+  const bad = verifyReadback(snapFrom(collapsed), { skipped: 'not under test in this arm' });
   ok(!bad.checks.modesDistinct && !bad.ok, 'read-back: collapsed background/primary FAILS modesDistinct (negative — the collapse guard bites)');
 }
 
@@ -3118,15 +3118,52 @@ for (const b of brands) {
       .filter((c) => !(dropProbe && tailOf(c.name) === 'color/background/primary')),
   });
   ok(plan.color.modes.length === 1, `read-back single-mode: the fixture really is single-mode (${plan.color.modes.join('/')})`);
-  const one = verifyReadback(snapOf(false));
+  const one = verifyReadback(snapOf(false), { skipped: 'not under test in this arm' });
   ok(one.checks.modesDistinct, 'read-back single-mode: modesDistinct PASSES — one mode has nothing to collapse (#1662)');
   ok(one.ok, 'read-back single-mode: a faithful single-mode read passes every contract check' + (one.ok ? '' : ` — ${Object.entries(one.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
-  const unbound = verifyReadback(snapOf(true));
+  const unbound = verifyReadback(snapOf(true), { skipped: 'not under test in this arm' });
   ok(!unbound.checks.modesDistinct, 'read-back single-mode: background/primary ABSENT still FAILS modesDistinct (the vacuous pass is not "unchecked")');
   // #1691 net — a LITERAL probe (color-create ran, color-aliases did not) is not bound to the palette. A
   // multi-mode file whose probe is literal in every mode fails; a single-mode one must fail too.
-  const literal = verifyReadback(snapOf(false, true));
+  const literal = verifyReadback(snapOf(false, true), { skipped: 'not under test in this arm' });
   ok(!literal.checks.modesDistinct, 'read-back single-mode: a LITERAL background/primary (aliases never pasted) still FAILS modesDistinct — bound means aliased');
+
+  // DECLARED MODES (#1662 follow-up, owner decision 2026-09-27). The single-mode check above verifies what the
+  // file holds; it cannot tell a `modes: ['light']` brand from a light/dark brand whose `dark` never landed
+  // (`addMode` refused on a plan tier's mode cap). The saved brand's declared set is the second input, and the
+  // expected values below are WRITTEN, not read off the plan or the snapshot — the file here holds `light`.
+  ok(JSON.stringify(plan.color.modes) === '["light"]', 'read-back declared modes: the fixture file holds exactly light');
+  const missingDark = verifyReadback(snapOf(false), { modes: ['light', 'dark'] });
+  ok(missingDark.declaredModes.status === 'fail' && JSON.stringify(missingDark.declaredModes.missing) === '["dark"]' && !missingDark.ok,
+    `read-back declared modes: declared light/dark, file holds light → FAILS naming dark (${JSON.stringify(missingDark.declaredModes)})`);
+  ok(Object.values(missingDark.checks).every(Boolean),
+    'read-back declared modes: ...and every other check still passes, so the failure is the mode comparison alone');
+  const lightOnly = verifyReadback(snapOf(false), { modes: ['light'] });
+  ok(lightOnly.declaredModes.status === 'pass' && lightOnly.ok,
+    `read-back declared modes: declared light, file holds light → passes (${JSON.stringify(lightOnly.declaredModes)})`);
+  const noBrand = verifyReadback(snapOf(false), { skipped: 'no saved brand in this file' });
+  ok(noBrand.declaredModes.status === 'skipped' && noBrand.declaredModes.reason === 'no saved brand in this file',
+    `read-back declared modes: no brand → SKIPPED with the reason stated, not passed (${JSON.stringify(noBrand.declaredModes)})`);
+  // An EXTRA mode in the file is reported, never failed: it may be one the designer added.
+  const withExtra = verifyReadback({ ...snapOf(false), collections: [{ name: 'core', modes: ['Default'] }, { name: 'color', modes: ['light', 'brand-x'] }] }, { modes: ['light'] });
+  ok(withExtra.declaredModes.status === 'pass' && JSON.stringify(withExtra.declaredModes.extra) === '["brand-x"]',
+    `read-back declared modes: a mode in the file the brand does not declare is REPORTED, not failed (${JSON.stringify(withExtra.declaredModes)})`);
+
+  // PLANNED MODES (#1704 net). The file's own per-collection record of what the last apply planned, against
+  // what each collection holds. The records below are WRITTEN; the file's modes are the fixture's `light`.
+  const withPlan = (modesPlanned: Record<string, string[]>) => verifyReadback({ ...snapOf(false), modesPlanned }, { skipped: 'not under test in this arm' });
+  const cappedLayout = withPlan({ color: ['light'], layout: ['xs', 'sm', 'md', 'lg', 'xl', '2xl'] });
+  ok(cappedLayout.plannedModes.status === 'fail' && JSON.stringify(cappedLayout.plannedModes.missing) === '[{"collection":"layout","modes":["xs","sm","md","lg","xl","2xl"]}]' && !cappedLayout.ok,
+    `read-back planned modes: a recorded collection the file lacks FAILS with every planned mode named (${JSON.stringify(cappedLayout.plannedModes)})`);
+  const cappedColor = withPlan({ color: ['light', 'dark'] });
+  ok(cappedColor.plannedModes.status === 'fail' && JSON.stringify(cappedColor.plannedModes.missing) === '[{"collection":"color","modes":["dark"]}]' && !cappedColor.ok,
+    `read-back planned modes: color planned light/dark, file holds light → FAILS naming color dark (${JSON.stringify(cappedColor.plannedModes)})`);
+  const landed = withPlan({ core: ['Default'], color: ['light'] });
+  ok(landed.plannedModes.status === 'pass' && landed.ok,
+    `read-back planned modes: every recorded plan landed → passes (${JSON.stringify(landed.plannedModes)})`);
+  const noRecord = verifyReadback(snapOf(false), { skipped: 'not under test in this arm' });
+  ok(noRecord.plannedModes.status === 'none' && noRecord.ok,
+    `read-back planned modes: no record → none, not pass (${JSON.stringify(noRecord.plannedModes)})`);
 }
 
 // BrandInput PERSISTENCE (#131, #480): the shared-data round-trip + version guard. A persisted
@@ -4633,8 +4670,38 @@ for (const b of brands) {
   const codeOnly = spinner.anatomy!.codeOnly.join('\n');
   ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && /\b800ms\b/.test(spinner.motion?.reduceMotion ?? '') && /\b2600ms\b/.test(spinner.motion?.reduceMotion ?? ''),
     '#1670 spinner: the motion field names both turn tokens and their values');
-  ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly) && /aria-hidden="true"/.test(codeOnly),
-    '#1670 spinner: the code rule spins linear and infinite, slows under prefers-reduced-motion, and is aria-hidden by default');
+  ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly),
+    '#1670 spinner: the code rule spins linear and infinite and slows under prefers-reduced-motion');
+
+  // ---- THE OWNER'S DECISIONS OF 2026-09-27 (the brief carry-forward) ----------------------------------------
+  // Expectations written here, from the decisions, not read back from the def: the label defaults to the literal
+  // "Loading"; a standalone spinner is a polite status that never carries a value; the embedding hosts hide it
+  // with the standard attribute; the enter fade names `motion.duration.fast`, which must exist in a built tree.
+  // No 2.2.2 / 2.3.3 claim (owner, 2026-09-26): the reduced-motion turn is slowed, not stopped, so neither is claimed.
+  ok(!(spinner.accessibility.wcag ?? []).some((w) => /^2\.2\.2\b|^2\.3\.3\b/.test(w)),
+    `spinner 2026-09-26: accessibility.wcag claims neither 2.2.2 nor 2.3.3 (${JSON.stringify((spinner.accessibility.wcag ?? []).map((w) => w.split(' ')[0]))})`);
+  const labelProp = spinner.props.find((p) => p.name === 'label');
+  ok(labelProp?.default === 'Loading' && /role="status"/.test(labelProp.description) && /aria-hidden="true"/.test(labelProp.description),
+    `spinner 2026-09-27: the label defaults to "Loading" on the role="status" wrapper, and a host opts out with aria-hidden="true" (${JSON.stringify(labelProp?.default)})`);
+  const aria = spinner.accessibility.aria ?? '';
+  ok(/aria-live="polite"/.test(aria) && /Never `aria-valuenow` and never `role="progressbar"`/.test(aria) && /aria-hidden="true"/.test(aria),
+    'spinner 2026-09-27: accessibility.aria states the polite status, the host opt-out, and the no-value contract (never aria-valuenow, never role=progressbar)');
+  ok(/aria-hidden="true"/.test(codeOnly) && /role="status"/.test(codeOnly) && /"Loading" by default/.test(codeOnly),
+    'spinner 2026-09-27: the code rule is a role="status" wrapper named "Loading" by default, hidden by an announcing host with aria-hidden="true"');
+  for (const def of [button, iconButton]) {
+    ok(/aria-hidden="true" on the embedded spinner/.test(def.accessibility.aria ?? ''),
+      `spinner 2026-09-27: ${def.id}'s accessibility.aria hides its embedded spinner (aria-hidden="true"), so isPending announces once`);
+  }
+  const enterRole = /`motion\.duration\.([a-z-]+)`/.exec(spinner.motion?.enter ?? '')?.[1];
+  const builtMotion = buildTree(brandTheme({ id: 'spinfade', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as unknown as BrandInput)).tree.prism.motion;
+  ok(enterRole === 'fast' && builtMotion.duration.fast !== undefined && builtMotion['duration-reduced'].fast !== undefined && /motion\.duration-reduced\.fast/.test(spinner.motion?.reduceMotion ?? ''),
+    `spinner 2026-09-27: motion.enter is a fade on the existing motion.duration.fast, kept under reduced motion on its reduced twin (enter binds ${enterRole ?? 'nothing'})`);
+  const contested = (spinner.notes?.contested ?? []).join('\n');
+  const deferred = ['labelPosition', 'staticColor', 'OVERLAY / MASK', '`spinning` PROP'].filter((k) => !contested.split('\n').some((line) => line.includes(k) && line.includes('deferred by owner (2026-09-27)')));
+  ok(deferred.length === 0 && /END STATE — declined by owner \(2026-09-27\)/.test(contested),
+    `spinner 2026-09-27: each deferred item is a contested entry marked deferred by owner, and the end state declined${deferred.length ? ` — missing: ${deferred.join(', ')}` : ''}`);
+  ok(!spinner.props.some((p) => ['labelPosition', 'staticColor', 'spinning', 'delay'].includes(p.name)),
+    'spinner 2026-09-27: none of the deferred or host-owned props (labelPosition, staticColor, spinning, delay) is declared');
 }
 
 {
@@ -11522,8 +11589,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // satisfy this (no `checked.fill.error`/`checked.indicator.error` key, so error falls back to the
     // interactive `checked.fill`/`checked.indicator`); this block LOCKS it. EXPECTED is the owner's decision;
     // ACTUAL is read off the emitted plan (host-facing), and the mutation adds the red-fill key the decision
-    // forbids and confirms the assertion flips BY NAME (docs/34). The rows nest these atoms, so this is the
-    // error appearance of both the radio row and the checkbox row.
+    // forbids and confirms the assertion flips BY NAME (docs/34). The row nests this atom, so this is the
+    // error appearance of the checkbox row. RADIO LEFT THIS LOOP in #1698 (decision 1): radio error is
+    // group-level only, so `radio-control` has no error member to read — the #1698 block pins that absence.
     {
       const errFind = (n: FigmaNodePlan, name: string): FigmaNodePlan | undefined =>
         n.name === name ? n : (n.children ?? []).map((c) => errFind(c, name)).find(Boolean);
@@ -11535,7 +11603,6 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         // The checkbox's inner fill is the filled BOX (`control`, fill slot); the radio's is the inner DOT
         // (`dot`, indicator slot → `paints.fills`). The error border is the `control`'s stroke on both.
         { def: checkboxControl, fillPart: 'control', mutKey: 'checked.fill.error' },
-        { def: radioControl, fillPart: 'dot', mutKey: 'checked.indicator.error' },
       ] as { def: ComponentDef; fillPart: string; mutKey: string }[]) {
         const rest = memberAt(def, /selection=checked, size=medium, state=rest/);
         const error = memberAt(def, /selection=checked, size=medium, state=error/);
@@ -11566,13 +11633,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // block below for the halving.
     const projStates = select.figmaProperties!.stateAxis!.values;
     const V = select.variants!.status!.length;                 // status: 4
-    const St = projStates.length;                               // rest/hover/filled/focus-visible/disabled: 5
+    const St = projStates.length;                               // rest/hover/filled/focus-visible/disabled/read-only: 6
     const set = figmaAnatomySet(select);
     // (a) empty is absent from the PROJECTED axis, and the enumeration matches the product WITHOUT it.
     ok(!projStates.includes('empty'),
       `#1344 'empty' is NOT a projected Figma state (stateAxis = [${projStates.join(', ')}])`);
-    ok(set.length === V * St && set.length === 20,
-      `#1344 select projects status(${V})×state(${St}) = ${V * St} members (the filled column since 2026-09-25; 24 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
+    ok(set.length === V * St && set.length === 24,
+      `#1344 select projects status(${V})×state(${St}) = ${V * St} members (the filled column since 2026-09-25, the read-only column since #1699; 28 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
     ok(!set.some((p) => planComponentName(p).includes('empty')),
       '#1344 no projected member names the empty state');
     // (b) empty IS still a real state — the placeholder-vs-value ink distinction is carried internally, and
@@ -11585,13 +11652,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       .filter((v) => v === 'color/text/secondary');
     ok(emptyInk.length === 1,
       '#1344 the placeholder ink is reached at the declared empty coordinate (text paints color/text/secondary)');
-    //   MUTATION A — restore `empty` to the projected axis. The set rebuilds the empty column (16 → 20) and
-    //   a member names it, flipping '#1344 select projects … 16 members' and '#1344 no projected member
+    //   MUTATION A — restore `empty` to the projected axis. The set rebuilds the empty column (24 → 28) and
+    //   a member names it, flipping '#1344 select projects … 24 members' and '#1344 no projected member
     //   names the empty state' BY NAME.
     const projMutant = { ...select, figmaProperties: { ...select.figmaProperties!, stateAxis: { name: 'state', values: [...projStates, 'empty'] } } };
     const mutSet = figmaAnatomySet(projMutant as ComponentDef);
-    ok(mutSet.length === 24 && mutSet.some((p) => planComponentName(p).includes('empty')),
-      `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 20 members' to failing`);
+    ok(mutSet.length === 28 && mutSet.some((p) => planComponentName(p).includes('empty')),
+      `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 24 members' to failing`);
     //   MUTATION B — drop `empty` from `states`. `label.empty` / `error.border.empty` then name a state the
     //   def no longer declares, so `validateComponentDef` reports them as unreachable paint keys — the
     //   internal carry is load-bearing, and this flips '#1344 empty stays in states' BY NAME.
@@ -11627,9 +11694,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(lvNodes.length > 0 && lvNodes.every((lv) => lv?.swapTarget === 'FPO-default-icon'),
       '#1331 the leading glyph node carries the content swap AND the visibility boolean on ONE node (mainComponent + visible)');
 
-    // (3) the set HALVES: status(4) × state(5) = 20 (with the 2026-09-25 filled column), from 40 as a ×2 axis.
-    ok(sset.length === 20,
-      `#1331 select projects 20 members (40 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
+    // (3) the set HALVES: status(4) × state(6) = 24 (with the 2026-09-25 filled column and #1699's read-only), from 48 as a ×2 axis.
+    ok(sset.length === 24,
+      `#1331 select projects 24 members (48 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
 
     // (4) planSetProperties declares `leading icon` as a BOOLEAN defaulting to the built (hidden) visibility,
     //     ordered ABOVE the swap it gates (the #1380 `leading icon` → `↳ swap leading icon` panel nesting).
@@ -11651,11 +11718,11 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
 
     // (6) BEHAVIOR MUTATION — reverting `leading` to a VARIANT SLOT AXIS re-doubles the set to 40 and re-drops
     //     the node in the leading=false members (present-in-some/absent-in-others), the exact multiplication the
-    //     boolean replaced. Flips "#1331 select projects 20 members" BY NAME.
+    //     boolean replaced. Flips "#1331 select projects 24 members" BY NAME.
     const asAxis = { ...select, figmaProperties: { ...fp, booleans: {}, slotAxes: [{ name: 'leading', part: 'leadingVisual', figmaName: 'leading icon' }] } };
     const asAxisSet = figmaAnatomySet(asAxis as never, { swapTarget: 'FPO-default-icon' });
-    ok(asAxisSet.length === 40 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
-      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 40 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
+    ok(asAxisSet.length === 48 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
+      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 48 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
 
     // (7) VALIDATOR ARMS (new refusals, by-name).
     //   (a) the LOOSENING is real: select's leadingVisual carries a swap AND a boolean and validates clean
@@ -11717,8 +11784,8 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
 
     // (3) the boolean does NOT multiply the set — still status(4) × state(5) = 20 members.
-    ok(sset.length === 20,
-      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 20 members (got ${sset.length})`);
+    ok(sset.length === 24,
+      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 24 members (got ${sset.length})`);
 
     // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
     const props = planSetProperties(sset);
@@ -12184,12 +12251,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     'component: FieldLabel requires text + binds a semantic text ROLE per emphasis (and no bare `label` key survives)');
   // #1334: field-label's prominence axis is `emphasis` (renamed from `tone`), and its ink-emphasis prop is
   // `emphasis` too. Hand-written literals, not derived — reverting the def's axis rename fails this by name
-  // (alongside lint-component-surface's planStamp and lint-axis-values' register).
-  ok(JSON.stringify(fieldLabel.variants.emphasis) === JSON.stringify(['primary', 'secondary'])
+  // (alongside lint-component-surface's planStamp and lint-axis-values' register). `secondary` FIRST since
+  // #1699 decision 4: the first value is the set's first member, Figma's default variant.
+  ok(JSON.stringify(fieldLabel.variants.emphasis) === JSON.stringify(['secondary', 'primary'])
     && fieldLabel.variants.tone === undefined
     && !!fieldLabel.props.find((p) => p.name === 'emphasis')
     && !fieldLabel.props.some((p) => p.name === 'tone'),
-    'component: FieldLabel emphasis axis is [primary, secondary] and `tone` is retired (#1334)');
+    'component: FieldLabel emphasis axis is [secondary, primary] and `tone` is retired (#1334, #1699)');
   // …and TYPE follows size across three rungs, on `type.body.*` — the tier #862 predicted and the one
   // that matches Prism 2's 14/16/18 ladder. `type.label.*` is 12/14/18 (its `lg` was minted at 18 by
   // #1260) but emphasis-only and its middle rung is 14 not 16, so it matches neither Prism 2's sizes nor
@@ -12212,16 +12280,15 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok((['small', 'medium', 'large'] as const).every((sz) =>
     fieldLabel.tokens[`size.${sz}.regular.text`] !== fieldLabel.tokens[`size.${sz}.bold.text`]),
     'component: FieldLabel\'s weight axis resolves to a DIFFERENT type role at every size rung — the axis changes the output (#1248)');
-  // #756 arm 3, pinned at the def rather than left to the gate: the DEFAULT size must land on the `md`
-  // rung. `lint-rung-names` checks this corpus-wide, and it is restated here because #872 moved the
-  // ladder from two rungs to three — the edit that could most easily have left `medium` pointing at
-  // `sm` while every other check stayed green. Read at the DEFAULT weight, and both defaults are named
-  // in the assertion: #1248 turned this key from a point into a row, and reading it at `bold` would
-  // pin a cell no consumer lands in having chosen nothing.
-  ok(fieldLabel.props.find((p) => p.name === 'size')?.default === 'medium'
+  // #756 arm 3, pinned at the def rather than left to the gate — and since #1699 decision 4 (owner-delegated)
+  // the DEFAULT size is `small`, the rung every host nests, so it lands on the `sm` rung (the one sanctioned
+  // exception to "defaults resolve to `md`", admitted by name in `lint-rung-names`' HOST_DEFAULT_DEFS). Read
+  // at the DEFAULT weight, and both defaults are named in the assertion: #1248 turned this key from a point
+  // into a row, and reading it at `bold` would pin a cell no consumer lands in having chosen nothing.
+  ok(fieldLabel.props.find((p) => p.name === 'size')?.default === 'small'
     && fieldLabel.props.find((p) => p.name === 'weight')?.default === 'regular'
-    && fieldLabel.tokens['size.medium.regular.text'] === 'type.body.md.default',
-    'component: FieldLabel\'s default size x weight resolves to the `md` rung at `default` (#756 arm 3, #1248)');
+    && fieldLabel.tokens['size.small.regular.text'] === 'type.body.sm.default',
+    'component: FieldLabel\'s default size x weight resolves to the `sm` rung at `default` (#756 arm 3, #1248, #1699)');
 
   // ---- #1338: the required marker is a NODE-VISIBILITY BOOLEAN, reconciling away the `indicator` axis ----
   // The SECOND consumer of the #1412 mechanism (after select's leading glyph), and the FIRST that defaults
@@ -12241,14 +12308,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(!set.some((p) => /indicator|required/.test(planComponentName(p))),
       '#1338 no projected member name carries an `indicator`/`required` coordinate — presence is a boolean, not an axis');
 
-    // (2) THE MECHANISM: the marker node is EMITTED at EVERY member, VISIBLE by default (required defaults
-    //     true — Prism 2's model), its `visible` driven by the `required` boolean. `visible` is omitted on a
-    //     built-visible node (both executors read `n.visible ?? true`), so "built visible" is `visible !== false`.
+    // (2) THE MECHANISM: the marker node is EMITTED at EVERY member, HIDDEN by default (required defaults
+    //     false since #1699 — the hosts' default), its `visible` driven by the `required` boolean.
     const indNodes = set.map((p) => findInd(p.root));
     ok(indNodes.length === set.length && indNodes.every((n) => !!n),
       `#1338 the required marker node is emitted at EVERY projected member (${indNodes.filter(Boolean).length}/${set.length})`);
-    ok(indNodes.length > 0 && indNodes.every((n) => n?.visibleProp === 'required' && n?.visible !== false),
-      '#1338 every required marker node is VISIBLE by default (built visible) with its `visible` driven by the `required` boolean (Prism 2 default-true)');
+    ok(indNodes.length > 0 && indNodes.every((n) => n?.visibleProp === 'required' && n?.visible === false),
+      '#1338 every required marker node is HIDDEN by default (built `visible:false`) with its `visible` driven by the `required` boolean (#1699: default off, the hosts\' default)');
     ok(indNodes.length > 0 && indNodes.every((n) => n?.characters === '*'),
       '#1338 the required marker carries its `*` content (`characters`) AND its visibility boolean on ONE node — the #798 non-empty rule holds under the boolean');
 
@@ -12256,12 +12322,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(set.length === 24,
       `#1338 field-label projects 24 members — the boolean toggles a part in place and does not multiply the grid (got ${set.length})`);
 
-    // (4) planSetProperties declares `required` as a BOOLEAN defaulting TRUE (the built visibility), beside
-    //     its `required marker` TEXT sibling (one prop, two Figma properties on one node).
+    // (4) planSetProperties declares `required` as a BOOLEAN defaulting FALSE (the built visibility, #1699),
+    //     beside its `required marker` TEXT sibling (one prop, two Figma properties on one node).
     const props = planSetProperties(set);
     const req = props.find((p) => p.name === 'required');
-    ok(!!req && req.type === 'BOOLEAN' && req.default === true,
-      `#1338 planSetProperties declares 'required' as a BOOLEAN defaulting true (the built, Prism-2-default visibility) — got ${JSON.stringify(req)}`);
+    ok(!!req && req.type === 'BOOLEAN' && req.default === false,
+      `#1338 planSetProperties declares 'required' as a BOOLEAN defaulting false (the built visibility, #1699) — got ${JSON.stringify(req)}`);
     ok(props.some((p) => p.name === 'required marker' && p.type === 'TEXT' && p.default === '*'),
       '#1338 the marker TEXT projects as `required marker` defaulting `*` (Prism 2\'s `_Form label` required content)');
 
@@ -12272,14 +12338,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     ok(noBoolSet.every((p) => !findInd(p.root)),
       '#1338 MUTATION: dropping the boolean drops the (optional) required marker from every member — the boolean is what keeps it present, flipping "#1338 the required marker node is emitted at EVERY projected member" BY NAME');
 
-    // (6) BEHAVIOR MUTATION — flip the built visibility (required default false). The marker then builds
-    //     HIDDEN (`visible:false`) and the boolean defaults false, flipping "VISIBLE by default" BY NAME —
-    //     this is the on-shows/off-hides direction, and it proves the default is load-bearing not incidental.
-    const offByDefault = { ...fieldLabel, figmaProperties: { ...fp, booleans: { required: { part: 'indicator', default: false } } } };
-    const offSet = figmaAnatomySet(offByDefault as never);
-    const offNodes = offSet.map((p) => findInd(p.root));
-    ok(offNodes.every((n) => n?.visible === false) && planSetProperties(offSet).find((p) => p.name === 'required')?.default === false,
-      '#1338 MUTATION: required default false builds the marker HIDDEN (`visible:false`, boolean defaults false) — flipping "VISIBLE by default" BY NAME (the on-shows/off-hides direction)');
+    // (6) BEHAVIOR MUTATION — flip the built visibility (required default true, the pre-#1699 default). The
+    //     marker then builds VISIBLE and the boolean defaults true, flipping "HIDDEN by default" BY NAME — the
+    //     on-shows/off-hides direction, and it proves the default is load-bearing not incidental.
+    const onByDefault = { ...fieldLabel, figmaProperties: { ...fp, booleans: { required: { part: 'indicator', default: true } } } };
+    const onSet = figmaAnatomySet(onByDefault as never);
+    const onNodes = onSet.map((p) => findInd(p.root));
+    ok(onNodes.every((n) => !!n && n.visible !== false) && planSetProperties(onSet).find((p) => p.name === 'required')?.default === true,
+      '#1338 MUTATION: required default true builds the marker VISIBLE (boolean defaults true) — flipping "HIDDEN by default" BY NAME (the on-shows/off-hides direction)');
 
     // (7) BEHAVIOR MUTATION — reverting `indicator` to a VARIANT AXIS re-multiplies the set and re-names the
     //     members, the exact multiplication the boolean replaced. Flips "#1338 field-label projects 24" and
@@ -12288,6 +12354,90 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     const asAxisSet = figmaAnatomySet({ ...asAxis, figmaProperties: { ...fp, variantAxes: [...(fp.variantAxes ?? []), 'indicator'], booleans: {} } } as never);
     ok(asAxisSet.length === 48 && asAxisSet.some((p) => /indicator/.test(planComponentName(p))),
       `#1338 MUTATION: reverting indicator to a variant axis re-multiplies the set (24 -> ${asAxisSet.length}) and re-names the members — the multiplication the boolean replaced`);
+  }
+
+  // ---- #1699: field family + switch alignment — the decisions a gate can hold ----
+  // EXPECTED is hand-written here from the KB briefs and the issue's decisions (never read back off the def
+  // it checks); ACTUAL is the def, or the projected plan. docs/34: each arm is mutation-proven by name.
+  {
+    const findPart = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => findPart(c, name)).find(Boolean));
+
+    // (A) THE SELECT ALIAS FIX. The KB select brief's own alias list (frontmatter + §15), copied as a literal.
+    //     `combobox` is brief §10's "common mis-conflation, not a true alias" and must not be an alias or a
+    //     trigger keyword; `menu` is an alternative (a menu performs an action), not a trigger for this.
+    const BRIEF_SELECT_ALIASES = ['dropdown', 'picker', 'listbox', 'select-panel', 'exposed-dropdown-menu'];
+    const missingAliases = BRIEF_SELECT_ALIASES.filter((a) => !select.aliases?.includes(a));
+    ok(missingAliases.length === 0 && !select.aliases?.includes('combobox'),
+      `#1699 select carries every KB-brief alias and not \`combobox\` (missing: [${missingAliases.join(', ')}]; aliases: [${(select.aliases ?? []).join(', ')}])`);
+    const badKeywords = (select.ai.triggerKeywords ?? []).filter((k) => k === 'combobox' || k === 'menu');
+    ok(badKeywords.length === 0,
+      `#1699 select's trigger keywords name neither \`combobox\` nor \`menu\` (found: [${badKeywords.join(', ')}])`);
+
+    // (B) DECISION 2 — select gains read-only and pending, text-field's state set (the literal below is the
+    //     decision, not text-field's array read back). read-only PROJECTS; pending does not.
+    const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'];
+    ok(FIELD_STATES.every((st) => (select.states as string[]).includes(st)) && select.states.length === FIELD_STATES.length,
+      `#1699 select carries the field family's state set, read-only and pending included (got [${select.states.join(', ')}])`);
+    const selProj = select.figmaProperties!.stateAxis!.values;
+    ok(selProj.includes('read-only') && !selProj.includes('pending'),
+      `#1699 select projects read-only and holds pending out of the Figma state axis (stateAxis [${selProj.join(', ')}])`);
+    //     The projected read-only member, read off the PLAN: text-field's quieter boundary, the value at full
+    //     contrast, no placeholder; an error status keeps the danger boundary at read-only.
+    const roPlan = figmaAnatomyPlan(select, undefined, { status: 'default', state: 'read-only' } as never).root;
+    ok(findPart(roPlan, 'control')?.paints?.strokes === 'color/border/secondary'
+      && findPart(roPlan, 'value')?.paints?.fills === 'color/text/primary'
+      && !findPart(roPlan, 'placeholder'),
+      `#1699 select's read-only member draws the secondary border and the value in text.primary, with no placeholder (border ${String(findPart(roPlan, 'control')?.paints?.strokes)})`);
+    const roErr = figmaAnatomyPlan(select, undefined, { status: 'error', state: 'read-only' } as never).root;
+    ok(findPart(roErr, 'control')?.paints?.strokes === 'color/border/danger',
+      `#1699 select's error status keeps the danger border at read-only (got ${String(findPart(roErr, 'control')?.paints?.strokes)})`);
+
+    // (C) DECISION 4 — field-label's defaults follow its hosts: required off, small, secondary. The host side
+    //     is read off the HOSTS' own nest coordinates (a separate authored place), so the two halves are
+    //     independent: a label default that drifts from how the hosts nest it fails here by name.
+    const flDefault = (name: string) => fieldLabel.props.find((p) => p.name === name)?.default;
+    ok(flDefault('required') === false && flDefault('size') === 'small' && flDefault('emphasis') === 'secondary',
+      `#1699 field-label defaults are required=false, size=small, emphasis=secondary (got ${String(flDefault('required'))} / ${String(flDefault('size'))} / ${String(flDefault('emphasis'))})`);
+    // The two GROUPS nest field-label without overriding `required`, so their Figma marker IS field-label's
+    // default. Their own code `required` must agree with it — and with the brief (§15: `false`), the literal
+    // expected here. A group left at `true` builds a hidden marker under a code default that says required:
+    // the disagreement the #1699 net review found, which no arm caught.
+    for (const g of [checkboxGroup, radioGroup]) {
+      const gReq = g.props.find((p) => p.name === 'required')?.default;
+      ok(gReq === false && gReq === flDefault('required'),
+        `#1699 ${g.id}'s required default is false (brief §15) and agrees with the nested field-label's marker default (group ${String(gReq)}, label ${String(flDefault('required'))})`);
+    }
+    const hostCoords = [select, textField, textarea].map((d) => {
+      const lp = d.anatomy!.parts.label as { nesting?: { variant?: Record<string, string> } };
+      return `${d.id}:${lp.nesting?.variant?.size}/${lp.nesting?.variant?.emphasis}`;
+    });
+    ok(hostCoords.every((c) => c.endsWith(`:${String(flDefault('size'))}/${String(flDefault('emphasis'))}`)),
+      `#1699 every single-size field host nests the label at its code default size and emphasis ([${hostCoords.join(', ')}])`);
+    //     And the FIGMA default (the set's first member — Figma's default variant is the first child) is the
+    //     same cell, with the marker built hidden.
+    const flFirst = figmaAnatomySet(fieldLabel)[0];
+    ok(planComponentName(flFirst) === 'emphasis=secondary, weight=regular, size=small, state=rest'
+      && findPart(flFirst.root, 'indicator')?.visible === false,
+      `#1699 field-label's first member (the Figma default) is small / secondary / regular / rest with the marker hidden (got "${planComponentName(flFirst)}")`);
+
+    // (D) DECISION 3 — text-field has one prop per slot: two glyph slots and two TEXT affixes.
+    const tfType = (name: string) => textField.props.find((p) => p.name === name)?.type;
+    ok(tfType('prefix') === 'string' && tfType('suffix') === 'string' && tfType('leadingIcon') === 'slot' && tfType('trailingIcon') === 'slot',
+      `#1699 text-field's prefix/suffix are text affixes and leadingIcon/trailingIcon the glyph slots (types: ${['prefix', 'suffix', 'leadingIcon', 'trailingIcon'].map((n) => `${n}=${String(tfType(n))}`).join(', ')})`);
+    const slotProps = textField.props.filter((p) => /slot/.test(p.type)).map((p) => p.name).sort();
+    ok(JSON.stringify(slotProps) === JSON.stringify(['leadingIcon', 'trailingIcon']),
+      `#1699 text-field's only slot props are the two glyph slots, one per slot (got [${slotProps.join(', ')}])`);
+
+    // (E) COMPOSITION — field-label names the defs that NEST it (read off every def's anatomy, not its own
+    //     lists) in both of its lists, and switch-row no longer claims the field parts it does not nest.
+    const nesters = componentDefs.filter((d) => Object.values((d.anatomy?.parts ?? {}) as Record<string, { nests?: string }>).some((p) => p.nests === 'field-label')).map((d) => d.id).sort();
+    const flCompose = (fieldLabel.composition?.composesWith ?? []).filter((x) => x !== 'field-message').sort();
+    const flPartners = (fieldLabel.ai.commonPartners ?? []).filter((x) => x !== 'field-message').sort();
+    ok(JSON.stringify(flCompose) === JSON.stringify(nesters) && JSON.stringify(flPartners) === JSON.stringify(nesters),
+      `#1699 field-label's composesWith and commonPartners both name exactly the defs that nest it ([${nesters.join(', ')}]; composesWith [${flCompose.join(', ')}], commonPartners [${flPartners.join(', ')}])`);
+    const swFieldParts = [...(switchRow.composition?.composesWith ?? []), ...(switchRow.ai.commonPartners ?? [])].filter((x) => x === 'field-label' || x === 'field-message');
+    ok(swFieldParts.length === 0,
+      `#1699 switch-row does not claim field-label / field-message, which it does not nest (found: [${swFieldParts.join(', ')}])`);
   }
 
   // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
@@ -15781,7 +15931,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           return undefined;
         };
         const collided = members.filter((m) => descend(m, 'text'));
-        ok(members.length === 20 && collided.length === members.length,
+        ok(members.length === 24 && collided.length === members.length,
           `#1428 reachability (paste): every built select member carries a colliding nested-instance \`text\` (${collided.length}/${members.length})`);
         const textMisses = run.misses.filter((m) => /\btext\.characters\b/.test(m));
         ok(textMisses.length === 0,
@@ -21162,14 +21312,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `#1348 the radio ROW nests radio-control nest-exposed, exposing selection+state and following size (kind=${ctrl?.kind}, nests=${ctrl?.nests}, rel=${rel?.kind}, expose=[${rel?.expose?.join(', ')}], follow=[${rel?.follow?.join(', ')}])`);
 
   // (2) THE MEMBER COLLAPSE, a multiply INDEPENDENT of the enumeration. The Row is size-only; the atom
-  // carries selection×size×state. 36 → 3.
+  // carries selection×size×state. 36 → 3 at #1348; the atom is 30 since #1698 dropped its error column.
   const rowN = figmaAnatomySet(radioRow).length;
   const ctlN = figmaAnatomySet(rc).length;
   const ctlProduct = rc.variants!.selection!.length * rc.variants!.size!.length * rc.figmaProperties!.stateAxis!.values.length;
   ok(rowN === radioRow.variants!.size!.length && rowN === 3,
-    `#1348 the radio ROW projects SIZE-ONLY — ${rowN} members (its one axis), the 36→3 collapse against the atom's set`);
-  ok(ctlN === ctlProduct && ctlProduct === 36,
-    `#1348 radio-control carries the 36 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
+    `#1348 the radio ROW projects SIZE-ONLY — ${rowN} members (its one axis), the collapse against the atom's set`);
+  ok(ctlN === ctlProduct && ctlProduct === 30,
+    `#1348 radio-control carries the 30 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN} (36 before #1698 dropped the error column)`);
 
   // (3) THE PRISM 2 VISUAL — CONSTANT-WEIGHT OUTLINED RING + INNER CIRCLE ON SELECT (#1348 point 2), read
   // four ways, each independent of the producer. Since #1423 the ring RECOLORS on select (constant WEIGHT,
@@ -21262,6 +21412,52 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(rc.tokens['radius'] === 'radius.round' && rc.anatomy!.parts.control.radius === 'radius'
      && rc.anatomy!.parts.focusRing?.nests === 'focus-ring',
     `#1348 radio-control's control is a FULL-ROUND host (radius→${rc.tokens['radius']}) nesting focus-ring, so F2/#1388 yields a CIRCULAR focus ring by construction — confirmed, not re-derived`);
+}
+
+// ---- #1698: CHECKBOX + RADIO ALIGNMENT — the two gateable decisions, pinned by literal ------------------
+//
+// Decision 1: radio error is GROUP-level only (brief §4: "error | group-level only, never per-option"), so
+// `radio-control` carries no `error` state, no error ring binding and no error member, and `radio-row`
+// declares no `error` state. Decision 2: `radio-group`'s `name` is required (brief §15: `{name: name, ...,
+// required: true}`). EXPECTED is written here from the brief, never read off a def (docs/34 shape 1); ACTUAL
+// is the def and the projected set. Each arm carries its own mutation, so the assertion is shown to fail by
+// name against a def that has the forbidden shape.
+{
+  const rc = componentDefs.find((d) => d.id === 'radio-control')!;
+  const rrow = componentDefs.find((d) => d.id === 'radio-row')!;
+  const rgrp = componentDefs.find((d) => d.id === 'radio-group')!;
+  const errorShape = (d: ComponentDef): string[] => [
+    ...(d.states ?? []).filter((st) => st === 'error').map(() => 'states has error'),
+    ...(d.figmaProperties?.stateAxis?.values ?? []).filter((v) => v === 'error').map(() => 'stateAxis has error'),
+    ...Object.keys(d.tokens ?? {}).filter((k) => k.split('.').includes('error')).map((k) => `token ${k}`),
+    ...figmaAnatomySet(d).map(planComponentName).filter((n) => /state=error/.test(n)).map((n) => `member ${n}`),
+  ];
+  // (1a) the atom has no per-option error in any of the four places it could live.
+  const rcErr = errorShape(rc);
+  ok(rcErr.length === 0,
+    `#1698 radio-control has NO per-option error — no error state, no error ring binding, no error member (found: ${rcErr.slice(0, 4).join('; ') || 'none'})`);
+  // (1b) the option row declares no error state either (its Figma set is size-only, so the state list is
+  // the code projection's — a row `error` here would promise a per-option error the control cannot draw).
+  ok(!(rrow.states ?? []).includes('error'),
+    `#1698 radio-row declares no error state — radio error is group-level (states: ${(rrow.states ?? []).join(', ')})`);
+  // (1c) the family difference is deliberate: an isolated checkbox recolors its own boundary (brief
+  // checkbox §4), so checkbox-control KEEPS its error ring. Guards against a sweep that drops both.
+  ok(checkboxControl.states.includes('error') && checkboxControl.tokens['unchecked.border.error'] === 'color.border.danger',
+    `#1698 checkbox-control keeps its error ring — only radio error is group-level (states: ${checkboxControl.states.join(', ')}, unchecked.border.error=${checkboxControl.tokens['unchecked.border.error']})`);
+  //   MUTATION (1a) — restore the pre-#1698 danger ring on the unchecked option.
+  const mutRc = { ...rc, tokens: { ...rc.tokens, 'unchecked.border.error': 'color.border.danger' } } as ComponentDef;
+  ok(errorShape(mutRc).includes('token unchecked.border.error'),
+    `#1698 MUTATION: a restored unchecked.border.error is found by the per-option error scan — arm (1a) reads the def's live tokens`);
+  //   MUTATION (1a) — restore the error state and its column.
+  const mutRcState = { ...rc, states: [...rc.states, 'error'],
+    figmaProperties: { ...rc.figmaProperties!, stateAxis: { ...rc.figmaProperties!.stateAxis!, values: [...rc.figmaProperties!.stateAxis!.values, 'error'] } } } as ComponentDef;
+  const mutStateErr = errorShape(mutRcState);
+  ok(mutStateErr.includes('states has error') && mutStateErr.some((e) => e.startsWith('member ')),
+    `#1698 MUTATION: a restored error state projects error members the scan finds (${mutStateErr.filter((e) => e.startsWith('member ')).length} members)`);
+  // (2) the group's shared name is required — the literal the brief states.
+  const nameProp = rgrp.props.find((pr) => pr.name === 'name');
+  ok(nameProp?.required === true,
+    `#1698 radio-group's name prop is required — it is what makes the set exclusive (required=${String(nameProp?.required)})`);
 }
 
 // ---- #1039: MATERIALIZATION RENAMES — check 2, and the table that proves check 1's shape ----------

@@ -13,9 +13,9 @@
  *
  * ── REQUIRED IS A BOOLEAN; DISABLED IS A STATE (#1338 / #1339, owner-decided 2026-09-13) ──────────
  *
- * REQUIRED (#1338): Prism 2's `Required` boolean, default TRUE — a Figma node-visibility toggle (the
- * #1412 mechanism, first proven by select's leading glyph) that shows the marker when on and hides it
- * when off. It RECONCILES AWAY the old 3-value `indicator` [none/required/optional] axis: a boolean is
+ * REQUIRED (#1338): Prism 2's `Required` boolean — a Figma node-visibility toggle (the #1412 mechanism,
+ * first proven by select's leading glyph) that shows the marker when on and hides it when off. It
+ * defaulted TRUE (Prism 2's default) until #1699, and now defaults FALSE: see "THE DEFAULTS" below. It RECONCILES AWAY the old 3-value `indicator` [none/required/optional] axis: a boolean is
  * two states, the marker's presence is the choice, and Prism 2 models it exactly this way. The old file
  * header documented an "unbuildable in both directions" contradiction here (`optional: true` plus a
  * boolean) — #1412 resolved it, and the marker part now carries both, so this def is the first FIELD
@@ -29,6 +29,17 @@
  * The practice default is the STATIC top-aligned label (brief §2, §13) — floating labels are
  * out of favor for a11y and i18n. This part models that default; a floating treatment would be
  * a motion concern on the host, not a different label component.
+ *
+ * ── THE DEFAULTS FOLLOW THE HOSTS (#1699 decision 4, owner-delegated) ────────────────────────────
+ *
+ * `required: false`, `size: small`, `emphasis: secondary` — the configuration every host already nests
+ * (select, text-field and textarea at small / secondary; the two groups at secondary), and a host's own
+ * `required` prop defaults false. The code defaults and the Figma set's default member now agree: the
+ * `emphasis` values are ordered `[secondary, primary]` so the set's FIRST member (Figma's default variant
+ * is the set's first child) is small / secondary / regular / rest, and the `required` boolean builds the
+ * marker hidden. `lint-rung-names` admits the `small` default by name (it is one rung below the `md`
+ * rule every other sized def follows). Against Prism 2 this now agrees on size and emphasis (Small,
+ * Secondary) and diverges on the marker (Prism 2's `Required` defaults on).
  */
 import { ComponentDef } from '../component-schema';
 
@@ -40,7 +51,7 @@ export const fieldLabel: ComponentDef = {
   status: 'draft',
   summary: 'Visible label that names a field, with an optional required marker.',
   description:
-    'The visible, persistent label above a form field — the field\'s accessible name — with a required marker (a boolean, default on) and a size that pairs with the control. A shared field part: the same component above every field control. Static top-aligned by default (the practice default; floating labels are out of favor).',
+    'The visible, persistent label above a form field — the field\'s accessible name — with a required marker (a boolean, off by default) and a size that pairs with the control. A shared field part: the same component above every field control. Static top-aligned by default (the practice default; floating labels are out of favor).',
 
   props: [
     // #1242 — `label`, not `children`. See `button.ts`: the prop name is the Figma property name a
@@ -48,14 +59,14 @@ export const fieldLabel: ComponentDef = {
     // LOWERCASE per #1333 — every Figma TEXT property name is lowercase.
     { name: 'label', type: 'string | node', required: true, description: 'The label text — a noun phrase, sentence case, ≤3 words, no trailing colon ("Email address", not "Enter your email address here").' },
     { name: 'htmlFor', type: 'string', required: true, description: 'The id of the field it names — a native <label for>. Set by the host when composed inside a field component (useId).' },
-    // #1338 — Prism 2's `Required` boolean (default TRUE), reconciling away the old 3-value
-    // `indicator` [none/required/optional] axis. A Figma boolean-VISIBILITY property (#1331/#1412):
-    // ON (the default) shows the marker beside the label; OFF hides it. Direct mapping — required=true is
-    // the marker's BUILT visibility, so no inverted-boolean mechanism is needed (see `figmaProperties`).
-    { name: 'required', type: 'boolean', default: true, required: false, description: 'Whether the field is required. ON — the default — shows the marker beside the label; turning it off hides it. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Pairs with the field size — three steps, matching `text-field` and `textarea`. Scales the TYPE (`type.body.{sm,md,lg}` = 14/16/18px), not padding alone.' },
-    { name: 'emphasis', type: "enum: 'primary' | 'secondary'", values: ['primary', 'secondary'], default: 'primary', required: false, description: 'The label\'s ink. `secondary` is the de-emphasized label a dense form or a read-only field wants. Semantic ROLES, never shades — `color.text.{primary,secondary}` — so a brand changing its text palette carries this without the def moving.' },
-    { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads. These are intents, not role names: `regular` resolves the brand\'s default body weight, `bold` the heaviest body weight the brand ships — Inter\'s Bold (700) on a brand that ships it, a brand\'s Medium/500 where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
+    // #1338 — Prism 2's `Required` boolean, reconciling away the old 3-value `indicator`
+    // [none/required/optional] axis. A Figma boolean-VISIBILITY property (#1331/#1412): ON shows the marker
+    // beside the label; OFF — the default since #1699 — hides it. Direct mapping — the prop's default is the
+    // marker's BUILT visibility, so no inverted-boolean mechanism is needed (see `figmaProperties`).
+    { name: 'required', type: 'boolean', default: false, required: false, description: 'Whether the field is required. ON shows the marker beside the label; OFF, the default, hides it — the host\'s own `required` prop defaults off too. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'small', required: false, description: 'Three steps. Scales the TYPE (`type.body.{sm,md,lg}` = 14/16/18px), not padding alone. `small`, the default, is what every field host nests. The two groups pass their own size through; select, text-field and textarea each project one size and nest the `small` label.' },
+    { name: 'emphasis', type: "enum: 'secondary' | 'primary'", values: ['secondary', 'primary'], default: 'secondary', required: false, description: 'The label\'s ink. `secondary`, the default, is the de-emphasized label every field host nests; `primary` is the full-strength ink for a label that has to lead. Semantic ROLES, never shades — `color.text.{primary,secondary}` — so a brand changing its text palette carries this without the def moving.' },
+    { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads. These are intents, not role names: `regular` resolves the brand\'s default body weight, `bold` the heaviest body weight the brand ships — Bold (700) on a brand that ships it, Medium (500) where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
     // #1339 — DISABLED IS A STATE, NOT A PROP. The old `disabled` boolean prop duplicated the `disabled`
     // state axis; the owner decision (2026-09-13) collapses that to ONE mechanism. The label dims via the
     // projected `disabled` state (paint at the disabled coordinate → `color.disabled.text`, kept above the
@@ -69,7 +80,9 @@ export const fieldLabel: ComponentDef = {
   states: ['rest', 'disabled'],
   variants: {
     size: ['small', 'medium', 'large'],
-    emphasis: ['primary', 'secondary'],
+    // `secondary` FIRST (#1699 decision 4): the first value of each axis is the set's first member, which Figma
+    // takes as the default variant, so the Figma default matches the code default.
+    emphasis: ['secondary', 'primary'],
     // PRISM 2'S THIRD CONTROL, and the last of the three (#1248, completing #872). Its enum is
     // `["Regular", "Bold"]` with `Regular` the default, and these are those two values in this repo's
     // casing. It crosses `size` in full over there — `{size: Medium, weight: Bold}` and
@@ -275,10 +288,10 @@ export const fieldLabel: ComponentDef = {
         // toggles its `visible` in place), which is why select's leading glyph works and why the marker
         // here can too. `figmaProperties.booleans` REQUIRES `optional: true` (the anatomy must allow the
         // part to be absent — `figmaPropertyErrors`' `requireOptional` arm), so this flag and the
-        // `required` boolean below are two halves of one mechanism. Built VISIBLE (the boolean defaults
-        // true, Prism 2's `Required` default), hidden when the switch is turned off.
+        // `required` boolean below are two halves of one mechanism. Built HIDDEN (the boolean defaults
+        // false since #1699), shown when the switch is turned on.
         optional: true,
-        note: 'The required marker ("*"), in the indicator ink beside the name. Shown by default (the `required` boolean, on by default) and hidden when the field is marked not-required. Never the sole signal: the field carries required / aria-required.',
+        note: 'The required marker ("*"), in the indicator ink beside the name. Hidden by default (the `required` boolean, off by default) and shown when the field is marked required. Never the sole signal: the field carries required / aria-required.',
       },
     },
     codeOnly: [
@@ -324,7 +337,7 @@ export const fieldLabel: ComponentDef = {
   // The default marker text is `*` (#1338) — Prism 2's `_Form label` `required` element content, now
   // that the marker IS the required marker rather than a three-way none/required/optional choice. It
   // still must RENDER (the #798 non-empty rule), and `*` does; the node is shown by the `required`
-  // boolean (default true) and hidden when the field is marked not-required.
+  // boolean (default false since #1699) when the field is marked required.
   figmaProperties: {
     // `emphasis` PROJECTS as of #872 (renamed from `tone` in #1334) and `weight` as of #1248. The set
     // carries 3 sizes x 2 emphasis x 2 weights x 2 states = 24 members — UNCHANGED by #1338, because the
@@ -333,18 +346,17 @@ export const fieldLabel: ComponentDef = {
     // size x color x weight PLUS a `required` boolean, so the CONTROLS now match one-for-one AND the
     // presence mechanism matches too — a boolean on both sides.
     //
-    // DO NOT READ THAT AS "the same set". What remains is DEFAULTS, and they are a real divergence
-    // rather than a rounding error: this def defaults to `emphasis: primary`, `size: medium` and
-    // `weight: regular` where Prism 2 defaults to Secondary, Small and Regular. Two of the three
-    // disagree, so a consumer who chooses nothing lands in a different cell in each system. The
-    // vocabularies agree — the size ladder is 14/16/18 in both, the colors match role-for-role, and
-    // the weights are 400/700 in both — and the defaults are a separate decision that #872 did not
-    // take, #1248 has not taken, and nothing here should take as a side effect of adding an axis.
+    // DO NOT READ THAT AS "the same set". The DEFAULTS were a real divergence until #1699: this def
+    // defaulted to `emphasis: primary` and `size: medium` where Prism 2 defaults to Secondary and Small.
+    // #1699 (owner-delegated) moved them to how every host nests the label — small / secondary / regular —
+    // which is Prism 2's cell too, and ordered `emphasis` [secondary, primary] so the set's first member (the
+    // Figma default variant) is that cell. The one default that still differs is the marker: `required`
+    // defaults OFF here and Prism 2's `Required` defaults on.
     //
     // THE STATE AXIS IS THIS DEF'S, NOT PRISM 2'S, and the matching member counts hide that rather than
     // show it. Both sets are 24, and they get there differently: Prism 2 is size x weight x color, no
     // disabled treatment at all; this is size x emphasis x weight x `state` (rest/disabled). The
-    // `required` boolean now agrees on BOTH sides (default true), but the fourth 2× on this side is the
+    // `required` boolean exists on BOTH sides (its default differs, above), but the fourth 2× on this side is the
     // disabled state, which Prism 2 lacks — so the two 24s are still not comparable cell-for-cell, and
     // reading them as agreement is the kind of arithmetic coincidence this file has been wrong about
     // before.
@@ -367,13 +379,13 @@ export const fieldLabel: ComponentDef = {
       // The property stays editable in Figma, so a brand can carry `(required)` or another glyph.
       required: { part: 'indicator', figmaName: 'required marker', default: '*' },
     },
-    // #1338 — THE `required` PRESENCE BOOLEAN (Prism 2's `Required`, default TRUE). The `indicator` node
-    // is emitted at every member and shown by default (built VISIBLE — `default: true` is both the built
-    // visibility and the boolean's own default, "as built"); turning the switch off hides the marker in
-    // place. NOT a variant axis: it toggles `visible`, so the set does not grow (contrast select's leading
-    // glyph, which defaults false/hidden — the direction differs, the mechanism is identical). Panel name
-    // is the prop key `required`; its marker-text sibling above is `required marker`.
-    booleans: { required: { part: 'indicator', default: true } },
+    // #1338 — THE `required` PRESENCE BOOLEAN (Prism 2's `Required`). The `indicator` node is emitted at
+    // every member and HIDDEN by default since #1699 (built `visible: false` — `default: false` is both the
+    // built visibility and the boolean's own default, "as built"); turning the switch on shows the marker in
+    // place. NOT a variant axis: it toggles `visible`, so the set does not grow (select's leading glyph works
+    // the same way and defaults hidden too). Panel name is the prop key `required`; its marker-text sibling
+    // above is `required marker`.
+    booleans: { required: { part: 'indicator', default: false } },
   },
 
   accessibility: {
@@ -408,22 +420,36 @@ export const fieldLabel: ComponentDef = {
     primaryPurpose: 'Name a form field visibly and programmatically.',
     whenToUse: 'Above every field control — the accessible name for the input.',
     avoidWhen: 'As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.',
-    commonPartners: ['text-field', 'select', 'checkbox-row', 'checkbox-group', 'field-message'],
+    // The defs that nest this label, plus its sibling part — one list, stated twice (#1699).
+    commonPartners: ['text-field', 'textarea', 'select', 'checkbox-group', 'radio-group', 'field-message'],
     triggerKeywords: ['label', 'field label', 'form label', 'required indicator'],
     generationPriority: 3,
   },
 
   composition: {
-    composesWith: ['text-field', 'select', 'checkbox-group', 'radio-group', 'field-message'],
+    composesWith: ['text-field', 'textarea', 'select', 'checkbox-group', 'radio-group', 'field-message'],
     alternativeTo: [],
     planned: ['number-field'],
     replacesPatterns: ['an aria-label standing in for a visible label'],
   },
 
+  // No brief of its own: extracted from the KB text-field brief, whose §8 names the floating label as the
+  // one signature motion. This part is the static label, so it has none.
+  motion: {
+    enter: 'none (present on mount)',
+    exit: 'none',
+    reduceMotion: 'None of its own — a static top-aligned label does not move. The floating-label slide (KB text-field brief §8) is the one label motion in the field, and it is a host treatment this part does not model. The disabled dim is a color change on the host\'s state transition.',
+  },
+
   notes: {
     contested: [
-      'Whether to mark required or optional — the field settled on Prism 2\'s `Required` boolean (default true, showing the marker), reconciling away the old none/required/optional axis (#1338); a brand marking the optional minority instead turns `required` off on those fields.',
+      'Whether to mark required or optional — the field settled on Prism 2\'s `Required` boolean, reconciling away the old none/required/optional axis (#1338); a brand marking the optional minority instead leaves `required` off. The DEFAULT is off since #1699 (owner-delegated), where Prism 2 defaults it on: every host\'s own `required` prop defaults off, and a marker shown by default claims a requirement the field has not declared.',
       'Floating vs static label; static top-aligned is the default here (brief §2, §13).',
+    ],
+    // KB text-field brief §13, the items about the label.
+    evolution: [
+      'FLOATING LABELS OUT OF FAVOR: the static top-aligned label is now the assumed default for accessibility, i18n and density; Material 3 keeps floating as an option (KB text-field brief §13).',
+      'PLACEHOLDER-AS-LABEL is universally an anti-pattern — settled, though legacy code persists. This part is the visible label that replaces it.',
     ],
   },
 };

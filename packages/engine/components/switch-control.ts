@@ -297,10 +297,10 @@ export const switchControl: ComponentDef = {
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word (#563).
       'read-only — deliberately not a state of this atom. It is the field/row-level concern the brief calls "the awkward one" (a lock affordance, not an ink — and the one candidate token, `color.border.secondary`, resolves to the same step as the rest border in all four brands). The Row decides it.',
       'pending — a THUMB SWAP (a spinner replaces the thumb) and an `aria-busy` lock, not a skin. `button` spells exactly this as an `overlay` part (#848), so the mechanism exists and the part is unauthored here — a second concern in a PR whose subject is the split and the affordance.',
-      'THE THUMB\'S TRAVEL AS MOTION. `positionWhen` states WHERE the thumb is at each coordinate; the ~150–200ms ease-in-out slide between them (with the track-color crossfade, collapsing to 0ms under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in this schema.',
+      'THE THUMB\'S TRAVEL AS MOTION. `positionWhen` states WHERE the thumb is at each coordinate; the slide between them is the animation the component is most recognized by, and a Figma member is static. The code contract is the `motion` block (KB switch brief §8).',
       'THE STATE GLYPH\'S VISIBILITY TOGGLE. The glyph is present in the Figma set at every member (Prism 2\'s set does the same); `showStateLabel` (the Row\'s prop, default off) gates it in the CODE projection. A def schema has no "present when a boolean prop is true, without a variant axis" mechanism short of doubling the set, so the projected set shows the on-appearance and the prop carries the default-off in code.',
-      'THE GLYPH\'S OWN MICRO-MOTION — the check/X draw and the cross-fade onto the thumb on an async toggle. Neither the def schema nor a Figma variant carries motion, so the glyphs are static outlines at every coordinate.',
-      'THE WHOLE-ROW HIT TARGET. A bare track is a 16–36px pill that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `switch` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
+      'THE GLYPH\'S OWN MICRO-MOTION — the check/X draw and the cross-fade onto the thumb on an async toggle. A Figma variant carries no motion, so the glyphs are static outlines at every coordinate; the `motion` block states the thumb\'s own slide, not the glyph draw.',
+      'THE WHOLE-ROW HIT TARGET. A bare track is 24px tall at `small` and 32px at `medium` in every corpus brand (the density-windowed `control.size.*.track` ladder runs 16–40px, so a compact `small` track is 16px, under SC 2.5.8\'s 24px minimum on its own). The accessible target is the labeled ROW, which is `switch-row` and not this atom, at every density. This def is nested, never placed alone, precisely so the target is supplied one level up.',
     ],
   },
 
@@ -342,7 +342,7 @@ export const switchControl: ComponentDef = {
       'Supply an external aria-label only when using the control genuinely alone',
     ],
     dont: [
-      'Place a bare track as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target',
+      'Place a bare track as the clickable element — the labeled row is the hit target, and a compact small track (16px) is under the SC 2.5.8 minimum on its own',
       'Double-label a nested control — the host row already provides the accessible name',
       'Put the focus ring on the thumb — it moves, so the indicator would travel with it',
       'Hardcode "On"/"Off" text beside the control — the glyph affordance and the role announcement carry it',
@@ -368,6 +368,14 @@ export const switchControl: ComponentDef = {
     supersededBy: [],
   },
 
+  // KB switch brief §8. The keys are the schema's (`enter` / `exit` / `reduceMotion`); the thumb slide is a
+  // state transition, so it is carried in `reduceMotion` beside its reduced form, button's precedent.
+  motion: {
+    enter: 'none (present on mount)',
+    exit: 'none',
+    reduceMotion: 'The thumb slides across the track in ~150–200ms, ease-in-out, with a synchronized track-color crossfade; it is the receipt that the immediate change registered. Translate the thumb (`transform`), never animate width or layout, and do not spring it. Under prefers-reduced-motion the slide drops and the thumb snaps (0ms); the track-color crossfade may remain if it stays under flashing thresholds. On an async toggle the thumb snaps to the new position and a spinner cross-fades onto it; if the change fails, the thumb slides back.',
+  },
+
   notes: {
     contested: [
       'THE ATOM IS A SEPARATE COMPONENT rather than kept inline in the row, and the #1354 precondition made it earn that: the split was built ONLY after confirming the switch Row nests it (the composition check), which it does — the switch was already a row containing a control subtree, the shape checkbox had before #1226. The rejected alternative (keep the track inline and let the family diverge) is exactly the per-def duplication #1011 found had shipped the identical fill/border pairing across three defs.',
@@ -375,10 +383,15 @@ export const switchControl: ComponentDef = {
       'THE STATE GLYPH IS SELECTION-GATED AND PRESENT AT EVERY MEMBER, with `showStateLabel` gating it in code rather than as a variant axis. The alternative — a `showStateLabel` boolean variant axis — honors the default-off in the Figma set itself but adds a name to the closed `VARIANT_AXES` family vocabulary for one def AND doubles the member count (24 → 48), the cost `switch.ts`\'s old `codeOnly` named as the reason the affordance was deferred. Prism 2\'s `icon` prop is not a set variant either. The cost of this choice is real and stated: a designer cannot pick "no glyph" in the Figma set, only in code.',
     ],
     unverified: [
-      'THE GLYPH IN THE THUMB IS STILL UNBUILT, but #1425 made it far more likely to read. The thumb is now `control.size.*.thumb` = 0.75 × the track (Prism 2\'s 24-in-32), its OWN tier field rather than radio\'s `dot` — the split this note previously called out as the blocker ("Prism 2\'s 0.75 thumb would mean splitting the tier field per consumer") is done. At `medium` the thumb is 24px (18 on aurora) and its ~71%-inset glyph ~17px; the smallest case is compact `small` at a 12px thumb / ~8.5px glyph, up from the old 8px thumb / ~5.7px glyph. The affordance is most useful at `medium`, and the row\'s own min-height (not the atom) is still what reaches SC 2.5.8.',
+      'THE GLYPH IN THE THUMB IS UNVERIFIED ON A REAL HOST for legibility at its smallest size. The thumb is `control.size.*.thumb` = 0.75 × the track (Prism 2\'s 24-in-32, #1425), its own tier field rather than radio\'s `dot`. In every corpus brand the thumb is 18px at `small` and 24px at `medium`, so its ~71%-inset glyph is ~12.7px and ~17px. The smallest case is compact density `small`, a 16px track with a 12px thumb and a ~8.5px glyph. The affordance is most useful at `medium`, and the row, not the atom, is what reaches SC 2.5.8.',
       'THE OFF TRACK TAKES THE INTERACTIVE-NEUTRAL FAMILY and the thumb is SELECTION-KEYED — both forced by the thumb\'s contrast rather than chosen, both measured in `switch.ts`. Prism 2\'s own off track is a dark slab (#000000) where this is a light neutral fill; that divergence is the token engine doing its job (Prism 2\'s hex is one brand in one mode, and a hardcoded dark off-track would break light mode), so this def adopts Prism 2\'s TREATMENT — filled track, bordered off state, glyph in thumb — through semantic tokens rather than its literal values.',
       'READ-ONLY AND PENDING BIND NOTHING here and are not even states of the atom — they are the Row\'s (a lock affordance; a spinner swap). Recorded so nobody reads their absence as an oversight.',
       'THE INHERITED FOCUS-RING BINDING is now two layers deep (#1280/#1290), the same as `checkbox-control`: the ring is nested inside the track and the track inside the row, so an inherited dimension binding would have to be cleared twice. The symptom to look for: a nested ring sitting at the md control height instead of hugging the track.',
+    ],
+    // KB switch brief §13, the items this atom carries: the on/off affordance and the role that announces it.
+    evolution: [
+      'THE ON/OFF AFFORDANCE SIMPLIFIED across the field (KB switch brief §13): Material dropped its in-thumb icon emphasis, and thumb position plus track color now carry the state, with hardcoded On/Off text rejected. This atom follows that trend: the thumb glyph is a legibility aid, off by default (`showStateLabel`), never the state signal.',
+      '`role="switch"` MATURED from a newer role backed by checkbox fallbacks into the standard that distinguishes a switch from a checkbox in assistive tech (KB switch brief §13). The atom is presentational; the host row carries the role.',
     ],
   },
 };

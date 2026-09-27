@@ -42,6 +42,139 @@ Both are classified **payload** in `payload-manifest.json`. `regen --check` goes
 - The gate reads the *committed* output. After editing a def, run `regen.ts` first, or arm C reports the old text as a round-trip miss.
 - Markdown escaping: `<` outside code spans and `|` everywhere become `\<` and `\|`, so `<button>` renders as text and table cells stay intact. Arm C un-escapes before comparing. A new escape added to `mdEscape` without the matching un-escape in the gate reads as a page miss on every string that carries the character.
 - The page footer stamps `ENGINE_VERSION`, so every version bump moves all 24 pages. That is the stamp, not drift.
+## (2026-09-27) — Component alignment: field family + switch (#1699)
+
+**STATUS: PR open from `lane/align-fields-switch-b`, labeled DO NOT MERGE.** ENGINE 0.178.0 → 0.179.0 (MINOR); CONTRACT stands at 13.1.0 (every binding is an existing role; `token-contract --check` level `none`, stamp-only accept). `lint-component-surface` re-accepted for select (20 → 24 members), field-label, text-field, textarea (their nested label moved, and their `codeOnly` prose is on every plan) and switch-control (its `codeOnly` hit-target entry). `lint-paint` census re-accepted for select only.
+
+**The four owner-delegated decisions, as applied.**
+1. **select stays single-choice.** The brief's `multiple` is a `notes.contested` entry; `description` and `avoidWhen` say a multi-value choice is a Checkbox.Group or a multi-select, not built yet.
+2. **select gains `read-only` and `pending`**, text-field's state set. `read-only` projects (text-field's `border.secondary`, the value at full contrast, the status borders held through it); `pending` is admitted in `codeOnly`. `size` stays deferred and is recorded with the brief's other undeclared axes (density, selection, multi-summary, rendering, creatable).
+3. **text-field: one prop per slot.** `prefix` / `suffix` are now TEXT affixes (`string`, a currency symbol or unit — brief §9's locale placement); the glyphs are `leadingIcon` / `trailingIcon`, the clear action `clearable`. Chosen over merging them away because a currency or unit field needs a text affix. API only; a `codeOnly` entry records that the text affixes have no Figma part.
+4. **field-label defaults follow its hosts:** `required: false`, `size: small`, `emphasis: secondary`. The Figma default is the set's FIRST member, so the `emphasis` values reorder to `[secondary, primary]` (`lint-axis-values` register updated — its ARM A treats order as real), and the marker builds hidden.
+
+**The diagnosis that made decision 4 small, and the trap in it.** Figma has no "default variant" to set: `defaultVariant` is the set's first child, which is creation order, which is the first value of each axis in declaration order (`figmaAnatomySet`'s fold). So "the Figma default matches the code default" is an axis-ORDER change, not a property. And the `small` default breaks `lint-rung-names` arm 3 (#756: a default resolves to `md`), correctly: the rule is a corpus property and this is a deliberate exception. It is admitted by name in a new `HOST_DEFAULT_DEFS` (the #1350 `ICON_OFFSET_DEFS` shape): the expectation is the rule (`md` minus one), never the def's binding, and the admission is checked both ways.
+
+**Mechanical fixes.** All six defs gain `motion` and `notes.evolution` from brief §8 / §13 (field-label's from the text-field brief it was extracted from). switch-control: the hit-target `codeOnly` entry re-derived — tracks are 24/32px (thumbs 18/24) in all four corpus brands, since Aurora moved to comfortable density (#1676); the 16px track is compact `small` only, and "a bare track fails SC 2.5.8" was only true there, so the `dont` / `avoidWhen` say that. switch-row: the thumb-glyph and hit-target `unverified` entries re-derived the same way, the brief's Shadow-DOM VoiceOver item added, 2.5.8 reworded as intent, sentence-case examples ("Airplane mode"), `aria` "on"/"off", the brief's consequential-toggle, unobservable-result and `aria-live` guidance, and `field-label` / `field-message` dropped from `composesWith` / `commonPartners` (it nests neither). select: cites `select.md`; aliases per brief §10 (`combobox` out, `select-panel` / `exposed-dropdown-menu` in), `combobox` and `menu` out of the trigger keywords; the 5–15 band; the "Country" null-state placeholder; 1.3.5 added and the closed-control reason for leaving 1.4.13 / 2.1.1 to the open list; trigger and popup roles split; `alternativeTo` → `radio-group`; stale header comments fixed. text-field: the stale `warning` entry, `pressed` and `density` recorded, the brief §6 error-timing contract, 3.3.7 / 3.3.8 as page-level. textarea: the stale type entry (#1494), §8 motion, 2.5.8 reworded, "modeled" / "favoring", and the brief deltas (read-only stays scrollable, errors do not push the handle, RTL counter, MessageComposer / ChatInput). field-label: `composesWith` and `commonPartners` now both name exactly the five defs that nest it; the `size` wording no longer claims every host pairs sizes; `weight` no longer names Inter.
+
+**Gates.** A `test.ts` #1699 block holds each gateable decision against a literal from the brief or the issue, or against a second authored place (the hosts' nest coordinates for decision 4, every def's anatomy for field-label's lists). Existing select counts (20 → 24) and the #1338 marker-visibility arms were updated; the #1338 mutation now flips the default back to `true`. In the plugin suites, `test:roundtrip`'s two select member counts move to 24, the `field ink` owner's map gains select `read-only` → the value in `text.primary` (as text-field), and the message-row live-miss count for select moves 15 → 18 (3 statuses × 6 states).
+
+**Mutations (each committed before, restored after), failing by name:**
+- `combobox` back in select's aliases, `menu` in its keywords → `#1699 select carries every KB-brief alias and not \`combobox\`` and `#1699 select's trigger keywords name neither …`; dropping `select-panel` / `exposed-dropdown-menu` → the first, naming both as missing.
+- `read-only` out of select's `stateAxis` → `#1699 select projects read-only …`, `#1344 select projects … 24 members`, and the validate-clean arms (the state is then unadmitted). A `codeOnly` entry that LED with `read-only` had silently admitted it; it was reworded so the admission check stays live — the trap for anyone adding a note about a projected state.
+- select's `border.read-only` → `field.border.rest` → `#1699 select's read-only member draws the secondary border …`.
+- field-label `size` default back to `medium` → `lint-rung-names` (the #1699 host-aligned message, both type families) and `#1699 field-label defaults are …`; `emphasis` back to `[primary, secondary]` → `lint-axis-values` ARM A and `#1699 field-label's first member (the Figma default) …`; `required` default back to `true` → `#1338 every required marker node is HIDDEN by default …`.
+- text-field `prefix` back to a slot → `#1699 text-field's prefix/suffix are text affixes …` and `#1699 text-field's only slot props …`.
+
+**Held for the owner, not picked:** whether a read-only select keeps its chevron (it does, mirroring text-field's trailing slot); whether the text affixes should project to Figma; `crossAxisFill` for text-field's label / message (#1503, already held). #1367 / #1385 untouched.
+
+**Net (orchestrator).** The independent review found the one blocking consequence of decision 4. `checkbox-group` and `radio-group` nest field-label without overriding `required`, so once FieldLabel defaulted off, both groups built a hidden marker while their own code `required` still defaulted `true`. The groups now default `false`, which is the brief's §15 default. Their `notes.contested` entry, which said a change to FieldLabel's default would reopen it, moves to `evolution` as resolved. A new arm (`#1699 <group>'s required default is false … and agrees with the nested field-label's marker default`) pins the agreement; mutating checkbox-group back to `true` fails it by name. The read-only border contrast finding on `background.secondary` is filed as #1710.
+
+---
+
+## (2026-09-27) — the checkbox and radio families aligned to their briefs (#1698)
+
+**STATUS: PR open from `lane/align-checkbox-radio-b`, labeled DO NOT MERGE.** Six defs (`checkbox-control`, `checkbox-row`, `checkbox-group`, `radio-control`, `radio-row`, `radio-group`), `test.ts`, `apps/plugin/test-write-components.ts`, `version.ts`, the two re-accepted baselines. **ENGINE 0.177.0 → 0.178.0 (rebased behind #1702, which took 0.175.0); CONTRACT STANDS at 13.1.0** (`token-contract --check` level `none`, stamp-only `--accept`). Another alignment lane may land first; the orchestrator renumbers.
+
+**Decisions applied (owner-delegated in the issue; each can be vetoed).**
+1. **`radio-control` drops per-option error.** No `error` state, no `unchecked.border.error` / `checked.border.error`, no error column: 36 → 30 members. `radio-row` stops declaring `error` too. Its Figma set is size-only, so this moves only its code-projection grid (21 → 18 coordinates in the paint census). **This reverses #1433a's radio half.** #1433a (owner, 2026-09-16) put error on the ring of both controls. The `test.ts` #1433a loop now covers checkbox only, and the new #1698 block pins both halves: radio has no per-option error, and checkbox keeps its ring (the brief lets an isolated checkbox recolor its own boundary).
+2. **`radio-group`'s `name` is `required: true`,** per brief §15 and the prop's own text.
+3. **The group `description` prop is deferred** and recorded in `notes.contested` on both groups. It would compose the same part as the held group error.
+
+**Mechanical fixes, all six.**
+- `motion` from brief §8: the check draw, the dot scale-in, the sibling-dot exit, and the reduced-motion snap.
+- `notes.evolution` from brief §13.
+- The stale claims that the schema has no motion field are reworded. So are the retired `radio` / `switch` ids and "RadioGroup deferred (#901)" (both now resolve to built defs).
+- Resolved `unverified` entries (the groups' gap and width/fill) moved to `evolution`.
+- 2.5.8 on both rows, and 3.3.1 / 3.3.3 on both groups, are reworded as intent. The row's 2.5.8 now names what *is* gated: `lint-hit-target` holds the default (medium) row's `min-height` to 44px on comfortable and spacious density; `small` is not measured.
+- Group terms (`checkbox-list`, `multiselect`, `choice-list`; `radio group`, `single select`, `exactly one`) moved from the rows to the groups.
+- `composesWith` lists only what a def nests (the #1700 rule): rows name their control, groups name their label and rows.
+- `checkbox-group` gains 1.4.11 / 2.4.13. `checkbox-row` gains the brief's `description` prop (code-only, as on `radio-row`).
+- `checkbox-row`'s `alternativeTo` drops `select`; `listbox` and `chip` go to `planned`. `radio-row`'s `supersededBy` is `select` (a segmented control stays in `planned`).
+- `checkbox-control`'s `docs.usage` / `do` / `dont` / `ai.whenToUse` carry the brief §2 nesting guidance.
+- The groups record the `required: true` default (brief: `false`) and the omitted `orientation` / `density` in `contested`. `radio-group` also carries the options-array-versus-composition entry.
+- `radio-row`'s "Note that…" is gone. Its `label` prop now matches `labelPattern` (centered within the first line-box, #1201).
+
+**Where i18n went.** `ComponentDef` has no i18n field. The brief §9 content (the check glyph does not mirror in RTL; text expansion; radio's vertical-for-expansion rule) is carried as `codeOnly` entries that lead with `RTL —` / `text expansion —`, following `switch-row`'s RTL precedent. `codeOnly` is stripped from the bundle, so this is maintainer-facing only. Whether i18n should be a schema field is held for the owner.
+
+**Also fixed in passing, same defs.** Aurora moved to comfortable density (#1215), so the "12/16/20 on aurora" and "6 on aurora" claims now say compact density (the `minimal-compact` fixture). `checkbox-row`'s "ALL FOUR brands" vs "5 brands" is reconciled: four shipped brands, and the 5 was the brands measured at the time. `checkbox-control`'s "never built in Figma" now says the row has been built in the owner's import QA but no read-back measures the nested sizing.
+
+**Baselines.** `component-surface.json`: `radio-control` 36 → 30. The five other defs move plan digest at the same count: `planStamp` hashes the whole plan, `codeOnly` and part notes included, and every one of the six changed its `codeOnly` (the RTL / text-expansion / motion entries) or a part note. `paint-census.json`: `radio-control` set/grid 36 → 30 (54 → 45 assignments, the dropped error ring) and `radio-row` grid 21 → 18. Nothing else moved.
+
+**Mutations, committed first, each failing by name.**
+- `radio-control` with `unchecked.border.error` restored → `#1698 radio-control has NO per-option error …` (plus the structural-validity arms, since nothing supplies `error` any more).
+- `radio-control` back to its full pre-#1698 shape (the `error` state, the state-axis value, both `*.border.error` keys) → `#1698 radio-control has NO per-option error …` and `#1348 radio-control carries the 30 …`. Nothing else fails, so the old shape is still a valid def and only the decision's pins catch it.
+- The same full pre-#1698 shape in the plugin suite (`test-write-components.ts`, the built set read back off the shim) → `#1698 radio-control builds no per-option error — no \`error\` member and no danger ring on any option`, plus the member-count pins (36/30). That arm replaced the #1348 arm that asserted the danger rim on radio's ring.
+- `radio-row` with `error` restored to `states` → `#1698 radio-row declares no error state …`.
+- `radio-group` `name` back to `required: false` → `#1698 radio-group's name prop is required …`.
+
+**Traps for whoever re-verifies.** Every member digest of these six moved, and only `radio-control`'s count did. A `codeOnly` or part-note edit moves a def's digest (the `planStamp` over-sensitivity `version.ts` documents), so diff the plans before reading the move as a layout or paint change. Also, `motion` is shipped prose (it is in the bundle, unlike `notes` / `codeOnly`), so it passes the voice and US-English gates and names no Prism 2.
+
+---
+
+## (2026-09-27) — Spinner: its KB brief carried forward to the def standard
+
+**STATUS: PR open from `lane/spinner-brief-carryforward-b`, labeled DO NOT MERGE.** `components/spinner.ts`, `components/button.ts` and `components/icon-button.ts` (`accessibility.aria`, and icon-button's spinner part note), `test.ts`, `version.ts`, the accepted baselines (`schema/component-surface.json`, `schema/token-contract.json` by its engine stamp), and `out/**` by the version stamp. **ENGINE 0.176.0 → 0.177.0** (the orchestrator renumbers if another lane lands first). **CONTRACT stands at 13.1.0**: no token name moves.
+
+**What the def carries now, against `components/spinner.md`, to the `textarea.ts` / `button.ts` standard.** The no-value contract and the polite status in `accessibility.aria`; the pending-host focus rule (`aria-disabled`, not `disabled`, USWDS) in `accessibility.focus`; the fixed arc (`disableShrink` by construction), RTL force-clockwise and the anti-flash figures (about 200–500ms delay, about 500ms minimum display, the host's) in `anatomy.codeOnly`; the §7 label rules in `content.labelPattern` and `docs.contentGuidelines`; the Material 3 time bands in `ai.whenToUse` / `avoidWhen`; `inline-loading` / `loading` / `spin` in `aliases` and `triggerKeywords`; `toast` in `composition.planned`; the brief's three contested points, three unverified points (the brief's two plus the def's own 1.4.11 entry) and five §13 field points in `notes`.
+
+**The owner's decisions of 2026-09-27, as applied.**
+- *Default announcement.* `label` defaults to "Loading", the `role="status"` wrapper's name. A host that announces its own busy state opts out with `aria-hidden="true"`. Button and IconButton did not say so: both said the spinner is "invisible to assistive tech", which was true only while the spinner was hidden by default. Each now says to set `aria-hidden="true"` on the embedded spinner, in `accessibility.aria` (and icon-button's spinner part note). Neither field is in the plan, so neither def's surface moved.
+- *Enter fade* on `motion.duration.fast`. `instant` (50ms) is shorter but is three frames at 60Hz and reads as a cut, so `fast` is the shortest role that reads as a fade. Under reduced motion it runs `motion.duration-reduced.fast`, which the ramp keeps at 100ms at the standard tempo. No new token.
+- *Deferred:* a visible label / `labelPosition`, `staticColor`, the overlay / mask, a `spinning` prop. *Declined:* a success / error end state. Each is a `notes.contested` entry with the brief's alternative.
+
+**Two judgment calls, recorded in the def.**
+- `category` moves `feedback` → `foundations`, to brief §15. Measured first: nothing reads the field beyond `validateComponentDef`'s required check. No emitter, plan or gate reads it, and the Figma page comes from the plugin's file taxonomy, keyed on the id.
+- `circular-progress` / `progress-circle` are not aliases. They are MUI's and Spectrum's names for the fold the practice rejects, and this repo's circular progress on record (`reference/Prism2/component-specs/circular-progress-indicator.json`) is determinate and feeds the planned Progress. Recorded as a contested entry.
+
+**What moved on the projected surface.** Only the four `spinner/<size>` members, and only their `codeOnly` list (diffed plan against plan: `.codeOnly[3..7]` and nothing else).
+
+**Mutations, each failing by name (committed before each, restored from HEAD):**
+- `label` default removed → `spinner 2026-09-27: the label defaults to "Loading" on the role="status" wrapper, …`.
+- `motion.enter` back to `none` → `spinner 2026-09-27: motion.enter is a fade on the existing motion.duration.fast, …`.
+- Button's `aria-hidden` sentence removed → `spinner 2026-09-27: button's accessibility.aria hides its embedded spinner …`.
+- The `never role="progressbar"` clause removed from `accessibility.aria` → `spinner 2026-09-27: accessibility.aria states the polite status, the host opt-out, and the no-value contract …`.
+- `staticColor`'s deferral mark removed → `spinner 2026-09-27: each deferred item is a contested entry marked deferred by owner … — missing: staticColor`.
+- A `codeOnly` entry edited without an accept → `lint-component-surface.ts`: `surface/spinner: plan digest …, baseline … — the same member COUNT, projecting different plans`.
+
+**Recorded rather than changed.**
+- `status: 'draft'` vs the brief's `stable`: #1700's convention, as #1702 left it.
+- `motion.exit` stays `none`. The brief fades both ways (§8); the owner's decision named the enter fade only.
+- The #1670 test's "aria-hidden by default" title was false after the decision. The assertion now checks the rotation rule only, and the new block asserts the announcement.
+
+**Traps for whoever re-verifies.**
+- Text Field and Switch Row also swap in a spinner while pending and set `aria-busy`, and neither `accessibility.aria` says to hide it. Text Field names no live region of its own, so its spinner's default "Loading" may be the only announcement it gets. Whether those hosts hide it is held for the owner, not changed here (neither projects a pending spinner in Figma yet).
+- `planStamp` hashes `codeOnly`, so any edit to a spinner `codeOnly` entry moves all four members on `lint-component-surface.ts`.
+
+---
+
+## (2026-09-27) — read-back: the saved brand's declared modes against the file's modes (#1662 follow-up)
+
+**STATUS: PR open from `lane/readback-declared-modes`, labeled DO NOT MERGE.** Engine (`read-back.ts`) + plugin (`seed-modes.ts`, `main.ts` `seedFromFile`). **ENGINE 0.176.0 → 0.177.0** (MINOR — the seed pill's verdict changes). CONTRACT stands; `out/**` restamps the generator version and nothing else. Owner decision 2026-09-27: yes, do it — the question #1662's net left held.
+
+**The gap.** #1662 made a single-mode file pass `modesDistinct`, and stated its limit: `verifyReadback` saw only the file, so a light/dark brand whose `dark` never landed (`addMode` refused on a plan tier's mode cap) read "contract holds ✓" with one mode. The declared set is a brand fact, and the brand is in the file (#131, `prism3/brandInput`).
+
+**The shape.** `verifyReadback(snap, declared)` — `declared` is **required**, `{ modes }` or `{ skipped: <reason> }`, so no caller skips the comparison by omission. The result is a tri-state `declaredModes` field **beside** `checks`, not inside it: a `checks` entry is a boolean, and a boolean cannot say "not checked". A missing declared mode fails `ok` and is named; an extra mode in the file is reported and never failed (it may be a designer's own); a skip carries its reason. The pure function still reads nothing from the file.
+
+**Where the declared set comes from.** `declaredModesOf(figma.root)` in `apps/plugin/src/seed-modes.ts` restores the persisted `BrandInput` and takes `brandTheme(input).modes` — the list `emit-figma-color.ts` iterates to name the `color` collection's modes. Re-deriving from `input.modes ?? ALL_MODES` plus `customModes` would restate the default set and the custom-mode append, and could drift from what Apply writes. Cost: one `brandTheme` at boot, ~13 ms for aurora in Node. Three skip reasons, each its own string, because a designer acts on each differently: no saved brand, a blob this build refuses (#480), a brand that no longer resolves.
+
+**The net's correction: a second check, on the file's own record of what the last apply planned.** An independent review, run twice, found that the case this entry opens with could not reach the brand comparison.
+- **Why the brand comparison misses it.** `write-figma.ts` `reconcileModes` calls `addMode` with no catch, so a capped `addMode` THROWS. `apply-theme.ts` persists the brand only after every executor returns (#131's deliberate "only after a real materialisation"). A capped apply therefore aborts with the PREVIOUS brand still stored, and against it the file reads a match. The lane's plugin test had persisted the four-mode brand straight into shared-data, a state no Apply produces.
+- **Why the first fix also missed it.** The net's first fix recorded the planned modes on the `color` collection only. The second review found that `apply-theme.ts` runs the FLOAT pass before color, and aurora's `layout` plans six breakpoints against color's four. Any cap below six is refused on `layout`, and color is never touched.
+- **The fix.** `reconcileModes`, the one function every executor and the MCP steps reach their modes through, stamps each collection's planned mode names on that collection (`prism3/modes:planned`, beside #1581's `modes:owned`) BEFORE its first `addMode`. `read-figma` carries every readable record as `snap.modesPlanned`. `verifyReadback` returns a tri-state `plannedModes`, a sibling of `declaredModes`: `fail` names each collection and its missing modes and fails `ok`; `none` means no record, from a file last written before this build. The brand comparison stays as the lane built it; it catches a mode removed by hand, and the MCP `runPersist` step run after a failed color step.
+- **Tests.** The new `test-readback.ts` block runs the capped apply in Apply's own order with a shim that stamps shared data and refuses modes past a cap:
+  - (A) a cap of four refuses `layout` in the float pass. The brand alone reads a match; `plannedModes` fails naming `layout` `xl/2xl`.
+  - (B) a cap of one refuses inside color, and the check names `color` `dark/hc-light/hc-dark`.
+  - (C) a clean apply passes; an unstamped shim reads `none`.
+- **Legacy CLI path.** `materialise-to-figma.ts` calls `addMode` directly and writes no record, so a capped CLI paste reads `none` there.
+- **Prune keeps the record honest (third review).** The prune plan is built from the knobs, which need not have been applied, so it can remove a mode the last apply planned. `applyPrunePlan` now drops each removed mode's name from that collection's record, and never writes a record onto a collection that had none; the `test-prune.ts` arm checks both. A mode deleted or renamed by hand still reads as missing, and the copy says only what the check knows: `layout is missing xl/2xl, planned by the last apply`.
+
+**Copy.** New pill text is appended to the existing detail line after ` · ` (the planned-modes note reads `layout is missing xl/2xl, planned by the last apply` — it states what the check knows, not why: an aborted apply and a mode deleted by hand read the same); the strings are in the PR under "Held for owner — copy". No studio change: the pill already renders the plugin's summary, and a failed comparison sets `ok: false`, which styles it `.bad` like any contract failure.
+
+**Tests (as the lane built them).** `test.ts` (#1662 block, literal expectations): declared light/dark over a light file fails naming `["dark"]` with every other check still passing; declared light passes; `{ skipped }` reports skipped with the reason; an extra `brand-x` is reported, not failed. `apps/plugin/test-readback.ts`: the real executor writes a light-only aurora file, the full aurora brand is persisted into a shared-data shim, and `declaredModesOf` + `seedSummary` produce the exact pill strings — missing `dark/hc-light/hc-dark`, match, extra `promo`, no brand, unreadable blob. **Mutations, by name:** the fail branch replaced with pass → `❌ read-back declared modes: declared light/dark, file holds light → FAILS naming dark`; a skip turned into a pass → `❌ read-back declared modes: no brand → SKIPPED with the reason stated, not passed`; `declaredModesOf` always skipping → four `✗ declared modes: …` arms in `test-readback.ts`.
+
+**Known limit.** The one line in `main.ts` that passes `declaredModesOf(figma.root)` is not driven by a test: the suites that import `main.ts` (`test-agent-link.ts`, `test-agent-bridge.ts`) run on a host with no color variables, so `seedFromFile` returns before verifying. Replacing that argument with a constant skip would pass every gate. The pill-text and resolution logic sit in `seed-modes.ts` so everything but that argument is covered.
+
+**Trap for re-verification.** The comparison is by mode NAME. It holds because the emitter names each `color` mode after the brand's mode; a designer renaming a mode in Figma now reads as one missing mode plus one extra, which is the correct report.
 
 ---
 

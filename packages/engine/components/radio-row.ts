@@ -40,9 +40,9 @@
  * than a toggle, so the question `checkbox` deferred is load-bearing here, and this paragraph exists so
  * the omission cannot be read as a gap somebody forgot to fill.
  *
- * **The answer is still: `RadioGroup` is a separate component, filed as #901, and not authored in this
- * def.** Radio sharpens that issue rather than changing its answer, and the sharpening is worth stating
- * because it is what a `ComponentDef` structurally cannot express:
+ * **The answer: the group is a separate component, `radio-group` (#1469, the #901 companion), and is not
+ * authored in this def.** Radio sharpens that split rather than changing it, and the sharpening is worth
+ * stating because it is what a `ComponentDef` structurally cannot express:
  *
  *   · **The group owns the shared `name`**, which is what enforces exclusivity at the browser level.
  *     A `Radio` never sets its own — doing so breaks exclusivity outright.
@@ -60,8 +60,8 @@
  * `inherits: 'checkbox-row'` (renamed from `checkbox`, #1347). The brief's §15 states
  * `inherits: [text-field, checkbox]` — **a chain** — and `ComponentDef.inherits` is a single string, so the
  * chain cannot be written down. The nearest parent is named and the rest is this sentence: the form-field
- * substrate (`description`/helper, `error`, the `aria-describedby` wiring, `name`/`id`/`required`/`disabled`/`readOnly`)
- * reaches this def *through* `checkbox-row`, along with the Row's own shape — the rich-content label that doubles as the hit
+ * substrate (`description`/helper, the `aria-describedby` wiring, `name`/`id`/`required`/`disabled`/`readOnly`)
+ * reaches this def *through* `checkbox-row` — all but `error`, which stops at the group since #1698 (decision 1) —, along with the Row's own shape — the rich-content label that doubles as the hit
  * target, top-baseline alignment, and native DOM naming.
  *
  * As on `textarea` and `checkbox`, **nothing in the engine resolves `inherits`**: it is prose for a
@@ -83,21 +83,24 @@
  * Brief §15 lists `radio-specific: [selected, no-deselect, no-indeterminate]`: `selected` is the
  * `selection` AXIS (now on the atom); `no-deselect` is a BEHAVIOUR (activating a selected radio does
  * nothing), and behaviors have no coordinate; `no-indeterminate` is an ABSENCE, which is a thing you
- * cannot declare at all. So `states` is checkbox's seven exactly, and this note stops the next reader
+ * cannot declare at all. So `states` was checkbox's seven exactly until #1698 removed `error` (below), and this note stops the next reader
  * concluding three were dropped. These drive the CODE projection (a disabled Row dims its label); the
  * Figma set is size-only (the nested control's `state` is exposed). `read-only` is admitted in `codeOnly`.
+ * `error` LEFT the list in #1698 (decision 1): radio error is group-level only, so neither the option nor
+ * its control carries an error state.
  */
 import { ComponentDef } from '../component-schema';
 
 export const radioRow: ComponentDef = {
   id: 'radio-row',
   name: 'Radio.Row',
-  // The brief's list, kept intact, with the pre-#1468 bare id `radio` retained as an alias (the
+  // The brief's list less `choice-list`, a GROUP term (Polaris's ChoiceList is the set) that moved to
+  // `radio-group` in #1698, with the pre-#1468 bare id `radio` retained as an alias (the
   // `checkbox-row` precedent, whose aliases keep `checkbox`). The `radio-group` alias was a FORWARD
   // REFERENCE — kept only so an agent reaching for the not-yet-built group landed on the nearest thing that
   // existed. #1469 built `radio-group` as its own def, so the alias is removed: `radio-group` now resolves to
   // the group, and this def is the OPTION (its description says so).
-  aliases: ['radio', 'radio-button', 'option', 'choice-list'],
+  aliases: ['radio', 'radio-button', 'option'],
   category: 'form',
   status: 'draft',
   inherits: 'checkbox-row',
@@ -106,21 +109,22 @@ export const radioRow: ComponentDef = {
     'A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. This def is the labeled OPTION: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is MANDATORY, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (a segmented control, not built yet).',
 
   // THE DELTA ONLY. The form-field substrate reaches this def through `checkbox` and is not restated.
-  // THREE PROPS ARE DELIBERATELY ABSENT — `checked`, `onChange` and `name` all live on the group (see
-  // the header); `props` cannot express an absence, so `docs.dont` carries it too.
+  // FOUR PROPS ARE DELIBERATELY ABSENT — `checked`, `onChange` and `name` all live on the group (see
+  // the header), and `error` is group-level only (#1698, decision 1); `props` cannot express an absence, so `docs.dont` carries it too.
   props: [
     { name: 'value', type: 'string', required: true, description: 'Required, where Checkbox.Row\'s is optional. This is the option\'s identity within its group, not a string that happens to be submitted. Selection is derived from it: `checked = (group.value === props.value)`. The option never holds a boolean of its own.' },
-    { name: 'label', type: 'node', required: false, description: 'Rich content, inline-end of the control, and part of the hit target — the Checkbox.Row label model, inherited. Option labels are parallel, mutually exclusive and brief: the same grammatical shape across the set, with no overlap that would make two options both apply. Long labels WRAP rather than truncate, with the control top-anchored. Per-option detail or price belongs in `description`, not in the label.' },
+    { name: 'label', type: 'node', required: false, description: 'Rich content, inline-end of the control, and part of the hit target — the Checkbox.Row label model, inherited. Option labels are parallel, mutually exclusive and brief: the same grammatical shape across the set, with no overlap that would make two options both apply. Long labels WRAP rather than truncate, with the control centered within the first line-box so it stays on the first line. Per-option detail or price belongs in `description`, not in the label.' },
     { name: 'description', type: 'node', required: false, description: 'Per-option helper beneath the label, describedby-wired. This is where the detail that makes an option distinguishable goes — the price, the delivery estimate, the caveat.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the row — the control-to-label gap, the row\'s minimum height, the label\'s type — and is passed through to the nested Radio.Control by `follow`, scaling the circle\'s diameter and the inner dot\'s.' },
   ],
 
-  // Checkbox's seven exactly. Brief §4 inherits them and adds three "radio-specific" entries, none of
+  // Checkbox's seven LESS `error`. Brief §4 inherits them and adds three "radio-specific" entries, none of
   // which is a state — see the header. These drive the CODE projection (a disabled Row dims its label);
-  // the Figma set is size-only (the nested control's `state` is exposed). `error` is declared and its
-  // binding is the option's own boundary, but the brief is emphatic that radio error is GROUP-level only,
-  // never per-option. `read-only` binds nothing and is admitted in `codeOnly`.
-  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only', 'error'],
+  // the Figma set is size-only (the nested control's `state` is exposed). `error` is NOT declared (#1698,
+  // decision 1): the brief is emphatic that radio error is GROUP-level only, never per-option, and the
+  // nested `radio-control` dropped its error ring with it. `read-only` binds nothing and is admitted in
+  // `codeOnly`.
+  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only'],
 
   // `size` ONLY since #1348 (the decomposition). `selection` LEFT the Row's variant matrix — it is now
   // EXPOSED from the nested `radio-control` (the consumer drives it from the parent). `size` STAYS the
@@ -275,7 +279,7 @@ export const radioRow: ComponentDef = {
         // row holds the control on the first line (#1201). The row's `minWidth` floor is what gives the fill
         // something to resolve against — `anatomyErrors` requires it.
         wrap: true,
-        note: 'The accessible name AND the second half of the hit target. Rich content in code; a plain text node in Figma. It WRAPS to a second line rather than overflowing (#1424) — it fills the row\'s main axis and reflows. Note that the accessible name of the CHOICE is the group\'s label, which no part here can carry — an option label alone announces "radio button, 1 of 3" with no indication of what is being chosen.',
+        note: 'The accessible name AND the second half of the hit target. Rich content in code; a plain text node in Figma. It WRAPS to a second line rather than overflowing (#1424) — it fills the row\'s main axis and reflows. The accessible name of the CHOICE is the group\'s label, which no part here can carry — an option label alone announces "radio button, 1 of 3" with no indication of what is being chosen.',
       },
     },
     codeOnly: [
@@ -284,10 +288,12 @@ export const radioRow: ComponentDef = {
       'read-only — a `states` value the Figma set does not carry. Since #1348 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `radio-control` and the consumer drives it from the Row, so no state is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code: a radio has no working native readonly, so there is no treatment to project, and six variants byte-identical to `rest` would read as coverage of a state nobody has designed.',
       'states — the documented cost of collapsing 36 members to 3 (the #1348 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state. The Row\'s own per-state LABEL treatment (`disabled.label` dimming the text) is the CODE projection\'s, not Figma\'s — `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code while the Figma SET collapses to size-only.',
       'min-height — `size.*.min-height` is the row\'s FLOOR and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it here would state the wrong quantity and clip a wrapping option label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection, where `min-height` is the property they name.',
-      'THE GROUP, which is the unit of use and is not this def (#901). The shared `name` that enforces exclusivity, the single scalar value selection is derived from, the single tab stop with roving tabindex and arrow navigation, `orientation`, `required` and all validation live there. A Figma set of options can show what an option looks like at every coordinate and cannot show a group at all — so the exclusivity that makes these radios rather than toggles is absent from the projection by construction, not by omission.',
+      'THE GROUP, which is the unit of use and is not this def — it is `radio-group` (#1469). The shared `name` that enforces exclusivity, the single scalar value selection is derived from, the single tab stop with roving tabindex and arrow navigation, `orientation`, `required` and all validation live there. A Figma set of options can show what an option looks like at every coordinate and cannot show a group at all — so the exclusivity that makes these radios rather than toggles is absent from the projection by construction, not by omission.',
       'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch; the row reaches that at `medium` and not at `small`, and the padding that would expand it is a per-consumer decision about the surrounding layout. `row` is the node it lands on — that is what this block makes expressible — but the value is not the def\'s to pick.',
       'The `description` prop — per-option helper text beneath the label, which is where the detail that distinguishes options goes (a price, a delivery estimate). It is a second text part under `label` rather than beside it, and adding it would double the row\'s vertical shape for content that is optional at every one of the three members. Left to the code projection, where it is describedby-wired.',
-      'The select micro-motion and the SIBLING\'s dot animating out — the only exit animation a radio has. It lives on `radio-control` now (the dot moved there with the painted surface), and neither the def schema nor a Figma variant carries motion, so the dot is static at every coordinate.',
+      'motion — the select micro-motion and the SIBLING\'s dot animating out, the only exit animation a radio has. The dot is `radio-control`\'s, so its `motion` states it; a Figma variant carries no motion, so the dot is static at every coordinate.',
+      'RTL — the row mirrors through logical properties: the control moves to the reading-start side and the label flows from it. The disc is symmetrical, so there is no glyph to hold unmirrored (brief §9). Figma members are drawn left to right.',
+      'text expansion — option labels wrap rather than truncate, and the control stays on the first line (#1201). Horizontal option rows are fragile under expansion (German up to about 300%), which is part of why the group is vertical (brief §9). The Figma members carry the English placeholder only.',
     ],
   },
 
@@ -324,9 +330,10 @@ export const radioRow: ComponentDef = {
     wcag: [
       '1.3.1 Info and Relationships (the group structure is the meaning)',
       '4.1.2 Name Role Value (role and checked)',
-      '3.3.1 Error Identification / 3.3.2 Labels or Instructions (group-level, announced once)',
+      '3.3.2 Labels or Instructions (the option label)',
+      '3.3.1 Error Identification / 3.3.3 Error Suggestion — the group\'s, announced once and never per option. The group error display is not designed yet, so neither is met today.',
       '1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)',
-      '2.5.8 Target Size (the whole row, as in Checkbox.Row)',
+      '2.5.8 Target Size — the intent: the whole row is the target, as in Checkbox.Row. The default (medium) row is held to a 44px minimum height on comfortable and spacious density; small and compact rows are not measured.',
     ],
     keyboard: 'The keyboard model is the opposite of Checkbox.Row\'s. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option. Implement with ROVING TABINDEX — one radio at tabindex="0" (the checked one, or the first if none), siblings at -1, with arrow handling moving focus, the 0, and calling .focus() — rather than aria-activedescendant, which is more verbose and prone to synchronization bugs. Making each radio its own tab stop is the most common radio accessibility failure. Native inputs sharing a name give the grouping, the exclusivity and this keyboard model for free.',
     focus: ':focus-visible ring on the CONTROL, offset, at least 3:1, keyboard traversal only — and CIRCULAR, because the control is full-round and the ring is derived concentrically from it. The ring must appear INSTANTLY — fading it lags rapid arrow navigation. Selection FOLLOWS FOCUS by default: arrowing moves focus and selects, which is native <input type="radio"> behavior and the APG default, and the catalog keeps native semantics rather than reimplementing them. The known cost is that a screen-reader user exploring the options fires onChange at every step; the answer is to keep radio onChange CHEAP — a radio selection must never trigger navigation or expensive work — and to decouple selection from focus only as a deliberate, documented exception. On focus restore into the group (a validation error, a legend click), focus the CHECKED radio rather than blindly the first; if none is checked, the first non-disabled option.',
@@ -365,36 +372,51 @@ export const radioRow: ComponentDef = {
     whenToUse: 'Exactly one of 2 to about 7 all-visible options where seeing them together aids the decision, and the choice is committed on submit rather than applied instantly. Always as a child of a Radio.Group.',
     avoidWhen: 'Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past about 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (a segmented control, not built yet, which carries a different accessibility model), or it is really an action (Button). Also do not reach for this def when what is wanted is the group: use Radio.Group (`radio-group`), which owns the name, the value and the validation.',
     commonPartners: ['radio-control', 'radio-group', 'field-label', 'field-message', 'focus-ring'],
-    triggerKeywords: ['radio', 'radio button', 'radio group', 'option', 'choice list', 'single select', 'exactly one', 'pick one', 'mutually exclusive'],
+    triggerKeywords: ['radio', 'radio button', 'option', 'pick one', 'mutually exclusive'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['radio-control', 'radio-group', 'field-label', 'field-message', 'focus-ring'],
+    // WHAT THIS DEF NESTS, and only that (#1698, the #1700 rule): the Row nests `radio-control` directly.
+    // The group, the field parts and the ring (nested one level down, by the control) are partners —
+    // `ai.commonPartners` carries them.
+    composesWith: ['radio-control'],
     alternativeTo: ['checkbox-row', 'switch-row', 'select'],
     replacesPatterns: [
       'a set of checkboxes misused for a mutually exclusive choice',
       'a bare <input type="radio"> set with no group label',
       'two radios standing in for a true/false toggle',
     ],
-    supersededBy: [],
+    // Brief §12: Select supersedes radio when the option count grows past about 5-7; a segmented control
+    // supersedes it when the presentation should be compact — not built yet, so it sits in `planned`.
+    supersededBy: ['select'],
     planned: ['form', 'card', 'segmented-control', 'toggle-button'],
+  },
+
+  // Brief §8. The Row draws no motion of its own; the dot's transition belongs to the nested control.
+  motion: {
+    enter: 'None of the row\'s own (present on mount). On select, the nested Radio.Control scales its dot in, about 100-150ms; the focus ring appears instantly.',
+    exit: 'None of the row\'s own. When a sibling option is selected, this option\'s dot animates out — exclusivity made visible.',
+    reduceMotion: 'No layout motion. Under prefers-reduced-motion, the nested dot snaps through opacity and color only.',
   },
 
   notes: {
     contested: [
       'THE VISUAL IS THE PRISM 2 OUTLINED MODEL — a constant-weight ring with an inner circle on select — on the owner\'s decision (#1348), REPLACING the pre-split filled disc. The treatment and the named brand-ring-recolor alternative live on `radio-control`, where the painted surface does; this entry records only that the fork the pre-split radio kept open ("filled wins over the outlined model") is CLOSED, superseded by the owner matching Prism 2. Do not re-argue it here; if the treatment moves, move it there.',
       'THE PAINT GRAMMAR IS AXIS-LED, inherited from `checkbox` rather than re-decided, and the exemption that makes it legal is declared once per AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`). Since #1348 the grammar and the exemption live on `radio-control` (the Row paints only the label, so its `paintKeys` is the bare slot alone). Recorded here only so this def is not read as a second independent vote.',
-      'The group\'s `orientation` and `density` are in brief §15\'s variants block and are not axes here, because they are `RadioGroup`\'s. Unlike checkbox, where that was a tidy boundary, here it means the def is missing an axis its unit of use genuinely has — see #901.',
+      'The group\'s `orientation` and `density` are in brief §15\'s variants block and are not axes here, because they are the group\'s. Unlike checkbox, where that was a tidy boundary, here it means the def is missing an axis its unit of use genuinely has — and `radio-group` holds both rather than declaring them.',
       'Carbon\'s "AI presence" variant, which sets an AI-explainability label beside a recommended option, is named in brief §4 as a frontier signal and explicitly "a watch item, not a default". Not declared. It is also a dual-action row needing careful focus management so assistive tech does not conflate the explainer control with the radio, which makes it an anatomy question rather than an axis one.',
       'Selection-follows-focus is the practice default and the external research pass argued the opposite (explicit selection, Space to commit), citing the screen-reader-exploration trap and Windows gamepad behavior. Recorded because the contrary position is legitimate and reasoned rather than wrong: the resolution is that follows-focus is native and the APG default, and the exploration cost is better paid by keeping `onChange` cheap than by reimplementing the platform.',
     ],
     unverified: [
       'THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`\'s and `switch-control`\'s were: the nested control instance must pin its own SQUARE (the control edge) rather than stretch to the `control-box` line box, and whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. Radio\'s control is SQUARE, so the Row pins via `size` (both axes), the same as checkbox.',
-      'THE FOCUS RING must appear INSTANTLY (brief §6, §8) — a fade lags rapid arrow navigation through a group, which is a radio-specific constraint that checkbox does not have. The engine emits `motion.duration-ms.*` and the Row has no motion field to point at, so the requirement lives in `accessibility.focus` prose and nothing checks it. The ring\'s SHAPE, by contrast, is handled: F2 (#1388) derives it concentrically, so a full-round control yields a circular ring (`radio-control.ts`).',
-      'The select micro-motion (a spring/scale-up of the dot at roughly 100-150ms, and — uniquely — a sibling\'s dot animating OUT, the only exit animation a radio has) now lives on `radio-control` with the dot, and has no expression in the def schema at all.',
-      '`RadioGroup` and `Radio.Control` are the two companions. `radio-control` is now a real def (#1348, the atom this Row nests). `RadioGroup` is still deferred (#901), and for radio it is MANDATORY rather than optional: the shared `name`, the single scalar value, the roving-tabindex single tab stop, `orientation`, and all validation live there, and none of it is expressible from an option. Recorded in the header at length for that reason.',
-      'The whole-row hit target is expressed as `size.*.min-height`, the row\'s floor, and `anatomy.parts.row` is the node the expanding padding would land on. What is still unstated is the VALUE: the row clears SC 2.5.8\'s 24x24 at `medium` and not at `small`, and how much padding to add is a decision about the surrounding layout rather than a property of this component. Admitted in `anatomy.codeOnly` rather than guessed at.',
+      'THE FOCUS RING must appear INSTANTLY (brief §6, §8) — a fade lags rapid arrow navigation through a group, which is a radio-specific constraint that checkbox does not have. It is stated in `motion` and `accessibility.focus`, and nothing checks it: `motion` is prose, and no gate reads a ring\'s transition. The ring\'s SHAPE, by contrast, is handled: F2 (#1388) derives it concentrically, so a full-round control yields a circular ring (`radio-control.ts`).',
+      'The whole-row hit target is expressed as `size.*.min-height`, the row\'s floor, and `anatomy.parts.row` is the node the expanding padding would land on. What is still unstated is the VALUE: the row clears SC 2.5.8\'s 24x24 at `medium` and not at `small`, and how much padding to add is a decision about the surrounding layout rather than a property of this component. Admitted in `anatomy.codeOnly` rather than guessed at — which is why `accessibility.wcag` states 2.5.8 as intent (#1698).',
+    ],
+    evolution: [
+      'THE COMPANIONS ARE BUILT. This def used to record Radio.Control and RadioGroup as the two companions, with the group deferred (#901). `radio-control` (#1348) is the atom this Row nests, and `radio-group` (#1469) is the mandatory group that owns the shared `name`, the single scalar value, the roving-tabindex single tab stop, `orientation` and all validation.',
+      'THE SELECT MICRO-MOTION HAS A HOME. It was recorded here as having no expression in the def schema. The schema has a `motion` field; the dot\'s transition is stated on `radio-control`, where the dot is, and this Row\'s `motion` names the rest.',
+      'Field POV (brief §13): the group became the mandatory first-class component and the bare radio an incomplete unit; composition (a group wrapping option children) replaced the options array; styled native inputs sharing a `name` replaced hand-rolled `role=radio` groups, with `role="radiogroup"` + `aria-labelledby` over `fieldset`; the segmented control split out as a compact presentation of the same semantics; and selection-follows-focus was affirmed as the default, with the cheap-`onChange` caveat.',
     ],
   },
 };
