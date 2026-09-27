@@ -9,14 +9,14 @@
 
 ## (2026-09-26) — Vocabulary: trait citations are checked against the briefs they quote (#1685)
 
-**STATUS: PR open from `lane/trait-citations`, labeled DO NOT MERGE.** Engine only. **ENGINE 0.172.0 → 0.173.0** (renumbered in the net after #1686, #1690, #1691) (four shipped `why` strings change); **CONTRACT STANDS at 13.1.0** (`token-contract --check` level `none`; `--accept` rewrote only the informational `engineVersion`). `out/**` moves by the version stamp only: no corpus brand sets `personality`.
+**STATUS: PR open from `lane/trait-citations`, labeled DO NOT MERGE.** Engine only. **ENGINE 0.173.0 → 0.174.0** (renumbered in the net after #1686, #1690, #1691, #1692) (four shipped `why` strings change); **CONTRACT STANDS at 13.1.0** (`token-contract --check` level `none`; `--accept` rewrote only the informational `engineVersion`). `out/**` moves by the version stamp only: no corpus brand sets `personality`.
 
 **Owner direction (2026-09-26): keep `dense`, no new example brand.** Its `why` now says outright that no example brief asks for density and that it stands as the opposite pole of `generous`; harbor's "not a dense dashboard" stays, verbatim, described as the brief rejecting density rather than asking for it.
 
 **The gate.** `test.ts` checked each `why` by `why.length > 20`, which any sentence passes (docs/34: a check on the subject's shape, not its meaning). The new arm reads every `examples/*.design.md` off disk; each double-quoted span in a `why` must occur in the brief named most recently before it, after collapsing whitespace and case only (a brief wraps its prose across lines). A `…` inside a quote marks an elision, and its fragments must occur in order. A `why` with no quote, or a quote under no brief name, fails by the trait's name. A floor arm fails if fewer than nine traits or four briefs are in scope.
 
 **What the stricter check found beyond `dense`.** Three more `why` strings were not verbatim, and none of them could have been caught before:
-- `sharp` quoted no brief at all. nb-redesign says "Corners are sharp", so it now cites that; the opposite-pole wording stays after it. This goes one step past the owner's direction, which spoke only of `dense`, and is flagged in the PR.
+- `sharp` quoted no brief at all. nb-redesign says "Corners are sharp", so it now cites that; the opposite-pole wording stays after it. This goes one step past the owner's direction, which spoke only of `dense`, and is flagged in the PR. **Owner confirmed 2026-09-27:** keep the nb-redesign citation.
 - `premium` quoted `"premium restraint → tighter tracking"`, but aurora keeps the arrow outside its quote marks. Now it quotes "premium restraint" and says the brief maps it to tighter tracking.
 - `bold` quoted across wendys' markdown bold (`**Bold, not loud** — …`). Now it's two quotes. Stripping markdown in the gate was the other option; the owner's rule was whitespace and case only, so the `why` moved rather than the gate.
 
@@ -24,6 +24,39 @@
 
 **Trap for whoever re-verifies.** The attribution is "the nearest brief name before the quote, outside quotes", so a `why` whose prose mentions a second brief between the citation and its quote would re-attribute the quote. Today every `why` is written `<brief>: "…"` or `<brief> … "…"`; keep it that way.
 
+---
+
+## (2026-09-26) — the spinner's SVG import, verified on a real host (notes only)
+
+**STATUS: notes + docs only; no version bump.** `components/spinner.ts` shipped (#1677) with two `notes.unverified` items: that Figma's importer maps a `<path opacity>` to layer opacity, and that it reads the elliptical-arc (`A`) commands. Both were measured live on 2026-09-26 in the NB Approved MCP Testing File. The probe ran `figma.createNodeFromSvg` on the exact spinner document, read it back, and removed it, leaving nothing in the file. The two items move to a `notes.evolution` record.
+
+**What the host did:**
+- **One VECTOR per `<path>`, in path order, named by `id`.** This is what both executors' `ops[vi++]` pairing assumes.
+- **`track`:** layer opacity 0.2 (read back as 0.20000000298, single precision), EVENODD winding, 22×22 at (1,1).
+- **`arc`:** opacity 1, NONZERO winding, 12×16.79 at (11,1).
+- **Curves:** both outlines are cubic curves (24 and 16 segments, 0 line segments), so the arcs are not flattened into polygons.
+
+**Why no ENGINE bump.** `notes` are stripped from the built bundles (#1623) and are not part of the projected plan: `lint-component-surface.ts` is clean with the change. Nothing a consumer can observe moved.
+
+**Trap for re-verification.** The opacity reads back as single-precision 0.20000000298. No executor compares layer opacity exactly today (only the `zeroOpacity` check reads it, and it compares to 0). A future read-back that compares it to `0.2` strictly would report a false DISCARDED, the same shape as #1668's `minHeight`. Compare with a tolerance.
+---
+
+## (2026-09-26) — paste-path verify: `modesDistinct` on a single-mode brand (#1687)
+
+**STATUS: PR open from `lane/paste-verify-single-mode`, labeled DO NOT MERGE.** Engine (`materialise-to-figma.ts`, the legacy CLI paste path's `verify` pass). **ENGINE 0.172.0 → 0.173.0** (MINOR — the paste-path verdict changes). CONTRACT stands; `out/**` and the contract baseline restamp the generator version and nothing else.
+
+**The fix is #1662's rule, restated in the generated JS.** The emitted pass computed `new Set(Object.values(perMode)).size>1`, so a `modes: ['light']` paste always reported `modesDistinct: false`. With exactly one mode it now passes iff the probe's value in that mode is a `VARIABLE_ALIAS` whose target variable exists — not absent, not a literal left by a `color-create` that `color-aliases` never followed (the #1691 net). Multi-mode keeps `size>1`. The logic is re-stated inline rather than imported from `read-back.ts`, because the payload runs in Figma's sandbox and every pass in this file re-states its own rules as a string; the test drives the pasted string, so it stays independent of both copies.
+
+**A latent crash, found by running the payload.** The pass read `byName.has(…)` for `fieldFamilyPresent` and `bareDangerPresent`, but the only index it defines is `byTail` (the #1097 root-strip). So the verify payload threw `ReferenceError: byName is not defined` before returning anything. It was only ever string-matched in `test.ts`, so nothing noticed. Both now read `byTail`; the names they test are already tail-form. Fixed here rather than filed because the shim test cannot run without it.
+
+**Refactor for testability.** `verifyPass(brand)` became `export const verifyJs(plan, modes)`, the `colorAliasesJs` pattern: the CLI still passes `planFor(b)` and `colourModes(b)`, so the printed payload for every committed brand is unchanged apart from the two fixes.
+
+**Tests (`test.ts`).** The payload is run in a Variables shim (as #1672's arms are) over real plans from `buildWritePlan(buildFigmaColor(brandTheme(aurora…)))`. Expected verdicts are literals in the test: single-mode faithful → `modesDistinct === true` (fixture asserted to be `["light"]`); single-mode literal probe → `false`; light/dark faithful → `true`; light/dark with the probe collapsed onto one target → `false`; plus `fieldFamilyPresent`/`bareDangerPresent === true`, which proves the pass ran to completion. **Mutations, by name:** restoring `size>1` → `❌ #1687 paste verify single-mode: a faithful single-mode read PASSES modesDistinct`; dropping the alias check (`?!!probeVal`) → `❌ #1687 paste verify single-mode: a LITERAL background/primary … FAILS modesDistinct`; reverting one `byTail` to `byName` → the suite dies with `ReferenceError: byName is not defined`.
+
+**Trap for whoever re-verifies.** The shim must give the `color` collection's modes the same names as `MODES` (`light`, `dark`): the pass looks up mode ids by name, and a mismatch reads every mode as absent. That would make the single-mode arm fail for the wrong reason.
+
+
+**Orchestrator net.** The "alias to a variable that exists" clause was untested: dropping it survived every arm. A dangling-alias arm now fails it by name (`❌ #1687 paste verify single-mode: an alias to a DELETED variable FAILS modesDistinct …`). **Known divergence (low, recorded rather than changed):** this pass decides "single-mode" from the brand's DECLARED modes (`colourModes`), where `read-back.ts` uses the modes the file's `color` collection actually has. A `['light']` brand pasted over a file still holding light/dark checks only light here. The CLI knows the brand and the read-back doesn't, so each uses what it has.
 ---
 
 ## (2026-09-26) — read-back: `modesDistinct` on a single-mode brand (#1662)
