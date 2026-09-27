@@ -7,6 +7,35 @@
 
 ---
 
+## (2026-09-27) — Badge: the `genre` axis in Figma, and a visible neutral fill
+
+**STATUS: PR open from `lane/badge-genre-neutral`, labeled DO NOT MERGE.** The owner-approved follow-ups to Badge (#1730). ENGINE 0.187.0 → **0.188.0** (MINOR: the projected surface moves 5 → 15 members and `out/components/**` moves; the orchestrator renumbers if another lane lands first). CONTRACT stands at 13.1.0 (stamp-only accept). No new regen artifact, so `EXPECTED_ARTIFACTS` does not move.
+
+**1. `genre` is the nineteenth `VARIANT_AXES` name,** argued in the list's header against `appearance`, `style` and `shape`: a genre changes the content model, the placement and the a11y contract together. `lint-axis-values` carries `[status, count, dot]` as a `sole` set. Badge projects `genre × tone`, 15 members. It is an `authoring` axis, so the box may differ across genres; `tone` stays runtime. One anatomy, three shapes, by `presentWhen` on `genre`: the status label (`text`), the count (`count`, a second text part with its own `value` property defaulting to "3", for #1567's one-default-per-bound-node reason) and the dot (`dot`, an unpainted fixed square bound to `control.size.sm.dot`, which the surface pads by `space.0` and paints round). The surface's padding is keyed `{genre}.pad-x`/`{genre}.pad-y`: status `space.150 × space.100`, count `space.075 × space.025` (a near-circle at one digit that grows into a pill), dot `space.0`. Count and dot paint the bold tone fill `foreground.<tone>` under `text.on-<tone>`, the pair the engine contracts. Paint is one grammar, `{tone}.{genre}.{slot}`, with no fallback template, so a missing key is an arm-3 hole rather than another genre's color.
+
+**2. The neutral fill.** `foreground.secondary` measured 1.00:1 against `background.primary` in both HC modes and 1.21–1.38:1 elsewhere. **The diagnosis that shaped the fix:** a search over every non-interactive role pair in all 20 brand × mode cells found NO neutral surface that clears even 1.5:1 against the page everywhere, because the HC modes flatten every `foreground.*`/`background.*` surface onto the page; the mid grays that do separate in HC (`border.secondary`, 3.20:1 minimum) drop `text.primary` on them to 2.07:1. So a visible neutral needs an inverse ink. Neutral now paints `inverse.foreground.tertiary` (the engine's own "opposite-polarity" bold surface, at its least dark tier) under `inverse.text.primary`, in every genre: at least 11.44:1 against the page and 12.33:1 for the label. **The floor is 3:1, not 1.5:1,** because Badge is fill-only and the fill is the pill's only boundary; the def states it as intent under SC 1.4.11. The bold count and dot fills are held to the same floor (3.46:1 minimum). The four subtle status tints are not: they measure 1.06–1.40:1, and whether they should separate is open in `notes.contested`.
+
+**Gate registrations.** `VARIANT_AXES` + header; `lint-axis-values` (genre `sole`); `lint-paint` `PROVENANCE_EXCEPTIONS` rekeyed to the new grammar (13: the four subtle status fills, the four `text.on-<tone>` count labels, and neutral's five inverse keys); `lint-rung-names` `NO_SIZE_AXIS` reason (per-genre padding, one fixed dot rung under a non-`size.*` key); `test.ts` `GATED_EXPECTED` gains `badge`, and `CENTRE_OK` admits `badge.surface` (the dot and the texts are never present together). Both baselines accepted after the bump.
+
+**`test.ts` arms, literal expectations.** 25 color refs, all `foreground`/`text` or their inverse twins; every (tone, genre) fill pinned by name; the projected set is 15 members, five per genre, each genre with its own content; the dot is a fixed `control.size.sm.dot` square gated to `dot`; label contrast ≥ 4.5:1 for status and count across **all five example brands** (prism3, nb, aurora, harbor, wendys — the old arm measured three), with a literal 20-cell count; and the new arm, **`badge fill separates from the page`**, at a literal 3:1 for neutral in every genre and every count and dot fill.
+
+**Traps.**
+- The generic #910 presence arm's "unsupplied axis reads absent" case cannot project Badge: with `genre` absent, the projector refuses the coordinate (the `{genre}.pad-y` key cannot fill, and `{tone}.{genre}.{slot}` is a partial paint coordinate). Both refusals are deliberate guards. The arm now accepts a refusal ONLY when its message names the gated axis; any other throw still fails. Every earlier def projects as before.
+- `#1009 half 1` flags any row pairing a sized box with a text part as centred-without-reason. Badge's surface lists both as children, but `presentWhen` means no member holds both, which is the reason written into `CENTRE_OK`.
+- The count's circle is approximate in Figma: there is no width-equals-height floor, and `minWidth` is literal and keyed by size only. Code sets `min-inline-size` equal to the block size (`codeOnly`); the Figma member is about 1px off square by arithmetic, not measured on a live host (`notes.unverified`).
+
+**Mutations, committed before each, restored from HEAD, each failing by name.**
+- `count` part `presentWhen` → `['count', 'dot']` → `badge genre projects to Figma` (dot members read "3") and `lint-component-surface` `surface/badge: plan digest`.
+- `neutral.status.fill` → `color.foreground.secondary` → **`badge fill separates from the page (neutral.status)`** (1.00 in HC), with `badge contrast (neutral status)` and the fill pin.
+- `badge|neutral.count.fill` exception removed → `lint-paint` `provenance: badge|neutral.count.fill`.
+- genre reordered `[count, status, dot]` → `lint-axis-values` `1 axis value set(s) no register entry declares`.
+- `genre` removed from `VARIANT_AXES` → `lint-axis-values` `'genre' is not one of the 18 declared axis names`, and `test.ts` `component: Badge def is structurally valid`.
+- `dot-size` → `space.100` → `badge dot: a fixed square bound to control.size.sm.dot`.
+
+**Held for owner** (in the PR body): the bold inverse neutral beside subtle tone tints (neutral is now the loudest status label; measured alternatives listed); count and dot on bold fills; the count padding pair and its near-circle; the dot bound to `control.size.sm.dot` (a control's rung, borrowed); the count's default text "3"; the cutout stroke staying code-only; whether the subtle tone tints should also separate (filed as #1735).
+
+---
+
 ## (2026-09-27) — Component: Badge — a static status label, count or dot, with no states and no interactive binding
 
 **STATUS: PR open from `lane/component-badge`, labeled DO NOT MERGE.** New def `components/badge.ts` from the KB brief `components/badge.md`, built to the owner's four decisions of 2026-09-27. ENGINE 0.186.0 → **0.187.0** (MINOR, a new projected def; renumbered in the net after #1733, #1731 and #1726); CONTRACT stands at 13.1.0 (stamp-only accept). Regen artifacts 169 → **170** (`out/components/badge.md`), moved in `verify.ts` and both `ci.yml` literals.

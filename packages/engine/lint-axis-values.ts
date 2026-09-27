@@ -221,6 +221,19 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'name, and a status-colored one would be the validation signal `field-message` already owns via '
       + 'its `status` axis.',
   },
+  {
+    axis: 'genre',
+    values: ['status', 'count', 'dot'],
+    defs: ['badge'],
+    relation: 'sole',
+    reason:
+      'Which KIND of badge a member is (owner-approved, 2026-09-27): a status label in flow, a number over a '
+      + 'host, or a contentless mark over a host — the brief\'s three genres, which the owner made one component '
+      + 'switched by this axis. Self-describing values, `status` rather than `default`, as the owner asked, and '
+      + '`status` LEADS because it is the code default and the only genre that needs no host, so Figma\'s '
+      + 'default member matches. `sole`: `badge` is the only def with a `genre` axis. Three values and not the '
+      + 'brief\'s fourth count edge state (dot-on-overflow): that is a count behavior, not a kind.',
+  },
   // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
   // the same shape the `intent` note below records. field-label carried a three-way
   // `[none/required/optional]` axis whose most important value was ABSENCE, which is exactly why it never

@@ -29,7 +29,7 @@ Use a status label to show a state or attribute inline, such as a lifecycle stat
 
 ### Content guidelines
 
-Name the state, not the color: "Failed", not "Red". Use the same word for the same state everywhere, and keep it short enough to read at a glance. For a count or dot, write the host's accessible name so it says what the badge shows ("Notifications, 5 new"), since the badge itself is not read.
+Name the state, not the color: "Failed", not "Red". Use the same word for the same state everywhere, and keep it short enough to read at a glance. For a count, show the number up to the cap and the cap followed by a plus sign above it ("99+"). For a count or dot, write the host's accessible name so it says what the badge shows ("Notifications, 5 new"), since the badge itself is not read.
 
 ### Copy patterns
 
@@ -62,6 +62,7 @@ None — not interactive.
 
 | Axis | Values | Changes |
 | --- | --- | --- |
+| `genre` | `status`, `count`, `dot` | once, when authored |
 | `tone` | `neutral`, `info`, `success`, `warning`, `danger` | at runtime |
 
 ## Accessibility
@@ -69,7 +70,8 @@ None — not interactive.
 - **Role:** none. A status label is plain text and announces itself; a count or dot is aria-hidden and its meaning is in the host's accessible name.
 - **WCAG:**
   - 1.4.1 Use of Color (the text carries the meaning; a tone, or a dot, is never the only signal)
-  - 1.4.3 Contrast (the label ink clears 4.5:1 on its own tone fill, in every mode)
+  - 1.4.3 Contrast (the label ink clears 4.5:1 on its own fill, in every mode)
+  - 1.4.11 Non-text Contrast (targets 3:1 between the neutral fill and the page, since the fill is the badge's only boundary)
   - 4.1.2 Name, Role, Value (a count or dot joins its host's accessible name, so the host says what it means)
   - 4.1.3 Status Messages (a count that changes after render reaches assistive technology through a polite live region)
 - **Keyboard:** None. A badge takes no focus and has no action. A count on an icon button is reached through the button.

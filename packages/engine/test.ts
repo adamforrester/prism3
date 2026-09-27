@@ -4750,26 +4750,35 @@ for (const b of brands) {
 // Written from the decisions, not read back from the def: static (no states), one component switched by a
 // `genre` prop with the literal values status | count | dot, both accessibility contracts stated, and NO
 // interactive binding — every color ref is in the literal family list below, and the surface paints no stroke.
-// The contrast arm measures the def's OWN label/fill pairs in every corpus brand and mode against 4.5:1,
+// The contrast arm measures the def's OWN label/fill pairs in every example brand and mode against 4.5:1,
 // because the neutral pair is not one the engine's own contract gates.
 {
   const badgeDef = componentDefs.find((d) => d.id === 'badge')!;
   ok(!!badgeDef, 'badge: the def is registered');
+  const TONES = ['neutral', 'info', 'success', 'warning', 'danger'];
   const colorRefs = Object.entries(badgeDef.tokens).filter(([, r]) => r.startsWith('color.'));
   const interactive = Object.entries(badgeDef.tokens).filter(([, r]) => /(^|\.)interactive(\.|$)/.test(r));
-  const BADGE_COLOR_FAMILIES = ['foreground', 'text'];
-  const offFamily = colorRefs.filter(([, r]) => !BADGE_COLOR_FAMILIES.includes(r.split('.')[1]));
-  ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 10,
-    `badge binds no interactive role: all 10 color refs are foreground.* or text.*${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
-  // Each tone's fill is ITS OWN tone's subtle tint, and neutral's is the secondary foreground (#1730 net): the
-  // lint-paint provenance exceptions skip these keys, so without this arm a fill rebound to another tone passes.
+  // A surface role or a text role, on the page or on the inverse ground (the neutral fill, 2026-09-27). Never
+  // interactive. 25 = 5 tones x (status fill + label, count fill + label, dot fill).
+  const BADGE_COLOR_FAMILIES = ['color.foreground.', 'color.text.', 'color.inverse.foreground.', 'color.inverse.text.'];
+  const offFamily = colorRefs.filter(([, r]) => !BADGE_COLOR_FAMILIES.some((f) => r.startsWith(f)));
+  ok(interactive.length === 0 && offFamily.length === 0 && colorRefs.length === 25,
+    `badge binds no interactive role: all ${colorRefs.length} of 25 color refs are foreground.* or text.*, or their inverse twins${offFamily.length ? ` — ${offFamily.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
+  // Each (tone, genre) fill is pinned to its role (#1730 net): the lint-paint provenance exceptions skip the
+  // subtle and neutral keys, so without this arm a fill rebound to another tone passes. Status paints the
+  // tone's subtle tint, count and dot its bold fill, and neutral the inverse surface in every genre.
   const FILL_OF: Record<string, string> = {
-    neutral: 'color.foreground.secondary', info: 'color.foreground.info-subtle', success: 'color.foreground.success-subtle',
-    warning: 'color.foreground.warning-subtle', danger: 'color.foreground.danger-subtle',
+    'neutral.status': 'color.inverse.foreground.tertiary', 'info.status': 'color.foreground.info-subtle',
+    'success.status': 'color.foreground.success-subtle', 'warning.status': 'color.foreground.warning-subtle',
+    'danger.status': 'color.foreground.danger-subtle',
+    'neutral.count': 'color.inverse.foreground.tertiary', 'info.count': 'color.foreground.info',
+    'success.count': 'color.foreground.success', 'warning.count': 'color.foreground.warning', 'danger.count': 'color.foreground.danger',
+    'neutral.dot': 'color.inverse.foreground.tertiary', 'info.dot': 'color.foreground.info',
+    'success.dot': 'color.foreground.success', 'warning.dot': 'color.foreground.warning', 'danger.dot': 'color.foreground.danger',
   };
-  const wrongFill = Object.entries(FILL_OF).filter(([t, want]) => badgeDef.tokens[`${t}.fill`] !== want);
+  const wrongFill = Object.entries(FILL_OF).filter(([c, want]) => badgeDef.tokens[`${c}.fill`] !== want);
   ok(wrongFill.length === 0,
-    `badge: each tone's fill is its own tone's role${wrongFill.length ? ` — ${wrongFill.map(([t]) => `${t}.fill → ${badgeDef.tokens[`${t}.fill`]}`).join('; ')}` : ''}`);
+    `badge: each tone's fill is its own tone's role, in each genre${wrongFill.length ? ` — ${wrongFill.map(([c]) => `${c}.fill → ${badgeDef.tokens[`${c}.fill`]}`).join('; ')}` : ''}`);
   const slots = Object.values(badgeDef.anatomy!.parts).flatMap((p: any) => p.paintSlots ?? []);
   ok(JSON.stringify(slots) === JSON.stringify(['fill']),
     `badge paints a fill and nothing else — no border or overlay pairing that reads as interactive (${JSON.stringify(slots)})`);
@@ -4781,25 +4790,73 @@ for (const b of brands) {
   const aria = badgeDef.accessibility.aria;
   ok(/Status label: not aria-hidden/.test(aria) && /Count and dot: aria-hidden="true"/.test(aria) && /host composes the meaning into its accessible name/.test(aria),
     'badge aria: a status label announces itself; a count or dot is aria-hidden and its meaning is in the host name');
+
+  // THE GENRE AXIS IN FIGMA (owner-approved, 2026-09-27). Read off the PROJECTED members, not the def's own
+  // declarations: 15 members (3 genres x 5 tones), and each genre's member carries its own content — the
+  // status label reads "Status", the count reads a number and no label, and the dot carries no text and a
+  // fixed square. A genre dropped from `variantAxes`, or a presence gate lost, fails here by name.
+  const badgeSet = figmaAnatomySet(badgeDef);
+  const texts = (n: any): string[] => [...(n.characters !== undefined ? [String(n.characters)] : []), ...(n.children ?? []).flatMap(texts)];
+  const partNames = (n: any): string[] => [n.name, ...(n.children ?? []).flatMap(partNames)];
+  const byGenre: Record<string, { texts: string[]; parts: string[] }[]> = {};
+  for (const m of badgeSet as any[]) {
+    const g = /genre=(\w+)/.exec(planComponentName(m))?.[1] ?? '(none)';
+    (byGenre[g] ??= []).push({ texts: texts(m.root ?? m), parts: partNames(m.root ?? m) });
+  }
+  const genreShape = (g: string, want: (x: { texts: string[]; parts: string[] }) => boolean): boolean =>
+    (byGenre[g]?.length ?? 0) === 5 && byGenre[g].every(want);
+  ok(badgeSet.length === 15
+    && genreShape('status', (x) => JSON.stringify(x.texts) === '["Status"]' && !x.parts.includes('count') && !x.parts.includes('dot'))
+    && genreShape('count', (x) => x.texts.length === 1 && /^[0-9]+\+?$/.test(x.texts[0]) && !x.parts.includes('text') && !x.parts.includes('dot'))
+    && genreShape('dot', (x) => x.texts.length === 0 && x.parts.includes('dot')),
+    `badge genre projects to Figma: 15 members, five per genre, each with its own content (${Object.entries(byGenre).map(([g, xs]) => `${g}: ${xs.length} [${[...new Set(xs.map((x) => x.texts.join('|') || '-'))].join(', ')}]`).join('; ')})`);
+  // The dot's size is its own fixed square, not the count's padding around nothing (the brief's ~6–12px dot).
+  const dotPart: any = badgeDef.anatomy!.parts['dot'];
+  ok(dotPart?.kind === 'box' && badgeDef.tokens[dotPart?.size] === 'control.size.sm.dot' && JSON.stringify(dotPart?.presentWhen) === '{"genre":["dot"]}',
+    `badge dot: a fixed square bound to control.size.sm.dot, present only at genre dot (${dotPart?.size} → ${badgeDef.tokens[dotPart?.size]})`);
+
   const themes: [string, any][] = [
+    ['prism3', brandTheme(exampleBrands()['prism3'] as BrandInput)],
     ['nb', nbTheme()],
     ['aurora', brandTheme(exampleBrands()['aurora'] as BrandInput)],
     ['harbor', brandTheme(exampleBrands()['harbor'] as BrandInput)],
+    ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
   ];
-  for (const tone of ['neutral', 'info', 'success', 'warning', 'danger']) {
-    const ink = badgeDef.tokens[`${tone}.label`].replace(/^color\./, '');
-    const fill = badgeDef.tokens[`${tone}.fill`].replace(/^color\./, '');
+  // 5 brands x 4 modes, a literal: a brand or a mode silently dropping out of the measurement fails the count.
+  const CELLS = 20;
+  const measure = (a: string, b: string, floor: number): { measured: number; low: string[] } => {
     const low: string[] = [];
     let measured = 0;
     for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
-      const a = m.roles[ink], b = m.roles[fill];
-      if (!a?.hex || !b?.hex) { low.push(`${brand}/${m.mode}: missing ${!a?.hex ? ink : fill}`); continue; }
-      const r = contrast(hexToRgb(a.hex), hexToRgb(b.hex));
+      const x = m.roles[a], y = m.roles[b];
+      if (!x?.hex || !y?.hex) { low.push(`${brand}/${m.mode}: missing ${!x?.hex ? a : b}`); continue; }
+      const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
       measured++;
-      if (r < 4.5) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
+      if (r < floor) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
     }
-    ok(measured > 0 && low.length === 0,
-      `badge contrast (${tone}): ${ink} on ${fill} clears 4.5:1 in all ${measured} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+    return { measured, low };
+  };
+  for (const tone of TONES) for (const g of ['status', 'count']) {
+    const ink = badgeDef.tokens[`${tone}.${g}.label`]?.replace(/^color\./, '') ?? '(unbound)';
+    const fill = badgeDef.tokens[`${tone}.${g}.fill`]?.replace(/^color\./, '') ?? '(unbound)';
+    const { measured, low } = measure(ink, fill, 4.5);
+    ok(measured === CELLS && low.length === 0,
+      `badge contrast (${tone} ${g}): ${ink} on ${fill} clears 4.5:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+  }
+  // THE FILL AGAINST THE PAGE (owner-approved, 2026-09-27: a visible neutral). The badge paints no border, so
+  // its fill is the pill's ONLY boundary, and the floor is 3:1 — the non-text contrast floor, stated in the
+  // def as intent (SC 1.4.11) — rather than the 1.5:1 a fill with a second cue could live with. The neutral
+  // fill it replaced measured 1.00:1 in both high-contrast modes. The bold count and dot fills are held to the
+  // same floor, since a count or dot over a host has no text of its own to carry the shape. The four subtle
+  // tone tints of the status label are NOT held here: they measure 1.06–1.40:1, their text carries the
+  // meaning, and whether they should separate is the open question in the def's `notes.contested`.
+  const BADGE_FILL_FLOOR = 3;
+  const SEPARATED = ['neutral.status', 'neutral.count', 'neutral.dot', ...['info', 'success', 'warning', 'danger'].flatMap((t) => [`${t}.count`, `${t}.dot`])];
+  for (const c of SEPARATED) {
+    const fill = badgeDef.tokens[`${c}.fill`]?.replace(/^color\./, '') ?? '(unbound)';
+    const { measured, low } = measure(fill, 'background.primary', BADGE_FILL_FLOOR);
+    ok(measured === CELLS && low.length === 0,
+      `badge fill separates from the page (${c}): ${fill} against background.primary clears ${BADGE_FILL_FLOOR}:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
 }
 
@@ -20045,7 +20102,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   // layers, and text-field and textarea their focus caret, on the reserved `state` key. The arm below
   // supplies that key as the projected STATE, spelled here as a literal so the oracle is not the schema's
   // own constant.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -20103,9 +20160,22 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       if (onState)
         ok(has(rest) === values.includes('rest'),
           `#910 ${def.id}: '${name}' is ${values.includes('rest') ? 'present' : 'absent'} when 'state' is not supplied — an unsupplied state reads as rest, and this gate ${values.includes('rest') ? 'names' : 'does not name'} rest`);
-      else
-        ok(!has(rest),
-          `#910 ${def.id}: '${name}' is absent when '${axis}' is not supplied at all — an unsupplied axis reads ABSENT, the conservative answer, and the case no member of the projected set can reach`);
+      else {
+        // ABSENT, OR REFUSED BY NAME (badge, 2026-09-27). `badge` is the first def whose gated axis (`genre`)
+        // also keys its GEOMETRY (`{genre}.pad-x`) and shares a paint template with another axis
+        // (`{tone}.{genre}.{slot}`), so the projector refuses a coordinate without it — a deliberate guard
+        // (#1248's unfillable-key throw, the partial-paint-coordinate throw) rather than a part asserted on
+        // no evidence. A refusal is the conservative answer too, so it passes here only when its message
+        // NAMES the gated axis; any other throw still fails. Every def before badge projects and is unchanged.
+        let absent: boolean;
+        let how = 'absent from the structure-only projection';
+        try { absent = !has(rest); } catch (err) {
+          absent = new RegExp(`\\b${axis}\\b`).test(String((err as Error).message));
+          how = absent ? `refused by the projector, which names '${axis}'` : `refused for another reason: ${String((err as Error).message).slice(0, 160)}`;
+        }
+        ok(absent,
+          `#910 ${def.id}: '${name}' is absent when '${axis}' is not supplied at all — an unsupplied axis reads ABSENT, the conservative answer, and the case no member of the projected set can reach (${how})`);
+      }
     }
   }
 
@@ -21434,6 +21504,12 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // host's own caret placement. The fixed control height is the mechanical half of the same fact.
     'text-field.entry':
       "text-field's entry row shows the single-line placeholder or value ellipsized to one line, so it does not wrap — the first line IS the block, and the caret, one line box tall, centred against it sits where a native caret sits. The control's fixed single-line height is the mechanical half of the same fact (as select.content).",
+    // `badge`'s surface (the genre axis, 2026-09-27) lists a text part and the sized `dot` box as children,
+    // but `presentWhen` on `genre` puts exactly one of them in any member: no member pairs the dot with a
+    // label, so there is no line for the dot to float against. The status label is one or two words and the
+    // count a capped number, so neither wraps either.
+    'badge.surface':
+      "the dot and the two text parts are gated on genre and never present together, so no member pairs a sized box with a label; and the status label (one or two words) and the capped count do not wrap, so the first line IS the block.",
   };
   let pairedRows = 0;
   const centred: string[] = [];

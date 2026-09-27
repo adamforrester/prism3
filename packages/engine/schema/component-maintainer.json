@@ -734,7 +734,7 @@
     },
     "badge": {
       "codeOnly": [
-        "the genre switch — only the status label projects to Figma until a genre axis is admitted, so a count and a dot exist in code alone. Count: a number in the same pill that grows from a circle to a pill as digits are added, hidden at zero unless showZero, capped as max followed by a plus sign. Dot: a fixed square of about 8px with no text. Both sit over their host, anchored to its top trailing corner, with a stroke in the canvas color that separates them from the host.",
+        "the overlay rules for a count or dot — a count hides at zero unless showZero, caps as max followed by a plus sign, and sets min-inline-size equal to its block size so one digit is an exact circle (Figma has no width-equals-height floor, so the member approximates it with padding). Over a host, both carry a stroke in the canvas color that separates them from the host; the Figma members stay fill-only, since that stroke exists only against a host.",
         "the overlay placement — a count or dot is positioned against its host from a wrapper that owns the stacking context, so a host with overflow hidden does not clip it. Inset uses inset-inline-end so it mirrors in right-to-left layouts. circular overlap pulls the badge in by about 14.6% of the host size, onto the curve.",
         "the accessible-name wiring — for a count or dot the badge is aria-hidden and the host composes the meaning into its own name (\"Inbox, 3 unread messages\"). A count that changes after render is announced through one shared polite live region, debounced, never one region per badge. None of this has a Figma expression.",
         "number formatting — the count and its cap render through Intl.NumberFormat, so a locale with different digits or grouping reads correctly."
@@ -744,17 +744,21 @@
           "One component or three. The brief's practice default is three siblings (count badge, dot, status label: Fluent, Primer); the owner chose one component switched by `genre` (2026-09-27), which is the brief's contested alternative (MUI, Ant). The cost the brief names is real: the accessibility contract differs by genre (hidden overlay vs announced label), so `accessibility.aria` states both, and a consumer must pick the genre deliberately rather than inherit a default. `genre` defaults to `status` because that is the only genre that needs no host.",
           "THE HOOK FOR THE TAG LANE: what Tag must differ on, so the two never read alike at rest. (1) Tag binds the `color.interactive.*` family; Badge never does, and `test.ts` holds that. (2) Tag has states (hover, pressed, focus-visible, disabled, and selected where it toggles); Badge has none. (3) Tag carries a 44px touch target; Badge is excluded from `lint-hit-target.ts`. (4) Tag shows an affordance at rest — a boundary stroke, a remove control, or both — where Badge is a borderless tone fill; which at-rest cue Tag uses is the Tag lane's design call, and the one thing it may not do is look like this pill. (5) Tag stands on Icon Button for its remove control; Badge nests nothing.",
           "Whether the status label belongs here or in Tag. The brief records the field split: MUI, Ant and Carbon fold the status label into Chip or Tag; Fluent, Primer and Polaris ship it as its own badge or label. The owner put it here (static means Badge), and the Badge-or-Tag test is interactivity: if it has an action, a remove control or a selected state, it is a Tag.",
-          "Hide at zero by default (`showZero: false`), per the brief; some systems show \"0\" for a count the user has just cleared. Kept as the brief states it."
+          "Hide at zero by default (`showZero: false`), per the brief; some systems show \"0\" for a count the user has just cleared. Kept as the brief states it.",
+          "The neutral status label is now the loudest status label: a bold inverse fill beside four subtle tone tints (held for the owner, 2026-09-27). The alternatives measured were a mid gray from existing roles (`text.secondary` under `inverse.text.primary`, 5.0:1 against the page and 5.0:1 for the label at the weakest cell) and a new neutral surface role with its own high-contrast treatment, which would be a new token name and a CONTRACT change.",
+          "The four subtle tone tints themselves measure 1.06–1.40:1 against the page, lowest in dark mode, so the tone pills have little shape either. Their text carries the meaning, so nothing requires the shape; whether they should separate the way neutral now does is open."
         ],
         "unverified": [
           "The circular-overlap inset of about 14.6%, from the brief, derived from a circle's geometry (1 − 1/√2, halved). Not measured against any shipping system here.",
-          "Neutral's pair (`text.primary` on `foreground.secondary`) is measured by `test.ts` at 4.5:1 across the corpus brands, but not gated by the engine's own contract the way a tone ink on its tint is. In high-contrast modes the neutral surfaces flatten toward the page, so the neutral pill's shape may not show against the page there. The text still reads, and nothing requires a static label's shape to clear 3:1."
+          "The count member's circle at one digit is an approximation: `space.075` inline padding around one digit against `space.025` block padding around the label line. It is about 1px off square in the example brands' fonts by arithmetic, and has not been measured on a live Figma host.",
+          "The dot binds `control.size.sm.dot`, the small selection control's dot rung, because it is the tier's density-scaled 8px dot. It borrows a control token for a non-control; a badge-specific rung would be a new token name."
         ],
         "evolution": [
-          "A `genre` variant axis, so the count and dot project to Figma beside the status label (held for the owner).",
+          "The `genre` variant axis (owner-approved, 2026-09-27): the count and dot project to Figma beside the status label, fifteen members in all. Before it, the count and dot existed in code only.",
+          "Bold tone fills for the count and dot (owner-approved with the genre axis): `foreground.<tone>` under `text.on-<tone>`, where the status label keeps the subtle tint.",
+          "The neutral fill (owner-approved, 2026-09-27): `foreground.secondary` measured 1.00:1 against the page in high-contrast modes, so it moved to the inverse surface, gated at 3:1 against the page.",
           "A leading icon on the status label, as the brief allows, painted from the tone's icon role.",
-          "A size axis (small, medium, large) for the count and status label, once a host needs more than one.",
-          "Bold tone fills for the count, where a subtle tint over a busy host may not stand out."
+          "A size axis (small, medium, large) for the count and status label, once a host needs more than one."
         ]
       }
     }

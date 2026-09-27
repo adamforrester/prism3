@@ -317,23 +317,41 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
   'textarea|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
-  // `badge`'s tone fills are the SUBTLE tint of the tone (the lane's call, HELD for the owner on #1730: subtle vs bold): the role is
-  // `foreground.<tone>-subtle`, whose segment carries the tone as a prefix, not as a whole segment, so arm 1
-  // reads it as absent. The tone labels (`text.<tone>`) satisfy arm 1 and take no exception. `neutral` is the
-  // default badge, and the token tier has no role named `neutral` in either family: its pill is the second
-  // surface and its ink the primary text — the preview's neutral pairing, measured at 4.5:1 in `test.ts`.
-  'badge|neutral.fill':
-    'tone `neutral` maps to the second surface `foreground.secondary` — the token tier has no `foreground.neutral`',
-  'badge|neutral.label':
-    'tone `neutral` maps to the primary text role `text.primary` — the token tier has no `text.neutral`',
-  'badge|info.fill':
+  // `badge` keys its paint `{tone}.{genre}.{slot}`, so the TONE leads and arm 1 reads it. Three shapes need an
+  // exception, and every other badge key satisfies the rule on its own: the bold count and dot fills
+  // (`foreground.<tone>`) and the status labels (`text.<tone>`) carry the tone as a whole segment.
+  //   · STATUS fills are the SUBTLE tint (`foreground.<tone>-subtle`): the tone is a prefix of the segment,
+  //     not the segment, so arm 1 reads it as absent. Subtle vs bold is HELD for the owner (#1730).
+  //   · COUNT labels are the ink on the bold fill (`text.on-<tone>`), the same prefix shape.
+  //   · NEUTRAL, in every genre, is the inverse surface and its ink (owner-approved 2026-09-27: a visible
+  //     neutral). The token tier has no role named `neutral` in any family, and `inverse` sits where the
+  //     family segment would. The fill-against-page and label contrast are measured in `test.ts`.
+  'badge|neutral.status.fill':
+    'tone `neutral` maps to the inverse surface `inverse.foreground.tertiary` — the token tier has no `foreground.neutral`, and no page surface separates from the page in the high-contrast modes',
+  'badge|neutral.status.label':
+    'tone `neutral` maps to the inverse ink `inverse.text.primary`, the ink contracted on the inverse surface — the token tier has no `text.neutral`',
+  'badge|neutral.count.fill':
+    'tone `neutral` maps to the inverse surface `inverse.foreground.tertiary`, the engine\'s bold neutral — the token tier has no `foreground.neutral`',
+  'badge|neutral.count.label':
+    'tone `neutral` maps to the inverse ink `inverse.text.primary` on the inverse surface — the token tier has no `text.on-neutral`',
+  'badge|neutral.dot.fill':
+    'tone `neutral` maps to the inverse surface `inverse.foreground.tertiary`, the count\'s fill — the token tier has no `foreground.neutral`',
+  'badge|info.status.fill':
     'tone `info` paints its subtle tint `foreground.info-subtle`, the surface `text.info` is contracted against',
-  'badge|success.fill':
+  'badge|success.status.fill':
     'tone `success` paints its subtle tint `foreground.success-subtle`, the surface `text.success` is contracted against',
-  'badge|warning.fill':
+  'badge|warning.status.fill':
     'tone `warning` paints its subtle tint `foreground.warning-subtle`, the surface `text.warning` is contracted against',
-  'badge|danger.fill':
+  'badge|danger.status.fill':
     'tone `danger` paints its subtle tint `foreground.danger-subtle`, the surface `text.danger` is contracted against',
+  'badge|info.count.label':
+    'tone `info` inks its count with `text.on-info`, the ink contracted on the bold `foreground.info` fill',
+  'badge|success.count.label':
+    'tone `success` inks its count with `text.on-success`, the ink contracted on the bold `foreground.success` fill',
+  'badge|warning.count.label':
+    'tone `warning` inks its count with `text.on-warning`, the ink contracted on the bold `foreground.warning` fill',
+  'badge|danger.count.label':
+    'tone `danger` inks its count with `text.on-danger`, the ink contracted on the bold `foreground.danger` fill',
 };
 
 /**

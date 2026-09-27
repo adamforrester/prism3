@@ -2534,12 +2534,32 @@ export type State = (typeof STATES)[number];
  * one set. They compose — under a non-`rounded` brand the lever repoints the `square` shape's rounded rung
  * to the shape's rung (capsule/none/hairline) and leaves the `circular` shape's intrinsic round rung, the
  * same rule it applies to switch/radio.
+ *
+ * ── `genre`: THE NINETEENTH NAME, FOR THE BADGE'S THREE KINDS (owner-approved, 2026-09-27) ──────────
+ *
+ * `genre` (`status | count | dot`) is WHICH KIND of badge a member is — a status label in the flow of
+ * text, a number over a host, or a contentless mark over a host. The owner chose one Badge switched by
+ * props over the brief's three sibling components, and a designer picking a count member or a dot member
+ * in Figma needs that switch as a variant axis. It clears this list's bar the way `shape` did: a distinct
+ * kind of distinction no existing name expresses, with the nearest defeated. `appearance` is an EMPHASIS
+ * ladder over one treatment of fixed content (filled/outline/text); `style` is a stroke treatment; `shape`
+ * is a corner silhouette over identical content. A genre changes three things together that none of those
+ * touches — the CONTENT model (text, a number, nothing), the PLACEMENT (in flow, or over a host) and the
+ * ACCESSIBILITY contract (announced, or aria-hidden with the meaning in the host's name). Naming it
+ * `appearance` would claim a count is a louder status label; naming it `shape` would claim the dot is the
+ * same content with other corners. Neither is true, and the a11y difference is the one a consumer most
+ * needs the name to carry.
+ *
+ * THE NAME IS THE BRIEF'S OWN WORD for the split (its §1 calls them "genres") and the owner's, and its
+ * values are self-describing (`status`, not `default`). It is an AUTHORING axis in `axisKinds` — chosen when
+ * the badge is placed, never moved on screen — so the three genres may differ in size, where the runtime
+ * `tone` beside it may not. `lint-axis-values.ts` carries `['status', 'count', 'dot']` as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape',
+  'status', 'emphasis', 'shape', 'genre',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

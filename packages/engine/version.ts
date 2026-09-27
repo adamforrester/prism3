@@ -2926,6 +2926,16 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.188.0 — Badge follow-ups (owner-approved, 2026-09-27). (1) `genre` joins `VARIANT_AXES` as the
+ * nineteenth axis name, and Badge projects it: the Figma set goes from 5 status members to 15 (3 genres ×
+ * 5 tones), with the count as a number in a near-circle that grows into a pill and the dot as a fixed
+ * square bound to `control.size.sm.dot`; count and dot paint the bold tone fill under `text.on-<tone>`.
+ * (2) Neutral paints `inverse.foreground.tertiary` under `inverse.text.primary` in every genre, replacing
+ * `foreground.secondary`, which measured 1.00:1 against the page in the high-contrast modes; `test.ts` gates
+ * it at 3:1 against the page in all five example brands. The paint keys become `{tone}.{genre}.{slot}`.
+ * A moved projected surface and moved `out/components/**` docs → ENGINE MINOR. CONTRACT STANDS at 13.1.0:
+ * no token name moves, and the def binds existing roles only.
+ *
  * 0.187.0 — a new component def, `badge` (owner decisions, 2026-09-27): a static status label, count or
  * dot, one component switched by a `genre` prop, with no states and no interactive binding. Its Figma set
  * projects the status label across five `tone` members (neutral / info / success / warning / danger); the
@@ -3997,7 +4007,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.187.0';
+export const ENGINE_VERSION = '0.188.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
