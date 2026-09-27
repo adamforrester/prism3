@@ -96,7 +96,7 @@ The label names the setting and never changes. The description says what turning
 
 ## Composition
 
-- **Composes with:** `switch-control`, `focus-ring`
+- **Composes with:** `switch-control`
 - **Alternative to:** `checkbox-row`, `radio-row`
 - **Planned:** `card`, `toggle-button`, `segmented-control`
 - **Replaces:**

@@ -5,7 +5,7 @@
 A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a DARK wash under light text or a LIGHT wash under dark text (the `value` axis), then the intensity for how much the image needs muting. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.
 
 - **ID:** `veil`
-- **Category:** media
+- **Category:** foundations
 - **Status:** draft
 - **Also known as:** wash, photo-wash, image-overlay, image-scrim, media-wash, photo-overlay
 
@@ -40,7 +40,7 @@ The veil holds no copy. Where its variants surface in a UI, name the polarity an
 - **Purpose:** Place a designer-selected wash over a photograph or video so text set on top of it stays legible, choosing the wash's polarity and magnitude per image.
 - **Use when:** Text or controls sit over a photograph or video and need to stay readable against a varied image. Pick a dark wash under light text or a light wash under dark text, then the intensity for how much the image needs muting, and verify contrast against the real photo.
 - **Avoid when:** The overlay is the backdrop behind a modal or dialog (that is scrim.default, a mode-varying fill referenced directly, not this component), the surface behind the text is a solid color rather than an image (bind a semantic background or text role directly and the contrast is known), or a directional gradient wash is required (not built yet — only solid washes exist today).
-- **Often used with:** `icon`, `button`
+- **Often used with:** `icon`, `button`, `image-placeholder`
 
 ## Props
 
@@ -72,7 +72,6 @@ None — not interactive.
 
 ## Composition
 
-- **Composes with:** `icon`, `button`
 - **Planned:** `scrim`
 - **Replaces:**
   - a hand-tuned semi-transparent rectangle over an image with an ad-hoc opacity

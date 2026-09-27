@@ -94,7 +94,7 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 
 ## Composition
 
-- **Composes with:** `icon`, `focus-ring`, `spinner`
+- **Composes with:** `focus-ring`, `spinner`
 - **Alternative to:** `button-neutral`
 - **Planned:** `tooltip`, `button-group`, `menu`, `popover`, `link`
 - **Replaces:**

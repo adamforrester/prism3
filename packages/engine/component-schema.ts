@@ -1097,13 +1097,40 @@ export type FigmaProperties = {
   emitAsComponents?: boolean;
 };
 
+/**
+ * THE CATEGORY VOCABULARY (#1700) — the knowledge base's seven, closed and validated.
+ *
+ * `category` was an open string, the comment on it listed a different vocabulary (`action / input /
+ * container / feedback / navigation`) from the one the defs used (`form` / `foundations` / `media`), and
+ * nothing read or checked the value. The KB catalogue (`components/index.md`) groups every brief under
+ * exactly seven headings, and each brief's frontmatter names one of them, so this list is those seven,
+ * lower-cased, in the catalogue's order. `media` is not among them; `veil` and `image-placeholder` moved
+ * to `foundations` (image.md's category, and veil's stated choice in its header).
+ *
+ * A def TAKES ITS BRIEF'S CATEGORY. That is gated in `test.ts` (#1700, the brief-citation arm) against
+ * an authored table of the briefs and their KB categories, not against this list: this list says what a
+ * category may be, the table says which one a brief assigns. A def with no brief states its choice and
+ * the reason in its header, beside the "No KB brief" line.
+ */
+export const COMPONENT_CATEGORIES = ['foundations', 'layout', 'form', 'navigation', 'feedback', 'data', 'overlay'] as const;
+export type ComponentCategory = (typeof COMPONENT_CATEGORIES)[number];
+
 export type ComponentDef = {
   // ---- identity (§15) + specs-schema Component.id/name ----
   id: string;
   name: string;
+  /** Other names a reader or an agent might search for, as kebab-case ids (`loading-indicator`, not
+   *  `loading indicator`) — validated (#1700). A phrase with spaces belongs in `ai.triggerKeywords`,
+   *  which is prose a prompt is matched against rather than a name. */
   aliases?: string[];
-  /** Grouping by purpose (action / input / container / feedback / navigation / …). */
-  category: string;
+  /** Grouping by purpose, from the closed KB vocabulary above (#1700). Validated. */
+  category: ComponentCategory;
+  /** THE ENGINE'S STATUS FOR THIS DEF, which is independent of the KB brief's `status` (#1700). A brief's
+   *  `stable` is a RESEARCH status: the field's position on the component is settled. This field is the
+   *  ENGINE's: whether the def, its projection and its gates are settled enough that a consumer can build
+   *  on its surface without expecting it to move. Every def is `draft` today, including the ones whose
+   *  brief says `stable`, and that is the convention rather than a lag to fix per def. Moving a def to
+   *  `stable` is an owner decision about the engine's surface, not a copy of the brief's field. */
   status: 'draft' | 'stable' | 'deprecated';
   description: string;
   /** THE ONE-LINE SUMMARY — what the component is and the one rule a designer or agent most needs, in
@@ -1118,7 +1145,12 @@ export type ComponentDef = {
 
   // ---- api (§15) ----
   /** The substrate this stands on (the form family stands on `text-field`). The def
-   *  records the DELTA, not a copy — the §15 `inherits:` convention. */
+   *  records the DELTA, not a copy — the §15 `inherits:` convention.
+   *
+   *  A REGISTERED def id (#1700), gated in `test.ts` against the registry the same way the composition
+   *  id lists are: the registry is the oracle, never the def. Nothing in the engine resolves the
+   *  substrate's fields into this def — the value tells a reader which def to read for the rest — so an
+   *  id that resolves to nothing would send that reader nowhere with no error anywhere. */
   inherits?: string;
   props: PropDef[];
 
@@ -1294,6 +1326,10 @@ export type ComponentDef = {
     whenToUse: string;
     /** The highest-value field (docs/13 §1: AI defaults to using whatever it finds). Required. */
     avoidWhen: string;
+    /** The components this one is USED WITH, in either direction (#1700): the hosts that nest it, the
+     *  parts it nests, and the ones that sit beside it in a layout. `composition.composesWith` is the
+     *  narrow, one-direction relation; this is the broad one, which is where a reverse list ("nested by")
+     *  or a "sits beside" list goes. */
     commonPartners?: string[];
     triggerKeywords?: string[];
     /** Tiebreaker when several components could serve a prompt. */
@@ -1306,7 +1342,18 @@ export type ComponentDef = {
    *  `planned` holds the related components that are not built yet (kebab-case, the id they would
    *  take), so the roadmap stays recorded without an id that resolves to nothing. Both halves are gated
    *  in `test.ts` against the real registry: a real-list id must resolve, and a `planned` id must NOT
-   *  (once it ships, it moves to the real list). */
+   *  (once it ships, it moves to the real list).
+   *
+   *  `composesWith` HAS ONE MEANING (#1700): the components this def NESTS — every id named by a part's
+   *  `nests` in `anatomy`, whether in flow (`nest`), out of flow (`absolute`, the focus ring) or swapped
+   *  in whole (an `overlay` with `nests`, the pending spinner). Nothing else. It is gated as an EQUALITY
+   *  in `test.ts` (component-refs, arm a2), both directions: a nested component the list leaves out
+   *  fails, and a listed id the anatomy does not nest fails. Three things it therefore does NOT hold,
+   *  each of which it used to: the hosts that nest this def (a reverse list — `focus-ring`, `icon`),
+   *  the components that sit beside it (`veil`, `image-placeholder`), and the content a caller swaps
+   *  into a `slot`. A slot names no component — which one fills it is a fact about the file (#513), so
+   *  the `icon` a button's slot usually carries is a partner, not a part. All three belong in
+   *  `ai.commonPartners`. */
   composition?: {
     composesWith?: string[];
     alternativeTo?: string[];
@@ -1325,6 +1372,14 @@ export type ComponentDef = {
    *  is about: `contested` (the practice disagrees), `unverified` (asserted here, not yet gated),
    *  `evolution` (a finding a later revision RESOLVED — kept because "why is it like this now" is the
    *  question a def cannot answer about itself). Prose only; no emitter reads these.
+   *
+   *  `contested` HOLDS ONLY OPEN OR ARGUED ITEMS (#1700). A decision this def has settled moves to
+   *  `evolution`, which is where "why is it like this now" is answered. `validateComponentDef` refuses a
+   *  `contested` entry with a sentence that opens `Settled` / `Resolved` / `RESOLVED` / `CLOSED`, and an
+   *  `unverified` entry with one that opens `Resolved` / `RESOLVED`. It reads every sentence, not only the entry's
+   *  first word: the entries this rule was written for lead with the question and settle it in the
+   *  second sentence ("Where the ring is drawn — … Settled here as the offset sibling"), so a first-word
+   *  check passes the very case it exists for (`docs/34` shape 14).
    *
    *  `evolution` was authored in `button.ts` and missing here until #483 — invisible because nothing
    *  under a tsconfig imported a component def, and `test.ts` runs through `tsx`, which does not
@@ -1386,7 +1441,29 @@ export const validateComponentDef = (
   req(!!def.id && /^[a-z][a-z0-9-]*$/.test(def.id), `id must be kebab-case (got '${def.id}')`);
   req(!!def.name, 'name is required');
   req(!!def.category, 'category is required');
+  // #1700 — the KB's seven categories, closed. The type binds a def file; this binds everything that
+  // arrives as data (a brand's own def, an MCP caller, a hand-built test object), where a type asserts
+  // nothing — the same split `states` states for itself.
+  if (def.category && !(COMPONENT_CATEGORIES as readonly string[]).includes(def.category))
+    errors.push(`category '${def.category}' is not one of the KB's seven (${COMPONENT_CATEGORIES.join(' | ')}) — a def takes its brief's category (#1700)`);
   req(['draft', 'stable', 'deprecated'].includes(def.status), `status must be draft|stable|deprecated (got '${def.status}')`);
+  // #1700 — aliases are ids a reader can search for, so they are kebab-case like `id` itself. A phrase
+  // with spaces is a trigger keyword, not a name.
+  for (const a of def.aliases ?? [])
+    if (!/^[a-z][a-z0-9-]*$/.test(a)) errors.push(`alias '${a}' is not kebab-case — an alias is a name (\`loading-indicator\`); a phrase belongs in ai.triggerKeywords (#1700)`);
+  // #1700 — `contested` holds only open or argued items; a settled one belongs in `evolution`. Every
+  // sentence is read, not only the first word: the entries this was written for put the question first
+  // and "Settled here as …" second (see `notes` on `ComponentDef`).
+  const SETTLED_OPENING = /(?:^|[.;:!?]\s+|—\s+)(Settled|Resolved|RESOLVED|CLOSED)\b/;
+  const RESOLVED_OPENING = /(?:^|[.;:!?]\s+|—\s+)(Resolved|RESOLVED)\b/;
+  (def.notes?.contested ?? []).forEach((e, i) => {
+    const m = e.match(SETTLED_OPENING);
+    if (m) errors.push(`notes.contested[${i}] has a sentence opening '${m[1]}' — contested holds only open or argued items; a settled decision moves to notes.evolution (#1700)`);
+  });
+  (def.notes?.unverified ?? []).forEach((e, i) => {
+    const m = e.match(RESOLVED_OPENING);
+    if (m) errors.push(`notes.unverified[${i}] has a sentence opening '${m[1]}' — a resolved item is no longer unverified; it moves to notes.evolution (#1700)`);
+  });
   req(!!def.description, 'description is required');
   req(typeof def.summary === 'string' && def.summary.length > 0, 'summary is required — the one-line Figma description');
   if (typeof def.summary === 'string' && def.summary.length > 0) {
@@ -2502,8 +2579,9 @@ export type WeightIntent = (typeof WEIGHT_INTENTS)[number];
  * defs it described at the time — neither `text-field` nor `textarea` listed the ring there, and the
  * split was corpus-wide (the whole button family omitted it too). #1238 settled it: `composesWith`
  * follows `nests`, so every def that nests the ring now lists it, and `test.ts` (component-refs, arm a2)
- * fails any def whose anatomy nests a component its `composesWith` leaves out. `textarea` is listed by
- * hand, because a def without `anatomy` has no `nests` for that arm to read.
+ * fails any def whose anatomy nests a component its `composesWith` leaves out — and, since #1700, any def
+ * that lists a component its anatomy does not nest. `textarea` has its own anatomy now, so it is read
+ * like every other def rather than listed by hand.
  *
  * This map is deliberately the SMALLEST possible escape hatch, and an entry is INERT the moment its def
  * gains an `anatomy` block — the guard requires `!def.anatomy`, so the derived path simply takes over.

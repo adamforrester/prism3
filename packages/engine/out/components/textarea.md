@@ -46,7 +46,7 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 - **Purpose:** Capture multi-line free-form text with an associated label, an optional soft character limit, and a stated sizing model.
 - **Use when:** Comments, descriptions, messages, feedback, notes, commit-message bodies, a multi-line address — any input that predictably runs past the ~40–60 characters a single-line field shows comfortably, or that legitimately needs user-authored line breaks.
 - **Avoid when:** The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a \<textarea> holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select, or a combobox, not built yet). Also avoid reaching for it as a general "big box of text" when the content is genuinely structured — that is the rich-text signal.
-- **Often used with:** `field-label`, `field-message`, `button`, `icon`
+- **Often used with:** `field-label`, `field-message`, `button`, `icon`, `spinner`
 
 ## Props
 
@@ -101,7 +101,7 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 
 ## Composition
 
-- **Composes with:** `field-label`, `field-message`, `focus-ring`, `button`, `icon`, `spinner`
+- **Composes with:** `field-label`, `field-message`, `focus-ring`
 - **Alternative to:** `text-field`, `select`
 - **Planned:** `form`, `rich-text-editor`, `combobox`, `code-editor`
 - **Replaces:**

@@ -104,7 +104,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 
 ## Composition
 
-- **Composes with:** `icon`, `focus-ring`, `spinner`
+- **Composes with:** `focus-ring`, `spinner`
 - **Alternative to:** `icon-button-destructive`, `switch-row`
 - **Planned:** `tooltip`, `button-group`, `menu`, `popover`, `link`, `link-button`, `toggle-button`, `split-button`, `chip`
 - **Replaces:**

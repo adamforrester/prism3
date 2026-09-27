@@ -7,7 +7,7 @@ A rotating arc over a faint full ring, showing that work is in progress with no 
 - **ID:** `spinner`
 - **Category:** foundations
 - **Status:** draft
-- **Also known as:** loading indicator, activity indicator, loader, busy indicator, loading, inline-loading, spin
+- **Also known as:** loading-indicator, activity-indicator, loader, busy-indicator, loading, inline-loading, spin
 
 ## Usage
 
@@ -81,7 +81,6 @@ None — not interactive.
 
 ## Composition
 
-- **Composes with:** `button`
 - **Planned:** `progress`, `skeleton`, `toast`
 - **Replaces:**
   - an animated loading GIF

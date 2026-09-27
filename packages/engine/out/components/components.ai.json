@@ -1,7 +1,7 @@
 {
   "$schema": "prism3-component-docs/1.0",
   "generated": true,
-  "engineVersion": "0.182.0",
+  "engineVersion": "0.183.0",
   "note": "Documentation for every registered component, projected from its definition — the same source the Figma component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API.",
   "components": {
     "icon": {
@@ -227,14 +227,13 @@
         ],
         "generationPriority": 2
       },
+      "motion": {
+        "enter": "none",
+        "exit": "none",
+        "reduceMotion": "Static — an icon has no motion of its own. A glyph moves only as part of its host's state transition (a chevron rotating on expand, an outlined glyph cross-fading to filled), and the host owns that motion and its reduced-motion behavior."
+      },
       "composition": {
-        "composesWith": [
-          "button",
-          "icon-button",
-          "text-field",
-          "field-message",
-          "select"
-        ],
+        "composesWith": [],
         "alternativeTo": [],
         "supersedes": [],
         "supersededBy": [],
@@ -245,7 +244,9 @@
           "illustration",
           "logo",
           "thumbnail",
-          "emoji"
+          "emoji",
+          "avatar",
+          "tag"
         ],
         "replacesPatterns": [
           "legacy icon fonts",
@@ -308,10 +309,10 @@
       "accessibility": {
         "role": "none — a presentational sibling. The ring has no role of its own; it renders the focus state of the control it surrounds.",
         "wcag": [
-          "2.4.7 Focus Visible (a visible indicator on every keyboard-focusable control)",
+          "2.4.7 Focus Visible (a visible indicator on every keyboard-focusable control — so the ring sits outside its host and must not be clipped by an ancestor, hence `clipsContent: false`)",
           "1.4.11 Non-text Contrast (the ring is gated at 3:1 against the page per mode, 4.5:1 in high contrast; against the control edge it depends on the host — the offset is what makes that achievable)",
-          "2.4.11 Focus Not Obscured (the ring must not be clipped by an ancestor — hence `clipsContent: false`, and why an offset ring needs its host not to clip)",
-          "2.4.13 Focus Appearance (AAA — the indicator's area and contrast floor; the offset and width tokens are what a brand tunes to meet it)"
+          "2.4.11 Focus Not Obscured (Minimum) — the page's concern, not the ring's: a focused control must not be entirely hidden by author content such as a sticky header or a banner. The ring cannot see the page it is on, so the layout meets this, not this component.",
+          "2.4.13 Focus Appearance (AAA) — the intent, not gated: an indicator whose area and change of contrast are large enough to see. The offset and width tokens are the levers, and no gate measures a brand against this criterion."
         ],
         "focus": "This component IS the focus appearance. It is drawn for `:focus-visible` rather than `:focus`, so a pointer click does not raise it while keyboard navigation does — the distinction browsers make and the one a design system must not flatten. Never suppress it without replacing it: removing the indicator is the single most common 2.4.7 failure.",
         "aria": "None, and that is a contract rather than an absence. The ring is presentational — the focus state is already conveyed by the platform focus itself, so an `aria-*` attribute here would announce something assistive tech already knows. It must never be given a role that makes it a stop in the tab order: a focusable focus ring is a node the user can land on with nothing to do."
@@ -322,7 +323,7 @@
           "Nest the shared ring rather than re-authoring a focus treatment per component",
           "Pick `surface: inverse` on a dark or brand-filled surface, where the default ring loses its 3:1 separation",
           "Pick `offset: field` for inputs, whose own border already supplies the separation",
-          "Keep the ring outside the host's bounds and the host un-clipped, so the ring is never cut off (2.4.11)"
+          "Keep the ring outside the host's bounds and the host un-clipped, so the ring is never cut off (2.4.7)"
         ],
         "dont": [
           "Draw the ring on the host's own border — an outline appearance then has to give up its border for it, and the two contend for one stroke at different palette steps",
@@ -338,10 +339,17 @@
         "avoidWhen": "As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside `:focus-visible` destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. \"Standalone\" here means placed in a layout: the component IS built on its own, because a host can only nest one that already exists.",
         "commonPartners": [
           "button",
+          "button-destructive",
+          "button-neutral",
           "icon-button",
+          "icon-button-destructive",
+          "icon-button-neutral",
           "text-field",
+          "textarea",
           "select",
-          "checkbox-row"
+          "checkbox-control",
+          "radio-control",
+          "switch-control"
         ],
         "triggerKeywords": [
           "focus ring",
@@ -353,13 +361,7 @@
         "generationPriority": 2
       },
       "composition": {
-        "composesWith": [
-          "button",
-          "icon-button",
-          "text-field",
-          "select",
-          "checkbox-row"
-        ],
+        "composesWith": [],
         "alternativeTo": [],
         "supersedes": [],
         "supersededBy": [],
@@ -604,7 +606,6 @@
       },
       "composition": {
         "composesWith": [
-          "icon",
           "focus-ring",
           "spinner"
         ],
@@ -865,7 +866,6 @@
       },
       "composition": {
         "composesWith": [
-          "icon",
           "focus-ring",
           "spinner"
         ],
@@ -1122,7 +1122,6 @@
       },
       "composition": {
         "composesWith": [
-          "icon",
           "focus-ring",
           "spinner"
         ],
@@ -1358,7 +1357,6 @@
       },
       "composition": {
         "composesWith": [
-          "icon",
           "focus-ring",
           "spinner"
         ],
@@ -1590,7 +1588,6 @@
       },
       "composition": {
         "composesWith": [
-          "icon",
           "focus-ring",
           "spinner"
         ],
@@ -1821,7 +1818,6 @@
       },
       "composition": {
         "composesWith": [
-          "icon",
           "focus-ring",
           "spinner"
         ],
@@ -1988,14 +1984,7 @@
         "reduceMotion": "None of its own — a static top-aligned label does not move. The floating-label slide (KB text-field brief §8) is the one label motion in the field, and it is a host treatment this part does not model. The disabled dim is a color change on the host's state transition."
       },
       "composition": {
-        "composesWith": [
-          "text-field",
-          "textarea",
-          "select",
-          "checkbox-group",
-          "radio-group",
-          "field-message"
-        ],
+        "composesWith": [],
         "alternativeTo": [],
         "supersedes": [],
         "supersededBy": [],
@@ -2017,7 +2006,7 @@
         "validation-message",
         "caption"
       ],
-      "category": "form",
+      "category": "feedback",
       "status": "draft",
       "summary": "Helper or validation caption below a field; status sets its icon and ink.",
       "description": "The small icon + caption below a form field. In its default status it is persistent helper guidance (the format shown BEFORE failure); its error / warning / success statuses carry a validation result. A shared field part — the same component under every field control, not re-authored per host. Icon + text together, never color alone.",
@@ -2071,9 +2060,13 @@
         "wcag": [
           "1.4.1 Use of Color (status is carried by icon + text, never color alone)",
           "3.3.1 Error Identification / 3.3.3 Error Suggestion (the error status names the problem and the fix — wired by the host)",
-          "1.4.3 Contrast (caption ink clears 4.5:1; the engine gates text.<role> per mode)"
+          "3.3.2 Labels or Instructions (the default status states the format or constraint before the user can fail)",
+          "1.4.3 Contrast (caption ink clears 4.5:1; the engine gates text.<role> per mode)",
+          "1.4.11 Non-text Contrast (the status glyph's ink, icon.<role>, is gated at 3:1 per mode)",
+          "1.3.1 Info and Relationships / 4.1.2 Name, Role, Value (the host associates the message through aria-describedby and sets aria-invalid on error)",
+          "4.1.3 Status Messages (a message that arrives without focus moving to its field must still reach assistive tech — the host decides how)"
         ],
-        "aria": "The status icon is aria-hidden — the caption text carries the meaning. The message does NOT self-announce; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus."
+        "aria": "The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it (\"Error:\"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does NOT self-announce; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus."
       },
       "content": {
         "errorPattern": "Say what is wrong AND how to fix it (SC 3.3.3): \"Enter a valid email address, e.g. name@example.com\" — specific, human, not \"Invalid input\", not blaming the user.",
@@ -2090,7 +2083,8 @@
           "Signal error with color alone (fails SC 1.4.1)",
           "Duplicate the error into a self-announcing live region here AND on the host — the host owns announcement",
           "Use warning as a hard blocker — it is a soft, non-blocking caution (many systems fold it into helper/error)"
-        ]
+        ],
+        "contentGuidelines": "Say what is wrong and how to fix it, with the constraint stated: \"Enter a valid email address, like name@example.com\", \"First name must be 35 characters or less\" — never \"Invalid\" or an error code. Use plain language with no blame (\"Enter your first name\", not \"You forgot to enter your name\") and no humor. Reuse the field label's own words, and keep the message identical to its line in any error summary. Use a success status sparingly, for an asynchronous confirmation such as \"Username available\". In the default status, state the requirement up front so the error never has to."
       },
       "ai": {
         "primaryPurpose": "Carry helper guidance or a validation result below a form field, as icon + caption.",
@@ -2098,6 +2092,7 @@
         "avoidWhen": "As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.",
         "commonPartners": [
           "text-field",
+          "textarea",
           "select",
           "checkbox-row",
           "field-label",
@@ -2114,20 +2109,20 @@
         ],
         "generationPriority": 3
       },
+      "motion": {
+        "enter": "A short fade as the message is inserted. The field grows to hold it and pushes the content below down (dynamic expansion). Never positioned absolutely to avoid that shift — it would overlap the next field's label.",
+        "exit": "none",
+        "reduceMotion": "Under prefers-reduced-motion the message snaps in with no fade. The row reserves the glyph's height in every status, so a status change moves nothing; inserting or removing the message still shifts the layout below it."
+      },
       "composition": {
-        "composesWith": [
-          "text-field",
-          "select",
-          "field-label",
-          "icon"
-        ],
+        "composesWith": [],
         "alternativeTo": [],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
           "number-field",
           "tooltip",
-          "inline-alert"
+          "inline-message"
         ],
         "replacesPatterns": []
       }
@@ -2399,7 +2394,8 @@
           "field-label",
           "field-message",
           "icon",
-          "button"
+          "button",
+          "spinner"
         ],
         "triggerKeywords": [
           "text field",
@@ -2421,10 +2417,7 @@
         "composesWith": [
           "field-label",
           "field-message",
-          "focus-ring",
-          "icon",
-          "button",
-          "spinner"
+          "focus-ring"
         ],
         "alternativeTo": [
           "textarea",
@@ -2648,7 +2641,8 @@
           "field-label",
           "field-message",
           "button",
-          "icon"
+          "icon",
+          "spinner"
         ],
         "triggerKeywords": [
           "textarea",
@@ -2671,10 +2665,7 @@
         "composesWith": [
           "field-label",
           "field-message",
-          "focus-ring",
-          "button",
-          "icon",
-          "spinner"
+          "focus-ring"
         ],
         "alternativeTo": [
           "text-field",
@@ -2946,7 +2937,8 @@
           "2.5.8 Target Size — the intent: the whole ROW is the target, because the 12–24px box fails in isolation. The default (medium) row is held to a 44px minimum height on comfortable and spacious density; small and compact rows are not measured.",
           "4.1.2 Name Role Value (role, checked AND mixed — `aria-checked=\"mixed\"` must be set explicitly)",
           "1.3.1 Info and Relationships (group structure)",
-          "3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion (group-level)",
+          "3.3.2 Labels or Instructions (the visible row label)",
+          "3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, not met today. In a set, the group carries the message and announces it once, and the group error display is not designed yet. An isolated row recolors its own boundary but nests no message part, so the text that names the error is its host's.",
           "1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)",
           "3.3.7 Redundant Entry (repeated consents)"
         ],
@@ -3984,8 +3976,7 @@
       },
       "composition": {
         "composesWith": [
-          "switch-control",
-          "focus-ring"
+          "switch-control"
         ],
         "alternativeTo": [
           "checkbox-row",
@@ -4212,8 +4203,7 @@
         "composesWith": [
           "field-label",
           "field-message",
-          "focus-ring",
-          "icon"
+          "focus-ring"
         ],
         "alternativeTo": [
           "text-field",
@@ -4245,7 +4235,7 @@
         "media-wash",
         "photo-overlay"
       ],
-      "category": "media",
+      "category": "foundations",
       "status": "draft",
       "summary": "Wash over media so text stays legible. Intensity is a magnitude — verify contrast.",
       "description": "A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a DARK wash under light text or a LIGHT wash under dark text (the `value` axis), then the intensity for how much the image needs muting. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.",
@@ -4327,7 +4317,8 @@
         "avoidWhen": "The overlay is the backdrop behind a modal or dialog (that is scrim.default, a mode-varying fill referenced directly, not this component), the surface behind the text is a solid color rather than an image (bind a semantic background or text role directly and the contrast is known), or a directional gradient wash is required (not built yet — only solid washes exist today).",
         "commonPartners": [
           "icon",
-          "button"
+          "button",
+          "image-placeholder"
         ],
         "triggerKeywords": [
           "veil",
@@ -4343,10 +4334,7 @@
         "generationPriority": 3
       },
       "composition": {
-        "composesWith": [
-          "icon",
-          "button"
-        ],
+        "composesWith": [],
         "alternativeTo": [],
         "supersedes": [],
         "supersededBy": [],
@@ -4368,7 +4356,7 @@
         "empty-image",
         "image-slot"
       ],
-      "category": "media",
+      "category": "foundations",
       "status": "draft",
       "summary": "Empty media frame locked to 1:1, 4:3 or 16:9. Drop an image fill onto it.",
       "description": "An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (a native Figma action, not a modeled slot). Before an image arrives it shows a neutral fill and a centered \"no image\" marker, and it clips its content so a mismatched photo cannot overflow the frame.",
@@ -4398,24 +4386,24 @@
         }
       },
       "accessibility": {
-        "role": "img once it holds an image, with an accessible name describing what the image is; the empty frame is presentational. The \"no image\" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.",
+        "role": "img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (`alt=\"\"`) when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The \"no image\" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.",
         "wcag": [
-          "1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it; the empty-state marker is decorative and is hidden from assistive tech",
+          "1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it, or an empty `alt=\"\"` when the image is decorative (image.md §6: an omitted alt and an empty one behave oppositely); the empty-state marker is decorative and is hidden from assistive tech",
           "1.4.11 Non-text Contrast — where the frame edge is a meaningful boundary, verify it against the surface behind it; the neutral fill is a background, not a UI boundary carrying meaning",
           "1.4.1 Use of Color — the marker signals \"no image\" by shape and position, not by color alone"
         ],
         "focus": "None of its own — the frame is not focusable as an empty placeholder. If it becomes an interactive media element (a button that opens a picker), that control carries its own focus; the placeholder frame does not invent one.",
-        "aria": "Give the frame an img role and a descriptive accessible name once it holds a real image. Mark the \"no image\" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image."
+        "aria": "Once the frame holds a real image, decide whether the image is informative or decorative. Informative: an img role and an accessible name that describes its function, not the picture. Decorative: an empty alt (`alt=\"\"`), never an omitted one — some screen readers announce the file name when alt is missing. Mark the \"no image\" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image."
       },
       "content": {
         "labelPattern": "An image placeholder carries no text of its own. Where its ratio variants surface in a UI, name the proportion plainly — \"16:9\", \"Square\" — rather than a pixel dimension, because the frame holds a ratio and not a fixed size."
       },
       "docs": {
-        "usage": "Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card's media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for avatars and square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill — a native Figma action. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.",
+        "usage": "Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card's media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill — a native Figma action. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.",
         "do": [
           "Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes",
           "Drop the photograph on as an image fill — the frame is the container, not a swappable slot",
-          "Give a real image an accessible name; keep the empty-state marker decorative and aria-hidden",
+          "Give an informative image an accessible name and a decorative one an empty alt; keep the empty-state marker decorative and aria-hidden",
           "Let the frame clip — a photo cropped to the ratio reads better than one that overflows the layout"
         ],
         "dont": [
@@ -4450,9 +4438,7 @@
         "generationPriority": 3
       },
       "composition": {
-        "composesWith": [
-          "icon"
-        ],
+        "composesWith": [],
         "alternativeTo": [],
         "supersedes": [],
         "supersededBy": [],
@@ -4466,10 +4452,10 @@
       "id": "spinner",
       "name": "Spinner",
       "aliases": [
-        "loading indicator",
-        "activity indicator",
+        "loading-indicator",
+        "activity-indicator",
         "loader",
-        "busy indicator",
+        "busy-indicator",
         "loading",
         "inline-loading",
         "spin"
@@ -4574,9 +4560,7 @@
         "reduceMotion": "The turn runs `motion.duration.spin` (800ms) per turn, linear and infinite. Under prefers-reduced-motion it runs `motion.duration-reduced.spin` (2600ms) per turn instead — slower, never stopped. The enter fade stays, on `motion.duration-reduced.fast` — a change of opacity is not vestibular motion."
       },
       "composition": {
-        "composesWith": [
-          "button"
-        ],
+        "composesWith": [],
         "alternativeTo": [],
         "supersedes": [],
         "supersededBy": [],

@@ -5,19 +5,19 @@
 An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (a native Figma action, not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker, and it clips its content so a mismatched photo cannot overflow the frame.
 
 - **ID:** `image-placeholder`
-- **Category:** media
+- **Category:** foundations
 - **Status:** draft
 - **Also known as:** media-frame, image-frame, photo-placeholder, empty-image, image-slot
 
 ## Usage
 
-Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card's media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for avatars and square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill — a native Figma action. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.
+Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card's media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill — a native Figma action. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.
 
 ### Do
 
 - Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes
 - Drop the photograph on as an image fill — the frame is the container, not a swappable slot
-- Give a real image an accessible name; keep the empty-state marker decorative and aria-hidden
+- Give an informative image an accessible name and a decorative one an empty alt; keep the empty-state marker decorative and aria-hidden
 - Let the frame clip — a photo cropped to the ratio reads better than one that overflows the layout
 
 ### Don't
@@ -60,17 +60,16 @@ None — not interactive.
 
 ## Accessibility
 
-- **Role:** img once it holds an image, with an accessible name describing what the image is; the empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.
+- **Role:** img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (`alt=""`) when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.
 - **WCAG:**
-  - 1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it; the empty-state marker is decorative and is hidden from assistive tech
+  - 1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it, or an empty `alt=""` when the image is decorative (image.md §6: an omitted alt and an empty one behave oppositely); the empty-state marker is decorative and is hidden from assistive tech
   - 1.4.11 Non-text Contrast — where the frame edge is a meaningful boundary, verify it against the surface behind it; the neutral fill is a background, not a UI boundary carrying meaning
   - 1.4.1 Use of Color — the marker signals "no image" by shape and position, not by color alone
 - **Focus:** None of its own — the frame is not focusable as an empty placeholder. If it becomes an interactive media element (a button that opens a picker), that control carries its own focus; the placeholder frame does not invent one.
-- **ARIA:** Give the frame an img role and a descriptive accessible name once it holds a real image. Mark the "no image" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image.
+- **ARIA:** Once the frame holds a real image, decide whether the image is informative or decorative. Informative: an img role and an accessible name that describes its function, not the picture. Decorative: an empty alt (`alt=""`), never an omitted one — some screen readers announce the file name when alt is missing. Mark the "no image" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image.
 
 ## Composition
 
-- **Composes with:** `icon`
 - **Replaces:**
   - a hand-drawn rectangle with a fixed width and height standing in for an image, which breaks its ratio the moment it is resized
 

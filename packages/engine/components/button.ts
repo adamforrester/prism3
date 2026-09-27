@@ -1,5 +1,5 @@
 /**
- * Button — re-authored v1 from the KB brief (knowledge-base/components/button.md §15),
+ * Button — re-authored v1 from its KB brief (KB brief: `components/button.md`, §15),
  * the catalogue's calibration component. v0 was seeded from the schema shape only and
  * re-litigated settled decisions; this is faithful to the practice's resolved model.
  *
@@ -672,7 +672,9 @@ const makeButton = (id: string, name: string, summary: string, description: stri
   },
 
   composition: {
-    composesWith: ['icon', 'focus-ring', 'spinner'],
+    // What the anatomy nests (#1700): the ring (absolute) and the pending spinner (an overlay swap). The `icon`
+    // a slot usually carries is a partner, not a part — a slot names no component (#513).
+    composesWith: ['focus-ring', 'spinner'],
     // #1697 — each sibling points at the icon-button of its OWN family, so the destructive button's
     // icon-only alternative is the destructive icon-button rather than the primary one.
     alternativeTo: [family === 'primary' ? 'icon-button' : `icon-button-${family}`, 'switch-row'],
@@ -695,10 +697,11 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots before projection (`applyOutlineInteraction`, #1608: the tinted-wash variable interactive.<color>.subtle-fill, the control\'s own fill at an opacity step (#1614, #1646) / no hover fill), on the inverse band too.',
       // #1697 — brief §15 `notes.contested`, carried with how this def resolves each.
       'polymorphism (brief §3) — a separate link-button over a generic `as` prop, and where polymorphism is unavoidable, infer `<a>` from `href`. This def keeps `href` as a discouraged escape hatch and lists link-button as planned.',
-      'ghost vs plain (brief §3) — the brief flagged `ghost` (an intent) and `plain` (an appearance) as overlapping at the low-emphasis end. Resolved by retiring `ghost` as a color: the quiet button is Button.Neutral at appearance=text (docs/20). Icon-button reuses the word as its appearance value (#1432), where there is no text to name.',
       'the `modifiers` axis (brief §4, §15) — the brief lists leading-visual / trailing-visual / icon-only / pending as one modifiers axis. This def omits it (#845): the two visuals are slot-presence axes, pending is a state, and icon-only is the separate icon-button.',
     ],
     evolution: [
+      // Moved from `contested` (#1700): resolved here, so it is evolution, not an open question.
+      'ghost vs plain (brief §3) — the brief flagged `ghost` (an intent) and `plain` (an appearance) as overlapping at the low-emphasis end. Resolved by retiring `ghost` as a color: the quiet button is Button.Neutral at appearance=text (docs/20). Icon-button reuses the word as its appearance value (#1432), where there is no text to name.',
       'RESOLVED (was the v1 HIGH finding): interaction states existed only on the solid action/danger roles, so the default (neutral) button was hover-less. The interactive color system (docs/20) gives every color — primary/neutral/destructive — the full fill+states/on-fill/border/text/overlay shape, so the matrix is now uniform and the default button has proper hover/pressed. Disabled is the cross-cutting disabled.* family, no longer scattered per-color.',
       // #1697 — moved from `unverified`, where it sat marked RESOLVED.
       'RESOLVED (#1260): type.label.lg now exists (18px / emphasis) and size.large.type binds it, so a large button label is one rung above medium (14 → 18) rather than reusing type.label.md.',

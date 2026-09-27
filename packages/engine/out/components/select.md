@@ -95,7 +95,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 
 ## Composition
 
-- **Composes with:** `field-label`, `field-message`, `focus-ring`, `icon`
+- **Composes with:** `field-label`, `field-message`, `focus-ring`
 - **Alternative to:** `text-field`, `radio-group`, `checkbox-group`
 - **Planned:** `form`, `menu`, `combobox`, `segmented-control`
 - **Replaces:**

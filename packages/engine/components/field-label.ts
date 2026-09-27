@@ -1,6 +1,7 @@
 /**
  * FieldLabel — the accessible name above a field, with a required marker and a size to pair with
- * the field it sits over (KB text-field brief §2 "Label", §6, §7). The second shared field part:
+ * the field it sits over (KB brief: `components/text-field.md`, §2 "Label", §6, §7 — the part was extracted
+ * from the text-field brief, and there is no field-label brief). The second shared field part:
  * like FieldMessage, it is authored once and reused under every form control (TextField now;
  * Select / Checkbox-group / NumberField later), so "the label is always present, always
  * associated" holds family-wide rather than per host.
@@ -420,14 +421,16 @@ export const fieldLabel: ComponentDef = {
     primaryPurpose: 'Name a form field visibly and programmatically.',
     whenToUse: 'Above every field control — the accessible name for the input.',
     avoidWhen: 'As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.',
-    // The defs that nest this label, plus its sibling part — one list, stated twice (#1699).
+    // The defs that nest this label, plus its sibling part (#1699). Stated once, here: `composesWith` holds
+    // only what a def nests, and this one nests nothing (#1700).
     commonPartners: ['text-field', 'textarea', 'select', 'checkbox-group', 'radio-group', 'field-message'],
     triggerKeywords: ['label', 'field label', 'form label', 'required indicator'],
     generationPriority: 3,
   },
 
   composition: {
-    composesWith: ['text-field', 'textarea', 'select', 'checkbox-group', 'radio-group', 'field-message'],
+    // Nests nothing (#1700). The five hosts that nest it, and the message it sits above, are partners.
+    composesWith: [],
     alternativeTo: [],
     planned: ['number-field'],
     replacesPatterns: ['an aria-label standing in for a visible label'],

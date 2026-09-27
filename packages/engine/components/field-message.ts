@@ -1,7 +1,9 @@
 /**
  * FieldMessage — the small icon + caption that sits BELOW a field and carries helper
- * guidance or a validation result (KB text-field brief §2 "Helper / description text" +
- * "Error / validation message", §6, §7). This is the Prism3 successor to Prism2's reused
+ * guidance or a validation result. KB brief: `components/inline-message.md` — its §1 names the
+ * field-level inline message as exactly this component, the helper/error slot the form controls
+ * compose (the text-field brief's §2 "Helper / description text" and "Error / validation message" is
+ * the same part seen from its host). This is the Prism3 successor to Prism2's reused
  * "Helper message" sub-component: one part, a `status` axis (renamed from `tone` in #1334, when the
  * overloaded name was split — this validation axis to `status`, `field-label`'s emphasis axis to
  * `emphasis`), shared across the whole form
@@ -9,7 +11,7 @@
  * re-declared per host.
  *
  * Why it's its own ComponentDef (not a slot): unlike an Icon, it BINDS tokens of its own
- * and its meaning changes with state — each tone re-points text + icon at a semantic role
+ * and its meaning changes with state — each status re-points text + icon at a semantic role
  * (`text.<role>` / `icon.<role>`), and the pairing is exactly what §7's "say what is wrong
  * AND how to fix it, with an icon, never color-only" requires. It is the reusable, gated
  * unit that satisfies that contract once for every field.
@@ -19,7 +21,7 @@
  * this node's id into the field's `aria-describedby` chain and sets `aria-invalid` on error
  * (§6). So the part is presentational; the host stitches it in.
  *
- * IT PROJECTS AS OF #795 — four members, one per tone, all eight color bindings resolved. Until #795 it
+ * IT PROJECTS AS OF #795 — four members, one per status, all eight color bindings resolved. Until #795 it
  * had an anatomy block and no Figma projection, recorded here with `figmaProperties` ABSENT, on docs/38
  * §2's phrasing: **an `anatomy` block is necessary and not sufficient.** The block below is the
  * sufficiency arriving, and the reasoning that kept it absent is worth keeping because the DECISION it
@@ -60,7 +62,9 @@ export const fieldMessage: ComponentDef = {
   id: 'field-message',
   name: 'FieldMessage',
   aliases: ['helper-text', 'help-text', 'field-error', 'validation-message', 'caption'],
-  category: 'form',
+  // `feedback`, the inline-message brief's category (#1700): this is the field-level inline message, the
+  // part where Feedback meets Form.
+  category: 'feedback',
   status: 'draft',
   summary: 'Helper or validation caption below a field; status sets its icon and ink.',
   description:
@@ -88,7 +92,7 @@ export const fieldMessage: ComponentDef = {
   // through its kind.
   axisKinds: { status: 'runtime' },
 
-  // Tone → (caption ink, status icon). default is a muted neutral; each validation tone lands
+  // Status → (caption ink, status icon). default is a muted neutral; each validation status lands
   // on its semantic role. text.<role> clears the 4.5:1 body floor and icon.<role> its non-text
   // floor by construction (the engine gates them per mode), so a re-based role (roleColors) or a
   // new brand re-derives the whole set without a manual pass. The caption is caption-scale type.
@@ -101,7 +105,7 @@ export const fieldMessage: ComponentDef = {
   //
   // THE SLOT VOCABULARY (#784). `{slot}` is filled with the name the PROJECTOR asks — `label` for a text
   // node, `icon` for a glyph — so these were spelled `{tone}.text` until #784 and four of eight color
-  // bindings resolved at no coordinate at all: every tone painted its glyph and left its caption unpainted.
+  // bindings resolved at no coordinate at all: every status painted its glyph and left its caption unpainted.
   //
   // #758's comment here claimed *"the reachability check in `paintKeyErrors` catches exactly that."*
   // IT DID NOT, and that claim is the reason #784 exists. Mutation-tested: removing all four `.icon`
@@ -126,11 +130,11 @@ export const fieldMessage: ComponentDef = {
     // be checked optically beside the caption, which `notes.unverified` now records.
     'glyph-size': 'icon.size.xs',
     'default.label': 'color.text.secondary',
-    // KEPT, AND UNREACHABLE IN FIGMA BY DESIGN (#1010). The default tone projects no glyph — see the
+    // KEPT, AND UNREACHABLE IN FIGMA BY DESIGN (#1010). The default status projects no glyph — see the
     // anatomy — so no node of this def ever asks for this ink, and `lint-paint.ts` arm 3 would report it
     // as bound-and-painting-nothing. It is named in that gate's `UNREACHED_EXPLAINED` register rather
     // than deleted, because the CODE side still needs it: `props.icon` may supply a domain-specific
-    // status mark on the default tone, and that glyph's ink is this key. Deleting it would leave the one
+    // status mark on the default status, and that glyph's ink is this key. Deleting it would leave the one
     // reachable code path with no token to paint with.
     'default.icon': 'color.icon.secondary',
     'error.label': 'color.text.danger',
@@ -152,7 +156,7 @@ export const fieldMessage: ComponentDef = {
         // `target` in the schema's sense — this def's paint and geometry owner — not the interaction
         // sense, on `icon`'s terms. A message takes no focus; the FIELD it describes does, and this
         // node's relationship to that field is a DOM one (see codeOnly).
-        // NO `paintSlots`, deliberately (#933), for `field-label`'s reason: the tone lives in the
+        // NO `paintSlots`, deliberately (#933), for `field-label`'s reason: the status lives in the
         // caption's ink and the glyph's, both of which are children. This box paints nothing.
         role: 'target',
         // START, not baseline, and this differs from `field-label` deliberately: the glyph beside a
@@ -174,16 +178,16 @@ export const fieldMessage: ComponentDef = {
       // ── THE STATUS GLYPH: THREE VECTOR PARTS, ONE PER VALIDATION TONE (#1010) ─────────────────────
       //
       // This was ONE `kind: 'slot'` part with `nesting: { kind: 'swap' }` and no glyph, so the projection
-      // built a placeholder frame — whatever FPO component the file supplies — in the tone's ink. It
+      // built a placeholder frame — whatever FPO component the file supplies — in the status's ink. It
       // resolved, it painted, and every gate was green over it, because a placeholder is a structurally
       // valid child. That is deliberate scaffolding that outlived its reason: the glyph set did not exist
       // when this def was authored, #920 landed 39 glyphs that draw correctly, and NOTHING connected the
       // two. The old `codeOnly` entry stating the def "cannot bind WHICH glyph each tone shows" was true
       // when written and false by the time it was read.
       //
-      // WHY THREE PARTS AND NOT ONE TEMPLATED `glyph: '{tone}'`. `PartDef.glyph` IS templatable on a
+      // WHY THREE PARTS AND NOT ONE TEMPLATED `glyph: '{status}'`. `PartDef.glyph` IS templatable on a
       // variant axis, and that was the first thing tried — but `resolveGlyph` substitutes the axis VALUE
-      // verbatim, so `{tone}` asks the vocabulary for glyphs named `default`/`error`/`warning`/`success`
+      // verbatim, so `{status}` asks the vocabulary for glyphs named `default`/`error`/`warning`/`success`
       // and throws (correctly) with a nearest-name list. There is no value→glyph MAP in the grammar, and
       // adding one is engine surface a def should not author unilaterally. `presentWhen`-gated vector
       // parts is `checkbox`'s own shape — its `mark` and `dash` are two parts for exactly this reason,
@@ -191,10 +195,10 @@ export const fieldMessage: ComponentDef = {
       // pattern rather than inventing a second one. Filed as a note, not a workaround: `notes.contested`
       // carries what a map would buy and what it would cost.
       //
-      // WHY THREE AND NOT FOUR — the `default` tone projects NO GLYPH, which is a value decision read off
+      // WHY THREE AND NOT FOUR — the `default` status projects NO GLYPH, which is a value decision read off
       // the Prism2 reference rather than an omission. That reference has five rows for this def's four
-      // tones, and the row our `default` matches is `standard` (no icon, gray text), not `info` (a circled
-      // information mark, blue): this tone paints `text.secondary` / `icon.secondary`, so it is gray, and
+      // statuses, and the row our `default` matches is `standard` (no icon, gray text), not `info` (a circled
+      // information mark, blue): this status paints `text.secondary` / `icon.secondary`, so it is gray, and
       // matching it to `info` would be matching by position in a list rather than by what it paints. It
       // also agrees with the def's own prose, which predates #1010 — `props.icon` was already documented
       // "optional on the default tone", and a Figma member that always shipped a glyph contradicted it.
@@ -202,7 +206,7 @@ export const fieldMessage: ComponentDef = {
       //
       // WHY THESE GLYPHS, AND WHY THE NAMES READ TRANSPOSED. The reference puts the exclamation-in-a-
       // TRIANGLE on `error` and the exclamation-in-a-CIRCLE on `warning`; the glyph names are the other
-      // way round, because a name in `icon-glyphs.ts` describes the DRAWING and not the tone that uses it.
+      // way round, because a name in `icon-glyphs.ts` describes the DRAWING and not the status that uses it.
       // Confirmed by measuring the artwork rather than by reading the names, which is the whole trap here:
       //
       //     warning-triangle   triangle outline + bar y9-14  + dot y16-18   exclamation, in a triangle
@@ -212,13 +216,13 @@ export const fieldMessage: ComponentDef = {
       //     close              one subpath, 5.6-18.4 square                 the circled X is not this set
       //
       // So `error-circle` is not a circled X and `warning-triangle` is not a second warning mark: they are
-      // one exclamation in two enclosures, and the enclosure is what the reference assigns per tone. Do not
+      // one exclamation in two enclosures, and the enclosure is what the reference assigns per status. Do not
       // "fix" this mapping to agree with the names.
       //
       // OUTLINE, NOT FILLED, on all three — the reference says "a stroked outline glyph at the same optical
       // weight as the text". Every glyph in the set is a filled PATH (`fill="currentColor"`); outline here
       // is the drawing, achieved by a ring with a hole rather than by a stroke, which is why `check-circle`
-      // and `check-circle-filled` are two entries. The three tones still differ in SHAPE — triangle,
+      // and `check-circle-filled` are two entries. The three statuses still differ in SHAPE — triangle,
       // circled exclamation, circled check — so the SC 1.4.1 contract this def exists for holds on a
       // non-color channel, where before all three members drew one identical placeholder.
       iconError: {
@@ -244,18 +248,18 @@ export const fieldMessage: ComponentDef = {
       },
       text: {
         kind: 'text',
-        // The caption scale, and NOT `{size}`-templated — this def has one scale, which is the whole
-        // reason it cannot project (see the header). A `{size}` placeholder here would need a size axis
+        // The caption scale, and NOT `{size}`-templated — this def has one scale and no size axis, which
+        // since #795 means its member names carry no `size=` (see the header). A `{size}` placeholder here would need a size axis
         // to expand over and `anatomyErrors` rejects that combination outright.
         type: 'type',
-        note: 'The message itself. `paintSlot` is absent because the default `label` is right: this is the only text node, and its ink is the tone\'s text role.',
+        note: 'The message itself. `paintSlot` is absent because the default `label` is right: this is the only text node, and its ink is the status\'s text role.',
       },
     },
     codeOnly: [
       'aria-describedby wiring — the message\'s entire relationship to its field is a DOM one the HOST owns (§6): the field references this node\'s id in its describedby chain and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the projection is a glyph and a caption that sit below a field and are associated with it by proximity alone. This is the same ceiling `field-label`\'s htmlFor hits, and it is the reason both defs are presentational in Figma and load-bearing in code.',
-      'the live region — a message that appears or changes after render must be announced without stealing focus, which the host does by wrapping it in a polite live region. That is a runtime announcement behavior with no visual expression at all: the Figma member for `tone=error` looks identical whether the message was there on load or arrived on blur, and the difference is the whole of whether a screen-reader user learns about it.',
-      'the icon SLOT in code, where Figma now has none — the one asymmetry #1010 introduced, recorded because it is a real difference and not an oversight. The three validation members each carry a FIXED glyph chosen by tone, so there is no INSTANCE_SWAP property on the Figma side at all: an error member cannot be made to show a check mark, which is the reachable-wrong-state the old entry here worried about. `props.icon` survives as a code-side override for a host with a domain-specific status glyph, and nothing in Figma corresponds to it. The previous entry claimed this def "cannot bind WHICH glyph each tone shows" because "`PartKind` has no vector kind" — true when written, falsified by #920 (39 glyphs) and #864 (`kind: \'vector\'` + `glyph`), and it is retired rather than edited because its premise, not its wording, was the thing that expired.',
-      'the default tone\'s OPTIONAL icon, which is now the only half of this that Figma cannot express. Since #1010 the two sides agree on the common case — no glyph on the default tone, three fixed glyphs on the validation tones — so what is left is narrower than the entry it replaces: in code a host MAY pass `props.icon` on the default tone and get a glyph painted `default.icon`, and there is no Figma member for that. A member either has the node or does not, so "optional in the same sense the prop is" has no projection, and adding a boolean property for it would offer a designer a toggle whose ON state has no glyph to show. **The reason the previous entry gave had expired and the entry had not**, which is why this one is worth reading carefully: it said the part is always-present because `present()` builds no optional part outside the two slot names it hardcodes — accurate for a `kind: \'slot\'` part, and false the moment these became `presentWhen`-gated `vector` parts, since `presentWhen` IS a mechanism for variant-scoped absence (#910). The gating is what let the default tone lose its glyph at all.',
+      'the live region — a message that appears or changes after render must be announced without stealing focus, which the host does by wrapping it in a polite live region. That is a runtime announcement behavior with no visual expression at all: the Figma member for `status=error` looks identical whether the message was there on load or arrived on blur, and the difference is the whole of whether a screen-reader user learns about it.',
+      'the icon SLOT in code, where Figma now has none — the one asymmetry #1010 introduced, recorded because it is a real difference and not an oversight. The three validation members each carry a FIXED glyph chosen by status, so there is no INSTANCE_SWAP property on the Figma side at all: an error member cannot be made to show a check mark, which is the reachable-wrong-state the old entry here worried about. `props.icon` survives as a code-side override for a host with a domain-specific status glyph, and nothing in Figma corresponds to it. The previous entry claimed this def "cannot bind WHICH glyph each tone shows" because "`PartKind` has no vector kind" — true when written, falsified by #920 (39 glyphs) and #864 (`kind: \'vector\'` + `glyph`), and it is retired rather than edited because its premise, not its wording, was the thing that expired.',
+      'the default status\'s OPTIONAL icon, which is now the only half of this that Figma cannot express. Since #1010 the two sides agree on the common case — no glyph on the default status, three fixed glyphs on the validation statuses — so what is left is narrower than the entry it replaces: in code a host MAY pass `props.icon` on the default status and get a glyph painted `default.icon`, and there is no Figma member for that. A member either has the node or does not, so "optional in the same sense the prop is" has no projection, and adding a boolean property for it would offer a designer a toggle whose ON state has no glyph to show. **The reason the previous entry gave had expired and the entry had not**, which is why this one is worth reading carefully: it said the part is always-present because `present()` builds no optional part outside the two slot names it hardcodes — accurate for a `kind: \'slot\'` part, and false the moment these became `presentWhen`-gated `vector` parts, since `presentWhen` IS a mechanism for variant-scoped absence (#910). The gating is what let the default tone lose its glyph at all.',
     ],
   },
 
@@ -273,8 +277,9 @@ export const fieldMessage: ComponentDef = {
   // The property KEYS are PROP names — `figmaPropertyErrors` checks each against `props`, so a key IS a
   // Figma-facing property name only insofar as the PROP is named for the designer. That was the whole
   // #1242 finding: `children` was a React-ism the props carried straight onto the panel. The prop is now
-  // `Message` (the meaningful name this comment first reached for and the coupling used to forbid), so the
-  // key is `Message` too. `icon` was already a fine designer-facing name and stays as it is.
+  // `message` (the meaningful name this comment first reached for and the coupling used to forbid; lower
+  // case since #1333), so the key is `message` too. `icon` was already a fine designer-facing name and
+  // stays as it is.
   //
   // The TEXT default is a GENERIC illustrative scaffold ("This is a status message."), SHARED across all
   // four status members (#1575, owner-decided Option 2 — see the `texts` note below for why one and not
@@ -334,9 +339,13 @@ export const fieldMessage: ComponentDef = {
     wcag: [
       '1.4.1 Use of Color (status is carried by icon + text, never color alone)',
       '3.3.1 Error Identification / 3.3.3 Error Suggestion (the error status names the problem and the fix — wired by the host)',
+      '3.3.2 Labels or Instructions (the default status states the format or constraint before the user can fail)',
       '1.4.3 Contrast (caption ink clears 4.5:1; the engine gates text.<role> per mode)',
+      '1.4.11 Non-text Contrast (the status glyph\'s ink, icon.<role>, is gated at 3:1 per mode)',
+      '1.3.1 Info and Relationships / 4.1.2 Name, Role, Value (the host associates the message through aria-describedby and sets aria-invalid on error)',
+      '4.1.3 Status Messages (a message that arrives without focus moving to its field must still reach assistive tech — the host decides how)',
     ],
-    aria: 'The status icon is aria-hidden — the caption text carries the meaning. The message does NOT self-announce; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus.',
+    aria: 'The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it ("Error:"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does NOT self-announce; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus.',
   },
 
   content: {
@@ -356,26 +365,41 @@ export const fieldMessage: ComponentDef = {
       'Duplicate the error into a self-announcing live region here AND on the host — the host owns announcement',
       'Use warning as a hard blocker — it is a soft, non-blocking caution (many systems fold it into helper/error)',
     ],
+    // Brief §7.
+    contentGuidelines: 'Say what is wrong and how to fix it, with the constraint stated: "Enter a valid email address, like name@example.com", "First name must be 35 characters or less" — never "Invalid" or an error code. Use plain language with no blame ("Enter your first name", not "You forgot to enter your name") and no humor. Reuse the field label\'s own words, and keep the message identical to its line in any error summary. Use a success status sparingly, for an asynchronous confirmation such as "Username available". In the default status, state the requirement up front so the error never has to.',
   },
 
   ai: {
     primaryPurpose: 'Carry helper guidance or a validation result below a form field, as icon + caption.',
     whenToUse: 'Under any field control that needs persistent guidance or an error/warning/success message.',
     avoidWhen: 'As a standalone alert or toast (use an alert/banner) — this is field-scoped and associated to one control. Never as the sole color-coded error signal without text.',
-    commonPartners: ['text-field', 'select', 'checkbox-row', 'field-label', 'icon'],
+    // The hosts that nest it (text-field, textarea, select) and the parts it sits beside. A reverse list
+    // lives here, not in `composesWith` (#1700).
+    commonPartners: ['text-field', 'textarea', 'select', 'checkbox-row', 'field-label', 'icon'],
     triggerKeywords: ['helper text', 'help text', 'error message', 'validation message', 'field error', 'caption', 'hint'],
     generationPriority: 3,
   },
 
   composition: {
-    composesWith: ['text-field', 'select', 'field-label', 'icon'],
+    // Nests nothing (#1700): its status glyphs are vector parts drawn from the glyph set, not nested `icon`
+    // instances. The hosts that nest it are in `ai.commonPartners`.
+    composesWith: [],
     alternativeTo: [],
-    planned: ['number-field', 'tooltip', 'inline-alert'],
+    // `inline-message` — the brief's name for the SECTION-level message, the one this field-scoped part is
+    // not (brief §1).
+    planned: ['number-field', 'tooltip', 'inline-message'],
+  },
+
+  // Brief §8. The risk is layout shift, not the animation.
+  motion: {
+    enter: 'A short fade as the message is inserted. The field grows to hold it and pushes the content below down (dynamic expansion). Never positioned absolutely to avoid that shift — it would overlap the next field\'s label.',
+    exit: 'none',
+    reduceMotion: 'Under prefers-reduced-motion the message snaps in with no fade. The row reserves the glyph\'s height in every status, so a status change moves nothing; inserting or removing the message still shifts the layout below it.',
   },
 
   notes: {
     contested: [
-      'Whether warning is a distinct tone — many systems fold it into helper/error; kept here as an optional soft caution (brief §4).',
+      'Whether warning is a distinct status — many systems fold it into helper/error; kept here as an optional soft caution (brief §4).',
       'THREE PARTS WHERE ONE TEMPLATE WOULD DO, and whether the grammar should gain a value→glyph map (#1010). `PartDef.glyph` is templatable on a variant axis today, but `resolveGlyph` substitutes the axis VALUE verbatim — so `glyph: \'{status}\'` asks for glyphs literally named `error` / `warning` / `success` and throws. A map (`glyphByValue: { status: { error: \'warning-triangle\', … } }`) would collapse these three near-identical parts to one and would generalize: any def whose axis selects a glyph hits this, and `checkbox`\'s `mark`/`dash` pair is the same shape from before the glyph set existed. What it would COST is the reason it is contested rather than proposed: the map is a second place a glyph name can be written, so `lint-glyph-geometry.ts` (which ranges over parts) and the nearest-name error (which fires at resolve time) would both need to learn it, and a def could then name a glyph for an axis value that no longer exists with nothing failing. Three explicit parts are verbose and each one is independently checkable by the gates that already exist. Revisit when a THIRD def needs it — two is not yet a pattern.',
     ],
     unverified: [

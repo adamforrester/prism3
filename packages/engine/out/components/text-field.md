@@ -43,7 +43,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 - **Purpose:** Capture a single line of free-form, non-enumerable text with an associated label and helper/validation message.
 - **Use when:** Names, emails, titles, SKUs, identifiers, short queries — any single-line text the system cannot offer as a fixed set.
 - **Avoid when:** The value comes from a known set (Select, Radio.Group, or a combobox), spans multiple lines (Textarea), is numeric-formatted (a number field), is boolean (Checkbox.Row or Switch.Row), is a date (a date picker), or needs suggestions (a combobox — the moment a suggestion list attaches you are in combobox territory with a different ARIA contract).
-- **Often used with:** `field-label`, `field-message`, `icon`, `button`
+- **Often used with:** `field-label`, `field-message`, `icon`, `button`, `spinner`
 
 ## Props
 
@@ -107,7 +107,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 
 ## Composition
 
-- **Composes with:** `field-label`, `field-message`, `focus-ring`, `icon`, `button`, `spinner`
+- **Composes with:** `field-label`, `field-message`, `focus-ring`
 - **Alternative to:** `textarea`, `select`, `checkbox-row`, `switch-row`
 - **Planned:** `form`, `tooltip`, `combobox`, `number-field`, `search-field`, `date-picker`, `password-field`
 - **Replaces:**

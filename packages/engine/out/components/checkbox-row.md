@@ -78,7 +78,8 @@ The label states what becomes true when checked. Group errors read "Select at le
   - 2.5.8 Target Size — the intent: the whole ROW is the target, because the 12–24px box fails in isolation. The default (medium) row is held to a 44px minimum height on comfortable and spacious density; small and compact rows are not measured.
   - 4.1.2 Name Role Value (role, checked AND mixed — `aria-checked="mixed"` must be set explicitly)
   - 1.3.1 Info and Relationships (group structure)
-  - 3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion (group-level)
+  - 3.3.2 Labels or Instructions (the visible row label)
+  - 3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, not met today. In a set, the group carries the message and announces it once, and the group error display is not designed yet. An isolated row recolors its own boundary but nests no message part, so the text that names the error is its host's.
   - 1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)
   - 3.3.7 Redundant Entry (repeated consents)
 - **Keyboard:** Each checkbox is its OWN Tab stop and Space toggles — the key cross-control difference from Radio.Group, which is one Tab stop for the group with arrows moving within it. NEVER override Enter: Enter submits the enclosing form, and hijacking it breaks universal web behavior.

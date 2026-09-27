@@ -71,10 +71,15 @@ None — not interactive.
 - **Focus:** None of its own. An icon takes no focus; the control wrapping it does, and the focus ring is that control's (see `focus-ring`).
 - **ARIA:** A three-way matrix, and almost every icon bug is picking the wrong cell. DECORATIVE (text beside it, or ornament): omit `label` → `aria-hidden="true"`; this is the default. MEANINGFUL STANDALONE: `label` → `role="img"` + `aria-label`, and `role="img"` is MANDATORY — without it many screen readers ignore an `aria-label` on a raw `<svg>` and leave the user on an unannounced stop. INSIDE AN ICON-ONLY CONTROL: the wrapper carries the name and the glyph stays `aria-hidden`; reversing it causes ghost focus rings and unpredictable AT behavior. Never name both.
 
+## Motion
+
+- **Enter:** none
+- **Exit:** none
+- **Reduced motion:** Static — an icon has no motion of its own. A glyph moves only as part of its host's state transition (a chevron rotating on expand, an outlined glyph cross-fading to filled), and the host owns that motion and its reduced-motion behavior.
+
 ## Composition
 
-- **Composes with:** `button`, `icon-button`, `text-field`, `field-message`, `select`
-- **Planned:** `link`, `menu`, `badge`, `illustration`, `logo`, `thumbnail`, `emoji`
+- **Planned:** `link`, `menu`, `badge`, `illustration`, `logo`, `thumbnail`, `emoji`, `avatar`, `tag`
 - **Replaces:**
   - legacy icon fonts
   - ad-hoc inline SVGs outside the set

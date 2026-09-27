@@ -76,7 +76,6 @@ Place above every field as its accessible name. Wire htmlFor to the field id. Se
 
 ## Composition
 
-- **Composes with:** `text-field`, `textarea`, `select`, `checkbox-group`, `radio-group`, `field-message`
 - **Planned:** `number-field`
 - **Replaces:**
   - an aria-label standing in for a visible label
