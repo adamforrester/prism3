@@ -7,6 +7,30 @@
 
 ---
 
+## (2026-09-27) — Build-component skill: brief-first authoring, the full def surface, and the current gates
+
+**STATUS: PR open from `lane/build-component-skill`, labeled DO NOT MERGE.** One file, `skills/prism3-build-component/SKILL.md`, plus this entry. **No version bump:** the skill is not an emitted artifact and moves no projected surface, the precedent is #1495 (a skill-only correction, no bump), and the skill's own §8 says so; `lint-emission-version` and `lint-component-surface` agree. Merged `origin/main` at c58f17d (#1705) mid-lane, no rebase.
+
+**Why now.** The component queue (badge, tag, tooltip, banner, segmented control) is authored from this skill, and the skill predated #1697–#1715 and #1705. An agent following it would have cited a Prism 2 spec as its only source, missed the KB brief, the header citation gate and `KB_BRIEF_CATEGORY`, written `composesWith` the pre-#1700 way, taught field-label's removed `disabled` prop, and added a def to two gate lists out of the nine that hold one.
+
+**What the skill teaches now.** §0 is new: the KB brief (`knowledge-base` `components/<name>.md`) is the primary source and a Prism 2 spec is secondary; the header citation rule; the brief-to-def field mapping (§1 through §15); sibling distinguishability (#1697); what ships (every documentation field, on the docs page and the JSON, and a part's `note` in the plugin bundle) versus the maintainer record; and the #1700 identity and relation rules. §2 adds the `admits()` trap (#867) and that `codeOnly` carries the brief's code-tier rules. §3 adds overlays (`replaces` as a candidate list, `overlaysWhenAbsent` only when every candidate is optional, an overlay that `nests` with `swap` and a bound `size`), the nested-announcer `aria-hidden` rule (#1706), `emitAsComponents`, and page placement in `file-taxonomy.ts`. §7 is a table of every gate list a new def joins, checked against each gate's code: `lint-hit-target`, `lint-rung-names`, `lint-axis-values`, `lint-standalone-floor`, `lint-paint-placement`, `lint-glyph-geometry`, `lint-absolute-inset`, `KB_BRIEF_CATEGORY`, `TAXONOMY`; `lint-component-docs` needs none but moves the artifact count. The #1711 page header and #1714 set border are named as automatic.
+
+**Stale claims found and fixed on the way.** select's message follows `status`, not `tone` (#1334). The "error-only border" idiom was false since #1517: text-field and select bind `border.warning` and `border.success` too. The root-part list lacked seven defs. field-label's `disabled` prop was removed in #1339.
+
+**The diagnosis that changed one instruction.** The lane brief said editing `codeOnly` or part notes moves the plan digest, and #1698's entry says the same. Measured twice, with the diff asserted each time: a part `note` edit on icon-button's spinner overlay and on radio-control's box left `lint-component-surface` clean. The plan carries `codeOnly` (`anatomy-figma.ts` copies it onto every plan) and no part notes, so only a `codeOnly` edit forces the bump. The skill says that.
+
+**Mutations, committed before each and restored from HEAD, each failing by name.**
+- `notes.evolution` in backticks → `lint-skills` `[dead token path] \`notes.evolution\` does not resolve`. This is the trap the skill writes around: a lowercase dotted field path in backticks reads as a token claim, which is why the skill says "the `evolution` bucket of `notes`".
+- `file-taxonomy.ts` → `taxonomy.ts` → `lint-skills` `[missing file] apps/plugin/src/taxonomy.ts does not exist`.
+- "Simply" added → `lint-voice` `[banned-word] "Simply"` on the skill.
+- "catalogue" → `lint-us-english` on the skill.
+
+**Held.** The lane brief asked for an independent read by a separate agent; this lane had no agent-launching tool, so the check was a separate claim-by-claim pass against the code, which found the part-note claim above plus three overbroad sentences (every def authored from a brief; the sibling-keyword pin's scope; a component `.ai.json` registry that did not exist before #1705). A reviewer should still read the skill against the code.
+
+**Traps for whoever edits this skill.** `lint-skills` resolves every backticked lowercase dotted name as a token path and every `*.ts` string from the repo root, so write `packages/engine/regen.ts`, never a bare `regen.ts`, and name a field bucket in words. The skill is in scope for `lint-us-english` and `lint-voice`.
+
+---
+
 ## (2026-09-27) — Component docs are projected: a JSON file and a markdown page per component, and a maintainer record that does not ship (#1701)
 
 **STATUS: PR #1705 open from `lane/component-docs-projection`, labeled DO NOT MERGE.** Owner chose option (c) on #1701: one projector, two forms, from the same def data. The Figma description stays the one-line `summary`. Netted to the owner's decision of 2026-09-27, which splits what ships from what is maintainer-only. ENGINE → **0.183.0** (a new emitted surface, MINOR; the orchestrator renumbers at merge). CONTRACT stands at 13.1.0; no token name moves.
