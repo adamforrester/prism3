@@ -1,0 +1,112 @@
+{
+  "$collection": "layout",
+  "$mode": "2xl",
+  "variables": [
+    {
+      "name": "pds3/breakpoint/sm",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Min-width 0px (mobile-first)",
+      "value": 0,
+      "alias": null
+    },
+    {
+      "name": "pds3/breakpoint/md",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Min-width 768px (mobile-first)",
+      "value": 768,
+      "alias": null
+    },
+    {
+      "name": "pds3/breakpoint/lg",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Min-width 1024px (mobile-first)",
+      "value": 1024,
+      "alias": null
+    },
+    {
+      "name": "pds3/breakpoint/xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Min-width 1440px (mobile-first)",
+      "value": 1440,
+      "alias": null
+    },
+    {
+      "name": "pds3/breakpoint/2xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Min-width 1920px (mobile-first)",
+      "value": 1920,
+      "alias": null
+    },
+    {
+      "name": "pds3/grid/columns",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "Grid columns by breakpoint: sm 4 · md 8 · lg–2xl 12",
+      "value": 12,
+      "alias": null
+    },
+    {
+      "name": "pds3/grid/gutter",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Grid gutter by breakpoint: sm–md 16px · lg–xl 24px · 2xl 32px",
+      "value": 32,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/400"
+      }
+    },
+    {
+      "name": "pds3/grid/margin",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Grid margin by breakpoint: sm 16px · md–lg 24px · xl 32px · 2xl 48px",
+      "value": 48,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/space/600"
+      }
+    },
+    {
+      "name": "pds3/container/max",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Content width cap — 1440px (fluid below it)",
+      "value": 1440,
+      "alias": null
+    },
+    {
+      "name": "pds3/container/narrow",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Reading measure — 720px",
+      "value": 720,
+      "alias": null
+    }
+  ]
+}

@@ -138,6 +138,12 @@ out of four: the #1097 defect class, one layer up, with `nbds` the only thing ke
 deliberately **not** authored here — this is the reservation, so the namespace is not taken before it
 exists.
 
+**#1296 authored it: `prism3`, rooted at `pds3`.** It is the one brand the gate admits at a reserved
+root, by name, in `RESERVED_ROOT_OK` (`test.ts`), which admits only `pds3` and at most one brand. `prism`
+stays the fallback and is never admitted. `prism3` is **not** a corpus member: the corpus spans input
+variation, and a rich brand demotes nothing attributable to one lever. `test.ts` checks instead that it
+emits the committed guaranteed surface. The one gap that check found, `core.font.weight.700`, is #1718.
+
 **The reservation is scoped to the SHIPPED CATALOG, and the scope is the whole mechanism.** It is a
 naming policy over the brands this repo publishes, not an input validation, so it is *not* enforced in
 `brandTheme`:

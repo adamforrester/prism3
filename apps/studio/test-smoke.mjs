@@ -1098,7 +1098,7 @@ for (const brand of BRANDS) {
   const weightRow = (cat) => page.evaluate((c) => {
     const table = [...document.querySelectorAll('table.cs-table')].find((t) => !t.classList.contains('pincut'));
     const heads = [...table.querySelectorAll('tr:first-child th.cs-c')].map((t) => t.textContent.trim().toLowerCase());
-    const roles = heads.slice(0, heads.length - 4);   // then Leading, Tracking, Italic, Link
+    const roles = heads.slice(0, heads.length - 5);   // then Leading, Tracking, Italic default, Italic, Link (#1296)
     const row = [...table.querySelectorAll('tr')].find((tr) => tr.querySelector('.cs-name')?.textContent === c);
     const boxes = row ? [...row.querySelectorAll('td.cs-c input[type=checkbox]')].slice(0, roles.length) : [];
     return roles.map((role, i) => ({ role, checked: !!boxes[i]?.checked, disabled: !!boxes[i]?.disabled, title: boxes[i]?.title ?? '' }));
@@ -1162,6 +1162,35 @@ for (const brand of BRANDS) {
     const swapErr = await errState();
     ok(swapped.find((b) => b.checked)?.role === other.role && !swapErr.shown,
       `${brand}: eyebrow swaps ${eyebrowOn[0].role} → ${other.role} with no engine error (${swapErr.text.slice(0, 90)})`);
+  }
+
+  // --- 2f. the Italic default column says what the engine EMITTED (#1296) ----------------------------
+  // ORACLE: the brand's committed token tree — a category is italic by default when EVERY composite
+  // under `type.<cat>` carries `$value.fontStyle: 'italic'` and none carries the `-italic` modifier
+  // name. Read from the emission, never from the studio (docs/34 shape 1). ACTUAL: the column's boxes,
+  // and the exclusivity the engine enforces — an italic-default category's Italic box is disabled.
+  {
+    const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+    const typeNode = tree[Object.keys(tree)[0]].type ?? {};
+    const leavesOf = (n, out = []) => { for (const [k, v] of Object.entries(n)) { if (k.startsWith('$')) continue; if (v && v.$type === 'typography') out.push([k, v]); else if (v && typeof v === 'object') leavesOf(v, out); } return out; };
+    const expected = Object.entries(typeNode).filter(([, n]) => {
+      const leaves = leavesOf(n);
+      return leaves.length > 0 && leaves.every(([k, v]) => v.$value?.fontStyle === 'italic' && !/-italic/.test(k));
+    }).map(([cat]) => cat).sort();
+    const shown = await page.evaluate(() => {
+      const table = [...document.querySelectorAll('table.cs-table')].find((t) => !t.classList.contains('pincut'));
+      const heads = [...table.querySelectorAll('tr:first-child th.cs-c')].map((t) => t.textContent.trim().toLowerCase());
+      const idIdx = heads.indexOf('italic default'), iIdx = heads.indexOf('italic');
+      return [...table.querySelectorAll('tr')].filter((tr) => tr.querySelector('.cs-name')).map((tr) => {
+        const boxes = [...tr.querySelectorAll('td.cs-c')].map((td) => td.querySelector('input[type=checkbox]'));
+        return { cat: tr.querySelector('.cs-name').textContent, idOn: !!boxes[idIdx]?.checked, iDisabled: !!boxes[iIdx]?.disabled, found: idIdx >= 0 && iIdx >= 0 };
+      });
+    });
+    const shownOn = shown.filter((r) => r.idOn).map((r) => r.cat).sort();
+    ok(shown.length > 0 && shown.every((r) => r.found) && JSON.stringify(shownOn) === JSON.stringify(expected),
+      `${brand}: the Italic default column ticks exactly the categories the emission sets italic [${expected.join(', ') || 'none'}] (shows [${shownOn.join(', ') || 'none'}])`);
+    ok(shown.filter((r) => r.idOn).every((r) => r.iDisabled),
+      `${brand}: an italic-default category's Italic box is disabled — the engine refuses both (${shown.filter((r) => r.idOn).map((r) => `${r.cat}:${r.iDisabled ? 'disabled' : 'LIVE'}`).join(', ') || 'none to check'})`);
   }
 
   const errs = drain();
@@ -2416,6 +2445,17 @@ console.log(`\nfacePin — Pin a cut control (#1467)\n${'='.repeat(78)}`);
   ok(slotCount > 0, `${brand}: the Pin-a-cut section offers at least one pinnable slot (found ${slotCount})`);
   const inputCount = await page.locator('.pincut-in').count();
   ok(inputCount === slotCount, `${brand}: every pinnable slot carries a free-text style input (${inputCount} inputs for ${slotCount} slots)`);
+  // #1296 — the engine refuses ANY pin in an italic-default category, so the control must not offer one.
+  // Oracle: the committed emission (a category whose every composite is italic under its bare name).
+  {
+    const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+    const typeNode = tree[Object.keys(tree)[0]].type ?? {};
+    const leavesOf = (n, out = []) => { for (const [k, v] of Object.entries(n)) { if (k.startsWith('$')) continue; if (v && v.$type === 'typography') out.push([k, v]); else if (v && typeof v === 'object') leavesOf(v, out); } return out; };
+    const italicCats = Object.entries(typeNode).filter(([, n]) => { const l = leavesOf(n); return l.length > 0 && l.every(([k, v]) => v.$value?.fontStyle === 'italic' && !/-italic/.test(k)); }).map(([c]) => c);
+    const offered = await page.locator('.pincut-row').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-cat')));
+    const wrong = offered.filter((c) => italicCats.includes(c));
+    ok(wrong.length === 0, `${brand}: Pin a cut offers no slot in an italic-default category [${italicCats.join(', ') || 'none'}] (offered ${wrong.length ? wrong.join(', ') : 'none of them'})`);
+  }
 
   // Pick the first slot and read its identity + BOUND FACE from the DOM. The bound face the row shows is
   // the oracle for the write's family — restating it from the brand would make the family assertion a

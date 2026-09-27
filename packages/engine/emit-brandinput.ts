@@ -23,8 +23,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const EX = resolve(here, './examples');
 const OUT = resolve(here, './schema/example-brands.json');
 
-/** The example ids surfaced to the hosts, in menu order (aurora is the boot default). */
-export const EXAMPLE_IDS = ['aurora', 'harbor'] as const;
+/** The example ids surfaced to the hosts, in menu order. `prism3` is first because it is the boot
+ *  default — the canonical default theme (#1296); aurora and harbor stay as the two contrasting briefs. */
+export const EXAMPLE_IDS = ['prism3', 'aurora', 'harbor'] as const;
 
 export const exampleBrands = (): Record<string, unknown> => {
   const brands: Record<string, unknown> = {};

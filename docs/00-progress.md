@@ -9,7 +9,7 @@
 
 ## (2026-09-27) — Component: Badge — a static status label, count or dot, with no states and no interactive binding
 
-**STATUS: PR open from `lane/component-badge`, labeled DO NOT MERGE.** New def `components/badge.ts` from the KB brief `components/badge.md`, built to the owner's four decisions of 2026-09-27. ENGINE 0.183.0 → **0.184.0** (MINOR, a new projected def); CONTRACT stands at 13.1.0 (stamp-only accept). Regen artifacts 137 → **138** (`out/components/badge.md`), moved in `verify.ts` and both `ci.yml` literals.
+**STATUS: PR open from `lane/component-badge`, labeled DO NOT MERGE.** New def `components/badge.ts` from the KB brief `components/badge.md`, built to the owner's four decisions of 2026-09-27. ENGINE 0.186.0 → **0.187.0** (MINOR, a new projected def; renumbered in the net after #1733, #1731 and #1726); CONTRACT stands at 13.1.0 (stamp-only accept). Regen artifacts 169 → **170** (`out/components/badge.md`), moved in `verify.ts` and both `ci.yml` literals.
 
 **What it is.** One component switched by a `genre` prop (`status | count | dot`, default `status`), with both accessibility contracts in `accessibility.aria`: a count or dot is `aria-hidden` and its meaning goes in the host's accessible name, and a status label announces its own text. `states: []`. The Figma set is the status label across five `tone` members (neutral / info / success / warning / danger). The count and dot exist only in code (`anatomy.codeOnly`) until a genre axis is admitted.
 
@@ -36,6 +36,102 @@
 - `badge|info.fill` exception removed → `lint-paint` `provenance: badge|info.fill`.
 
 **Held for owner** (in the PR body): the `genre` axis name; subtle vs bold tone fills; the taxonomy page; the tone value set; `generationPriority: 3`; the generic `label` alias; leading icon and size deferred.
+
+---
+
+## (2026-09-27) — Prism3: the canonical default theme at `pds3`, and italic as a category's default cut (#1296)
+
+**STATUS: PR open from `lane/prism3-default-theme`, labeled DO NOT MERGE** (the owner reviews the preview first). **ENGINE → 0.186.0 (renumbered in the net after #1733 and #1731) (MINOR: 0.184.0 for the theme, 0.185.0 for the second pass below); CONTRACT STANDS at 13.1.0.** The orchestrator renumbers if another lane lands first.
+
+**What shipped.** A new brand, `examples/prism3.design.md` (id `prism3`, root `pds3`), emitted to `out/` and `out/figma/prism3/`, first in `EXAMPLE_IDS`, and the brand the studio and plugin boot on (`BOOT_BRAND` in `apps/studio/src/main.ts`). Primary is Prism 2's `brand.primary.650`, `rgb(30, 30, 255)` = #1E1EFF, converted with the engine's own `rgbToOklch` to `{ l: 0.4709, c: 0.3001, h: 266.75 }`, which round-trips to `#1e1eff` (unrounded: l 0.470917, c 0.300127, h 266.746). The engine pins it at step 600. Type: Playfair Display on display/title, Inter on body/label/caption/eyebrow, JetBrains Mono on code.
+
+**The owner changed direction mid-lane, and the history shows it.** The first commit made a face pin that names an italic cut also emit `fontStyle: italic`. The owner then set the rule "one method per job": italic belongs to the italics levers, a face pin is only for cuts the engine cannot derive (width, optical size). That commit is reverted by a new commit, not rewritten.
+
+**The lever.** `typography.italicDefault: TypeGroup[]`, the shape of `italics` and `links`. A listed category's bare composites are the italic cut: `$value.fontStyle: 'italic'` under the ordinary name (`type.title.lg.emphasis`), and the derived Figma cut is the weight's italic instance (500 → "Medium Italic"). No upright variant ships. A category in both `italicDefault` and `italics` is refused (every `-italic` twin would repeat its bare weight). A face pin whose style contains `italic` (case-insensitive substring, the same test TokenPress applies to the style name) is refused and pointed at the lever. So is any pin inside an italic-default category, because a verbatim upright cut would contradict the tokens. **Oblique is deliberately outside the refusal** (#1719): the levers derive "<Weight> Italic", and the plugin resolver has no Italic ↔ Oblique synonym, so refusing an oblique pin would leave an oblique-only family with no route.
+
+**The diagnosis that kept the Figma side small.** `emit-figma-font.ts` read `italic = ext.italic || $value.fontStyle === 'italic'` for two jobs: the cut SLOT name and the cut VALUE. Before this change the two readings could not differ. Now they can, so they are split. The slot stays keyed on the modifier in the style's own name (`font/style/title/emphasis`, not `…/emphasis-italic`), which keeps the text style's words inside the prune vocabulary. The value follows what the composite renders.
+
+**One weight, two spellings, in one file (owner requirement).** `strong` is 600, and it ships on Playfair (display and title) and Inter (body, caption). Figma spells 600 "SemiBold Italic" for Playfair and "Semi Bold" for Inter. Findings by layer:
+- **Figma write lane: a real defect, fixed.** #499's `resolveFontStyle` corrected the baked `fontName`, but the text style's `fontStyle` BINDS the `<root>/core/font/style/<cat>/<role>` STRING variable (#1485), and `applyVarCollectionPlan` wrote that variable verbatim with the engine's guess. For Playfair the binding named "Semi Bold Italic", which Playfair does not have. `applyTextStylePlan` now reconciles each bound cut variable, per mode, against the family that mode binds, with the same resolver. It is done there because the font library is already fetched there, and both write paths (plugin and `use_figma` paste) call it. New result fields: `resolvedCuts` and `cutRefused`.
+- **Token handoff: canonical, documented.** The DTCG tree, the base projection and `.ai.json` state no style name: a weight is an alias to `core.font.weight-role.strong` → `core.font.weight.600`, plus `fontStyle: italic`. `out/figma/prism3/core.font.json` holds the engine's canonical guess ("Semi Bold Italic") for the cut variable, and the plugin corrects it at write time. TokenPress reading the committed emission sees the guess. Reading a live file, it sees "SemiBold Italic", and its own table maps both spellings to 600 (`apps/tokenpress/src/types/dtcg.ts`). Its text-style reader extracts italic by the same substring rule. #1489 (TokenPress reading a fontStyle-bound variable) is still open.
+- **Code: keys on the number.** The stock Style Dictionary CSS is `--pds3-type-title-lg-strong: italic var(--pds3-core-font-weight-role-strong) …`, and the role resolves to `600`. No CSS value carries a style name. This is asserted in `check-consumability.mjs`.
+
+**Decided here (technical).**
+- **Reservation.** `test.ts` `#1283` gains `RESERVED_ROOT_OK`, in the `ZERO_OK`/`LEAF_OK` shape: `prism3 → pds3` with its reason. It admits only `pds3` (never the `prism` fallback), at most one brand, and a stale admission fails.
+- **Fallback.** `input.root ?? 'prism'` is unchanged, with the ~235 fixtures pinning the historical default. Recorded on #1296 as a follow-up.
+- **Not a corpus member.** The corpus spans input VARIATION, and each member's demotion is attributable to one lever (`token-contract.ts` header). A rich brand adds nothing attributable. Instead, `test.ts` asserts prism3 emits the guaranteed surface against the COMMITTED baseline. That found #1718: `core.font.weight.700` is guaranteed only because no corpus member ever remapped `strong`, and prism3 (600) lacked it. The owner decided it in the second pass (below), and the check now requires zero missing paths.
+- **Display ships `strong` too.** The preview spec binds `type.display.lg.strong` and `type.title.*.strong` by name, and a brand without them resolves to 0px sans-serif in `resolvePreview` (#1720, latent). `test.ts` asserts prism3 emits every type style the preview binds.
+- **Figma emission committed.** The boot theme should be materializable, and committing it puts it under `regen --check` and every figma gate.
+
+**Traps for whoever re-verifies.** (1) Byte-identity is proven in two steps: regen BEFORE the ENGINE bump moved zero committed bytes, and after it only the `generator.version` stamps move. (2) The MCP `tools/list` ceiling (60,000 chars) had 45 chars of headroom. The new lever fits only because the `italics` and `links` schema descriptions were compressed (59,955 → 59,942). (3) `resolvedCuts` counts per (variable, mode). prism3 has one font mode, so it is 2: Playfair's two 600 cuts.
+
+**Second pass: owner decisions of 2026-09-27.**
+- **#1718, always emit.** `theme.ts` `weightsRef` unions a literal `CONTRACT_WEIGHTS = [300, 400, 700, 900]` onto the numerics the weight roles use. It is written out, not derived from `WEIGHT_ROLE_DEFAULT`, because it is the contract's promise and the default roles moving must not move it. The owner's brief called this "option A"; in the issue's own lettering it is option B (A is demote, CONTRACT MAJOR). The behavior built is the one the brief describes. prism3 gains `core.font.weight.700`, an unused hidden primitive. The `#1296` check in `test.ts` now requires zero missing guaranteed paths. Mutating the union away fails `#1296/#1718 prism3 emits every guaranteed contract path (580/581; missing core.font.weight.700)` by name.
+- **Accent.** A violet `accent` brand color, #7A3CFF. `rgbToOklch` gives l 0.557316, c 0.263468, h 289.323. The obvious rounding, c 0.2635, is past the sRGB boundary (the engine warns it will clamp), so the chroma rounds DOWN to `{ l: 0.5573, c: 0.2634, h: 289.32 }`, which round-trips to `#7a3cff`. It anchors at step 500. Action stays on the primary.
+- **Gradients.** `brand`, linear at 135°, primary.600 → accent.500: the two exact brand swatches, #1E1EFF → #7A3CFF. `glow`, radial (circle, center 0.5/0.4), accent.400 → primary.700. Both follow aurora's shape. `check-consumability.mjs` `CONSUMER_GAP.prism3` moves 0 → 2, one per gradient, the same as aurora.
+- **Paired italics on body.** `italics: [body]` beside `italicDefault: [display, title]`. Body stays upright and gains `-italic` twins (`type.body.md.default-italic`, `strong-italic` and their `-link` forms). Body is in only one of the two levers, so the #1296 conflict refusal does not trip.
+- **Tinted shadows.** `shadow: { tint: { hue: 266.75, amount: 0.35 } }`. The engine default already tinted toward the neutral hue (also 266.75) at 0.15, so the lever needed a larger amount to read as the blue. The shadow base is now #0a1228.
+- **Status.** success h155 c0.15, warning h70 c0.16, danger h25 c0.19, info h230 c0.13. Only hue and chroma seed a status ramp (the engine places the lightness), so the 500 steps land at #2e8554, #a56900, #d24241, #157fa6. Contrast: 876/876 mode contracts pass.
+- **Byte-identity, re-proven.** Regen before the bump moved zero bytes in `out/{nb,aurora,harbor,wendys}*` and their Figma trees. After the bump, the only lines that move are the eight `generator.version` stamps.
+
+**Held for the owner (in the PR):** every lever beyond the ones decided, and the second-pass values (status set, shadow amount, the radial's stops).
+
+---
+
+## (2026-09-27) — Component sets: 24px inner padding so the variant-set border shows
+
+**STATUS: PR open from `lane/set-inner-padding`, labeled DO NOT MERGE.** ENGINE 0.185.0 (MINOR; renumbered in the net after #1733 took 0.184.0), CONTRACT stands at 13.1.0.
+
+**The report (owner, 2026-09-27).** #1714 writes the purple dashed variant-set border (#9747FF, 1px, INSIDE, dash 10/5), and a member on the set's edge covered it. The cause was not the border: all three layout scripts laid the grid out from (0,0), and INSIDE strokes paint within the set's bounds. The owner approved 24px of inner padding, matching the grid's `GAP = 24`.
+
+**The change.** `PAD = 24` is named once per layout script, next to `GAP`: the plugin's `applyComponentPlan` (`write-components.ts`), the one-shot paste (`planSetToPluginJs`) and the chunked paste (`planSetChunks`). The grid starts at (PAD,PAD), and the set is resized to the grid's extent plus 2×PAD.
+
+**The one-shot paste used to lay out BEFORE the combine and never resize.** It relied on `combineAsVariants` to size the box to the members' bounds. Under that host behavior, any offset placed before the combine is absorbed and is not padding. So the one-shot now lays out and resizes AFTER the combine, as the plugin path and the chunked script already did. **Unverified live:** the host behavior this relies on (that combine sizes the set to its members, and that a later `resize` plus member x/y hold) is the same the plugin path already depends on, so it is proven there. The one-shot's new ordering was not run against a live file, because the only open file is the owner's.
+
+**The paste budget.** The tight `test.ts` `#536 item 6` probe (one chunk under `SET_CHUNK_BYTES = 42_000`) moved from 41,940 B to **41,957 B** (+17 B, 43 B of headroom left). It still fits in one chunk, so the budget was not raised. The one-shot grew from 40,067 B to 40,147 B. **The next change to the chunked script's fixed prelude has about 40 bytes to spend.**
+
+**What else assumed "set size = grid bounds", checked.**
+- The build summary's `W×Hpx` figure (`main.ts`) prints `set.width/height`, so it now includes the padding. That is correct, because it reports the set that was built.
+- The page header (`page-header.ts`) measures the top-level nodes' bounds, so it sees the padded set. No change.
+- The plugin's box read-back (`boxMiss`) compares against the same `wantW/wantH`, so it moves with them.
+- No other read-back or conformance check compares set size.
+
+**The gates.** Expected values are literals authored in the tests (24, 48), never read from any `PAD` (docs/34):
+- `test.ts`: `set padding (plugin)`, `set padding (paste one-shot)`, `set padding (chunked paste)`, `set padding (lockstep)` (plugin vs one-shot box), and `set padding (lockstep, chunked)` (plugin vs chunked, every member's position plus the box).
+- `test-roundtrip.ts`: `set padding` over every projected def.
+
+The `posMap` parity comment said the box was deliberately not compared because the one-shot never resized. It now resizes, so the box is compared.
+
+**Mutations (PAD=0 on one path at a time, each after a `wip:` commit):**
+- **Plugin:** `set padding (plugin)`, `set padding (lockstep)`, `set padding (lockstep, chunked)`, `parity` (posMap) and round-trip `set padding` fail by name.
+- **One-shot:** `set padding (paste one-shot)`, `set padding (lockstep)` and `parity` fail.
+- **Chunked:** `set padding (chunked paste)` and `set padding (lockstep, chunked)` fail.
+
+**Surface and paint gates.** `lint-component-surface` and `lint-paint` did not move, since no plan moved. `token-contract` was re-accepted as a stamp only (`engineVersion`).
+
+**Version collision.** #1733 (file-component name case) merged first at 0.184.0, so this PR takes 0.185.0.
+
+---
+
+## (2026-09-27) — Plugin: find the file-component sets whatever their name's case
+
+**STATUS: PR open from `lane/file-component-name-case`, labeled DO NOT MERGE.** ENGINE 0.183.0 → **0.184.0** (a plugin behavior change, MINOR by the running convention; `out/**` restamps only). CONTRACT stands at 13.1.0.
+
+**The live measurement (2026-09-27, engine 0.183.0, via the agent link).** In both of the owner's NB files — the MCP Testing File and the master file — the header set on `↳ File Components` is named **`_section-header`**, lowercase s. The plugin matched `_Section-header` exactly, in three places:
+- **The page header (#1711).** `ensurePageHeader` searched for the set with `n.name === SECTION_HEADER_SET`, so every build in those files reported "No header on ↳ Veil: this file has no _Section-header component, and Set up file adds it". No header was ever placed, and the message was false: the file has one.
+- **`isHeaderMain`** compared the parent set's name exactly too, so a header instanced from a lowercase duplicate of the set would not count as present.
+- **File setup (#1554).** `main.ts` checked for existing sets with `n.name === '_Section-header' || n.name === '_Headings'`, so running Set up file in those files would have built a second `_Section-header` beside the owner's.
+
+**The fix.** One match, `isTemplateSet(name, set)` in `apps/plugin/src/file-components.ts`, compares lowercased names, and every lookup of either set calls it: the page header's set search, `isHeaderMain`, the detached-header FRAME check (already case-insensitive, now through the same helper), and file setup. File setup's check moved out of `main.ts` into `ensureFileComponents` beside the builder, because inside `main.ts` it read the `figma` global and no test could drive it. `main.ts` now calls `ensureFileComponents(figma, page)`. The builder names a new set `_Section-header` / `_Headings` as before, and nothing renames an existing set. The "no header component" message is unchanged and now fires only when no set exists in any case. The other exact-name lookups in the plugin (`mcp-steps.ts`'s read-back and cleanup) match names from a caller's manifest, not these two sets, so they are out of scope.
+
+**Tests, each literal and independent of the helper.** `test-page-header.ts` §6: a file whose set is `_section-header` gets status `placed` and a result with no "No header"; a rebuild in a file holding both `_Section-header` and a `_section-header` duplicate finds the header instanced from the duplicate and adds none. The shim's own `headersOn` lowercases a literal rather than calling `isTemplateSet`. `test-file-components.ts`: a page holding `_section-header` + `_headings`, one holding only `_section-header`, and one holding only `_headings` each build no set; an empty page and a page holding only `Button` build both, so the arms can fail. The single-set arms exist so that restoring the exact match on either half of the check fails an arm of its own.
+
+**Mutations, committed before each and restored from HEAD, each failing by name.**
+- `ensurePageHeader`'s set search back to `n.name === SECTION_HEADER_SET` → "6: a `_section-header` set gets a header placed" (got `skipped / no-set`), "6: exactly one header on the page" and "6: the result says nothing about a missing header" fail — the last one printing the exact false message measured live.
+- `isHeaderMain`'s parent check back to `main.parent.name === SECTION_HEADER_SET` → "6: a header from a `_section-header` duplicate counts as present; none added" fails.
+- `ensureFileComponents` back to `n.name === '_Section-header' || n.name === '_Headings'` → the three "file setup: a page holding … gets NO second set" arms fail.
+
+**Trap for whoever re-verifies this.** A mutation on `isTemplateSet` itself turns every arm red at once, which reads as proof and proves nothing about any one call site (docs/34 corollary 1). Mutate each call site.
 
 ---
 

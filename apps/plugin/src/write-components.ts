@@ -2299,6 +2299,11 @@ const writeComponentSet = async (
   // The whole union is measured and repositioned, not just this run's members, so the layout is correct
   // for whatever is present and self-correcting as a later run widens a column.
   const GAP = 24;
+  // THE SET'S INNER PADDING (owner-reported 2026-09-27, approved at 24 to match GAP). #1714 writes the
+  // variant-set border INSIDE the set's edge, so a grid laid out from (0,0) covers it wherever a member
+  // touches an edge. The grid starts at (PAD, PAD) and the set is the grid's extent plus 2×PAD. The paste
+  // twin (`anatomy-figma.ts`, both scripts) names the same number, and `test.ts` holds the two in lockstep.
+  const PAD = 24;
   const cellOf = members.map((c) => byCell.get(String(c.name)));
   const colW: number[] = [];
   const rowH: number[] = [];
@@ -2316,13 +2321,13 @@ const writeComponentSet = async (
     // it is and reported, because silently relocating it to a guessed cell is worse than visible.
     if (!cell) { stray.push(`member ${c.name} -> NOT A GENERATED VARIANT (left in place; it will not follow the grid)`); return; }
     const m = wr(c);
-    m.x = at(colW, cell.col);
-    m.y = at(rowH, cell.row);
+    m.x = PAD + at(colW, cell.col);
+    m.y = PAD + at(rowH, cell.row);
   });
   // RESIZE, because appending does NOT grow the set's frame: a member appended at x=208 to a 184-wide
   // set leaves it 184 wide, with the member outside its own box, and nothing throws.
-  const wantW = Math.max(1, at(colW, colW.length) - GAP);
-  const wantH = Math.max(1, at(rowH, rowH.length) - GAP);
+  const wantW = Math.max(1, at(colW, colW.length) - GAP + 2 * PAD);
+  const wantH = Math.max(1, at(rowH, rowH.length) - GAP + 2 * PAD);
   if (colW.length && rowH.length) set.resize?.(wantW, wantH);
   // READ BACK THE BOX, because `resize` is the one call here with no other witness. Compared against
   // the offline expectation rather than against the members, so a resize that ran and landed somewhere

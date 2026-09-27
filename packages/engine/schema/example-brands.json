@@ -1,4 +1,145 @@
 {
+  "prism3": {
+    "id": "prism3",
+    "root": "pds3",
+    "primary": {
+      "l": 0.4709,
+      "c": 0.3001,
+      "h": 266.75
+    },
+    "neutral": {
+      "hue": 266.75,
+      "chroma": 0.005
+    },
+    "brandColors": [
+      {
+        "name": "accent",
+        "oklch": {
+          "l": 0.5573,
+          "c": 0.2634,
+          "h": 289.32
+        }
+      }
+    ],
+    "surfaces": {
+      "light": {
+        "base": "white"
+      }
+    },
+    "status": {
+      "success": {
+        "l": 0.55,
+        "c": 0.15,
+        "h": 155,
+        "chroma": 0.15
+      },
+      "warning": {
+        "l": 0.55,
+        "c": 0.16,
+        "h": 70,
+        "chroma": 0.16
+      },
+      "danger": {
+        "l": 0.55,
+        "c": 0.19,
+        "h": 25,
+        "chroma": 0.19
+      },
+      "info": {
+        "l": 0.55,
+        "c": 0.13,
+        "h": 230,
+        "chroma": 0.13
+      }
+    },
+    "density": "comfortable",
+    "radiusScale": 1,
+    "iconContrast": "text",
+    "motionPersonality": {
+      "tempo": "standard"
+    },
+    "shadow": {
+      "tint": {
+        "hue": 266.75,
+        "amount": 0.35
+      }
+    },
+    "typography": {
+      "families": {
+        "display": "Playfair Display",
+        "title": "Playfair Display",
+        "body": "Inter",
+        "label": "Inter",
+        "caption": "Inter",
+        "eyebrow": "Inter",
+        "code": "JetBrains Mono"
+      },
+      "weights": {
+        "display": [
+          "emphasis",
+          "strong"
+        ],
+        "title": [
+          "emphasis",
+          "strong"
+        ]
+      },
+      "weightRoles": {
+        "emphasis": 500,
+        "strong": 600
+      },
+      "italicDefault": [
+        "display",
+        "title"
+      ],
+      "italics": [
+        "body"
+      ],
+      "responsive": {
+        "fluid": true
+      }
+    },
+    "gradients": [
+      {
+        "name": "brand",
+        "kind": "linear",
+        "angle": 135,
+        "stops": [
+          {
+            "palette": "primary",
+            "step": 600,
+            "position": 0
+          },
+          {
+            "palette": "accent",
+            "step": 500,
+            "position": 1
+          }
+        ]
+      },
+      {
+        "name": "glow",
+        "kind": "radial",
+        "center": [
+          0.5,
+          0.4
+        ],
+        "shape": "circle",
+        "stops": [
+          {
+            "palette": "accent",
+            "step": 400,
+            "position": 0
+          },
+          {
+            "palette": "primary",
+            "step": 700,
+            "position": 1
+          }
+        ]
+      }
+    ]
+  },
   "aurora": {
     "id": "aurora",
     "root": "ads",

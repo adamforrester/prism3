@@ -28,11 +28,11 @@ const schemaDir = resolve(here, 'schema');
 const repoRoot = resolve(here, '..', '..');
 
 // The eight emitters, in dependency order: `visualize` reads the `*.tokens.json` that `emit-dtcg`
-// (nb/aurora/harbor) and `cli` (wendys) write, so it has to run last among those. wendys goes
+// (nb/prism3/aurora/harbor) and `cli` (wendys) write, so it has to run last among those. wendys goes
 // through `cli.ts` rather than `emit-dtcg.ts` because it is a STANDARD-dialect brief, not an
 // engine-native one — that split is precisely why it kept getting missed.
 const STEPS: Array<{ label: string; args: string[] }> = [
-  { label: 'emit-dtcg      (nb · aurora · harbor)', args: ['packages/engine/emit-dtcg.ts'] },
+  { label: 'emit-dtcg      (nb · prism3 · aurora · harbor)', args: ['packages/engine/emit-dtcg.ts'] },
   { label: 'nb-regression  (regression report)', args: ['packages/engine/nb-regression.ts'] },
   { label: 'cli            (wendys + fidelity)', args: ['packages/engine/cli.ts', 'packages/engine/examples/wendys.design.md', '--out', 'packages/engine/out', '--fidelity'] },
   { label: 'emit-figma     (out/figma/**)', args: ['packages/engine/emit-figma.ts'] },

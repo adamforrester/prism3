@@ -1,0 +1,58 @@
+{
+  "$collection": "border-width",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "pds3/border-width/none",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "STROKE_FLOAT"
+      ],
+      "description": "No stroke — 0px",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/0"
+      }
+    },
+    {
+      "name": "pds3/border-width/hairline",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "STROKE_FLOAT"
+      ],
+      "description": "1px stroke",
+      "value": 1,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/1"
+      }
+    },
+    {
+      "name": "pds3/border-width/thick",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "STROKE_FLOAT"
+      ],
+      "description": "2px stroke",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/2"
+      }
+    },
+    {
+      "name": "pds3/border-width/heavy",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "STROKE_FLOAT"
+      ],
+      "description": "4px stroke",
+      "value": 4,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/4"
+      }
+    }
+  ]
+}

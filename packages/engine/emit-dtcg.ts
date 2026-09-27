@@ -140,15 +140,17 @@ export const readExampleBrand = (relPath: string): BrandInput =>
 // ---------------------------------------------------------------------------
 // Regression runner — runs ONLY when this module is executed directly, so
 // importing it for its exports (cli.ts) has no side effects. Emits the NB
-// regression theme plus the two committed example brands, Aurora and Harbor,
-// each compiled FROM its design.md (examples/*.design.md). Those files are the
+// regression theme plus the three committed example brands — Prism3 (the canonical
+// default theme, #1296), Aurora and Harbor — each compiled FROM its design.md
+// (examples/*.design.md). Those files are the
 // single source of truth: out/*.tokens.json is faithful to the CLI path by
 // construction, and test.ts confirms it byte-for-byte.
 const isMain = process.argv[1] ? resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
 if (isMain) {
+  const prism3Input = readExampleBrand('./examples/prism3.design.md');
   const auroraInput = readExampleBrand('./examples/aurora.design.md');
   const harborInput = readExampleBrand('./examples/harbor.design.md');
-  const themes: Theme[] = [nbTheme(), brandTheme(auroraInput), brandTheme(harborInput)];
+  const themes: Theme[] = [nbTheme(), brandTheme(prism3Input), brandTheme(auroraInput), brandTheme(harborInput)];
   const md: string[] = ['# Prism3 modes & scales — generated mappings, contrast contracts, dimension axis', ''];
   let ok = true;
 
@@ -206,11 +208,11 @@ if (isMain) {
     md.push('');
   }
 
-  // BrandInput ↔ schema conformance — both example inputs (compiled from their
+  // BrandInput ↔ schema conformance — every example input (compiled from its
   // design.md) + the worked schema example.
   const exampleInput = JSON.parse(readFileSync(resolve(here, './schema/theme-schema.example.json'), 'utf8'));
   console.log('');
-  for (const [label, input] of [['aurora (from design.md)', auroraInput], ['harbor (from design.md)', harborInput], ['theme-schema.example.json', exampleInput]] as const) {
+  for (const [label, input] of [['prism3 (from design.md)', prism3Input], ['aurora (from design.md)', auroraInput], ['harbor (from design.md)', harborInput], ['theme-schema.example.json', exampleInput]] as const) {
     const errs = validateBrandInput(input);
     if (errs.length) { ok = false; console.log(`[schema] ❌ ${label} violates theme-schema.json:`); errs.forEach((x) => console.log(`   ${x}`)); }
     else console.log(`[schema] ✓ ${label} conforms to the BrandInput contract`);

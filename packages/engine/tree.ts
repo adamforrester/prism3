@@ -337,7 +337,7 @@ const fluidClamp = (minPx: number, maxPx: number, minVW: number, maxVW: number):
  *  since #415: a per-mode face change re-points the `font.family.<category>` SEMANTIC, which every
  *  composite in that category inherits — the same seam leading and tracking use (#377). */
 const RE_POINT_LABEL: Record<string, string> = { fontSize: 'size' };
-const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; facePin?: FacePin; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string>; sizeByMode?: Record<string, number>; sizeMinByMode?: Record<string, number> }, face: string, minVW: number, maxVW: number): Token => {
+const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; italicDefault?: true; facePin?: FacePin; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string>; sizeByMode?: Record<string, number>; sizeMinByMode?: Record<string, number> }, face: string, minVW: number, maxVW: number): Token => {
   const a = (seg: string) => `{${root}.${CORE_TIER}.font.${seg}}`;
   const value: Record<string, unknown> = {
     fontFamily: a(`family.${c.group}`),      // #415 — a composite's family IS its category
@@ -346,8 +346,12 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
     lineHeight: a(`line-height-role.${c.lineHeight}`),
     letterSpacing: a(`letter-spacing-role.${c.tracking}`),
   };
-  if (c.italic) value.fontStyle = 'italic';                        // weight-paired modifier — literal key on $value
-                                                                  // (off-core-DTCG; the shared Token-Press contract)
+  // Italic comes from the italics levers only: the weight-paired MODIFIER (`strong-italic`), or, since
+  // #1296, a category that is italic by DEFAULT (`typography.italicDefault`), whose bare composites are
+  // the italic cut. Literal key on $value (off-core-DTCG; the shared Token-Press contract), omitted when
+  // upright, so every other composite is byte-identical.
+  const slanted = c.italic || c.italicDefault === true;
+  if (slanted) value.fontStyle = 'italic';
   if (c.textCase !== 'none') value.textCase = c.textCase;          // literal, baked (not a variable)
   if (c.link) value.textDecoration = 'underline';                 // link variant — baked (not Figma-bindable)
   // Responsive directive (Phase 3): one min/max pair → web clamp() + Figma modes.
@@ -402,7 +406,7 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
     : {};
   return {
     $type: 'typography', $value: value,
-    $description: `${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} — ${isFluid ? `${c.sizeMinPx}→${c.sizePx}px fluid` : `${c.sizePx}px`} ${face}, ${c.lineHeight} line-height, ${c.weightRole} weight${c.italic ? ', italic' : ''}, ${c.tracking} tracking${c.textCase !== 'none' ? `, ${c.textCase}` : ''}${c.link ? ', underlined (link — pair with text.link.* color)' : ''}`,
+    $description: `${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} — ${isFluid ? `${c.sizeMinPx}→${c.sizePx}px fluid` : `${c.sizePx}px`} ${face}, ${c.lineHeight} line-height, ${c.weightRole} weight${slanted ? ', italic' : ''}, ${c.tracking} tracking${c.textCase !== 'none' ? `, ${c.textCase}` : ''}${c.link ? ', underlined (link — pair with text.link.* color)' : ''}`,
     $extensions: { prism3: { role: 'composite', ...modeVariants, group: c.group, variant: c.variant, weightRole: c.weightRole, sizePx: c.sizePx, ...(c.italic ? { italic: true } : {}), ...(c.link ? { link: true } : {}), ...(c.textCase !== 'none' ? { textCase: c.textCase } : {}), ...(c.facePin ? { facePin: c.facePin } : {}), responsive, figma: { kind: 'text-style', styleType: 'TEXT', binds: ['fontFamily', 'fontSize', 'fontStyle'], baked: ['lineHeight', 'letterSpacing', ...(c.textCase !== 'none' ? ['textCase'] : []), ...(c.link ? ['textDecoration'] : [])], note: 'Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style.' } } },
   };
 };

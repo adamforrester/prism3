@@ -1,0 +1,309 @@
+{
+  "$collection": "control",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "pds3/control/size/sm/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Checkbox / radio box — 16px square",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/16"
+      }
+    },
+    {
+      "name": "pds3/control/size/sm/width",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track width — 48px (twice the 24px track height)",
+      "value": 48,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/48"
+      }
+    },
+    {
+      "name": "pds3/control/size/sm/dot",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Radio dot — 8px (half the 16px box)",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/8"
+      }
+    },
+    {
+      "name": "pds3/control/size/sm/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body sm, 21px) — the control centers on the label's first line.",
+      "value": 21,
+      "alias": null
+    },
+    {
+      "name": "pds3/control/size/sm/inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Switch thumb inset — 3px ((24px track − 18px thumb) ÷ 2). Switches only.",
+      "value": 3,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/3"
+      }
+    },
+    {
+      "name": "pds3/control/size/sm/radius",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "Checkbox/radio corner — 2px, clamped to the 16px box (does not follow the radius scale).",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/2"
+      }
+    },
+    {
+      "name": "pds3/control/size/sm/track",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track height — 24px. Switches only.",
+      "value": 24,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/24"
+      }
+    },
+    {
+      "name": "pds3/control/size/sm/thumb",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch thumb — 18px (0.75 × the 24px track). Switches only.",
+      "value": 18,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/18"
+      }
+    },
+    {
+      "name": "pds3/control/size/md/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Checkbox / radio box — 20px square",
+      "value": 20,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/20"
+      }
+    },
+    {
+      "name": "pds3/control/size/md/width",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track width — 64px (twice the 32px track height)",
+      "value": 64,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/64"
+      }
+    },
+    {
+      "name": "pds3/control/size/md/dot",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Radio dot — 10px (half the 20px box)",
+      "value": 10,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/10"
+      }
+    },
+    {
+      "name": "pds3/control/size/md/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body md, 24px) — the control centers on the label's first line.",
+      "value": 24,
+      "alias": null
+    },
+    {
+      "name": "pds3/control/size/md/inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Switch thumb inset — 4px ((32px track − 24px thumb) ÷ 2). Switches only.",
+      "value": 4,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/4"
+      }
+    },
+    {
+      "name": "pds3/control/size/md/radius",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "Checkbox/radio corner — 2px, clamped to the 20px box (does not follow the radius scale).",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/2"
+      }
+    },
+    {
+      "name": "pds3/control/size/md/track",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track height — 32px. Switches only.",
+      "value": 32,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/32"
+      }
+    },
+    {
+      "name": "pds3/control/size/md/thumb",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch thumb — 24px (0.75 × the 32px track). Switches only.",
+      "value": 24,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/24"
+      }
+    },
+    {
+      "name": "pds3/control/size/lg/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Checkbox / radio box — 24px square",
+      "value": 24,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/24"
+      }
+    },
+    {
+      "name": "pds3/control/size/lg/width",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track width — 80px (twice the 40px track height)",
+      "value": 80,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/80"
+      }
+    },
+    {
+      "name": "pds3/control/size/lg/dot",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Radio dot — 12px (half the 24px box)",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/12"
+      }
+    },
+    {
+      "name": "pds3/control/size/lg/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Label line height (body lg, 27px) — the control centers on the label's first line.",
+      "value": 27,
+      "alias": null
+    },
+    {
+      "name": "pds3/control/size/lg/inset",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "Switch thumb inset — 5px ((40px track − 30px thumb) ÷ 2). Switches only.",
+      "value": 5,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/5"
+      }
+    },
+    {
+      "name": "pds3/control/size/lg/radius",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "Checkbox/radio corner — 2px, clamped to the 24px box (does not follow the radius scale).",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/2"
+      }
+    },
+    {
+      "name": "pds3/control/size/lg/track",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch track height — 40px. Switches only.",
+      "value": 40,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/40"
+      }
+    },
+    {
+      "name": "pds3/control/size/lg/thumb",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "Switch thumb — 30px (0.75 × the 40px track). Switches only.",
+      "value": 30,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/dimension/30"
+      }
+    }
+  ]
+}

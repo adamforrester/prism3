@@ -34,9 +34,11 @@
  */
 import { TAXONOMY, leafForDef } from './file-taxonomy';
 import type { Taxonomy } from './file-taxonomy';
+import { SECTION_HEADER_SET, isTemplateSet } from './file-components';
 
-/** The set `file-components.ts` names; matched by name, the way `main.ts`'s file setup finds it. */
-export const SECTION_HEADER_SET = '_Section-header';
+/** The set `file-components.ts` names. Found by `isTemplateSet`, in any case — the owner's NB files carry
+ *  it as `_section-header` — the same match file setup's "already built" check uses. */
+export { SECTION_HEADER_SET };
 /** The variant a new header takes. The designer changes it by hand; a rebuild never resets it. */
 export const HEADER_VARIANT = 'Size=Medium';
 /** Space between the header's bottom edge and the content's top edge, in px. */
@@ -131,7 +133,7 @@ const isText = (name: string) => (n: HNode): boolean => n.type === 'TEXT' && n.n
 /** Is `main` a member of the header set? By the set's id, or by its name for a header instanced from a
  *  duplicate of the set — either way the page already has one, and a second is never added. */
 const isHeaderMain = (main: HNode | null, set: HNode): boolean =>
-  !!main?.parent && (main.parent.id === set.id || main.parent.name === SECTION_HEADER_SET);
+  !!main?.parent && (main.parent.id === set.id || isTemplateSet(main.parent.name, SECTION_HEADER_SET));
 
 /**
  * Write `value` into the instance's `name` text node only while it still reads its main component's text —
@@ -174,8 +176,10 @@ export const ensurePageHeader = async (
   page: HeaderPage,
   copy: HeaderCopy,
 ): Promise<PageHeaderOutcome> => {
-  const set = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly HNode[])
-    .find((n) => n.name === SECTION_HEADER_SET);
+  // Exact case first, then any case (#1733 net): a file holding both `_Section-header` and a user's
+  // `_section-header` keeps the plugin-built one, as before the case-insensitive match.
+  const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly HNode[];
+  const set = allSets.find((n) => n.name === SECTION_HEADER_SET) ?? allSets.find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));
   if (!set) return { page: page.name, status: 'skipped', reason: 'no-set' };
 
   const top = page.children as readonly HNode[];
@@ -187,7 +191,7 @@ export const ensurePageHeader = async (
   const all = page.findAllWithCriteria
     ? (page.findAllWithCriteria({ types: ['INSTANCE', 'FRAME'] }) as readonly HNode[])
     : top;
-  if (all.some((n) => n.type === 'FRAME' && n.name?.toLowerCase() === SECTION_HEADER_SET.toLowerCase()))
+  if (all.some((n) => n.type === 'FRAME' && isTemplateSet(n.name, SECTION_HEADER_SET)))
     return { page: page.name, status: 'present', written: [], kept: ['Title', 'Description'], fontMisses };
   for (const n of all) {
     if (n.type !== 'INSTANCE') continue;
