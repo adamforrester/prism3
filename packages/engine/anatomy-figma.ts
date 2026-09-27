@@ -4005,18 +4005,18 @@ for(const spec of PLANS){
   comp.name=spec.name;
   built.push(comp);
 }
-// LAY OUT BEFORE COMBINING — see the header note. Column pitch is measured rather than assumed because
-// the widths are only known here: a hug-width button is as wide as its label, so a fixed pitch either
-// overlaps the long ones or strands the short ones.
-const GAP=24;
+// MEASURE. Column pitch is measured rather than assumed because the widths are only known here: a
+// hug-width button is as wide as its label, so a fixed pitch either overlaps the long ones or strands the
+// short ones. PAD is the set's inner padding (owner, 2026-09-27): the grid starts at (PAD,PAD) so no member
+// covers #1714's INSIDE border. Same number as \`write-components.ts\`.
+const GAP=24,PAD=24;
 const colW=[],rowH=[];
 built.forEach((c,i)=>{
   const {row,col}=PLANS[i];
   colW[col]=Math.max(colW[col]||0,c.width);
   rowH[row]=Math.max(rowH[row]||0,c.height);
 });
-const at=(arr,n)=>arr.slice(0,n).reduce((a,b)=>a+(b||0)+GAP,0);
-built.forEach((c,i)=>{const {row,col}=PLANS[i];c.x=at(colW,col);c.y=at(rowH,row);});
+const at=(arr,n)=>arr.slice(0,n).reduce((a,b)=>a+(b||0)+GAP,PAD);
 // COMBINE. The axes come from the names above; \`combineAsVariants\` throws rather than degrading if
 // they disagree, so the offline check in \`planSetToPluginJs\` is what keeps that from being the
 // caller's first sign of trouble — by then twenty-one loose components are already in the file.
@@ -4024,6 +4024,11 @@ const set=figma.combineAsVariants(built,figma.currentPage);
 set.name=${JSON.stringify(plans[0].component)};
 // #1393 — THE SET'S DEFAULTS, claimed as the plugin executor claims them (\`n\` null: the variant-set border, #1430).
 claimDefaults(set,null,'created');
+// LAY OUT AND RESIZE, after the combine as both other scripts do. Live, \`combineAsVariants\` sizes the set
+// to its members' bounds, so an offset placed before it is not padding; the padding is the resize to the
+// grid plus 2×PAD, with every member placed from (PAD,PAD).
+built.forEach((c,i)=>{const {row,col}=PLANS[i];c.x=at(colW,col);c.y=at(rowH,row);});
+set.resize(at(colW,colW.length)-GAP+PAD,at(rowH,rowH.length)-GAP+PAD);
 ${PAYLOAD_DECLARE_PROPS}
 ${PAYLOAD_WIRE_REFS}
 // READ BACK the axes Figma actually derived. A name it cannot parse is dropped silently, so a set can
@@ -4127,8 +4132,10 @@ if(!set){
   claimDefaults(set,null,'created');
 }else for(const c of fresh)set.appendChild(c);
 let members=set.children.slice();
-// LAY OUT. Cells derived from the names — see the header note.
-const GAP=24;
+// LAY OUT. Cells derived from the names — see the header note. PAD is the set's inner padding (owner,
+// 2026-09-27): the grid starts at (PAD,PAD) so no member covers #1714's INSIDE border. Same number as
+// \`write-components.ts\`.
+const GAP=24,PAD=24;
 const cellOf=(name)=>{
   const v={};
   for(const kv of name.split(', ')){const i=kv.indexOf('=');if(i>0)v[kv.slice(0,i)]=kv.slice(i+1);}
@@ -4154,7 +4161,7 @@ members.forEach((c,i)=>{
   colW[col]=Math.max(colW[col]||0,c.width);
   rowH[row]=Math.max(rowH[row]||0,c.height);
 });
-const at=(arr,n)=>arr.slice(0,n).reduce((a,b)=>a+(b||0)+GAP,0);
+const at=(arr,n)=>arr.slice(0,n).reduce((a,b)=>a+(b||0)+GAP,PAD);
 const stray=[];
 members.forEach((c,i)=>{
   const {row,col}=cells[i];
@@ -4167,7 +4174,7 @@ members.forEach((c,i)=>{
 // RESIZE, because appending does NOT grow the set's frame. Measured: appending a member at x=208 to a
 // 184-wide set leaves the set 184 wide, with the new member outside its own box — nothing throws, and
 // no read-back in the single-shot payload would ever notice, because that payload never appends.
-const wantW=Math.max(1,at(colW,colW.length)-GAP),wantH=Math.max(1,at(rowH,rowH.length)-GAP);
+const wantW=Math.max(1,at(colW,colW.length)-GAP+PAD),wantH=Math.max(1,at(rowH,rowH.length)-GAP+PAD);
 if(colW.length&&rowH.length)set.resize(wantW,wantH);
 // READ BACK THE BOX, because \`resize\` is the one call here with no other witness. Appending does not
 // grow the frame, so a set that is never resized ends up SMALLER than its own contents — members

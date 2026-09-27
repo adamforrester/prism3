@@ -7,6 +7,41 @@
 
 ---
 
+## (2026-09-27) — Component sets: 24px inner padding so the variant-set border shows
+
+**STATUS: PR open from `lane/set-inner-padding`, labeled DO NOT MERGE.** ENGINE 0.185.0 (MINOR; renumbered in the net after #1733 took 0.184.0), CONTRACT stands at 13.1.0.
+
+**The report (owner, 2026-09-27).** #1714 writes the purple dashed variant-set border (#9747FF, 1px, INSIDE, dash 10/5), and a member on the set's edge covered it. The cause was not the border: all three layout scripts laid the grid out from (0,0), and INSIDE strokes paint within the set's bounds. The owner approved 24px of inner padding, matching the grid's `GAP = 24`.
+
+**The change.** `PAD = 24` is named once per layout script, next to `GAP`: the plugin's `applyComponentPlan` (`write-components.ts`), the one-shot paste (`planSetToPluginJs`) and the chunked paste (`planSetChunks`). The grid starts at (PAD,PAD), and the set is resized to the grid's extent plus 2×PAD.
+
+**The one-shot paste used to lay out BEFORE the combine and never resize.** It relied on `combineAsVariants` to size the box to the members' bounds. Under that host behavior, any offset placed before the combine is absorbed and is not padding. So the one-shot now lays out and resizes AFTER the combine, as the plugin path and the chunked script already did. **Unverified live:** the host behavior this relies on (that combine sizes the set to its members, and that a later `resize` plus member x/y hold) is the same the plugin path already depends on, so it is proven there. The one-shot's new ordering was not run against a live file, because the only open file is the owner's.
+
+**The paste budget.** The tight `test.ts` `#536 item 6` probe (one chunk under `SET_CHUNK_BYTES = 42_000`) moved from 41,940 B to **41,957 B** (+17 B, 43 B of headroom left). It still fits in one chunk, so the budget was not raised. The one-shot grew from 40,067 B to 40,147 B. **The next change to the chunked script's fixed prelude has about 40 bytes to spend.**
+
+**What else assumed "set size = grid bounds", checked.**
+- The build summary's `W×Hpx` figure (`main.ts`) prints `set.width/height`, so it now includes the padding. That is correct, because it reports the set that was built.
+- The page header (`page-header.ts`) measures the top-level nodes' bounds, so it sees the padded set. No change.
+- The plugin's box read-back (`boxMiss`) compares against the same `wantW/wantH`, so it moves with them.
+- No other read-back or conformance check compares set size.
+
+**The gates.** Expected values are literals authored in the tests (24, 48), never read from any `PAD` (docs/34):
+- `test.ts`: `set padding (plugin)`, `set padding (paste one-shot)`, `set padding (chunked paste)`, `set padding (lockstep)` (plugin vs one-shot box), and `set padding (lockstep, chunked)` (plugin vs chunked, every member's position plus the box).
+- `test-roundtrip.ts`: `set padding` over every projected def.
+
+The `posMap` parity comment said the box was deliberately not compared because the one-shot never resized. It now resizes, so the box is compared.
+
+**Mutations (PAD=0 on one path at a time, each after a `wip:` commit):**
+- **Plugin:** `set padding (plugin)`, `set padding (lockstep)`, `set padding (lockstep, chunked)`, `parity` (posMap) and round-trip `set padding` fail by name.
+- **One-shot:** `set padding (paste one-shot)`, `set padding (lockstep)` and `parity` fail.
+- **Chunked:** `set padding (chunked paste)` and `set padding (lockstep, chunked)` fail.
+
+**Surface and paint gates.** `lint-component-surface` and `lint-paint` did not move, since no plan moved. `token-contract` was re-accepted as a stamp only (`engineVersion`).
+
+**Version collision.** #1733 (file-component name case) merged first at 0.184.0, so this PR takes 0.185.0.
+
+---
+
 ## (2026-09-27) — Plugin: find the file-component sets whatever their name's case
 
 **STATUS: PR open from `lane/file-component-name-case`, labeled DO NOT MERGE.** ENGINE 0.183.0 → **0.184.0** (a plugin behavior change, MINOR by the running convention; `out/**` restamps only). CONTRACT stands at 13.1.0.

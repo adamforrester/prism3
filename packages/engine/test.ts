@@ -14480,6 +14480,29 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         return { misses: [`payload THREW -> ${(e as Error).message}`] };
       }
     };
+    // THE SET'S INNER PADDING (owner-reported 2026-09-27, approved at 24): #1714 writes the variant-set
+    // border INSIDE the set's edge, so a member laid out at (0,0) covers it. Read off a built PAGE: every
+    // member at least 24 in from the set's top-left, and the set is the members' extent plus 48 on each
+    // axis, so the padding is 24 on all four sides. The 24 and 48 are LITERALS authored here, never read
+    // from any executor's PAD (docs/34), and the same predicate judges all three layout scripts.
+    const setPadProblems = (page: { children: Record<string, unknown>[] }): string[] => {
+      const set = page.children.find((c) => c.type === 'COMPONENT_SET');
+      if (!set) return ['no COMPONENT_SET on the page'];
+      const ms = set.children as { name: string; x: number; y: number; width: number; height: number }[];
+      if (!ms.length) return ['the set has no members'];
+      const inside = ms.filter((m) => m.x < 24 || m.y < 24).map((m) => `${m.name}@${m.x},${m.y}`);
+      const wantW = Math.max(...ms.map((m) => m.x + m.width)) - Math.min(...ms.map((m) => m.x)) + 48;
+      const wantH = Math.max(...ms.map((m) => m.y + m.height)) - Math.min(...ms.map((m) => m.y)) + 48;
+      const problems: string[] = [];
+      if (inside.length) problems.push(`${inside.length} member(s) inside the 24px padding: ${inside.slice(0, 3).join(', ')}`);
+      // Exactly 24 on the top and left too (#1731 net): with members at 30 and the set grown by 48, the right edge
+      // would carry only 18 — every side is 24 only when the smallest x and y are exactly 24.
+      const minX = Math.min(...ms.map((m) => m.x)), minY = Math.min(...ms.map((m) => m.y));
+      if (Math.abs(minX - 24) > 0.5 || Math.abs(minY - 24) > 0.5) problems.push(`grid starts at ${minX},${minY}, want exactly 24,24`);
+      if (Math.abs((set.width as number) - wantW) > 0.5 || Math.abs((set.height as number) - wantH) > 0.5)
+        problems.push(`set ${set.width}×${set.height}, want ${wantW}×${wantH} (members' extent + 48)`);
+      return problems;
+    };
 
     // Driven on a fully-SKINNED plan, so the paint read-back is in play too — that is the half the
     // review found repeating the same defect, and a structure-only plan would not exercise it.
@@ -15712,6 +15735,21 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           `chunked: the page holds exactly ONE component set when it is done — got ${JSON.stringify(page.children.map((c) => c.type))}`);
         ok(runs[runs.length - 1].variants === 36,
           `chunked: the finished set holds all 36 members — the last chunk counts ${runs[runs.length - 1].variants}`);
+        const chunkPad = setPadProblems(page);
+        ok(chunkPad.length === 0,
+          `set padding (chunked paste): the finished set places every member 24px inside its edge and is the members' extent + 48 on each axis${chunkPad.length ? ` — ${chunkPad.join('; ')}` : ''}`);
+        // AND IN LOCKSTEP WITH THE PLUGIN over the same 36 members: every member's position and the set's
+        // box, read off both pages, so the chunked script cannot drift from the executor it twins.
+        const chunkPlugPage: { children: Record<string, unknown>[] } = { children: [] };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+        await applyComponentPlan(big, makeFigmaStub({ ...bigOpts, page: chunkPlugPage }) as any);
+        const geometry = (pg: { children: Record<string, unknown>[] }) => {
+          const set = pg.children.find((c) => c.type === 'COMPONENT_SET')!;
+          return JSON.stringify([`${Math.round(set.width as number)}x${Math.round(set.height as number)}`,
+            ...(set.children as Record<string, unknown>[]).map((c) => `${c.name}@${c.x},${c.y}`).sort()]);
+        };
+        ok(geometry(chunkPlugPage) === geometry(page),
+          `set padding (lockstep, chunked): the chunked paste and the plugin place every member at the same coordinate and size the set to the same box — plugin ${JSON.parse(geometry(chunkPlugPage))[0]} vs chunked ${JSON.parse(geometry(page))[0]}`);
         ok(runs.every((r, i) => r.added === chunks[i].variants.length),
           `chunked: each chunk builds exactly its own slice — added ${JSON.stringify(runs.map((r) => r.added))} vs packed ${JSON.stringify(chunks.map((c) => c.variants.length))}`);
         // The AXES accumulate. Each member declares all five axis KEYS and only some of the values, so
@@ -16150,14 +16188,13 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
           `#1203 reachable: the mixed grid wires the pending spinner to BOTH swap slots, so the by-part dedup genuinely collapses (${spinnerRows.join('; ')})`);
         ok(JSON.stringify(plugWiring) === JSON.stringify(pasteWiring),
           `#1203 parity: both executors wire every member's swap slot to the SAME property, spinner included — plugin vs paste disagree on: ${JSON.stringify([...plugWiring.filter((s) => !pasteWiring.includes(s)), ...pasteWiring.filter((s) => !plugWiring.includes(s))].slice(0, 6))}`);
-        // THE GEOMETRY, read off the two pages rather than off `size`. `size` is deliberately NOT the
-        // comparison: the single-shot payload never calls `resize` (live, `combineAsVariants` sizes the
-        // box itself, and the stub models that by reporting 0 until something resizes it) where the
-        // plugin path appends and must resize explicitly. That difference is a real and correct one
-        // between the two hosts, so asserting on the box would gate a divergence we WANT. Every member's
-        // NAME→POSITION map is the claim that actually matters, and it is strictly stronger: the column
-        // pitch is measured from the members, so identical positions mean both paths measured every
-        // member the same and placed them in the same cells.
+        // THE GEOMETRY, read off the two pages. Every member's NAME→POSITION map: the column pitch is
+        // measured from the members, so identical positions mean both paths measured every member the
+        // same and placed them in the same cells. And, since the set's inner padding (2026-09-27), the
+        // SET'S BOX too: the single-shot payload used to leave the box to `combineAsVariants` (the stub
+        // reports 0 until something resizes it) and so was deliberately not compared; it now resizes to
+        // the grid plus 2×PAD after the combine, as the plugin path does, so a box that differs between
+        // the two is a real divergence and is gated below.
         const posMap = (page: StubPage) => {
           const set = page.children.find((c) => c.type === 'COMPONENT_SET')!;
           return JSON.stringify(([...(set.children as Record<string, unknown>[])])
@@ -16165,6 +16202,19 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         };
         ok(posMap(plugPage) === posMap(pastePage),
           'parity: every member lands at the same coordinate and measures the same box on both paths — the pitch is measured, so this is the layout claim `size` cannot make');
+        // THE SET'S INNER PADDING, per path and then in lockstep. Per path, so a PAD dropped on one path
+        // is named against that path; in lockstep, so the two files a designer can get agree on the box.
+        const plugPad = setPadProblems(plugPage), pastePad = setPadProblems(pastePage);
+        ok(plugPad.length === 0,
+          `set padding (plugin): every member sits 24px inside the set and the set is the members' extent + 48 on each axis${plugPad.length ? ` — ${plugPad.join('; ')}` : ''}`);
+        ok(pastePad.length === 0,
+          `set padding (paste one-shot): every member sits 24px inside the set and the set is the members' extent + 48 on each axis${pastePad.length ? ` — ${pastePad.join('; ')}` : ''}`);
+        const setBox = (page: StubPage) => {
+          const set = page.children.find((c) => c.type === 'COMPONENT_SET')!;
+          return `${Math.round(set.width as number)}x${Math.round(set.height as number)}`;
+        };
+        ok(setBox(plugPage) === setBox(pastePage) && setBox(plugPage) !== '0x0',
+          `set padding (lockstep): both paths size the set to the same box — plugin ${setBox(plugPage)} vs paste ${setBox(pastePage)}`);
 
         // #1393 — THE DEFAULT CLAIMS, IN LOCKSTEP. Both executors run a `claimDefaults` pass (#865; the paste
         // twin since #1393), and the comparisons above are all structure — none of them reads a claimed
