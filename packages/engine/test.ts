@@ -4829,6 +4829,12 @@ for (const b of brands) {
   const remove = tagDef.anatomy!.parts.remove;
   ok(remove?.kind === 'nest' && remove.nests === 'icon-button-neutral',
     `tag: the remove control nests IconButton.Neutral, a button of its own (${remove?.kind} → ${remove?.nests})`);
+  // THE NESTED COORDINATE, literal (#1738 net): a ghost/filled swap on the remove button moved no named check
+  // before this, only the surface hash that the next `--accept` absorbs. The small circular ghost at rest.
+  const REMOVE_AT = { appearance: 'ghost', size: 'small', shape: 'circular', surface: 'default', state: 'rest' };
+  const removeAt = (remove?.nesting as { variant?: Record<string, string> } | undefined)?.variant ?? {};
+  ok(Object.keys(REMOVE_AT).length === Object.keys(removeAt).length && Object.entries(REMOVE_AT).every(([k, v]) => removeAt[k] === v),
+    `tag: the remove button nests IconButton.Neutral at ${JSON.stringify(REMOVE_AT)} (got ${JSON.stringify(removeAt)})`);
   const aria = tagDef.accessibility.aria;
   ok(/Name the remove button "Remove" followed by the label \("Remove Marketing"\)/.test(aria) && /Never a bare "Remove" or "×"/.test(aria),
     'tag aria: the remove button is named "Remove" followed by the label, never a bare "Remove" or "×"');
@@ -4902,15 +4908,17 @@ for (const b of brands) {
     ['nb', nbTheme()],
     ['aurora', brandTheme(exampleBrands()['aurora'] as BrandInput)],
     ['harbor', brandTheme(exampleBrands()['harbor'] as BrandInput)],
+    ['prism3', brandTheme(exampleBrands()['prism3'] as BrandInput)],
   ];
+  const TAG_CELLS = 16;
   const PAIRS: [string, string, string, number][] = [
     ['selected label on its fill', 'selected.label', 'selected.fill', 4.5],
     ['unselected label on the page', 'unselected.label', 'page', 4.5],
     ['unselected edge on the page', 'unselected.border', 'page', 3],
   ];
   for (const [what, inkKey, groundKey, floor] of PAIRS) {
-    const ink = tagDef.tokens[inkKey].replace(/^color\./, '');
-    const ground = groundKey === 'page' ? 'background.primary' : tagDef.tokens[groundKey].replace(/^color\./, '');
+    const ink = tagDef.tokens[inkKey]?.replace(/^color\./, '') ?? `(unbound ${inkKey})`;
+    const ground = groundKey === 'page' ? 'background.primary' : tagDef.tokens[groundKey]?.replace(/^color\./, '') ?? `(unbound ${groundKey})`;
     const low: string[] = [];
     let measured = 0;
     for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
@@ -4920,7 +4928,7 @@ for (const b of brands) {
       measured++;
       if (r < floor) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
     }
-    ok(measured > 0 && low.length === 0,
+    ok(measured === TAG_CELLS && low.length === 0,
       `tag contrast (${what}): ${ink} on ${ground} clears ${floor}:1 in all ${measured} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
   }
 }

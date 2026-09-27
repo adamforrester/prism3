@@ -61,7 +61,7 @@ export const tag: ComponentDef = {
     { name: 'onRemove', type: 'function', required: false, description: 'Called when a removable tag\'s remove button is pressed, or when Delete or Backspace is pressed on the focused tag. Its click does not also fire onClick.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An icon or avatar before the label, for recognition at a glance. Decorative: the label carries the name.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Tag height, padding and label type, on the same rungs as Button. Medium clears 44px on comfortable and spacious density, and is 36px at compact.' },
-    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Removes the tag from interaction and dims it. To disable every tag in a group, hide the group instead.' },
+    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Removes the tag from interaction and dims it. Don\'t disable every tag in a group; hide the group instead.' },
     { name: 'readOnly', type: 'boolean', default: 'false', required: false, description: 'Keeps full visual weight but accepts no interaction, such as a filter the user cannot change. Distinct from disabled, which dims.' },
   ],
 

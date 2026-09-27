@@ -18,6 +18,11 @@
  *   2. COMPACT DENSITY — a compact-density brand is a deliberate dense/desktop mode, allowed below the
  *      floor. The exception is scoped to compact ALONE: comfortable and spacious are NOT exempt.
  *
+ * WHAT THIS DOES NOT MEASURE: a target NESTED inside a control. The gate reads each control's own box.
+ * Tag's remove button is the first such target — the small IconButton, 36px on comfortable, inside a 44px
+ * medium tag — and it is neither exception above. It is not passed by this gate so much as unseen by it;
+ * the owner's call and the gate change that follows are #1741.
+ *
  * `select` binds `size.md.min-height` = `max(size.md.height, 44)` (#1426/#1437); the field/row family
  * otherwise binds the size rung directly, which is 44px at the comfortable `md` and 56px at the spacious
  * `md`, so a control at its default size clears the floor on both densities.

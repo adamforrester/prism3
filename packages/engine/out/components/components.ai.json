@@ -4825,7 +4825,7 @@
           "type": "boolean",
           "default": "false",
           "required": false,
-          "description": "Removes the tag from interaction and dims it. To disable every tag in a group, hide the group instead."
+          "description": "Removes the tag from interaction and dims it. Don't disable every tag in a group; hide the group instead."
         },
         {
           "name": "readOnly",

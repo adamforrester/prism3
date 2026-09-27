@@ -55,7 +55,7 @@ Keep the label to one word where possible. Use the words the data or the user su
 | `onRemove` | function | — | no | Called when a removable tag's remove button is pressed, or when Delete or Backspace is pressed on the focused tag. Its click does not also fire onClick. |
 | `leadingIcon` | slot | — | no | An icon or avatar before the label, for recognition at a glance. Decorative: the label carries the name. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Tag height, padding and label type, on the same rungs as Button. Medium clears 44px on comfortable and spacious density, and is 36px at compact. |
-| `disabled` | boolean | `false` | no | Removes the tag from interaction and dims it. To disable every tag in a group, hide the group instead. |
+| `disabled` | boolean | `false` | no | Removes the tag from interaction and dims it. Don't disable every tag in a group; hide the group instead. |
 | `readOnly` | boolean | `false` | no | Keeps full visual weight but accepts no interaction, such as a filter the user cannot change. Distinct from disabled, which dims. |
 
 ## States
