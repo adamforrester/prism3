@@ -11589,8 +11589,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     // satisfy this (no `checked.fill.error`/`checked.indicator.error` key, so error falls back to the
     // interactive `checked.fill`/`checked.indicator`); this block LOCKS it. EXPECTED is the owner's decision;
     // ACTUAL is read off the emitted plan (host-facing), and the mutation adds the red-fill key the decision
-    // forbids and confirms the assertion flips BY NAME (docs/34). The rows nest these atoms, so this is the
-    // error appearance of both the radio row and the checkbox row.
+    // forbids and confirms the assertion flips BY NAME (docs/34). The row nests this atom, so this is the
+    // error appearance of the checkbox row. RADIO LEFT THIS LOOP in #1698 (decision 1): radio error is
+    // group-level only, so `radio-control` has no error member to read — the #1698 block pins that absence.
     {
       const errFind = (n: FigmaNodePlan, name: string): FigmaNodePlan | undefined =>
         n.name === name ? n : (n.children ?? []).map((c) => errFind(c, name)).find(Boolean);
@@ -11602,7 +11603,6 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
         // The checkbox's inner fill is the filled BOX (`control`, fill slot); the radio's is the inner DOT
         // (`dot`, indicator slot → `paints.fills`). The error border is the `control`'s stroke on both.
         { def: checkboxControl, fillPart: 'control', mutKey: 'checked.fill.error' },
-        { def: radioControl, fillPart: 'dot', mutKey: 'checked.indicator.error' },
       ] as { def: ComponentDef; fillPart: string; mutKey: string }[]) {
         const rest = memberAt(def, /selection=checked, size=medium, state=rest/);
         const error = memberAt(def, /selection=checked, size=medium, state=error/);
@@ -21229,14 +21229,14 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     `#1348 the radio ROW nests radio-control nest-exposed, exposing selection+state and following size (kind=${ctrl?.kind}, nests=${ctrl?.nests}, rel=${rel?.kind}, expose=[${rel?.expose?.join(', ')}], follow=[${rel?.follow?.join(', ')}])`);
 
   // (2) THE MEMBER COLLAPSE, a multiply INDEPENDENT of the enumeration. The Row is size-only; the atom
-  // carries selection×size×state. 36 → 3.
+  // carries selection×size×state. 36 → 3 at #1348; the atom is 30 since #1698 dropped its error column.
   const rowN = figmaAnatomySet(radioRow).length;
   const ctlN = figmaAnatomySet(rc).length;
   const ctlProduct = rc.variants!.selection!.length * rc.variants!.size!.length * rc.figmaProperties!.stateAxis!.values.length;
   ok(rowN === radioRow.variants!.size!.length && rowN === 3,
-    `#1348 the radio ROW projects SIZE-ONLY — ${rowN} members (its one axis), the 36→3 collapse against the atom's set`);
-  ok(ctlN === ctlProduct && ctlProduct === 36,
-    `#1348 radio-control carries the 36 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
+    `#1348 the radio ROW projects SIZE-ONLY — ${rowN} members (its one axis), the collapse against the atom's set`);
+  ok(ctlN === ctlProduct && ctlProduct === 30,
+    `#1348 radio-control carries the 30 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN} (36 before #1698 dropped the error column)`);
 
   // (3) THE PRISM 2 VISUAL — CONSTANT-WEIGHT OUTLINED RING + INNER CIRCLE ON SELECT (#1348 point 2), read
   // four ways, each independent of the producer. Since #1423 the ring RECOLORS on select (constant WEIGHT,
@@ -21329,6 +21329,52 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(rc.tokens['radius'] === 'radius.round' && rc.anatomy!.parts.control.radius === 'radius'
      && rc.anatomy!.parts.focusRing?.nests === 'focus-ring',
     `#1348 radio-control's control is a FULL-ROUND host (radius→${rc.tokens['radius']}) nesting focus-ring, so F2/#1388 yields a CIRCULAR focus ring by construction — confirmed, not re-derived`);
+}
+
+// ---- #1698: CHECKBOX + RADIO ALIGNMENT — the two gateable decisions, pinned by literal ------------------
+//
+// Decision 1: radio error is GROUP-level only (brief §4: "error | group-level only, never per-option"), so
+// `radio-control` carries no `error` state, no error ring binding and no error member, and `radio-row`
+// declares no `error` state. Decision 2: `radio-group`'s `name` is required (brief §15: `{name: name, ...,
+// required: true}`). EXPECTED is written here from the brief, never read off a def (docs/34 shape 1); ACTUAL
+// is the def and the projected set. Each arm carries its own mutation, so the assertion is shown to fail by
+// name against a def that has the forbidden shape.
+{
+  const rc = componentDefs.find((d) => d.id === 'radio-control')!;
+  const rrow = componentDefs.find((d) => d.id === 'radio-row')!;
+  const rgrp = componentDefs.find((d) => d.id === 'radio-group')!;
+  const errorShape = (d: ComponentDef): string[] => [
+    ...(d.states ?? []).filter((st) => st === 'error').map(() => 'states has error'),
+    ...(d.figmaProperties?.stateAxis?.values ?? []).filter((v) => v === 'error').map(() => 'stateAxis has error'),
+    ...Object.keys(d.tokens ?? {}).filter((k) => k.split('.').includes('error')).map((k) => `token ${k}`),
+    ...figmaAnatomySet(d).map(planComponentName).filter((n) => /state=error/.test(n)).map((n) => `member ${n}`),
+  ];
+  // (1a) the atom has no per-option error in any of the four places it could live.
+  const rcErr = errorShape(rc);
+  ok(rcErr.length === 0,
+    `#1698 radio-control has NO per-option error — no error state, no error ring binding, no error member (found: ${rcErr.slice(0, 4).join('; ') || 'none'})`);
+  // (1b) the option row declares no error state either (its Figma set is size-only, so the state list is
+  // the code projection's — a row `error` here would promise a per-option error the control cannot draw).
+  ok(!(rrow.states ?? []).includes('error'),
+    `#1698 radio-row declares no error state — radio error is group-level (states: ${(rrow.states ?? []).join(', ')})`);
+  // (1c) the family difference is deliberate: an isolated checkbox recolors its own boundary (brief
+  // checkbox §4), so checkbox-control KEEPS its error ring. Guards against a sweep that drops both.
+  ok(checkboxControl.states.includes('error') && checkboxControl.tokens['unchecked.border.error'] === 'color.border.danger',
+    `#1698 checkbox-control keeps its error ring — only radio error is group-level (states: ${checkboxControl.states.join(', ')}, unchecked.border.error=${checkboxControl.tokens['unchecked.border.error']})`);
+  //   MUTATION (1a) — restore the pre-#1698 danger ring on the unchecked option.
+  const mutRc = { ...rc, tokens: { ...rc.tokens, 'unchecked.border.error': 'color.border.danger' } } as ComponentDef;
+  ok(errorShape(mutRc).includes('token unchecked.border.error'),
+    `#1698 MUTATION: a restored unchecked.border.error is found by the per-option error scan — arm (1a) reads the def's live tokens`);
+  //   MUTATION (1a) — restore the error state and its column.
+  const mutRcState = { ...rc, states: [...rc.states, 'error'],
+    figmaProperties: { ...rc.figmaProperties!, stateAxis: { ...rc.figmaProperties!.stateAxis!, values: [...rc.figmaProperties!.stateAxis!.values, 'error'] } } } as ComponentDef;
+  const mutStateErr = errorShape(mutRcState);
+  ok(mutStateErr.includes('states has error') && mutStateErr.some((e) => e.startsWith('member ')),
+    `#1698 MUTATION: a restored error state projects error members the scan finds (${mutStateErr.filter((e) => e.startsWith('member ')).length} members)`);
+  // (2) the group's shared name is required — the literal the brief states.
+  const nameProp = rgrp.props.find((pr) => pr.name === 'name');
+  ok(nameProp?.required === true,
+    `#1698 radio-group's name prop is required — it is what makes the set exclusive (required=${String(nameProp?.required)})`);
 }
 
 // ---- #1039: MATERIALIZATION RENAMES — check 2, and the table that proves check 1's shape ----------

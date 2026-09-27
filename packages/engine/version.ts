@@ -2926,6 +2926,18 @@
  * Emitted `$description`/`meaning` prose moves in every brand's `out/**` → ENGINE bump. CONTRACT STANDS
  * at 10.3.0 (no token name or component member moves; `token-contract --check` level `none`).
  *
+ * 0.178.0 — #1698: the checkbox and radio families aligned to their briefs. The projected surface moves in
+ * two ways. `radio-control` drops its per-option error (owner-delegated decision 1): no `error` state, no
+ * `unchecked.border.error` / `checked.border.error`, so its set goes 36 → 30 members and `radio-row` stops
+ * declaring `error` (its code-projection grid 21 → 18). And all six defs changed `codeOnly` or a part note
+ * (the RTL / text-expansion entries; the glyph and dot notes now point at the new `motion` field), which
+ * moves the plan digest of the other five at the same member count. The rest
+ * is def metadata a consumer reads through the bundle: `motion` on all six, `radio-group`'s `name` now
+ * required (decision 2), `checkbox-row` gains the `description` prop, WCAG entries reworded as intent where
+ * the def does not meet them, group terms moved from rows to groups, `composesWith` listing only what a def
+ * nests. No emitted token moves, so `out/**` restamps only. CONTRACT STANDS at 13.1.0: a component id,
+ * prop or state is not a guaranteed token name (`token-contract --check` level `none`).
+ *
  * 0.177.0 — the spinner carries its KB brief forward to the def standard, with the owner's decisions of
  * 2026-09-27. Two shipped behavior changes: (1) the DEFAULT ANNOUNCEMENT — `label` defaults to "Loading" and a
  * standalone spinner is a polite `role="status"`; a host that announces its own busy state (Button /
@@ -3876,7 +3888,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.177.0';
+export const ENGINE_VERSION = '0.178.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
