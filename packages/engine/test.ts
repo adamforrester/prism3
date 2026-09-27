@@ -14495,6 +14495,10 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
       const wantH = Math.max(...ms.map((m) => m.y + m.height)) - Math.min(...ms.map((m) => m.y)) + 48;
       const problems: string[] = [];
       if (inside.length) problems.push(`${inside.length} member(s) inside the 24px padding: ${inside.slice(0, 3).join(', ')}`);
+      // Exactly 24 on the top and left too (#1731 net): with members at 30 and the set grown by 48, the right edge
+      // would carry only 18 — every side is 24 only when the smallest x and y are exactly 24.
+      const minX = Math.min(...ms.map((m) => m.x)), minY = Math.min(...ms.map((m) => m.y));
+      if (Math.abs(minX - 24) > 0.5 || Math.abs(minY - 24) > 0.5) problems.push(`grid starts at ${minX},${minY}, want exactly 24,24`);
       if (Math.abs((set.width as number) - wantW) > 0.5 || Math.abs((set.height as number) - wantH) > 0.5)
         problems.push(`set ${set.width}×${set.height}, want ${wantW}×${wantH} (members' extent + 48)`);
       return problems;

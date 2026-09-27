@@ -754,6 +754,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const wantW = right - left + 48, wantH = bottom - top + 48;
     const problems: string[] = [];
     if (inside.length) problems.push(`members inside the 24px padding: ${inside.slice(0, 3).join(', ')}`);
+    if (Math.abs(left - 24) > 0.5 || Math.abs(top - 24) > 0.5) problems.push(`grid starts at ${left},${top}, want exactly 24,24 (#1731 net: equal padding on every side)`);
     if (Math.abs(set.width - wantW) > 0.5 || Math.abs(set.height - wantH) > 0.5) problems.push(`set ${set.width}×${set.height}, want ${wantW}×${wantH} (members' extent + 48)`);
     if (problems.length) off.push(`${def.id}: ${problems.join('; ')}`);
   }
