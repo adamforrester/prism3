@@ -86,7 +86,7 @@
  * Compiled under `tsconfig.main.json` — has `figma.*`, NO `document`. Like `write-figma.ts`, the delete
  * surface is declared as a minimal port so the executor is drivable against an in-memory shim.
  */
-import { orphansOf, strandedCollections, claimModes } from './write-figma';
+import { orphansOf, strandedCollections, claimModes, plannedModeNames, stampPlannedModes } from './write-figma';
 import type { VarMode } from './write-figma';
 import { rootOf } from '@prism3/engine/figma-names';
 
@@ -408,6 +408,10 @@ export interface RemovableCollection {
   modes: VarMode[];
   removeMode(modeId: string): void;
   remove(): void;
+  /** The collection's planned-modes record (#1704), which a removed mode must leave too. Optional, as on the
+   *  write port: a shim with no shared data exercises the absent path. */
+  getSharedPluginData?(namespace: string, key: string): string;
+  setSharedPluginData?(namespace: string, key: string, value: string): void;
 }
 export interface RemovableStyle {
   name: string;
@@ -489,11 +493,18 @@ export const applyPrunePlan = async (plan: PrunePlan, api: PruneApi): Promise<Pr
       for (const m of grp.modes) misses.push(`mode:${grp.collection}/${m.name}`);
       continue;
     }
+    const removed: string[] = [];
     for (const m of grp.modes) {
       if (!coll.modes.some((x) => x.modeId === m.modeId)) { misses.push(`mode:${grp.collection}/${m.name}`); continue; }
       coll.removeMode(m.modeId);
+      removed.push(m.name);
       modesRemoved++;
     }
+    // A pruned mode leaves the collection's planned-modes record too (#1704): the prune plan is built from the
+    // knobs, which need not have been applied, so a mode the last apply planned can be removed here — and a
+    // record still naming it would make the boot read-back report a missing mode the designer chose to remove.
+    const planned = plannedModeNames(coll);
+    if (planned && removed.length) stampPlannedModes(coll, planned.filter((n) => !removed.includes(n)));
   }
 
   // Stranded collections — the whole collection, its variables with it.

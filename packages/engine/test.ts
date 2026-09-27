@@ -3070,7 +3070,7 @@ for (const b of brands) {
     })),
   });
 
-  const good = verifyReadback(snapFrom(plan.color.aliases));
+  const good = verifyReadback(snapFrom(plan.color.aliases), { skipped: 'not under test in this arm' });
   ok(good.ok, 'read-back: a faithful NB read passes every contract check' + (good.ok ? '' : ` — ${Object.entries(good.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
   ok(good.checks.modesDistinct, 'read-back: background/primary distinct per mode (collapse-guard holds)');
   ok(good.checks.aliasesResolve && good.details.danglingAliases.length === 0, 'read-back: every alias target resolves (0 dangling)');
@@ -3093,7 +3093,7 @@ for (const b of brands) {
   const collapsed = plan.color.aliases.map((r) =>
     r.name === nbVar('color/background/primary') ? { ...r, targetsByMode: r.targetsByMode.map(() => r.targetsByMode[0]) } : r,
   );
-  const bad = verifyReadback(snapFrom(collapsed));
+  const bad = verifyReadback(snapFrom(collapsed), { skipped: 'not under test in this arm' });
   ok(!bad.checks.modesDistinct && !bad.ok, 'read-back: collapsed background/primary FAILS modesDistinct (negative — the collapse guard bites)');
 }
 
@@ -3118,15 +3118,52 @@ for (const b of brands) {
       .filter((c) => !(dropProbe && tailOf(c.name) === 'color/background/primary')),
   });
   ok(plan.color.modes.length === 1, `read-back single-mode: the fixture really is single-mode (${plan.color.modes.join('/')})`);
-  const one = verifyReadback(snapOf(false));
+  const one = verifyReadback(snapOf(false), { skipped: 'not under test in this arm' });
   ok(one.checks.modesDistinct, 'read-back single-mode: modesDistinct PASSES — one mode has nothing to collapse (#1662)');
   ok(one.ok, 'read-back single-mode: a faithful single-mode read passes every contract check' + (one.ok ? '' : ` — ${Object.entries(one.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
-  const unbound = verifyReadback(snapOf(true));
+  const unbound = verifyReadback(snapOf(true), { skipped: 'not under test in this arm' });
   ok(!unbound.checks.modesDistinct, 'read-back single-mode: background/primary ABSENT still FAILS modesDistinct (the vacuous pass is not "unchecked")');
   // #1691 net — a LITERAL probe (color-create ran, color-aliases did not) is not bound to the palette. A
   // multi-mode file whose probe is literal in every mode fails; a single-mode one must fail too.
-  const literal = verifyReadback(snapOf(false, true));
+  const literal = verifyReadback(snapOf(false, true), { skipped: 'not under test in this arm' });
   ok(!literal.checks.modesDistinct, 'read-back single-mode: a LITERAL background/primary (aliases never pasted) still FAILS modesDistinct — bound means aliased');
+
+  // DECLARED MODES (#1662 follow-up, owner decision 2026-09-27). The single-mode check above verifies what the
+  // file holds; it cannot tell a `modes: ['light']` brand from a light/dark brand whose `dark` never landed
+  // (`addMode` refused on a plan tier's mode cap). The saved brand's declared set is the second input, and the
+  // expected values below are WRITTEN, not read off the plan or the snapshot — the file here holds `light`.
+  ok(JSON.stringify(plan.color.modes) === '["light"]', 'read-back declared modes: the fixture file holds exactly light');
+  const missingDark = verifyReadback(snapOf(false), { modes: ['light', 'dark'] });
+  ok(missingDark.declaredModes.status === 'fail' && JSON.stringify(missingDark.declaredModes.missing) === '["dark"]' && !missingDark.ok,
+    `read-back declared modes: declared light/dark, file holds light → FAILS naming dark (${JSON.stringify(missingDark.declaredModes)})`);
+  ok(Object.values(missingDark.checks).every(Boolean),
+    'read-back declared modes: ...and every other check still passes, so the failure is the mode comparison alone');
+  const lightOnly = verifyReadback(snapOf(false), { modes: ['light'] });
+  ok(lightOnly.declaredModes.status === 'pass' && lightOnly.ok,
+    `read-back declared modes: declared light, file holds light → passes (${JSON.stringify(lightOnly.declaredModes)})`);
+  const noBrand = verifyReadback(snapOf(false), { skipped: 'no saved brand in this file' });
+  ok(noBrand.declaredModes.status === 'skipped' && noBrand.declaredModes.reason === 'no saved brand in this file',
+    `read-back declared modes: no brand → SKIPPED with the reason stated, not passed (${JSON.stringify(noBrand.declaredModes)})`);
+  // An EXTRA mode in the file is reported, never failed: it may be one the designer added.
+  const withExtra = verifyReadback({ ...snapOf(false), collections: [{ name: 'core', modes: ['Default'] }, { name: 'color', modes: ['light', 'brand-x'] }] }, { modes: ['light'] });
+  ok(withExtra.declaredModes.status === 'pass' && JSON.stringify(withExtra.declaredModes.extra) === '["brand-x"]',
+    `read-back declared modes: a mode in the file the brand does not declare is REPORTED, not failed (${JSON.stringify(withExtra.declaredModes)})`);
+
+  // PLANNED MODES (#1704 net). The file's own per-collection record of what the last apply planned, against
+  // what each collection holds. The records below are WRITTEN; the file's modes are the fixture's `light`.
+  const withPlan = (modesPlanned: Record<string, string[]>) => verifyReadback({ ...snapOf(false), modesPlanned }, { skipped: 'not under test in this arm' });
+  const cappedLayout = withPlan({ color: ['light'], layout: ['xs', 'sm', 'md', 'lg', 'xl', '2xl'] });
+  ok(cappedLayout.plannedModes.status === 'fail' && JSON.stringify(cappedLayout.plannedModes.missing) === '[{"collection":"layout","modes":["xs","sm","md","lg","xl","2xl"]}]' && !cappedLayout.ok,
+    `read-back planned modes: a recorded collection the file lacks FAILS with every planned mode named (${JSON.stringify(cappedLayout.plannedModes)})`);
+  const cappedColor = withPlan({ color: ['light', 'dark'] });
+  ok(cappedColor.plannedModes.status === 'fail' && JSON.stringify(cappedColor.plannedModes.missing) === '[{"collection":"color","modes":["dark"]}]' && !cappedColor.ok,
+    `read-back planned modes: color planned light/dark, file holds light → FAILS naming color dark (${JSON.stringify(cappedColor.plannedModes)})`);
+  const landed = withPlan({ core: ['Default'], color: ['light'] });
+  ok(landed.plannedModes.status === 'pass' && landed.ok,
+    `read-back planned modes: every recorded plan landed → passes (${JSON.stringify(landed.plannedModes)})`);
+  const noRecord = verifyReadback(snapOf(false), { skipped: 'not under test in this arm' });
+  ok(noRecord.plannedModes.status === 'none' && noRecord.ok,
+    `read-back planned modes: no record → none, not pass (${JSON.stringify(noRecord.plannedModes)})`);
 }
 
 // BrandInput PERSISTENCE (#131, #480): the shared-data round-trip + version guard. A persisted
@@ -4633,8 +4670,38 @@ for (const b of brands) {
   const codeOnly = spinner.anatomy!.codeOnly.join('\n');
   ok(/motion\.duration\.spin/.test(spinner.motion?.reduceMotion ?? '') && /motion\.duration-reduced\.spin/.test(spinner.motion?.reduceMotion ?? '') && /\b800ms\b/.test(spinner.motion?.reduceMotion ?? '') && /\b2600ms\b/.test(spinner.motion?.reduceMotion ?? ''),
     '#1670 spinner: the motion field names both turn tokens and their values');
-  ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly) && /aria-hidden="true"/.test(codeOnly),
-    '#1670 spinner: the code rule spins linear and infinite, slows under prefers-reduced-motion, and is aria-hidden by default');
+  ok(/linear infinite/.test(codeOnly) && /prefers-reduced-motion: reduce/.test(codeOnly) && /--motion-duration-reduced-spin/.test(codeOnly),
+    '#1670 spinner: the code rule spins linear and infinite and slows under prefers-reduced-motion');
+
+  // ---- THE OWNER'S DECISIONS OF 2026-09-27 (the brief carry-forward) ----------------------------------------
+  // Expectations written here, from the decisions, not read back from the def: the label defaults to the literal
+  // "Loading"; a standalone spinner is a polite status that never carries a value; the embedding hosts hide it
+  // with the standard attribute; the enter fade names `motion.duration.fast`, which must exist in a built tree.
+  // No 2.2.2 / 2.3.3 claim (owner, 2026-09-26): the reduced-motion turn is slowed, not stopped, so neither is claimed.
+  ok(!(spinner.accessibility.wcag ?? []).some((w) => /^2\.2\.2\b|^2\.3\.3\b/.test(w)),
+    `spinner 2026-09-26: accessibility.wcag claims neither 2.2.2 nor 2.3.3 (${JSON.stringify((spinner.accessibility.wcag ?? []).map((w) => w.split(' ')[0]))})`);
+  const labelProp = spinner.props.find((p) => p.name === 'label');
+  ok(labelProp?.default === 'Loading' && /role="status"/.test(labelProp.description) && /aria-hidden="true"/.test(labelProp.description),
+    `spinner 2026-09-27: the label defaults to "Loading" on the role="status" wrapper, and a host opts out with aria-hidden="true" (${JSON.stringify(labelProp?.default)})`);
+  const aria = spinner.accessibility.aria ?? '';
+  ok(/aria-live="polite"/.test(aria) && /Never `aria-valuenow` and never `role="progressbar"`/.test(aria) && /aria-hidden="true"/.test(aria),
+    'spinner 2026-09-27: accessibility.aria states the polite status, the host opt-out, and the no-value contract (never aria-valuenow, never role=progressbar)');
+  ok(/aria-hidden="true"/.test(codeOnly) && /role="status"/.test(codeOnly) && /"Loading" by default/.test(codeOnly),
+    'spinner 2026-09-27: the code rule is a role="status" wrapper named "Loading" by default, hidden by an announcing host with aria-hidden="true"');
+  for (const def of [button, iconButton]) {
+    ok(/aria-hidden="true" on the embedded spinner/.test(def.accessibility.aria ?? ''),
+      `spinner 2026-09-27: ${def.id}'s accessibility.aria hides its embedded spinner (aria-hidden="true"), so isPending announces once`);
+  }
+  const enterRole = /`motion\.duration\.([a-z-]+)`/.exec(spinner.motion?.enter ?? '')?.[1];
+  const builtMotion = buildTree(brandTheme({ id: 'spinfade', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as unknown as BrandInput)).tree.prism.motion;
+  ok(enterRole === 'fast' && builtMotion.duration.fast !== undefined && builtMotion['duration-reduced'].fast !== undefined && /motion\.duration-reduced\.fast/.test(spinner.motion?.reduceMotion ?? ''),
+    `spinner 2026-09-27: motion.enter is a fade on the existing motion.duration.fast, kept under reduced motion on its reduced twin (enter binds ${enterRole ?? 'nothing'})`);
+  const contested = (spinner.notes?.contested ?? []).join('\n');
+  const deferred = ['labelPosition', 'staticColor', 'OVERLAY / MASK', '`spinning` PROP'].filter((k) => !contested.split('\n').some((line) => line.includes(k) && line.includes('deferred by owner (2026-09-27)')));
+  ok(deferred.length === 0 && /END STATE — declined by owner \(2026-09-27\)/.test(contested),
+    `spinner 2026-09-27: each deferred item is a contested entry marked deferred by owner, and the end state declined${deferred.length ? ` — missing: ${deferred.join(', ')}` : ''}`);
+  ok(!spinner.props.some((p) => ['labelPosition', 'staticColor', 'spinning', 'delay'].includes(p.name)),
+    'spinner 2026-09-27: none of the deferred or host-owned props (labelPosition, staticColor, spinning, delay) is declared');
 }
 
 {

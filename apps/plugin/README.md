@@ -56,7 +56,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
   Reads `core-palette` + `color` back into the engine's host-neutral `ReadbackSnapshot`
   (`../../packages/engine/read-back.ts`), resolving each alias to its target variable NAME. Uses the same
   async getters, and shares the `VariablesApi` port with the write executor.
-- ✅ **`verifyReadback(snapshot)`** (pure, engine) — ports the `materialise-to-figma` verify contract:
+- ✅ **`verifyReadback(snapshot, declared)`** (pure, engine) — ports the `materialise-to-figma` verify contract:
   modes distinct (collapse-guard), aliases resolve, slot scopes, field family present, retired/renamed
   roles absent, bare `foreground/danger` present, primitives hidden. A live health-check for a themed file.
 - ✅ **Bridge + trigger** — `read-theme` / `read-result`; a "Read current file" button. The snapshot

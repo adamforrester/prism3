@@ -25,6 +25,7 @@
 import type { ReadbackSnapshot, ReadValue } from '@prism3/engine/read-back';
 import { axisSource, inAxis } from '@prism3/engine/figma-names';
 import type { VariablesApi, VariableAlias, AliasWithOpacity, ReadVarValue } from './write-figma';
+import { plannedModeNames } from './write-figma';
 
 /** The minimal styles-read surface (shadow/gradient + typography lanes) — the style-name getters.
  *  `figma` structurally satisfies it; passing it is optional so the colour/FLOAT read stays standalone.
@@ -179,10 +180,18 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
     if (styles.getLocalTextStylesAsync) textStyles = (await styles.getLocalTextStylesAsync()).map((s) => s.name);
   }
 
+  const modesPlanned: Record<string, string[]> = {};
+  for (const c of collections) {
+    const planned = plannedModeNames(c);
+    if (planned) modesPlanned[c.name] = planned;
+  }
+
   return {
     collections: collections.map((c) => ({ name: c.name, modes: c.modes.map((m) => m.name) })),
     palette,
     color,
+    // What each collection's last apply PLANNED (#1704) — absent on a file no stamped apply has touched.
+    ...(Object.keys(modesPlanned).length ? { modesPlanned } : {}),
     ...(Object.keys(float).length ? { float } : {}),
     ...(Object.keys(font).length ? { font } : {}),
     ...(stylesSnap ? { styles: stylesSnap } : {}),
