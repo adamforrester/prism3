@@ -6,7 +6,7 @@
  *
  * The write→read round-trip is the whole point: `applyWritePlan(plan)` materialises the NB colour
  * variables into the shim, then `readFigmaVariables(shim)` reads them back into a `ReadbackSnapshot`,
- * and `verifyReadback(snap)` checks the materialisation contract holds on what was actually written.
+ * and `verifyReadback(snap, declared)` checks the materialisation contract holds on what was actually written.
  * Asserts the snapshot round-trips (colour var count + alias targets match the plan) and every
  * contract check passes. Mirrors `test-write.ts`'s shim + dependency-free `ok(...)` style.
  */
@@ -363,7 +363,7 @@ ok(stopsOf(runForeign).length > 0 && stopsOf(runForeign).every((n) => n.startsWi
   };
 
   // No saved brand → skipped, and the pill says why.
-  const none = verifyReadback(fileSnap, declaredModesOf(root));
+  const none = verifyReadback(fileSnap, declaredModesOf(root, fileSnap));
   ok(none.declaredModes.status === 'skipped' && none.ok
     && seedSummary(none) === `Existing theme: ${fileSnap.color.length} color vars, modes light — contract holds ✓ · mode check skipped — no saved brand in this file`,
     `declared modes: no saved brand → skipped, reason in the pill ("${seedSummary(none)}")`);
@@ -371,31 +371,84 @@ ok(stopsOf(runForeign).length > 0 && stopsOf(runForeign).every((n) => n.startsWi
 
   // A stored blob this build refuses (#480) → skipped with its own reason, not "no saved brand".
   root.setSharedPluginData('prism3', 'brandInput', '{"not":"a brand"}');
-  const unreadable = verifyReadback(fileSnap, declaredModesOf(root));
+  const unreadable = verifyReadback(fileSnap, declaredModesOf(root, fileSnap));
   ok(unreadable.declaredModes.status === 'skipped' && unreadable.declaredModes.reason === SKIP_UNREADABLE
     && SKIP_UNREADABLE === 'the saved brand could not be read',
     `declared modes: an unreadable saved brand → skipped, reason "${unreadable.declaredModes.status === 'skipped' ? unreadable.declaredModes.reason : '—'}"`);
 
   // The saved brand declares four modes; the file holds light → FAILS, naming the three that never landed.
   persistInput(root, auroraInput0());
-  const capped = verifyReadback(fileSnap, declaredModesOf(root));
+  const capped = verifyReadback(fileSnap, declaredModesOf(root, fileSnap));
   ok(capped.declaredModes.status === 'fail' && JSON.stringify(capped.declaredModes.missing) === '["dark","hc-light","hc-dark"]' && !capped.ok,
     `declared modes: saved brand declares light/dark/hc-light/hc-dark, file holds light → FAILS naming the missing modes (${JSON.stringify(capped.declaredModes)})`);
-  ok(seedSummary(capped) === `Existing theme: ${fileSnap.color.length} color vars, modes light — FAILED: declaredModes · saved brand declares dark/hc-light/hc-dark, not in this file`,
+  ok(seedSummary(capped) === `Existing theme: ${fileSnap.color.length} color vars, modes light — FAILED: declaredModes · the last apply declared dark/hc-light/hc-dark, not in this file`,
     `declared modes: the pill names the missing modes ("${seedSummary(capped)}")`);
 
   // The saved brand declares light only; the file holds light → passes.
   persistInput(root, { ...auroraInput0(), modes: ['light'] });
-  const match = verifyReadback(fileSnap, declaredModesOf(root));
+  const match = verifyReadback(fileSnap, declaredModesOf(root, fileSnap));
   ok(match.declaredModes.status === 'pass' && match.ok
     && seedSummary(match) === `Existing theme: ${fileSnap.color.length} color vars, modes light — contract holds ✓`,
     `declared modes: saved brand declares light, file holds light → passes ("${seedSummary(match)}")`);
 
   // An extra mode in the file is reported, not failed.
   const extraSnap = { ...fileSnap, collections: fileSnap.collections.map((c) => c.name === 'color' ? { ...c, modes: [...c.modes, 'promo'] } : c) };
-  const extra = verifyReadback(extraSnap, declaredModesOf(root));
-  ok(extra.declaredModes.status === 'pass' && seedSummary(extra).endsWith(' · promo in this file, not declared by the saved brand'),
+  const extra = verifyReadback(extraSnap, declaredModesOf(root, extraSnap));
+  ok(extra.declaredModes.status === 'pass' && seedSummary(extra).endsWith(' · promo in this file, not declared by the last apply'),
     `declared modes: an extra file mode is reported, not failed ("${seedSummary(extra)}")`);
+}
+
+// ═══ THE CAPPED APPLY, END TO END (#1704 net) ═══════════════════════════════════════════════════════════════
+//
+// The block above persists a brand straight into shared-data; this one drives the path the owner's case takes.
+// A refused `addMode` THROWS out of the executor, so a real apply aborts before `persistInput` runs (#131 writes
+// the brand only after every executor returns) and the file keeps the PREVIOUS brand. Against that brand the
+// capped file reads a match — which is why the declared set comes first from the `color` collection's own
+// record of what the apply PLANNED, written before the first `addMode`. The shim collection here models the two
+// host behaviors that matter: shared plugin data on the collection, and an `addMode` refused past one mode.
+{
+  class CappedCollection extends ShimCollection {
+    private data = new Map<string, string>();
+    getSharedPluginData(ns: string, key: string): string { return this.data.get(`${ns}/${key}`) ?? ''; }
+    setSharedPluginData(ns: string, key: string, v: string): void { if (v) this.data.set(`${ns}/${key}`, v); else this.data.delete(`${ns}/${key}`); }
+    addMode(name: string): string { if (this.modes.length >= 1) throw new Error('in addMode: Limited to 1 modes only'); return super.addMode(name); }
+  }
+  class CappedVars extends VariablesShim {
+    private n = 0;
+    createVariableCollection(name: string): ShimCollection { const c = new CappedCollection(`k${++this.n}`, name); this.collections.push(c); return c; }
+  }
+  const vars = new CappedVars();
+  const store = new Map<string, string>();
+  const root = {
+    getSharedPluginData: (ns: string, key: string) => store.get(`${ns}/${key}`) ?? '',
+    setSharedPluginData: (ns: string, key: string, v: string) => { store.set(`${ns}/${key}`, v); },
+  };
+  // Apply 1 — a light-only brand lands, and (as a successful apply does) is persisted.
+  const lightOnly: BrandInput = { ...auroraInput0(), modes: ['light'] };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await applyWritePlan(buildWritePlan(buildFigmaColor(brandTheme(lightOnly))), vars as any);
+  persistInput(root, lightOnly);
+  // Apply 2 — the four-mode brand. The cap refuses `dark`; the executor throws, so nothing is persisted.
+  let threw = '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  try { await applyWritePlan(buildWritePlan(buildFigmaColor(brandTheme(auroraInput0()))), vars as any); } catch (e) { threw = (e as Error).message; }
+  ok(threw === 'in addMode: Limited to 1 modes only', `capped apply: the refused addMode aborts the executor ("${threw}")`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const snap = await readFigmaVariables(vars as any);
+  ok(JSON.stringify(snap.collections.find((c) => c.name === 'color')?.modes) === '["light"]',
+    `capped apply: the file holds light only (${JSON.stringify(snap.collections.find((c) => c.name === 'color')?.modes)})`);
+  ok(JSON.stringify(snap.colorModesPlanned) === '["light","dark","hc-light","hc-dark"]',
+    `capped apply: the color collection records what the aborted apply planned (${JSON.stringify(snap.colorModesPlanned)})`);
+  // Why the record is needed: the brand alone — still the light-only one — reads a match.
+  const brandOnly = verifyReadback(snap, declaredModesOf(root, {}));
+  ok(brandOnly.declaredModes.status === 'pass',
+    `capped apply: the saved brand alone reads a match (${brandOnly.declaredModes.status}), which is why it is the fallback, not the source`);
+  // The boot read-back as `seedFromFile` calls it — FAILS, naming the three modes that never landed.
+  const v = verifyReadback(snap, declaredModesOf(root, snap));
+  ok(v.declaredModes.status === 'fail' && JSON.stringify(v.declaredModes.missing) === '["dark","hc-light","hc-dark"]' && !v.ok,
+    `capped apply: the boot read-back FAILS naming dark/hc-light/hc-dark (${JSON.stringify(v.declaredModes)})`);
+  ok(seedSummary(v) === `Existing theme: ${snap.color.length} color vars, modes light — FAILED: declaredModes · the last apply declared dark/hc-light/hc-dark, not in this file`,
+    `capped apply: the pill names the missing modes ("${seedSummary(v)}")`);
 }
 
 console.log(`\nplugin read-back: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);

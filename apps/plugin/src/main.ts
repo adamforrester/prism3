@@ -814,7 +814,7 @@ const seedFromFile = async (sink: ActionSink): Promise<void> => {
     }
     // The saved brand's declared modes against the file's (#1662 follow-up): resolved here from the persisted
     // `BrandInput`, passed in so `verifyReadback` stays pure. No saved brand → skipped, with the reason stated.
-    const v = verifyReadback(snap, declaredModesOf(figma.root));
+    const v = verifyReadback(snap, declaredModesOf(figma.root, snap));
     const failed = failedChecks(v);
     const summary = seedSummary(v);
     // `present: true` regardless of `ok`: the variables ARE here, and whether the contract verified is

@@ -59,6 +59,11 @@ export type ReadbackSnapshot = {
   palette: { name: string; scopes: string[]; hidden: boolean }[];
   /** semantic colour roles — per-mode alias target name (or literal). */
   color: { name: string; scopes: string[]; valuesByMode: Record<string, ReadValue> }[];
+  /** The mode names the `color` collection's most recent apply PLANNED (#1704), read off the collection's own
+   *  record, which the plugin writes BEFORE its first `addMode`. Absent when no stamped apply has touched the
+   *  file. Carried here so the caller can resolve the declared set from the file; `verifyReadback` itself
+   *  does not read it — the declared set is still an argument. */
+  colorModesPlanned?: string[];
   /** FLOAT axes (#146) — the geometric/dimensional vars, keyed by AXIS
    *  (`core/dimension`/`space`/`radius`/`size`/`icon`/`border-width`/`focus`/`opacity`/`layout`). An axis
    *  key is a collection name, or `core/<group>` for one slice of the merged `core` collection — #1097
@@ -141,7 +146,8 @@ export type FloatReadbackVerdict = {
 const EXPECTED_FLOAT_AXES = ['core/dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity'];
 
 /** What the caller knows about the modes the saved brand declares (#1662 follow-up). The declared set is a BRAND
- *  fact and this module is pure, so the caller resolves it — from the `BrandInput` persisted in the file —
+ *  fact and this module is pure, so the caller resolves it — from the `color` collection's record of what the
+ *  last apply PLANNED (`colorModesPlanned`, #1704), else the `BrandInput` persisted in the file —
  *  and passes it in. `{ skipped }` carries the reason there is no set to compare, so the verdict can state
  *  it: "no saved brand" and "the saved brand could not be read" are different facts to a designer. */
 export type DeclaredModesInput = { modes: readonly string[] } | { skipped: string };

@@ -3130,7 +3130,9 @@ for (const b of brands) {
 
   // DECLARED MODES (#1662 follow-up, owner decision 2026-09-27). The single-mode check above verifies what the
   // file holds; it cannot tell a `modes: ['light']` brand from a light/dark brand whose `dark` never landed
-  // (`addMode` refused on a plan tier's mode cap). The saved brand's declared set is the second input, and the
+  // (`addMode` refused on a plan tier's mode cap). The declared set is the second input — resolved by the plugin
+  // from the collection's planned-modes record, else the saved brand (`seed-modes.ts`; the capped apply runs
+  // end to end in `apps/plugin/test-readback.ts`) — and the
   // expected values below are WRITTEN, not read off the plan or the snapshot — the file here holds `light`.
   ok(JSON.stringify(plan.color.modes) === '["light"]', 'read-back declared modes: the fixture file holds exactly light');
   const missingDark = verifyReadback(snapOf(false), { modes: ['light', 'dark'] });
