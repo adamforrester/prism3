@@ -7,6 +7,45 @@
 
 ---
 
+## (2026-09-27) — Figma widgets: capability grounding, and why the theming surface isn't one
+
+**Docs only — no code, no version bump.** `docs/18` gains `§8` + `§8a` and one `§7` bullet. Sourced from the
+current Figma Widget API docs (fetched 2026-09-27); nothing was tested in a live file, and the section says so.
+
+**The question was whether the theming plugin should be a widget**, on the hope that living on a page instead
+of in a modal would give a larger view. **It is the opposite**, for three reasons now recorded — but the one
+worth carrying is reason 3, because it is the `§4`/principle-5 argument wearing new clothes: *"widget
+rendering code won't be able to read and access data outside of the particular widget's state."* A widget
+cannot read the file's variables to display them, so it must mirror them into synced state, and the file then
+holds **two authorities for the theme**. Same defect class as a baseline allowed to rewrite what it reads.
+
+**The premise was also just wrong on size**, which is worth knowing before anyone re-asks: `showUI` from a
+widget *"creates a modal dialog with an `<iframe>`"* — the identical window — and the plugin already opens at
+1280×900 and persists the designer's resize (#144). There was no ceiling to escape.
+
+**`§8a` is the part that will save someone a day.** The strongest candidate use for a widget was **agent
+memory** — a durable, visible, in-file trace of what an agent found and changed, read back next session.
+Four separate API facts close it: a plugin *"cannot create WidgetNodes"*; `setWidgetSyncedState` *"only works
+inside of a widget"*; `widgetSyncedState` is *"only readable by widgets created by the same `manifest.id`"*;
+and `cloneWidget` overrides apply only within the same `manifest.id`. **A plugin's manifest id never matches a
+widget's, so widget synced state is unreachable from both write routes in `§4`.**
+
+**The approach tried and discarded**, since the diff cannot show it: `sharedPluginData` as the store (*"readable
+by any plugin"*, 100 kB per entry) with the widget as a read-only projection does work, and it inverts the
+mirror problem correctly — one authority, one viewer. It was still rejected, because a widget runs only on
+interaction, so the projection is **stale until clicked**, while a node board drawn by the plugin (the
+`applyComponentPlan` mechanism we already ship) is current as of the last write and needs no second published
+id. The widget buys buttons and costs a staleness class.
+
+**The trap for whoever revisits this:** `useStickable` reads like the obvious way to attach an annotation to a
+component instance, and it is *"only available in FigJam"*. Nothing in Figma Design can follow a node.
+
+**Nothing filed to build.** Owner's call, explicitly held: candidate uses were explored (drift sentinel,
+contract-delta notes, constraint cards, adoption board) and none became an issue. `§7`'s new bullet records
+that whether any widget ships is open while the theming-surface question is closed.
+
+---
+
 ## (2026-09-27) — Component alignment: support defs + schema-wide vocabulary and gates (#1700)
 
 **STATUS: PR open from `lane/align-support-vocabulary`, labeled DO NOT MERGE.** The last of the four alignment issues. `component-schema.ts`, every def under `components/` (headers; the support defs in substance), `test.ts`, `version.ts`, the two accepted baselines, and `out/**` by the version stamp. **ENGINE 0.181.0 → 0.182.0 (behind the page-header PR, which took 0.180.0)** (the orchestrator renumbers). **CONTRACT stands at 13.1.0** (`token-contract --check` level `none`, stamp-only accept). `lint-component-surface` re-accepted for icon, focus-ring and field-message only: diffed plan against plan, the only paths that moved are `codeOnly` entries (icon 1/3/5, focus-ring 2, field-message 1–3), at the same member counts.
