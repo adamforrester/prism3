@@ -14,7 +14,10 @@
  *   3. a SECOND build adds no second header, fills text that still reads the placeholder, and leaves a
  *      user-edited description alone;
  *   4. a header whose Size the user changed to Small stays Small — and keeps its width and position;
- *   5. with NO `_Section-header` set in the file, the header is skipped and reported, never thrown.
+ *   5. with NO `_Section-header` set in the file, the header is skipped and reported, never thrown;
+ *   6. a file whose set is named `_section-header` (lowercase s, as in both of the owner's NB files, measured
+ *      live 2026-09-27) gets its header placed, and a rebuild finds a header instanced from a lowercase
+ *      duplicate of the set rather than adding a second.
  *
  * INDEPENDENCE (docs/34): every expected value is a literal written here — the Medium hug height is the
  * SHIM's number (120), the gap is 80 from the owner's decision, the summaries are copied from
@@ -28,7 +31,14 @@
  *   - write the text without the placeholder check → "3: the user-edited description is left alone" fails;
  *   - reset the Size on a rebuild (`n.setProperties?.({ Size: 'Medium' })` in the present branch) →
  *     "4: the header the user set to Small stays Small" fails;
- *   - drop the missing-set guard → "5: no set: skipped, not thrown" fails.
+ *   - drop the missing-set guard → "5: no set: skipped, not thrown" fails;
+ *   - restore the exact-name set search (`n.name === SECTION_HEADER_SET` in `ensurePageHeader`) → "6: a
+ *     `_section-header` set gets a header placed", "6: exactly one header on the page" and "6: the result says
+ *     nothing about a missing header" fail;
+ *   - restore the exact-name parent check in `isHeaderMain` → "6: a header from a `_section-header` duplicate
+ *     counts as present; none added" fails.
+ *
+ * The shim's case-insensitive `headersOn` is its own comparison, written here — not `isTemplateSet`.
  */
 import { ensurePageHeader, pageHeaderCopy, pageHeaderNote, displayName } from './src/page-header';
 import type { HNode, HeaderPage, PageHeaderApi, HeaderCopy } from './src/page-header';
@@ -68,8 +78,8 @@ const textNode = (name: string, characters: string, style: string): ShimNode => 
 /** The `_Section-header` set: four variants, each able to instance itself. An instance's height is its
  *  main component's HUG height while `layoutSizingVertical` is HUG, else whatever `resize` last set. Its
  *  `setProperties({ Size })` swaps the main component, the way a designer's Size change does. */
-const makeHeaderSet = (id = 'set:hdr'): ShimNode => {
-  const set: ShimNode = { id, type: 'COMPONENT_SET', name: '_Section-header', children: [], parent: null };
+const makeHeaderSet = (id = 'set:hdr', name = '_Section-header'): ShimNode => {
+  const set: ShimNode = { id, type: 'COMPONENT_SET', name, children: [], parent: null };
   const variant = (size: string): ShimNode => {
     const v: ShimNode = { id: `v:${size}`, type: 'COMPONENT', name: `Size=${size}`, children: [], parent: set };
     const text: ShimNode = { type: 'FRAME', name: 'Text', children: [textNode('Title', 'Section header', 'Bold'), textNode('Description', 'Descriptive Text', 'Regular')], parent: v };
@@ -130,7 +140,7 @@ const headersOn = async (page: { children: readonly HNode[] }): Promise<ShimNode
   for (const n of page.children) {
     if (n.type !== 'INSTANCE') continue;
     const m = await n.getMainComponentAsync?.();
-    if (m?.parent?.name === '_Section-header') out.push(n as ShimNode);
+    if (m?.parent?.name?.toLowerCase() === '_section-header') out.push(n as ShimNode);
   }
   return out;
 };
@@ -272,6 +282,34 @@ console.log('5. no _Section-header set in the file');
   ok(note === '. No header on ↳ Buttons: this file has no _Section-header component, and Set up file adds it', `5: the build result says why and what adds it (got ${JSON.stringify(note)})`);
   ok(pageHeaderNote([]) === '', '5: no header outcome, no clause');
   ok(pageHeaderNote([{ page: '↳ Buttons', status: 'placed', x: 0, y: -200, width: 1500, written: ['Title', 'Description'], fontMisses: [] }]) === '. Header added to ↳ Buttons', '5: a placed header is named in the result');
+}
+
+// ── 6. The set's name in another case ────────────────────────────────────────────────────────────────
+console.log('6. a file whose header set is named _section-header');
+{
+  // Both of the owner's NB files name the set `_section-header` (measured live, 2026-09-27).
+  const set = makeHeaderSet('set:lower', '_section-header');
+  const { api } = makeApi([set]);
+  const page = makePage('↳ Veil', [{ name: 'Veil', x: 0, y: 0, width: 600, height: 300 }]);
+  const out = await ensurePageHeader(api, page, { title: 'Veil', description: 'x', primary: 'veil' });
+  ok(out.status === 'placed', `6: a \`_section-header\` set gets a header placed (got ${out.status}${out.status === 'skipped' ? ` / ${out.reason}` : ''})`);
+  ok((await headersOn(page)).length === 1, '6: exactly one header on the page');
+  const note = pageHeaderNote([out]);
+  ok(!note.includes('No header'), `6: the result says nothing about a missing header (got ${JSON.stringify(note)})`);
+
+  // A rebuild in a file holding BOTH cases: the set search finds `_Section-header` (set:a), and the page's
+  // header was instanced from a `_section-header` duplicate (set:b) — present by its set's name, so no second.
+  const upper = makeHeaderSet('set:a', '_Section-header');
+  const lower = makeHeaderSet('set:b', '_section-header');
+  const { api: api2 } = makeApi([upper, lower]);
+  const page2 = makePage('↳ Buttons', [{ name: 'Button', x: 0, y: 0, width: 1200, height: 800 }]);
+  const fromDup = lower.children.find((c) => c.name === 'Size=Medium')!.createInstance!();
+  fromDup.x = 0; fromDup.y = -300;
+  page2.appendChild(fromDup);
+  const again = await ensurePageHeader(api2, page2, BUTTON_COPY);
+  const instances = page2.children.filter((n) => n.type === 'INSTANCE').length;
+  ok(again.status === 'present' && instances === 1,
+    `6: a header from a \`_section-header\` duplicate counts as present; none added (got ${again.status}, ${instances} instances)`);
 }
 
 console.log(failures === 0 ? '\npage-header: all assertions pass' : `\npage-header: ${failures} FAILED`);

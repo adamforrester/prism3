@@ -22,7 +22,22 @@
  * FONTS ARE LOADED UP FRONT and a miss is REPORTED, never substituted silently (the #237 skip-with-warning
  * posture): a face this Figma lacks (e.g. "Inter Semi Bold") leaves the text in Figma's default face and
  * the run says which face was missing, rather than throwing mid-build.
+ *
+ * MATCHED BY NAME, IN ANY CASE (#1711 follow-up). Both of the owner's NB files carry the header set as
+ * `_section-header` (lowercase s), measured live on 2026-09-27. Every lookup of either set — the page
+ * header's set search and its main-component check, and file setup's "already built" check — goes through
+ * `isTemplateSet`, so a file keeps whatever case its sets have and is never given a second pair. The
+ * builder still names a NEW set in the case below; nothing renames an existing one.
  */
+
+/** The two template sets' names, as the builder writes them. Match with `isTemplateSet`, never `===`. */
+export const SECTION_HEADER_SET = '_Section-header';
+export const HEADINGS_SET = '_Headings';
+
+/** Is `name` the template set `set`, in any case? The ONE definition of the match — every site that looks
+ *  either set up by name calls this, so a file named `_section-header` is found everywhere or nowhere. */
+export const isTemplateSet = (name: unknown, set: string): boolean =>
+  typeof name === 'string' && name.toLowerCase() === set.toLowerCase();
 
 /** The minimal node surface the constructor writes to — every field OPTIONAL and `unknown`, spanning the
  *  frame/text/component types this file builds, so `ComponentNode`/`TextNode`/`FrameNode` all satisfy it
@@ -265,7 +280,7 @@ const buildSectionHeader = (
   });
 
   const set = api.combineAsVariants(members.map((m) => m.root), page);
-  set.name = '_Section-header';
+  set.name = SECTION_HEADER_SET;
   // `Description` boolean property (default true) toggles the Description node's visibility.
   const propId = set.addComponentProperty?.('Description', 'BOOLEAN', true);
   if (propId) for (const m of members) m.desc.componentPropertyReferences = { visible: propId };
@@ -340,7 +355,7 @@ const buildHeadings = (
   });
 
   const set = api.combineAsVariants(members.map((m) => m.root), page);
-  set.name = '_Headings';
+  set.name = HEADINGS_SET;
   const propId = set.addComponentProperty?.('Description', 'BOOLEAN', true);
   if (propId) for (const m of members) m.desc.componentPropertyReferences = { visible: propId };
   stackVariants(set, members.map((m) => m.root)); // #1600 — stack, don't overlap
@@ -363,10 +378,33 @@ export const buildFileComponents = async (
   }
   const built: string[] = [];
   const sh = buildSectionHeader(api, page, loaded, fontMisses);
-  built.push(String(sh.name ?? '_Section-header'));
+  built.push(String(sh.name ?? SECTION_HEADER_SET));
   const hd = buildHeadings(api, page, loaded, fontMisses);
-  built.push(String(hd.name ?? '_Headings'));
+  built.push(String(hd.name ?? HEADINGS_SET));
   // De-dupe the per-node font misses into one line per missing face.
   const uniqueMisses = [...new Set(fontMisses.map((m) => m.split(' unavailable')[0]))].filter((face) => !loaded.has(face)).map((face) => `${face} unavailable — used ${fontKey(REGULAR)}`);
   return { built, fontMisses: uniqueMisses };
+};
+
+/** The page file setup builds onto: a real `PageNode` satisfies it (`findOne` searches the whole page). */
+export interface FileComponentsPage {
+  appendChild(child: unknown): void;
+  findOne?(predicate: (node: unknown) => boolean): unknown;
+}
+
+/**
+ * File setup's IDEMPOTENT build: skip when the page already holds either template set, in any case, so a
+ * re-run does not stack a second `_Section-header`/`_Headings` beside the first — and a file whose set is
+ * `_section-header` is not given a second one beside it. Builds both otherwise.
+ */
+export const ensureFileComponents = async (
+  api: FileComponentsApi,
+  page: FileComponentsPage,
+): Promise<{ skipped: true } | ({ skipped: false } & FileComponentsResult)> => {
+  const already = page.findOne?.((node) => {
+    const n = node as { type?: unknown; name?: unknown };
+    return n.type === 'COMPONENT_SET' && (isTemplateSet(n.name, SECTION_HEADER_SET) || isTemplateSet(n.name, HEADINGS_SET));
+  });
+  if (already) return { skipped: true };
+  return { skipped: false, ...(await buildFileComponents(api, page)) };
 };
